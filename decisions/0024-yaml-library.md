@@ -59,8 +59,10 @@ wherever the new value has the same kind.
 
 ## Maintenance and dependencies
 
-`yaml` is maintained by Eemeli Aro, its single maintainer on npm, since
-2011 (105 published versions; a 3.0 line is in prerelease beside 2.x). The
+`yaml` is maintained by Eemeli Aro, its single maintainer on npm. His
+library starts at 1.0 in 2018; the 0.x versions published under the same
+name from 2011 were an unrelated package (105 versions are published under
+the name in all; a 3.0 line is in prerelease beside 2.x). The
 repository has about 1,700 stars and a test suite that runs the official
 YAML test suite. A single maintainer is a bus-factor risk; the 2.x line is
 mature and the exit cost is low (one module).
@@ -72,7 +74,7 @@ Registry metadata checked on 2026-10-12 (unpacked bytes):
 | `yaml` 2.9.1 | 2026-09-11 | ISC | 686,297 | none |
 
 What the editor bundle gains: the parts the inspector imports, built alone
-with Vite and minified, are 129,871 bytes (34,171 gzipped). The inspector loads it by a dynamic import the first time its format is chosen, so it sits in its own chunk of the built editor, 98.22 kB (30.77 kB gzipped), never in the main chunk.
+with Vite and minified, are 129,871 bytes (34,171 gzipped). The inspector loads it by a dynamic import the first time its format is chosen, so it sits in its own chunk of the built editor, 98.22 kB (30.77 kB gzipped), never in the main chunk. The schema package `@timetoalign/timetoshare` reads YAML manifests with the same library since its 0.2.0 (TimeToShare's own decision record), so the library is also part of the schema package's chunk, which the page loads at start; manifest files are imported in YAML through it, and the inspector's codec stays lazy.
 
 Primary sources: <https://registry.npmjs.org/yaml>,
 <https://github.com/eemeli/yaml>, <https://eemeli.org/yaml/>,

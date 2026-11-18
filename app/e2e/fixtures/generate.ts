@@ -39,10 +39,10 @@ const { SCHEMA_VERSION } = (await import(
 /** The manifest fixtures of that package's schema version. */
 const manifestDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 
-/** A manifest fixture by its path below `manifestDir`, without `.json` (`bare`, `groups/group_styled`). */
+/** A manifest fixture by its path below `manifestDir`, without `.yaml` (`bare`, `groups/group_styled`). */
 function manifest(name: string): Manifest {
-  const loaded = loadManifest(readFileSync(path.join(manifestDir, `${name}.json`), "utf8"));
-  if (isLoadError(loaded)) throw new Error(`${name}.json is refused: ${JSON.stringify(loaded)}`);
+  const loaded = loadManifest(readFileSync(path.join(manifestDir, `${name}.yaml`), "utf8"));
+  if (isLoadError(loaded)) throw new Error(`${name}.yaml is refused: ${JSON.stringify(loaded)}`);
   return loaded;
 }
 

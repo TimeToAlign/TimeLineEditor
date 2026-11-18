@@ -15,17 +15,17 @@ const ROOT = path.join(
 /** The end-to-end workspaces. */
 const E2E = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
 
-/** Every `*.json` below `directory` outside `skipped`, as its path below it without `.json`. */
-function jsonBelow(directory: string, skipped: readonly string[] = []): string[] {
+/** Every `*.yaml` below `directory` outside `skipped`, as its path below it without `.yaml`. */
+function yamlBelow(directory: string, skipped: readonly string[] = []): string[] {
   return readdirSync(directory, { recursive: true, encoding: "utf8" })
     .map((file) => file.split(path.sep).join("/"))
-    .filter((file) => file.endsWith(".json") && !skipped.some((top) => file.startsWith(`${top}/`)))
-    .map((file) => file.slice(0, -".json".length));
+    .filter((file) => file.endsWith(".yaml") && !skipped.some((top) => file.startsWith(`${top}/`)))
+    .map((file) => file.slice(0, -".yaml".length));
 }
 
 /** The manifest fixtures of the version, the warning cases and the workspaces, labelled as the menu labels them. */
-const manifests = jsonBelow(path.join(ROOT, SCHEMA_VERSION), ["drawings"]);
-const warnings = jsonBelow(path.join(ROOT, "warnings", SCHEMA_VERSION)).map(
+const manifests = yamlBelow(path.join(ROOT, SCHEMA_VERSION), ["drawings"]);
+const warnings = yamlBelow(path.join(ROOT, "warnings", SCHEMA_VERSION)).map(
   (name) => `warnings/${name}`,
 );
 const workspaces = readdirSync(E2E)

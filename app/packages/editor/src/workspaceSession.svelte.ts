@@ -25,8 +25,9 @@ import {
   importedManifest,
   isLoadError,
   JournalMismatchError,
-  loadManifest,
+  manifestFileOf,
   mintBlockId,
+  readManifestFile,
   readWorkspace,
   saveManifest,
   writeWorkspace,
@@ -35,6 +36,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Example } from "./examples.ts";
 import {
   MANIFEST_FILE,
+  manifestFileKind,
   manifestFileName,
   openFile,
   saveFile,
@@ -234,25 +236,28 @@ export class WorkspaceSession {
   }
 
   /**
-   * Add the manifest `text`, called `name` in messages, as one new block, its
-   * top-left at the centre of the view, moved right past every block it
-   * would overlap (`metrics` measure the drawings); the block is selected.
-   * A manifest without a `graphical` object is given its roots' default
+   * Add the manifest `text`, in any of TimeToShare's serializations and
+   * called `name` in messages, as one new block, its top-left at the centre
+   * of the view, moved right past every block it would overlap (`metrics`
+   * measure the drawings); the block is selected. How the text writes the
+   * manifest (its form, its styling, its serialization) becomes the block's
+   * manifest file in the settings, so Export writes it back as it came. A
+   * manifest without a `graphical` object is given its roots' default
    * timestamps (`importedManifest`). An editor changes only what it edits,
    * so every open editor is left first (Done), once the manifest is read;
    * the view the block is placed in is the one shown before, since leaving
    * moves the view back over a while.
    */
   #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): void {
-    const loaded = loadManifest(text);
-    if (isLoadError(loaded)) {
-      this.#options.warn(`${name} is not a manifest TimeLineEditor can import.`, loaded.problems);
+    const read = readManifestFile(text);
+    if (isLoadError(read)) {
+      this.#options.warn(`${name} is not a manifest TimeLineEditor can import.`, read.problems);
       return;
     }
     const visible = canvas.visible();
     while (this.store.editing.length > 0) this.store.done();
     const id = mintBlockId();
-    const manifest = importedManifest(loaded);
+    const manifest = importedManifest(read.manifest);
     const refusal = this.store.dispatch(
       addCommand(this.store.view, id, manifest, visible, metrics),
     );
@@ -260,6 +265,8 @@ export class WorkspaceSession {
       this.#options.warn(`${name} could not be added.`, [refusal]);
       return;
     }
+    const configured = this.store.configure({ manifests: { [id]: read.file } });
+    if (configured !== null) throw new Error(`a manifest file is refused: ${configured.message}`);
     this.selection = selectionOf([{ block: id }]);
     canvas.focus();
   }
@@ -273,14 +280,24 @@ export class WorkspaceSession {
       : null;
   }
 
-  /** Export the manifest of the block the selection lies in: complete, or every default left out. */
-  async exportManifest(minimal: boolean): Promise<void> {
+  /**
+   * Export the manifest of the block the selection lies in as the block's
+   * manifest file says (`manifestFileOf`): in its form, with or without its
+   * styling, in its serialization, under the file name of that
+   * serialization.
+   */
+  async exportManifest(): Promise<void> {
     const id = this.exportable;
     const block = id === null ? undefined : this.store.view.blocks[id];
-    if (block === undefined) return;
+    if (id === null || block === undefined) return;
+    const file = manifestFileOf(this.store.view.settings, id);
     try {
-      const text = saveManifest(block.manifest, { minimal });
-      await saveFile(text, MANIFEST_FILE, manifestFileName(block.manifest));
+      const text = saveManifest(block.manifest, file);
+      await saveFile(
+        text,
+        manifestFileKind(file.serialization),
+        manifestFileName(block.manifest, file.serialization),
+      );
     } catch (error) {
       this.#options.warn(`The manifest could not be exported: ${messageOf(error)}`);
     }

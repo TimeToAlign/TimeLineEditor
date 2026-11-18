@@ -5,7 +5,7 @@ import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync 
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, packageOf, RULE, SUBRULE } from "../notices.ts";
@@ -233,11 +233,11 @@ describe("the build", () => {
         ),
         "fixtures",
         SCHEMA_VERSION,
-        "bare.json",
+        "bare.yaml",
       ),
       "utf8",
     );
-    const generator = (JSON.parse(bare) as { meta: { generator: string } }).meta.generator;
+    const generator = (loads(bare) as { meta: { generator: string } }).meta.generator;
     expect(generator.startsWith("timetoalign ")).toBe(true);
     // Source maps hold every module's source text, the dead branch included, and are not shipped.
     const texts = readdirSync(outDir, { recursive: true, encoding: "utf8" })

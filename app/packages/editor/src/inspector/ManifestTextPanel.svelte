@@ -2,10 +2,17 @@
 /**
  * The Manifest tab: the format and options, the text, Apply and Revert,
  * the problems and the warnings (unknown keys, unregistered terms). Its state is the inspector's
- * `ManifestText`, which it follows while it is shown.
+ * `ManifestText`, which it follows while it is shown. The options, Include
+ * styling and Minimal, are how the block's manifest is written to a file,
+ * kept in the workspace's settings and changed there (`configure`).
  */
-import type { Block, Store } from "@timetoalign/tilie-core";
-import { unknownKeys, unregisteredTerms } from "@timetoalign/tilie-core";
+import type { Block, ManifestFile, Store, View } from "@timetoalign/tilie-core";
+import {
+  manifestFileOf,
+  NEW_MANIFEST_FILE,
+  unknownKeys,
+  unregisteredTerms,
+} from "@timetoalign/tilie-core";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
@@ -17,19 +24,35 @@ import { problemPlace, problemPointer } from "./problems.ts";
 let {
   manifest,
   block,
+  view,
   store,
 }: {
   /** The tab's state, kept while another tab is shown. */
   manifest: ManifestText;
   /** The block the whole selection lies in; `null` for none. */
   block: Block | null;
+  /** The workspace as shown, whose settings hold the block's manifest file. */
+  view: View;
   store: Store;
 } = $props();
 
 const uid = $props.id();
 
+/** How the block's manifest is written to a file: the options the text shows. */
+const file: ManifestFile = $derived(
+  block === null ? NEW_MANIFEST_FILE : manifestFileOf(view.settings, block.id),
+);
+const options = $derived({ includeStyling: file.styling, minimal: file.minimal });
+
 // Follow the selection, the manifest and the choice while the text holds no unapplied edit.
-$effect.pre(() => manifest.follow(block));
+$effect.pre(() => manifest.follow(block, options));
+
+/** Write one member of the block's manifest file to the settings. */
+function configure(change: Partial<ManifestFile>): void {
+  if (block === null) return;
+  const refused = store.configure({ manifests: { [block.id]: { ...file, ...change } } });
+  if (refused !== null) throw new Error(`a manifest file is refused: ${refused.message}`);
+}
 
 /**
  * The keys of the block's manifest no definition declares, then the terms of
@@ -58,8 +81,8 @@ function onTextKey(event: KeyboardEvent): void {
     <label>
       <input
         type="checkbox"
-        bind:checked={manifest.includeStyling}
-        disabled={manifest.dirty}
+        bind:checked={() => file.styling, (styling) => configure({ styling })}
+        disabled={manifest.dirty || block === null}
         aria-describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
       />
       Include styling
@@ -67,8 +90,8 @@ function onTextKey(event: KeyboardEvent): void {
     <label>
       <input
         type="checkbox"
-        bind:checked={manifest.minimal}
-        disabled={manifest.dirty}
+        bind:checked={() => file.minimal, (minimal) => configure({ minimal })}
+        disabled={manifest.dirty || block === null}
         aria-describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
       />
       Minimal
@@ -104,7 +127,7 @@ function onTextKey(event: KeyboardEvent): void {
 
   <div class="actions">
     <button type="button" onclick={() => manifest.apply(store)} disabled={!manifest.dirty}>Apply</button>
-    <button type="button" onclick={() => manifest.revert(block)} disabled={!manifest.dirty}
+    <button type="button" onclick={() => manifest.revert(block, options)} disabled={!manifest.dirty}
       >Revert</button
     >
   </div>

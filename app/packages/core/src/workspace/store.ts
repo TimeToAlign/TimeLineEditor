@@ -67,11 +67,15 @@ export interface Workspace {
   readonly sessions: Sessions;
 }
 
-/** A change of the settings: any of their members, each given in part. */
+/**
+ * A change of the settings: any of their members, each given in part; the
+ * manifest files block by block, each block's entry whole.
+ */
 export interface SettingsChange {
   readonly grid?: Partial<WorkspaceSettings["grid"]>;
   readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
   readonly granularity?: Partial<Granularity>;
+  readonly manifests?: WorkspaceSettings["manifests"];
 }
 
 export interface StoreOptions {
@@ -504,6 +508,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         grid: { ...settings.grid, ...change.grid },
         blockDefaults: { ...settings.blockDefaults, ...change.blockDefaults },
         granularity: { ...settings.granularity, ...change.granularity },
+        manifests: { ...settings.manifests, ...change.manifests },
       };
       const problems: Problem[] = [];
       const read = readSettings(merged, ["settings"], problems);
@@ -518,6 +523,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         grid: kept("grid"),
         blockDefaults: kept("blockDefaults"),
         granularity: kept("granularity"),
+        manifests: kept("manifests"),
       };
       configured = new WeakMap();
       notify();

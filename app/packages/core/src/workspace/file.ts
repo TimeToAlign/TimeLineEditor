@@ -1,7 +1,7 @@
 /**
  * The workspace file, `<name>.tle.json`: `{meta, name, settings, graphical,
- * blocks, journal, sessions}` written by TimeToShare's `dumps` and read losslessly
- * by its `parseJson`. Any other format or version refuses the file before
+ * blocks, journal, sessions}` written by TimeToShare's `dumps` as pretty JSON
+ * and read losslessly by its `parseJson`. Any other format or version refuses the file before
  * anything else is read; any unknown member and any invalid manifest refuses
  * it too, and so does a session that the journal does not reach exactly
  * once. A file stating no `name` holds a workspace named `untitled`.
@@ -290,7 +290,10 @@ export function readWorkspace(text: string): Workspace | LoadError {
 export function writeWorkspace(workspace: Workspace): string {
   const { view, journal, sessions } = workspace;
   const { meta, name, settings, graphical, blocks } = view;
-  return dumps({ meta, name, settings, graphical, blocks, journal, sessions });
+  return dumps(
+    { meta, name, settings, graphical, blocks, journal, sessions },
+    { serialization: "json" },
+  );
 }
 
 /** A workspace holding nothing: the empty view, an empty journal, no sessions. */

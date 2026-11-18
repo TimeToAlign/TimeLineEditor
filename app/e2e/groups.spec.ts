@@ -615,7 +615,7 @@ test.describe("manifests holding groups through the File menu", () => {
       const manifest = loaded(text);
       const before = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
 
-      await pick(page, "Import manifest…", path.basename(`${name}.json`), text);
+      await pick(page, "Import manifest…", path.basename(`${name}.yaml`), text);
       await expect.poll(() => journalLength(page)).toBe(entry + 1);
       const added = await page.evaluate(
         (known) =>
@@ -624,7 +624,7 @@ test.describe("manifests holding groups through the File menu", () => {
       );
       expect(added).toHaveLength(1);
       const [block] = added;
-      if (block === undefined) throw new Error(`${name}.json added no block`);
+      if (block === undefined) throw new Error(`${name}.yaml added no block`);
       expect(await selection(page)).toEqual([{ block }]);
       const stored = await page.evaluate(
         (target) => JSON.stringify(window.__tilie.store().view.blocks[target]?.manifest),
@@ -635,8 +635,8 @@ test.describe("manifests holding groups through the File menu", () => {
       const exported = downloaded(page.waitForEvent("download"));
       await chooseItem(page, "Export manifest…");
       const [fileName, written] = await exported;
-      expect(fileName).toBe(manifestFileName(manifest));
-      expect(written).toBe(saveManifest(manifest));
+      expect(fileName).toBe(manifestFileName(manifest, "yaml"));
+      expect(written).toBe(saveManifest(manifest, { minimal: false }));
       expect(written).toBe(text);
     }
   });

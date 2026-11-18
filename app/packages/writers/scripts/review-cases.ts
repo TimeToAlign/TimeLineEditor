@@ -38,12 +38,12 @@ export const MANIFEST_DIRECTORIES = ["", "groups", "bundles"] as const;
 
 /**
  * The names of the manifest files directly in one of `MANIFEST_DIRECTORIES`,
- * sorted, without the minimal twins (`*.minimal.json`), which draw as their
+ * sorted, without the minimal twins (`*.minimal.yaml`), which draw as their
  * complete fixtures do.
  */
 export function manifestFiles(directory: string, subdirectory = ""): string[] {
   return readdirSync(path.join(directory, subdirectory))
-    .filter((file) => file.endsWith(".json") && !file.endsWith(".minimal.json"))
+    .filter((file) => file.endsWith(".yaml") && !file.endsWith(".minimal.yaml"))
     .sort();
 }
 
@@ -53,9 +53,9 @@ export const drawingsDirectory = path.join(fixturesDirectory, "drawings");
 /** The installed package's `fonts/` directory, holding the drawing fonts, `FONT_FILES`. */
 export const fontDirectory = path.join(packageDir, "fonts");
 
-/** A manifest fixture by its path below `fixturesDirectory`, without `.json`. */
+/** A manifest fixture by its path below `fixturesDirectory`, without `.yaml`. */
 export function loadFixture(name: string): Manifest {
-  const manifest = loadManifest(readFileSync(path.join(fixturesDirectory, `${name}.json`), "utf8"));
+  const manifest = loadManifest(readFileSync(path.join(fixturesDirectory, `${name}.yaml`), "utf8"));
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
   return manifest;
 }
@@ -63,7 +63,7 @@ export function loadFixture(name: string): Manifest {
 export interface ReviewCase {
   /** The file name, without extension. */
   readonly name: string;
-  /** The manifest's path below `fixturesDirectory`, without `.json`. */
+  /** The manifest's path below `fixturesDirectory`, without `.yaml`. */
   readonly manifest: string;
   readonly placement: Placement;
   /** The application's layers, between the defaults and the manifest's own layer. */
@@ -189,13 +189,19 @@ export function reviewCases(): ReviewCase[] {
   return cases;
 }
 
-/** The text of a case's `inputs.json`: everything `draw` and the writers need besides the files. */
+/**
+ * The text of a case's `inputs.json`, in pretty JSON: everything `draw` and
+ * the writers need besides the files, the manifest named by its file.
+ */
 export function inputsText(item: ReviewCase): string {
   const { length, spacing, width, height, places } = item.placement;
-  return dumps({
-    manifest: `${item.manifest}.json`,
-    placement: { length, spacing, width, height, places },
-    scale: item.scale,
-    layers: item.settings,
-  });
+  return dumps(
+    {
+      manifest: `${item.manifest}.yaml`,
+      placement: { length, spacing, width, height, places },
+      scale: item.scale,
+      layers: item.settings,
+    },
+    { serialization: "json" },
+  );
 }

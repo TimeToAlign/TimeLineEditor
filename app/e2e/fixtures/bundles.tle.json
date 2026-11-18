@@ -8,126 +8,78 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "score",
-              "performance"
-            ],
-            "group_2": [
-              "page",
-              "excerpt"
-            ]
+            "group_1": ["score", "performance"],
+            "group_2": ["page", "excerpt"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "annotations"
             },
             {
-              "coordinate": [
-                12,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [12, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "annotations"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "excerpt"
             },
             {
               "coordinate": 88200,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "excerpt"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "page"
             },
             {
               "coordinate": 1920,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "page"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_7",
               "name": "origin",
               "timeline": "performance"
             },
             {
               "coordinate": 12.5,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_8",
               "name": "length",
               "timeline": "performance"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_9",
               "name": "origin",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                12,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [12, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_10",
               "name": "length",
               "timeline": "score"
@@ -137,19 +89,13 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "performance",
-              "score"
-            ],
+            "members": ["performance", "score"],
             "meta": {},
             "name": "Performance"
           },
           {
             "id": "group_2",
-            "members": [
-              "excerpt",
-              "page"
-            ],
+            "members": ["excerpt", "page"],
             "meta": {},
             "name": "Facsimile"
           }
@@ -157,7 +103,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": "Mixed",
         "schemes": [],
@@ -168,10 +114,7 @@
             "flow_control": [],
             "id": "annotations",
             "is_segment_line": false,
-            "length": [
-              12,
-              1
-            ],
+            "length": [12, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -179,32 +122,20 @@
             "number_type": "fraction",
             "regions": [
               {
-                "end": [
-                  4,
-                  1
-                ],
+                "end": [4, 1],
                 "id": "region_1",
                 "links": [],
                 "meta": {},
                 "name": "Verse",
-                "start": [
-                  0,
-                  1
-                ]
+                "start": [0, 1]
               },
               {
-                "end": [
-                  12,
-                  1
-                ],
+                "end": [12, 1],
                 "id": "region_2",
                 "links": [],
                 "meta": {},
                 "name": "Chorus",
-                "start": [
-                  4,
-                  1
-                ]
+                "start": [4, 1]
               }
             ],
             "unit": "quarters"
@@ -216,10 +147,7 @@
                 "id": "cmap_4",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  3,
-                  4
-                ],
+                "scalar": [3, 4],
                 "source_unit": "pixels",
                 "target_unit": "points",
                 "type": "LinearMap"
@@ -271,10 +199,7 @@
                     "id": "cmap_6",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      1,
-                      44100
-                    ],
+                    "scalar": [1, 44100],
                     "source_unit": "samples",
                     "target_unit": "seconds",
                     "type": "LinearMap"
@@ -299,10 +224,7 @@
                 "id": "cmap_5",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  1,
-                  44100
-                ],
+                "scalar": [1, 44100],
                 "source_unit": "samples",
                 "target_unit": "seconds",
                 "type": "LinearMap"
@@ -336,10 +258,7 @@
                 "id": "cmap_2",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  1,
-                  2
-                ],
+                "scalar": [1, 2],
                 "source_unit": "quarters",
                 "target_unit": "seconds",
                 "type": "LinearMap"
@@ -347,10 +266,7 @@
             ],
             "flow_control": [
               {
-                "coordinate": [
-                  8,
-                  1
-                ],
+                "coordinate": [8, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
                 "manifestation": "repeat_end",
@@ -362,10 +278,7 @@
             ],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              12,
-              1
-            ],
+            "length": [12, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -394,126 +307,78 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "exposition",
-              "take_1"
-            ],
-            "group_2": [
-              "recapitulation",
-              "take_2"
-            ]
+            "group_1": ["exposition", "take_1"],
+            "group_2": ["recapitulation", "take_2"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "exposition"
             },
             {
-              "coordinate": [
-                12,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [12, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "exposition"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "page"
             },
             {
               "coordinate": 1754,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "page"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "recapitulation"
             },
             {
-              "coordinate": [
-                12,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [12, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "recapitulation"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_7",
               "name": "origin",
               "timeline": "take_1"
             },
             {
               "coordinate": 30.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_8",
               "name": "length",
               "timeline": "take_1"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_9",
               "name": "origin",
               "timeline": "take_2"
             },
             {
               "coordinate": 28.5,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_10",
               "name": "length",
               "timeline": "take_2"
@@ -523,19 +388,13 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "exposition",
-              "take_1"
-            ],
+            "members": ["exposition", "take_1"],
             "meta": {},
             "name": "Exposition"
           },
           {
             "id": "group_2",
-            "members": [
-              "recapitulation",
-              "take_2"
-            ],
+            "members": ["recapitulation", "take_2"],
             "meta": {},
             "name": "Recapitulation"
           }
@@ -543,7 +402,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": "Sonata",
         "schemes": [],
@@ -573,19 +432,13 @@
                     "flow_control": [],
                     "id": "exposition_first",
                     "is_segment_line": false,
-                    "length": [
-                      6,
-                      1
-                    ],
+                    "length": [6, 1],
                     "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "First theme",
                     "number_type": "fraction",
-                    "offset": [
-                      0,
-                      1
-                    ],
+                    "offset": [0, 1],
                     "regions": [],
                     "unit": "quarters"
                   },
@@ -596,10 +449,7 @@
                         "id": "cmap_3",
                         "name": null,
                         "offset": 0,
-                        "scalar": [
-                          1,
-                          2
-                        ],
+                        "scalar": [1, 2],
                         "source_unit": "quarters",
                         "target_unit": "seconds",
                         "type": "LinearMap"
@@ -608,19 +458,13 @@
                     "flow_control": [],
                     "id": "exposition_second",
                     "is_segment_line": false,
-                    "length": [
-                      6,
-                      1
-                    ],
+                    "length": [6, 1],
                     "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Second theme",
                     "number_type": "fraction",
-                    "offset": [
-                      6,
-                      1
-                    ],
+                    "offset": [6, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -639,19 +483,13 @@
                 "flow_control": [],
                 "id": "exposition",
                 "is_segment_line": true,
-                "length": [
-                  12,
-                  1
-                ],
+                "length": [12, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Exposition",
                 "number_type": "fraction",
-                "offset": [
-                  0,
-                  1
-                ],
+                "offset": [0, 1],
                 "regions": [],
                 "unit": "quarters"
               },
@@ -665,19 +503,13 @@
                         "flow_control": [],
                         "id": "recapitulation_first_1",
                         "is_segment_line": false,
-                        "length": [
-                          3,
-                          1
-                        ],
+                        "length": [3, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 1",
                         "number_type": "fraction",
-                        "offset": [
-                          0,
-                          1
-                        ],
+                        "offset": [0, 1],
                         "regions": [],
                         "unit": "quarters"
                       },
@@ -687,19 +519,13 @@
                         "flow_control": [],
                         "id": "recapitulation_first_2",
                         "is_segment_line": false,
-                        "length": [
-                          3,
-                          1
-                        ],
+                        "length": [3, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 2",
                         "number_type": "fraction",
-                        "offset": [
-                          3,
-                          1
-                        ],
+                        "offset": [3, 1],
                         "regions": [],
                         "unit": "quarters"
                       }
@@ -708,19 +534,13 @@
                     "flow_control": [],
                     "id": "recapitulation_first",
                     "is_segment_line": true,
-                    "length": [
-                      6,
-                      1
-                    ],
+                    "length": [6, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "First theme",
                     "number_type": "fraction",
-                    "offset": [
-                      0,
-                      1
-                    ],
+                    "offset": [0, 1],
                     "regions": [],
                     "unit": "quarters"
                   },
@@ -732,19 +552,13 @@
                         "flow_control": [],
                         "id": "recapitulation_second_1",
                         "is_segment_line": false,
-                        "length": [
-                          3,
-                          1
-                        ],
+                        "length": [3, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 1",
                         "number_type": "fraction",
-                        "offset": [
-                          0,
-                          1
-                        ],
+                        "offset": [0, 1],
                         "regions": [],
                         "unit": "quarters"
                       },
@@ -754,19 +568,13 @@
                         "flow_control": [],
                         "id": "recapitulation_second_2",
                         "is_segment_line": false,
-                        "length": [
-                          3,
-                          1
-                        ],
+                        "length": [3, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 2",
                         "number_type": "fraction",
-                        "offset": [
-                          3,
-                          1
-                        ],
+                        "offset": [3, 1],
                         "regions": [],
                         "unit": "quarters"
                       }
@@ -785,19 +593,13 @@
                     "flow_control": [],
                     "id": "recapitulation_second",
                     "is_segment_line": true,
-                    "length": [
-                      6,
-                      1
-                    ],
+                    "length": [6, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Second theme",
                     "number_type": "fraction",
-                    "offset": [
-                      6,
-                      1
-                    ],
+                    "offset": [6, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -806,19 +608,13 @@
                 "flow_control": [],
                 "id": "recapitulation",
                 "is_segment_line": true,
-                "length": [
-                  12,
-                  1
-                ],
+                "length": [12, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Recapitulation",
                 "number_type": "fraction",
-                "offset": [
-                  20,
-                  1
-                ],
+                "offset": [20, 1],
                 "regions": [],
                 "unit": "quarters"
               }
@@ -836,10 +632,7 @@
             ],
             "flow_control": [
               {
-                "coordinate": [
-                  12,
-                  1
-                ],
+                "coordinate": [12, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
                 "manifestation": "repeat_end",
@@ -851,10 +644,7 @@
             ],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              32,
-              1
-            ],
+            "length": [32, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -862,18 +652,12 @@
             "number_type": "fraction",
             "regions": [
               {
-                "end": [
-                  20,
-                  1
-                ],
+                "end": [20, 1],
                 "id": "region_1",
                 "links": [],
                 "meta": {},
                 "name": "Development",
-                "start": [
-                  12,
-                  1
-                ]
+                "start": [12, 1]
               }
             ],
             "unit": "quarters"
@@ -971,80 +755,50 @@
       "manifest": {
         "graphical": {
           "order": {
-            "g1": [
-              "t",
-              "u"
-            ],
-            "g2": [
-              "t",
-              "v"
-            ]
+            "g1": ["t", "u"],
+            "g2": ["t", "v"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "t"
             },
             {
-              "coordinate": [
-                8,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [8, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "t"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "u"
             },
             {
               "coordinate": 4.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "u"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "v"
             },
             {
               "coordinate": 800,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "v"
@@ -1054,19 +808,13 @@
         "groups": [
           {
             "id": "g1",
-            "members": [
-              "t",
-              "u"
-            ],
+            "members": ["t", "u"],
             "meta": {},
             "name": "Performance"
           },
           {
             "id": "g2",
-            "members": [
-              "t",
-              "v"
-            ],
+            "members": ["t", "v"],
             "meta": {},
             "name": "Page"
           }
@@ -1074,7 +822,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": "Shared",
         "schemes": [],
@@ -1085,10 +833,7 @@
             "flow_control": [],
             "id": "t",
             "is_segment_line": false,
-            "length": [
-              8,
-              1
-            ],
+            "length": [8, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -1152,66 +897,42 @@
           "timestamps": [
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "pages"
             },
             {
               "coordinate": 5262,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "pages"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "recording"
             },
             {
               "coordinate": 441000,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "recording"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                16,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [16, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "score"
@@ -1222,7 +943,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": "Sketches",
         "schemes": [],
@@ -1283,10 +1004,7 @@
                 "id": "cmap_3",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  3,
-                  4
-                ],
+                "scalar": [3, 4],
                 "source_unit": "pixels",
                 "target_unit": "points",
                 "type": "LinearMap"
@@ -1311,10 +1029,7 @@
                 "id": "cmap_2",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  1,
-                  44100
-                ],
+                "scalar": [1, 44100],
                 "source_unit": "samples",
                 "target_unit": "seconds",
                 "type": "LinearMap"
@@ -1347,10 +1062,7 @@
             ],
             "flow_control": [
               {
-                "coordinate": [
-                  8,
-                  1
-                ],
+                "coordinate": [8, 1],
                 "id": "flow_marker_1",
                 "label": "Fine",
                 "manifestation": "fine",
@@ -1359,10 +1071,7 @@
                 "type": "flow_marker"
               },
               {
-                "coordinate": [
-                  16,
-                  1
-                ],
+                "coordinate": [16, 1],
                 "id": "jump_from_1",
                 "label": "D.C. al Fine",
                 "manifestation": "da_capo_al_fine",
@@ -1373,10 +1082,7 @@
             ],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              16,
-              1
-            ],
+            "length": [16, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -1410,126 +1116,78 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "score",
-                  "performance"
-                ],
-                "group_2": [
-                  "page",
-                  "excerpt"
-                ]
+                "group_1": ["score", "performance"],
+                "group_2": ["page", "excerpt"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "annotations"
                 },
                 {
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [12, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "annotations"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "excerpt"
                 },
                 {
                   "coordinate": 88200,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "excerpt"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "page"
                 },
                 {
                   "coordinate": 1920,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "page"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_7",
                   "name": "origin",
                   "timeline": "performance"
                 },
                 {
                   "coordinate": 12.5,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_8",
                   "name": "length",
                   "timeline": "performance"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_9",
                   "name": "origin",
                   "timeline": "score"
                 },
                 {
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [12, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_10",
                   "name": "length",
                   "timeline": "score"
@@ -1539,19 +1197,13 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "performance",
-                  "score"
-                ],
+                "members": ["performance", "score"],
                 "meta": {},
                 "name": "Performance"
               },
               {
                 "id": "group_2",
-                "members": [
-                  "excerpt",
-                  "page"
-                ],
+                "members": ["excerpt", "page"],
                 "meta": {},
                 "name": "Facsimile"
               }
@@ -1559,7 +1211,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": "Mixed",
             "schemes": [],
@@ -1570,10 +1222,7 @@
                 "flow_control": [],
                 "id": "annotations",
                 "is_segment_line": false,
-                "length": [
-                  12,
-                  1
-                ],
+                "length": [12, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -1581,32 +1230,20 @@
                 "number_type": "fraction",
                 "regions": [
                   {
-                    "end": [
-                      4,
-                      1
-                    ],
+                    "end": [4, 1],
                     "id": "region_1",
                     "links": [],
                     "meta": {},
                     "name": "Verse",
-                    "start": [
-                      0,
-                      1
-                    ]
+                    "start": [0, 1]
                   },
                   {
-                    "end": [
-                      12,
-                      1
-                    ],
+                    "end": [12, 1],
                     "id": "region_2",
                     "links": [],
                     "meta": {},
                     "name": "Chorus",
-                    "start": [
-                      4,
-                      1
-                    ]
+                    "start": [4, 1]
                   }
                 ],
                 "unit": "quarters"
@@ -1618,10 +1255,7 @@
                     "id": "cmap_4",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      3,
-                      4
-                    ],
+                    "scalar": [3, 4],
                     "source_unit": "pixels",
                     "target_unit": "points",
                     "type": "LinearMap"
@@ -1673,10 +1307,7 @@
                         "id": "cmap_6",
                         "name": null,
                         "offset": 0,
-                        "scalar": [
-                          1,
-                          44100
-                        ],
+                        "scalar": [1, 44100],
                         "source_unit": "samples",
                         "target_unit": "seconds",
                         "type": "LinearMap"
@@ -1701,10 +1332,7 @@
                     "id": "cmap_5",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      1,
-                      44100
-                    ],
+                    "scalar": [1, 44100],
                     "source_unit": "samples",
                     "target_unit": "seconds",
                     "type": "LinearMap"
@@ -1738,10 +1366,7 @@
                     "id": "cmap_2",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      1,
-                      2
-                    ],
+                    "scalar": [1, 2],
                     "source_unit": "quarters",
                     "target_unit": "seconds",
                     "type": "LinearMap"
@@ -1749,10 +1374,7 @@
                 ],
                 "flow_control": [
                   {
-                    "coordinate": [
-                      8,
-                      1
-                    ],
+                    "coordinate": [8, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
                     "manifestation": "repeat_end",
@@ -1764,10 +1386,7 @@
                 ],
                 "id": "score",
                 "is_segment_line": false,
-                "length": [
-                  12,
-                  1
-                ],
+                "length": [12, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -1801,126 +1420,78 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "exposition",
-                  "take_1"
-                ],
-                "group_2": [
-                  "recapitulation",
-                  "take_2"
-                ]
+                "group_1": ["exposition", "take_1"],
+                "group_2": ["recapitulation", "take_2"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "exposition"
                 },
                 {
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [12, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "exposition"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "page"
                 },
                 {
                   "coordinate": 1754,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "page"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "recapitulation"
                 },
                 {
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [12, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "recapitulation"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_7",
                   "name": "origin",
                   "timeline": "take_1"
                 },
                 {
                   "coordinate": 30.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_8",
                   "name": "length",
                   "timeline": "take_1"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_9",
                   "name": "origin",
                   "timeline": "take_2"
                 },
                 {
                   "coordinate": 28.5,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_10",
                   "name": "length",
                   "timeline": "take_2"
@@ -1930,19 +1501,13 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "exposition",
-                  "take_1"
-                ],
+                "members": ["exposition", "take_1"],
                 "meta": {},
                 "name": "Exposition"
               },
               {
                 "id": "group_2",
-                "members": [
-                  "recapitulation",
-                  "take_2"
-                ],
+                "members": ["recapitulation", "take_2"],
                 "meta": {},
                 "name": "Recapitulation"
               }
@@ -1950,7 +1515,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": "Sonata",
             "schemes": [],
@@ -1980,19 +1545,13 @@
                         "flow_control": [],
                         "id": "exposition_first",
                         "is_segment_line": false,
-                        "length": [
-                          6,
-                          1
-                        ],
+                        "length": [6, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "First theme",
                         "number_type": "fraction",
-                        "offset": [
-                          0,
-                          1
-                        ],
+                        "offset": [0, 1],
                         "regions": [],
                         "unit": "quarters"
                       },
@@ -2003,10 +1562,7 @@
                             "id": "cmap_3",
                             "name": null,
                             "offset": 0,
-                            "scalar": [
-                              1,
-                              2
-                            ],
+                            "scalar": [1, 2],
                             "source_unit": "quarters",
                             "target_unit": "seconds",
                             "type": "LinearMap"
@@ -2015,19 +1571,13 @@
                         "flow_control": [],
                         "id": "exposition_second",
                         "is_segment_line": false,
-                        "length": [
-                          6,
-                          1
-                        ],
+                        "length": [6, 1],
                         "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Second theme",
                         "number_type": "fraction",
-                        "offset": [
-                          6,
-                          1
-                        ],
+                        "offset": [6, 1],
                         "regions": [],
                         "unit": "quarters"
                       }
@@ -2046,19 +1596,13 @@
                     "flow_control": [],
                     "id": "exposition",
                     "is_segment_line": true,
-                    "length": [
-                      12,
-                      1
-                    ],
+                    "length": [12, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Exposition",
                     "number_type": "fraction",
-                    "offset": [
-                      0,
-                      1
-                    ],
+                    "offset": [0, 1],
                     "regions": [],
                     "unit": "quarters"
                   },
@@ -2072,19 +1616,13 @@
                             "flow_control": [],
                             "id": "recapitulation_first_1",
                             "is_segment_line": false,
-                            "length": [
-                              3,
-                              1
-                            ],
+                            "length": [3, 1],
                             "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 1",
                             "number_type": "fraction",
-                            "offset": [
-                              0,
-                              1
-                            ],
+                            "offset": [0, 1],
                             "regions": [],
                             "unit": "quarters"
                           },
@@ -2094,19 +1632,13 @@
                             "flow_control": [],
                             "id": "recapitulation_first_2",
                             "is_segment_line": false,
-                            "length": [
-                              3,
-                              1
-                            ],
+                            "length": [3, 1],
                             "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 2",
                             "number_type": "fraction",
-                            "offset": [
-                              3,
-                              1
-                            ],
+                            "offset": [3, 1],
                             "regions": [],
                             "unit": "quarters"
                           }
@@ -2115,19 +1647,13 @@
                         "flow_control": [],
                         "id": "recapitulation_first",
                         "is_segment_line": true,
-                        "length": [
-                          6,
-                          1
-                        ],
+                        "length": [6, 1],
                         "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "First theme",
                         "number_type": "fraction",
-                        "offset": [
-                          0,
-                          1
-                        ],
+                        "offset": [0, 1],
                         "regions": [],
                         "unit": "quarters"
                       },
@@ -2139,19 +1665,13 @@
                             "flow_control": [],
                             "id": "recapitulation_second_1",
                             "is_segment_line": false,
-                            "length": [
-                              3,
-                              1
-                            ],
+                            "length": [3, 1],
                             "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 1",
                             "number_type": "fraction",
-                            "offset": [
-                              0,
-                              1
-                            ],
+                            "offset": [0, 1],
                             "regions": [],
                             "unit": "quarters"
                           },
@@ -2161,19 +1681,13 @@
                             "flow_control": [],
                             "id": "recapitulation_second_2",
                             "is_segment_line": false,
-                            "length": [
-                              3,
-                              1
-                            ],
+                            "length": [3, 1],
                             "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 2",
                             "number_type": "fraction",
-                            "offset": [
-                              3,
-                              1
-                            ],
+                            "offset": [3, 1],
                             "regions": [],
                             "unit": "quarters"
                           }
@@ -2192,19 +1706,13 @@
                         "flow_control": [],
                         "id": "recapitulation_second",
                         "is_segment_line": true,
-                        "length": [
-                          6,
-                          1
-                        ],
+                        "length": [6, 1],
                         "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "Second theme",
                         "number_type": "fraction",
-                        "offset": [
-                          6,
-                          1
-                        ],
+                        "offset": [6, 1],
                         "regions": [],
                         "unit": "quarters"
                       }
@@ -2213,19 +1721,13 @@
                     "flow_control": [],
                     "id": "recapitulation",
                     "is_segment_line": true,
-                    "length": [
-                      12,
-                      1
-                    ],
+                    "length": [12, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Recapitulation",
                     "number_type": "fraction",
-                    "offset": [
-                      20,
-                      1
-                    ],
+                    "offset": [20, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -2243,10 +1745,7 @@
                 ],
                 "flow_control": [
                   {
-                    "coordinate": [
-                      12,
-                      1
-                    ],
+                    "coordinate": [12, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
                     "manifestation": "repeat_end",
@@ -2258,10 +1757,7 @@
                 ],
                 "id": "score",
                 "is_segment_line": false,
-                "length": [
-                  32,
-                  1
-                ],
+                "length": [32, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -2269,18 +1765,12 @@
                 "number_type": "fraction",
                 "regions": [
                   {
-                    "end": [
-                      20,
-                      1
-                    ],
+                    "end": [20, 1],
                     "id": "region_1",
                     "links": [],
                     "meta": {},
                     "name": "Development",
-                    "start": [
-                      12,
-                      1
-                    ]
+                    "start": [12, 1]
                   }
                 ],
                 "unit": "quarters"
@@ -2388,66 +1878,42 @@
               "timestamps": [
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "pages"
                 },
                 {
                   "coordinate": 5262,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "pages"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "recording"
                 },
                 {
                   "coordinate": 441000,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "recording"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "score"
                 },
                 {
-                  "coordinate": [
-                    16,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [16, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "score"
@@ -2458,7 +1924,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": "Sketches",
             "schemes": [],
@@ -2519,10 +1985,7 @@
                     "id": "cmap_3",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      3,
-                      4
-                    ],
+                    "scalar": [3, 4],
                     "source_unit": "pixels",
                     "target_unit": "points",
                     "type": "LinearMap"
@@ -2547,10 +2010,7 @@
                     "id": "cmap_2",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      1,
-                      44100
-                    ],
+                    "scalar": [1, 44100],
                     "source_unit": "samples",
                     "target_unit": "seconds",
                     "type": "LinearMap"
@@ -2583,10 +2043,7 @@
                 ],
                 "flow_control": [
                   {
-                    "coordinate": [
-                      8,
-                      1
-                    ],
+                    "coordinate": [8, 1],
                     "id": "flow_marker_1",
                     "label": "Fine",
                     "manifestation": "fine",
@@ -2595,10 +2052,7 @@
                     "type": "flow_marker"
                   },
                   {
-                    "coordinate": [
-                      16,
-                      1
-                    ],
+                    "coordinate": [16, 1],
                     "id": "jump_from_1",
                     "label": "D.C. al Fine",
                     "manifestation": "da_capo_al_fine",
@@ -2609,10 +2063,7 @@
                 ],
                 "id": "score",
                 "is_segment_line": false,
-                "length": [
-                  16,
-                  1
-                ],
+                "length": [16, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -2646,80 +2097,50 @@
           "manifest": {
             "graphical": {
               "order": {
-                "g1": [
-                  "t",
-                  "u"
-                ],
-                "g2": [
-                  "t",
-                  "v"
-                ]
+                "g1": ["t", "u"],
+                "g2": ["t", "v"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "t"
                 },
                 {
-                  "coordinate": [
-                    8,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [8, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "t"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "u"
                 },
                 {
                   "coordinate": 4.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "u"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "v"
                 },
                 {
                   "coordinate": 800,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "v"
@@ -2729,19 +2150,13 @@
             "groups": [
               {
                 "id": "g1",
-                "members": [
-                  "t",
-                  "u"
-                ],
+                "members": ["t", "u"],
                 "meta": {},
                 "name": "Performance"
               },
               {
                 "id": "g2",
-                "members": [
-                  "t",
-                  "v"
-                ],
+                "members": ["t", "v"],
                 "meta": {},
                 "name": "Page"
               }
@@ -2749,7 +2164,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": "Shared",
             "schemes": [],
@@ -2760,10 +2175,7 @@
                 "flow_control": [],
                 "id": "t",
                 "is_segment_line": false,
-                "length": [
-                  8,
-                  1
-                ],
+                "length": [8, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -2840,6 +2252,7 @@
     "grid": {
       "size": 8,
       "snap": true
-    }
+    },
+    "manifests": {}
   }
 }

@@ -46,9 +46,9 @@ function refusedWith(view: View, command: object) {
   return { code, message, path };
 }
 
-/** A store holding `bare.json` in block `A`, then renamed. */
+/** A store holding `bare.yaml` in block `A`, then renamed. */
 function renamed() {
-  const store = storeOf(viewOf([A, "bare.json"]), { clock: testClock() });
+  const store = storeOf(viewOf([A, "bare.yaml"]), { clock: testClock() });
   expect(store.dispatch(rename("Eroica sketches"))).toBe(null);
   return store;
 }
@@ -78,7 +78,7 @@ describe("the workspace's name", () => {
   });
 
   it("is untitled for a file stating none, verified by its journal and written once it is read", () => {
-    const text = writeWorkspace(storeOf(viewOf([A, "bare.json"])).snapshot());
+    const text = writeWorkspace(storeOf(viewOf([A, "bare.yaml"])).snapshot());
     const without = text.replace('  "name": "untitled",\n', "");
     expect(without).not.toBe(text);
     const read = readWorkspace(without);
@@ -111,7 +111,7 @@ describe("the workspace's name", () => {
   });
 
   it("is untitled where the journal starts, so a name no command gave is refused", () => {
-    const text = writeWorkspace(storeOf(viewOf([A, "bare.json"])).snapshot());
+    const text = writeWorkspace(storeOf(viewOf([A, "bare.yaml"])).snapshot());
     const read = readWorkspace(text.replace('"name": "untitled"', '"name": "sketches"'));
     if (isLoadError(read)) throw new Error("refused");
     expect(() => createStore(read)).toThrow(JournalMismatchError);
@@ -126,7 +126,7 @@ describe("the workspace's name", () => {
   });
 
   it.each([[""], [3]])("refuses a file naming it %j", (name) => {
-    const text = writeWorkspace(storeOf(viewOf([A, "bare.json"])).snapshot());
+    const text = writeWorkspace(storeOf(viewOf([A, "bare.yaml"])).snapshot());
     const value = parseJson(text) as { [key: string]: unknown };
     const read = readWorkspace(JSON.stringify({ ...value, name }));
     expect(
@@ -135,7 +135,7 @@ describe("the workspace's name", () => {
   });
 
   it("is set by a command that changes nothing else", () => {
-    const view = viewOf([A, "bare.json"]);
+    const view = viewOf([A, "bare.yaml"]);
     const next = changed(deepFreeze(view), rename("Eroica sketches"));
     expect(next.name).toBe("Eroica sketches");
     expect(next.settings).toBe(view.settings);
@@ -143,7 +143,7 @@ describe("the workspace's name", () => {
   });
 
   it.each([[""], [null], [3]])("refuses the name %j", (name) => {
-    expect(rejected(viewOf([A, "bare.json"]), rename(name))).toEqual({
+    expect(rejected(viewOf([A, "bare.yaml"]), rename(name))).toEqual({
       code: "invalid_value",
       path: ["{}", "name"],
     });
@@ -167,7 +167,7 @@ describe("the workspace's name", () => {
   });
 
   it("is not changed by an editor", () => {
-    const store = storeOf(viewOf([A, "bare.json"]));
+    const store = storeOf(viewOf([A, "bare.yaml"]));
     expect(store.open(BLOCK)).toBe(null);
     const refused = store.dispatch(rename("Eroica sketches"));
     expect(refused === null ? null : { ...refused }).toEqual({
@@ -181,7 +181,7 @@ describe("the workspace's name", () => {
 });
 
 describe("names in a manifest", () => {
-  const mixed = () => viewOf([A, "bundles/bundle_mixed.json"]);
+  const mixed = () => viewOf([A, "bundles/bundle_mixed.yaml"]);
 
   it("sets the manifest's own name on its block", () => {
     const view = mixed();
@@ -215,7 +215,7 @@ describe("names in a manifest", () => {
   });
 
   it("sets a conversion map's name", () => {
-    const view = viewOf([A, "map.json"]);
+    const view = viewOf([A, "map.yaml"]);
     const before = block(view).manifest;
     const [melody] = before.timelines;
     const [tempo, ...maps] = melody?.conversion_maps ?? [];
@@ -231,7 +231,7 @@ describe("names in a manifest", () => {
     const command = {
       type: "add",
       into: {},
-      block: { id: A, manifest: load("bare.json"), x: 0, y: 0, name: "Bare" },
+      block: { id: A, manifest: load("bare.yaml"), x: 0, y: 0, name: "Bare" },
     };
     expect(rejected(createView(), command)).toEqual({
       code: "unknown_property",

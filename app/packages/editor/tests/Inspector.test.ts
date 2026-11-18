@@ -14,14 +14,14 @@ import type {
   UnknownKey,
   UnregisteredTerm,
 } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
-  dumps,
-  fontMetrics,
-  isJsonObject,
-  parseJson,
-  SCHEMA_VERSION,
-} from "@timetoalign/timetoshare";
+  isLoadError,
+  loadManifest,
+  manifestFileOf,
+  readWorkspace,
+  writeWorkspace,
+} from "@timetoalign/tilie-core";
+import { dumps, fontMetrics, isJsonObject, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
@@ -37,12 +37,28 @@ import { informing, storeOf as storeOfFixtures } from "./support.ts";
 const A = "0000000000";
 const B = "0000000001";
 const HINT = "Select a block to inspect its manifest.";
-/** The options the Manifest tab starts with: the complete form, without the styling. */
+/**
+ * The options the Manifest tab shows for a block without a manifest file of
+ * its own, written as a new manifest: the minimal form, with the styling.
+ */
+const NEW: TextOptions = { includeStyling: true, minimal: true };
+
+/** The options of a block whose manifest file states the complete form without the styling. */
 const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
 
-/** The text the Manifest panel shows of block A in `format` by default: complete, without the styling. */
+/**
+ * Write block A's manifest in the complete form without the styling, so a
+ * test can edit members at their defaults: the block's manifest file in the
+ * settings, which the Manifest tab shows.
+ */
+function completeA(store: Store): void {
+  const file = { minimal: false, styling: false, serialization: "yaml" } as const;
+  expect(store.configure({ manifests: { [A]: file } })).toBeNull();
+}
+
+/** The text the Manifest panel shows of block A in `format` by default: minimal, with the styling. */
 function shownText(store: Store, format: Format): string {
-  const text = manifestText(manifestOf(blockOf(store, A)), format, COMPLETE);
+  const text = manifestText(manifestOf(blockOf(store, A)), format, NEW);
   if (!text.ok) throw new Error("not written");
   return text.value.text;
 }
@@ -75,11 +91,14 @@ interface Expected {
 /** A shared warning case's manifest, read by core, and the case's expectation. */
 function read(name: string) {
   const text = readFileSync(path.join(warningsDirectory, name), "utf8");
-  const value = parseJson(text);
+  const value = loads(text);
   if (!isJsonObject(value) || value.manifest === undefined)
     throw new Error(`${name} has no manifest`);
-  const stated = JSON.parse(text);
-  const expected: Expected = { keys: stated.unknown_keys, terms: stated.unregistered_terms };
+  // The case states what core finds: its lists are read as they are written.
+  const expected: Expected = {
+    keys: Reflect.get(value as object, "unknown_keys"),
+    terms: Reflect.get(value as object, "unregistered_terms"),
+  };
   return { manifest: loadManifest(dumps(value.manifest)), expected };
 }
 
@@ -272,13 +291,13 @@ describe("the inspector component", () => {
     expect(textarea().value).toContain("  name: Hello # was Bare\n");
     expect(switchHint()).toBe(null);
 
-    type(textarea(), textarea().value.replace("  locked: false\n", "  locked: true\n"));
+    type(textarea(), textarea().value.replace("  length: [8, 1]\n", "  length: [9, 1]\n"));
     store.dispatch({
       type: "set",
       changes: [{ target: { block: A, id: "bare" }, values: { name: "Bye" } }],
     });
     flushSync();
-    expect(textarea().value).toContain("  locked: true\n");
+    expect(textarea().value).toContain("  length: [9, 1]\n");
     expect(textarea().value).toContain("  name: Hello # was Bare\n");
     expect(document.querySelector(".notice")?.textContent).toBe(
       "The manifest changed; Revert to see it",
@@ -293,6 +312,7 @@ describe("the inspector component", () => {
 
   it("lists a refusal and keeps the edit", () => {
     const store = storeOf();
+    completeA(store);
     show(store, [{ block: A }]);
     openTab("Manifest");
     const edited = textarea().value.replace('"locked": false', '"locked": "yes"');
@@ -462,8 +482,8 @@ describe("the inspector's tabs", () => {
         (item as HTMLInputElement).checked,
       ]),
     ).toEqual([
-      ["Include styling", false],
-      ["Minimal", false],
+      ["Include styling", true],
+      ["Minimal", true],
     ]);
     openTab("Properties");
     expect(state()).toEqual(PROPERTIES);
@@ -518,7 +538,8 @@ describe("the inspector's tabs", () => {
   });
 
   it("holds the manifest's controls, problems, warnings and notices in the Manifest panel, in order", () => {
-    const { store } = warningCase("timeline_class.json");
+    const { store } = warningCase("timeline_class.yaml");
+    completeA(store);
     show(store, [{ block: A }]);
     openTab("Manifest");
     type(textarea(), textarea().value.replace('"meta": {}', '"meta": {"note": "edited"}'));
@@ -605,6 +626,49 @@ describe("the inspector's tabs", () => {
   });
 });
 
+describe("the options of a block's manifest file", () => {
+  it("are the selected block's, set in the settings and kept in the workspace file", () => {
+    const store = storeOf();
+    const selected = show(store, [{ block: A }]);
+    openTab("Manifest");
+    const boxes = () => [
+      ...document.querySelectorAll<HTMLInputElement>('.options input[type="checkbox"]'),
+    ];
+    // No manifest file stated: written as a new manifest, minimal and styled.
+    expect(boxes().map((box) => box.checked)).toEqual([true, true]);
+    expect(textarea().value).toBe(shownText(store, "json"));
+    const journal = store.journal;
+    const view = store.view;
+    boxes()[1]?.click();
+    flushSync();
+    expect(manifestFileOf(store.view.settings, A)).toEqual({
+      minimal: false,
+      styling: true,
+      serialization: "yaml",
+    });
+    expect(store.journal).toEqual(journal);
+    expect(store.view).not.toBe(view);
+    const complete = manifestText(manifestOf(blockOf(store, A)), "json", {
+      includeStyling: true,
+      minimal: false,
+    });
+    if (!complete.ok) throw new Error("not written");
+    expect(textarea().value).toBe(complete.value.text);
+    expect(boxes().map((box) => box.checked)).toEqual([true, false]);
+
+    selected.value = selectionOf([{ block: B }]);
+    flushSync();
+    expect(boxes().map((box) => box.checked)).toEqual([true, true]);
+    selected.value = selectionOf([{ block: A }]);
+    flushSync();
+    expect(boxes().map((box) => box.checked)).toEqual([true, false]);
+
+    const reopened = readWorkspace(writeWorkspace(store.snapshot()));
+    if (isLoadError(reopened)) throw new Error("the workspace file is refused");
+    expect(reopened.view.settings.manifests).toEqual(store.view.settings.manifests);
+  });
+});
+
 describe("Apply and Revert", () => {
   const MODES: [string, TextOptions][] = [
     ["complete, styling excluded", { includeStyling: false, minimal: false }],
@@ -631,8 +695,8 @@ describe("Apply and Revert", () => {
       const [styling, minimal] = [
         ...document.querySelectorAll<HTMLInputElement>('.options input[type="checkbox"]'),
       ] as [HTMLInputElement, HTMLInputElement];
-      if (options.includeStyling) styling.click();
-      if (options.minimal) minimal.click();
+      if (!options.includeStyling) styling.click();
+      if (!options.minimal) minimal.click();
       flushSync();
 
       // 1. shown
@@ -713,7 +777,7 @@ describe("a clean text", () => {
     expect(textarea().value).toBe(edited);
     type(textarea(), shown);
     expect(document.querySelector(".notice")).toBe(null);
-    const stored = manifestText(manifestOf(blockOf(store, A)), "json", COMPLETE);
+    const stored = manifestText(manifestOf(blockOf(store, A)), "json", NEW);
     if (!stored.ok) throw new Error("not written");
     expect(textarea().value).toBe(stored.value.text);
     expect(textarea().value).toContain('"name": "Bye"');
@@ -799,7 +863,7 @@ describe("an applied manifest", () => {
 
 describe("the inspector's warnings", () => {
   const cases = readdirSync(warningsDirectory)
-    .filter((name) => name.endsWith(".json"))
+    .filter((name) => name.endsWith(".yaml"))
     .sort();
 
   /** Each listed warning as its key and its JSON pointer. */
@@ -821,6 +885,7 @@ describe("the inspector's warnings", () => {
   for (const name of cases) {
     it(`lists every unknown key and unregistered term of ${name} with its path, and editing continues`, () => {
       const { store, expected } = warningCase(name);
+      completeA(store);
       show(store, [{ block: A }]);
       openTab("Manifest");
       expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(1);

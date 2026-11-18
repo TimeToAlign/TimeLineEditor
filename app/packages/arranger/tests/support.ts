@@ -36,7 +36,7 @@ import {
 import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout";
 import { INITIAL_STYLE } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
-import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { dumps, fontMetrics, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { BandBox } from "../src/boxes.ts";
 import { isBand } from "../src/boxes.ts";
 
@@ -51,7 +51,7 @@ export const B = "0000000001";
 export const C = "0000000002";
 
 function fixtureText(name: string): string {
-  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.json`), "utf8");
+  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.yaml`), "utf8");
 }
 
 function loadText(text: string, name: string): Manifest {
@@ -76,7 +76,7 @@ export function loadUnlocked(name: string, ...ids: string[]): Manifest {
     ...(ids.includes(timeline.id as string) ? { locked: false } : {}),
     children: ((timeline.children ?? []) as Record<string, unknown>[]).map(unlock),
   });
-  const value = parseJson(fixtureText(name)) as Record<string, unknown>;
+  const value = loads(fixtureText(name)) as Record<string, unknown>;
   const timelines = (value.timelines as Record<string, unknown>[]).map(unlock);
   return loadText(dumps({ ...value, timelines }), name);
 }

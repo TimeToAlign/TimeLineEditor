@@ -2,7 +2,7 @@
  * A manifest as JSON, YAML or TOML text, read back into the lossless
  * manifest value and patched in place.
  *
- * JSON is TimeToShare's standard writer (`dumps`) and lossless reader
+ * JSON is TimeToShare's pretty JSON (`dumps`) and lossless reader
  * (`parseJson`), always available. YAML (`yaml.ts`) and TOML (`toml.ts`)
  * keep the parsed document of the text; patching it with a new manifest
  * changes only the values that differ, so the comments typed in the text
@@ -32,9 +32,12 @@ export const FORMAT_LABELS: { readonly [format in Format]: string } = {
 
 // JSON -------------------------------------------------------------------
 
+/** A value as pretty JSON, the text of a manifest file in that serialization. */
+const prettyJson = (value: Json): string => dumps(value, { serialization: "json" });
+
 const JSON_SOURCE: Source = {
   format: "json",
-  patch: (value) => ({ ok: true, value: dumps(value) }),
+  patch: (value) => ({ ok: true, value: prettyJson(value) }),
 };
 
 /** The JSON value of `text`; a syntax error at the line and column TimeToShare's reader names. */
@@ -58,7 +61,7 @@ function lineColumn(text: string, offset: number): { line: number; column: numbe
 }
 
 const JSON_CODEC: Codec = {
-  write: (value) => ({ ok: true, value: { text: dumps(value), source: JSON_SOURCE } }),
+  write: (value) => ({ ok: true, value: { text: prettyJson(value), source: JSON_SOURCE } }),
   read: readJson,
 };
 

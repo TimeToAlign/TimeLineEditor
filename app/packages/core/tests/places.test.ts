@@ -20,8 +20,8 @@ import {
 } from "./support.ts";
 
 const ID = "bundle0001";
-const BUNDLE = "bundles/bundle_mixed.json";
-const CHILD_MEMBER = "groups/group_child_member.json";
+const BUNDLE = "bundles/bundle_mixed.yaml";
+const CHILD_MEMBER = "groups/group_child_member.yaml";
 
 /** A view with block `bundle0001` holding `fixture`, frozen. */
 function mixed(extra: object = {}, fixture = BUNDLE): View {
@@ -250,7 +250,7 @@ describe("places, display orders and band orders, accepted", () => {
 });
 
 describe("member cards placed through their group", () => {
-  const shared = () => mixed({}, "bundles/bundle_shared_member.json");
+  const shared = () => mixed({}, "bundles/bundle_shared_member.yaml");
   const cards = (group: string, values: object) => set(group, { cards: values });
   const placesOf = (view: View) => block(view, ID).places;
 
@@ -327,7 +327,7 @@ describe("places, display orders and band orders, refused", () => {
   });
 
   it("refuses the one place of a timeline drawn in the frames of several groups", () => {
-    const shared = mixed({}, "bundles/bundle_shared_member.json");
+    const shared = mixed({}, "bundles/bundle_shared_member.yaml");
     expect(refused(shared, set("t", { place: { width: 650 } }))).toEqual({
       code: "not_an_item",
       path: [where("t"), "place"],
@@ -447,7 +447,7 @@ describe("places, display orders and band orders, refused", () => {
     const sized = after(view, set("score", { place: { width: 650 } }));
     const ordered = after(view, set("excerpt", { order: E }));
     const deleted = after(view, set("group_1", { order: null }));
-    const bare = mixed({}, "map.json");
+    const bare = mixed({}, "map.yaml");
     expect(block(bare, ID).manifest.graphical?.order).toEqual({});
     const cases: [View, string, object][] = [
       [view, "annotations", { place: { x: null } }],
@@ -477,7 +477,7 @@ describe("places, display orders and band orders, refused", () => {
     const add = {
       type: "add",
       into: {},
-      block: { id: ID, manifest: load("map.json"), x: 0, y: 0 },
+      block: { id: ID, manifest: load("map.yaml"), x: 0, y: 0 },
     };
     expect(store.dispatch(add)).toBeNull();
     const before = store.view;

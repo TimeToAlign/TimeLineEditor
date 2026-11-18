@@ -3,16 +3,21 @@
  *
  * The **raw** text is the exact value and its unit's schema name: the value
  * as Copy writes it (`copyValue`: a fraction as `n/d`, or `n` when the
- * denominator is 1, a float its `repr`, an int its plain digits), a space
+ * denominator is 1, a float as TimeToShare spells it, an int its plain
+ * digits), a space
  * and the unit spelled out (`219/16 quarters`, `0.1 seconds`, `514041
  * samples`).
  *
  * The **pretty** text is written with symbols and abbreviations
  * (`prettyUnit`): a fraction as a mixed fraction (`13 11/16 ♩`), an int in
- * groups of three digits (`514 041 smp`), a float its `repr`. Seconds are
- * split into hours `h`, minutes `′` and seconds `″`, with no unit after
- * (`1h02′05″`); the split is exact, on the rational or on the decimal
- * digits of a float's `repr`, never in float arithmetic.
+ * groups of three digits (`514 041 smp`), a float as TimeToShare spells it.
+ * Seconds are split into hours `h`, minutes `′` and seconds `″`, with no
+ * unit after (`1h02′05″`); the split is exact, on the rational or on the
+ * decimal digits of a float's spelling, never in float arithmetic.
+ *
+ * TimeToShare spells a float as Python's `repr` does, a mantissa in
+ * exponent form given a fractional digit (`1.0e-05`), so a value reads as
+ * its manifest writes it.
  *
  * Rounding is the reader's. Without `decimals` the pretty text is exact.
  * With `decimals` it is rounded as the coordinate flag and the drawing's
@@ -22,7 +27,7 @@
  * as it is. Seconds are split after rounding. A pretty text is never
  * signed zero: a float −0.0, or a value that rounds to zero, is written
  * unsigned (`0″`, `0.0 ♩`), while Copy and the raw text keep the float's
- * `repr` (`-0.0`).
+ * spelling (`-0.0`).
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
@@ -85,8 +90,8 @@ function intOf(value: CoordinateValue): bigint {
   throw kindError(value, "int");
 }
 
-/** A float as Python's `repr` spells it. */
-function repr(value: number): string {
+/** A float as TimeToShare's writers spell it. */
+function spelled(value: number): string {
   return compactJson(new JsonFloat(value));
 }
 
@@ -185,7 +190,7 @@ function exactSpelling(value: Rational, decimals: number | undefined): Spelling 
   };
 }
 
-/** The spelling of any value of `numberType`; a float's magnitude is the decimal its `repr` writes. */
+/** The spelling of any value of `numberType`; a float's magnitude is the decimal its spelling writes. */
 function spelling(
   value: CoordinateValue,
   numberType: NumberType,
@@ -193,20 +198,20 @@ function spelling(
 ): Spelling {
   if (numberType === "fraction") return exactSpelling(fractionOf(value), decimals);
   if (numberType === "int") return exactSpelling(Rational.of(intOf(value)), decimals);
-  const text = repr(roundedFloat(value, decimals));
+  const text = spelled(roundedFloat(value, decimals));
   const negative = text.startsWith("-");
   const magnitude = parseAxisValue(negative ? text.slice(1) : text, "float");
   if (!(magnitude instanceof Rational)) throw new RangeError(`${text} is not a finite float`);
   return { prefix: negative ? "-" : "", magnitude, write: decimal };
 }
 
-/** A value of `numberType` as a pretty number: a float its `repr`, an int grouped by three, a fraction as spelled. */
+/** A value of `numberType` as a pretty number: a float as spelled, an int grouped by three, a fraction as spelled. */
 function prettyNumber(
   value: CoordinateValue,
   numberType: NumberType,
   decimals: number | undefined,
 ): string {
-  if (numberType === "float") return repr(roundedFloat(value, decimals));
+  if (numberType === "float") return spelled(roundedFloat(value, decimals));
   if (numberType === "int") {
     const integer = intOf(value);
     const digits = (integer < 0n ? -integer : integer).toString();
@@ -249,13 +254,13 @@ export function prettyUnit(unit: TimeUnit): string {
 
 /**
  * The text Copy puts on the clipboard: the whole value, a fraction `n/d`
- * (`n` when the denominator is 1), a float its `repr`, an int its digits.
+ * (`n` when the denominator is 1), a float as spelled, an int its digits.
  *
  * @throws {TypeError} if the value is not of the number type's kind (a `bigint` for `int`, a `number` for `float`, a `Rational` for `fraction`).
  */
 export function copyValue(value: CoordinateValue, numberType: NumberType): string {
   if (numberType === "fraction") return fractionOf(value).toString();
-  if (numberType === "float") return repr(floatOf(value));
+  if (numberType === "float") return spelled(floatOf(value));
   return intOf(value).toString();
 }
 

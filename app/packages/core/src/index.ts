@@ -95,8 +95,14 @@ export {
 export { contains } from "./manifest/contains.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
-export type { SaveOptions } from "./manifest/io.ts";
-export { loadManifest, normalizeManifest, saveManifest } from "./manifest/io.ts";
+export type { ManifestFile, ReadManifestFile } from "./manifest/io.ts";
+export {
+  loadManifest,
+  NEW_MANIFEST_FILE,
+  normalizeManifest,
+  readManifestFile,
+  saveManifest,
+} from "./manifest/io.ts";
 export type {
   LinkedManifest,
   LinkedRegion,
@@ -223,5 +229,6 @@ export {
   DEFAULT_GRANULARITY,
   DEFAULT_SETTINGS,
   MAX_DECIMALS,
+  manifestFileOf,
   UNTITLED_WORKSPACE,
 } from "./workspace/view.ts";

@@ -1,4 +1,4 @@
-import { dumps, JsonFloat, parseJson, SCHEMA_VERSION, unknownKeys } from "@timetoalign/timetoshare";
+import { dumps, JsonFloat, loads, SCHEMA_VERSION, unknownKeys } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
@@ -37,21 +37,24 @@ function refused(text: string): LoadError {
 
 const problems = (text: string) => refused(text).problems.map(({ code, path }) => ({ code, path }));
 
+/** How a manifest is written in the complete form, with its styling, in canonical YAML. */
+const COMPLETE = { minimal: false } as const;
+
 type Node = Record<string, unknown>;
 const node = (value: unknown, ...keys: (string | number)[]): Node =>
   keys.reduce<unknown>((current, key) => (current as Node)[key], value) as Node;
 
 describe("fixture manifests round-trip byte for byte", () => {
   it.each(allFixtures.map((fixture) => [fixture.name, fixture.text]))("%s", (_, text) => {
-    expect(saveManifest(loadText(text))).toBe(text);
+    expect(saveManifest(loadText(text), COMPLETE)).toBe(text);
   });
 
   it.each(allFixtures.map((fixture) => [fixture.name, fixture.text, fixture.twin]))(
     "the minimal twin of %s",
     (_, text, twin) => {
       const manifest = loadText(twin);
-      expect(saveManifest(manifest)).toBe(text);
-      expect(saveManifest(manifest, { minimal: true })).toBe(twin);
+      expect(saveManifest(manifest, COMPLETE)).toBe(text);
+      expect(saveManifest(manifest)).toBe(twin);
     },
   );
 });
@@ -63,7 +66,7 @@ describe("shared rejections", () => {
       return;
     }
     // JSON carries no infinity and no NaN: the case names the one to put at its path.
-    const value = parseJson(item.text);
+    const value = loads(item.text);
     let owner: unknown = value;
     const [last, ...above] = [...item.path].reverse();
     for (const segment of above.reverse()) {
@@ -81,7 +84,7 @@ describe("shared rejections", () => {
 
 describe("the version marker", () => {
   it("refuses another version at the marker and a value without one at the top", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     expect(problems(dumps({ ...value, timetoshare: "0.6.0" }))).toEqual([
       { code: "schema_violation", path: ["timetoshare"] },
     ]);
@@ -91,7 +94,7 @@ describe("the version marker", () => {
 });
 
 describe("the minimal form in, either form out", () => {
-  it("supplies every default of bare.json and adds no absent key", () => {
+  it("supplies every default of bare.yaml and adds no absent key", () => {
     const root = {
       id: "bare",
       name: "Bare",
@@ -111,7 +114,7 @@ describe("the minimal form in, either form out", () => {
       meta: _,
       graphical: __,
       ...twin
-    } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
+    } = loads(fixture("bare.yaml").twin) as Record<string, unknown>;
     expect(loadText(dumps(twin))).toEqual({
       timetoshare: SCHEMA_VERSION,
       name: null,
@@ -127,7 +130,7 @@ describe("the minimal form in, either form out", () => {
 
 describe("unknown keys", () => {
   it("are kept through loading, commands and saving, and listed", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     const [root] = value.timelines as Node[];
     const text = dumps({
       ...value,
@@ -163,7 +166,7 @@ describe("unknown keys", () => {
     });
     const edited = block(view).manifest;
     expect(kept(edited)).toEqual([1, { a: [1, 2] }, "kept"]);
-    expect(kept(parseJson(saveManifest(edited)))).toEqual([1, { a: [1, 2] }, "kept"]);
+    expect(kept(loads(saveManifest(edited)))).toEqual([1, { a: [1, 2] }, "kept"]);
     expect(unknownKeys(edited)).toEqual([
       { path: [], key: "x-top" },
       { path: ["timelines", 0], key: "x-root" },
@@ -174,7 +177,7 @@ describe("unknown keys", () => {
 
 describe("graphical styles", () => {
   it("warns once and completes every missing named style", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     const graphical = {
       styles: { kept: { fill: "#ABCDEF" } },
       statements: [
@@ -194,20 +197,20 @@ describe("graphical styles", () => {
   });
 
   it("reads a declaration's integral float as the double it equals", () => {
-    const { text } = fixture("styled__score.json");
-    const spelled = /("(?:stroke-width|opacity|font-size|rx|max-width)": )(\d+)(,?\n)/g;
-    const floats = text.replace(spelled, "$1$2.0$3");
-    expect(floats.match(/": \d+\.0,?\n/g)).toEqual([
-      '": 4.0\n',
-      '": 2.0\n',
-      '": 10.0\n',
-      '": 12.0,\n',
-      '": 120.0\n',
-      '": 4.0\n',
+    const { text } = fixture("styled__score.yaml");
+    const spelled = /^( *(?:stroke-width|opacity|font-size|rx|max-width): )(\d+)$/gm;
+    const floats = text.replace(spelled, "$1$2.0");
+    expect(floats.match(/: \d+\.0$/gm)).toEqual([
+      ": 4.0",
+      ": 2.0",
+      ": 10.0",
+      ": 12.0",
+      ": 120.0",
+      ": 4.0",
     ]);
     const manifest = loadText(floats);
-    expect(manifest).toEqual(load("styled__score.json"));
-    expect(saveManifest(manifest)).toBe(text);
+    expect(manifest).toEqual(load("styled__score.yaml"));
+    expect(saveManifest(manifest, COMPLETE)).toBe(text);
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
     expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles", "timestamps"]);
@@ -216,12 +219,12 @@ describe("graphical styles", () => {
     );
     expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
     expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(
-      Object.keys(node(manifestValue("styled__score.json"), "graphical", "styles", "accent")),
+      Object.keys(node(manifestValue("styled__score.yaml"), "graphical", "styles", "accent")),
     );
   });
 
   it("reads an integer beyond 2^53 only where a double holds it exactly", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     const exact = 2n ** 53n;
     const statements = [{ select: {}, set: { "stroke-width": exact } }];
     const held = loadText(dumps({ ...value, graphical: { statements } }));
@@ -246,24 +249,24 @@ describe("lossless numbers", () => {
   };
 
   it("keeps an int above 2^53", () => {
-    const text = withLength("discrete_logical.json", 9007199254740993n);
+    const text = withLength("discrete_logical.yaml", 9007199254740993n);
     const manifest = loadText(text);
     expect(manifest.timelines[0]?.length).toBe(9007199254740993n);
-    expect(saveManifest(manifest)).toBe(text);
-    expect(saveManifest(manifest)).toContain('"length": 9007199254740993,');
+    expect(saveManifest(manifest, COMPLETE)).toBe(text);
+    expect(saveManifest(manifest)).toContain("length: 9007199254740993\n");
   });
 
   it("keeps a Fraction component above 2^53", () => {
-    const text = withLength("continuous_logical.json", [9007199254740993n, 1]);
+    const text = withLength("continuous_logical.yaml", [9007199254740993n, 1]);
     const manifest = loadText(text);
     expect(manifest.timelines[0]?.length).toEqual([9007199254740993n, 1]);
-    expect(saveManifest(manifest)).toBe(text);
+    expect(saveManifest(manifest, COMPLETE)).toBe(text);
   });
 });
 
 describe("canonical order", () => {
   it("refuses a value it cannot order with the schema's problem", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     const [root] = value.timelines as Node[];
     const regions = [
       { id: "region_1", start: [0, 1], end: [1, 1] },
@@ -278,7 +281,7 @@ describe("canonical order", () => {
   });
 
   it("orders flow-control elements at one coordinate by id in code-point order", () => {
-    const value = manifestValue("bare.json");
+    const value = manifestValue("bare.yaml");
     const [root] = value.timelines as Node[];
     const flow_control = ["\u{1F3B5}", "～"].map((id) => ({
       id,
@@ -287,14 +290,14 @@ describe("canonical order", () => {
       coordinate: [1, 1],
     }));
     const text = dumps({ ...value, timelines: [{ ...root, flow_control }] });
-    const saved = parseJson(saveManifest(loadText(text)));
+    const saved = loads(saveManifest(loadText(text)));
     const ordered = node(saved, "timelines", 0).flow_control as Node[];
     expect(ordered.map((element) => element.id)).toEqual(["～", "\u{1F3B5}"]);
   });
 });
 
 describe("invariants", () => {
-  const base = () => manifestValue("with_region.json");
+  const base = () => manifestValue("with_region.yaml");
   const rootPath = ["timelines", 0];
   const childPath = [...rootPath, "children", 0];
 
@@ -314,7 +317,7 @@ describe("invariants", () => {
       { code: "region_end_before_start", path: [...rootPath, "children", 1, "regions", 0, "end"] },
       { code: "region_end_before_start", path: [...rootPath, "regions", 0, "end"] },
     ]);
-    const loaded = load("with_region.json");
+    const loaded = load("with_region.yaml");
     const [timeline] = loaded.timelines;
     const [first] = timeline?.regions ?? [];
     if (timeline === undefined || first === undefined) throw new Error("the fixture has a region");
@@ -350,8 +353,8 @@ describe("invariants", () => {
     const value = base();
     Object.assign(node(value, ...childPath), { number_type: "float", length: new JsonFloat(4) });
     const text = dumps(value);
-    expect(text.includes('"length": 4.0')).toBe(true);
-    expect(saveManifest(loadText(text))).toBe(text);
+    expect(text.includes("length: 4.0\n")).toBe(true);
+    expect(saveManifest(loadText(text), COMPLETE)).toBe(text);
   });
 
   it.each(cases)("%s", (code, change, expectedPath) => {
@@ -426,13 +429,17 @@ describe("invariants", () => {
 
   it("refuses malformed text", () => {
     expect(problems('{"timetoshare": ')).toEqual([{ code: "invalid_json", path: [] }]);
+    expect(problems("timelines: [")).toEqual([{ code: "invalid_yaml", path: [] }]);
+    expect(problems('timetoshare: "0.2.0"\ntimetoshare: "0.2.0"\ntimelines: []\n')).toEqual([
+      { code: "invalid_yaml", path: [] },
+    ]);
   });
 
   it("checks commands with the same invariants", () => {
     const view = changed(createView(), {
       type: "add",
       into: {},
-      block: { id: A, manifest: load("with_region.json"), x: 0, y: 0 },
+      block: { id: A, manifest: load("with_region.yaml"), x: 0, y: 0 },
     });
     const result = apply(view, {
       type: "set",
@@ -446,7 +453,7 @@ describe("invariants", () => {
 });
 
 describe("segments read unlocked", () => {
-  /** `segment_line.json` with the `locked` of some timelines stated, read. */
+  /** `segment_line.yaml` with the `locked` of some timelines stated, read. */
   function read(stated: Record<string, boolean>): Manifest {
     const state = (timeline: Node): Node => ({
       ...timeline,
@@ -455,7 +462,7 @@ describe("segments read unlocked", () => {
         : {}),
       children: (timeline.children as Node[]).map(state),
     });
-    const value = manifestValue("segment_line.json");
+    const value = manifestValue("segment_line.yaml");
     return loadText(dumps({ ...value, timelines: (value.timelines as Node[]).map(state) }));
   }
   /** Every timeline's `locked`, by id. */
@@ -493,8 +500,8 @@ describe("segments read unlocked", () => {
     const manifest = read({ a1: true, b1: true, b2: true, c1: true });
     const saved = locks(loadText(saveManifest(manifest)));
     expect(SEGMENTS.map((id) => saved[id])).toEqual([false, false, false, false]);
-    const complete = parseJson(saveManifest(manifest));
-    const minimal = parseJson(saveManifest(manifest, { minimal: true }));
+    const complete = loads(saveManifest(manifest, COMPLETE));
+    const minimal = loads(saveManifest(manifest));
     const stated = (value: unknown) => {
       const found: Record<string, unknown> = {};
       const walk = (timeline: Node) => {
@@ -512,11 +519,11 @@ describe("segments read unlocked", () => {
 });
 
 describe("an entry given to a command", () => {
-  const manifest = load("map.json");
+  const manifest = load("map.yaml");
   /** The timeline `id` of `manifest`, located. */
   const located = (id: string): Located => {
     const at = locateTimeline(manifest, id);
-    if (at === undefined) throw new Error(`map.json has ${id}`);
+    if (at === undefined) throw new Error(`map.yaml has ${id}`);
     return at;
   };
   const melody = located("melody");

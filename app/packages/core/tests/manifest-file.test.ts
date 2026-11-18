@@ -1,0 +1,94 @@
+import type { Serialization } from "@timetoalign/timetoshare";
+import { dumps, loads } from "@timetoalign/timetoshare";
+import { describe, expect, it } from "vitest";
+import { isLoadError } from "../src/errors.ts";
+import type { ManifestFile, ReadManifestFile } from "../src/manifest/io.ts";
+import {
+  loadManifest,
+  NEW_MANIFEST_FILE,
+  readManifestFile,
+  saveManifest,
+} from "../src/manifest/io.ts";
+import { allFixtures, fixture, load, loadText, manifestValue } from "./support.ts";
+
+/** A manifest file's text read, failing loudly if it is refused. */
+function read(text: string): ReadManifestFile {
+  const result = readManifestFile(text);
+  if (isLoadError(result)) throw new Error(`refused: ${JSON.stringify(result.problems)}`);
+  return result;
+}
+
+/** The text of a YAML text's value without its `graphical` member. */
+function unstyled(text: string): string {
+  const { graphical: _, ...rest } = loads(text) as { readonly [key: string]: unknown };
+  return dumps(rest);
+}
+
+/** Every text of the round trip: each fixture and twin in canonical YAML, and `bare` without styling. */
+const TEXTS: readonly (readonly [name: string, text: string, minimal: boolean])[] = [
+  ...allFixtures.flatMap(({ name, text, twin }) => [
+    [name, text, false] as const,
+    [`${name} (twin)`, twin, true] as const,
+  ]),
+  ["bare.yaml without graphical", unstyled(fixture("bare.yaml").text), false],
+  ["bare.yaml (twin) without graphical", unstyled(fixture("bare.yaml").twin), true],
+];
+
+const SERIALIZATIONS: readonly Serialization[] = ["yaml", "json", "jcs"];
+
+/** Each text in each serialization, written by the schema package's `dumps` from its value. */
+const CASES = TEXTS.flatMap(([name, text, minimal]) =>
+  SERIALIZATIONS.map((serialization) => {
+    const value = loads(text) as { readonly [key: string]: unknown };
+    return {
+      name: `${name} in ${serialization}`,
+      text: dumps(value, { serialization }),
+      file: { minimal, styling: Object.hasOwn(value, "graphical"), serialization },
+    };
+  }),
+);
+
+describe("a manifest file written back as it came", () => {
+  it("writes the fixtures and twins in canonical YAML as they are", () => {
+    for (const [, text] of TEXTS.slice(0, -2)) expect(dumps(loads(text))).toBe(text);
+    expect(read(fixture("bare.yaml").text).file.styling).toBe(true);
+    expect(TEXTS.at(-2)?.[1].includes("graphical")).toBe(false);
+  });
+
+  it.each(CASES)("infers how $name is written", ({ text, file }) => {
+    const result = read(text);
+    expect(result.file).toEqual(file);
+    expect(result.manifest).toEqual(loadManifest(text));
+  });
+
+  it.each(CASES)("writes $name back byte for byte", ({ text }) => {
+    const { manifest, file } = read(text);
+    expect(saveManifest(manifest, file)).toBe(text);
+  });
+
+  it("leaves the styling out when asked", () => {
+    const manifest = load("bare.yaml");
+    const { graphical: _, ...without } = manifest;
+    const plain = saveManifest(manifest, { styling: false });
+    expect(Object.hasOwn(loads(plain) as object, "graphical")).toBe(false);
+    expect(loadText(plain)).toEqual(without);
+    const styled = loadText(saveManifest(manifest, { styling: true }));
+    expect(styled.graphical).toEqual(manifest.graphical);
+  });
+
+  it("writes a manifest as a new one by default: minimal, styled, in canonical YAML", () => {
+    const expected: ManifestFile = { minimal: true, styling: true, serialization: "yaml" };
+    expect(NEW_MANIFEST_FILE).toEqual(expected);
+    expect(saveManifest(load("bare.yaml"))).toBe(fixture("bare.yaml").twin);
+  });
+
+  it.each([
+    ['{"timetoshare": ', "invalid_json"],
+    ["timelines: [", "invalid_yaml"],
+    [dumps({ ...manifestValue("bare.yaml"), timetoshare: "0.6.0" }), "schema_violation"],
+  ])("refuses %j as loadManifest does (%s)", (text, code) => {
+    const result = readManifestFile(text);
+    expect(result).toEqual(loadManifest(text));
+    expect(isLoadError(result) && result.problems.map((problem) => problem.code)).toEqual([code]);
+  });
+});

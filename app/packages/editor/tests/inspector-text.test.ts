@@ -12,8 +12,8 @@ import {
   isJsonFloat,
   isJsonObject,
   JsonFloat,
+  loads,
   minimal,
-  parseJson,
   SCHEMA_VERSION,
 } from "@timetoalign/timetoshare";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -37,9 +37,9 @@ const fixturesDirectory = path.join(
 /** The manifest fixtures of one directory, `""`, `groups` or `bundles`, without their minimal twins. */
 function fixturesOf(kind: "" | "groups" | "bundles"): string[] {
   return readdirSync(path.join(fixturesDirectory, kind))
-    .filter((name) => name.endsWith(".json") && !name.endsWith(".minimal.json"))
+    .filter((name) => name.endsWith(".yaml") && !name.endsWith(".minimal.yaml"))
     .sort()
-    .map((name) => path.join(kind, name).replace(/\.json$/, ""));
+    .map((name) => path.join(kind, name).replace(/\.yaml$/, ""));
 }
 
 const fixtureNames = [...fixturesOf(""), ...fixturesOf("groups"), ...fixturesOf("bundles")];
@@ -137,8 +137,9 @@ describe("format round trips", () => {
     for (const format of FORMATS) {
       it(`${name} through ${format}`, () => {
         const text = fixtureText(name);
-        const value = parseJson(text) as Json;
+        const value = loads(text) as Json;
         expect(dumps(readBack(format, written(format, value)))).toBe(text);
+        if (format === "yaml") expect(written(format, value)).toBe(text);
       });
     }
   }
@@ -176,7 +177,7 @@ describe("exact numbers", () => {
       expect(isJsonFloat(value)).toBe(true);
       expect((value as JsonFloat).value).toBe(1e16);
     }
-    expect(written("yaml", manifest)).toContain("    length: 10000000000000000.0\n");
+    expect(written("yaml", manifest)).toContain("    length: 1.0e+16\n");
   });
 });
 
@@ -302,7 +303,7 @@ describe("the TOML null rule", () => {
   });
 
   it("refuses a null the schema neither requires nor defaults to null", () => {
-    const value = parseJson(
+    const value = loads(
       dumps({
         timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
@@ -350,7 +351,7 @@ describe("applying a text", () => {
       '"name": "Bare"',
       '"name": "Renamed"',
     );
-    const parsed = parseJson(text) as Json;
+    const parsed = loads(text) as Json;
     const applied = applyText(store, A, "json", text, FILE_FORM);
     expect(applied.ok).toBe(true);
     expect(store.journal).toHaveLength(2);
@@ -428,8 +429,8 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 55, 17],
-      ["syntax_error", 17, 5],
+      ["syntax_error", 40, 17],
+      ["syntax_error", 35, 5],
       ["syntax_error", 19, 1],
     ]);
     expect(store.journal).toHaveLength(1);
@@ -450,12 +451,20 @@ describe("comments", () => {
         const text = original.replace(nameLine, edited);
         const applied = applyText(store, A, format, text, options);
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
-        expect(applied.value.text).toBe(text);
+        if (format === "toml") expect(applied.value.text).toBe(text);
+        else {
+          // The YAML library writes a commented document in its own layout, both comments kept.
+          for (const line of edited.split("\n").filter((item) => item !== "")) {
+            expect(applied.value.text).toContain(`${line.trim()}\n`);
+          }
+          expect(applied.value.text).not.toBe(text);
+          expect(dumps(readBack(format, applied.value.text))).toBe(dumps(readBack(format, text)));
+        }
         expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Hello");
         setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
         const followed = follow(applied.value.source, manifestIn(store, A), options);
         if (!followed.ok) throw new Error(JSON.stringify(followed.problems));
-        expect(followed.value.text).toBe(text.replace("Hello", "Bye"));
+        expect(followed.value.text).toBe(applied.value.text.replace("Hello", "Bye"));
       });
     }
   }
@@ -465,20 +474,22 @@ describe("the four text modes", () => {
   /** The statement the `style` of `styledBare` adds. */
   const STATEMENT = { select: { element: "timeline" }, set: { stroke: "#800000" } };
   /** A fixture's text as an object. */
-  const objectOf = (name: string) => parseJson(fixtureText(name)) as { [key: string]: Json };
+  const objectOf = (name: string) => loads(fixtureText(name)) as { [key: string]: Json };
+  /** A value's pretty JSON, the text the panel shows in JSON. */
+  const json = (value: unknown): string => dumps(value, { serialization: "json" });
   /** `fixture` without its `graphical` (the styling), or with the statement added to it. */
   function shownOf(fixture: { [key: string]: Json }, styled: boolean): string {
     const { graphical, ...rest } = fixture;
-    if (!styled) return dumps(rest);
+    if (!styled) return json(rest);
     const own = graphical as { [key: string]: Json };
     const statements = [...((own.statements ?? []) as Json[]), STATEMENT];
-    return dumps({ ...rest, graphical: { ...own, statements } });
+    return json({ ...rest, graphical: { ...own, statements } });
   }
   const bare = fixtureText("bare");
   const bareMinimal = fixtureText("bare.minimal");
   /**
-   * The JSON text each mode shows: the fixture `bare.json` or
-   * `bare.minimal.json`, whose `graphical` holds its root's default
+   * The JSON text each mode shows: the fixture `bare.yaml` or
+   * `bare.minimal.yaml`, whose `graphical` holds its root's default
    * timestamps, without that `graphical` or with the statement added to it.
    */
   const SHOWN: Record<Mode, string> = {
@@ -507,11 +518,11 @@ describe("the four text modes", () => {
 
   for (const mode of MODE_NAMES) {
     const options = MODES[mode];
-    const shown = parseJson(SHOWN[mode]) as Json;
+    const shown = loads(SHOWN[mode]) as Json;
 
     it(`shows the pinned text, ${mode}`, () => {
       // Both fixtures state the default timestamps of their root in their `graphical`.
-      expect([bare, bareMinimal].map((text) => text.includes('"timestamps"'))).toEqual([
+      expect([bare, bareMinimal].map((text) => text.includes("\n  timestamps:\n"))).toEqual([
         true,
         true,
       ]);
@@ -519,14 +530,14 @@ describe("the four text modes", () => {
       const store = styledBare();
       const manifest = manifestIn(store, A);
       expect(written("json", manifest, options)).toBe(SHOWN[mode]);
-      expect(dumps(readBack("yaml", written("yaml", manifest, options)))).toBe(SHOWN[mode]);
+      expect(written("yaml", manifest, options)).toBe(dumps(shown));
       const toml = readBack("toml", written("toml", manifest, options));
       if (options.minimal) {
         const restored = { ...(shown as Record<string, Json>), name: null };
-        expect(dumps(toml)).toBe(dumps(restored));
-        expect(dumps(minimal(toml))).toBe(SHOWN[mode]);
+        expect(json(toml)).toBe(json(restored));
+        expect(json(minimal(toml))).toBe(SHOWN[mode]);
       } else {
-        expect(dumps(toml)).toBe(SHOWN[mode]);
+        expect(json(toml)).toBe(SHOWN[mode]);
       }
       for (const format of FORMATS) {
         const text = written(format, manifest, options);
@@ -545,7 +556,7 @@ describe("the four text modes", () => {
         const applied = applyText(store, A, format, edited, options);
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
         expect(store.journal).toHaveLength(3);
-        const expected = parseJson(
+        const expected = loads(
           SHOWN["complete with styling"].replace('"name": "Bare"', '"name": "Renamed"'),
         );
         expect(dumps(manifestIn(store, A))).toBe(dumps(expected));
@@ -616,15 +627,15 @@ describe("the four text modes", () => {
 });
 
 describe("the text state", () => {
+  const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
+
   /** A text state following block `A` of a store holding `bare` and `styled__score`. */
   function following(): { store: Store; text: ManifestText } {
     const store = storeOf("bare", "styled__score");
     const text = new ManifestText();
-    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, A), COMPLETE);
     return { store, text };
   }
-
-  const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
 
   it("shows the selected block's manifest while the text is clean", () => {
     const { store, text } = following();
@@ -633,9 +644,9 @@ describe("the text state", () => {
       false,
       false,
     ]);
-    text.follow(blockIn(store, B));
+    text.follow(blockIn(store, B), COMPLETE);
     expect(text.text).toBe(written("json", manifestIn(store, B), COMPLETE));
-    text.follow(null);
+    text.follow(null, COMPLETE);
     expect([text.text, text.dirty, text.problems]).toEqual(["", false, []]);
   });
 
@@ -644,8 +655,8 @@ describe("the text state", () => {
     const shown = text.text;
     text.text = shown.replace('"name": "Bare"', '"name": "Hello"');
     setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
-    text.follow(blockIn(store, A));
-    text.follow(blockIn(store, B));
+    text.follow(blockIn(store, A), COMPLETE);
+    text.follow(blockIn(store, B), COMPLETE);
     expect([text.text.includes('"name": "Hello"'), text.dirty, text.stale]).toEqual([
       true,
       true,
@@ -666,10 +677,10 @@ describe("the text state", () => {
     const shown = text.text;
     text.text = `${shown} `;
     setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
-    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, A), COMPLETE);
     expect(text.stale).toBe(true);
     text.text = shown;
-    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, A), COMPLETE);
     expect([text.text, text.stale]).toEqual([
       written("json", manifestIn(store, A), COMPLETE),
       false,
@@ -686,13 +697,13 @@ describe("the text state", () => {
       true,
     ]);
     text.text = shown;
-    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, A), COMPLETE);
     expect([text.problems, text.dirty, store.journal.length]).toEqual([[], false, 2]);
 
     const nulls = storeOf(nominalNull());
     const toml = new ManifestText();
     toml.format = "toml";
-    toml.follow(blockIn(nulls, A));
+    toml.follow(blockIn(nulls, A), COMPLETE);
     const problems = () => toml.problems.map((problem) => [problem.code, problemPointer(problem)]);
     expect([toml.text, problems()]).toEqual([
       "",
@@ -700,7 +711,7 @@ describe("the text state", () => {
     ]);
     toml.text = "x";
     toml.text = "";
-    toml.follow(blockIn(nulls, A));
+    toml.follow(blockIn(nulls, A), COMPLETE);
     expect(problems()).toEqual([["not_representable", "/measure_maps/0/rows/0/nominal_length"]]);
   });
 
@@ -708,22 +719,21 @@ describe("the text state", () => {
     const { store, text } = following();
     text.text = "{}";
     setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
-    text.revert(blockIn(store, A));
+    text.revert(blockIn(store, A), COMPLETE);
     expect([text.text, text.dirty, text.stale]).toEqual([
       written("json", manifestIn(store, A), COMPLETE),
       false,
       false,
     ]);
     text.text = "{}";
-    text.revert(null);
+    text.revert(null, COMPLETE);
     expect([text.text, text.dirty]).toEqual(["", false]);
   });
 
   it("writes the text again when the format or an option changes", () => {
     const { store, text } = following();
     text.format = "yaml";
-    text.minimal = true;
-    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, A), { ...COMPLETE, minimal: true });
     expect(text.text).toBe(written("yaml", manifestIn(store, A), { ...COMPLETE, minimal: true }));
   });
 });

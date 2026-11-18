@@ -35,10 +35,10 @@ import {
 
 const CLT = "ContinuousLogicalTimeline";
 const CPT = "ContinuousPhysicalTimeline";
-const GROUP = "groups/group_child_member.json";
-const NUMBERS = "groups/group_number_types.json";
-const STYLED = "groups/group_styled.json";
-const BUNDLE = "bundles/bundle_mixed.json";
+const GROUP = "groups/group_child_member.yaml";
+const NUMBERS = "groups/group_number_types.yaml";
+const STYLED = "groups/group_styled.yaml";
+const BUNDLE = "bundles/bundle_mixed.yaml";
 
 /** Bare values on a `fraction` and on an `int` axis. */
 const quarters = (numerator: number) => [numerator, 1];
@@ -70,7 +70,7 @@ function file(view: View, id = A): Manifest {
 
 /** A child timeline given to `add`: bare's root under another id, locked, at 0. */
 const childOf = (id: string) => ({
-  ...load("bare.json").timelines[0],
+  ...load("bare.yaml").timelines[0],
   id,
   offset: quarters(0),
   locked: true,
@@ -94,7 +94,7 @@ describe("blocks hold any manifest", () => {
       { view: createView(), journal: [], sessions: {} },
       { clock: testClock() },
     );
-    for (const command of [addBlock(A, "bare.json"), addBlock(B, GROUP), addBlock(C, BUNDLE)]) {
+    for (const command of [addBlock(A, "bare.yaml"), addBlock(B, GROUP), addBlock(C, BUNDLE)]) {
       expect(store.dispatch(command)).toBeNull();
     }
     const workspace = store.snapshot();
@@ -360,7 +360,7 @@ describe("the elements of a named manifest with two groups", () => {
 });
 
 describe("addresses in a one-root block", () => {
-  const view = viewOf([A, "map.json"]);
+  const view = viewOf([A, "map.yaml"]);
 
   it("hold every ID of the manifest once, whatever element carries it", () => {
     expect([...manifestIds(file(view))].sort()).toEqual([
@@ -458,13 +458,13 @@ describe("addresses in a block of several roots", () => {
       const found = resolveElement(manifest, address);
       return found?.kind === "entry" ? { kind: found.entry, entry: found.element } : undefined;
     };
-    const maps = load("map.json");
+    const maps = load("map.yaml");
     const melody = maps.timelines[0];
     expect(findEntry(maps, id("tempo"))?.kind).toBe("map");
     expect(findEntry(maps, id("tempo"))?.entry).toBe(melody?.conversion_maps[0]);
     expect(findEntry(maps, id("ticks"))?.kind).toBe("map");
     expect(findEntry(maps, id("ticks"))?.entry).toBe(melody?.children[0]?.conversion_maps[0]);
-    const flow = load("flow_control.json");
+    const flow = load("flow_control.yaml");
     const control = flow.timelines[0]?.flow_control ?? [];
     for (const item of ["flow_marker_1", "jump_from_1", "jump_to_1"]) {
       const found = findEntry(flow, id(item));
@@ -551,7 +551,7 @@ describe("commands in blocks of several roots", () => {
   });
 
   it("style every block holding a group", () => {
-    const view = viewOf([A, NUMBERS], [B, BUNDLE], [C, "bare.json"]);
+    const view = viewOf([A, NUMBERS], [B, BUNDLE], [C, "bare.yaml"]);
     const styled = changed(view, {
       type: "style",
       select: { element: "frame" },
@@ -706,7 +706,7 @@ describe("IDs of new elements", () => {
   });
 
   it("refuse the IDs of the maps other maps hold, which no address names", () => {
-    const view = viewOf([A, "conversion_maps__maps_quarters.json"]);
+    const view = viewOf([A, "conversion_maps__maps_quarters.yaml"]);
     expect([...manifestIds(file(view))].sort()).toEqual([
       "cmap_1",
       "cmap_2",

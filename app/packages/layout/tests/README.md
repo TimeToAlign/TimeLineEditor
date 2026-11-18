@@ -72,7 +72,7 @@ card, the coordinate label of `origin`); selectors and expectations use the
 whole address. A container record's `key` and `holder` are place keys,
 `{item: G}` for the frame of `G`, `{item: G, member: T}` for the card of `T`
 in it and `{item: T}` for an ungrouped root's card. The fixtures' minimal
-twins (`*.minimal.json`) draw as their complete fixtures do and are left out
+twins (`*.minimal.yaml`) draw as their complete fixtures do and are left out
 of every list of fixtures.
 
 ## Font measures (`metrics.test.ts`)
