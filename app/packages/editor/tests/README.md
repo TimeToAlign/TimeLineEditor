@@ -434,8 +434,8 @@ accepts and refuses).
    `locked = ` at 19:1. YAML is read by TimeToShare's `parseYaml`, the
    reader Import uses, so the panel refuses what Import refuses:
    `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
-   (`syntax_error` at 1:7) with one message, "an anchor at line 1, column
-   7 of the YAML text". No refusal adds a journal entry.
+   (`syntax_error` at 1:4, the anchor's `&`) with one message, "an anchor
+   at line 1, column 4 of the YAML text". No refusal adds a journal entry.
 6. **Comments survive.** In each of the four modes, a YAML or TOML text
    with a comment line and an inline comment that renames the timeline,
    applied, adds one journal entry and is exactly the typed text: the store

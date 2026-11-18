@@ -447,7 +447,7 @@ describe("applying a text", () => {
   it("refuses a YAML anchor and alias as Import does", () => {
     const store = storeOf("bare");
     const text = "a: &x 1\nb: *x\n";
-    const message = "an anchor at line 1, column 7 of the YAML text";
+    const message = "an anchor at line 1, column 4 of the YAML text";
     expect(loadManifest(text)).toEqual({ problems: [{ code: "invalid_yaml", message, path: [] }] });
     expect(applyText(store, A, "yaml", text, FILE_FORM)).toEqual({
       ok: false,
@@ -457,7 +457,7 @@ describe("applying a text", () => {
           message,
           path: [],
           line: 1,
-          column: 7,
+          column: 4,
         },
       ],
     });
