@@ -3549,9 +3549,9 @@ float from the decimal digits of its spelling, never from float arithmetic
    `ticks`, `milliseconds` → `ms`, `seconds` → `s`, `minutes` → `min`,
    `samples` → `smp`, `frames` → `frames`, `pixels` → `px`, `meters` →
    `m`, `centimeters` → `cm`, `millimeters` → `mm`, `inches` → `in`,
-   `points` → `pt`, `css_pixels` → `css_pixels`, `user_units` →
-   `user_units` (neither has an abbreviation, so each is shown by its name;
-   `px` is the discrete `pixels`). The **pretty text** of 219/16 in every
+   `points` → `pt`, `css_pixels` → `css_pixels`, `user_units` → `uu`
+   (`css_pixels` has no abbreviation, so it is shown by its name; `px` is
+   the discrete `pixels`). The **pretty text** of 219/16 in every
    unit but seconds is `13 11/16`, a space and that unit (`13 11/16 ♩`, `13 11/16
    𝅝`, `13 11/16 ms`, …); in seconds it is `13 11/16″`; a value without a
    unit (`null`) is its number alone (`13 11/16`).

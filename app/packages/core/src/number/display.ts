@@ -63,7 +63,7 @@ const PRETTY_UNITS: { readonly [unit in TimeUnit]: string } = {
   inches: "in",
   points: "pt",
   css_pixels: "css_pixels",
-  user_units: "user_units",
+  user_units: "uu",
 };
 
 /** A coordinate dict: a value on an axis, its value written as the number type selects. */
