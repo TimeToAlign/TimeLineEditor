@@ -57,11 +57,11 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
-import type { ElementAddress } from "../packages/core/src/index.ts";
 import { idAddress, isLoadError, partAddress, readWorkspace } from "../packages/core/src/index.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
   arranger,
+  clickPart,
   dispatch,
   emptyPoint,
   fixtureText,
@@ -101,21 +101,6 @@ async function onMap(page: Page, x: number, y: number): Promise<{ x: number; y: 
   const point = await toScreen(page, NODE.x + x, NODE.y + y);
   if (!Number.isInteger(point.x)) throw new Error(`${x} lies at ${point.x}, off a whole pixel`);
   return { x: point.x, y: Math.round(point.y) };
-}
-
-/**
- * Click the drawn part `address` of block `map` at the centre of its client
- * rectangle, rounded to a whole pixel: a box's edges lie a hair off the
- * drawing's points, and a floored centre would miss the one-pixel
- * cross-section line. The rectangle is the page's own: WebKit reports a
- * selected label's box elsewhere to Playwright's `boundingBox`.
- */
-async function clickOnMap(page: Page, address: ElementAddress): Promise<void> {
-  const { x, y } = await part(page, SMALL.map, address).evaluate((drawn) => {
-    const box = drawn.getBoundingClientRect();
-    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  });
-  await page.mouse.click(Math.round(x), Math.round(y));
 }
 
 async function hover(page: Page, x: number, y: number): Promise<void> {
@@ -292,7 +277,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   });
   expect(added).toBeNull();
 
-  await clickOnMap(page, { id: TIMESTAMP.id });
+  await clickPart(page, SMALL.map, { id: TIMESTAMP.id });
   expect(await selection(page)).not.toContainEqual(TIMESTAMP);
 
   await page.getByRole("button", { name: "Show coordinates" }).click();
@@ -300,7 +285,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   await expect(page.getByTestId("timestamp-properties")).toHaveCount(0);
   const own = idAddress(TIMESTAMP.id);
   for (const address of [own, partAddress(own, "name"), partAddress(own, "line")]) {
-    await clickOnMap(page, address);
+    await clickPart(page, SMALL.map, address);
     expect(await selection(page)).toEqual([TIMESTAMP]);
   }
   await expect(timestampTab(page)).toHaveAttribute("aria-selected", "true");
