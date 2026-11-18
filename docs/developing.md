@@ -41,8 +41,10 @@ have, the schema is changed first.
   style layer of its own.
 - The **workspace** is the canvas: its name, its blocks, its default style statements, the settings (outside the journal), and
   the command journal that produced them with the sessions of its editors.
-  It is one canonical JSON file, by default `<name>.tle.json` after its
-  name, format version 7.
+  It is one pretty JSON file, written as TimeToShare's schema package
+  writes JSON, by default `<name>.tle.json` after its name, format
+  version 7; the manifests it holds are written there in their complete
+  form, whatever file form each is exported in.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.
