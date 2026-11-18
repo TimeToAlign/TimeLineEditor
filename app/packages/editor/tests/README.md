@@ -417,15 +417,31 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 55:17 (after
+   reader's 1-based line and column: JSON `"locked": ,` at 40:17 (after
    the default timestamps' `graphical`, which sorts first, and the empty
-   `links` of the manifest), YAML `locked: [false` at 17:5, TOML
-   `locked = ` at 19:1. No refusal adds a
-   journal entry.
+   `links` of the manifest), YAML `locked: [false` at 35:5, TOML
+   `locked = ` at 19:1. YAML is read by TimeToShare's `parseYaml`, the
+   reader Import uses, so the panel refuses what Import refuses:
+   `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
+   (`syntax_error` at 1:7) with one message, "an anchor at line 1, column
+   7 of the YAML text". No refusal adds a journal entry.
 6. **Comments survive.** In each of the four modes, a YAML or TOML text
-   with a comment line and an inline comment, applied, is exactly the typed
-   text; after the store renames the timeline, the text followed in the
-   same mode is the same text with the new name, both comments in place.
+   with a comment line and an inline comment that renames the timeline,
+   applied, adds one journal entry and is exactly the typed text: the store
+   holds the value the text states (the same `dumps`), so nothing in the
+   text changes. After the store renames the timeline again, the text
+   followed in the same mode is the TOML text with the new name, and the
+   YAML text with the new name in the `yaml` library's layout, both
+   comments in place. A YAML text whose value changes is written from its
+   patched document: with a comment, in the library's layout, which
+   differs from canonical YAML in one way, a mapping in a sequence begins
+   on its dash's line (`  - children: []` where canonical YAML writes `  -`
+   and the key on the next line); without one, as canonical YAML. So with
+   `regions: []` deleted from the timeline of a commented text, Apply
+   stores the completed manifest and shows the typed text in the library's
+   layout with `regions: []` appended after the timeline's last key,
+   `unit`; without the comment it shows the canonical YAML of the stored
+   manifest.
 7. **The four modes.** A text is complete or minimal, with or without the
    styling (`graphical`). With `bare` styled by one `style` command, each
    mode's JSON text is pinned whole: the fixture `bare.yaml` or

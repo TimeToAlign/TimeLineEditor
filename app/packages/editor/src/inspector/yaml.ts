@@ -1,33 +1,25 @@
 /**
  * The YAML codec of the inspector, loaded on first use. A manifest is
  * written as TimeToShare's canonical YAML (`dumps`), so the text is the
- * manifest file's; it is read, and that text parsed, by the `yaml` package
- * with every integer a `bigint` and the YAML 1.2 core schema. The parsed
- * document is kept and patched node by node, so comments survive wherever a
- * value keeps its kind: a document holding a comment is written in the
- * library's layout, one without again in canonical YAML. Comments are no
- * part of a manifest; keeping them is a convenience of the text.
+ * manifest file's, and read by TimeToShare's `parseYaml`, so the tab
+ * accepts exactly what Import accepts. The text is also parsed by the
+ * `yaml` package (every integer a `bigint`, the YAML 1.2 core schema) into
+ * a document that is kept and patched node by node, so comments survive
+ * wherever a value keeps its kind. A patch that leaves the value as it is
+ * returns the text as it stands; one that changes it writes a document
+ * holding a comment in the library's layout, one without again in
+ * canonical YAML. Comments are no part of a manifest; keeping them is a
+ * convenience of the text.
  */
 
 import type { Json } from "@timetoalign/tilie-core";
-import { dumps, isJsonFloat } from "@timetoalign/timetoshare";
+import { dumps, isJsonFloat, parseYaml, YamlSyntaxError } from "@timetoalign/timetoshare";
 import type { Document, Node } from "yaml";
-import {
-  isAlias,
-  isMap,
-  isScalar,
-  isSeq,
-  Pair,
-  parseDocument,
-  Scalar,
-  visit,
-  YAMLMap,
-  YAMLSeq,
-} from "yaml";
+import { isMap, isScalar, isSeq, Pair, parseDocument, Scalar, visit, YAMLMap, YAMLSeq } from "yaml";
 import type { Codec, Read, Source, Text } from "./codec.ts";
 import { fromLibrary, toLibrary } from "./lossless.ts";
 import type { Result } from "./problems.ts";
-import { catching, InspectorCode, ProblemError, refused } from "./problems.ts";
+import { catching, InspectorCode, refused } from "./problems.ts";
 
 const YAML_OPTIONS = { intAsBigInt: true, schema: "core", uniqueKeys: true } as const;
 
@@ -78,32 +70,6 @@ function setScalarFormat(scalar: Scalar, value: Json): void {
   else delete scalar.minFractionDigits;
 }
 
-/** The manifest value of a YAML node. */
-function fromYaml(document: Document, node: unknown, path: (string | number)[]): Json {
-  if (isAlias(node)) return fromYaml(document, node.resolve(document), path);
-  if (isMap(node)) {
-    const entries: [string, Json][] = [];
-    for (const pair of node.items) {
-      const key = isScalar(pair.key) ? pair.key.value : pair.key;
-      if (key === null || typeof key === "object") {
-        throw new ProblemError({
-          code: InspectorCode.invalidValue,
-          message: "a key must be a string",
-          path,
-        });
-      }
-      const name = String(key);
-      entries.push([name, fromYaml(document, pair.value, [...path, name])]);
-    }
-    return Object.fromEntries(entries);
-  }
-  if (isSeq(node))
-    return node.items.map((item, index) => fromYaml(document, item, [...path, index]));
-  if (isScalar(node)) return fromLibrary(node.value, path);
-  if (node === null || node === undefined) return null;
-  throw new ProblemError({ code: InspectorCode.invalidValue, message: "not a JSON value", path });
-}
-
 /** Change `node` to hold `value`, in place where the kinds agree; returns the node to keep. */
 function patchYaml(document: Document, node: unknown, value: Json): Node {
   if (Array.isArray(value)) {
@@ -143,47 +109,66 @@ function patchYaml(document: Document, node: unknown, value: Json): Node {
 /** Whether a scalar already holds `value`: the same kind of number with the same value, or the same string, boolean or null. */
 function sameScalar(current: unknown, value: Json): boolean {
   try {
-    return dumps(fromLibrary(current)) === dumps(value);
+    return sameValue(fromLibrary(current), value);
   } catch {
     return false;
   }
 }
 
-function yamlSource(document: Document): Source {
+/** Whether two values have one standard text; a value `dumps` refuses equals nothing. */
+function sameValue(held: Json, value: Json): boolean {
+  try {
+    return dumps(held) === dumps(value);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The document of `text`, whose value is `value`. A patch to the value the
+ * source last held returns its text unchanged.
+ */
+function yamlSource(document: Document, text: string, value: Json): Source {
+  let held = { text, value };
   return {
     format: "yaml",
-    patch: (value) =>
+    patch: (next) =>
       catching(() => {
+        if (sameValue(held.value, next)) return held.text;
         document.contents = patchYaml(
           document,
           document.contents,
-          value,
+          next,
         ) as typeof document.contents;
-        return hasComments(document) ? document.toString(TO_STRING) : dumps(value);
+        held = {
+          text: hasComments(document) ? document.toString(TO_STRING) : dumps(next),
+          value: next,
+        };
+        return held.text;
       }),
   };
 }
 
 function writeYaml(value: Json): Result<Text> {
   const text = dumps(value);
-  return { ok: true, value: { text, source: yamlSource(parseDocument(text, YAML_OPTIONS)) } };
+  return {
+    ok: true,
+    value: { text, source: yamlSource(parseDocument(text, YAML_OPTIONS), text, value) },
+  };
 }
 
+/** The manifest value of `text`; a refusal at the line and column TimeToShare's reader names. */
 function readYaml(text: string): Result<Read> {
-  const document = parseDocument(text, YAML_OPTIONS);
-  const [error] = document.errors;
-  if (error !== undefined) {
-    const start = error.linePos?.[0];
-    const position = start === undefined ? null : { line: start.line, column: start.col };
-    // The message repeats the position, which the problem carries on its own.
-    const message = (error.message.split("\n")[0] as string).replace(
-      / at line \d+, column \d+:?$/,
-      "",
-    );
-    return refused(InspectorCode.syntaxError, message, [], position);
+  let value: Json;
+  try {
+    value = parseYaml(text) as Json;
+  } catch (error) {
+    if (!(error instanceof YamlSyntaxError)) throw error;
+    const position = { line: error.line, column: error.column };
+    return refused(InspectorCode.syntaxError, error.message, [], position);
   }
-  const read = catching(() => fromYaml(document, document.contents, []));
-  return read.ok ? { ok: true, value: { value: read.value, source: yamlSource(document) } } : read;
+  const document = parseDocument(text, YAML_OPTIONS);
+  return { ok: true, value: { value, source: yamlSource(document, text, value) } };
 }
 
 export const codec: Codec = { write: writeYaml, read: readYaml };
