@@ -219,7 +219,11 @@ workspace is offered with "Restore the unsaved workspace from 2026-10-12
 09:05?" (its last entry's time, in UTC); Restore opens it unsaved under its
 file's name, Discard empties the slot. An empty, saved or untouched
 workspace is never offered, and undo back to the saved view empties the
-slot. Hiding the page and unmounting write the pending snapshot at once.
+slot. Hiding the page and unmounting write the pending snapshot at once:
+with `setTimeout` faked the delay never passes, so only a write made at
+once can fill the slot. No case waits a fixed time for the editor: it is
+settled once its recovery read and what it does next are done, and gone
+once its last write is.
 The editor autosaves only while it holds the Web Lock
 `tilie-autosave/current`, says once "Autosave of this workspace is active
 elsewhere, so changes here are not autosaved." when it does not, gives back

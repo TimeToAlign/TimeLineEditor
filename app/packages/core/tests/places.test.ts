@@ -5,6 +5,7 @@ import { addressKey } from "../src/manifest/address.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import { checkWorkspace, createView } from "../src/workspace/view.ts";
@@ -91,6 +92,25 @@ describe("places, display orders and band orders, accepted", () => {
     expect(block(view, ID).places).toEqual({
       annotations: { x: -30, y: 4.5, width: 700, height: 120 },
     });
+  });
+
+  it("stores a canvas number given as -0 as 0, which the workspace file reads back", () => {
+    const added = block(mixed({ x: -0, y: -0 }), ID);
+    expect([Object.is(added.x, 0), Object.is(added.y, 0)]).toEqual([true, true]);
+    const view = after(
+      mixed({ x: 5, y: 5 }),
+      { type: "set", changes: [{ target: target(""), values: { x: -0, y: -0 } }] },
+      set("group_1", { place: { y: -0, spacing: -0, margin: -0 } }),
+      set("score", { place: { spacing: -0 } }),
+    );
+    const { x, y, places } = block(view, ID);
+    const group = places.group_1;
+    const card = group?.cards?.score;
+    expect(
+      [x, y, group?.y, group?.spacing, group?.margin, card?.spacing].map((n) => Object.is(n, 0)),
+    ).toEqual([true, true, true, true, true, true]);
+    const workspace = { view, journal: [], sessions: {} };
+    expect(readWorkspace(writeWorkspace(workspace))).toEqual(workspace);
   });
 
   it("states and unstates a scale on a group and an ungrouped root", () => {

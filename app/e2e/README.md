@@ -123,7 +123,15 @@ a frame or a card, the same way: a frame's title row, the frame's only
 clear strip once its cards cover the rest, may lie between the raster's
 rows); a click on an element aims at the centre of its first
 SVG part with the mouse (a horizontal line's box has no height, which
-Playwright's actionability checks treat as invisible). Svelte Flow starts a
+Playwright's actionability checks treat as invisible), each coordinate
+rounded to a whole pixel (`partCentre`): Playwright hands Firefox and
+WebKit whole pixels only, flooring a fractional position, and a floored
+centre can miss a one-pixel line. The whole number nearest the centre lies
+inside the part whenever any does; a part under a pixel wide, a line
+across, may hold none, and the point then lies at most half a pixel from
+its centre. The centre is that of the page's own
+client rectangle, since WebKit reports a selected label's box elsewhere to
+Playwright's `boundingBox`. Svelte Flow starts a
 node drag on the first move past its 1 px threshold and measures the node's
 displacement from there, so a node drag (`nodeDragStart`, `dragBlock`)
 first moves 2 px to the right and then travels exactly the stated delta;
@@ -779,11 +787,9 @@ and 4 miss 2.46 by 0.46, 0.04 and 0.04; the nearest multiple of 1/4 is
 5/2); typing 0 marks the field invalid and changes nothing. A timestamp added at 4 on `melody` lets the
 pointer through while Show coordinates is on (a click on it selects
 nothing of it); with Show coordinates off a click on its wedge, its name
-label or its line, each at the centre of its client rectangle rounded to
-a whole pixel (the rectangle lies a hair off the drawing's points, and a
-floored centre misses the one-pixel line; the page's own rectangle, since
-WebKit reports a selected label's box elsewhere to Playwright's
-`boundingBox`), selects exactly `{block: "map0000000", id:
+label or its line, each at its centre rounded to a whole pixel (the
+rectangle lies a hair off the drawing's points, and a floored centre
+misses the one-pixel line), selects exactly `{block: "map0000000", id:
 "timestamp_3"}` and shows it in the Timestamp pane (Name "Four",
 coordinate `4`, Delete enabled), and hovering shows no flag and no marks.
 

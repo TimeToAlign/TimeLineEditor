@@ -218,18 +218,28 @@ export function part(page: Page, block: string, address: ElementAddress): Locato
 }
 
 /**
- * The screen point at the centre of a drawn element's first part. A
- * horizontal line has a box of zero height, which Playwright's actionability
- * checks count as invisible, so clicks aim at this point with the mouse.
+ * The screen point at the centre of a drawn element's first part, each
+ * coordinate rounded to a whole pixel: Firefox and WebKit receive a
+ * fractional pointer position floored, which can miss a one-pixel line. The
+ * whole number nearest the centre lies inside the part whenever any does;
+ * a part under a pixel wide may hold none, and the point then lies at most
+ * half a pixel off its centre. The box is the page's own client rectangle:
+ * WebKit reports a selected label's box elsewhere to Playwright's
+ * `boundingBox`. A horizontal line has a box of zero height, which
+ * Playwright's actionability checks count as invisible, so clicks aim at
+ * this point with the mouse.
  */
 export async function partCentre(
   page: Page,
   block: string,
   address: ElementAddress,
 ): Promise<{ x: number; y: number }> {
-  const box = await part(page, block, address).boundingBox();
+  const box = await part(page, block, address).evaluate((drawn) => {
+    const { x, y, width, height } = drawn.getBoundingClientRect();
+    return drawn.getClientRects().length === 0 ? null : { x, y, width, height };
+  });
   if (box === null) throw new Error(`${addressKey({ block, ...address })} is not displayed`);
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
 }
 
 /** Click a drawn element, with Shift when `additive`. */

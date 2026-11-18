@@ -106,14 +106,17 @@ export function readBoolean(value: unknown, path: readonly PathSegment[]): boole
   return typeof value === "boolean" ? value : invalid("expected a boolean", path);
 }
 
-/** A canvas number: a finite double (an integral float read as `JsonFloat` becomes its double). */
+/**
+ * A canvas number: a finite double (an integral float read as `JsonFloat`
+ * becomes its double), -0 stored as 0, the number a written file reads back.
+ */
 export function readFinite(value: unknown, path: readonly PathSegment[]): number | Problem {
   const number = value instanceof JsonFloat ? value.value : value;
   if (typeof number !== "number") return invalid("expected a number", path);
   if (!Number.isFinite(number)) {
     return problem(ErrorCode.nonFiniteNumber, "a canvas number must be finite", path);
   }
-  return number;
+  return Object.is(number, -0) ? 0 : number;
 }
 
 export function readPositive(value: unknown, path: readonly PathSegment[]): number | Problem {
