@@ -405,7 +405,11 @@ links a notices file the build serves.
 `small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is
 applied as one `set` of the manifest and undone by Undo; a refused edit
 shows its code, message and JSON pointer in the list "Problems" and keeps
-the text; for the complete and the minimal form, with the styling excluded
+the text. A block without a manifest file of its own opens with Minimal and
+Include styling checked, so `bare`'s text, before the refused edit, equals
+the schema package's fixture `bare.minimal` in pretty JSON
+(`dumps(loads(fixture), {serialization: "json"})`); the edit states
+`"locked": "yes"` on the root timeline, refused at `/timelines/0/locked`. For the complete and the minimal form, with the styling excluded
 or included, the text shown equals the schema package's fixture file in
 that form (without `graphical` unless included), Apply and Revert are
 enabled exactly while it differs, the form options are locked meanwhile,
@@ -648,7 +652,9 @@ is a real pointer gesture; the stored state is read through the hook.
 hook at `{block: "bmixed0000"}`, `{block: "bmixed0000", id: "group_1"}` and
 `{block: "bmixed0000", id: "score"}`. With the drawer open and Properties chosen, entering the bundle, the
 group and the timeline editor keeps Properties shown while the first tab
-reads "Bundle", "Group", "Timeline", and Done three times gives "Arranger"
+reads "Bundle", "Group", "Timeline", the tab list reading the level's word,
+Properties, Metadata, Manifest, Journal and Timestamp in that order at
+every level, and Done three times gives "Arranger"
 back, Properties still shown. With the drawer closed, an editor entered
 shows the level tab when the drawer next opens, whether the canvas opens
 it (the first editor) or the viewer does (an inner editor entered after the

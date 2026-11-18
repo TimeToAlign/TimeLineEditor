@@ -77,6 +77,12 @@ function storedName(page: Page, id: string): Promise<unknown> {
   );
 }
 
+/** The pretty JSON text of a value, as the Manifest tab writes JSON. */
+const prettyJson = (value: unknown): string => dumps(value, { serialization: "json" });
+
+/** The root's name in `bare`'s JSON text. */
+const BARE = '"name": "Bare"';
+
 test.use({ viewport: { width: 1600, height: 1000 } });
 
 test.beforeEach(async ({ page }) => {
@@ -114,12 +120,13 @@ test("a YAML edit reaches the canvas as one command and Undo restores it", async
 
 test("a refused edit shows its exact path and keeps the text", async ({ page }) => {
   await showManifest(page);
-  await page.getByLabel("YAML").check();
-  await expect(manifestText(page)).toHaveValue(/\n {4}locked: false\n/);
-  const edited = (await manifestText(page).inputValue()).replace(
-    "\n    locked: false\n",
-    "\n    locked: yes\n",
-  );
+  // A block without a manifest file of its own is written as a new manifest: minimal, styled.
+  await expect(page.getByRole("checkbox", { name: "Minimal", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Include styling", exact: true })).toBeChecked();
+  const shown = prettyJson(loads(manifestFixture("bare.minimal")));
+  expect(shown.split(BARE)).toHaveLength(2);
+  await expect(manifestText(page)).toHaveValue(shown);
+  const edited = shown.replace(BARE, `"locked": "yes", ${BARE}`);
   await manifestText(page).fill(edited);
   await page.getByRole("button", { name: "Apply" }).click();
   const problems = page.getByRole("list", { name: "Problems" }).getByRole("listitem");
@@ -478,9 +485,6 @@ const MODES: readonly Mode[] = [
 /** The root's name in `styled__score`'s JSON text, in every form. */
 const SCORE = '"name": "Score"';
 const RENAMED = '"name": "Renamed"';
-
-/** The pretty JSON text of a value, as the Manifest tab writes JSON. */
-const prettyJson = (value: unknown): string => dumps(value, { serialization: "json" });
 
 /**
  * The JSON text of `styled__score` in `mode`, from the fixture files alone:
