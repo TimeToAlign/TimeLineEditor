@@ -251,7 +251,7 @@ test.describe("in an editor", () => {
     expect(await bandsOf(page, block, "score")).toEqual([
       { address: flowControl, facet: "flow_control", level: 2, elements: 1 },
       { address: conversionMaps, facet: "conversion_maps", level: 1, elements: 2 },
-      { address: bandAddress("score", "markers"), facet: "markers", level: -1, elements: 2 },
+      { address: bandAddress("score", "markers"), facet: "markers", level: -1, elements: 4 },
     ]);
     expect(await selection(page)).toEqual([{ block, ...flowControl }]);
     expect(await viewportOf(page)).toEqual(focused);
