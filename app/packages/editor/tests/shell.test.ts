@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type { Address, CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -18,6 +19,7 @@ import { dumps, fontMetrics, loads, SCHEMA_VERSION } from "@timetoalign/timetosh
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import App from "../src/App.svelte";
+import type { Snapshot } from "../src/autosave.ts";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import type { Example } from "../src/examples.ts";
 import { EXAMPLES } from "../src/examples.ts";
@@ -32,6 +34,7 @@ import {
   interceptDownloads,
   openDialog,
   pickFile,
+  slotsRead,
   workspaceOf,
 } from "./support.ts";
 
@@ -684,17 +687,26 @@ describe("autosave and recovery", () => {
     await autosave.flush();
   }
 
-  /** Mount the editor and let it claim the slot and look for a recoverable workspace. */
+  /** Mount the editor and wait until it has claimed the slot and looked for a recoverable workspace. */
   async function startSettled(): Promise<void> {
     start();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await slotsRead();
   }
 
   /** Unmount the editor, which writes its pending snapshot, and wait for the write. */
   async function leave(): Promise<void> {
     if (app !== undefined) unmount(app);
     app = undefined;
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await flushAutosaves();
+  }
+
+  /**
+   * Wait until the slot holds `snapshot`, reading it again after each read;
+   * a snapshot never written ends in the test's timeout.
+   */
+  async function slotHolds(snapshot: Snapshot): Promise<void> {
+    let held = await recoverWorkspace("current");
+    while (!isDeepStrictEqual(held, snapshot)) held = await recoverWorkspace("current");
   }
 
   function hide(): void {
@@ -895,20 +907,21 @@ describe("autosave and recovery", () => {
 
   it("writes the pending snapshot at once when the page is hidden and when the editor goes", async () => {
     await startSettled();
+    // The autosave's delay never passes: only a write made at once fills the slot.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     addBlock(hook().store(), A);
     const first = { text: written(), name: "untitled.tle.json" };
     hide();
-    await vi.waitFor(async () => expect(await recoverWorkspace("current")).toEqual(first), {
-      timeout: 500,
-    });
+    await slotHolds(first);
 
     addBlock(hook().store(), B, "bare", 800);
     const second = { text: written(), name: "untitled.tle.json" };
     if (app !== undefined) unmount(app);
     app = undefined;
-    await vi.waitFor(async () => expect(await recoverWorkspace("current")).toEqual(second), {
-      timeout: 500,
-    });
+    await slotHolds(second);
   });
 
   it("shows an autosave failure once and keeps editing", async () => {

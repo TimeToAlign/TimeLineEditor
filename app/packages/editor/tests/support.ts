@@ -139,9 +139,13 @@ export function interceptDownloads(): [string, string][] {
  */
 const autosaves = new Set<Autosave>();
 
+/** Every read of a slot since the last `flushAutosaves`, an editor's recovery read included. */
+const reads = new Set<Promise<unknown>>();
+
 /**
- * `src/autosave.ts` with every autosave `createAutosave` makes recorded, the
- * module a test file's `vi.mock("../src/autosave.ts", …)` returns.
+ * `src/autosave.ts` with every autosave `createAutosave` makes and every
+ * read of a slot recorded, the module a test file's
+ * `vi.mock("../src/autosave.ts", …)` returns.
  */
 export function recordAutosaves(
   actual: typeof import("../src/autosave.ts"),
@@ -153,17 +157,33 @@ export function recordAutosaves(
       autosaves.add(autosave);
       return autosave;
     },
+    recoverWorkspace(key: string) {
+      const read = actual.recoverWorkspace(key);
+      reads.add(read);
+      return read;
+    },
   };
 }
 
 /**
+ * Wait for every recorded read of a slot and then for one task, so that
+ * what an editor does with its recovery read, which takes no further task
+ * when the slot offers nothing, is done.
+ */
+export async function slotsRead(): Promise<void> {
+  await Promise.allSettled(reads);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
  * Wait for every queued write of the recorded autosaves, the one an unmount
- * starts included, failures ignored, and forget them: `afterEach` awaits it
- * before the next test installs its own IndexedDB.
+ * starts included, failures ignored, and forget them and the recorded reads:
+ * `afterEach` awaits it before the next test installs its own IndexedDB.
  */
 export async function flushAutosaves(): Promise<void> {
   await Promise.all([...autosaves].map((autosave) => autosave.flush().catch(() => {})));
   autosaves.clear();
+  reads.clear();
 }
 
 /**
