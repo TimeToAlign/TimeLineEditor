@@ -326,6 +326,13 @@ describe("the workspace file", () => {
         manifests: null,
       });
     }
+    const kept = read(
+      edited((value) => {
+        const files = { [A]: A_FILE, [B]: { minimal: "yes" }, A: A_FILE };
+        (value.settings as Value).manifests = files;
+      }),
+    );
+    expect(kept.view.settings.manifests).toEqual({ [A]: A_FILE });
     const strict = readWorkspace(
       edited((value) => {
         const settings = value.settings as Value;

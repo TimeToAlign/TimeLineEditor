@@ -1,15 +1,15 @@
-import type { Serialization } from "@timetoalign/timetoshare";
-import { dumps, loads } from "@timetoalign/timetoshare";
+import type { FileForm } from "@timetoalign/timetoshare";
+import { dumps, loads, SERIALIZATIONS } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { isLoadError } from "../src/errors.ts";
-import type { ManifestFile, ReadManifestFile } from "../src/manifest/io.ts";
+import type { ReadManifestFile } from "../src/manifest/io.ts";
 import {
   loadManifest,
   NEW_MANIFEST_FILE,
   readManifestFile,
   saveManifest,
 } from "../src/manifest/io.ts";
-import { allFixtures, fixture, load, loadText, manifestValue } from "./support.ts";
+import { allFixtures, fileFormText, fixture, load, loadText, manifestValue } from "./support.ts";
 
 /** A manifest file's text read, failing loudly if it is refused. */
 function read(text: string): ReadManifestFile {
@@ -33,8 +33,6 @@ const TEXTS: readonly (readonly [name: string, text: string, minimal: boolean])[
   ["bare.yaml without graphical", unstyled(fixture("bare.yaml").text), false],
   ["bare.yaml (twin) without graphical", unstyled(fixture("bare.yaml").twin), true],
 ];
-
-const SERIALIZATIONS: readonly Serialization[] = ["yaml", "json", "jcs"];
 
 /** Each text in each serialization, written by the schema package's `dumps` from its value. */
 const CASES = TEXTS.flatMap(([name, text, minimal]) =>
@@ -77,9 +75,34 @@ describe("a manifest file written back as it came", () => {
   });
 
   it("writes a manifest as a new one by default: minimal, styled, in canonical YAML", () => {
-    const expected: ManifestFile = { minimal: true, styling: true, serialization: "yaml" };
+    const expected: FileForm = { minimal: true, styling: true, serialization: "yaml" };
     expect(NEW_MANIFEST_FILE).toEqual(expected);
     expect(saveManifest(load("bare.yaml"))).toBe(fixture("bare.yaml").twin);
+  });
+
+  it.each([
+    {
+      name: "neither.yaml, neither minimal nor complete",
+      text: fileFormText("neither.yaml"),
+      file: { minimal: false, styling: true, serialization: "yaml" },
+      written: fileFormText("neither.expected.yaml"),
+    },
+    {
+      name: "one_line.json, pretty JSON in another layout",
+      text: fileFormText("one_line.json"),
+      file: { minimal: true, styling: false, serialization: "json" },
+      written: fileFormText("one_line.expected.json"),
+    },
+    {
+      name: "bare.yaml in RFC 8785 JSON after a byte order mark",
+      text: `\uFEFF${dumps(manifestValue("bare.yaml"), { serialization: "jcs" })}`,
+      file: { minimal: false, styling: true, serialization: "json" },
+      written: dumps(manifestValue("bare.yaml"), { serialization: "json" }),
+    },
+  ])("writes $name back as its form says", ({ text, file, written }) => {
+    const result = read(text);
+    expect(result.file).toEqual(file);
+    expect(saveManifest(result.manifest, result.file)).toBe(written);
   });
 
   it.each([

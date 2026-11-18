@@ -8,12 +8,12 @@
 import type {
   CompleteManifest,
   Declaration,
+  FileForm,
   Graphical,
   JsonNumber,
   Lossless,
   LosslessManifest,
   Selector,
-  Serialization,
   Statement,
 } from "@timetoalign/timetoshare";
 import {
@@ -21,14 +21,12 @@ import {
   complete,
   completeManifest,
   completeStyles,
-  dumps,
+  dumpsFile,
+  fileForm,
   isJsonFloat,
-  isJsonObject,
   loads,
-  minimal,
   SCHEMA_VERSION,
   SchemaValidationError,
-  serializationOf,
   UnsupportedVersionError,
   validate,
   YamlSyntaxError,
@@ -360,19 +358,8 @@ export function readMeasureMap(value: JsonObject): MeasureMap | Problem {
   return map;
 }
 
-/**
- * How a manifest is written to a file: in the minimal form or the complete
- * one, with its styling (the `graphical` object) or without, and in which of
- * TimeToShare's serializations.
- */
-export interface ManifestFile {
-  readonly minimal: boolean;
-  readonly styling: boolean;
-  readonly serialization: Serialization;
-}
-
 /** How a manifest not read from a file is written: minimal, with its styling, in canonical YAML. */
-export const NEW_MANIFEST_FILE: ManifestFile = {
+export const NEW_MANIFEST_FILE: FileForm = {
   minimal: true,
   styling: true,
   serialization: "yaml",
@@ -402,41 +389,27 @@ export function loadManifest(text: string): Manifest | LoadError {
 /** A manifest read from a file, and how the file writes it. */
 export interface ReadManifestFile {
   readonly manifest: Manifest;
-  readonly file: ManifestFile;
+  readonly file: FileForm;
 }
 
 /**
  * A manifest from a file's text (`loadManifest`) and how the text writes
- * it, so that the manifest is written back as it came: minimal when the
- * value states no key at its default (its minimal form has the same text),
- * with its styling when it holds a `graphical` object, and in the
- * serialization `serializationOf` names.
+ * it (TimeToShare's `fileForm`), so that the manifest is written back as it
+ * came.
  */
 export function readManifestFile(text: string): ReadManifestFile | LoadError {
-  const value = readValue(text);
-  if (isLoadError(value)) return value;
-  const manifest = normalizeManifest(value);
-  if (isLoadError(manifest)) return manifest;
-  const file: ManifestFile = {
-    minimal: dumps(minimal(value)) === dumps(value),
-    styling: isJsonObject(value) && Object.hasOwn(value, "graphical"),
-    serialization: serializationOf(text),
-  };
-  return { manifest, file };
+  const manifest = loadManifest(text);
+  return isLoadError(manifest) ? manifest : { manifest, file: fileForm(text) };
 }
 
 /**
- * A manifest's text as `file` writes it, each member not given as
- * `NEW_MANIFEST_FILE` says: in the minimal or the complete form, with or
- * without its `graphical` object, in the serialization named.
+ * A manifest's text as a file of the form `file` writes it (TimeToShare's
+ * `dumpsFile`), each member not given as `NEW_MANIFEST_FILE` says.
  *
  * @throws {InvalidManifestError} for a manifest the schema or the invariants refuse.
  */
-export function saveManifest(manifest: Manifest, file: Partial<ManifestFile> = {}): string {
+export function saveManifest(manifest: Manifest, file: Partial<FileForm> = {}): string {
   const problems = manifestProblems(manifest);
   if (problems.length > 0) throw new InvalidManifestError(problems);
-  const { minimal: asMinimal, styling, serialization } = { ...NEW_MANIFEST_FILE, ...file };
-  const { graphical: _styling, ...unstyled } = manifest;
-  const written = styling ? manifest : unstyled;
-  return dumps(asMinimal ? minimal(written) : complete(written), { serialization });
+  return dumpsFile(manifest, { ...NEW_MANIFEST_FILE, ...file });
 }

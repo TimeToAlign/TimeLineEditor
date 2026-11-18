@@ -66,6 +66,11 @@ export const allFixtures: readonly FixtureWithTwin[] = [
   ...fixturesIn("bundles"),
 ];
 
+/** A text of the schema package's `fixtures/file_forms/`, the cases of a manifest file's form, its line ends kept. */
+export function fileFormText(name: string): string {
+  return readFileSync(path.join(fixturesDir, "file_forms", name), "utf8");
+}
+
 export interface Rejection {
   readonly name: string;
   readonly text: string;

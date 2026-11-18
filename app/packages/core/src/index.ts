@@ -95,7 +95,7 @@ export {
 export { contains } from "./manifest/contains.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
-export type { ManifestFile, ReadManifestFile } from "./manifest/io.ts";
+export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   loadManifest,
   NEW_MANIFEST_FILE,
