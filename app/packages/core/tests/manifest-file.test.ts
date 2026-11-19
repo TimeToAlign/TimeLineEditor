@@ -5,6 +5,7 @@ import { isLoadError } from "../src/errors.ts";
 import type { ReadManifestFile } from "../src/manifest/io.ts";
 import {
   loadManifest,
+  manifestFileValue,
   NEW_MANIFEST_FILE,
   readManifestFile,
   saveManifest,
@@ -80,6 +81,20 @@ describe("a manifest file written back as it came", () => {
     expect(loadText(plain)).toEqual(without);
     const styled = loadText(saveManifest(manifest, { styling: true }));
     expect(styled.graphical).toEqual(manifest.graphical);
+  });
+
+  it("gives the value a file writes: each fixture's own value, from it and from its twin", () => {
+    for (const { name, text, twin } of allFixtures) {
+      for (const held of [loadManifest(text), loadManifest(twin)]) {
+        if (isLoadError(held)) throw new Error(`${name} refused`);
+        const before = dumps(held);
+        expect(dumps(manifestFileValue(held)), name).toBe(text);
+        expect(dumps(held), name).toBe(before);
+      }
+    }
+    const bare = load("bare.yaml");
+    expect(Object.hasOwn(bare, "@context")).toBe(false);
+    expect(Object.hasOwn(manifestFileValue(bare), "@context")).toBe(true);
   });
 
   it("writes a manifest as a new one by default: minimal, styled, in canonical YAML", () => {

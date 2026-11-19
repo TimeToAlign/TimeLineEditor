@@ -375,7 +375,10 @@ writes the pending autosave before it unmounts.
 
 The Manifest panel shows the selected block's manifest as JSON, YAML or
 TOML and writes an edited text back as one `set` of the block's
-`manifest`. A text written fresh is the manifest file's text: JSON is
+`manifest`. A text written fresh is the manifest file's text, every ID
+`#id` and the full `@context` (the format's terms and every prefix the
+statements use) added where the manifest leaves core, as Export adds them,
+under the block's Include styling and Minimal: JSON is
 TimeToShare's pretty JSON and YAML its canonical YAML (`dumps` with
 `"json"` and `"yaml"`), so with a block's manifest file in that
 serialization the shown text equals what Export writes. The oracles are the
@@ -406,9 +409,9 @@ accepts and refuses).
    and provenance have no nullable member. A manifest of
    two roots (one of unknown length, one holding a `LinearMap` whose
    `target_unit` is null), a group and a measure map has its TOML text
-   pinned whole, without `@context` (core holds none of the format's
-   terms, and the manifest declares no prefix of its own), and reads back
-   with all seven nulls. A measure-map row with
+   pinned whole, written from the manifest as core holds it (IDs bare, no
+   `@context`: core holds none of the format's terms, and the manifest
+   declares no prefix of its own), and reads back with all seven nulls. A measure-map row with
    `nominal_length: null` (optional, no default null) is refused
    `not_representable` at its path, "TOML has no null, and the schema
    neither requires this member nor defaults it to null", and goes through
@@ -427,12 +430,13 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 37:17 (after
-   the default timestamps' `graphical`, which sorts first), YAML `locked:
-   [false` at 32:5 (the line after the unclosed sequence), TOML `locked = `
-   at 16:1 (the line after the missing value; the top-level keys, `[meta]`
-   and the timeline's keys before it, `graphical`'s tables after the
-   timelines). YAML is read by TimeToShare's `parseYaml`, the
+   reader's 1-based line and column: JSON `"locked": ,` at 98:17 (after
+   the 61 lines of `@context` and the default timestamps' `graphical`,
+   which sort first), YAML `locked: [false` at 83:5 (the line after the
+   unclosed sequence, after the 51 lines of `@context` and `graphical`),
+   TOML `locked = ` at 16:1 (the line after the missing value; the
+   top-level keys, `[meta]` and the timeline's keys before it,
+   `graphical`'s tables and then `@context`'s after the timelines). YAML is read by TimeToShare's `parseYaml`, the
    reader Import uses, so the panel refuses what Import refuses:
    `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
    (`syntax_error` at 1:4, the anchor's `&`) with one message, "an anchor
@@ -457,11 +461,13 @@ accepts and refuses).
 7. **The four modes.** A text is complete or minimal, with or without the
    styling (`graphical`). With `bare` styled by one `style` command, each
    mode's JSON text is pinned whole: the fixture `bare.yaml` or
-   `bare.minimal.yaml` without its `@context` (the text shows the manifest
-   as the store holds it, which keeps no term of the format, and `bare`
-   declares no prefix of its own), whose `graphical` holds its root's
-   default timestamps, without that `graphical`, or with the rule added to
-   its `rules`. In every mode
+   `bare.minimal.yaml` with its `@context` (the full context a file
+   writes; `bare` declares no prefix of its own, so it is the format's
+   terms), whose `graphical` holds its root's default timestamps, without
+   that `graphical`, or with the rule added to its `rules`. In each mode
+   the JSON and the YAML text are exactly what Export writes of the block
+   (`saveManifest` with that mode's `minimal` and `styling` and the
+   serialization `"json"` or `"yaml"`). In every mode
    and format an applied edit stores the complete manifest with that edit
    (the styling kept when the text leaves it out) and shows the text
    written from it; the shown text, its JSON reflowed or with keys
@@ -841,9 +847,9 @@ closing and reopening, nothing journalled.
    lists exactly its expected unknown keys, each with its pointer or "at
    the top level", then its expected warnings (core's `manifestWarnings`),
    each message capitalised with its pointer or "at the top level", in a
-   list "Warnings"; `context_absent` is never listed, since core gives every
-   manifest it holds its `@context`, and a case left with nothing shows no
-   list. No problem is listed, and an applied edit keeps the warnings.
+   list "Warnings"; `context_absent` is never listed, since warnings are
+   read with the full `@context` added where a manifest leaves core, as a
+   file writes it, and a case left with nothing shows no list. No problem is listed, and an applied edit keeps the warnings.
    `bare` shows no warning list.
 10. **The Properties panel** commits on Enter (the block's `x` to 25 is one
    `set` of `x`), steps from the stored value, never the shown one (10.123

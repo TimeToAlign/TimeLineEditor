@@ -89,6 +89,7 @@ export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
   loadManifest,
+  manifestFileValue,
   manifestWarnings,
   NEW_MANIFEST_FILE,
   normalizeManifest,

@@ -15,15 +15,14 @@ import type {
   SetCommand,
   Store,
 } from "@timetoalign/tilie-core";
-import { ErrorCode, idFormPath, isLoadError, withHeldIds } from "@timetoalign/tilie-core";
 import {
-  complete,
-  dumps,
-  isJsonFloat,
-  isJsonObject,
-  minimal,
-  withFileIds,
-} from "@timetoalign/timetoshare";
+  ErrorCode,
+  idFormPath,
+  isLoadError,
+  manifestFileValue,
+  withHeldIds,
+} from "@timetoalign/tilie-core";
+import { complete, dumps, isJsonFloat, isJsonObject, minimal } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
 import { readText, writeText } from "./formats.svelte.ts";
 import type { InspectorProblem, Result } from "./problems.ts";
@@ -55,7 +54,9 @@ const checked = new WeakMap<Manifest, Json>();
 
 /**
  * A block's manifest as the JSON value its text shows, the value a manifest
- * file writes: every ID written `#id` (`withFileIds`). The manifest's type
+ * file writes (core's `manifestFileValue`): every ID written `#id` and the
+ * full `@context`, the format's terms and every prefix the statements use,
+ * which core does not hold. The manifest's type
  * leaves `meta` free (`unknown`), so its JSON is checked, once per manifest;
  * a manifest holding anything else throws a `TypeError`.
  */
@@ -64,7 +65,7 @@ export function manifestOf(block: Block): Json {
   let found = checked.get(manifest);
   if (found === undefined) {
     if (!isJson(manifest)) throw new TypeError(`the manifest of block ${block.id} is no JSON`);
-    found = withFileIds(manifest);
+    found = manifestFileValue(manifest);
     checked.set(manifest, found);
   }
   return found;

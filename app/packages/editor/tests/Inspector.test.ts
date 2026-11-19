@@ -897,7 +897,7 @@ describe("the inspector's warnings", () => {
           item.key,
           item.path.length === 0 ? "at the top level" : problemPointer(item),
         ]),
-        // Core gives every manifest it holds its @context, so no held manifest lacks one.
+        // Warnings are read with the full @context added at the file boundary, so none lacks one.
         ...expected.warnings
           .filter((item) => item.code !== "context_absent")
           .map((item) => [

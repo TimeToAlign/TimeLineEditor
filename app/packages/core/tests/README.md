@@ -380,7 +380,15 @@ by its `dumps` in the other two serializations.
    false, styling: true, serialization: "json"}` (a text with the mark is
    never RFC 8785 JSON) and comes back as `bare.yaml`'s pretty JSON, without
    the mark.
-6. **Refusals keep their code.** A text `readManifestFile` cannot read is
+6. **The file's value.** `manifestFileValue(manifest)` is the value every
+   file of the manifest writes before its form and serialization apply:
+   for every manifest fixture (each a complete file, IDs `#id`, its full
+   `@context`), the value of the manifest `loadManifest` reads from the
+   fixture's text and the one it reads from its twin's, written by
+   `dumps`, is the fixture's text byte for byte, and the held manifest is
+   left as it was. `bare.yaml` held has no `@context` member; its file
+   value has one.
+7. **Refusals keep their code.** A text `readManifestFile` cannot read is
    refused exactly as `loadManifest` refuses it: `{"timetoshare": `
    (`invalid_json`), `timelines: [` (`invalid_yaml`) and `bare.yaml` with
    its version `0.6.0` (`schema_violation` at `["timetoshare"]`).

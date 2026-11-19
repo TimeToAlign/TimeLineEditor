@@ -112,9 +112,13 @@ export function idFormPath(path: readonly PathSegment[], toFile: boolean): PathS
 
 /**
  * A value TiLiE holds, its IDs bare, as a file writes it: every ID `#id`
- * (`withFileIds`) and the full context (`withFullContext`).
+ * (`withFileIds`) and the full context (`withFullContext`). The one file
+ * boundary: `saveManifest` writes this value, the schema checks, the
+ * warnings and the unknown keys read it, and a host showing a manifest as
+ * its file shows it (before leaving the styling out or writing the minimal
+ * form, as the file says).
  */
-function fileOf<T>(value: T): T {
+export function manifestFileValue<T>(value: T): T {
   const file = withFileIds(value);
   return isJsonObject(file) ? withFullContext(file) : file;
 }
@@ -122,14 +126,14 @@ function fileOf<T>(value: T): T {
 /**
  * A manifest written with bare IDs, as TiLiE holds every manifest, as the
  * schema accepts it, or the schema's first problem: the value as a file
- * writes it (`fileOf`) is checked, and the problem's path leads into the
+ * writes it (`manifestFileValue`) is checked, and the problem's path leads into the
  * value itself (`idFormPath`). The value is returned as TiLiE holds it, its
  * `@context` cut to the prefixes it declares itself
  * (`withStatementContext`). The one schema check of a manifest TiLiE holds.
  */
 export function schemaChecked(value: unknown): LosslessManifest | Problem {
   try {
-    const file = fileOf(value);
+    const file = manifestFileValue(value);
     validate(file);
     return withBareIds(withStatementContext(file));
   } catch (error) {
@@ -168,12 +172,12 @@ export function withHeldIds<T>(value: T): T | LoadError {
 /**
  * The keys of a manifest TiLiE holds, its IDs bare, that its schema does not
  * declare (TimeToShare's `unknownKeys` of its file form with the full
- * context a file writes, `fileOf`), each path into the manifest itself.
+ * context a file writes, `manifestFileValue`), each path into the manifest itself.
  *
  * @throws {SchemaValidationError} for a manifest the schema refuses.
  */
 export function unknownKeys(manifest: unknown): UnknownKey[] {
-  return fileUnknownKeys(fileOf(manifest)).map(({ path, key }) => ({
+  return fileUnknownKeys(manifestFileValue(manifest)).map(({ path, key }) => ({
     path: idFormPath(path, false),
     key,
   }));
@@ -182,13 +186,13 @@ export function unknownKeys(manifest: unknown): UnknownKey[] {
 /**
  * The warnings of a manifest TiLiE holds, its IDs bare (TimeToShare's
  * `manifestWarnings` of its file form with the full context a file writes,
- * `fileOf`: a manifest with statements but no ID), each path into the
+ * `manifestFileValue`: a manifest with statements but no ID), each path into the
  * manifest itself.
  *
  * @throws {SchemaValidationError} for a manifest the schema refuses.
  */
 export function manifestWarnings(manifest: unknown): ManifestWarning[] {
-  return fileManifestWarnings(fileOf(manifest)).map((warning) => ({
+  return fileManifestWarnings(manifestFileValue(manifest)).map((warning) => ({
     ...warning,
     path: idFormPath(warning.path, false),
   }));
@@ -549,5 +553,5 @@ export function readManifestFile(text: string): ReadManifestFile | LoadError {
 export function saveManifest(manifest: Manifest, file: Partial<FileForm> = {}): string {
   const problems = manifestProblems(manifest);
   if (problems.length > 0) throw new InvalidManifestError(problems);
-  return dumpsFile(fileOf(manifest), { ...NEW_MANIFEST_FILE, ...file });
+  return dumpsFile(manifestFileValue(manifest), { ...NEW_MANIFEST_FILE, ...file });
 }

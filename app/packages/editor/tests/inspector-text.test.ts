@@ -5,7 +5,7 @@ import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { Address, Block, CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest, saveManifest } from "@timetoalign/tilie-core";
 import {
   compactJson,
   dumps,
@@ -428,8 +428,8 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 37, 17],
-      ["syntax_error", 32, 5],
+      ["syntax_error", 98, 17],
+      ["syntax_error", 83, 5],
       ["syntax_error", 16, 1],
     ]);
     expect(store.journal).toHaveLength(1);
@@ -513,11 +513,11 @@ describe("the four text modes", () => {
   /** A value's pretty JSON, the text the panel shows in JSON. */
   const json = (value: unknown): string => dumps(value, { serialization: "json" });
   /**
-   * `fixture` without its `@context` (core holds none of the format's terms, and `bare` declares
-   * no prefix) and without its `graphical` (the styling), or with the rule added to it.
+   * `fixture`, its `@context` the full context a file writes, without its `graphical` (the
+   * styling), or with the rule added to it.
    */
   function shownOf(fixture: { [key: string]: Json }, styled: boolean): string {
-    const { "@context": _, graphical, ...rest } = fixture;
+    const { graphical, ...rest } = fixture;
     if (!styled) return json(rest);
     const own = graphical as { [key: string]: Json };
     const rules = [...((own.rules ?? []) as Json[]), RULE];
@@ -527,7 +527,7 @@ describe("the four text modes", () => {
   const bareMinimal = fixtureText("bare.minimal");
   /**
    * The JSON text each mode shows: the fixture `bare.yaml` or
-   * `bare.minimal.yaml` without its `@context`, whose `graphical` holds its
+   * `bare.minimal.yaml` with its `@context`, whose `graphical` holds its
    * root's default timestamps, without that `graphical` or with the rule
    * added to it.
    */
@@ -583,6 +583,15 @@ describe("the four text modes", () => {
         if (options.includeStyling) expect(text).toMatch(/graphical/);
         else expect(text).not.toMatch(/graphical/);
       }
+      // The text is the file Export writes of the block in this mode.
+      const file = { minimal: options.minimal, styling: options.includeStyling };
+      const held = blockIn(store, A).manifest;
+      expect(written("json", manifest, options)).toBe(
+        saveManifest(held, { ...file, serialization: "json" }),
+      );
+      expect(written("yaml", manifest, options)).toBe(
+        saveManifest(held, { ...file, serialization: "yaml" }),
+      );
     });
 
     for (const format of FORMATS) {
