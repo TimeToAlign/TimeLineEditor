@@ -1,0 +1,53 @@
+{
+  "result": [
+    {
+      "id": "artist/7f3a2f7e-6277-4d72-b673-f3a8128a6aa0",
+      "name": "Alexandre Pires",
+      "description": "Person · Brazil"
+    },
+    {
+      "id": "artist/988d39d6-eafd-4ae7-8cab-50a6448a9216",
+      "name": "PIRES",
+      "description": "Person · Portuguese house DJ and producer"
+    },
+    {
+      "id": "artist/64cf3646-fde3-4f5e-8741-8b4d21917785",
+      "name": "Maria João Pires",
+      "description": "Person · pianist · Portugal"
+    },
+    {
+      "id": "artist/8d9c00a1-7da4-4fcd-a521-bc116dde80b9",
+      "name": "Les Pires",
+      "description": "Group · France"
+    },
+    {
+      "id": "artist/e6e5fdb0-2f22-48a8-bf0c-ee1743940a20",
+      "name": "Sandra Pires",
+      "description": "Person · Austria"
+    },
+    {
+      "id": "artist/2d7a72cf-bf06-4234-8d1a-59d0d1241c13",
+      "name": "Djalma Pires"
+    },
+    {
+      "id": "artist/29b8a697-236e-4bd9-a36d-bcd0646d07be",
+      "name": "Telmo Pires",
+      "description": "Person · portugees fado · Portugal"
+    },
+    {
+      "id": "artist/9012df03-d8f6-4888-89ff-44a7062961ea",
+      "name": "Carla Pires",
+      "description": "Person · fado singer · Portugal"
+    },
+    {
+      "id": "artist/c9cfc7f4-da2a-44d7-95d9-3f3a5e117a2d",
+      "name": "David Pires",
+      "description": "Person · Portuguese Music Artist from Luxembourg"
+    },
+    {
+      "id": "artist/07b1a6b0-07a3-45c3-96af-e655e9e3d1de",
+      "name": "Barbara Pires",
+      "description": "Person · Gospel singer · New Bedford"
+    }
+  ]
+}

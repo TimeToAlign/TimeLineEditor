@@ -1,0 +1,84 @@
+{
+  "totalNumberOfPerformers": "2",
+  "author": [
+    {
+      "id": "https://d-nb.info/gnd/118804219",
+      "label": "Verlaine, Paul"
+    }
+  ],
+  "mediumOfPerformance": [
+    {
+      "id": "https://d-nb.info/gnd/4156941-6",
+      "label": "Singstimme"
+    },
+    {
+      "id": "https://d-nb.info/gnd/4030982-4",
+      "label": "Klavier"
+    }
+  ],
+  "type": ["AuthorityResource", "MusicalWork", "Work"],
+  "@context": "https://lobid.org/gnd/context.jsonld",
+  "mediumOfPerformanceAsLiteral": ["Klavier", "Singstimme"],
+  "dateOfProduction": ["1882"],
+  "thematicIndexNumericDesignationOfMusicalWork": ["L 32"],
+  "biographicalOrHistoricalInformation": ["Erste Fassung."],
+  "describedBy": {
+    "id": "https://d-nb.info/gnd/1156628156/about",
+    "maintainer": {
+      "id": "https://ld.zdb-services.de/resource/organisations/CH-BaUGNF",
+      "label": "https://ld.zdb-services.de/resource/organisations/CH-BaUGNF"
+    },
+    "dctCreator": {
+      "id": "https://ld.zdb-services.de/resource/organisations/CH-BaUGNF",
+      "label": "https://ld.zdb-services.de/resource/organisations/CH-BaUGNF"
+    },
+    "license": {
+      "id": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "label": "http://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "dateModified": "2024-05-08T10:57:53.000",
+    "descriptionLevel": {
+      "id": "https://d-nb.info/standards/vocab/gnd/description-level#1",
+      "label": "Katalogisierungslevel 1"
+    }
+  },
+  "firstComposer": [
+    {
+      "id": "https://d-nb.info/gnd/118524186",
+      "label": "Debussy, Claude"
+    }
+  ],
+  "formOfWorkAndExpression": [
+    {
+      "id": "https://d-nb.info/gnd/4139233-4",
+      "label": "Melodie"
+    },
+    {
+      "id": "https://d-nb.info/gnd/4035669-3",
+      "label": "Lied"
+    }
+  ],
+  "gndIdentifier": "1156628156",
+  "id": "https://d-nb.info/gnd/1156628156",
+  "preferredName": "Clair de lune",
+  "variantName": [
+    "Votre âme est un paysage choisi",
+    "Mondschein",
+    "Lieder, L 32",
+    "Claire de lune, L 32",
+    "Melodien, Singstimme, Klavier, L 32",
+    "Eure Seele ist eine erlesene Landschaft"
+  ],
+  "sameAs": [
+    {
+      "id": "http://viaf.org/viaf/180635085",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q54919",
+        "abbr": "VIAF",
+        "publisher": "OCLC",
+        "icon": "http://viaf.org/viaf/images/viaf.ico",
+        "name": "Virtual International Authority File (VIAF)"
+      }
+    }
+  ]
+}

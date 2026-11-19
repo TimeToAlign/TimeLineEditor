@@ -1,0 +1,226 @@
+{
+  "professionOrOccupation": [
+    {
+      "id": "https://d-nb.info/gnd/4170818-0",
+      "label": "Musikerin"
+    },
+    {
+      "id": "https://d-nb.info/gnd/4426550-5",
+      "label": "Pianistin"
+    }
+  ],
+  "placeOfBirth": [
+    {
+      "id": "https://d-nb.info/gnd/4035919-0",
+      "label": "Lissabon"
+    }
+  ],
+  "gender": [
+    {
+      "id": "https://d-nb.info/standards/vocab/gnd/gender#female",
+      "label": "Weiblich"
+    }
+  ],
+  "dateOfBirth": ["1944"],
+  "variantNameEntityForThePerson": [
+    {
+      "forename": ["Maria"],
+      "surname": ["João Pires"]
+    },
+    {
+      "forename": ["Maria J."],
+      "surname": ["Pires"]
+    },
+    {
+      "forename": ["Maria-João"],
+      "surname": ["Pires"]
+    },
+    {
+      "forename": ["Maria João Alexandre"],
+      "surname": ["Barbosa Pires"]
+    },
+    {
+      "forename": ["Maria João Alexandre Barbosa"],
+      "surname": ["Pires"]
+    }
+  ],
+  "type": ["AuthorityResource", "Person", "DifferentiatedPerson"],
+  "@context": "https://lobid.org/gnd/context.jsonld",
+  "gndSubjectCategory": [
+    {
+      "id": "https://d-nb.info/standards/vocab/gnd/gnd-sc#14.4p",
+      "label": "Personen zu Musik"
+    }
+  ],
+  "oldAuthorityNumber": [
+    "(DE-101c)310175526",
+    "(DE-588a)124927521",
+    "(DE-588c)4743999-3",
+    "(DE-588a)134485521"
+  ],
+  "geographicAreaCode": [
+    {
+      "id": "https://d-nb.info/standards/vocab/gnd/geographic-area-code#XA-PT",
+      "label": "Portugal"
+    }
+  ],
+  "describedBy": {
+    "id": "https://d-nb.info/gnd/124927521/about",
+    "maintainer": {
+      "id": "https://ld.zdb-services.de/resource/organisations/DE-188",
+      "label": "https://ld.zdb-services.de/resource/organisations/DE-188"
+    },
+    "dctCreator": {
+      "id": "https://ld.zdb-services.de/resource/organisations/DE-188",
+      "label": "https://ld.zdb-services.de/resource/organisations/DE-188"
+    },
+    "license": {
+      "id": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "label": "http://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "dateModified": "2026-03-10T10:34:36.000",
+    "descriptionLevel": {
+      "id": "https://d-nb.info/standards/vocab/gnd/description-level#1",
+      "label": "Katalogisierungslevel 1"
+    }
+  },
+  "gndIdentifier": "124927521",
+  "id": "https://d-nb.info/gnd/124927521",
+  "preferredName": "Pires, Maria João",
+  "wikipedia": [
+    {
+      "id": "https://de.wikipedia.org/wiki/Maria_Jo%C3%A3o_Pires",
+      "label": "https://de.wikipedia.org/wiki/Maria_Jo%C3%A3o_Pires"
+    }
+  ],
+  "variantName": [
+    "Pires, Maria J.",
+    "Pires, Maria-João",
+    "Barbosa Pires, Maria João Alexandre",
+    "Pires, Maria João Alexandre Barbosa",
+    "João Pires, Maria"
+  ],
+  "playedInstrument": [
+    {
+      "id": "https://d-nb.info/gnd/4030982-4",
+      "label": "Klavier"
+    }
+  ],
+  "preferredNameEntityForThePerson": {
+    "forename": ["Maria João"],
+    "surname": ["Pires"]
+  },
+  "sameAs": [
+    {
+      "id": "http://id.loc.gov/rwo/agents/n78045366",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q13219454",
+        "abbr": "LC",
+        "publisher": "Library of Congress",
+        "icon": "http://www.loc.gov/favicon.ico",
+        "name": "NACO Authority File"
+      }
+    },
+    {
+      "id": "http://viaf.org/viaf/113931950",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q54919",
+        "abbr": "VIAF",
+        "publisher": "OCLC",
+        "icon": "http://viaf.org/viaf/images/viaf.ico",
+        "name": "Virtual International Authority File (VIAF)"
+      }
+    },
+    {
+      "id": "http://www.wikidata.org/entity/Q235650",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q2013",
+        "abbr": "WIKIDATA",
+        "publisher": "Wikimedia Foundation Inc.",
+        "icon": "https://www.wikidata.org/static/favicon/wikidata.ico",
+        "name": "Wikidata"
+      }
+    },
+    {
+      "collection": {
+        "abbr": "DNB",
+        "name": "Gemeinsame Normdatei (GND) im Katalog der Deutschen Nationalbibliothek",
+        "publisher": "Deutsche Nationalbibliothek",
+        "icon": "https://www.dnb.de/SiteGlobals/Frontend/DNBWeb/Images/favicon.png?__blob=normal&v=4",
+        "id": "http://www.wikidata.org/entity/Q36578"
+      },
+      "id": "https://d-nb.info/gnd/124927521/about"
+    },
+    {
+      "id": "https://dbpedia.org/resource/Maria_Jo%C3%A3o_Pires",
+      "collection": {
+        "id": "https://dbpedia.org"
+      }
+    },
+    {
+      "collection": {
+        "abbr": "dewiki",
+        "name": "Wikipedia (Deutsch)",
+        "publisher": "Wikimedia Foundation Inc.",
+        "icon": "https://de.wikipedia.org/static/favicon/wikipedia.ico",
+        "id": "http://www.wikidata.org/entity/Q48183"
+      },
+      "id": "https://de.wikipedia.org/wiki/Maria_Jo%C3%A3o_Pires"
+    },
+    {
+      "collection": {
+        "abbr": "enwiki",
+        "name": "Wikipedia (English)",
+        "publisher": "Wikimedia Foundation Inc.",
+        "icon": "https://en.wikipedia.org/static/favicon/wikipedia.ico",
+        "id": "http://www.wikidata.org/entity/Q328"
+      },
+      "id": "https://en.wikipedia.org/wiki/Maria_Jo%C3%A3o_Pires"
+    },
+    {
+      "id": "https://isni.org/isni/0000000109374314",
+      "collection": {
+        "id": "https://isni.org"
+      }
+    },
+    {
+      "collection": {
+        "abbr": "DE-611",
+        "name": "Kalliope Verbundkatalog",
+        "publisher": "Staatsbibliothek zu Berlin - Preußischer Kulturbesitz",
+        "icon": "https://kalliope-verbund.info/img/favicon.ico",
+        "id": "https://kalliope-verbund.info"
+      },
+      "id": "https://kalliope-verbund.info/gnd/124927521"
+    },
+    {
+      "collection": {
+        "abbr": "DDB",
+        "name": "Deutsche Digitale Bibliothek",
+        "publisher": "Deutsche Digitale Bibliothek",
+        "icon": "https://www.deutsche-digitale-bibliothek.de/favicon.ico",
+        "id": "http://www.wikidata.org/entity/Q621630"
+      },
+      "id": "https://www.deutsche-digitale-bibliothek.de/person/gnd/124927521"
+    }
+  ],
+  "depiction": [
+    {
+      "id": "https://commons.wikimedia.org/wiki/Special:FilePath/Maria%20Jo%C3%A3o%20Pires.jpg",
+      "url": "https://commons.wikimedia.org/wiki/File:Maria%20Jo%C3%A3o%20Pires.jpg?uselang=de",
+      "thumbnail": "https://commons.wikimedia.org/wiki/Special:FilePath/Maria%20Jo%C3%A3o%20Pires.jpg?width=270",
+      "publisher": "Wikimedia Commons",
+      "creatorName": ["Governo De Sergipe"],
+      "creditText": ["Maria João Pires treina sozinha no palco"],
+      "copyrighted": true,
+      "license": [
+        {
+          "id": "https://creativecommons.org/licenses/by-sa/2.0",
+          "attributionRequired": true,
+          "name": "Creative Commons Attribution-Share Alike 2.0",
+          "abbr": "CC BY-SA 2.0"
+        }
+      ]
+    }
+  ]
+}

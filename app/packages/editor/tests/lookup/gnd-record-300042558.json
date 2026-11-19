@@ -1,0 +1,102 @@
+{
+  "broaderTermPartitive": [
+    {
+      "id": "https://d-nb.info/gnd/30004254X",
+      "label": "Suite bergamasque"
+    }
+  ],
+  "totalNumberOfPerformers": "1",
+  "mediumOfPerformance": [
+    {
+      "id": "https://d-nb.info/gnd/4030982-4",
+      "label": "Klavier"
+    }
+  ],
+  "type": ["Work", "AuthorityResource", "MusicalWork"],
+  "@context": "https://lobid.org/gnd/context.jsonld",
+  "mediumOfPerformanceAsLiteral": "Klavier",
+  "gndSubjectCategory": [
+    {
+      "id": "https://d-nb.info/standards/vocab/gnd/gnd-sc#14.4p",
+      "label": "Personen zu Musik"
+    }
+  ],
+  "keyOfTheWork": ["Des-Dur"],
+  "oldAuthorityNumber": ["(DE-588c)7601249-9", "(DE-101c)300042558", "(DE-588)7601249-9"],
+  "geographicAreaCode": [
+    {
+      "id": "https://d-nb.info/standards/vocab/gnd/geographic-area-code#XA-FR",
+      "label": "Frankreich"
+    }
+  ],
+  "thematicIndexNumericDesignationOfMusicalWork": ["L 75"],
+  "deprecatedUri": ["https://d-nb.info/gnd/7601249-9"],
+  "describedBy": {
+    "id": "https://d-nb.info/gnd/300042558/about",
+    "maintainer": {
+      "id": "https://ld.zdb-services.de/resource/organisations/DE-101c",
+      "label": "https://ld.zdb-services.de/resource/organisations/DE-101c"
+    },
+    "dctCreator": {
+      "id": "https://ld.zdb-services.de/resource/organisations/DE-101c",
+      "label": "https://ld.zdb-services.de/resource/organisations/DE-101c"
+    },
+    "license": {
+      "id": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "label": "http://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "dateModified": "2025-09-02T13:10:31.000",
+    "descriptionLevel": {
+      "id": "https://d-nb.info/standards/vocab/gnd/description-level#1",
+      "label": "Katalogisierungslevel 1"
+    }
+  },
+  "firstComposer": [
+    {
+      "id": "https://d-nb.info/gnd/118524186",
+      "label": "Debussy, Claude"
+    }
+  ],
+  "gndIdentifier": "300042558",
+  "id": "https://d-nb.info/gnd/300042558",
+  "preferredName": "Suite bergamasque. Clair de lune",
+  "variantName": [
+    "Clair de lune",
+    "Mondschein",
+    "Suite bergamasque. No. 3",
+    "Suite bergamasque <Clair de lune>",
+    "Moonlight"
+  ],
+  "sameAs": [
+    {
+      "id": "https://d-nb.info/gnd/7601249-9",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q36578",
+        "abbr": "DNB",
+        "publisher": "Deutsche Nationalbibliothek",
+        "icon": "http://www.dnb.de/SiteGlobals/StyleBundles/Bilder/favicon.png?__blob=normal&v=1",
+        "name": "Gemeinsame Normdatei (GND) im Katalog der Deutschen Nationalbibliothek"
+      }
+    },
+    {
+      "id": "http://viaf.org/viaf/265616918",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q54919",
+        "abbr": "VIAF",
+        "publisher": "OCLC",
+        "icon": "http://viaf.org/viaf/images/viaf.ico",
+        "name": "Virtual International Authority File (VIAF)"
+      }
+    },
+    {
+      "id": "http://id.loc.gov/rwo/agents/n81073766",
+      "collection": {
+        "id": "http://www.wikidata.org/entity/Q13219454",
+        "abbr": "LC",
+        "publisher": "Library of Congress",
+        "icon": "http://www.loc.gov/favicon.ico",
+        "name": "NACO Authority File"
+      }
+    }
+  ]
+}

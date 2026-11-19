@@ -1,0 +1,19 @@
+{
+  "POST http://127.0.0.1:8000/api/reconcile/musicbrainz extend=%7B%22ids%22%3A%5B%22work%2F8d331505-4d88-39ae-81c7-bec5da77af96%22%5D%2C%22properties%22%3A%5B%7B%22id%22%3A%22name%22%7D%2C%7B%22id%22%3A%22sameAs%22%7D%5D%7D": "musicbrainz-extend-work-8d331505.json",
+  "POST http://127.0.0.1:8000/api/reconcile/musicbrainz queries=%7B%22q0%22%3A%7B%22query%22%3A%22Clair+de+lune%22%2C%22type%22%3A%22work%22%2C%22limit%22%3A3%7D%7D": "musicbrainz-reconcile-work-clair-de-lune.json",
+  "POST http://127.0.0.1:8000/api/reconcile/musicbrainz queries=%7B%22q0%22%3A%7B%22query%22%3A%22Maria+Jo%C3%A3o+Pires%22%2C%22type%22%3A%22artist%22%2C%22limit%22%3A3%7D%7D": "musicbrainz-reconcile-agent-maria-joao-pires.json",
+  "http://127.0.0.1:8000/api/reconcile/musicbrainz": "musicbrainz-manifest.json",
+  "http://127.0.0.1:8000/api/reconcile/musicbrainz/suggest/entity?prefix=Pires&type=artist": "musicbrainz-search-agent-pires.json",
+  "https://lobid.org/gnd/1156628156.json": "gnd-record-1156628156.json",
+  "https://lobid.org/gnd/124927521.json": "gnd-record-124927521.json",
+  "https://lobid.org/gnd/300042558.json": "gnd-record-300042558.json",
+  "https://lobid.org/gnd/search?q=Clair+de+lune&filter=type%3AMusicalWork&format=json%3Asuggest&size=10": "gnd-search-work-clair-de-lune.json",
+  "https://lobid.org/gnd/search?q=Pires%2C+Maria+Jo%C3%A3o&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10": "gnd-search-agent-pires-maria-joao.json",
+  "https://www.wikidata.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrnamespace=0&gsrlimit=10&gsrsearch=Clair+de+lune+haswbstatement%3AP86&prop=entityterms%7Cpageimages&wbetterms=label%7Cdescription&wbetlanguage=en&piprop=thumbnail&pithumbsize=80": "wikidata-search-work-clair-de-lune.json",
+  "https://www.wikidata.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrnamespace=0&gsrlimit=10&gsrsearch=Maria+Jo%C3%A3o+Pires+haswbstatement%3AP31%3DQ5%7CP31%3DQ215380%7CP31%3DQ42998&prop=entityterms%7Cpageimages&wbetterms=label%7Cdescription&wbetlanguage=en&piprop=thumbnail&pithumbsize=80": "wikidata-search-agent-maria-joao-pires.json",
+  "https://www.wikidata.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrnamespace=0&gsrlimit=10&gsrsearch=video+haswbstatement%3AP279&prop=entityterms%7Cpageimages&wbetterms=label%7Cdescription&wbetlanguage=en&piprop=thumbnail&pithumbsize=80": "wikidata-search-class-video.json",
+  "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&ids=Q235650&props=labels%7Cdescriptions%7Cclaims&languages=en&languagefallback=1": "wikidata-entity-Q235650.json",
+  "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&ids=Q29117946&props=labels%7Cdescriptions%7Cclaims&languages=en&languagefallback=1": "wikidata-entity-Q29117946.json",
+  "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&ids=Q98069877&props=labels%7Cdescriptions%7Cclaims&languages=en&languagefallback=1": "wikidata-entity-Q98069877.json",
+  "https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DCh2mrPm1JnM&format=json": "youtube-oembed-Ch2mrPm1JnM.json"
+}

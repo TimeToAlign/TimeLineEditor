@@ -1,0 +1,26 @@
+{
+  "meta": [
+    {
+      "id": "name",
+      "name": "name"
+    },
+    {
+      "id": "sameAs",
+      "name": "same as"
+    }
+  ],
+  "rows": {
+    "work/8d331505-4d88-39ae-81c7-bec5da77af96": {
+      "name": [
+        {
+          "str": "Suite bergamasque, L. 75, CD 82 : III. Clair de lune"
+        }
+      ],
+      "sameAs": [
+        {
+          "str": "http://www.wikidata.org/entity/Q29117946"
+        }
+      ]
+    }
+  }
+}

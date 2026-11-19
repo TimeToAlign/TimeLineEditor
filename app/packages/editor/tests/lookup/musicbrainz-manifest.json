@@ -1,0 +1,40 @@
+{
+  "versions": ["0.2"],
+  "name": "MusicBrainz through tilie-server",
+  "identifierSpace": "http://musicbrainz.org/",
+  "schemaSpace": "http://schema.org/",
+  "defaultTypes": [
+    {
+      "id": "work",
+      "name": "work"
+    },
+    {
+      "id": "artist",
+      "name": "artist"
+    },
+    {
+      "id": "recording",
+      "name": "recording"
+    },
+    {
+      "id": "release-group",
+      "name": "release group"
+    }
+  ],
+  "view": {
+    "url": "https://musicbrainz.org/{{id}}"
+  },
+  "suggest": {
+    "entity": {
+      "service_url": "/api/reconcile/musicbrainz",
+      "service_path": "/suggest/entity"
+    }
+  },
+  "extend": {
+    "propose_properties": {
+      "service_url": "/api/reconcile/musicbrainz",
+      "service_path": "/properties"
+    },
+    "property_settings": []
+  }
+}

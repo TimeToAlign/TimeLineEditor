@@ -1,0 +1,121 @@
+{
+  "batchcomplete": true,
+  "continue": {
+    "gsroffset": 10,
+    "continue": "gsroffset||"
+  },
+  "query": {
+    "pages": [
+      {
+        "pageid": 686934,
+        "ns": 0,
+        "title": "Q730599",
+        "index": 2,
+        "entityterms": {
+          "label": ["Clair de lune"],
+          "description": ["song by Gabriel Fauré, composed in 1887 to words by Paul Verlaine"]
+        }
+      },
+      {
+        "pageid": 1307099,
+        "ns": 0,
+        "title": "Q1367599",
+        "index": 8,
+        "entityterms": {
+          "label": ["Suite bergamasque"],
+          "description": ["Piano composition by Claude Debussy"]
+        }
+      },
+      {
+        "pageid": 2332943,
+        "ns": 0,
+        "title": "Q2415074",
+        "index": 5,
+        "entityterms": {
+          "label": ["The Night Heaven Fell"],
+          "description": ["1958 film by Roger Vadim"]
+        }
+      },
+      {
+        "pageid": 27348510,
+        "ns": 0,
+        "title": "Q25395619",
+        "index": 9
+      },
+      {
+        "pageid": 30776086,
+        "ns": 0,
+        "title": "Q29117946",
+        "index": 1,
+        "entityterms": {
+          "label": ["Clair de lune"],
+          "description": ["composition for piano by Claude Debussy; part of Suite bergamasque"]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Clair_de_lune_Debussy.png/120px-Clair_de_lune_Debussy.png?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 19
+        }
+      },
+      {
+        "pageid": 30872464,
+        "ns": 0,
+        "title": "Q29217416",
+        "index": 4,
+        "entityterms": {
+          "label": ["La terrasse des audiences du clair de lune"],
+          "description": ["prelude for piano by Claude Debussy"]
+        }
+      },
+      {
+        "pageid": 92248338,
+        "ns": 0,
+        "title": "Q93100837",
+        "index": 3,
+        "entityterms": {
+          "label": ["Clair De Lune"],
+          "description": [
+            "original song written and composed by James Lyell and Hugo Gruzman; first recorded by Flight Facilities"
+          ]
+        }
+      },
+      {
+        "pageid": 117409500,
+        "ns": 0,
+        "title": "Q123165866",
+        "index": 6,
+        "entityterms": {
+          "label": ["Clair de lune"],
+          "description": ["mélodie by Claude Debussy"]
+        }
+      },
+      {
+        "pageid": 118916330,
+        "ns": 0,
+        "title": "Q124736418",
+        "index": 7,
+        "entityterms": {
+          "label": ["Two pieces for piano, Clair de Lune, Soleil à midi, Op. 33"],
+          "description": [
+            "musical work by Joseph Jongen, s.d., Music Department of the Royal Library of Belgium, Mus. 3.044 C"
+          ]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Deux_pi%C3%A8ces_pour_piano%2C_musical_work_by_Joseph_Jongen%2C_s.d.%2C_Music_Department_of_the_Royal_Library_of_Belgium%2C_Mus._3.044_C_-_%28p.1%29.jpg/120px-Deux_pi%C3%A8ces_pour_piano%2C_musical_work_by_Joseph_Jongen%2C_s.d.%2C_Music_Department_of_the_Royal_Library_of_Belgium%2C_Mus._3.044_C_-_%28p.1%29.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 102
+        }
+      },
+      {
+        "pageid": 131370919,
+        "ns": 0,
+        "title": "Q137705723",
+        "index": 10,
+        "entityterms": {
+          "label": ["Fantasie avec variations sur l'air 'Au clair de la lune'"],
+          "description": ["composition by Muzio Clementi"]
+        }
+      }
+    ]
+  }
+}

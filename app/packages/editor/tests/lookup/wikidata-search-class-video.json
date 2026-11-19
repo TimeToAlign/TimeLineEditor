@@ -1,0 +1,149 @@
+{
+  "batchcomplete": true,
+  "continue": {
+    "gsroffset": 10,
+    "continue": "gsroffset||"
+  },
+  "query": {
+    "pages": [
+      {
+        "pageid": 9137,
+        "ns": 0,
+        "title": "Q7889",
+        "index": 7,
+        "entityterms": {
+          "label": ["video game"],
+          "description": [
+            "electronic game that involves interaction with a user interface to generate visual feedback"
+          ]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/ArcadeGames.jpg/120px-ArcadeGames.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 53
+        }
+      },
+      {
+        "pageid": 37257,
+        "ns": 0,
+        "title": "Q34508",
+        "index": 1,
+        "entityterms": {
+          "label": ["video recording"],
+          "description": [
+            "technique of recording, copying and broadcasting of moving visual images"
+          ]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Betacam_SP_camera.jpg/120px-Betacam_SP_camera.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 46
+        }
+      },
+      {
+        "pageid": 57397,
+        "ns": 0,
+        "title": "Q54767",
+        "index": 3,
+        "entityterms": {
+          "label": ["puzzle video game"],
+          "description": ["video game genre"]
+        }
+      },
+      {
+        "pageid": 191921,
+        "ns": 0,
+        "title": "Q193977",
+        "index": 4,
+        "entityterms": {
+          "label": ["music video"],
+          "description": ["video featuring a performance of a musical work"]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/95/BTSofjhey1.jpg/120px-BTSofjhey1.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 120
+        }
+      },
+      {
+        "pageid": 204785,
+        "ns": 0,
+        "title": "Q208850",
+        "index": 9,
+        "entityterms": {
+          "label": ["single-player video game"],
+          "description": ["video game that permits only one player"]
+        }
+      },
+      {
+        "pageid": 206012,
+        "ns": 0,
+        "title": "Q210167",
+        "index": 6,
+        "entityterms": {
+          "label": ["video game developer"],
+          "description": [
+            "software development organization specializing in the creation of video games (for person use Q58287519)"
+          ]
+        }
+      },
+      {
+        "pageid": 620795,
+        "ns": 0,
+        "title": "Q659563",
+        "index": 10,
+        "entityterms": {
+          "label": ["video game genre"],
+          "description": ["video game term; categorization of video games"]
+        }
+      },
+      {
+        "pageid": 680380,
+        "ns": 0,
+        "title": "Q723685",
+        "index": 5,
+        "entityterms": {
+          "label": ["video on demand"],
+          "description": [
+            "systems which allow users to select and watch to video content on demand"
+          ]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Home-AppleTV-3RevA.JPG/120px-Home-AppleTV-3RevA.JPG?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 60
+        }
+      },
+      {
+        "pageid": 699961,
+        "ns": 0,
+        "title": "Q744038",
+        "index": 2,
+        "entityterms": {
+          "label": ["role-playing video game"],
+          "description": ["video game genre"]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/BOEcombat1.png/120px-BOEcombat1.png?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 60
+        }
+      },
+      {
+        "pageid": 819547,
+        "ns": 0,
+        "title": "Q868217",
+        "index": 8,
+        "entityterms": {
+          "label": ["sports video game"],
+          "description": ["video game genre"]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Iran_Games_Cup_2019_0020.jpg/120px-Iran_Games_Cup_2019_0020.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 53
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "pageid": 229142,
+        "ns": 0,
+        "title": "Q235650",
+        "index": 1,
+        "entityterms": {
+          "label": ["Maria João Pires"],
+          "description": ["Portuguese pianist"]
+        },
+        "thumbnail": {
+          "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Maria_Jo%C3%A3o_Pires.jpg/120px-Maria_Jo%C3%A3o_Pires.jpg?utm_source=www.wikidata.org&utm_campaign=api&utm_content=thumbnail",
+          "width": 80,
+          "height": 60
+        }
+      },
+      {
+        "pageid": 55248267,
+        "ns": 0,
+        "title": "Q55195680",
+        "index": 2,
+        "entityterms": {
+          "label": ["Maria João Pires"],
+          "description": ["researcher"]
+        }
+      },
+      {
+        "pageid": 82771044,
+        "ns": 0,
+        "title": "Q83454911",
+        "index": 3,
+        "entityterms": {
+          "label": ["Maria João Pires da Rosa"],
+          "description": ["Portuguese researcher and chemical engineer"]
+        }
+      }
+    ]
+  }
+}

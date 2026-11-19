@@ -1477,3 +1477,112 @@ the DOM by role and attribute:
    and the handler got the clipboard's text; one answering `false` is not.
    Without a handler, a paste is not prevented.
 10. **Focus.** The component's `focus()` focuses the field.
+
+## Looking values up (`lookup.test.ts`, `lookup-wikidata.test.ts`, `lookup-gnd.test.ts`, `lookup-reconciliation.test.ts`)
+
+The lookup (`src/lookup/`) asks Wikidata, lobid-gnd and YouTube's oEmbed
+endpoint from the browser and MusicBrainz through `tilie-server`'s
+Reconciliation Service API endpoint, and turns their answers into
+candidates. What proves it is the requests it sends and the candidates it
+reads from real answers, so no test reaches a network: the services'
+answers are recorded once in `tests/lookup/` by `scripts/record-lookup.ts`
+(the live services, one request a second under a User-Agent naming the
+repository; the server's endpoint answered by `tilie-server`'s own test
+application replaying the MusicBrainz answers recorded for the server's
+tests, a 3-candidate search served the first 3 entities of the recorded
+5-candidate one), and `index.json` maps each request to its file: a GET
+by its URL, a POST by `POST <url> <form body>`. The replaying `fetch`
+(`lookup-replay.ts`) serves those files, records every call's method, URL,
+headers and body, and rejects any other request, so a request the code
+was not meant to send fails the test that sent it, and a test asserting
+"no request" reads an empty call list. The end-to-end suite fulfils
+browser requests from the same index.
+
+Every candidate list below is written out whole, by hand, from the
+recorded file named; none is produced by running the code. A candidate is
+`{system, iri, label, description, image, crossReferences, service,
+match}`; `match` is false and `crossReferences` empty unless stated.
+
+**The support table** (`lookup.test.ts`). With a server, `searchable`
+holds for `wikidata` and every kind; for `gnd` and `work`, `agent` only;
+for `musicbrainz` and `work`, `agent`, `recording`, `release`; for no
+other pair of the catalogue's systems and the six kinds. Without a server
+`musicbrainz` searches nothing. `resolvable` holds for `wikidata`, `gnd`,
+`youtube`, and `musicbrainz` with a server only. Asking what is not
+supported answers `[]`, `null`, or a `null` per text, with no request.
+`NO_LOOKUP` supports nothing and answers the same without a request.
+Blank text sends no request either.
+
+**Errors** (`lookup.test.ts`), each a `LookupError` with `system`, `code`,
+`status` and the exact message, which completes "<System> could not be
+searched: …": a fetch rejecting with "Failed to fetch" → `unreachable`,
+`null`, "it could not be reached (Failed to fetch)"; 503 Service
+Unavailable → `status`, 503, "it answered 503 Service Unavailable"; a JSON
+error body with a `detail` (the server's 502) appends it, "it answered 502
+Bad Gateway: MusicBrainz could not be reached"; a body that is no JSON →
+`malformed`, "its answer is no JSON"; JSON of another form →
+`malformed` naming what was expected ("its answer is no list of found
+items" for Wikidata pages that are no list, "its answer is no list of
+suggestions" for a lobid answer that is no list, "its answer is an error:
+<info>" for the Action API's error object). An aborted request rejects
+with the signal's reason, never a `LookupError`, so a superseded search is
+told from a failed one. YouTube is the exception: a failed oEmbed request
+(404) resolves to `null`.
+
+**Wikidata** (`lookup-wikidata.test.ts`). The search request is pinned as
+a string: the Action API with `action=query, format=json,
+formatversion=2, origin=*, generator=search, gsrnamespace=0, gsrlimit=10,
+gsrsearch=<text filter>, prop=entityterms|pageimages,
+wbetterms=label|description, wbetlanguage=en, piprop=thumbnail,
+pithumbsize=80` in that order; the kind `any` adds no filter. Results are
+read from `query.pages` by their `index` (the recordings list them out of
+order): iri `http://www.wikidata.org/entity/` + title, the first label
+else the title, the first description else `null`, the thumbnail's
+`source` else `null`, service `https://www.wikidata.org/w/api.php`.
+Searches: agent "Maria João Pires" (3 candidates, Q235650 first), work
+"Clair de lune" (10, Q29117946 first, Q25395619 without terms labelled by
+its title), class "video" (10). Resolving reads `wbgetentities` (labels,
+descriptions, claims in `en` with fallback): the image is P18's file at
+`https://commons.wikimedia.org/wiki/Special:FilePath/<file, spaces as
+underscores, URI-encoded>?width=80`; cross-references are read from P214,
+P227, P435, P4404, P5813, P436, P434, P1651, P839 in that order, each
+string through the catalogue thing whose `scheme_uri` is the property
+(lower case where the thing says so), the system the one holding it.
+Q235650 gives VIAF 113931950, GND 124927521 and the MusicBrainz artist
+`64cf3646-…`; Q29117946 gives VIAF 265616918 and the MusicBrainz work
+`8d331505-…` (the recorded item states no GND number); Q98069877 gives
+none and no image. A wiki page URL (`https://www.wikidata.org/wiki/Q235650`)
+resolves as the entity IRI; an IRI of another system resolves to `null`
+without a request.
+
+**The GND** (`lookup-gnd.test.ts`). The search request is lobid's
+`search?q=<text>&filter=<filter>&format=json:suggest&size=10`, the filter
+`type:MusicalWork` for works and `type:Person OR type:CorporateBody` for
+agents; a hit's label is cut at the first " | " into label and
+description, its `image` kept, service `https://lobid.org/gnd/search`.
+Searches: agent "Pires, Maria João" (4), work "Clair de lune" (10).
+Resolving reads `https://lobid.org/gnd/<id>.json`: label `preferredName`,
+image the first depiction's thumbnail, cross-references every `sameAs`
+link the catalogue recognises with an IRI, in order, once: 124927521 gives
+VIAF 113931950 and Wikidata Q235650, 300042558 gives GND 7601249-9 and
+VIAF 265616918, 1156628156 gives VIAF 180635085.
+
+**YouTube** (`lookup.test.ts`). Resolving
+`https://www.youtube.com/watch?v=Ch2mrPm1JnM` asks the oEmbed endpoint for
+that URL: label the title, description the channel, image the thumbnail,
+service `https://www.youtube.com/oembed`.
+
+**Reconciliation and MusicBrainz** (`lookup-reconciliation.test.ts`), at
+the server `http://127.0.0.1:8000/api/` with the token `recorded-token`.
+The client reads the manifest once for any number of calls, and asks
+again after a failed read; a relative endpoint resolves against the given
+base. Suggestions go to the manifest's `service_url` + `service_path`
+resolved against the endpoint, with `prefix` and `type`; reconciliation
+and extension are POST forms holding one JSON text each. Every request
+carries `Authorization: Bearer recorded-token`. Through the lookup: agent
+"Pires" (10 artists, iri `http://musicbrainz.org/` + the service's ID,
+service `https://musicbrainz.org/ws/2/`, no image); reconcile work "Clair
+de lune" and agent "Maria João Pires" in one request each with `limit` 3,
+the best candidate each with `match` true; resolving the work
+`8d331505-…` gives its MusicBrainz title and the cross-reference Wikidata
+Q29117946.

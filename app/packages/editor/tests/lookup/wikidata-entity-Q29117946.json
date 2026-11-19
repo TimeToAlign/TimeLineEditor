@@ -1,0 +1,591 @@
+{
+  "entities": {
+    "Q29117946": {
+      "type": "item",
+      "id": "Q29117946",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Clair de lune"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "composition for piano by Claude Debussy; part of Suite bergamasque"
+        }
+      },
+      "claims": {
+        "P31": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P31",
+              "hash": "5be109d8a3cbbd062357a9d210d4ef00ef25244e",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 105543609,
+                  "id": "Q105543609"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$63C09F3D-5947-4083-8778-D7F6582134C5",
+            "rank": "normal"
+          }
+        ],
+        "P870": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P870",
+              "hash": "679443dad4baff8484f00f8b2b393cc4ecb6c71c",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 5994,
+                  "id": "Q5994"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$6700453A-DF27-4BBE-BE8B-FC3799063E27",
+            "rank": "normal"
+          }
+        ],
+        "P135": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P135",
+              "hash": "ac3462db5e92351ae6ac12de77e9b8d8e268afe2",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 40415,
+                  "id": "Q40415"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$D4DF5438-E403-4317-85B8-51F5711FD27D",
+            "rank": "normal"
+          }
+        ],
+        "P86": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P86",
+              "hash": "65e6cb03ce86df47b9e024b05eaa99fa015edb8b",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 4700,
+                  "id": "Q4700"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$770A17A1-5F25-4F05-9D24-2F1CF6995158",
+            "rank": "normal"
+          }
+        ],
+        "P361": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P361",
+              "hash": "e1c98acda0a4bef83576434672af258437ec135d",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 1367599,
+                  "id": "Q1367599"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "qualifiers": {
+              "P1545": [
+                {
+                  "snaktype": "value",
+                  "property": "P1545",
+                  "hash": "0e979f28bf306fefdcd352b4eb8dee5da2153a6d",
+                  "datavalue": {
+                    "value": "3",
+                    "type": "string"
+                  },
+                  "datatype": "string"
+                }
+              ],
+              "P155": [
+                {
+                  "snaktype": "value",
+                  "property": "P155",
+                  "hash": "7c61f584ba710dea1509f373526bd27adfafc48b",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 29117940,
+                      "id": "Q29117940"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                }
+              ],
+              "P156": [
+                {
+                  "snaktype": "value",
+                  "property": "P156",
+                  "hash": "5163ea42db762ae5560acd96267f7e7898377b76",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 29117951,
+                      "id": "Q29117951"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                }
+              ]
+            },
+            "qualifiers-order": ["P1545", "P155", "P156"],
+            "id": "Q29117946$3E4C0F6A-B98D-446C-AEAF-DBAE331ED6CC",
+            "rank": "normal"
+          }
+        ],
+        "P1814": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P1814",
+              "hash": "8a85d5c7d5c23b9e2d9274fea69d4573e67ba162",
+              "datavalue": {
+                "value": "つきのひかり",
+                "type": "string"
+              },
+              "datatype": "string"
+            },
+            "type": "statement",
+            "qualifiers": {
+              "P2125": [
+                {
+                  "snaktype": "value",
+                  "property": "P2125",
+                  "hash": "e86caf501004e9fd61d06789ee84f75ee07a6e4a",
+                  "datavalue": {
+                    "value": "Tsuki no hikari",
+                    "type": "string"
+                  },
+                  "datatype": "string"
+                }
+              ]
+            },
+            "qualifiers-order": ["P2125"],
+            "id": "Q29117946$F3394F28-79ED-404C-8B49-78E385A4B0E1",
+            "rank": "normal"
+          }
+        ],
+        "P1705": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P1705",
+              "hash": "13378dcff2228890de72f80e26ead4e8c058698b",
+              "datavalue": {
+                "value": {
+                  "text": "Clair de lune",
+                  "language": "fr"
+                },
+                "type": "monolingualtext"
+              },
+              "datatype": "monolingualtext"
+            },
+            "type": "statement",
+            "id": "Q29117946$56af9a4c-4278-8eb0-00df-3a8f3e035231",
+            "rank": "normal"
+          }
+        ],
+        "P244": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P244",
+              "hash": "3a72728a2689d99255d8a909e4705f2bc006ada8",
+              "datavalue": {
+                "value": "n81073766",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$63dde9c4-4292-67f2-3bcc-81d2d55cc5af",
+            "rank": "normal"
+          }
+        ],
+        "P435": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P435",
+              "hash": "231587e5c2501ed829c377ed9bc5204061cc86f1",
+              "datavalue": {
+                "value": "8d331505-4d88-39ae-81c7-bec5da77af96",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$26b9a997-4ff8-e2b1-8e85-4522adf9f804",
+            "rank": "normal"
+          }
+        ],
+        "P5229": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P5229",
+              "hash": "8be3874fb819c39bdf0d827a5d4f55cb57c67a04",
+              "datavalue": {
+                "value": "17579",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$6bd2122c-4dfe-f4e9-de79-6eb590f4dc4a",
+            "rank": "normal"
+          }
+        ],
+        "P1417": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P1417",
+              "hash": "80841731e9317d5f2a4aae53d6c314c7df58fe23",
+              "datavalue": {
+                "value": "topic/Clair-de-lune-by-Debussy",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "qualifiers": {
+              "P1810": [
+                {
+                  "snaktype": "value",
+                  "property": "P1810",
+                  "hash": "9228560a7c393e59d3762f7f10a0382e69fe28dc",
+                  "datavalue": {
+                    "value": "Clair de lune",
+                    "type": "string"
+                  },
+                  "datatype": "string"
+                }
+              ]
+            },
+            "qualifiers-order": ["P1810"],
+            "id": "Q29117946$019931AF-B934-4AAF-9F82-A282EE9F3A31",
+            "rank": "normal"
+          }
+        ],
+        "P646": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P646",
+              "hash": "24aeedeb7695317dc49f3d16d2863e1fe3991070",
+              "datavalue": {
+                "value": "/m/0gbm9gq",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$C375690F-EEE4-440D-8E7A-4E640DF9D08C",
+            "rank": "normal"
+          }
+        ],
+        "P7937": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P7937",
+              "hash": "5c54094c7111cdd785d3a1af5fa5b684f79e2e7c",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 1746015,
+                  "id": "Q1746015"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$B024CD53-BD2E-4FD4-8535-E586D73D257E",
+            "rank": "normal"
+          }
+        ],
+        "P8189": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P8189",
+              "hash": "9ea5824749739bdc6d48f92759308bb7d3f6d1d5",
+              "datavalue": {
+                "value": "987007579075005171",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$07B4D6F6-3C5B-4EEE-83B3-6BDE6911A1C8",
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "ecb7a39cf436eb1fba419853af168ef9f2ba1dab",
+                "snaks": {
+                  "P248": [
+                    {
+                      "snaktype": "value",
+                      "property": "P248",
+                      "hash": "a03bb6ffe37be9554492f4eea5bd18afcb57df19",
+                      "datavalue": {
+                        "value": {
+                          "entity-type": "item",
+                          "numeric-id": 106509962,
+                          "id": "Q106509962"
+                        },
+                        "type": "wikibase-entityid"
+                      },
+                      "datatype": "wikibase-item"
+                    }
+                  ]
+                },
+                "snaks-order": ["P248"]
+              }
+            ]
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P18",
+              "hash": "275b56697dbe27c194d449f8cd2ca444c47edf9a",
+              "datavalue": {
+                "value": "Clair de lune Debussy.png",
+                "type": "string"
+              },
+              "datatype": "commonsMedia"
+            },
+            "type": "statement",
+            "id": "Q29117946$7402F3B7-6B93-49FE-BC6C-A0F734C6B98B",
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "2d8824321ecaa6d74dd65b68d740ce11a89de134",
+                "snaks": {
+                  "P143": [
+                    {
+                      "snaktype": "value",
+                      "property": "P143",
+                      "hash": "6a164248fc96bfa583bbb495cb63ae6401ec203c",
+                      "datavalue": {
+                        "value": {
+                          "entity-type": "item",
+                          "numeric-id": 206855,
+                          "id": "Q206855"
+                        },
+                        "type": "wikibase-entityid"
+                      },
+                      "datatype": "wikibase-item"
+                    }
+                  ],
+                  "P4656": [
+                    {
+                      "snaktype": "value",
+                      "property": "P4656",
+                      "hash": "72fd01734f6ec0e7e2d262ada19476ba8dbfd9cd",
+                      "datavalue": {
+                        "value": "https://ru.wikipedia.org/?oldid=125798063",
+                        "type": "string"
+                      },
+                      "datatype": "url"
+                    }
+                  ]
+                },
+                "snaks-order": ["P143", "P4656"]
+              }
+            ]
+          }
+        ],
+        "P11665": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P11665",
+              "hash": "6dedaccba07711c36d0a5163bf2372a5d3676f65",
+              "datavalue": {
+                "value": "clair_de_lune_f1",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$3c8f7962-48d2-e76f-d56a-733b991ac3a1",
+            "rank": "normal"
+          }
+        ],
+        "P138": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P138",
+              "hash": "b24f227cec101269b866944470bfa0ea3ec70eee",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 2974977,
+                  "id": "Q2974977"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$4d76c29d-48f2-f0db-98f7-7297ac1f8b85",
+            "rank": "normal"
+          }
+        ],
+        "P528": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P528",
+              "hash": "fba4fc1bb15f404189db597aa9f00e3cf6a3465d",
+              "datavalue": {
+                "value": "82b",
+                "type": "string"
+              },
+              "datatype": "string"
+            },
+            "type": "statement",
+            "qualifiers": {
+              "P972": [
+                {
+                  "snaktype": "value",
+                  "property": "P972",
+                  "hash": "40e73af2af5cf14436267c289b3fd42c4989c0fb",
+                  "datavalue": {
+                    "value": {
+                      "entity-type": "item",
+                      "numeric-id": 29054076,
+                      "id": "Q29054076"
+                    },
+                    "type": "wikibase-entityid"
+                  },
+                  "datatype": "wikibase-item"
+                }
+              ]
+            },
+            "qualifiers-order": ["P972"],
+            "id": "Q29117946$ab775afc-4c68-3386-bfc3-84eb93761571",
+            "rank": "normal"
+          }
+        ],
+        "P1889": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P1889",
+              "hash": "06ba13421128f65fec5cee27a9f27cfd2d247749",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 123165866,
+                  "id": "Q123165866"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            },
+            "type": "statement",
+            "id": "Q29117946$e2fa6252-4273-5f68-9e4d-c20a784429bc",
+            "rank": "normal"
+          }
+        ],
+        "P214": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P214",
+              "hash": "5f3db5b7727a4d125cd266b4f64f72f36b0b4e0f",
+              "datavalue": {
+                "value": "265616918",
+                "type": "string"
+              },
+              "datatype": "external-id"
+            },
+            "type": "statement",
+            "id": "Q29117946$1941c470-4642-562a-75da-4f2ac05060ec",
+            "rank": "normal"
+          }
+        ],
+        "P1476": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P1476",
+              "hash": "d954fdf3d0cd264f0ad5078d8a6515ce00ed3eb9",
+              "datavalue": {
+                "value": {
+                  "text": "Clair de lune",
+                  "language": "fr"
+                },
+                "type": "monolingualtext"
+              },
+              "datatype": "monolingualtext"
+            },
+            "type": "statement",
+            "id": "Q29117946$82ba5e8f-49ca-d14a-6312-aaef93c81c6c",
+            "rank": "normal"
+          }
+        ],
+        "P51": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P51",
+              "hash": "1b31fcab77148e504ee160b108499e8cceaeae3e",
+              "datavalue": {
+                "value": "Clair de lune (Claude Debussy) Suite bergamasque.ogg",
+                "type": "string"
+              },
+              "datatype": "commonsMedia"
+            },
+            "type": "statement",
+            "id": "Q29117946$57C45723-5C5B-42F3-9605-3A19BD277AE5",
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  },
+  "success": 1
+}
