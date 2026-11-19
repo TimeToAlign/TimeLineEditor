@@ -39,12 +39,12 @@ have, the schema is changed first.
   places of its items and the stated sizes, spacings and margins of its
   members' cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
   style layer of its own.
-- The **workspace** is the canvas: its name, its blocks, its default style statements, the settings (outside the journal), and
+- The **workspace** is the canvas: its name, its blocks, its default style rules, the settings (outside the journal), and
   the command journal that produced them with the sessions of its editors.
   It is one pretty JSON file, written as TimeToShare's schema package
   writes JSON, by default `<name>.tle.json` after its name, format
   version 7; the manifests it holds are written there in their complete
-  form, whatever file form each is exported in.
+  form with bare IDs, whatever file form each is exported in.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.
@@ -112,7 +112,7 @@ part: ["card"]}` every card of `T`; `{block, part: ["name"]}` the
 manifest's title; and a part of an element its address with `start`,
 `end`, `name` or `label` appended to `part`. An element drawn more than
 once, a member's cards in several frames among them, keeps one address in
-every drawing of it, so a statement or a selection reaches every drawing.
+every drawing of it, so a rule or a selection reaches every drawing.
 Two addresses are equal when they are equal as whole objects, and
 `addressKey(address)` is an address's one string form, the only key a map
 or a Svelte keyed block takes for it. Core's `resolveAddress(view,
