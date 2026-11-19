@@ -14,7 +14,7 @@
 
 export const name = "@timetoalign/tilie-core" as const;
 
-export type { UnknownKey, UnregisteredTerm } from "@timetoalign/timetoshare";
+export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
 export { importedManifest } from "./commands/timestamps.ts";
@@ -37,7 +37,7 @@ export {
   JournalMismatchError,
 } from "./errors.ts";
 export type { Json, PathSegment } from "./json.ts";
-export { compareCodePoints } from "./json.ts";
+export { canonicalText, compareCodePoints } from "./json.ts";
 export type { ElementAddress, Facet, OwnerAddress, Part } from "./manifest/address.ts";
 export {
   addressKey,
@@ -89,22 +89,14 @@ export type { ReadManifestFile } from "./manifest/io.ts";
 export {
   idFormPath,
   loadManifest,
+  manifestWarnings,
   NEW_MANIFEST_FILE,
   normalizeManifest,
   readManifestFile,
   saveManifest,
   unknownKeys,
-  unregisteredTerms,
   withHeldIds,
 } from "./manifest/io.ts";
-export type {
-  LinkedManifest,
-  LinkedRegion,
-  LinkedTimeline,
-  LinkHolder,
-  LinkOwner,
-} from "./manifest/links.ts";
-export { linkHolder, linkHolders } from "./manifest/links.ts";
 export type { BandOrderEntry } from "./manifest/order.ts";
 export {
   bandOrderOf,
@@ -116,6 +108,20 @@ export {
 export { removedBy } from "./manifest/remove.ts";
 export type { Gap, GapOption, GapSide, GapVerb } from "./manifest/segments.ts";
 export { GAPS } from "./manifest/segments.ts";
+export type {
+  HolderKind,
+  Skeleton,
+  SkeletonRegion,
+  SkeletonTimeline,
+  StatementHolder,
+} from "./manifest/statements.ts";
+export {
+  skeletonOf,
+  statementHolder,
+  statementHolders,
+  withoutReferencesTo,
+  withStatementContext,
+} from "./manifest/statements.ts";
 export { findTimeline, isSegment } from "./manifest/tree.ts";
 export type {
   AxisValue,
@@ -123,12 +129,13 @@ export type {
   ConversionMap,
   FlowControlElement,
   Group,
-  Link,
   Manifest,
   ManifestGraphical,
   MeasureMap,
   NamedTimestamp,
+  ProvenanceEntry,
   Region,
+  Statements,
   TimelineManifest,
   TimestampDisplay,
 } from "./manifest/types.ts";
@@ -217,6 +224,8 @@ export type {
 export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.ts";
 export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace/store.ts";
 export { createStore } from "./workspace/store.ts";
+export type { User } from "./workspace/user.ts";
+export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
 export type { Granularity, View, WorkspaceSettings } from "./workspace/view.ts";
 export {
   createView,

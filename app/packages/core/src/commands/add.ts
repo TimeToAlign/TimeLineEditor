@@ -27,8 +27,8 @@ import {
   readMeasureMap,
   schemaChecked,
 } from "../manifest/io.ts";
-import { linkHolders, unlinked } from "../manifest/links.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
+import { statementHolders } from "../manifest/statements.ts";
 import type { Group, Manifest, TimelineManifest } from "../manifest/types.ts";
 import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
@@ -175,11 +175,44 @@ function firstProblem(refused: LoadError): Problem {
 /** Where the one value of a host manifest lies in it. */
 const FIRST_ROOT = ["timelines", 0];
 
+/** The members of an element that state something about it. */
+const DESCRIBING = ["statements", "provenance"] as const;
+
+/**
+ * A value given to `add` (a timeline with what it holds) with the
+ * `statements` and `provenance` of every element in it set aside: what is
+ * read alone, before they are read where they will lie, in the whole
+ * manifest, since a value may name any element of the manifest. What is set
+ * aside is put into `found` by the ID of its element; what an element
+ * carrying no string ID states is dropped with it, the schema refusing the
+ * element. Every other member is kept as given.
+ */
+function undescribed(value: JsonObject, found: Map<string, JsonObject>): JsonObject {
+  const result: { [key: string]: Json } = {};
+  const described: { [key: string]: Json } = {};
+  for (const [key, member] of Object.entries(value)) {
+    if ((DESCRIBING as readonly string[]).includes(key)) described[key] = member;
+    else result[key] = member;
+  }
+  if (Object.keys(described).length > 0 && typeof value.id === "string") {
+    found.set(value.id, described);
+  }
+  for (const member of ["regions", "children"]) {
+    const list = result[member];
+    if (Array.isArray(list)) {
+      result[member] = list.map((item: Json) =>
+        isJsonObject(item) ? undescribed(item, found) : item,
+      );
+    }
+  }
+  return result;
+}
+
 /**
  * A timeline given to `add`, read through the schema boundary in two steps.
- * First the timeline alone, the links of its elements left out
- * (`unlinked`), as the one root of a manifest of its own beside the measure
- * maps and schemes of `manifest`, the manifest it is added to, which its
+ * First the timeline alone, what its elements state set aside
+ * (`undescribed`), as the one root of a manifest of its own beside the
+ * measure maps of `manifest`, the manifest it is added to, which its
  * measure views may name: its segment lines covered
  * (`withSegmentLinesCovered`, no ID minted there among `taken`, the IDs of
  * the manifest), checked by the schema, the `locked` it and its subtree
@@ -188,9 +221,9 @@ const FIRST_ROOT = ["timelines", 0];
  * completed (`completed`, the schema check done), every ID of its tree
  * checked against `taken` (`duplicate_id` at the first it shares), and given
  * the locks its place decides (a new timeline is no group member yet). Then
- * its links, where they will lie (`withLinksRead`). A problem is reported at
- * `at`, where the timeline will lie in the block, and below it; a refused
- * lock at `path`.
+ * what its elements state, where it will lie (`withDescriptionsRead`). A
+ * problem is reported at `at`, where the timeline will lie in the block, and
+ * below it; a refused lock at `path`.
  */
 function readTimeline(
   value: JsonObject,
@@ -200,12 +233,11 @@ function readTimeline(
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
-  const links = new Map<string, Json>();
+  const described = new Map<string, JsonObject>();
   const host = {
     timetoshare: SCHEMA_VERSION,
-    timelines: [unlinked(value, links)],
+    timelines: [undescribed(value, described)],
     measure_maps: manifest.measure_maps,
-    schemes: manifest.schemes,
   };
   const checked = schemaChecked(withSegmentLinesCovered(host, taken));
   if ("code" in checked) return located(checked, FIRST_ROOT, at);
@@ -228,20 +260,20 @@ function readTimeline(
   const [timeline] = read.timelines;
   if (timeline === undefined) throw new Error("the host holds the timeline");
   const own = withPlaceLocks(timeline, parent, () => false);
-  return links.size === 0 ? own : withLinksRead(own, links, manifest, at);
+  return described.size === 0 ? own : withDescriptionsRead(own, described, manifest, at);
 }
 
 /**
- * `timeline`, read with the links of its elements left out, with the links
- * `links` holds by the ID of their element, read where they will lie: the
- * timeline, its links in place, appended to the roots of `manifest`, which
- * is read whole (`readInPlace`), so that a part slot may name any timeline
- * or region of the manifest. A problem is reported at `at`, where the
- * timeline will lie in the block, and below it.
+ * `timeline`, read with what its elements state set aside, with what
+ * `described` holds by the ID of each element, read where it will lie: the
+ * timeline, its statements and provenance in place, among the roots of
+ * `manifest`, which is read whole (`readInPlace`, its `@context` derived), so
+ * that a value may name any element of the manifest. A problem is reported
+ * at `at`, where the timeline will lie in the block, and below it.
  */
-function withLinksRead(
+function withDescriptionsRead(
   timeline: TimelineManifest,
-  links: ReadonlyMap<string, Json>,
+  described: ReadonlyMap<string, JsonObject>,
   manifest: Manifest,
   at: readonly PathSegment[],
 ): TimelineManifest | CommandError {
@@ -252,16 +284,19 @@ function withLinksRead(
   const place = ["timelines", index];
   const roots = manifest.timelines.toSpliced(index, 0, timeline);
   let probe: unknown = { ...manifest, timelines: roots };
-  for (const holder of linkHolders({ links: [], timelines: [timeline] })) {
-    const given = holder.id === null ? undefined : links.get(holder.id);
+  for (const holder of statementHolders({ ...manifest, timelines: [timeline] })) {
+    const given = holder.id === null ? undefined : described.get(holder.id);
+    if (given === undefined) continue;
     const [, , ...below] = holder.path;
-    if (given !== undefined) probe = withValueAt(probe, [...place, ...below], given);
+    for (const [key, member] of Object.entries(given)) {
+      probe = withValueAt(probe, [...place, ...below, key], member);
+    }
   }
   const read = readInPlace(probe);
   if ("code" in read) return located(read, place, at);
-  const linked = read.timelines.find(({ id }) => id === timeline.id);
-  if (linked === undefined) throw new Error("the manifest holds the timeline");
-  return linked;
+  const found = read.timelines.find(({ id }) => id === timeline.id);
+  if (found === undefined) throw new Error("the manifest holds the timeline");
+  return found;
 }
 
 /** `duplicate_id` for `id`, an ID the manifest holds, given again at `path`. */

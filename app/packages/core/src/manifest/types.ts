@@ -14,7 +14,6 @@ import type {
   CompleteConversionMap,
   CompleteFlowControlElement,
   CompleteGroup,
-  CompleteLink,
   CompleteManifest,
   CompleteMeasureMap,
   CompleteRegion,
@@ -48,12 +47,17 @@ export type AxisValue = ReadonlyView<Lossless<SchemaNumber>>;
 export type Region = ReadonlyView<CompleteRegion>;
 
 /**
- * A link of TimeToShare's description layer, from the manifest, a timeline
- * or a region to an external entity: one attributed reading, which the
- * manifest holds in its complete form and the schema package builds and
- * changes (`linkFromUrls`, `withLabel`, …).
+ * The property–value pairs an element (the manifest, a timeline, a region)
+ * states about the thing it stands for: `type` and property IRIs as keys,
+ * each with its non-empty list of values, as the reader returns them.
  */
-export type Link = ReadonlyView<CompleteLink>;
+export type Statements = NonNullable<TimelineManifest["statements"]>;
+
+/**
+ * One annotation of an element's pairs: who stated a pair, when, how, on
+ * what basis, and its status (`confirmed`, `proposed`, `rejected`).
+ */
+export type ProvenanceEntry = NonNullable<TimelineManifest["provenance"]>[number];
 
 /**
  * One element of a timeline's flow control, discriminated by its `type`: a

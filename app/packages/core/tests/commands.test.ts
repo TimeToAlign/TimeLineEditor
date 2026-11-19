@@ -647,11 +647,9 @@ describe("regions and flow-control elements", () => {
 
   it("adds and sets a region", () => {
     const added = applied(viewOf([A, "bare.yaml"]), into("region", region));
-    expect(root(added).regions).toEqual([{ ...region, meta: {}, links: [] }]);
+    expect(root(added).regions).toEqual([{ ...region, meta: {} }]);
     const changed = applied(added, set(at("region_1"), { end: quarters(6), name: null }));
-    expect(root(changed).regions).toEqual([
-      { ...region, meta: {}, links: [], end: quarters(6), name: null },
-    ]);
+    expect(root(changed).regions).toEqual([{ ...region, meta: {}, end: quarters(6), name: null }]);
   });
 
   it("adds, sets and removes flow-control elements", () => {

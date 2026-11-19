@@ -1,9 +1,10 @@
 # `@timetoalign/tilie-core` tests
 
 `core` holds exact coordinates, one TimeToShare manifest of TimeToShare's
-`SCHEMA_VERSION` (`{timetoshare, timelines, id?, name?, meta?, groups?,
-measure_maps?, schemes?, links?, graphical?}`: root timelines, optionally
-named, optionally grouped, optionally linked to external entities), the
+`SCHEMA_VERSION` (`{timetoshare, timelines, "@context"?, id?, name?,
+meta?, groups?, measure_maps?, statements?, provenance?, graphical?}`: root
+timelines, optionally named, optionally grouped, optionally described by
+property–value statements), the
 elements a selector can match, the immutable workspace view of blocks, the
 four commands `add`, `set`, `remove` and `style` over addresses, the store
 with its command journal and editor sessions, and the workspace file. This
@@ -209,11 +210,13 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 4. **The minimal form in, pinned by hand.** For the twin of `bare.yaml`
    (its `meta` and `graphical` left out) the complete root is exactly `{id: "bare", name:
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
-   locked: false, is_segment_line: false, meta: {}, children: [], links: [],
+   locked: false, is_segment_line: false, meta: {}, children: [],
    conversion_maps: [], regions: [], flow_control: []}` and the manifest
-   around it `{timetoshare, name: null, meta: {}, groups: [],
-   measure_maps: [], schemes: [], links: [], timelines: [root]}`: no `id`
-   and no `graphical`, whose default is "absent".
+   around it `{"@context": FORMAT_CONTEXT, timetoshare, name: null, meta:
+   {}, groups: [], measure_maps: [], timelines: [root]}`: no `id` and no
+   `graphical`, whose default is "absent", and the `@context` derived on
+   reading, the format's terms (the schema package's `FORMAT_CONTEXT`) and
+   no prefix, since nothing is stated.
 5. **Unknown keys survive.** `bare.yaml` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
@@ -311,8 +314,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `timetoshare: "0.2.0"` twice).
 16. **An entry given to a command** (a map, region or flow-control
     element) is checked by the schema where it will lie: in the timeline
-    that will list it, within the whole manifest, whose measure maps,
-    schemes, timelines and regions it may name, completed and ordered as a
+    that will list it, within the whole manifest, whose measure maps and
+    elements it may name, completed and ordered as a
     command's result is: a minimal `LinearMap` `tempo`, in `melody` of
     `map.yaml` and in its child `phrase`, comes back in its complete form
     (`name: null`, `offset: 0`); a region whose ID holds a tab
@@ -420,8 +423,8 @@ commands address, and paths pinned by hand.
 5. **An ID that starts with `#`.** A held manifest whose root ID is `#x`
    is saved as `##x` and the saved text loads back to the root ID `#x`.
 6. **Unknown keys are found in the file form, at held paths.** Core's
-   `unknownKeys` and `unregisteredTerms` of a held manifest are the schema
-   package's of its file form; an unknown key on the root of
+   `unknownKeys` of a held manifest is the schema package's of its file
+   form; an unknown key on the root of
    `bare.yaml` is listed at `["timelines", 0]`.
 7. **The workspace file keeps bare IDs.** A workspace holding a block of
    `bare.yaml` is written with the root's `"id": "bare"` (no `#` in the
@@ -2122,163 +2125,120 @@ the same result):
 19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
     (with `timestamp_3`) and every case of item 18 are accepted.
 
-## Links (`links.test.ts`)
+## Statements (`statements.test.ts`)
 
-TimeToShare's description layer puts `links` on the manifest, on every
-timeline and on every region, and `schemes` on the manifest; both belong
-to the complete form, so core holds them, keeps them through every command
-and writes them. A link has no ID and no address: it is a member of the
-element holding it, and a `set` of `links` names that element, the block
-for the manifest's own links (as `name` is the manifest's), a timeline
-(root or child) or a region. The list is given whole, read with the
-manifest it will lie in (an identifier may name a scheme of the manifest,
-a part slot names its timelines and regions) and stored in its complete
-form, in the order given. Building and changing a link is the schema
-package's (`linkFromUrls`, `withLabel`, `withParts`, …); these tests give
-links as values and compare the stored form with that package's builders.
-The manifests are `bundles/bundle_mixed.yaml` in block `A`, and `bare.yaml`
-changed before loading where a scheme or an empty `timelines` is needed.
+TimeToShare puts `statements` (property–value pairs about the thing an
+element stands for) and `provenance` (the annotations of those pairs, and
+the proposed and rejected pairs, which are never stated) on the manifest,
+on every timeline at any depth and on every region; a manifest carrying
+either holds the JSON-LD `@context` that names the format's terms and the
+prefixes its statements use. Core keeps both members as given, edits them
+only whole, by `set` on the element holding them (the block for the
+manifest's own, as `name` is the manifest's), and leaves every rule of them
+to the schema package's check of the settled manifest: a refusal is
+`schema_violation` with that package's message, at `[<block id>,
+"manifest", …]`, the path of the offending value in the manifest. What core
+owns, and these tests prove, is the walk of the holders in subject order,
+the skeleton the schema package's statement functions run on, the
+derivation of `@context` on every settle, the pruning of references a
+removal leaves, the reading of statements given with an added timeline
+where they will lie, the guard's view of what an element outside an editor
+states, the warnings, and the user's identity as `stated_by` names it.
+Building and changing a pair is the schema package's (`withPair`,
+`withProposal`, …); these tests give whole members as values.
 
-The link `W` below is `{relation: "pertains_to", level: "work", uri: [MB],
-label: "Op. 106"}`, with `MB` the entity URI
-`http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284`. Its
-complete form `W*` is `{relation: "pertains_to", level: "work", uri: [MB],
-identifiers: [], records: [], label: "Op. 106", assertion: null,
-parts_relation: null, parts: [], parts_ordered: true, part_of: []}`, which
-equals TimeToShare's `linkFromUrl` of the work's page URL
-`https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284` with
-the label `Op. 106`.
+`L` is the schema package's fixture `statements/layerit_recording.yaml`
+(read from the installed package's `fixtures/<version>/statements/`), added
+as block `0000000000`. Its roots in canonical order are `clt_6`, `cpt_1`,
+`dpt_1` (indices 0, 1, 2); `cpt_2` is `cpt_1`'s child (`["timelines", 1,
+"children", 0]`); `group_1` has the members `cpt_2` and `dpt_1`. `cpt_1`'s
+provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
+`basis: ["#clt_6", "#dpt_1"]`; `dpt_1`'s one entry is the proposed pair
+`dcterms:source` `{id: "#cpt_1"}`. `P` below is `["0000000000",
+"manifest"]`, `K(x)` the address key of `{block: "0000000000", id: x}`.
 
-1. **Every owner takes `links`.** One `set` with four changes, `{block:
-   A}`, `score` (a root), `excerpt` (a child) and `region_1` (a region of
-   `annotations`), each `links: [W]`, stores `[W*]` on the manifest, on
-   `score`, on `excerpt` and on `region_1`; every other timeline and
-   region keeps `links: []`, and the manifest's `schemes` stays `[]`.
-2. **One command, undone and redone.** Through the store, `set` of the
-   bundle's links to `[W]` adds exactly one journal entry; `undo` gives
-   back the view before it (`links: []`), `redo` the view after it, each
-   equal as JSON. A second `set` to `[]` removes the link: two entries,
-   the manifest's links `[]` again.
-3. **A list equal to the stored one changes nothing.** `set` of `score`'s
-   links to `[W]` while it holds `[W*]` (the minimal form of the same
-   link) is `invalid_value` "the command changes nothing" at
-   `[{block: A, id: "score"}, "links"]`.
-4. **Refusals.** `links: "W"` on `score` is `invalid_value` "links is a
-   list of links" at `[{block: A, id: "score"}, "links"]`. On the bundle,
-   a link without `level` is `schema_violation` "must have required
-   property 'level'" at `[A, "manifest", "links", 0]`; a link whose
-   identifier names the scheme `opus`, which the manifest does not
-   declare, is `schema_violation` "'opus' names no scheme of this manifest
-   and is no absolute URI" at `[A, "manifest", "links", 0, "identifiers",
-   0, "scheme"]`; a link with `parts_relation: "has_part"` and one part
-   slot represented by `nowhere` is `schema_violation` "'nowhere' names no
-   timeline or region of this manifest" at `[A, "manifest", "links", 0,
-   "parts", 0, "represented_by", 0]`. A group takes no links: `set` of
-   `group_1`'s `links` is `wrong_target_kind` "links is a property of
-   block, root, child, region, not of group" at `[{block: A, id:
-   "group_1"}, "links"]`. No refusal changes the view.
-5. **`links` is no member of a block.** An `add` of a block whose value
-   states `links: []` beside its manifest is `unknown_property` "unknown
-   member links" at `[{}, "block", "links"]`.
-6. **Scheme IDs are manifest IDs.** `bare.yaml` with `schemes: [{id:
-   "clt_1", name: "Opus numbers"}]` loads with the scheme in its complete
-   form (`uri: []`, `criteria: null`) and its IDs are exactly `bare`,
-   `timestamp_1`, `timestamp_2` and `clt_1`. In block `A` holding it, an
-   `add` of a root timeline `clt_1` (4 quarters) is `duplicate_id` "'clt_1'
-   is already an ID of the manifest" at `[{block: A}, "timeline", "id"]`;
-   `set` of `bare`'s `is_segment_line` to `true` gives it the one segment
-   `clt_2`, the scheme's ID passed over; the address `{block: A, id:
-   "clt_1"}` names nothing (`unknown_target`): a scheme is not drawn.
-7. **An identifier may name a scheme of the manifest.** In that block, a
-   `set` of `bare`'s links to a link whose identifier is `{scheme: "clt_1",
-   value: "op. 106"}` is accepted, and so is an `add` of a region
-   `region_1` from 0 to 4 holding the same link, which the region keeps in
-   its complete form; in plain `bare.yaml` the same `add` is
-   `schema_violation` "'clt_1' names no scheme of this manifest and is no
-   absolute URI" at `[A, "manifest", "timelines", 0, "regions", 0,
-   "links", 0, "identifiers", 0, "scheme"]`.
-8. **Links survive every edit and the file.** After item 1, `set` of
-   `score`'s name, an `add` of a region into `annotations`, a `style`
-   command giving `score` a stroke width and `set` of the bundle's name
-   leave the four
-   lists exactly `[W*]` and the new region's `[]`; `saveManifest` of the
-   manifest, read back by
-   `loadManifest`, gives the same manifest, and so does its minimal form.
-9. **Removing what a part slot names.** The bundle given the link `P`: `W`
-   with `parts_relation: "has_part"` and three slots, `I` represented by
-   `score` and `region_1`, `II` by `performance`, `III` absent `lost`.
-   Removing `performance` leaves `I` and `III` as they were and makes `II`
-   `{uri: [], identifiers: [], label: "II", represented_by: [], absent:
-   "not_represented", assertion: null}`: the part exists and the manifest
-   now leaves it out; removing `annotations`, which holds `region_1`, then
-   leaves `I` represented by `score` alone. Each removal is one command,
-   and undoing both gives `P`'s complete form back. Without the pruning
-   the schema would refuse each removal (a dangling `represented_by`).
-10. **An editor changes only its element's links.** In the editor of
-    `score` (`open`), a `set` of `score`'s links is accepted; a `set` of
-    the bundle's links is refused `side_effect` "the manifest's links in
-    bundle 'Mixed' lie outside timeline 'Score': an editor changes only
-    what it edits" at `[A, "manifest", "links"]`.
-11. **A manifest without timelines.** `bare.yaml`'s value with `timelines:
-    []` and without its `graphical` (whose timestamps lie on `bare`) loads,
-    and `importedManifest` gives it back equal, no root to give a
-    timestamp; a block holding it takes a
-    `set` of its links to `[W]`, and `saveManifest` writes `"timelines":
-    []` and `[W*]`.
-
-In the items below, `S(x, …)` is `W` with `parts_relation: "has_part"` and
-one slot `{label: "I", represented_by: [x, …]}`, and `S*(x, …)` its
-complete form, the slot `{uri: [], identifiers: [], label: "I",
-represented_by: [x, …], absent: null, assertion: null}`; a slot whose
-elements are all removed becomes `{uri: [], identifiers: [], label: "I",
-represented_by: [], absent: "not_represented", assertion: null}`, written
-`S∅` for the whole link.
-
-12. **An added element's links are read where they will lie**, in the
-    whole manifest, since a part slot may name any timeline or region of
-    it. In `bundle_mixed`: an `add` into `annotations` of a region
-    `region_3` from 0 to 1 holding `[S(score)]` (another root) stores
-    `[S*(score)]` on it; an `add` into `recording` of a child `take`
-    (samples, length 100, offset 0) holding `[S(region_1)]` (a region of
-    another root) stores `[S*(region_1)]` on `take`; an `add` into the
-    block of a root `extra` (quarters, length 4) whose region `region_9`
-    (0 to 1) holds `[S(score)]` stores `[S*(score)]` on `region_9`. The
-    root `extra` holding `[S(nowhere)]` itself is `schema_violation`
-    "'nowhere' names no timeline or region of this manifest" at `[A,
-    "manifest", "timelines", 5, "links", 0, "parts", 0, "represented_by",
-    0]`, where it would lie after the five roots. With `recording`'s links
-    `[S(excerpt)]` (its own child), an `add` into `recording` of a
-    `LinearMap` `scaled` (samples to seconds, scalar 1/44100) and one of a
-    region `take_region` (0 to 100) are both accepted: the timeline listing
-    an entry is read with its children and the rest of the manifest. Read
-    alone, without what their slots name, every one of these but the
-    refusal would be refused.
-13. **Removing what a part slot names, everywhere.** `nested.yaml` (the
-    root `clt_1`, its child `clt_3`, its child `clt_2`) with `clt_1`'s
-    links `[S(clt_2)]` and a region `region_1` of `clt_1` (0 to 4) holding
-    `[T]`, `T` being `W` with the slots `I` represented by `clt_2` and
-    `clt_3` and `II` by `clt_2`: removing `clt_2`, a child at depth 2,
-    gives `clt_1` `[S∅]` and `region_1` `I` represented by `clt_3` alone
-    and `II` absent `not_represented`, in one command.
-    `segment_children.yaml` with `piece`'s links `[S(i1)]` (`i1` a segment
-    of the segment line `intro`) and a region `region_1` of `coda` (0 to 1)
-    holding `[S(i2)]`: removing `intro`, whose segments go with it, gives
-    both `[S∅]`.
-14. **A region's links survive changes of the region.** In `nested.yaml`
-    with `region_1` holding `[T]`, one `set` of its `start` to 1, its `end`
-    to 3 and its `name` to "Theme" leaves its links `[T*]`, `T`'s complete
-    form.
-15. **An editor refuses to prune outside it.** In `nested.yaml` with
-    `clt_1`'s links `[S(clt_2)]`, in the editor of `clt_3`, removing
-    `clt_2` (inside it) is refused `side_effect` "the links of timeline
-    'clt_1' lie outside timeline 'clt_3': an editor changes only what it
-    edits" at `[{block: A, id: "clt_1"}, "links"]`; with the manifest's own
-    links `[S(clt_2)]` instead, "the manifest's links in the anonymous
-    bundle lie outside timeline 'clt_3': …" at `[A, "manifest", "links"]`.
-    In `bundle_mixed` with `score`'s links `[S(region_1)]`, in the editor
-    of `annotations`, removing `region_1` is refused "the links of timeline
-    'Score' lie outside timeline 'Annotations': …" at `[{block: A, id:
-    "score"}, "links"]`. Each refusal leaves the store as it was.
+- **(a) The walk.** `statementHolders(L)` yields, in this order, kind, ID
+  and path: manifest `null` `[]`; timeline `clt_6` `["timelines", 0]`;
+  timeline `cpt_1` `["timelines", 1]`; timeline `cpt_2` `["timelines", 1,
+  "children", 0]`; timeline `dpt_1` `["timelines", 2]` (no region in `L`).
+  Each holder's `statements` and `provenance` are the element's own
+  objects, `undefined` for `cpt_2`, which states nothing; `statementHolder(L,
+  "cpt_2")` is that holder, `statementHolder(L, "nope")` `undefined`.
+- **(b) The skeleton** of `L` equals one written by hand from the fixture:
+  `{"@context": L's, id: "layerit_clair_de_lune", statements: L's,
+  timelines: [{id: "clt_6", statements, provenance, regions: [], children:
+  []}, {id: "cpt_1", statements, provenance, regions: [], children: [{id:
+  "cpt_2", regions: [], children: []}]}, {id: "dpt_1", statements,
+  provenance, regions: [], children: []}]}`, each member the element's own;
+  a second call returns the same object. The schema package's
+  `subjectPath(skeleton, "cpt_2")` is `["timelines", 1, "children", 0]`, a
+  path of `L`.
+- **(c) A statement accepted.** `set` of `cpt_2`'s `statements` to
+  `{"wdt:P31": [{id: "wd:Q98069877"}]}` is accepted, stores exactly that,
+  leaves `@context` as it was (both prefixes are declared), and adds one
+  journal entry; `undo` gives back the view before it.
+- **(d) A value naming no element.** `cpt_2`'s statements
+  `{"dcterms:source": [{id: "#nope"}]}` are refused `schema_violation`
+  "'#nope' names no element of this manifest" at `[...P, "timelines", 1,
+  "children", 0, "statements", "dcterms:source", 0, "id"]`.
+- **(e) A prefix neither declared nor catalogued.** `{"foaf:maker": [{id:
+  "wd:Q1"}]}` is refused "'foaf:maker': the prefix 'foaf' is not declared in
+  @context" at `[...P, "timelines", 1, "children", 0, "statements",
+  "foaf:maker"]`: the derivation leaves the manifest as it is and the check
+  refuses it.
+- **(f) The context follows the statements.** `add` of the region `{id:
+  "region_1", start: 0.0, end: 10.0}` into `cpt_1`, then `set` of its
+  statements to `{"bf:instanceOf": [{id: "wd:Q29117946"}]}`: `@context`
+  gains `"bf": "http://id.loc.gov/ontologies/bibframe/"` (the catalogue's),
+  every other entry as it was; `set` of its `statements` to `null`: `bf`
+  is gone again, `@context` is `L`'s, and the region has no `statements`
+  member.
+- **(g) A proposed pair is never stated.** `cpt_1`'s statements with
+  `"wdt:P2550": [{id: "wd:Q29117946"}]` added, its provenance untouched, are
+  refused "the pair is stated; a proposed pair is never stated" at `[...P,
+  "timelines", 1, "provenance", 3]`. Both members in one change, entry 3
+  given `status: "confirmed"`, `stated_by: ["https://orcid.org/0000-0002-1825-0097"]`
+  and `date: "2026-11-20"`, are accepted, and so stored.
+- **(h) Shapes core reads.** `statements: []` on `cpt_2` is `invalid_value`
+  "statements is an object of property–value pairs, or null" at `[K(cpt_2),
+  "statements"]`; `provenance: {}` is `invalid_value` "provenance is a list
+  of annotations, or null" at `[K(cpt_2), "provenance"]`. `statements: null`
+  on `cpt_2`, which states none, is `invalid_value` "the command changes
+  nothing". No refusal changes the view.
+- **(i) Removal prunes references.** `remove dpt_1`: `cpt_1`'s entry 3 has
+  `basis: ["#clt_6"]`, every other member as it was; `group_1`'s members
+  are `["cpt_2"]`. `remove cpt_1` (and so `cpt_2`): `dpt_1` has no
+  `provenance` member (its one entry's value named `#cpt_1`), its
+  `statements` unchanged; `group_1`'s members are `["dpt_1"]`.
+- **(j) An editor changes only what its element states.** In `group_1`'s
+  editor, `remove dpt_1` is refused `side_effect` "the statements of
+  timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin
+  Musical' lie outside group 'recording': an editor changes only what it
+  edits" at `[K(cpt_1), "statements"]`: the removal would prune `cpt_1`'s
+  entry 3, which lies outside the group. In `cpt_2`'s editor, `set` of the
+  bundle's `statements` is refused `side_effect` at `[...P, "statements"]`.
+  Each refusal leaves the store as it was.
+- **(k) An added timeline's statements are read where they will lie.**
+  `add` into the block of the root `{id: "cpt_9", unit: "seconds", length:
+  null, statements: {"dcterms:source": [{id: "#dpt_1"}]}}` is accepted, the
+  root stating exactly that. With `#nope` instead it is refused
+  "'#nope' names no element of this manifest" at `[...P, "timelines", 3,
+  "statements", "dcterms:source", 0, "id"]`: as every problem of an added
+  root, below the place the root takes when it is appended to the block's
+  three roots.
+- **(l) The user.** `readOrcid` of `"0000-0002-1825-0097"`, of
+  `"https://orcid.org/0000-0002-1825-0097"`, of `" orcid.org/0000-0002-1825-0097 "`
+  and of `"http://orcid.org/0000-0002-1825-0097"` is
+  `"0000-0002-1825-0097"`; of `"0000-0002-1694-233X"` itself; of
+  `"0000-0002-1825-0098"` (a wrong check digit) and of `"Clara Wieck"`
+  `null`. `statedBy(DEFAULT_USER)` is
+  `"tag:timetoalign.github.io,2026:tilie:user:Gerhardt"`, `statedBy({name:
+  "Clara Wieck", orcid: null})` `"tag:timetoalign.github.io,2026:tilie:user:Clara%20Wieck"`,
+  and with the iD `"https://orcid.org/0000-0002-1825-0097"`.
+- **(m) Warnings.** `manifestWarnings(L)` is `[]`. The schema package's
+  warning case `bundle_blank_statements`, loaded with `loadManifest`, gives
+  `[{code: "bundle_blank", path: ["statements"], message: "the manifest has
+  statements but no ID; its subject is a blank node"}]`.
 
 ## The store and the journal (`store.test.ts`)
 
@@ -2740,9 +2700,9 @@ element wrongly in as well as one wrongly out.
 The **guard** compares the view before and after a command for an editor's
 target and returns the first change outside the target as `side_effect`,
 message `<what> lies outside <target>: an editor changes only what it
-edits` ("lie" where `<what>` names several things: the links of an element,
-the manifest's `links` or `schemes`, the graphical `rules` or
-`styles`), or nothing. Its rules are checked in a fixed order and the first hit
+edits` ("lie" where `<what>` names several things: the statements of an
+element, the manifest's `statements`, the graphical `rules` or `styles`),
+or nothing. Its rules are checked in a fixed order and the first hit
 decides the path, so each rule is proved once by its path, and the order by
 changes that hit several rules at once. The manifest is compared on a
 projection that hides the edited element's own object (a group's object and

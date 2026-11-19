@@ -1,5 +1,6 @@
 /**
- * What every command leaves behind it: each manifest it changed with every
+ * What every command leaves behind it: each manifest it changed with its
+ * `@context` derived from its statements (`withStatementContext`), every
  * segment line given its first segment (`withSegmentLinesCovered`), in its
  * complete form and canonical order (an added element may leave out what
  * has a default), checked against the schema and the invariants, and the
@@ -25,6 +26,7 @@ import {
 import { isUnit, timelineClass } from "../manifest/elements.ts";
 import { checkOrdered } from "../manifest/invariants.ts";
 import { completeOrdered, normalizeManifest, schemaProblems } from "../manifest/io.ts";
+import { withStatementContext } from "../manifest/statements.ts";
 import type { Manifest } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
 import { toAxisValue } from "../number/coordinate.ts";
@@ -45,8 +47,8 @@ const ZEROS: { readonly [type in NumberType]: CoordinateValue } = {
  * Every ID a manifest value states, read as JSON before the schema checks
  * it, added to `ids`: the manifest's own, its timelines' at any depth with
  * their conversion maps' (and the maps those hold, at any depth), regions'
- * and flow-control elements', its groups', its MeasureMaps' and its
- * schemes'; never a string under `meta` or `graphical`.
+ * and flow-control elements', its groups' and its MeasureMaps'; never a
+ * string under `meta`, `graphical`, `statements` or `provenance`.
  */
 function idsIn(manifest: JsonObject, ids: Set<string>): Set<string> {
   const note = (value: unknown) => {
@@ -69,7 +71,7 @@ function idsIn(manifest: JsonObject, ids: Set<string>): Set<string> {
   };
   note(manifest);
   for (const item of listed(manifest, "timelines")) timeline(item);
-  for (const list of ["groups", "measure_maps", "schemes"]) {
+  for (const list of ["groups", "measure_maps"]) {
     for (const item of listed(manifest, list)) note(item);
   }
   return ids;
@@ -190,8 +192,9 @@ function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifes
 }
 
 /**
- * Settle each manifest `changes` names: cover its segment lines, complete
- * it, order it and, with
+ * Settle each manifest `changes` names: derive its `@context` from its
+ * statements (covering adds none, so the context holds for the covered
+ * manifest too), cover its segment lines, complete it, order it and, with
  * `checked`, refuse its first schema or invariant problem, at `[<block id>,
  * "manifest", …]`; then fit its block's places to it (`keptPlaces`, the
  * block's manifest in `before` telling which card a stale key named). A
@@ -207,7 +210,7 @@ export function settle(
   for (const id of changes.manifests) {
     const block = current.blocks[id];
     if (block === undefined) continue;
-    const lines = covered(block.manifest, checked);
+    const lines = covered(withStatementContext(block.manifest), checked);
     if ("code" in lines) return { ...lines, path: [id, "manifest", ...lines.path] };
     const manifest = completeOrdered(lines);
     if ("code" in manifest) return { ...manifest, path: [id, "manifest", ...manifest.path] };

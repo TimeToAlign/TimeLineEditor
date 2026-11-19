@@ -16,10 +16,10 @@ import type {
   JsonNumber,
   Lossless,
   LosslessManifest,
+  ManifestWarning,
   Rule,
   Selector,
   UnknownKey,
-  UnregisteredTerm,
 } from "@timetoalign/timetoshare";
 import {
   canonicalOrder,
@@ -29,8 +29,8 @@ import {
   dumpsFile,
   FileIdError,
   fileForm,
+  manifestWarnings as fileManifestWarnings,
   unknownKeys as fileUnknownKeys,
-  unregisteredTerms as fileUnregisteredTerms,
   fromFileId,
   isJsonFloat,
   loads,
@@ -52,12 +52,13 @@ import {
   problem,
 } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
-import { withValueAt } from "../json.ts";
+import { isJsonObject, withValueAt } from "../json.ts";
 import type { Part } from "./address.ts";
 import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
+import { withStatementContext } from "./statements.ts";
 import type { Located } from "./tree.ts";
 import { findTimeline } from "./tree.ts";
 import type { Manifest, MeasureMap } from "./types.ts";
@@ -167,15 +168,17 @@ export function unknownKeys(manifest: unknown): UnknownKey[] {
 }
 
 /**
- * The bare terms of the links of a manifest TiLiE holds, its IDs bare,
- * outside their registered words (TimeToShare's `unregisteredTerms` of its
- * file form, whose paths, found with bare IDs, lead into the manifest
- * itself).
+ * The warnings of a manifest TiLiE holds, its IDs bare (TimeToShare's
+ * `manifestWarnings` of its file form: a manifest without `@context`, a
+ * manifest with statements but no ID), each path into the manifest itself.
  *
  * @throws {SchemaValidationError} for a manifest the schema refuses.
  */
-export function unregisteredTerms(manifest: unknown): UnregisteredTerm[] {
-  return fileUnregisteredTerms(withFileIds(manifest));
+export function manifestWarnings(manifest: unknown): ManifestWarning[] {
+  return fileManifestWarnings(withFileIds(manifest)).map((warning) => ({
+    ...warning,
+    path: idFormPath(warning.path, false),
+  }));
 }
 
 /** The schema's first problem of `value`, as a list; empty when the schema accepts it. */
@@ -317,14 +320,15 @@ function completeForm(value: LosslessManifest): CompleteManifest {
 /**
  * The complete form of a value the schema accepts, the step of
  * `normalizeManifest` after the schema check, for a value already checked
- * (`schemaChecked`): completed and in canonical order, its segments
+ * (`schemaChecked`): its `@context` derived from its statements
+ * (`withStatementContext`), completed and in canonical order, its segments
  * unlocked (a segment's own lock has no meaning: its segment line's governs
  * it), every other lock as the value states it, its graphical block's
  * declarations made plain (`plainGraphical`); or every invariant problem of
  * it.
  */
 export function completed(value: LosslessManifest): Manifest | LoadError {
-  const { graphical, ...form } = completeForm(value);
+  const { graphical, ...form } = completeForm(withStatementContext(value));
   const manifest: Manifest = {
     ...form,
     timelines: form.timelines.map((root) => withSegmentsUnlocked(root)),
@@ -351,7 +355,9 @@ export function manifestProblems(value: unknown): Problem[] {
 
 /**
  * A manifest from a value with bare IDs, the one way such a value becomes a
- * `Manifest`: the schema validates it (`schemaChecked`), then it is put in its
+ * `Manifest`: its `@context` derived from its statements
+ * (`withStatementContext`), as every value a command gives or leaves is, the
+ * schema validates it (`schemaChecked`), then it is put in its
  * complete form (every default written out, whether it was complete or
  * minimal or anything between), in canonical order, its segments unlocked,
  * its invariants checked, its graphical declarations' numbers made doubles,
@@ -360,7 +366,7 @@ export function manifestProblems(value: unknown): Problem[] {
  * Unknown keys are kept.
  */
 export function normalizeManifest(value: unknown): Manifest | LoadError {
-  const checked = schemaChecked(value);
+  const checked = schemaChecked(isJsonObject(value) ? withStatementContext(value) : value);
   return "code" in checked ? refuse(checked) : normalized(checked);
 }
 
@@ -399,14 +405,14 @@ export function completeOrdered<T>(value: T): T | Problem {
 
 /**
  * A value given to a command, read where it will lie: `probe`, the manifest
- * with the value in place, completed, ordered and checked whole by the
- * schema as `settle` checks a manifest, so that what the value names (a
- * measure map, a scheme, a timeline or region a part slot names) is found
- * wherever it lies in the manifest. The complete form, or the schema's first
+ * with the value in place, its `@context` derived (`withStatementContext`),
+ * completed, ordered and checked whole by the schema as `settle` checks a
+ * manifest, so that what the value names (a measure map, an element a
+ * statement names) is found wherever it lies in the manifest. The complete form, or the schema's first
  * problem with its path from the manifest.
  */
 export function readInPlace(probe: unknown): CompleteManifest | Problem {
-  const ordered = completeOrdered(probe);
+  const ordered = completeOrdered(isJsonObject(probe) ? withStatementContext(probe) : probe);
   if (isCommandError(ordered)) return ordered;
   const checked = schemaChecked(ordered);
   return "code" in checked ? checked : completeForm(checked);

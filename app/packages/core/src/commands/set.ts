@@ -29,7 +29,9 @@ import type {
   AxisValue,
   Manifest,
   NamedTimestamp,
+  ProvenanceEntry,
   Region,
+  Statements,
   TimelineManifest,
 } from "../manifest/types.ts";
 import { toAxisValue } from "../number/coordinate.ts";
@@ -50,7 +52,6 @@ import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
-import { readLinks } from "./links.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   entryAt,
@@ -199,6 +200,110 @@ export function readBlockManifest(value: unknown, id: BlockId): Manifest | Comma
   return { ...manifest, timelines };
 }
 
+// ---------------------------------------------------------------- statements
+
+/** The members of an element that state something about the thing it stands for. */
+type DescribingMember = "statements" | "provenance";
+
+/** What an element states: its statements and their provenance, each present only where it is stated. */
+interface Described {
+  readonly statements?: Statements;
+  readonly provenance?: readonly ProvenanceEntry[];
+}
+
+/**
+ * The statements given to a `set`, as a whole: a JSON object of
+ * property–value pairs, or `null`, which states none (`{}`). Their rules are
+ * the schema check's of the settled manifest.
+ */
+function readStatements(value: unknown, path: readonly PathSegment[]): Described | Problem {
+  const json = toJson(value, path);
+  if (isCommandError(json)) return json;
+  if (json === null) return {};
+  if (isJsonObject(json)) return { statements: json as Statements };
+  return problem(
+    ErrorCode.invalidValue,
+    "statements is an object of property–value pairs, or null",
+    path,
+  );
+}
+
+/** The provenance given to a `set`, as a whole: a JSON list of annotations, or `null`, which states none (`{}`). */
+function readProvenance(value: unknown, path: readonly PathSegment[]): Described | Problem {
+  const json = toJson(value, path);
+  if (isCommandError(json)) return json;
+  if (json === null) return {};
+  if (Array.isArray(json)) return { provenance: json as readonly ProvenanceEntry[] };
+  return problem(ErrorCode.invalidValue, "provenance is a list of annotations, or null", path);
+}
+
+const DESCRIBED_READERS: { readonly [M in DescribingMember]: Reader<Described> } = {
+  statements: readStatements,
+  provenance: readProvenance,
+};
+
+/**
+ * What `element` states with `member` replaced by what `given` holds of it,
+ * absent where `given` holds none.
+ */
+function describedWith(element: Described, given: Described, member: DescribingMember): Described {
+  const { statements, provenance } =
+    member === "statements"
+      ? { statements: given.statements, provenance: element.provenance }
+      : { statements: element.statements, provenance: given.provenance };
+  return {
+    ...(statements === undefined ? {} : { statements }),
+    ...(provenance === undefined ? {} : { provenance }),
+  };
+}
+
+/** The manifest's own `member` as a whole, recorded as reaching past its path. */
+function manifestDescribed(member: DescribingMember): Setter<BlockTarget> {
+  return (view, target, value, path, changes) => {
+    const given = DESCRIBED_READERS[member](value, path);
+    if (isCommandError(given)) return given;
+    const { block } = target;
+    const { manifest } = block;
+    if (sameJson(manifest[member], given[member])) return view;
+    const { statements: _, provenance: __, ...rest } = manifest;
+    record(changes, path, block.id, true);
+    return withBlock(view, {
+      ...block,
+      manifest: { ...rest, ...describedWith(manifest, given, member) },
+    });
+  };
+}
+
+/** A timeline's `member` as a whole, at any depth. */
+function timelineDescribed(member: DescribingMember): Setter<TimelineTarget> {
+  return (view, target, value, path, changes) => {
+    const given = DESCRIBED_READERS[member](value, path);
+    if (isCommandError(given)) return given;
+    const { timeline } = target.at;
+    const { statements: _, provenance: __, ...rest } = timeline;
+    const next = { ...rest, ...describedWith(timeline, given, member) };
+    return timelineChange(view, target, path, changes, timeline[member], next, given[member]);
+  };
+}
+
+/** A region's `member` as a whole. */
+function regionDescribed(member: DescribingMember): Setter<EntryTarget> {
+  return (view, target, value, path, changes) => {
+    if (target.kind !== "region") throw new Error(`a region setter is given a ${target.kind}`);
+    const given = DESCRIBED_READERS[member](value, path);
+    if (isCommandError(given)) return given;
+    const { block, at, index } = target;
+    const region = entryAt(at.timeline, "region", index);
+    if (region === undefined) throw new Error(`${at.timeline.id} lists region ${index}`);
+    const stored = region[member];
+    if (sameJson(stored, given[member])) return view;
+    const { statements: _, provenance: __, ...rest } = region;
+    const next: Region = { ...rest, ...describedWith(region, given, member) };
+    recordValue(changes, path, block.id, true, stored, given[member]);
+    return withTimeline(view, block, at, withEntryAt(at.timeline, "region", index, next));
+  };
+}
+
 const BLOCK_SET: Setters<BlockTarget> = {
   /** The name of the block's manifest, its title; null for none. */
   name: (view, target, value, path, changes) => {
@@ -211,19 +316,14 @@ const BLOCK_SET: Setters<BlockTarget> = {
     return withBlock(view, { ...block, manifest: { ...manifest, name } });
   },
   /**
-   * The links of the block's manifest as a whole (`readLinks`). They lie
-   * outside every element of the manifest, so the change reaches past its
-   * path: an editor of a group or a timeline never makes it.
+   * The statements of the block's manifest, about the thing the bundle
+   * stands for, as a whole (`readDescribed`). They lie outside every element
+   * of the manifest, so the change reaches past its path: an editor of a
+   * group or a timeline never makes it.
    */
-  links: (view, target, value, path, changes) => {
-    const { block } = target;
-    const links = readLinks(block, null, value, path);
-    if (isCommandError(links)) return links;
-    const { manifest } = block;
-    if (sameJson(manifest.links, links)) return view;
-    record(changes, path, block.id, true);
-    return withBlock(view, { ...block, manifest: { ...manifest, links } });
-  },
+  statements: manifestDescribed("statements"),
+  /** The provenance of the block's manifest's own pairs, as a whole, as `statements` is set. */
+  provenance: manifestDescribed("provenance"),
   x: blockValue("x", readFinite),
   y: blockValue("y", readFinite),
   index: (view, target, value, path, changes) => {
@@ -261,12 +361,13 @@ const BLOCK_SET: Setters<BlockTarget> = {
   },
 };
 
-/** The properties of a block target that are its manifest's: its name and its own links. */
-const MANIFEST_PROPERTIES: readonly string[] = ["name", "links"];
+/** The properties of a block target that are its manifest's: its name, its statements and their provenance. */
+const MANIFEST_PROPERTIES: readonly string[] = ["name", "statements", "provenance"];
 
 /**
  * The names of a block's own members a `set` may give, in the order a new
- * block's are applied; `name` and `links` are its manifest's.
+ * block's are applied; `name`, `statements` and `provenance` are its
+ * manifest's.
  */
 export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET).filter(
   (property) => !MANIFEST_PROPERTIES.includes(property),
@@ -560,21 +661,10 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
     const { timeline } = target.at;
     return timelineChange(view, target, path, changes, timeline.meta, { ...timeline, meta }, meta);
   },
-  /** The timeline's links as a whole (`readLinks`). */
-  links: (view, target, value, path, changes) => {
-    const { timeline } = target.at;
-    const links = readLinks(target.block, timeline.id, value, path);
-    if (isCommandError(links)) return links;
-    return timelineChange(
-      view,
-      target,
-      path,
-      changes,
-      timeline.links,
-      { ...timeline, links },
-      links,
-    );
-  },
+  /** What the timeline states about the thing it is the axis of, as a whole. */
+  statements: timelineDescribed("statements"),
+  /** The provenance of the timeline's pairs, as a whole. */
+  provenance: timelineDescribed("provenance"),
   locked: (view, target, value, path, changes) => {
     const locked = readBoolean(value, path);
     if (isCommandError(locked)) return locked;
@@ -672,14 +762,6 @@ type EntryReader<T> = (
   target: EntryTarget,
 ) => T | Problem;
 
-/** The links of the region the target names, as a whole (`readLinks`). */
-const readRegionLinks: EntryReader<Region["links"]> = (value, path, target) => {
-  const region = entryAt(target.at.timeline, "region", target.index);
-  if (region === undefined)
-    throw new Error(`${target.at.timeline.id} lists region ${target.index}`);
-  return readLinks(target.block, region.id, value, path);
-};
-
 /** A bare value on the axis of the timeline listing the entry. */
 const readAxis: EntryReader<AxisValue> = (value, path, target) => {
   const json = toJson(value, path);
@@ -774,7 +856,8 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
     start: entryValue("region", "start", readAxis),
     end: entryValue("region", "end", readAxis),
     meta: entryValue("region", "meta", readObject),
-    links: entryValue("region", "links", readRegionLinks),
+    statements: regionDescribed("statements"),
+    provenance: regionDescribed("provenance"),
   },
   // The type decides which other members an element may carry: a new type replaces it whole.
   flow_control: {

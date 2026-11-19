@@ -61,14 +61,18 @@ const SIBLING_MEMBERS: readonly string[] = ["width"];
 /** The manifest members compared first, in this order; the others follow by code point. */
 const TOP_MEMBERS = ["id", "name", "meta"];
 
-/** The manifest members compared element by element or member by member, never as a top-level member. */
-const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical"];
+/**
+ * The manifest members compared element by element or member by member,
+ * never as a top-level member, and `@context`, which follows from the
+ * statements compared element by element.
+ */
+const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical", "@context"];
 
 /** The `graphical` members compared first, in this order; the others follow by code point. */
 const GRAPHICAL_MEMBERS = ["rules", "styles", "order"];
 
 /** The members of a manifest and of its `graphical` named by a plural noun: they "lie" outside. */
-const PLURAL_MEMBERS: ReadonlySet<string> = new Set(["links", "schemes", "rules", "styles"]);
+const PLURAL_MEMBERS: ReadonlySet<string> = new Set(["statements", "rules", "styles"]);
 
 /** A `side_effect` refusal of `what`, at `path`; `plural` where `what` names several things. */
 type Refuse = (what: string, path: readonly PathSegment[], plural?: boolean) => CommandError;
@@ -163,8 +167,9 @@ export function ruleInside(
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the canonical text of its value (`canonicalText`): per timeline (its lists
  * reduced to their ids), per map, region and flow-control element, per group, per measure
- * map, per named timestamp, each without its links; the links of each
- * timeline and region; the other top-level members; the other `graphical`
+ * map, per named timestamp, each without what it states; the statements
+ * and provenance of each timeline and region; the other top-level members
+ * but `@context`; the other `graphical`
  * members. The edited timeline's object, or the edited group's
  * and each of its members', stands as `{id}`; the named timestamps lying on
  * a timeline inside and the entries of `graphical.order` whose keys lie
@@ -174,7 +179,7 @@ export function ruleInside(
  */
 interface Projection {
   readonly elements: ReadonlyMap<string, string>;
-  readonly links: ReadonlyMap<string, string>;
+  readonly described: ReadonlyMap<string, string>;
   readonly top: ReadonlyMap<string, string>;
   readonly graphical: ReadonlyMap<string, string>;
 }
@@ -195,16 +200,19 @@ function project(
   const group = manifest.groups.find((item) => item.id === element);
   const hidden = new Set(group === undefined ? [element] : group.members);
   const elements = new Map<string, string>();
-  const links = new Map<string, string>();
-  // An element and its links apart, so that a refusal names the links where only they differ.
+  const described = new Map<string, string>();
+  // An element and what it states apart, so that a refusal names the statements where only they differ.
   const set = (id: string, value: object) => {
-    if (!("links" in value)) {
-      elements.set(id, canonicalText(value));
-      return;
-    }
-    const { links: held, ...rest } = value;
+    const { statements, provenance, ...rest }: { statements?: unknown; provenance?: unknown } =
+      value;
     elements.set(id, canonicalText(rest));
-    links.set(id, canonicalText(held));
+    described.set(
+      id,
+      canonicalText({
+        ...(statements === undefined ? {} : { statements }),
+        ...(provenance === undefined ? {} : { provenance }),
+      }),
+    );
   };
   const visit = (timeline: TimelineManifest) => {
     if (hidden.has(timeline.id)) {
@@ -261,7 +269,7 @@ function project(
     ["order", canonicalText(orders)],
   ]);
   for (const [key, value] of Object.entries(rest)) graphical.set(key, canonicalText(value));
-  return { elements, links, top, graphical };
+  return { elements, described, top, graphical };
 }
 
 /**
@@ -338,11 +346,12 @@ function manifestChange(
     contained ??= id;
   }
   if (contained !== undefined) return changed(contained);
-  // The links of an element outside, which a removal inside prunes where a part slot names it.
+  // What an element outside states, which a removal inside prunes where a value names it.
   for (const id of walk()) {
-    if (a.links.has(id) && b.links.has(id) && a.links.get(id) !== b.links.get(id)) {
+    const [was, now] = [a.described.get(id), b.described.get(id)];
+    if (was !== undefined && now !== undefined && was !== now) {
       const where = words(inBlock(block, idAddress(id)));
-      return refuse(`the links of ${where}`, [keyIn(block, id), "links"], true);
+      return refuse(`the statements of ${where}`, [keyIn(block, id), "statements"], true);
     }
   }
   for (const key of inOrder(TOP_MEMBERS, [...a.top.keys(), ...b.top.keys()])) {
