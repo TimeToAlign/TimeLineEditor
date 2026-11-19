@@ -29,8 +29,11 @@ const CARET_KEYS: ReadonlySet<string> = new Set(["Home", "End", "ArrowLeft", "Ar
 
 /**
  * The answer to `key` (a `KeyboardEvent.key`) pressed with or without Alt
- * in `state`, over `count` options and the field's `text`. An active option
- * outside the options counts as none. Alt changes only the two arrows.
+ * in `state`, over `count` options and the field's `text`; `expanded` says
+ * whether the list is shown, which an open state with nothing to show (no
+ * option, no search running, no content for no results) is not. An active
+ * option outside the options counts as none. Alt changes only the two
+ * arrows. Escape closes a shown list; with none shown it clears the text.
  */
 export function keyed(
   state: ComboboxState,
@@ -38,6 +41,7 @@ export function keyed(
   alt: boolean,
   count: number,
   text: string,
+  expanded: boolean,
 ): Keyed {
   const { open } = state;
   const active = state.active !== null && state.active < count ? state.active : null;
@@ -68,8 +72,8 @@ export function keyed(
       if (!open) return answer(state, "enter");
       return answer(CLOSED, active === null ? "enter" : "pick");
     case "Escape":
-      if (open) return answer(CLOSED);
-      return text === "" ? unhandled() : answer(state, "clear");
+      if (expanded) return answer(CLOSED);
+      return text === "" ? unhandled() : answer(CLOSED, "clear");
     case "Tab":
       return unhandled(open ? CLOSED : state);
     default:

@@ -16,6 +16,7 @@ import type { Frame, RectangleView } from "../src/inspector/metadata/frame.ts";
 import {
   drawersOf,
   rectanglesOf,
+  rectangleWords,
   SELECT_HINT,
   shownOf,
   whoOf,
@@ -234,9 +235,20 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
       [],
     ]);
     const drawers = drawersOf(view, frame("cpt_2"), CATALOGUE, DEFAULT_USER);
-    expect(drawers.higher.map((group) => [group.words, headings(group.rectangles)])).toEqual([
-      [BUNDLE, ["rdfs:seeAlso", "schema:about"]],
-      [CPT_1, ["is a", "performed by", "same as"]],
+    expect(
+      drawers.higher.map((group) => [group.key, group.words, headings(group.rectangles)]),
+    ).toEqual([
+      ['{"block":"0000000000"}', BUNDLE, ["rdfs:seeAlso", "schema:about"]],
+      ['{"block":"0000000000","id":"cpt_1"}', CPT_1, ["is a", "performed by", "same as"]],
+    ]);
+    expect(empty === undefined ? null : rectangleWords(empty)).toBe("is a");
+  });
+
+  it("words a rectangle by its verb and its label, else its first value", () => {
+    expect(rectangles("cpt_1").map(rectangleWords)).toEqual([
+      "is a schema:VideoObject",
+      "performed by Maria João Pires",
+      "same as https://www.youtube.com/watch?v=Ch2mrPm1JnM",
     ]);
   });
 

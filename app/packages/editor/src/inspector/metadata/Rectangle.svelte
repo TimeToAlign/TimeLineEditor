@@ -5,10 +5,13 @@
  * thumbnail where the lookup finds one; below, muted, one row per
  * vocabulary that states it, property and value as the file writes them,
  * each value a link out where it is a web address; then who stated it, how
- * and when, its status, the details of every annotation, Remove and
- * "＋ vocabulary". The empty "is a" rectangle offers "State what it is".
+ * and when, its status as text, the details of every annotation, Reject,
+ * Remove and "＋ vocabulary". Rejecting is a button of its own, named with
+ * the statement, never a choice in a list, which a key could make on the
+ * way through. The empty "is a" rectangle offers "State what it is".
  */
 import type { Frame, RectangleView } from "./frame.ts";
+import { rectangleWords } from "./frame.ts";
 import { thumbnailsOf } from "./thumbnails.svelte.ts";
 
 let {
@@ -86,19 +89,10 @@ const provenance = $derived.by(() => {
     </ul>
     <p class="provenance" data-testid="metadata-provenance">{provenance}</p>
     <div class="actions">
-      <select
-        aria-label="Status"
-        value="confirmed"
-        onchange={(event) => {
-          if (event.currentTarget.value === "rejected") {
-            event.currentTarget.value = "confirmed";
-            onreject();
-          }
-        }}
+      <span class="status" data-testid="metadata-status">Status: confirmed</span>
+      <button type="button" aria-label="Reject {rectangleWords(rectangle)}" onclick={onreject}
+        >Reject</button
       >
-        <option value="confirmed">confirmed</option>
-        <option value="rejected">rejected</option>
-      </select>
       <button
         type="button"
         aria-expanded={detailed}
@@ -197,7 +191,8 @@ const provenance = $derived.by(() => {
   }
 
   .empty,
-  .provenance {
+  .provenance,
+  .status {
     color: #595959;
     font-size: 0.78rem;
   }
@@ -209,8 +204,7 @@ const provenance = $derived.by(() => {
     gap: 0.3rem;
   }
 
-  button,
-  select {
+  button {
     padding: 0.1rem 0.45rem;
     border: 1px solid #bdbdbd;
     border-radius: 3px;
@@ -222,7 +216,6 @@ const provenance = $derived.by(() => {
   }
 
   button:focus-visible,
-  select:focus-visible,
   a:focus-visible {
     outline: 2px solid #0a84ff;
     outline-offset: 1px;

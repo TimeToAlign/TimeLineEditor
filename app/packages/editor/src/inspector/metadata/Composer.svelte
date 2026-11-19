@@ -431,22 +431,37 @@ function paste(text: string): boolean {
   return true;
 }
 
+/**
+ * The annotation of what Add states. A candidate the lookup found is
+ * `reconciled` by its service; in vocabulary mode only a cross-reference
+ * offered from the rectangle's thing is, with that thing as basis and an
+ * exact match. A candidate searched there instead is tied to the thing
+ * because the user chose it for the same thing, so it is `manual`, as is
+ * every other value.
+ */
+function fieldsOf(value: ValueChoice | null): EntryFields {
+  const stated: Pick<EntryFields, "stated_by" | "date"> = {
+    stated_by: [user.state.statedBy],
+    date: dayOf(new Date()),
+  };
+  if (value?.kind !== "candidate") return { ...stated, method: "manual" };
+  if (extended === null) {
+    return { ...stated, method: "reconciled", service: value.candidate.service };
+  }
+  return basis !== null && offered.includes(value.candidate)
+    ? {
+        ...stated,
+        method: "reconciled",
+        service: value.candidate.service,
+        basis: [basis],
+        match: "exact",
+      }
+    : { ...stated, method: "manual" };
+}
+
 function add(): void {
   if (typeof addable === "string") return;
-  const value = composer.value;
-  const fields: EntryFields =
-    value?.kind === "candidate"
-      ? {
-          stated_by: [user.state.statedBy],
-          date: dayOf(new Date()),
-          method: "reconciled",
-          service: value.candidate.service,
-          ...(extended !== null && basis !== null && offered.includes(value.candidate)
-            ? { basis: [basis], match: "exact" as const }
-            : {}),
-        }
-      : { stated_by: [user.state.statedBy], date: dayOf(new Date()), method: "manual" };
-  onadd(addable, fields);
+  onadd(addable, fieldsOf(composer.value));
 }
 
 onMount(() => {

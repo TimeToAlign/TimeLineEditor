@@ -32,7 +32,7 @@ const higherCount = $derived(
 <div class="drawers">
   <details data-testid="metadata-drawer-higher">
     <summary>Stated higher up ({higherCount})</summary>
-    {#each drawers.higher as group (group.words)}
+    {#each drawers.higher as group (group.key)}
       <section>
         <h4>{group.words}</h4>
         <ul>

@@ -107,7 +107,14 @@ function write(value: string): void {
 function onkeydown(event: KeyboardEvent): void {
   if (event.isComposing) return;
   const before = current;
-  const answer = keyed({ open, active: current }, event.key, event.altKey, options.length, text);
+  const answer = keyed(
+    { open, active: current },
+    event.key,
+    event.altKey,
+    options.length,
+    text,
+    expanded,
+  );
   ({ open, active } = answer.state);
   if (answer.handled) {
     event.preventDefault();
@@ -127,10 +134,16 @@ function onfocusout(event: FocusEvent & { currentTarget: HTMLDivElement }): void
   if (!(to instanceof Node && event.currentTarget.contains(to))) close();
 }
 
-/** Pressing in the list keeps the focus in the field. */
-function keepFocus(event: Event): void {
-  event.preventDefault();
-}
+/** Pressing anywhere in the popup, the options or the content for no results, keeps the focus in the field. */
+const keepFocus: Attachment<HTMLElement> = (element) => {
+  const kept = (event: Event) => event.preventDefault();
+  element.addEventListener("pointerdown", kept);
+  element.addEventListener("mousedown", kept);
+  return () => {
+    element.removeEventListener("pointerdown", kept);
+    element.removeEventListener("mousedown", kept);
+  };
+};
 </script>
 
 <div class="combobox" {onfocusout}>
@@ -153,8 +166,8 @@ function keepFocus(event: Event): void {
     {onkeydown}
     onpaste={pasted}
   />
-  <div class="popup" hidden={!expanded}>
-    <!-- The options are picked by pointer here and by keys in the field, which keeps the focus. -->
+  <!-- The options are picked by pointer here and by keys in the field, which keeps the focus. -->
+  <div class="popup" hidden={!expanded} {@attach keepFocus}>
     <ul
       id="{id}-listbox"
       role="listbox"
@@ -162,8 +175,6 @@ function keepFocus(event: Event): void {
       aria-labelledby={labelledby}
       aria-busy={loading}
       hidden={!expanded}
-      onpointerdown={keepFocus}
-      onmousedown={keepFocus}
     >
       {#each options as item, index (keyOf(item))}
         <li

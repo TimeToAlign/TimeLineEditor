@@ -7,12 +7,13 @@ import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
 import type { Candidate, Lookup } from "../src/lookup/index.ts";
+import { informContext } from "../src/messages.svelte.ts";
 import UserDialog from "../src/UserDialog.svelte";
 import type { UserContext } from "../src/user.svelte.ts";
 import { UserState } from "../src/user.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
-import { fixture, informing, providing, storeOf, userContext } from "./support.ts";
+import { fixture, providing, storeOf, userContext } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
@@ -77,16 +78,32 @@ afterEach(() => {
 /** The store of the LayerIt recording, block `A`. */
 const layerit = (): Store => storeOf(fixture("statements/layerit_recording"));
 
-/** Mount the inspector over `store`, `addresses` selected, the Metadata tab chosen. */
-function show(store: Store, addresses: Address[], user: UserContext = userContext()) {
+/**
+ * Mount the inspector over `store`, `addresses` selected, the Metadata tab
+ * chosen; the information and the warnings it posts are kept apart.
+ */
+function show(
+  store: Store,
+  addresses: Address[],
+  user: UserContext = userContext(),
+  lookup: Lookup = LOOKUP,
+) {
   const selection = holder<Selection>(selectionOf(addresses));
   const informed: string[] = [];
+  const warned: string[] = [];
   const target = document.createElement("div");
   document.body.append(target);
   apps.push(
-    mount(providing(Inspector, user, LOOKUP), {
+    mount(providing(Inspector, user, lookup), {
       target,
-      context: informing(informed),
+      context: informContext(
+        (text) => {
+          informed.push(text);
+        },
+        (text) => {
+          warned.push(text);
+        },
+      ),
       props: {
         live: liveStore(store),
         get selection() {
@@ -101,7 +118,7 @@ function show(store: Store, addresses: Address[], user: UserContext = userContex
   );
   tab?.click();
   flushSync();
-  return { selection, informed };
+  return { selection, informed, warned };
 }
 
 /** Let the lookup's promises and the focus moves after `tick` run, then the DOM follow. */
@@ -247,7 +264,7 @@ describe("drawer actions", () => {
   it("rejects a proposal, the focus on the drawer's summary", async () => {
     const store = layerit();
     show(store, [{ block: A, id: "dpt_1" }]);
-    button("Reject").click();
+    button("Reject", one('[data-testid="metadata-drawer-proposed"]')).click();
     await settle();
     expect(store.journal).toHaveLength(2);
     expect(summaries().slice(1)).toEqual(["Proposed (0)", "Rejected (1)"]);
@@ -269,6 +286,46 @@ describe("removing", () => {
     await settle();
     expect(rectangles().map((item) => item.dataset.key)).toEqual(["is_a"]);
     expect(document.activeElement).toBe(button("＋ Add statement"));
+  });
+});
+
+describe("rejecting", () => {
+  it("rejects by a named button, posts it, and moves the focus on, at last to the drawer", async () => {
+    const store = layerit();
+    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
+    const performed = rectangle("performed by");
+    expect([
+      all("select", performed).length,
+      one('[data-testid="metadata-status"]', performed).textContent,
+      all<HTMLButtonElement>("button", performed).map((item) => [
+        item.textContent?.trim(),
+        item.getAttribute("aria-label"),
+      ]),
+    ]).toEqual([
+      0,
+      "Status: confirmed",
+      [
+        ["Reject", "Reject performed by Maria João Pires"],
+        ["Details", null],
+        ["Remove", null],
+        ["＋ vocabulary", null],
+      ],
+    ]);
+    button("Reject", performed).click();
+    await settle();
+    expect(store.journal).toHaveLength(2);
+    expect(headings()).toEqual(["is a", "same as"]);
+    expect(document.activeElement).toBe(rectangle("same as"));
+    button("Reject", rectangle("same as")).click();
+    await settle();
+    expect(store.journal).toHaveLength(3);
+    expect(headings()).toEqual(["is a"]);
+    expect(summaries()).toEqual(["Stated higher up (2)", "Proposed (1)", "Rejected (3)"]);
+    expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-rejected"] summary'));
+    expect(informed).toEqual([
+      "Rejected “performed by Maria João Pires”: it is listed under Rejected.",
+      "Rejected “same as https://www.youtube.com/watch?v=Ch2mrPm1JnM”: it is listed under Rejected.",
+    ]);
   });
 });
 
@@ -424,6 +481,59 @@ describe("the composer", () => {
     expect(headings()).toEqual(["is a", "performed by", "same as"]);
   });
 
+  it("states a GND value searched in another vocabulary as manual, tied to the same thing", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(new Date("2026-11-20T12:00:00Z"));
+    // Wikidata names no GND record, so nothing is offered and the GND is searched.
+    const searching: Lookup = {
+      ...LOOKUP,
+      searchable: (system) => system === "gnd",
+      search: async (system) => (system === "gnd" ? [GND_PIRES] : []),
+      resolve: async (_system, iri) =>
+        iri === PIRES_WD
+          ? { ...WIKIDATA_PIRES, crossReferences: [] }
+          : iri === PIRES_GND
+            ? GND_PIRES
+            : null,
+    };
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_1" }], userContext(), searching);
+    button("＋ vocabulary", rectangle("performed by")).click();
+    flushSync();
+    await settle();
+    choose(field("Vocabulary"), "GND");
+    await settle();
+    field("Value").focus();
+    type(field("Value"), "Pires");
+    await vi.advanceTimersByTimeAsync(250);
+    await settle();
+    press(field("Value"), "ArrowDown");
+    expect(options(field("Value"))).toHaveLength(1);
+    expect(options(field("Value"))?.[0]).toContain("Pires, Maria João");
+    press(field("Value"), "Enter");
+    button("Add").click();
+    await settle();
+    const [command] = commandsAfter(store, 1);
+    const values = command?.type === "set" ? command.changes[0]?.values : undefined;
+    if (values === undefined) throw new Error("no set");
+    expect((values.statements as Record<string, unknown>)["rel:prf"]).toEqual([
+      { id: "viaf:113931950" },
+      {
+        id: "gnd:124927521",
+        label: "Pires, Maria João",
+        "schema:sameAs": [{ id: "wd:Q235650" }],
+      },
+    ]);
+    expect((values.provenance as unknown[]).at(-1)).toEqual({
+      date: "2026-11-20",
+      method: "manual",
+      property: "rel:prf",
+      stated_by: [G],
+      status: "confirmed",
+      value: { id: "gnd:124927521" },
+    });
+  });
+
   it("gives the focus back to the button that opened it on Cancel", async () => {
     show(layerit(), [{ block: A, id: "cpt_1" }]);
     const opener = one('[data-testid="metadata-add-vocabulary"]', rectangle("same as"));
@@ -445,6 +555,41 @@ describe("the composer", () => {
     selection.value = selectionOf([{ block: A, id: "cpt_1" }]);
     flushSync();
     expect(all('[data-testid="metadata-composer"]')).toHaveLength(0);
+  });
+});
+
+describe("stated higher up", () => {
+  it("lists two ancestors of one name apart", () => {
+    const store = layerit();
+    const name = store.view.blocks[A]?.manifest.timelines[1]?.name ?? null;
+    expect([
+      store.dispatch({
+        type: "set",
+        changes: [
+          {
+            target: { block: A, id: "cpt_2" },
+            values: { name, statements: { "schema:sameAs": [{ id: "https://example.org/take" }] } },
+          },
+        ],
+      }),
+      store.dispatch({
+        type: "add",
+        into: { block: A, id: "cpt_2" },
+        region: { id: "region_1", start: 0.0, end: 10.0 },
+      }),
+    ]).toEqual([null, null]);
+    show(store, [{ block: A, id: "region_1" }]);
+    expect([
+      summaries()[0],
+      all('[data-testid="metadata-drawer-higher"] h4').map((heading) => heading.textContent),
+    ]).toEqual([
+      "Stated higher up (6)",
+      [
+        "bundle 'LayerIt, Clair de lune mm. 1–6 (Pires)'",
+        "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'",
+        "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'",
+      ],
+    ]);
   });
 });
 
@@ -493,9 +638,9 @@ describe("the user", () => {
 });
 
 describe("refusals", () => {
-  it("posts the store's refusal and journals nothing", () => {
+  it("posts the store's refusal as a warning and journals nothing", () => {
     const store = layerit();
-    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
+    const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
     vi.spyOn(store, "dispatch").mockReturnValueOnce({
       code: "schema_violation",
       message: "refused for the test",
@@ -503,13 +648,13 @@ describe("refusals", () => {
     });
     button("Confirm").click();
     flushSync();
-    expect(informed).toEqual(["refused for the test"]);
+    expect([warned, informed]).toEqual([["refused for the test"], []]);
     expect(store.journal).toHaveLength(1);
   });
 
-  it("posts a throw of the statement functions and journals nothing", () => {
+  it("posts a throw of the statement functions as a warning and journals nothing", () => {
     const store = layerit();
-    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
+    const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
     const remove = button("Remove", rectangle("same as"));
     const [same] = store.view.blocks[A]?.manifest.timelines[1]?.statements?.["schema:sameAs"] ?? [];
     // The store loses the pair while the rectangle still shows it.
@@ -531,8 +676,9 @@ describe("refusals", () => {
     });
     expect(same).toBeDefined();
     remove.click();
-    expect(informed).toEqual([
-      "The statement could not be changed: 'schema:sameAs' does not have this value",
+    expect([warned, informed]).toEqual([
+      ["The statement could not be changed: 'schema:sameAs' does not have this value"],
+      [],
     ]);
     expect(store.journal).toHaveLength(2);
   });

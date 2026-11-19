@@ -33,7 +33,7 @@ import InspectorDrawer from "./InspectorDrawer.svelte";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
-import { Messages, messageOf, provideInform } from "./messages.svelte.ts";
+import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
@@ -89,8 +89,9 @@ function warn(text: string, problems: readonly Problem[] = []): void {
   messages.warn(text, problems);
 }
 
-// Every component below posts its confirmations as information in the message bar.
+// Every component below posts its confirmations as information in the message bar, its refusals as warnings.
 provideInform((text) => messages.inform(text));
+provideWarn((text) => messages.warn(text));
 
 // --- The user and the lookup --------------------------------------------------
 

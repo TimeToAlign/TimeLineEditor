@@ -544,6 +544,14 @@ the shipped catalogue's labels.
 7. **Keyboard only.** Flow 4 from Enter on "＋ Add statement", Tab, the
    arrows, Enter and Escape (the paste dispatched as the clipboard would):
    Escape in the open Verb listbox closes it and leaves the composer open.
+8. **Reject a rectangle.** On `cpt_1`, "performed by" shows "Status:
+   confirmed" and a button named "Reject performed by Maria João Pires";
+   focused, ArrowDown and ArrowUp change nothing (no journal entry, the
+   three rectangles kept); Enter rejects: "is a" and "same as" left, the
+   focus on "same as", the message "Rejected “performed by Maria João
+   Pires”: it is listed under Rejected." shown, "Rejected (2)", one journal
+   entry; the export's `#cpt_1` states neither `rel:prf` nor `wdt:P175`,
+   their two annotations rejected by `G` on 2026-11-20.
 
 **`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
 below its threshold, so `grid-300` mounts all 300 nodes at any viewport,

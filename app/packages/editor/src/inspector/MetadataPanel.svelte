@@ -7,8 +7,8 @@
  * what is stated around it, proposed and rejected. Each action is one
  * `set` of the statements and provenance it changes, built on the
  * manifest's statement skeleton by TimeToShare's functions; their throws
- * and the store's refusals are posted to the message bar. The user who
- * states comes from the editor's user; lookups from its lookup.
+ * and the store's refusals are posted to the message bar as warnings. The
+ * user who states comes from the editor's user; lookups from its lookup.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
 import type { PathSegment, Skeleton, Store, View } from "@timetoalign/tilie-core";
@@ -16,7 +16,7 @@ import { isJsonObject, samePair } from "@timetoalign/timetoshare";
 import { tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { lookupOf } from "../lookup/index.ts";
-import { informOf } from "../messages.svelte.ts";
+import { informOf, warnOf } from "../messages.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import Composer from "./metadata/Composer.svelte";
 import { CATALOGUE } from "./metadata/catalogue.ts";
@@ -33,7 +33,7 @@ import {
   removedRectangle,
 } from "./metadata/edits.ts";
 import type { DrawerRow, Frame, Pair, RectangleView } from "./metadata/frame.ts";
-import { drawersOf, entryPair, rectanglesOf, shownOf } from "./metadata/frame.ts";
+import { drawersOf, entryPair, rectanglesOf, rectangleWords, shownOf } from "./metadata/frame.ts";
 import Rectangle from "./metadata/Rectangle.svelte";
 import { provideThumbnails, Thumbnails } from "./metadata/thumbnails.svelte.ts";
 
@@ -52,8 +52,10 @@ let {
 } = $props();
 
 const ADD_BUTTON = '[data-testid="metadata-add-statement"]';
+const REJECTED_SUMMARY = '[data-testid="metadata-drawer-rejected"] summary';
 
 const inform = informOf();
+const warn = warnOf();
 const user = userOf();
 provideThumbnails(new Thumbnails(lookupOf()));
 
@@ -106,7 +108,7 @@ function edit(at: Frame, change: () => Skeleton): boolean {
   try {
     after = change();
   } catch (error) {
-    inform(
+    warn(
       `The statement could not be changed: ${error instanceof Error ? error.message : String(error)}`,
     );
     return false;
@@ -115,7 +117,7 @@ function edit(at: Frame, change: () => Skeleton): boolean {
   if (command === null) return false;
   const refusal = store.dispatch(command);
   if (refusal === null) return true;
-  inform(refusal.message);
+  warn(refusal.message);
   return false;
 }
 
@@ -142,9 +144,13 @@ function remove(at: Frame, rectangle: RectangleView): void {
   if (edit(at, () => removedRectangle(at, rectangle))) void focusAfter(() => after);
 }
 
+/** Reject a rectangle's pairs; the focus moves to the next rectangle, else to the Rejected drawer. */
 function reject(at: Frame, rectangle: RectangleView): void {
-  const after = neighbourOf(rectangle.key);
+  const index = rectangles.findIndex((item) => item.key === rectangle.key);
+  const next = index < 0 ? undefined : rectangles[index + 1];
+  const after = next === undefined ? REJECTED_SUMMARY : rectangleSelector(next.key);
   if (edit(at, () => rejectedRectangle(at, rectangle, user.state.user, dayOf(new Date())))) {
+    inform(`Rejected “${rectangleWords(rectangle)}”: it is listed under Rejected.`);
     void focusAfter(() => after);
   }
 }

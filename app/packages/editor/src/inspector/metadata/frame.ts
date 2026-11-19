@@ -191,6 +191,16 @@ export interface RectangleView {
   readonly pairs: readonly Pair[];
 }
 
+/**
+ * A rectangle in words: its verb, then its label, else its first value as
+ * written ("performed by Maria João Pires", "same as https://…"); the verb
+ * alone for the empty "is a".
+ */
+export function rectangleWords(rectangle: RectangleView): string {
+  const thing = rectangle.label ?? rectangle.rows[0]?.value;
+  return thing === undefined ? rectangle.heading : `${rectangle.heading} ${thing}`;
+}
+
 /** One proposed or rejected pair in a drawer. */
 export interface DrawerRow {
   /** The canonical text of subject, property and value. */
@@ -205,6 +215,8 @@ export interface DrawerRow {
 
 /** The rectangles stated of one element around the shown one. */
 export interface HigherGroup {
+  /** The element's address key: two elements may share their words. */
+  readonly key: string;
   readonly words: string;
   readonly rectangles: readonly RectangleView[];
 }
@@ -581,7 +593,9 @@ export function drawersOf(view: View, frame: Frame, catalogue: Catalogue, user: 
     const found = rectanglesAt(frame.skeleton, path, catalogue, user).filter(
       (rectangle) => rectangle.pairs.length > 0,
     );
-    return found.length === 0 ? [] : [{ words: addressWords(view, target), rectangles: found }];
+    return found.length === 0
+      ? []
+      : [{ key: addressKey(target), words: addressWords(view, target), rectangles: found }];
   });
   return {
     higher,

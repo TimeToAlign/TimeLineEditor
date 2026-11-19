@@ -346,3 +346,41 @@ test("keyboard only", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(headings(page)).toHaveText(["is a", "performed by"]);
 });
+
+test("a rectangle is rejected by its own button, never by an arrow key", async ({ page }) => {
+  await showMetadata(page, "cpt_1");
+  const before = await journalLength(page);
+  const reject = rectangle(page, "performed by").getByRole("button", {
+    name: "Reject performed by Maria João Pires",
+    exact: true,
+  });
+  await expect(rectangle(page, "performed by").getByTestId("metadata-status")).toHaveText(
+    "Status: confirmed",
+  );
+  await reject.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowUp");
+  await expect(headings(page)).toHaveText(["is a", "performed by", "same as"]);
+  expect(await journalLength(page)).toBe(before);
+  await page.keyboard.press("Enter");
+  await expect(headings(page)).toHaveText(["is a", "same as"]);
+  await expect(rectangle(page, "same as")).toBeFocused();
+  await expect(
+    page.getByText("Rejected “performed by Maria João Pires”: it is listed under Rejected."),
+  ).toBeVisible();
+  await expect(page.locator("details summary").nth(2)).toHaveText("Rejected (2)");
+  expect(await journalLength(page)).toBe(before + 1);
+  const cpt1 = await exported(page, "cpt_1");
+  const statements = cpt1.statements as { [key: string]: unknown };
+  expect([statements["rel:prf"], statements["wdt:P175"]]).toEqual([undefined, undefined]);
+  type Entry = { property: string; status: string; stated_by?: string[]; date?: string };
+  expect(
+    (cpt1.provenance as Entry[])
+      .filter((entry) => entry.status === "rejected")
+      .map((entry) => [entry.property, entry.stated_by, entry.date])
+      .sort(),
+  ).toEqual([
+    ["rel:prf", [G], "2026-11-20"],
+    ["wdt:P175", [G], "2026-11-20"],
+  ]);
+});

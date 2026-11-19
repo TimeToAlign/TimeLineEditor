@@ -1153,9 +1153,16 @@ default, Gerhardt, who states as `G` =
 5. **`dpt_1`**: headings `["is a"]`; proposed one row "is derived from, is
    based on" naming the element `#cpt_1` by its name.
 6. **`cpt_2` and the bundle.** `cpt_2` states nothing: one rectangle, the
-   empty "is a", keyed `is_a`, no rows; stated higher up the bundle's two
-   rectangles, then `cpt_1`'s three. The bundle: the empty "is a",
-   `rdfs:seeAlso` and `schema:about`; nothing higher up.
+   empty "is a", keyed `is_a`, no rows, in words "is a"; stated higher up
+   the bundle's two rectangles, then `cpt_1`'s three, each group keyed by
+   its element's address key (`{"block":"0000000000"}`,
+   `{"block":"0000000000","id":"cpt_1"}`), since two elements may share
+   their words. The bundle: the empty "is a", `rdfs:seeAlso` and
+   `schema:about`; nothing higher up.
+   A rectangle in words is its heading and its label, else its first value
+   as written: `cpt_1`'s read "is a schema:VideoObject", "performed by
+   Maria João Pires", "same as
+   https://www.youtube.com/watch?v=Ch2mrPm1JnM".
 7. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
    → its iD; `…:user:Clara%20Wieck` → "Clara Wieck";
    `https://github.com/TimeToAlign/TimeLineEditor` → "TiLiE"; any other
@@ -1226,7 +1233,20 @@ record to "Pires, Maria João", and searches nothing.
 3. **Remove.** Remove on `cpt_1`'s "performed by" leaves "is a" and "same
    as", the focus on "same as"; Remove on the last rectangle of a timeline
    gives the focus to "＋ Add statement".
-4. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
+4. **Reject.** A stated rectangle offers no list to choose a status from
+   (a key on a focused list could choose one on the way through): it shows
+   "Status: confirmed" as text and the buttons Reject (named "Reject
+   performed by Maria João Pires" on `cpt_1`'s "performed by", the
+   rectangle in words), Details, Remove and "＋ vocabulary". Reject there
+   adds one journal entry, leaves "is a" and "same as" and gives the focus
+   to "same as"; Reject on "same as" then, the last rectangle, leaves "is a"
+   and gives the focus to the Rejected drawer's summary, which reads
+   "Rejected (3)" (the two annotated pairs of "performed by" and the one of
+   "same as"). Each posts, as information, "Rejected “performed by Maria
+   João Pires”: it is listed under Rejected." and "Rejected “same as
+   https://www.youtube.com/watch?v=Ch2mrPm1JnM”: it is listed under
+   Rejected.".
+5. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
    `https://www.wikidata.org/wiki/Q235650` into Value: Vocabulary reads
    "Wikidata", the Verb field has the focus, its options begin "is a";
    "performed by" picked and Add: one journal entry, the change on `cpt_2`
@@ -1235,16 +1255,16 @@ record to "Pires, Maria João", and searches nothing.
    rectangle has the focus. A paste of `https://example.org/x` posts "The
    address is no identifier the catalogue knows; choose “Other property…”
    to state it."
-5. **An element.** On `cpt_2`, verb "is derived from, is based on",
+6. **An element.** On `cpt_2`, verb "is derived from, is based on",
    vocabulary "An element of this manifest", the Value options list the
    other timelines (`clt_6`, `cpt_1`, `dpt_1`), not `cpt_2`; `#clt_6`
    picked and Add states `"dcterms:source": [{"id": "#clt_6"}]`.
-6. **Other property.** "Other property…" with `dcterms:subject`, a text
+7. **Other property.** "Other property…" with `dcterms:subject`, a text
    in a language, "Nocturne" in `fr`: Add states `"dcterms:subject":
    [{"@value": "Nocturne", "@language": "fr"}]`; a property `foo` keeps
    Add disabled with "Write the property as a compact IRI with a known
    prefix or in full."
-7. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary": the
+8. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary": the
    Verb field is disabled on "performed by", the Vocabulary options are
    MusicBrainz, GND, "MeLODy / LRMoo"; GND picked, the Value options offer
    "Pires, Maria João" (Wikidata's cross-reference resolved in the GND);
@@ -1254,16 +1274,29 @@ record to "Pires, Maria João", and searches nothing.
    `https://www.wikidata.org/w/api.php`, basis
    `http://www.wikidata.org/entity/Q235650`, match `exact`. Cancel instead
    closes the composer and gives the focus back to "＋ vocabulary".
-8. **The user.** "Change…" opens the dialog "Your name"; an empty name
+   With a lookup whose Wikidata entity names no GND record (so nothing is
+   offered) and which searches the GND, finding "Pires, Maria João" for
+   "Pires" after the search's 250 ms: picked and added, the value is tied
+   the same way (the user chose it for the same thing), but its annotation
+   is `manual` by `G` on 2026-11-20 with no `basis`, `service` or `match`:
+   no service reconciled it with the rectangle's thing.
+9. **The user.** "Change…" opens the dialog "Your name"; an empty name
    shows "A name is required."; "Clara Wieck" with
    `https://orcid.org/0000-0002-1825-0097` saved reads "You state as Clara
    Wieck (ORCID iD 0000-0002-1825-0097).", and a confirmation then states
    `stated_by: ["https://orcid.org/0000-0002-1825-0097"]`.
-9. **Refusals.** A store refusal is posted with its message; a throw of
-   the statement functions as "The statement could not be changed: …";
-   neither journals anything.
-10. **State belongs to the element.** The composer opened on `cpt_2` is
+10. **Refusals.** A store refusal is posted as a warning (kept until
+    dismissed) with its message; a throw of the statement functions as the
+    warning "The statement could not be changed: …"; neither is posted as
+    information, neither journals anything.
+11. **State belongs to the element.** The composer opened on `cpt_2` is
     hidden on selecting `cpt_1` and not shown again there.
+12. **Two ancestors of one name.** `cpt_2` given `cpt_1`'s name and the
+    statement `schema:sameAs https://example.org/take`, and the region
+    `region_1` (0 to 10 s) added into it, both accepted: `region_1`
+    selected, "Stated higher up (6)" lists the bundle and then two groups
+    headed "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at
+    Jardin Musical'" (`cpt_1` and `cpt_2`), without a duplicate key.
 
 **The user** (`user.test.ts`): a `UserState` under key `K` with nothing
 stored is Gerhardt without iD, `statedBy` `G`; `set({name: "Clara
@@ -1288,7 +1321,11 @@ is left pending. The editor gives its components one function posting
 information, through the component context; a component mounted without it
 throws "no component above this one provides inform". In the editor, a
 Copy in the Timestamp tab (a named timestamp selected through the hook)
-posts "Copied …" as information, and a refused file a warning.
+posts "Copied …" as information, and a refused file a warning. The editor
+gives them a second function posting warnings the same way (a component
+mounted without it throws "no component above this one provides warn");
+a component mounted on its own takes both from one context, the warnings
+going to the information function unless a second one is given.
 
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 
@@ -1376,7 +1413,8 @@ state, an action (none, pick the active option, enter the text, clear the
 text) and whether the key was handled (handled keys are consumed, all
 others keep their native meaning). Every row is checked for 0, 1 and 3
 options, from closed and from open with no active option and with each
-active one, each expected state written out:
+active one, each expected state written out, every open state's list
+shown (open with options, a search running or content for no results):
 
 | Key | Closed | Open |
 |---|---|---|
@@ -1385,13 +1423,16 @@ active one, each expected state written out:
 | Alt+ArrowDown | open; still none active | unchanged, handled |
 | Alt+ArrowUp | unchanged, not handled | closed, none active, the text kept |
 | Enter | the text entered, unchanged | with an active option: closed, that option picked; without: closed, the text entered |
-| Escape | with text: the text cleared; without: unchanged, not handled | closed, none active |
+| Escape | with text: the text cleared; without: unchanged, not handled | list shown: closed, none active; no list shown, with text: closed, the text cleared; without: unchanged, not handled |
 | Home, End, ArrowLeft, ArrowRight | not handled; none active | not handled; none active, still open |
 | Tab | unchanged, not handled | closed, none active, not handled (the focus moves on) |
 | any other key ("a", Shift) | unchanged, not handled | unchanged, not handled |
 
 Alt changes only the two arrows: Alt+Enter is Enter, Alt+Escape is
-Escape. An active option outside the options (a list that shrank) counts as
+Escape. An open state whose list is not shown (text, no option, no search,
+no content for no results) takes Escape as a closed one: with "Clr" it
+clears the text and closes, handled, so one press does it; with no text it
+is not handled. An active option outside the options (a list that shrank) counts as
 none: from open with option 5 of 3 active, ArrowDown makes the first
 active, ArrowUp the last, Enter enters the text. Typing makes the next
 state from the new text alone: open with text, closed without, none active
@@ -1428,12 +1469,14 @@ the DOM by role and attribute:
    consumed (not seen by the parent). A third, on the empty closed field,
    is not handled: the parent sees it, and nothing is recorded.
 4. **The pointer.** On the listbox, `pointerdown` is default-prevented, so
-   the focus stays in the field. A primary-button `pointerup` on option 2
+   the focus stays in the field; so are `pointerdown` and `mousedown` on the
+   `empty` snippet's content (item 6), the focus staying in the field. A primary-button `pointerup` on option 2
    picks "Clara Haskil" and closes; a secondary-button one picks nothing.
 5. **Leaving.** Focus moving to a button outside the combobox closes it; a
    `focusout` whose related target lies inside it does not.
 6. **When the list shows.** With text and no options: the listbox stays
-   hidden without the `empty` snippet; with it, the list shows and holds
+   hidden without the `empty` snippet, and one Escape clears "Clr" (the
+   text recorded "", the key consumed, not seen by the parent); with it, the list shows and holds
    the snippet's text "Nothing for 'Clr'", outside the listbox itself
    (a listbox may own options alone). Loading with no options: shown,
    `aria-busy` `true`. With the text cleared and no options, the `empty`

@@ -22,7 +22,7 @@ type Expected = readonly [Word, ComboboxAction, boolean];
 /** Expected answers by count of options, then by the state the key is pressed in. */
 type Rows = Readonly<Record<0 | 1 | 3, Readonly<Record<string, Expected>>>>;
 
-/** Check every state of `rows` for `key` (with `alt`) over the field's `text`. */
+/** Check every state of `rows` for `key` (with `alt`) over the field's `text`, every open state's list shown. */
 function check(key: string, alt: boolean, rows: Rows, text = "Clara"): void {
   for (const count of [0, 1, 3] as const) {
     const expected = rows[count];
@@ -34,11 +34,9 @@ function check(key: string, alt: boolean, rows: Rows, text = "Clara"): void {
     expect(Object.keys(expected).sort()).toEqual([...states].sort());
     for (const word of states) {
       const [next, action, handled] = expected[word] ?? ["closed", "none", false];
-      expect([count, word, keyed(stateOf(word), key, alt, count, text)]).toEqual([
-        count,
-        word,
-        { state: stateOf(next), action, handled },
-      ]);
+      expect([count, word, keyed(stateOf(word), key, alt, count, text, word !== "closed")]).toEqual(
+        [count, word, { state: stateOf(next), action, handled }],
+      );
     }
   }
 }
@@ -234,12 +232,24 @@ describe("the key table", () => {
     }
   });
 
+  it("Escape in an open state with no list shown clears the text at once", () => {
+    for (const alt of [false, true]) {
+      expect([
+        keyed(stateOf("open"), "Escape", alt, 0, "Clr", false),
+        keyed(stateOf("open"), "Escape", alt, 0, "", false),
+      ]).toEqual([
+        { state: stateOf("closed"), action: "clear", handled: true },
+        { state: stateOf("open"), action: "none", handled: false },
+      ]);
+    }
+  });
+
   it("counts an active option outside the options as none", () => {
     const stale = stateOf("open@5");
     expect([
-      keyed(stale, "ArrowDown", false, 3, "Clara"),
-      keyed(stale, "ArrowUp", false, 3, "Clara"),
-      keyed(stale, "Enter", false, 3, "Clara"),
+      keyed(stale, "ArrowDown", false, 3, "Clara", true),
+      keyed(stale, "ArrowUp", false, 3, "Clara", true),
+      keyed(stale, "Enter", false, 3, "Clara", true),
     ]).toEqual([
       { state: stateOf("open@0"), action: "none", handled: true },
       { state: stateOf("open@2"), action: "none", handled: true },

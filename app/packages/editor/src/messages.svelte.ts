@@ -2,8 +2,8 @@
  * The message bar's messages: warnings, which stay until the viewer
  * dismisses them, and information, which dismisses itself after
  * `INFO_DURATION_MS`; the one way a component below the editor posts
- * information (`inform`, from the component context); and the text of a
- * failure in a message.
+ * information (`inform`) or a warning (`warn`), both from the component
+ * context; and the text of a failure in a message.
  */
 
 import type { Problem } from "@timetoalign/tilie-core";
@@ -66,14 +66,20 @@ export class Messages {
   }
 }
 
-/** Post one message of information. */
+/** Post one message: information, or a warning. */
 export type Inform = (text: string) => void;
 
 const INFORM = Symbol("inform");
+const WARN = Symbol("warn");
 
 /** Give the components below the calling one `inform`; called while the component is made. */
 export function provideInform(inform: Inform): void {
   setContext(INFORM, inform);
+}
+
+/** Give the components below the calling one `warn`; called while the component is made. */
+export function provideWarn(warn: Inform): void {
+  setContext(WARN, warn);
 }
 
 /**
@@ -88,9 +94,27 @@ export function informOf(): Inform {
   return inform;
 }
 
-/** The component context that provides `inform`, for a component mounted on its own (`mount`'s `context`). */
-export function informContext(inform: Inform): Map<symbol, Inform> {
-  return new Map([[INFORM, inform]]);
+/**
+ * The `warn` a component above the calling one provides; called while the
+ * component is made.
+ *
+ * @throws {Error} if none provides one.
+ */
+export function warnOf(): Inform {
+  const warn = getContext<Inform | undefined>(WARN);
+  if (warn === undefined) throw new Error("no component above this one provides warn");
+  return warn;
+}
+
+/**
+ * The component context that provides `inform` and `warn` (by default the
+ * same function), for a component mounted on its own (`mount`'s `context`).
+ */
+export function informContext(inform: Inform, warn: Inform = inform): Map<symbol, Inform> {
+  return new Map([
+    [INFORM, inform],
+    [WARN, warn],
+  ]);
 }
 
 /** The text of a failure to show the viewer: an error's message, else the value as text. */

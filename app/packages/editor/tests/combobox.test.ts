@@ -249,7 +249,7 @@ describe("the combobox", () => {
     expect([shown(input, listbox).expanded, listbox.hidden]).toEqual(["false", true]);
   });
 
-  it("shows the list with options, a running search or the empty snippet", () => {
+  it("shows the list with options, a running search or the empty snippet, and keeps the focus on it", () => {
     const bare = setup({}, []);
     type(bare.input, "Clr");
     expect([
@@ -257,6 +257,13 @@ describe("the combobox", () => {
       bare.listbox.hidden,
       bare.status.textContent,
     ]).toEqual(["false", true, ""]);
+    const escaped = press(bare.input, "Escape");
+    expect([escaped.defaultPrevented, bare.log.texts, bare.input.value, seen]).toEqual([
+      true,
+      ["Clr", ""],
+      "",
+      [],
+    ]);
     unmount(bare.harness);
     document.body.innerHTML = "";
 
@@ -270,6 +277,11 @@ describe("the combobox", () => {
       listbox.contains(empty),
       status.textContent,
     ]).toEqual(["true", false, "Nothing for 'Clr'", false, "No results"]);
+    expect([
+      pointer(empty, "pointerdown", 0).defaultPrevented,
+      pointer(empty, "mousedown", 0).defaultPrevented,
+    ]).toEqual([true, true]);
+    expect(document.activeElement).toBe(input);
 
     loading.value = true;
     flushSync();

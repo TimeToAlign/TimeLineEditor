@@ -866,7 +866,6 @@ describe("the inspector's warnings", () => {
     .filter((name) => name.endsWith(".yaml"))
     .sort();
 
-  /** Each listed warning as its key and its JSON pointer. */
   /** Each warning row: an unknown key's key, or a warning's message; then where it lies. */
   const listed = () =>
     [...document.querySelectorAll('ul[aria-label="Warnings"] li')].map((item) => {
