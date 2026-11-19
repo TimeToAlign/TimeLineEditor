@@ -11,7 +11,7 @@
             "group_1": ["score", "performance"],
             "group_2": ["page", "excerpt"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -103,7 +103,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": "Mixed",
         "schemes": [],
@@ -310,7 +310,7 @@
             "group_1": ["exposition", "take_1"],
             "group_2": ["recapitulation", "take_2"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -402,7 +402,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": "Sonata",
         "schemes": [],
@@ -758,7 +758,7 @@
             "g1": ["t", "u"],
             "g2": ["t", "v"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -822,7 +822,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": "Shared",
         "schemes": [],
@@ -892,7 +892,7 @@
       "manifest": {
         "graphical": {
           "order": {},
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -943,7 +943,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": "Sketches",
         "schemes": [],
@@ -1119,7 +1119,7 @@
                 "group_1": ["score", "performance"],
                 "group_2": ["page", "excerpt"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -1211,7 +1211,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": "Mixed",
             "schemes": [],
@@ -1423,7 +1423,7 @@
                 "group_1": ["exposition", "take_1"],
                 "group_2": ["recapitulation", "take_2"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -1515,7 +1515,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": "Sonata",
             "schemes": [],
@@ -1873,7 +1873,7 @@
           "manifest": {
             "graphical": {
               "order": {},
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -1924,7 +1924,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": "Sketches",
             "schemes": [],
@@ -2100,7 +2100,7 @@
                 "g1": ["t", "u"],
                 "g2": ["t", "v"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -2164,7 +2164,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": "Shared",
             "schemes": [],

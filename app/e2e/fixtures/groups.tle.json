@@ -10,7 +10,7 @@
           "order": {
             "group_1": ["second-half", "recording"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -54,7 +54,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": null,
         "schemes": [],
@@ -128,7 +128,7 @@
           "order": {
             "group_1": ["theme", "recording"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -172,7 +172,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": null,
         "schemes": [],
@@ -263,7 +263,7 @@
           "order": {
             "group_1": ["exposition", "take", "system", "audio"]
           },
-          "statements": [],
+          "rules": [],
           "styles": {},
           "timestamps": [
             {
@@ -335,7 +335,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": null,
         "schemes": [],
@@ -493,7 +493,7 @@
           "order": {
             "group_1": ["score", "page", "performance"]
           },
-          "statements": [
+          "rules": [
             {
               "select": {
                 "element": "frame"
@@ -586,7 +586,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (df58bc9d)"
+          "generator": "timetoalign 1.2.0 (dd2d8291)"
         },
         "name": null,
         "schemes": [],
@@ -713,7 +713,7 @@
               "order": {
                 "group_1": ["second-half", "recording"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -757,7 +757,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": null,
             "schemes": [],
@@ -836,7 +836,7 @@
               "order": {
                 "group_1": ["theme", "recording"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -880,7 +880,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": null,
             "schemes": [],
@@ -976,7 +976,7 @@
               "order": {
                 "group_1": ["exposition", "take", "system", "audio"]
               },
-              "statements": [],
+              "rules": [],
               "styles": {},
               "timestamps": [
                 {
@@ -1048,7 +1048,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": null,
             "schemes": [],
@@ -1211,7 +1211,7 @@
               "order": {
                 "group_1": ["score", "page", "performance"]
               },
-              "statements": [
+              "rules": [
                 {
                   "select": {
                     "element": "frame"
@@ -1304,7 +1304,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (df58bc9d)"
+              "generator": "timetoalign 1.2.0 (dd2d8291)"
             },
             "name": null,
             "schemes": [],
