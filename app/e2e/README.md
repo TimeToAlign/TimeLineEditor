@@ -599,7 +599,7 @@ shared by both specs).
    and its one annotation `confirmed` by `G` with `method: reconciled`,
    `service: https://www.wikidata.org/w/api.php`, `match: close`.
 
-**`profiles.spec.ts`** (Chromium) imports the LayerIt recording as
+**`profiles.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording as
 `metadata.spec.ts` does, the lookup hosts answered and aborted alike. The
 profile file is written out by hand in canonical YAML: the one profile
 `lecture_recording` ("lecture recording", "is a" `type
@@ -617,7 +617,11 @@ MeLODy / LRMoo, Other vocabularies, An element of this manifest (the
 profile's lookup `wikidata` first, then the systems of "recorded
 performance"'s lookup, `musicbrainz`, `gnd`, then the rest in catalogue
 order). "Export YAML…" downloads
-`profiles.yaml` holding the imported text byte for byte. After a reload
+`profiles.yaml` holding the imported text byte for byte. The workspace is
+unsaved, so the reloaded page asks whether to restore it; whether the
+autosave slot is written before the reload races the autosave's delay
+against the page's last write while it unloads, so the spec waits until
+the slot holds the workspace, reloads, and answers Discard. Then
 `tilie.profiles` holds the same text and the dialog lists "lecture
 recording".
 

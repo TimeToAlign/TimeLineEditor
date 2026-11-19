@@ -76,6 +76,33 @@ async function profilesDialog(page: Page): Promise<Locator> {
   return dialog;
 }
 
+/** Whether the page's autosave slot holds a workspace. */
+function autosaved(page: Page): Promise<boolean> {
+  return page.evaluate(
+    () =>
+      new Promise<boolean>((resolve, reject) => {
+        const request = indexedDB.open("tilie-autosave");
+        let absent = false;
+        // A database not made yet is not made here: the editor makes it with its store.
+        request.onupgradeneeded = () => {
+          absent = true;
+          request.transaction?.abort();
+        };
+        request.onerror = () => (absent ? resolve(false) : reject(request.error));
+        request.onsuccess = () => {
+          const database = request.result;
+          const read = database.transaction("workspaces", "readonly").objectStore("workspaces");
+          const counted = read.count("current");
+          counted.onerror = () => reject(counted.error);
+          counted.onsuccess = () => {
+            database.close();
+            resolve(counted.result === 1);
+          };
+        };
+      }),
+  );
+}
+
 /** A composer field by its label. */
 function field(page: Page, name: "Verb" | "Vocabulary" | "Value"): Locator {
   return page.getByTestId("metadata-composer").getByRole("combobox", { name, exact: true });
@@ -156,8 +183,16 @@ test("an imported profile orders the verbs, exports byte for byte and outlives a
   expect(text).toBe(PROFILES);
   await exporting.getByRole("button", { name: "Cancel" }).click();
 
+  // The workspace is unsaved, so the reloaded page offers what the autosave
+  // holds. Whether the slot is written before the reload races the autosave's
+  // delay against the page's last write while it unloads; waiting for the
+  // slot makes the question certain on every engine.
+  await expect.poll(() => autosaved(page)).toBe(true);
   await page.reload();
   await page.waitForFunction(() => window.__tilie !== undefined);
+  const restore = page.getByRole("dialog", { name: /^Restore the unsaved workspace/u });
+  await restore.getByRole("button", { name: "Discard" }).click();
+  await expect(restore).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem("tilie.profiles"))).toBe(PROFILES);
   const reloaded = await profilesDialog(page);
   await expect(
