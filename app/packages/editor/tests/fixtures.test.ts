@@ -36,13 +36,13 @@ const names = FIXTURES.map(({ label }) => label);
 
 describe("the fixture menu", () => {
   it("lists every fixture once, under its path label, in code-unit order", () => {
-    expect([manifests.length, warnings.length, workspaces.length]).toEqual([146, 17, 5]);
+    expect([manifests.length, warnings.length, workspaces.length]).toEqual([150, 16, 5]);
     expect(names).toEqual(
       [...manifests, ...warnings, ...workspaces].sort((left, right) =>
         left < right ? -1 : left > right ? 1 : 0,
       ),
     );
-    expect(new Set(names).size).toBe(168);
+    expect(new Set(names).size).toBe(171);
     expect(names.slice(0, 5)).toEqual([
       "bare",
       "bare.minimal",
@@ -69,7 +69,7 @@ describe("an entry", () => {
   const opened = FIXTURES.filter(({ kind }) => kind === "workspace");
 
   it("is a manifest for every manifest fixture and warning case, a workspace for every end-to-end file", () => {
-    expect([imported.length, opened.length]).toEqual([163, 5]);
+    expect([imported.length, opened.length]).toEqual([166, 5]);
     expect(opened.map(({ label }) => label)).toEqual(workspaces);
   });
 

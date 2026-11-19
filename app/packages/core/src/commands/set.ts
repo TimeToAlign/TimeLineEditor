@@ -317,12 +317,12 @@ const BLOCK_SET: Setters<BlockTarget> = {
   },
   /**
    * The statements of the block's manifest, about the thing the bundle
-   * stands for, as a whole (`readDescribed`). They lie outside every element
+   * stands for, as a whole (`readStatements`). They lie outside every element
    * of the manifest, so the change reaches past its path: an editor of a
    * group or a timeline never makes it.
    */
   statements: manifestDescribed("statements"),
-  /** The provenance of the block's manifest's own pairs, as a whole, as `statements` is set. */
+  /** The provenance of the block's manifest's own pairs, as a whole (`readProvenance`), as `statements` is set. */
   provenance: manifestDescribed("provenance"),
   x: blockValue("x", readFinite),
   y: blockValue("y", readFinite),

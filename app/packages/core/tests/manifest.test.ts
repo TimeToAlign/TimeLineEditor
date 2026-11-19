@@ -1,11 +1,4 @@
-import {
-  dumps,
-  FORMAT_CONTEXT,
-  JsonFloat,
-  loads,
-  SCHEMA_VERSION,
-  withBareIds,
-} from "@timetoalign/timetoshare";
+import { dumps, JsonFloat, loads, SCHEMA_VERSION, withBareIds } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
@@ -124,7 +117,6 @@ describe("the minimal form in, either form out", () => {
       ...twin
     } = loads(fixture("bare.yaml").twin) as Record<string, unknown>;
     expect(loadText(dumps(twin))).toEqual({
-      "@context": FORMAT_CONTEXT,
       timetoshare: SCHEMA_VERSION,
       name: null,
       meta: {},

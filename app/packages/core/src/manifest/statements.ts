@@ -4,16 +4,25 @@
  * property–value pairs (`statements`) and their annotations (`provenance`).
  * This module is the one walk of them (`statementHolders`), the one view of
  * them alone (`skeletonOf`), on which the schema package's statement
- * functions run, the one derivation of the manifest's JSON-LD `@context`
- * (`withStatementContext`), and the one pruning of the references a removal
- * leaves dangling (`withoutReferencesTo`).
+ * functions run, the two forms of the manifest's JSON-LD `@context` (the
+ * held one, `withStatementContext`, and the file's, `withFullContext`), and
+ * the one pruning of the references a removal leaves dangling
+ * (`withoutReferencesTo`).
+ *
+ * A manifest core holds carries no term of the format in its `@context`:
+ * only the prefixes it declares itself, those that are no format term and no
+ * catalogue prefix with the same namespace, and only while its statements
+ * use them; without such a prefix it has no `@context`. The full context,
+ * the format's terms and every prefix the statements use, is added where a
+ * manifest leaves core: for a file, for the schema check and for the
+ * statement functions of the schema package.
  *
  * Every ID is bare, as core holds it; a reference to an element inside
  * `statements` and `provenance` is an IRI reference (`#cpt_1`), the same in
  * the file and in memory.
  */
 
-import { defaultCatalogue, toFileId, withContext } from "@timetoalign/timetoshare";
+import { defaultCatalogue, FORMAT_CONTEXT, toFileId, usedPrefixes } from "@timetoalign/timetoshare";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, jsonEqual } from "../json.ts";
 import type { Manifest, ProvenanceEntry, Region, Statements, TimelineManifest } from "./types.ts";
@@ -136,17 +145,17 @@ const skeletons = new WeakMap<Manifest, Skeleton>();
 
 /**
  * The statements of `manifest` alone, at the paths they have in it, with
- * its `@context` (`{}` where it has none). The schema package's statement
- * functions run on it, never on a manifest core holds: they return deep
- * copies, and a copy made structurally would lose what core reads
- * losslessly. Memoised by identity.
+ * the full context a file writes (`fullContext`: the format's terms and
+ * every prefix the statements use). The schema package's statement functions run on it,
+ * never on a manifest core holds: they return deep copies, and a copy made
+ * structurally would lose what core reads losslessly. Memoised by identity.
  */
 export function skeletonOf(manifest: Manifest): Skeleton {
   const known = skeletons.get(manifest);
   if (known !== undefined) return known;
   const { id, statements, provenance } = manifest;
   const skeleton: Skeleton = {
-    "@context": manifest["@context"] ?? {},
+    "@context": isJsonObject(manifest) ? fullContext(manifest) : {},
     ...(id === undefined ? {} : { id }),
     ...(statements === undefined ? {} : { statements }),
     ...(provenance === undefined ? {} : { provenance }),
@@ -160,7 +169,7 @@ export function skeletonOf(manifest: Manifest): Skeleton {
 const DESCRIBED_MEMBERS = ["@context", "id", "statements", "provenance"];
 const ELEMENT_LISTS = ["timelines", "children", "regions"];
 
-/** Any manifest value cut to what `withContext` reads: the context, the statements and the elements holding them. */
+/** Any manifest value cut to what a context is made from: the context, the statements and the elements holding them. */
 function describedOnly(value: JsonObject): JsonObject {
   const result: { [key: string]: Json } = {};
   for (const key of DESCRIBED_MEMBERS) {
@@ -177,24 +186,70 @@ function describedOnly(value: JsonObject): JsonObject {
 }
 
 /**
- * `manifest` with its `@context` derived (the schema package's `withContext`
- * with the shipped catalogue's prefixes): the format's terms and exactly the
- * prefixes its statements and provenance use, a prefix the manifest declares
- * itself kept with its namespace. `manifest` itself where its `@context` is
- * that already, and where a prefix is declared neither in it nor in the
- * catalogue, which the schema check then refuses at the IRI using it.
+ * The full context of `manifest` as a file writes it: the format's terms
+ * and every prefix its statements and provenance use, a prefix the manifest
+ * declares itself with its own namespace, else the shipped catalogue's, as
+ * the schema package's `withContext` makes it. A prefix declared in neither
+ * is left out rather than refused, so that the schema check refuses the IRI
+ * using it with its own message.
+ */
+function fullContext(manifest: JsonObject): JsonObject {
+  const own = manifest["@context"];
+  const catalogued = defaultCatalogue().prefixes;
+  const context: { [key: string]: Json } = { ...FORMAT_CONTEXT };
+  for (const prefix of usedPrefixes(describedOnly(manifest))) {
+    const declared =
+      isJsonObject(own) && !Object.hasOwn(FORMAT_CONTEXT, prefix) ? own[prefix] : undefined;
+    const namespace = typeof declared === "string" ? declared : catalogued[prefix];
+    if (namespace !== undefined) context[prefix] = namespace;
+  }
+  return context;
+}
+
+/**
+ * `manifest` with the full context a file writes (`fullContext`) as its
+ * `@context`, in the place the member has, else last: the form in which a
+ * manifest leaves core for a file or the schema check. `manifest` itself
+ * where that context is its own already, and where its `@context` is no
+ * object, which the schema check then refuses.
+ */
+export function withFullContext<T extends object>(manifest: T): T {
+  if (!isJsonObject(manifest)) return manifest;
+  const own = manifest["@context"];
+  if (own !== undefined && !isJsonObject(own)) return manifest;
+  const context = fullContext(manifest);
+  return jsonEqual(own, context) ? manifest : { ...manifest, "@context": context };
+}
+
+/** Whether a member of a `@context` is a prefix of the manifest's own: no format term, no catalogued prefix with its namespace. */
+function isOwnPrefix(prefix: string, namespace: Json): boolean {
+  if (Object.hasOwn(FORMAT_CONTEXT, prefix) || prefix.startsWith("@")) return false;
+  const catalogued = defaultCatalogue().prefixes;
+  return !(Object.hasOwn(catalogued, prefix) && catalogued[prefix] === namespace);
+}
+
+/**
+ * `manifest` with the `@context` core holds: of its own `@context`, only the
+ * prefixes it declares itself (no format term, no catalogue prefix with the
+ * same namespace) that its statements and provenance use, in their order;
+ * no `@context` where none is left. `manifest` itself where that is its
+ * `@context` already, and where its `@context` is no object, which the
+ * schema check then refuses.
  */
 export function withStatementContext<T extends object>(manifest: T): T {
-  if (!isJsonObject(manifest)) return manifest;
-  let context: Json | undefined;
-  try {
-    context = withContext(describedOnly(manifest), defaultCatalogue().prefixes)["@context"];
-  } catch (error) {
-    if (error instanceof Error) return manifest;
-    throw error;
+  if (!isJsonObject(manifest) || !Object.hasOwn(manifest, "@context")) return manifest;
+  const context = manifest["@context"];
+  if (!isJsonObject(context)) return manifest;
+  const used = new Set(usedPrefixes(describedOnly(manifest)));
+  const own: { [key: string]: Json } = {};
+  for (const [prefix, namespace] of Object.entries(context)) {
+    if (used.has(prefix) && isOwnPrefix(prefix, namespace)) own[prefix] = namespace;
   }
-  if (context === undefined) throw new Error("a derived context is present");
-  return jsonEqual(manifest["@context"], context) ? manifest : { ...manifest, "@context": context };
+  if (Object.keys(own).length > 0) {
+    return jsonEqual(context, own) ? manifest : { ...manifest, "@context": own };
+  }
+  const { "@context": _, ...rest } = manifest;
+  return rest as T;
 }
 
 // ---------------------------------------------------------------- references to removed elements

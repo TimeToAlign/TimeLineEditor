@@ -3,9 +3,10 @@
  * `Manifest` (`loadManifest`) and from a value with bare IDs to one
  * (`normalizeManifest`), the one path from a command's map, region or
  * flow-control element to its typed form (`readEntry`), and the one path
- * back to a file (`saveManifest`). A file writes every ID `#id`; TiLiE holds
- * every ID bare, and its one schema check of what it holds (`schemaChecked`)
- * checks the file form.
+ * back to a file (`saveManifest`). A file writes every ID `#id` and the
+ * full JSON-LD `@context`; TiLiE holds every ID bare and only the prefixes a
+ * manifest declares itself (`withStatementContext`), and its one schema
+ * check of what it holds (`schemaChecked`) checks the file form.
  */
 
 import type {
@@ -58,7 +59,7 @@ import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
-import { withStatementContext } from "./statements.ts";
+import { withFullContext, withStatementContext } from "./statements.ts";
 import type { Located } from "./tree.ts";
 import { findTimeline } from "./tree.ts";
 import type { Manifest, MeasureMap } from "./types.ts";
@@ -110,16 +111,27 @@ export function idFormPath(path: readonly PathSegment[], toFile: boolean): PathS
 }
 
 /**
+ * A value TiLiE holds, its IDs bare, as a file writes it: every ID `#id`
+ * (`withFileIds`) and the full context (`withFullContext`).
+ */
+function fileOf<T>(value: T): T {
+  const file = withFileIds(value);
+  return isJsonObject(file) ? withFullContext(file) : file;
+}
+
+/**
  * A manifest written with bare IDs, as TiLiE holds every manifest, as the
- * schema accepts it, or the schema's first problem: the value's file form
- * (`withFileIds`) is checked, and the problem's path leads into the value
- * itself (`idFormPath`). The one schema check of a manifest TiLiE holds.
+ * schema accepts it, or the schema's first problem: the value as a file
+ * writes it (`fileOf`) is checked, and the problem's path leads into the
+ * value itself (`idFormPath`). The value is returned as TiLiE holds it, its
+ * `@context` cut to the prefixes it declares itself
+ * (`withStatementContext`). The one schema check of a manifest TiLiE holds.
  */
 export function schemaChecked(value: unknown): LosslessManifest | Problem {
   try {
-    const file = withFileIds(value);
+    const file = fileOf(value);
     validate(file);
-    return withBareIds(file);
+    return withBareIds(withStatementContext(file));
   } catch (error) {
     return schemaProblem(error, true);
   }
@@ -155,13 +167,13 @@ export function withHeldIds<T>(value: T): T | LoadError {
 
 /**
  * The keys of a manifest TiLiE holds, its IDs bare, that its schema does not
- * declare (TimeToShare's `unknownKeys` of its file form), each path into the
- * manifest itself.
+ * declare (TimeToShare's `unknownKeys` of its file form with the full
+ * context a file writes, `fileOf`), each path into the manifest itself.
  *
  * @throws {SchemaValidationError} for a manifest the schema refuses.
  */
 export function unknownKeys(manifest: unknown): UnknownKey[] {
-  return fileUnknownKeys(withFileIds(manifest)).map(({ path, key }) => ({
+  return fileUnknownKeys(fileOf(manifest)).map(({ path, key }) => ({
     path: idFormPath(path, false),
     key,
   }));
@@ -169,13 +181,14 @@ export function unknownKeys(manifest: unknown): UnknownKey[] {
 
 /**
  * The warnings of a manifest TiLiE holds, its IDs bare (TimeToShare's
- * `manifestWarnings` of its file form: a manifest without `@context`, a
- * manifest with statements but no ID), each path into the manifest itself.
+ * `manifestWarnings` of its file form with the full context a file writes,
+ * `fileOf`: a manifest with statements but no ID), each path into the
+ * manifest itself.
  *
  * @throws {SchemaValidationError} for a manifest the schema refuses.
  */
 export function manifestWarnings(manifest: unknown): ManifestWarning[] {
-  return fileManifestWarnings(withFileIds(manifest)).map((warning) => ({
+  return fileManifestWarnings(fileOf(manifest)).map((warning) => ({
     ...warning,
     path: idFormPath(warning.path, false),
   }));
@@ -320,8 +333,8 @@ function completeForm(value: LosslessManifest): CompleteManifest {
 /**
  * The complete form of a value the schema accepts, the step of
  * `normalizeManifest` after the schema check, for a value already checked
- * (`schemaChecked`): its `@context` derived from its statements
- * (`withStatementContext`), completed and in canonical order, its segments
+ * (`schemaChecked`): its `@context` cut to the prefixes it declares itself
+ * and uses (`withStatementContext`), completed and in canonical order, its segments
  * unlocked (a segment's own lock has no meaning: its segment line's governs
  * it), every other lock as the value states it, its graphical block's
  * declarations made plain (`plainGraphical`); or every invariant problem of
@@ -355,7 +368,7 @@ export function manifestProblems(value: unknown): Problem[] {
 
 /**
  * A manifest from a value with bare IDs, the one way such a value becomes a
- * `Manifest`: its `@context` derived from its statements
+ * `Manifest`: its `@context` cut to the prefixes it declares itself and uses
  * (`withStatementContext`), as every value a command gives or leaves is, the
  * schema validates it (`schemaChecked`), then it is put in its
  * complete form (every default written out, whether it was complete or
@@ -405,7 +418,7 @@ export function completeOrdered<T>(value: T): T | Problem {
 
 /**
  * A value given to a command, read where it will lie: `probe`, the manifest
- * with the value in place, its `@context` derived (`withStatementContext`),
+ * with the value in place, its `@context` as core holds it (`withStatementContext`),
  * completed, ordered and checked whole by the schema as `settle` checks a
  * manifest, so that what the value names (a measure map, an element a
  * statement names) is found wherever it lies in the manifest. The complete form, or the schema's first
@@ -527,12 +540,14 @@ export function readManifestFile(text: string): ReadManifestFile | LoadError {
 /**
  * A manifest's text as a file of the form `file` writes it (TimeToShare's
  * `dumpsFile`), each member not given as `NEW_MANIFEST_FILE` says, every ID
- * written `#id` (`withFileIds`).
+ * written `#id` (`withFileIds`) and the full context a file writes
+ * (`withFullContext`): the format's terms and every prefix the statements
+ * use.
  *
  * @throws {InvalidManifestError} for a manifest the schema or the invariants refuse.
  */
 export function saveManifest(manifest: Manifest, file: Partial<FileForm> = {}): string {
   const problems = manifestProblems(manifest);
   if (problems.length > 0) throw new InvalidManifestError(problems);
-  return dumpsFile(withFileIds(manifest), { ...NEW_MANIFEST_FILE, ...file });
+  return dumpsFile(fileOf(manifest), { ...NEW_MANIFEST_FILE, ...file });
 }

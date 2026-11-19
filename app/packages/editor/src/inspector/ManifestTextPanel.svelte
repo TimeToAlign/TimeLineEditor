@@ -8,13 +8,16 @@
  * kept in the workspace's settings and changed there (`configure`).
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
-import { manifestFileOf, manifestWarnings, NEW_MANIFEST_FILE } from "@timetoalign/tilie-core";
+import {
+  manifestFileOf,
+  manifestWarnings,
+  NEW_MANIFEST_FILE,
+  unknownKeys,
+} from "@timetoalign/tilie-core";
 import type { FileForm } from "@timetoalign/timetoshare";
-import { unknownKeys } from "@timetoalign/timetoshare";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
-import { manifestOf } from "./manifestText.ts";
 import ProblemList from "./ProblemList.svelte";
 import type { InspectorProblem } from "./problems.ts";
 import { problemPlace, problemPointer } from "./problems.ts";
@@ -53,12 +56,12 @@ function configure(change: Partial<FileForm>): void {
 }
 
 /**
- * The keys of the block's manifest no definition declares, found in the
- * value the text shows, the file form, so their paths lead into the text;
- * then the manifest's own warnings (core's `manifestWarnings`). Warnings
- * never stop editing.
+ * The keys of the block's manifest no definition declares (core's
+ * `unknownKeys`), then the manifest's own warnings (core's
+ * `manifestWarnings`), both read as a file writes the manifest, with the
+ * format's context, which core does not hold. Warnings never stop editing.
  */
-const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
+const warnings = $derived(block === null ? [] : unknownKeys(block.manifest));
 const notes = $derived(block === null ? [] : manifestWarnings(block.manifest));
 
 function onTextKey(event: KeyboardEvent): void {

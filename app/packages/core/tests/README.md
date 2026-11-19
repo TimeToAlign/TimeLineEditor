@@ -212,11 +212,10 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
    locked: false, is_segment_line: false, meta: {}, children: [],
    conversion_maps: [], regions: [], flow_control: []}` and the manifest
-   around it `{"@context": FORMAT_CONTEXT, timetoshare, name: null, meta:
-   {}, groups: [], measure_maps: [], timelines: [root]}`: no `id` and no
-   `graphical`, whose default is "absent", and the `@context` derived on
-   reading, the format's terms (the schema package's `FORMAT_CONTEXT`) and
-   no prefix, since nothing is stated.
+   around it `{timetoshare, name: null, meta: {}, groups: [],
+   measure_maps: [], timelines: [root]}`: no `id` and no `graphical`, whose
+   default is "absent", and no `@context`: core holds none of the format's
+   terms, and the manifest declares no prefix of its own.
 5. **Unknown keys survive.** `bare.yaml` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
@@ -2130,9 +2129,14 @@ the same result):
 TimeToShare puts `statements` (property–value pairs about the thing an
 element stands for) and `provenance` (the annotations of those pairs, and
 the proposed and rejected pairs, which are never stated) on the manifest,
-on every timeline at any depth and on every region; a manifest carrying
-either holds the JSON-LD `@context` that names the format's terms and the
-prefixes its statements use. Core keeps both members as given, edits them
+on every timeline at any depth and on every region; a manifest file
+carrying either holds the JSON-LD `@context` that names the format's terms
+and the prefixes its statements use. Core holds no term of the format: of a
+manifest's `@context` it keeps only the prefixes the manifest declares
+itself (no format term, no catalogue prefix with the same namespace), and
+only while its statements use them, and no `@context` where none is left;
+the full context is written where a manifest leaves core, for a file or
+the schema check. Core keeps both members as given, edits them
 only whole, by `set` on the element holding them (the block for the
 manifest's own, as `name` is the manifest's), and leaves every rule of them
 to the schema package's check of the settled manifest: a refusal is
@@ -2140,7 +2144,7 @@ to the schema package's check of the settled manifest: a refusal is
 "manifest", …]`, the path of the offending value in the manifest. What core
 owns, and these tests prove, is the walk of the holders in subject order,
 the skeleton the schema package's statement functions run on, the
-derivation of `@context` on every settle, the pruning of references a
+context core holds and the one a file is given, the pruning of references a
 removal leaves, the reading of statements given with an added timeline
 where they will lie, the guard's view of what an element outside an editor
 states, the warnings, and the user's identity as `stated_by` names it.
@@ -2156,6 +2160,10 @@ provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
 `basis: ["#clt_6", "#dpt_1"]`; `dpt_1`'s one entry is the proposed pair
 `dcterms:source` `{id: "#cpt_1"}`. `P` below is `["0000000000",
 "manifest"]`, `K(x)` the address key of `{block: "0000000000", id: x}`.
+`C` is the `@context` of `L`'s file, read from its text: the format's terms
+and the catalogue's prefixes its statements use, each with the catalogue's
+namespace. `F(view)` is the `@context` of the text `saveManifest` writes of
+the block's manifest.
 
 - **(a) The walk.** `statementHolders(L)` yields, in this order, kind, ID
   and path: manifest `null` `[]`; timeline `clt_6` `["timelines", 0]`;
@@ -2165,18 +2173,20 @@ provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
   objects, `undefined` for `cpt_2`, which states nothing; `statementHolder(L,
   "cpt_2")` is that holder, `statementHolder(L, "nope")` `undefined`.
 - **(b) The skeleton** of `L` equals one written by hand from the fixture:
-  `{"@context": L's, id: "layerit_clair_de_lune", statements: L's,
+  `{"@context": C, id: "layerit_clair_de_lune", statements: L's,
   timelines: [{id: "clt_6", statements, provenance, regions: [], children:
   []}, {id: "cpt_1", statements, provenance, regions: [], children: [{id:
   "cpt_2", regions: [], children: []}]}, {id: "dpt_1", statements,
   provenance, regions: [], children: []}]}`, each member the element's own;
-  a second call returns the same object. The schema package's
+  a second call returns the same object. Its context is the file's, though
+  core holds none for `L`: the statement functions expand prefixes with it.
+  The schema package's
   `subjectPath(skeleton, "cpt_2")` is `["timelines", 1, "children", 0]`, a
   path of `L`.
 - **(c) A statement accepted.** `set` of `cpt_2`'s `statements` to
   `{"wdt:P31": [{id: "wd:Q98069877"}]}` is accepted, stores exactly that,
-  leaves `@context` as it was (both prefixes are declared), and adds one
-  journal entry; `undo` gives back the view before it.
+  holds no `@context` (both prefixes are the catalogue's), `F` is `C`, and
+  it adds one journal entry; `undo` gives back the view before it.
 - **(d) A value naming no element.** `cpt_2`'s statements
   `{"dcterms:source": [{id: "#nope"}]}` are refused `schema_violation`
   "'#nope' names no element of this manifest" at `[...P, "timelines", 1,
@@ -2184,15 +2194,15 @@ provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
 - **(e) A prefix neither declared nor catalogued.** `{"foaf:maker": [{id:
   "wd:Q1"}]}` is refused "'foaf:maker': the prefix 'foaf' is not declared in
   @context" at `[...P, "timelines", 1, "children", 0, "statements",
-  "foaf:maker"]`: the derivation leaves the manifest as it is and the check
-  refuses it.
+  "foaf:maker"]`: the context the check is given leaves the prefix out, and
+  the check refuses the IRI using it.
 - **(f) The context follows the statements.** `add` of the region `{id:
   "region_1", start: 0.0, end: 10.0}` into `cpt_1`, then `set` of its
-  statements to `{"bf:instanceOf": [{id: "wd:Q29117946"}]}`: `@context`
-  gains `"bf": "http://id.loc.gov/ontologies/bibframe/"` (the catalogue's),
-  every other entry as it was; `set` of its `statements` to `null`: `bf`
-  is gone again, `@context` is `L`'s, and the region has no `statements`
-  member.
+  statements to `{"bf:instanceOf": [{id: "wd:Q29117946"}]}`: the manifest
+  holds no `@context` (`bf` is the catalogue's), and `F` is `C` with
+  `"bf": "http://id.loc.gov/ontologies/bibframe/"` added; `set` of its
+  `statements` to `null`: still no `@context`, `F` is `C` again, and the
+  region has no `statements` member.
 - **(g) A proposed pair is never stated.** `cpt_1`'s statements with
   `"wdt:P2550": [{id: "wd:Q29117946"}]` added, its provenance untouched, are
   refused "the pair is stated; a proposed pair is never stated" at `[...P,
@@ -2235,10 +2245,28 @@ provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
   `"tag:timetoalign.github.io,2026:tilie:user:Gerhardt"`, `statedBy({name:
   "Clara Wieck", orcid: null})` `"tag:timetoalign.github.io,2026:tilie:user:Clara%20Wieck"`,
   and with the iD `"https://orcid.org/0000-0002-1825-0097"`.
-- **(m) Warnings.** `manifestWarnings(L)` is `[]`. The schema package's
+- **(m) Warnings.** `manifestWarnings(L)` is `[]`: they are read with the
+  context a file writes, so a held manifest, which has none, is never
+  "without `@context`". The schema package's
   warning case `bundle_blank_statements`, loaded with `loadManifest`, gives
   `[{code: "bundle_blank", path: ["statements"], message: "the manifest has
   statements but no ID; its subject is a blank node"}]`.
+- **(n) The context core holds, and a file's back.** `L` loaded has no
+  `@context` member, and `saveManifest` of it with the form its file was
+  read in (`readManifestFile`) gives the fixture's text back byte for byte,
+  `C` included. The fixture `statements/op106_work.yaml` declares the
+  prefix `mbw` (`http://musicbrainz.org/work/`), which the catalogue lacks,
+  and uses it: core holds exactly `{"mbw": "http://musicbrainz.org/work/"}`
+  as its `@context`, and `saveManifest` gives its text back byte for byte.
+- **(o) An own prefix, kept while used.** `set` of the block's `manifest` to
+  `L` with `@context` `{"@version": 1.1, "wd":
+  "http://www.wikidata.org/entity/", "mbw": "http://musicbrainz.org/work/"}`
+  and the bundle's statements given `"schema:about": [{id:
+  "mbw:4a622b0d-b0c0-405e-b49e-05b70c108284"}]`: core holds `{"mbw":
+  "http://musicbrainz.org/work/"}` (the format term and the catalogue's
+  `wd` with the catalogue's namespace dropped), and `F` is `C` with `mbw`
+  added. `set` of the bundle's `statements` back to `L`'s: no statement uses
+  `mbw`, the manifest holds no `@context`, and `F` is `C`.
 
 ## The store and the journal (`store.test.ts`)
 

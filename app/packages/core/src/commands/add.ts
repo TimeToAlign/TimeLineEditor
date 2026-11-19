@@ -267,9 +267,10 @@ function readTimeline(
  * `timeline`, read with what its elements state set aside, with what
  * `described` holds by the ID of each element, read where it will lie: the
  * timeline, its statements and provenance in place, among the roots of
- * `manifest`, which is read whole (`readInPlace`, its `@context` derived), so
- * that a value may name any element of the manifest. A problem is reported
- * at `at`, where the timeline will lie in the block, and below it.
+ * `manifest`, which is read whole (`readInPlace`, checked with the context a
+ * file writes), so that a value may name any element of the manifest. A
+ * problem is reported at `at`, where the timeline will lie in the block, and
+ * below it.
  */
 function withDescriptionsRead(
   timeline: TimelineManifest,

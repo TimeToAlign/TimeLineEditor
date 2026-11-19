@@ -297,8 +297,8 @@ path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
 end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
-code-unit order. For the installed package that is 146 manifest fixtures,
-17 warning cases and 5 workspaces, 168 options, from `bare` to
+code-unit order. For the installed package that is 150 manifest fixtures,
+16 warning cases and 5 workspaces, 171 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -308,7 +308,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 163 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 166 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -406,9 +406,9 @@ accepts and refuses).
    and provenance have no nullable member. A manifest of
    two roots (one of unknown length, one holding a `LinearMap` whose
    `target_unit` is null), a group and a measure map has its TOML text
-   pinned whole, the format's `@context` that core gives every manifest
-   it holds written as the table `["@context"]` after the timelines, its
-   nine object terms as subtables, and reads back with all seven nulls. A measure-map row with
+   pinned whole, without `@context` (core holds none of the format's
+   terms, and the manifest declares no prefix of its own), and reads back
+   with all seven nulls. A measure-map row with
    `nominal_length: null` (optional, no default null) is refused
    `not_representable` at its path, "TOML has no null, and the schema
    neither requires this member nor defaults it to null", and goes through
@@ -427,11 +427,12 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 98:17 (after
-   the format's `@context` and the default timestamps' `graphical`, which
-   sort first), YAML `locked: [false` at 83:5, TOML `locked = ` at 77:1
-   (the `@context` table and its subtables before the timelines' array of
-   tables). YAML is read by TimeToShare's `parseYaml`, the
+   reader's 1-based line and column: JSON `"locked": ,` at 37:17 (after
+   the default timestamps' `graphical`, which sorts first), YAML `locked:
+   [false` at 32:5 (the line after the unclosed sequence), TOML `locked = `
+   at 16:1 (the line after the missing value; the top-level keys, `[meta]`
+   and the timeline's keys before it, `graphical`'s tables after the
+   timelines). YAML is read by TimeToShare's `parseYaml`, the
    reader Import uses, so the panel refuses what Import refuses:
    `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
    (`syntax_error` at 1:4, the anchor's `&`) with one message, "an anchor
@@ -456,8 +457,10 @@ accepts and refuses).
 7. **The four modes.** A text is complete or minimal, with or without the
    styling (`graphical`). With `bare` styled by one `style` command, each
    mode's JSON text is pinned whole: the fixture `bare.yaml` or
-   `bare.minimal.yaml`, whose `graphical` holds its root's default
-   timestamps, without that `graphical`, or with the rule added to
+   `bare.minimal.yaml` without its `@context` (the text shows the manifest
+   as the store holds it, which keeps no term of the format, and `bare`
+   declares no prefix of its own), whose `graphical` holds its root's
+   default timestamps, without that `graphical`, or with the rule added to
    its `rules`. In every mode
    and format an applied edit stores the complete manifest with that edit
    (the styling kept when the text leaves it out) and shows the text

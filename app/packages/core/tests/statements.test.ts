@@ -8,7 +8,12 @@ import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isCommandError } from "../src/errors.ts";
 import type { JsonObject } from "../src/json.ts";
-import { loadManifest, manifestWarnings } from "../src/manifest/io.ts";
+import {
+  loadManifest,
+  manifestWarnings,
+  readManifestFile,
+  saveManifest,
+} from "../src/manifest/io.ts";
 import { skeletonOf, statementHolder, statementHolders } from "../src/manifest/statements.ts";
 import { findTimeline } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
@@ -27,10 +32,16 @@ function packageText(name: string): string {
   return readFileSync(path.join(packageDir, "fixtures", name), "utf8");
 }
 
-const L = loadText(
-  packageText(`${SCHEMA_VERSION}/statements/layerit_recording.yaml`),
-  "layerit_recording.yaml",
-);
+/** The text of a statement fixture of the installed schema package. */
+function statementsText(name: string): string {
+  return packageText(`${SCHEMA_VERSION}/statements/${name}.yaml`);
+}
+
+const L_TEXT = statementsText("layerit_recording");
+const L = loadText(L_TEXT, "layerit_recording.yaml");
+/** The `@context` of `L`'s file: the format's terms and the catalogue's prefixes its statements use. */
+const L_CONTEXT = (loads(L_TEXT) as JsonObject)["@context"];
+const MBW = "http://musicbrainz.org/work/";
 
 /** `P`: where a problem of block `A`'s manifest lies. */
 const P = [A, "manifest"];
@@ -52,6 +63,11 @@ const remove = (...targets: Address[]) => ({ type: "remove", targets });
 
 function manifestOf(view: View): Manifest {
   return block(view).manifest;
+}
+
+/** The `@context` a file of the block's manifest writes. */
+function fileContext(view: View): unknown {
+  return (loads(saveManifest(manifestOf(view))) as JsonObject)["@context"];
 }
 
 function timelineOf(view: View, id: string): TimelineManifest {
@@ -100,7 +116,7 @@ describe("the holders of statements", () => {
       provenance: own(id).provenance,
     });
     expect(skeletonOf(L)).toEqual({
-      "@context": L["@context"],
+      "@context": L_CONTEXT,
       id: "layerit_clair_de_lune",
       statements: L.statements,
       timelines: [
@@ -119,14 +135,15 @@ describe("the holders of statements", () => {
 });
 
 describe("setting statements", () => {
-  it("(c) stores a statement, keeps the context, and journals and undoes it", () => {
+  it("(c) stores a statement, holds no context, and journals and undoes it", () => {
     const view = viewOfL();
     const store = storeOf(view);
     const journal = store.journal.length;
     const statements = { "wdt:P31": [{ id: "wd:Q98069877" }] };
     expect(store.dispatch(set(at("cpt_2"), { statements }))).toBeNull();
     expect(timelineOf(store.view, "cpt_2").statements).toEqual(statements);
-    expect(manifestOf(store.view)["@context"]).toEqual(L["@context"]);
+    expect("@context" in manifestOf(store.view)).toBe(false);
+    expect(fileContext(store.view)).toEqual(L_CONTEXT);
     expect(store.journal.length).toBe(journal + 1);
     store.undo();
     expect(store.view).toEqual(storeOf(view).view);
@@ -155,7 +172,7 @@ describe("setting statements", () => {
     });
   });
 
-  it("(f) derives the context from the statements", () => {
+  it("(f) writes the context a file needs from the statements", () => {
     const added = changed(viewOfL(), {
       type: "add",
       into: at("cpt_1"),
@@ -163,13 +180,15 @@ describe("setting statements", () => {
     });
     const statements = { "bf:instanceOf": [{ id: "wd:Q29117946" }] };
     const stated = changed(added, set(at("region_1"), { statements }));
-    expect(manifestOf(stated)["@context"]).toEqual({
-      ...L["@context"],
+    expect("@context" in manifestOf(stated)).toBe(false);
+    expect(fileContext(stated)).toEqual({
+      ...(L_CONTEXT as JsonObject),
       bf: "http://id.loc.gov/ontologies/bibframe/",
     });
     expect(timelineOf(stated, "cpt_1").regions[0]?.statements).toEqual(statements);
     const cleared = changed(stated, set(at("region_1"), { statements: null }));
-    expect(manifestOf(cleared)["@context"]).toEqual(L["@context"]);
+    expect("@context" in manifestOf(cleared)).toBe(false);
+    expect(fileContext(cleared)).toEqual(L_CONTEXT);
     const [region] = timelineOf(cleared, "cpt_1").regions;
     expect(region !== undefined && "statements" in region).toBe(false);
   });
@@ -306,5 +325,34 @@ describe("warnings", () => {
         message: "the manifest has statements but no ID; its subject is a blank node",
       },
     ]);
+  });
+});
+
+describe("the context core holds", () => {
+  it("(n) holds only a manifest's own prefixes, and gives a file its context back", () => {
+    expect("@context" in L).toBe(false);
+    const recording = readManifestFile(L_TEXT);
+    if ("problems" in recording) throw new Error("L loads");
+    expect(saveManifest(recording.manifest, recording.file)).toBe(L_TEXT);
+    const workText = statementsText("op106_work");
+    const work = readManifestFile(workText);
+    if ("problems" in work) throw new Error("op106_work loads");
+    expect(work.manifest["@context"]).toEqual({ mbw: MBW });
+    expect(saveManifest(work.manifest, work.file)).toBe(workText);
+  });
+
+  it("(o) keeps an own prefix while it is used, and writes it in full", () => {
+    const about = { "schema:about": [{ id: "mbw:4a622b0d-b0c0-405e-b49e-05b70c108284" }] };
+    const manifest = {
+      ...L,
+      "@context": { "@version": 1.1, wd: "http://www.wikidata.org/entity/", mbw: MBW },
+      statements: { ...L.statements, ...about },
+    };
+    const held = changed(viewOfL(), set(BLOCK, { manifest }));
+    expect(manifestOf(held)["@context"]).toEqual({ mbw: MBW });
+    expect(fileContext(held)).toEqual({ ...(L_CONTEXT as JsonObject), mbw: MBW });
+    const unused = changed(held, set(BLOCK, { statements: L.statements }));
+    expect("@context" in manifestOf(unused)).toBe(false);
+    expect(fileContext(unused)).toEqual(L_CONTEXT);
   });
 });

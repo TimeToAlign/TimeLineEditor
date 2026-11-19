@@ -282,67 +282,6 @@ describe("the TOML null rule", () => {
         "",
         "[timelines.meta]",
         "",
-        '["@context"]',
-        '"@version" = 1.1',
-        'id = "@id"',
-        'type = "@type"',
-        'statements = "@nest"',
-        'list = "@list"',
-        'timelines = "@included"',
-        'children = "@included"',
-        'regions = "@included"',
-        'groups = "@included"',
-        'label = "http://www.w3.org/2000/01/rdf-schema#label"',
-        'value = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"',
-        'note = "http://www.w3.org/2000/01/rdf-schema#comment"',
-        'manual = "https://timetoalign.github.io/timetoshare/ns#Manual"',
-        'reconciled = "https://timetoalign.github.io/timetoshare/ns#Reconciled"',
-        'imported = "https://timetoalign.github.io/timetoshare/ns#Imported"',
-        'inferred = "https://timetoalign.github.io/timetoshare/ns#Inferred"',
-        'confirmed = "https://timetoalign.github.io/timetoshare/ns#Confirmed"',
-        'proposed = "https://timetoalign.github.io/timetoshare/ns#Proposed"',
-        'rejected = "https://timetoalign.github.io/timetoshare/ns#Rejected"',
-        'exact = "http://www.w3.org/2004/02/skos/core#exactMatch"',
-        'close = "http://www.w3.org/2004/02/skos/core#closeMatch"',
-        'broad = "http://www.w3.org/2004/02/skos/core#broadMatch"',
-        'narrow = "http://www.w3.org/2004/02/skos/core#narrowMatch"',
-        'related = "http://www.w3.org/2004/02/skos/core#relatedMatch"',
-        "",
-        '["@context".provenance]',
-        '"@reverse" = "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"',
-        "",
-        '["@context".property]',
-        '"@id" = "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"',
-        '"@type" = "@vocab"',
-        "",
-        '["@context".stated_by]',
-        '"@id" = "http://www.w3.org/ns/prov#wasAttributedTo"',
-        '"@type" = "@id"',
-        "",
-        '["@context".date]',
-        '"@id" = "http://purl.org/dc/terms/date"',
-        '"@type" = "http://www.w3.org/2001/XMLSchema#date"',
-        "",
-        '["@context".method]',
-        '"@id" = "https://timetoalign.github.io/timetoshare/ns#method"',
-        '"@type" = "@vocab"',
-        "",
-        '["@context".service]',
-        '"@id" = "https://timetoalign.github.io/timetoshare/ns#service"',
-        '"@type" = "@id"',
-        "",
-        '["@context".basis]',
-        '"@id" = "http://www.w3.org/ns/prov#hadPrimarySource"',
-        '"@type" = "@id"',
-        "",
-        '["@context".match]',
-        '"@id" = "https://timetoalign.github.io/timetoshare/ns#match"',
-        '"@type" = "@vocab"',
-        "",
-        '["@context".status]',
-        '"@id" = "https://timetoalign.github.io/timetoshare/ns#status"',
-        '"@type" = "@vocab"',
-        "",
         "[meta]",
         "",
       ].join("\n"),
@@ -489,9 +428,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 98, 17],
-      ["syntax_error", 83, 5],
-      ["syntax_error", 77, 1],
+      ["syntax_error", 37, 17],
+      ["syntax_error", 32, 5],
+      ["syntax_error", 16, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });
@@ -573,9 +512,12 @@ describe("the four text modes", () => {
   const objectOf = (name: string) => loads(fixtureText(name)) as { [key: string]: Json };
   /** A value's pretty JSON, the text the panel shows in JSON. */
   const json = (value: unknown): string => dumps(value, { serialization: "json" });
-  /** `fixture` without its `graphical` (the styling), or with the rule added to it. */
+  /**
+   * `fixture` without its `@context` (core holds none of the format's terms, and `bare` declares
+   * no prefix) and without its `graphical` (the styling), or with the rule added to it.
+   */
   function shownOf(fixture: { [key: string]: Json }, styled: boolean): string {
-    const { graphical, ...rest } = fixture;
+    const { "@context": _, graphical, ...rest } = fixture;
     if (!styled) return json(rest);
     const own = graphical as { [key: string]: Json };
     const rules = [...((own.rules ?? []) as Json[]), RULE];
@@ -585,8 +527,9 @@ describe("the four text modes", () => {
   const bareMinimal = fixtureText("bare.minimal");
   /**
    * The JSON text each mode shows: the fixture `bare.yaml` or
-   * `bare.minimal.yaml`, whose `graphical` holds its root's default
-   * timestamps, without that `graphical` or with the rule added to it.
+   * `bare.minimal.yaml` without its `@context`, whose `graphical` holds its
+   * root's default timestamps, without that `graphical` or with the rule
+   * added to it.
    */
   const SHOWN: Record<Mode, string> = {
     "complete without styling": shownOf(objectOf("bare"), false),

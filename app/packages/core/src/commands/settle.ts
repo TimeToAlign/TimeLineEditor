@@ -1,6 +1,7 @@
 /**
  * What every command leaves behind it: each manifest it changed with its
- * `@context` derived from its statements (`withStatementContext`), every
+ * `@context` cut to the prefixes it declares itself and its statements use
+ * (`withStatementContext`), every
  * segment line given its first segment (`withSegmentLinesCovered`), in its
  * complete form and canonical order (an added element may leave out what
  * has a default), checked against the schema and the invariants, and the
@@ -192,9 +193,9 @@ function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifes
 }
 
 /**
- * Settle each manifest `changes` names: derive its `@context` from its
- * statements (covering adds none, so the context holds for the covered
- * manifest too), cover its segment lines, complete it, order it and, with
+ * Settle each manifest `changes` names: cut its `@context` to the prefixes
+ * it declares itself and its statements use (covering states nothing, so
+ * the context holds for the covered manifest too), cover its segment lines, complete it, order it and, with
  * `checked`, refuse its first schema or invariant problem, at `[<block id>,
  * "manifest", …]`; then fit its block's places to it (`keptPlaces`, the
  * block's manifest in `before` telling which card a stale key named). A
