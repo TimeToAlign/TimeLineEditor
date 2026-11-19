@@ -10,6 +10,7 @@
  * | `gnd` | work, agent | yes |
  * | `musicbrainz`, with a server | work, agent, recording, release | yes |
  * | `youtube` | nothing | yes |
+ * | `service:<id>`, a service of the type profiles | every kind | no |
  *
  * Every other system is neither searched nor resolved, and asking it sends
  * no request.
@@ -18,6 +19,7 @@
 import type { ConnectOptions } from "@timetoalign/tilie-client";
 import { type Catalogue, defaultCatalogue } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
+import { profilesState } from "../profiles/profiles.svelte.ts";
 import { resolveGnd, searchGnd } from "./gnd.ts";
 import { type Candidate, GND_FILTERS, type LookupContext, type ValueKind } from "./kinds.ts";
 import {
@@ -26,6 +28,8 @@ import {
   resolveMusicBrainz,
   searchMusicBrainz,
 } from "./musicbrainz.ts";
+import type { Service } from "./services.ts";
+import { reconcileService, ServiceClients, searchService, serviceOf } from "./services.ts";
 import { resolveWikidata, searchWikidata } from "./wikidata.ts";
 import { resolveYoutube } from "./youtube.ts";
 
@@ -101,6 +105,11 @@ export interface LookupOptions {
   readonly language?: string;
   /** The catalogue that recognises IRIs; the default catalogue by default. */
   readonly catalogue?: Catalogue;
+  /**
+   * The viewer's services, read at every request: the page's type
+   * profiles' by default.
+   */
+  readonly services?: () => readonly Service[];
 }
 
 /** The kinds a system searches. */
@@ -126,9 +135,13 @@ export function createLookup(options: LookupOptions): Lookup {
   };
   const musicbrainz =
     options.server === null ? null : musicbrainzClient(options.server, context.fetch);
+  const services = options.services ?? (() => profilesState().profiles.services);
+  const clients = new ServiceClients(context.fetch);
+  const service = (system: string): Service | undefined => serviceOf(services(), system);
 
   const lookup: Lookup = {
-    searchable: (system, kind) => searchesKind(system, kind, musicbrainz !== null),
+    searchable: (system, kind) =>
+      service(system) !== undefined || searchesKind(system, kind, musicbrainz !== null),
     resolvable: (system) =>
       system === "wikidata" ||
       system === "gnd" ||
@@ -138,6 +151,8 @@ export function createLookup(options: LookupOptions): Lookup {
       if (!lookup.searchable(system, kind)) return [];
       if (system === "wikidata") return searchWikidata(context, kind, text, signal);
       if (system === "gnd") return searchGnd(context, kind, text, signal);
+      const own = service(system);
+      if (own !== undefined) return searchService(clients, own, text, signal);
       if (musicbrainz !== null) return searchMusicBrainz(musicbrainz, kind, text, signal);
       return [];
     },
@@ -155,6 +170,8 @@ export function createLookup(options: LookupOptions): Lookup {
       if (system === "musicbrainz" && musicbrainz !== null) {
         return reconcileMusicBrainz(musicbrainz, kind, texts, signal);
       }
+      const own = service(system);
+      if (own !== undefined) return reconcileService(clients, own, texts, signal);
       const best: (Candidate | null)[] = [];
       for (const text of texts) {
         best.push((await lookup.search(system, kind, text, signal))[0] ?? null);

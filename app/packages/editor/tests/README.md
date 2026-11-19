@@ -1703,3 +1703,141 @@ de lune" and agent "Maria João Pires" in one request each with `limit` 3,
 the best candidate each with `match` true; resolving the work
 `8d331505-…` gives its MusicBrainz title and the cross-reference Wikidata
 Q29117946.
+
+## Type profiles (`profiles.test.ts`, `profiles-dialog.test.ts`)
+
+Type profiles are the viewer's application settings: types of thing with
+their "is a" patterns per catalogue system, the verbs usually stated of
+such a thing and their preferred lookup systems, and the viewer's lookup
+services (Reconciliation Service API endpoints). They live in the
+browser's `localStorage` under `tilie.profiles`, never in a workspace or a
+manifest, and travel as a YAML file of the shape `{profiles: [{id, label,
+is_a: {<system>: [{pattern}]}, verbs, lookup}], services: [{id, name,
+endpoint}]}`. What proves them is that a file is read exactly or refused
+with the first problem's path, written back byte for byte, kept across a
+page, and that the Metadata tab's choices and the lookup follow the
+profiles in force; the expected texts are written out here by hand from
+the shipped catalogue (its systems, verbs and types), never produced by
+running the code. The tests' profile `lecture_recording` is `{id:
+lecture_recording, label: "lecture recording", is_a: {fallback: [{pattern:
+{type: ["schema:AudioObject"]}}]}, verbs: [performed_by, recorded_at_on],
+lookup: [wikidata]}`, the test service `{id: mb, name: "MusicBrainz route",
+endpoint: "http://127.0.0.1:8000/api/reconcile/musicbrainz"}`.
+
+**The file** (`profiles.test.ts`). The file of `lecture_recording` and no
+service is, in canonical YAML, the 13 lines `profiles:`, `  -`, `    id:
+lecture_recording`, `    is_a:`, `      fallback:`, `        -`, `
+pattern:`, `            type: ["schema:AudioObject"]`, `    label: "lecture
+recording"`, `    lookup: [wikidata]`, `    verbs: [performed_by,
+recorded_at_on]`, `services: []` and an empty line (keys by code point,
+scalar lists on one line); reading it and writing it again gives the same
+bytes. JSON text with the same value reads alike. Each rule is refused
+alone, with the message `<path>: <reason>` (the path's members joined by
+`/`, none for the root): a text that is no YAML begins "The file is no
+YAML or JSON: "; `[]` → "a profile file is an object"; a root member
+`types` → "'types' is no member here"; no `services` → "'services' is
+missing"; a service id `m b` → "services/0/id: 'm b' is no service id: use
+A–Z, a–z, 0–9, _ and - only"; an endpoint `ftp://x.org/` →
+"services/0/endpoint: 'ftp://x.org/' is no http or https URL"; two services
+`mb` → "services/1/id: 'mb' is given twice"; a profile id `Lecture` →
+"profiles/0/id: 'Lecture' is no profile id: use a–z, 0–9 and _ only"; an
+empty label → "profiles/0/label: a label is a non-empty text"; an "is a"
+system `discogs` → "profiles/0/is_a/discogs: 'discogs' is no system of the
+catalogue"; a type `foo:Bar` → "profiles/0/is_a/fallback/0/pattern/type/0:
+'foo:Bar' is no IRI: write it absolute or with a prefix the catalogue
+declares"; a pattern `{}` → "profiles/0/is_a/fallback/0/pattern: a pattern
+states at least one pair"; a verb `recorded` →
+"profiles/0/verbs/0: 'recorded' is no verb of the catalogue"; `performed_by`
+twice → "profiles/0/verbs/1: 'performed_by' is given twice"; a lookup
+system `service:x` without that service → "profiles/0/lookup/0:
+'service:x' is no system of the catalogue and no service of the file",
+while `service:mb` with the service `mb` is read; two profiles
+`lecture_recording` → "profiles/1/id: 'lecture_recording' is given twice".
+
+**The catalogue offered** (`profiles.test.ts`). With no profile and no
+service, the catalogue offered is the shipped one itself. With
+`lecture_recording`, the types begin `lecture_recording` and then hold the
+shipped seven in their order; a profile `video` (label "film") replaces the
+shipped `video` and comes first, the other six following in their order.
+The service `mb` is the system `service:mb` named "MusicBrainz route",
+after the shipped ten. Through the Metadata tab's own functions, over the
+page's profiles: the "is a" pairs `[["type", "schema:AudioObject"]]` give
+the types `lecture_recording`, `recorded_performance`, `dj_set` (each
+states it once, the profile first), so the Verb options begin "is a",
+"performed by", "recorded at, recorded on", "is a recording of"; without
+profiles they begin "is a", "is a recording of", "performed by". The type
+options of "Other vocabularies" are "lecture recording", "recorded
+performance", "video", "printed or scanned edition", "score encoding",
+"DJ set". "performed by"
+offers the vocabularies Wikidata, MusicBrainz, GND, MeLODy / LRMoo,
+Other vocabularies, MusicBrainz route, An element of this manifest (the
+service after the catalogue's systems, since the fallback pattern takes a
+thing); "is a", whose fallback takes no thing, offers no service. A change
+of the profiles is seen at the next read: a `$derived` over the offered
+types, followed outside a component (`follow.svelte.ts`), recomputes after
+`set`.
+
+**Kept in the browser** (`profiles.test.ts`). Nothing stored gives no
+profiles; `set` stores the file's canonical YAML under `tilie.profiles`
+and a new state reads it back equal; a stored text that is no profile file
+(not YAML, `[]`, a profile naming an unknown verb) gives no profiles;
+storage throwing on read or write leaves the profiles set in memory.
+`profilesState()` is one state per page, made when the module is
+evaluated (state made inside a running `$derived` would belong to it, and
+the derived would not follow it); `resetProfiles()` reads storage into it
+again, as a new page would.
+
+**The services' lookup** (`profiles.test.ts`), through `createLookup` with
+the services given and the replaying `fetch` of "Looking values up",
+answering requests without a type by hand from the route's recordings. The
+service searches every kind and resolves nothing; a system `service:x` no
+service names is neither. Searching "Pires" reads the manifest (which
+offers suggestions) and asks `…/suggest/entity?prefix=Pires`, without a
+type: 10 candidates from `musicbrainz-search-agent-pires.json`, the first
+`{system: "service:mb", iri:
+"http://musicbrainz.org/artist/7f3a2f7e-6277-4d72-b673-f3a8128a6aa0",
+label: "Alexandre Pires", description: "Person · Brazil", image: null,
+crossReferences: [], service:
+"http://127.0.0.1:8000/api/reconcile/musicbrainz", match: false}`, and no
+`Authorization` header. A service whose manifest (written by hand:
+identifier space `https://example.org/entity/`) offers no suggestions is
+searched by one reconciliation query `{q0: {query, limit: 10}}`.
+Reconciling "Clair de lune" and "" sends one request `{q0: {query: "Clair
+de lune", limit: 3}}`, answered from
+`musicbrainz-reconcile-work-clair-de-lune.json`: the best candidate
+`work/199ec7b6-…` "Clair de Lune" with `match` true, and `null` for the
+blank text. The default services are the page's profiles'.
+
+**Editing helpers** (`profiles.test.ts`). The "is a" choices are the
+systems the catalogue's "is a" has a pattern in, in catalogue order:
+Wikidata, MusicBrainz, GND, MeLODy / LRMoo, Other vocabularies; the
+choices of "Other vocabularies" are `type schema:AudioObject` (recorded
+performance, DJ set), `type schema:VideoObject` (video), `type
+schema:SheetMusic` (printed or scanned edition, score encoding). Stating a
+pattern appends it to its system, unstating removes it and a system left
+without one; moving the first verb up, or the last down, changes nothing.
+Lookup systems are kept in the order of the choices (the catalogue's
+systems but the fallback, then the services). A new profile from nothing
+is `type_1` "new type" (`type_2` when `type_1` is taken); from the
+catalogue type `video` it is `video` with video's patterns (notes
+dropped), verbs and lookup, and `video_2` when `video` is taken.
+
+**The dialogue** (`profiles-dialog.test.ts`), mounted alone in jsdom with
+`files.ts` replaced by a stub that answers the file picker with a given
+text and records saved texts. Opening shows the page's profiles, the first
+selected and focused. Add profile with "an empty profile" adds `type_1`,
+selects it and focuses its ID; its label and ID edit the draft; ticking
+`type schema:AudioObject` under "Other vocabularies", adding the verbs
+"performed by" and "recorded at, recorded on", moving the second up (the
+focus stays on its Move up, now disabled, so on its Move down), ticking
+Wikidata under lookup, then Save stores exactly the profile so built; the
+dialog closes. Cancel and Escape (the dialog's `close`) drop the draft and
+store nothing. Delete removes a profile and focuses the next. Save of a
+draft with an empty label shows "profiles/0/label: a label is a non-empty
+text" as an alert and stores nothing. Import YAML… replaces the draft with
+the file's profiles; a file that is no profile file shows "<name> holds no
+type profiles: <problem>" and keeps the draft. Export YAML… saves the
+draft's canonical YAML as `profiles.yaml`, and refuses a draft with a
+problem without saving. Services are added (`service_1`, "service 1",
+`https://`), edited and deleted, and a saved service appears among the
+lookup choices of the next opening.

@@ -583,6 +583,23 @@ shared by both specs).
    and its one annotation `confirmed` by `G` with `method: reconciled`,
    `service: https://www.wikidata.org/w/api.php`, `match: close`.
 
+**`profiles.spec.ts`** (Chromium) imports the LayerIt recording as
+`metadata.spec.ts` does, the lookup hosts answered and aborted alike. The
+profile file is written out by hand in canonical YAML: the one profile
+`lecture_recording` ("lecture recording", "is a" `type
+schema:AudioObject` in the fallback vocabularies, verbs `performed_by`,
+`recorded_at_on`, lookup `wikidata`) and no service. File, "Type
+profiles…", "Import YAML…" with that file, Save. On `cpt_2`, which states
+nothing, "State what it is", Vocabulary "Other vocabularies", Value
+"lecture recording", Add: the "is a" rectangle holds the row `type
+schema:AudioObject`. "＋ Add statement", ArrowDown in Verb: the options
+begin "is a", "performed by", "recorded at, recorded on" (the profile, the
+first type stating `schema:AudioObject`, puts its verbs before the shipped
+"recorded performance"'s "is a recording of"). "Export YAML…" downloads
+`profiles.yaml` holding the imported text byte for byte. After a reload
+`tilie.profiles` holds the same text and the dialog lists "lecture
+recording".
+
 **`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
 below its threshold, so `grid-300` mounts all 300 nodes at any viewport,
 and on above it: with `grid-900` at viewport (−2000, −100) exactly the

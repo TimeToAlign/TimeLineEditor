@@ -5,17 +5,57 @@
  * types an "is a" offers, and compact IRIs. The value kinds per verb and the
  * kinds each lookup can search are the editor's own tables, not catalogue
  * data.
+ *
+ * The catalogue offered is the shipped one with the viewer's type profiles
+ * and lookup services (`withProfiles`): a profile's verbs lead where its
+ * "is a" is stated, and a service is a system wherever a verb's fallback
+ * pattern takes a thing.
  */
 
 import type { Alternative, Catalogue, CatalogueVerb, Pair } from "@timetoalign/timetoshare";
 import { defaultCatalogue, expandIri, isJsonObject, samePair } from "@timetoalign/timetoshare";
 import type { ValueKind } from "../../lookup/index.ts";
+import { isServiceSystem } from "../../lookup/services.ts";
+import { profilesState } from "../../profiles/profiles.svelte.ts";
+import type { Profiles } from "../../profiles/profiles.ts";
+import { withProfiles } from "../../profiles/profiles.ts";
 
 /** A JSON object as TimeToShare's statement functions read one. */
 export type JsonObject = { [key: string]: unknown };
 
-/** The shipped catalogue, read once. */
-export const CATALOGUE: Catalogue = defaultCatalogue();
+/** The catalogue of the page's profiles, kept until the profiles change. */
+let offered: { readonly profiles: Profiles; readonly catalogue: Catalogue } | null = null;
+
+function current(): Catalogue {
+  const profiles = profilesState().profiles;
+  if (offered?.profiles !== profiles) {
+    offered = { profiles, catalogue: withProfiles(defaultCatalogue(), profiles) };
+  }
+  return offered.catalogue;
+}
+
+/**
+ * The catalogue the tab offers: the shipped one with the page's profiles,
+ * read afresh at every access, so a reader that is reactive (a `$derived`)
+ * follows a change of the profiles.
+ */
+export const CATALOGUE: Catalogue = {
+  get prefixes() {
+    return current().prefixes;
+  },
+  get aliases() {
+    return current().aliases;
+  },
+  get systems() {
+    return current().systems;
+  },
+  get verbs() {
+    return current().verbs;
+  },
+  get types() {
+    return current().types;
+  },
+};
 
 /** The kind of value a verb takes, for lookups; a verb not listed takes `any`. */
 export const VERB_VALUE_KINDS: Readonly<Record<string, ValueKind>> = {
@@ -42,6 +82,11 @@ export const SEARCHED_KINDS: Readonly<Record<string, readonly ValueKind[]>> = {
   gnd: ["work", "agent"],
   musicbrainz: ["work", "agent", "recording", "release"],
 };
+
+/** Whether `system`'s lookup searches values of `kind`: a viewer's service searches every kind. */
+function searches(system: string, kind: ValueKind): boolean {
+  return isServiceSystem(system) || (SEARCHED_KINDS[system] ?? []).includes(kind);
+}
 
 /** The verb that takes any property: "Other property…". */
 export const OTHER = "other";
@@ -114,11 +159,18 @@ export function patternSystem(catalogue: Catalogue, verb: VerbChoice, system: st
   return FALLBACK;
 }
 
-/** Whether `system` can state the reading: a pattern of its own, or a thing for the fallback's slot. */
+/**
+ * Whether `system` can state the reading: a pattern of its own, or a thing
+ * for the fallback's slot (a thing it names, or an entity a service finds).
+ */
 function statable(catalogue: Catalogue, verb: CatalogueVerb, inverse: boolean, system: string) {
   if (readings(verb, system, inverse).length > 0) return true;
   const holder = catalogue.systems.find((candidate) => candidate.id === system);
-  return holder !== undefined && holder.things.length > 0 && fallbackTakesThings(verb, inverse);
+  return (
+    holder !== undefined &&
+    (holder.things.length > 0 || isServiceSystem(holder.id)) &&
+    fallbackTakesThings(verb, inverse)
+  );
 }
 
 /** Every reading of every verb: the direct one, then the inverse where a pattern states it. */
@@ -206,7 +258,8 @@ export function verbChoices(
 /**
  * The vocabularies a reading can be stated in, in catalogue order: those
  * with a pattern of it, and those whose lookup searches its kind of value
- * where the fallback states it with a thing slot; then "An element of this
+ * (the viewer's services, after the catalogue's systems, search every
+ * kind) where the fallback states it with a thing slot; then "An element of this
  * manifest" where the fallback has that slot. The fallback is labelled
  * "Other vocabularies".
  */
@@ -218,8 +271,7 @@ export function systemChoices(catalogue: Catalogue, verb: VerbChoice): readonly 
   const choices: SystemChoice[] = catalogue.systems
     .filter(
       (system) =>
-        readings(found, system.id, verb.inverse).length > 0 ||
-        (slot && (SEARCHED_KINDS[system.id] ?? []).includes(kind)),
+        readings(found, system.id, verb.inverse).length > 0 || (slot && searches(system.id, kind)),
     )
     .map((system) => ({
       id: system.id,
