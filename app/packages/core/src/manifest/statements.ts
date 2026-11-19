@@ -252,6 +252,23 @@ export function withStatementContext<T extends object>(manifest: T): T {
   return rest as T;
 }
 
+/**
+ * `manifest` with the `@context` of `form`, another form of the same
+ * manifest: in the place the member has, else last; no `@context` where
+ * `form` has none; `manifest` itself where its `@context` is that one
+ * already, and where either is no object.
+ */
+export function withContextOf<T extends object>(manifest: T, form: object): T {
+  if (!isJsonObject(manifest) || !isJsonObject(form)) return manifest;
+  const context = form["@context"];
+  if (context === undefined) {
+    if (!Object.hasOwn(manifest, "@context")) return manifest;
+    const { "@context": _, ...rest } = manifest;
+    return rest as T;
+  }
+  return jsonEqual(manifest["@context"], context) ? manifest : { ...manifest, "@context": context };
+}
+
 // ---------------------------------------------------------------- references to removed elements
 
 /** Whether a reference names an element whose ID is removed: `#X`, X removed. */

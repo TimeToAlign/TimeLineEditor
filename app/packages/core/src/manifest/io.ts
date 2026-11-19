@@ -59,7 +59,7 @@ import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
-import { withFullContext, withStatementContext } from "./statements.ts";
+import { withContextOf, withFullContext, withStatementContext } from "./statements.ts";
 import type { Located } from "./tree.ts";
 import { findTimeline } from "./tree.ts";
 import type { Manifest, MeasureMap } from "./types.ts";
@@ -130,15 +130,32 @@ export function manifestFileValue<T>(value: T): T {
  * value itself (`idFormPath`). The value is returned as TiLiE holds it, its
  * `@context` cut to the prefixes it declares itself
  * (`withStatementContext`). The one schema check of a manifest TiLiE holds.
+ *
+ * The file form differs from the value only in its IDs, written `#id`, and
+ * its full context, so the value itself is returned with the context core
+ * holds of the checked file form (`withContextOf`), its IDs never read back
+ * from the file form. A value without `@context` declares no prefix, so it
+ * is held without one as it is.
  */
 export function schemaChecked(value: unknown): LosslessManifest | Problem {
   try {
     const file = manifestFileValue(value);
     validate(file);
-    return withBareIds(withStatementContext(file));
+    checkedThrough(value);
+    if (!Object.hasOwn(value, "@context")) return value;
+    return withContextOf(value, withStatementContext(file));
   } catch (error) {
     return schemaProblem(error, true);
   }
+}
+
+/**
+ * Asserts that `value` is a manifest the schema accepts, its IDs bare: its
+ * file form (`manifestFileValue`), which writes the same members, is one.
+ * Only an object has a file form the schema accepts.
+ */
+function checkedThrough(value: unknown): asserts value is LosslessManifest {
+  if (!isJsonObject(value)) throw new Error("the schema accepts no manifest that is no object");
 }
 
 /**
