@@ -73,6 +73,58 @@ test("Escape cancels picking", async ({ page }) => {
   await expect.poll(() => selection(page)).toEqual([{ block, id: "clt_6", part: ["card"] }]);
 });
 
+/** The status line of the arranger. */
+const hint = (page: Page) => page.getByTestId("hint");
+
+/** A screen point of the pane that no block, toolbar or message covers. */
+async function panePoint(page: Page): Promise<{ x: number; y: number }> {
+  const box = await arranger(page).boundingBox();
+  if (box === null) throw new Error("the arranger is not shown");
+  const found = await page.evaluate(({ x, y, width, height }) => {
+    for (let dy = 20; dy < height - 20; dy += 20) {
+      for (let dx = 20; dx < width - 20; dx += 20) {
+        const at = document.elementFromPoint(x + dx, y + dy);
+        if (at?.classList.contains("svelte-flow__pane")) return { x: x + dx, y: y + dy };
+      }
+    }
+    return null;
+  }, box);
+  if (found === null) throw new Error("no free point of the pane");
+  return found;
+}
+
+test("picking holds the canvas: the pane and the keys select nothing, a key picks", async ({
+  page,
+}) => {
+  await composeElement(page);
+  await pickButton(page).click();
+  await expect(arranger(page)).toHaveAttribute("data-picking", "");
+  const before = await journalLength(page);
+
+  const { x, y } = await panePoint(page);
+  await page.mouse.click(x, y);
+  await expect(hint(page)).toHaveText("Pick a timeline or a region; Escape cancels.");
+  expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
+  await expect(arranger(page)).toHaveAttribute("data-picking", "");
+  await expect(page.getByTestId("metadata-composer")).toBeVisible();
+
+  const node = page.locator(`.svelte-flow__node[data-id="${block}"]`);
+  await node.focus();
+  for (const key of ["Enter", " "]) {
+    await page.keyboard.press(key === " " ? "Space" : key);
+    await expect(hint(page)).toHaveText("Pick a timeline or a region; Escape cancels.");
+    expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
+    await expect(arranger(page)).toHaveAttribute("data-picking", "");
+  }
+
+  const card = node.locator('[data-id="clt_6"][data-part="card"]').last();
+  await card.dispatchEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+  await expect(field(page, "Value")).toHaveValue("Clair de lune, mm. 1–6 (MEI) (timeline)");
+  await expect(arranger(page)).not.toHaveAttribute("data-picking");
+  expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
+  expect(await journalLength(page)).toBe(before);
+});
+
 test("names without an identifier get proposals, and a confirmed one replaces its name", async ({
   page,
 }) => {
@@ -89,15 +141,14 @@ test("names without an identifier get proposals, and a confirmed one replaces it
   ).toBeNull();
   await showMetadata(page, block, "cpt_2");
   const drawer = await openDrawer(page, "proposed");
-  await expect(drawer.locator(".count")).toHaveText("1 name without an identifier");
+  await expect(drawer.locator(".count")).toHaveText("1 name without an identifier here and below");
   const before = await journalLength(page);
   await drawer.getByRole("button", { name: "Propose matches for unreconciled names" }).click();
   const rows = page.getByTestId("metadata-proposed-row");
   await expect(rows).toHaveCount(1);
   expect(await journalLength(page)).toBe(before + 1);
-  await expect(
-    page.getByText(/^GND could not be searched: it could not be reached/u),
-  ).toBeVisible();
+  await expect(page.getByText("Proposed 1 match: they are listed under Proposed.")).toBeVisible();
+  await expect(page.getByText(/^(Wikidata|GND) could not be searched/u)).toHaveCount(0);
   await expect(rows.locator(".what")).toHaveText("performed by Maria João Pires");
   await expect(rows.locator(".line")).toHaveText("reconciled · TiLiE · 2026-11-20");
   await expect(rows.locator(".note")).toHaveText("found for the name “Maria João Pires”");

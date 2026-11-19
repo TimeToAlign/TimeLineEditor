@@ -3,10 +3,9 @@
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, View } from "@timetoalign/tilie-core";
 import { canonicalText, DEFAULT_USER } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timetoshare";
+import { defaultCatalogue, fontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
-  CATALOGUE,
   compactIri,
   systemChoices,
   typesOf,
@@ -25,6 +24,9 @@ import { fixture, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+/** The shipped catalogue: what the tab offers without type profiles. */
+const CATALOGUE = defaultCatalogue();
+
 const T = "https://example.org/agents/tilie";
 const P = "https://example.org/people/editor";
 const CPT_1 = "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'";

@@ -22,7 +22,12 @@ let status: Status = $state.raw({ fileName: UNTITLED, dirty: false });
 
 <Editor
   server={{ url: "api/", token }}
-  storage={{ slot: "current", inspectorKey: "tilie.inspector.open", userKey: "tilie.user" }}
+  storage={{
+    slot: "current",
+    inspectorKey: "tilie.inspector.open",
+    userKey: "tilie.user",
+    profilesKey: "tilie.profiles",
+  }}
   shortcuts="window"
   autofocus
   testHook

@@ -19,12 +19,12 @@ import type { Candidate } from "../../lookup/index.ts";
 import { lookupOf } from "../../lookup/index.ts";
 import { informOf } from "../../messages.svelte.ts";
 import { hasPicking, pickingOf } from "../../pick.svelte.ts";
+import { profilesOf } from "../../profiles/profiles.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import type { SystemChoice, TypeOption, VerbChoice } from "./catalogue.ts";
 import {
   alternativeAt,
   alternativesOf,
-  CATALOGUE,
   defaultAlternative,
   ELEMENT,
   FALLBACK,
@@ -67,6 +67,9 @@ const uid = $props.id();
 const lookup = lookupOf();
 const user = userOf();
 const inform = informOf();
+const profiles = profilesOf();
+/** The catalogue the editor's type profiles offer. */
+const catalogue = $derived(profiles.catalogue);
 /** The canvas to pick an element on; none where the panel is shown without one. */
 const picking = hasPicking() ? pickingOf() : null;
 
@@ -81,7 +84,11 @@ let valueBox: ReturnType<typeof Combobox<ValueChoice>> | undefined = $state();
 const search = new Search(lookup, () =>
   composer.system === null || composer.verb === null
     ? null
-    : { system: composer.system.id, kind: valueKindOf(composer.verb.id) },
+    : {
+        system: composer.system.id,
+        label: composer.system.label,
+        kind: valueKindOf(composer.verb.id),
+      },
 );
 onDestroy(() => search.dispose());
 
@@ -94,7 +101,7 @@ const extended = $derived(
 /** The catalogue types the frame's "is a" states, which order the verbs. */
 const types = $derived(
   typesOf(
-    CATALOGUE,
+    catalogue,
     frame.skeleton["@context"],
     rectangles.find((rectangle) => rectangle.verb === "is_a")?.pairs ?? [],
   ),
@@ -108,7 +115,7 @@ const matches = (label: string, text: string): boolean =>
   label.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase());
 
 const verbOptions = $derived(
-  verbChoices(CATALOGUE, types, composer.system?.id).filter(
+  verbChoices(catalogue, types, composer.system?.id).filter(
     (choice) =>
       composer.verbText === composer.verb?.label || matches(choice.label, composer.verbText),
   ),
@@ -118,8 +125,8 @@ const systemOptions = $derived.by((): readonly SystemChoice[] => {
   if (composer.verb === null || composer.verb.id === OTHER) return [];
   const all =
     extended === null
-      ? systemChoices(CATALOGUE, composer.verb)
-      : extended.addable.map((id) => systemChoice(CATALOGUE, id));
+      ? systemChoices(catalogue, composer.verb, types)
+      : extended.addable.map((id) => systemChoice(catalogue, id));
   return all.filter(
     (choice) =>
       composer.systemText === composer.system?.label || matches(choice.label, composer.systemText),
@@ -130,12 +137,12 @@ const systemOptions = $derived.by((): readonly SystemChoice[] => {
 const alternatives = $derived(
   composer.verb === null || composer.system === null || composer.verb.id === OTHER
     ? []
-    : alternativesOf(CATALOGUE, composer.verb, composer.system.id),
+    : alternativesOf(catalogue, composer.verb, composer.system.id),
 );
 const pattern = $derived(
   composer.verb === null || composer.system === null || composer.verb.id === OTHER
     ? undefined
-    : alternativeAt(CATALOGUE, composer.verb, composer.system.id, composer.alternative)?.pattern,
+    : alternativeAt(catalogue, composer.verb, composer.system.id, composer.alternative)?.pattern,
 );
 /** The named slots the form asks for; `value` is filled from the value. */
 const slots = $derived(namedSlots(pattern).filter((name) => name !== "value"));
@@ -172,7 +179,7 @@ const valueOptions = $derived.by((): readonly ValueChoice[] => {
     for (const candidate of offered) found.push({ kind: "candidate", candidate });
   }
   if (verb.id === "is_a") {
-    for (const option of typeOptions(CATALOGUE, system.id)) {
+    for (const option of typeOptions(catalogue, system.id)) {
       if (matches(option.label, text)) found.push(typeChoice(option));
     }
   }
@@ -252,7 +259,7 @@ function elementsOf(): ValueChoice[] {
   return found;
 }
 
-const result = $derived(composer.pairs(CATALOGUE, frame));
+const result = $derived(composer.pairs(catalogue, frame));
 /** What Add would state; a text where something is missing or already stated. */
 const addable = $derived.by((): readonly Pair[] | string => {
   if (typeof result === "string") return result;
@@ -267,7 +274,7 @@ function extendedPairs(pairs: readonly Pair[]): readonly Pair[] {
   const first = firstThing();
   return extended === null || first === null || composer.value?.kind === "element"
     ? pairs
-    : tied(pairs, first, framePrefixes(frame, CATALOGUE));
+    : tied(pairs, first, framePrefixes(frame, catalogue));
 }
 
 /** The extended rectangle's first thing the lookup resolves, else its first thing. */
@@ -282,7 +289,7 @@ function firstThing(): Thing | null {
 
 /** Whether `system` can state `verb`. */
 function fits(verb: VerbChoice, system: string): boolean {
-  return verbChoices(CATALOGUE, types, system).some(
+  return verbChoices(catalogue, types, system).some(
     (choice) => choice.id === verb.id && choice.inverse === verb.inverse,
   );
 }
@@ -295,14 +302,14 @@ function thingOfValue(value: ValueChoice | null): string | null {
       : value.kind === "recognized"
         ? value.recognition.iri
         : null;
-  return iri === null ? null : (recognize(CATALOGUE, iri)?.thing ?? null);
+  return iri === null ? null : (recognize(catalogue, iri)?.thing ?? null);
 }
 
 /** Start the form on its default alternative for the chosen verb, system and value. */
 function resetAlternative(): void {
   if (composer.verb === null || composer.system === null || composer.verb.id === OTHER) return;
   composer.alternative = defaultAlternative(
-    CATALOGUE,
+    catalogue,
     composer.verb,
     composer.system.id,
     types,
@@ -385,7 +392,7 @@ async function offer(rectangle: RectangleView, system: string): Promise<void> {
   } catch (error) {
     if (still())
       inform(
-        `${systemChoice(CATALOGUE, first.system).label} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+        `${systemChoice(catalogue, first.system).label} could not be read: ${error instanceof Error ? error.message : String(error)}`,
       );
   }
 }
@@ -409,13 +416,13 @@ function enterValue(text: string): void {
     paste(given);
     return;
   }
-  const recognition = recognize(CATALOGUE, given);
+  const recognition = recognize(catalogue, given);
   if (recognition !== null && (recognition.system === system.id || system.id === FALLBACK)) {
     pickValue({ kind: "recognized", recognition, label: null });
     label(recognition.system, recognition.iri);
     return;
   }
-  const holder = CATALOGUE.systems.find((candidate) => candidate.id === system.id);
+  const holder = catalogue.systems.find((candidate) => candidate.id === system.id);
   const thing = holder?.things.find((candidate) => candidate.iri !== null);
   if (thing?.iri != null && /^[^\s:/]+$/u.test(given)) {
     const value = thing.lowercase ? given.toLowerCase() : given;
@@ -466,7 +473,7 @@ function label(system: string, iri: string | null): void {
  */
 function paste(text: string): boolean {
   const given = text.trim();
-  const recognition = recognize(CATALOGUE, given);
+  const recognition = recognize(catalogue, given);
   if (recognition === null) {
     if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//u.test(given)) {
       inform(UNKNOWN_ADDRESS);
@@ -474,7 +481,7 @@ function paste(text: string): boolean {
     }
     return false;
   }
-  const system = systemChoice(CATALOGUE, recognition.system);
+  const system = systemChoice(catalogue, recognition.system);
   composer.system = system;
   composer.systemText = system.label;
   const value: ValueChoice = { kind: "recognized", recognition, label: null };
@@ -601,7 +608,7 @@ onMount(() => {
             <option value={String(index)}
               >{composer.verb === null || composer.system === null
                 ? ""
-                : (alternativeAt(CATALOGUE, composer.verb, composer.system.id, index)?.note ??
+                : (alternativeAt(catalogue, composer.verb, composer.system.id, index)?.note ??
                   `Form ${position + 1}`)}</option
             >
           {/each}

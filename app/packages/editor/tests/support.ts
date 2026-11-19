@@ -23,6 +23,7 @@ import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
 import type { Lookup } from "../src/lookup/index.ts";
 import { NO_LOOKUP, provideLookup } from "../src/lookup/index.ts";
 import { informContext } from "../src/messages.svelte.ts";
+import { ProfilesState, provideProfiles } from "../src/profiles/profiles.svelte.ts";
 import type { TestHook } from "../src/testHook.ts";
 import type { UserContext } from "../src/user.svelte.ts";
 import { provideUser, UserState } from "../src/user.svelte.ts";
@@ -236,18 +237,21 @@ export function userContext(state: UserState = new UserState(null)): UserContext
 }
 
 /**
- * `component` wrapped so that it is mounted with the editor's user and
- * lookup in its context, as the editor provides them: the wrapper sets both
- * before the component's own setup runs.
+ * `component` wrapped so that it is mounted with the editor's user, lookup
+ * and type profiles in its context, as the editor provides them: the
+ * wrapper sets them before the component's own setup runs. The profiles are
+ * by default an editor's without storage: none, kept nowhere.
  */
 export function providing<C extends (...args: never[]) => unknown>(
   component: C,
   user: UserContext = userContext(),
   lookup: Lookup = NO_LOOKUP,
+  profiles: ProfilesState = new ProfilesState(null),
 ): C {
   return ((...args: Parameters<C>) => {
     provideUser(user);
     provideLookup(lookup);
+    provideProfiles(profiles);
     return Reflect.apply(component, undefined, args);
   }) as C;
 }

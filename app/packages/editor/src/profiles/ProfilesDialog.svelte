@@ -7,8 +7,9 @@
  * patterns, its verbs in order with Move up and Move down, its lookup
  * systems) and deletes one; it lists, adds, edits and deletes services.
  * "Import YAML…" replaces the draft with a profile file, "Export YAML…"
- * writes the draft as one. Save checks the draft and makes it the page's
- * profiles; Cancel and Escape drop it.
+ * writes the draft as one. Changing a service's ID or deleting it changes
+ * or drops its lookup system in every profile. Save checks the draft and
+ * makes it the editor's profiles; Cancel and Escape drop it.
  */
 
 import { defaultCatalogue } from "@timetoalign/timetoshare";
@@ -16,7 +17,7 @@ import { flushSync, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { openFile, saveFile } from "../files.ts";
 import type { Service } from "../lookup/services.ts";
-import { profilesState } from "./profiles.svelte.ts";
+import { profilesOf } from "./profiles.svelte.ts";
 import type { Profile, Profiles } from "./profiles.ts";
 import {
   isAChoices,
@@ -33,6 +34,7 @@ import {
   readProfiles,
   withLookup,
   withPattern,
+  withServiceLookup,
 } from "./profiles.ts";
 
 /** A profile or a service of the draft, with a key that outlives edits of its ID. */
@@ -42,6 +44,7 @@ interface Entry<T> {
 }
 
 const id = $props.id();
+const held = profilesOf();
 const catalogue = defaultCatalogue();
 const isA = isAChoices(catalogue);
 const NEW_EMPTY = "";
@@ -98,9 +101,9 @@ function load(from: Profiles): void {
   verbToAdd = "";
 }
 
-/** Show the page's profiles for editing. */
+/** Show the editor's profiles for editing. */
 export function open(): void {
-  load(profilesState().profiles);
+  load(held.profiles);
   basis = NEW_EMPTY;
   problem = null;
   flushSync();
@@ -194,15 +197,29 @@ function addService(): void {
   focus(`[data-service="${entry.key}"] input`);
 }
 
+/** Every profile of the draft following a change of the service `from` (`withServiceLookup`). */
+function followService(from: string, to: string | null): void {
+  profiles = profiles.map((entry) => ({
+    key: entry.key,
+    value: withServiceLookup(entry.value, from, to),
+  }));
+}
+
 function editService(key: number, change: Partial<Service>): void {
+  const before = services.find((entry) => entry.key === key)?.value;
   services = services.map((entry) =>
     entry.key === key ? { key, value: { ...entry.value, ...change } } : entry,
   );
+  if (before !== undefined && change.id !== undefined && change.id !== before.id) {
+    followService(before.id, change.id);
+  }
 }
 
 function deleteService(key: number): void {
   const at = services.findIndex((entry) => entry.key === key);
+  const deleted = services[at]?.value;
   services = services.filter((entry) => entry.key !== key);
+  if (deleted !== undefined) followService(deleted.id, null);
   const next = services[at] ?? services[at - 1];
   focus(
     next === undefined
@@ -218,7 +235,7 @@ function save(event: SubmitEvent): void {
     problem = read;
     return;
   }
-  profilesState().set(read);
+  held.set(read);
   close();
 }
 

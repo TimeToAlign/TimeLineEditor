@@ -489,7 +489,9 @@ Manifest tabs inspecting a timeline, on its Metadata tab inspecting `cpt_1`
 of the LayerIt recording (TimeToShare's `statements/layerit_recording`,
 imported; every lookup request aborted) with the composer's Value listbox
 open (the elements of the manifest, "is derived from, is based on"), and
-with the "Your name" dialog open over it ("Change…"), with the File menu,
+with the "Your name" dialog open over it ("Change…"), in the "Type
+profiles" dialog (File, "Type profiles…") after "Add profile" and "Add
+service" (the profile's editor shown), with the File menu,
 the About dialog and the discard question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
 
@@ -569,13 +571,25 @@ shared by both specs).
    no longer pressed, the arranger no longer carries `data-picking`, the
    composer is open with Value empty; the same press on `clt_6`'s card then
    selects that card, `{block, id: "clt_6", part: ["card"]}`.
-3. **Bulk.** `cpt_2` given `{"rel:prf": [{label: "Maria João Pires"}]}` by
+3. **Picking holds the canvas.** "Pick on the canvas" as in 1; a click on
+   a point of the pane no block, toolbar or message covers: the arranger's
+   status line reads "Pick a timeline or a region; Escape cancels.", the
+   selection is still `cpt_2` alone, the arranger still carries
+   `data-picking` and the composer is open. The block's node focused,
+   Enter and Space each: the same status line, the same selection, still
+   picking (the node is the block itself, which picks nothing). Enter sent
+   to `clt_6`'s card element: Value reads "Clair de lune, mm. 1–6 (MEI)
+   (timeline)", the picking ends, the selection is still `cpt_2` alone and
+   nothing is journalled.
+4. **Bulk.** `cpt_2` given `{"rel:prf": [{label: "Maria João Pires"}]}` by
    a `set` through the hook; on `cpt_2` the Proposed drawer, opened, offers
    "Propose matches for unreconciled names" beside "1 name without an
-   identifier"; pressed (Wikidata's recorded agent search answers
-   `Q235650` first; the GND, unrecorded for that text, is aborted and named
-   in the message bar, and MusicBrainz, whose route no server answers here,
-   fails too): one journal entry and one proposed row, "performed
+   identifier here and below"; pressed (Wikidata's and the GND's recorded
+   agent searches for that text answer, `Q235650` and `1057057150` first,
+   Wikidata's preferred; MusicBrainz, whose route no server answers here,
+   is not pinned): one journal entry and one proposed row, the
+   information "Proposed 1 match: they are listed under Proposed.", no
+   message that Wikidata or the GND could not be searched, "performed
    by Maria João Pires" (the label `cpt_1` gives `wd:Q235650`), "reconciled
    · TiLiE · 2026-11-20", the note "found for the name “Maria João
    Pires”". Confirm: the export's `#cpt_2` states exactly `{"rel:prf": [{id:
@@ -592,10 +606,15 @@ schema:AudioObject` in the fallback vocabularies, verbs `performed_by`,
 profiles…", "Import YAML…" with that file, Save. On `cpt_2`, which states
 nothing, "State what it is", Vocabulary "Other vocabularies", Value
 "lecture recording", Add: the "is a" rectangle holds the row `type
-schema:AudioObject`. "＋ Add statement", ArrowDown in Verb: the options
+schema:AudioObject ↗` (the class is a web address, so a link). "＋ Add statement", ArrowDown in Verb: the options
 begin "is a", "performed by", "recorded at, recorded on" (the profile, the
 first type stating `schema:AudioObject`, puts its verbs before the shipped
-"recorded performance"'s "is a recording of"). "Export YAML…" downloads
+"recorded performance"'s "is a recording of"). Escape, Verb "performed
+by", ArrowDown in Vocabulary: the options are Wikidata, MusicBrainz, GND,
+MeLODy / LRMoo, Other vocabularies, An element of this manifest (the
+profile's lookup `wikidata` first, then the systems of "recorded
+performance"'s lookup, `musicbrainz`, `gnd`, then the rest in catalogue
+order). "Export YAML…" downloads
 `profiles.yaml` holding the imported text byte for byte. After a reload
 `tilie.profiles` holds the same text and the dialog lists "lecture
 recording".

@@ -8,11 +8,10 @@ import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Command, CommandEntry, Store, View } from "@timetoalign/tilie-core";
 import { DEFAULT_USER, TILIE_AGENT } from "@timetoalign/tilie-core";
-import { fontMetrics, isJsonObject } from "@timetoalign/timetoshare";
+import { defaultCatalogue, fontMetrics, isJsonObject } from "@timetoalign/timetoshare";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
-import { CATALOGUE } from "../src/inspector/metadata/catalogue.ts";
 import { commandOf, dayOf, rejected } from "../src/inspector/metadata/edits.ts";
 import type { Frame } from "../src/inspector/metadata/frame.ts";
 import { drawersOf, framePrefixes, shownOf } from "../src/inspector/metadata/frame.ts";
@@ -23,6 +22,7 @@ import {
   confirmedProposal,
   frameIn,
   proposed,
+  proposedText,
   questionsOf,
   unreconciledOf,
 } from "../src/inspector/metadata/proposals.ts";
@@ -37,6 +37,9 @@ import { fixture, providing, storeOf, userContext } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+/** The shipped catalogue: what the tab offers without type profiles. */
+const CATALOGUE = defaultCatalogue();
+
 const CPT_2 = ["timelines", 1, "children", 0];
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const PIRES = "Maria João Pires";
@@ -118,7 +121,8 @@ describe("which names are unreconciled", () => {
   it("finds cpt_2's two names with a verb, in key order, with the systems that search them", () => {
     const found = unreconciledOf(frame(view, "cpt_2"), CATALOGUE, recorded());
     expect(
-      found.map(({ subject, property, label, kind, systems }) => ({
+      found.map(({ holder, subject, property, label, kind, systems }) => ({
+        holder,
         subject,
         property,
         label,
@@ -127,6 +131,7 @@ describe("which names are unreconciled", () => {
       })),
     ).toEqual([
       {
+        holder: "cpt_2",
         subject: CPT_2,
         property: "rel:prf",
         label: PIRES,
@@ -134,6 +139,7 @@ describe("which names are unreconciled", () => {
         systems: ["wikidata", "gnd"],
       },
       {
+        holder: "cpt_2",
         subject: CPT_2,
         property: "wdt:P2550",
         label: CLAIR,
@@ -165,9 +171,9 @@ describe("which names are unreconciled", () => {
       "wdt:P2550": [{ id: "wd:Q29117946", "wdt:P175": [{ label: PIRES }] }],
     });
     const found = unreconciledOf(frame(nested.view, "cpt_2"), CATALOGUE, recorded());
-    expect(found.map(({ subject, property }) => [subject, property])).toEqual([
-      [CPT_2, "rel:prf"],
-      [[...CPT_2, "statements", "wdt:P2550", 0], "wdt:P175"],
+    expect(found.map(({ holder, subject, property }) => [holder, subject, property])).toEqual([
+      ["cpt_2", CPT_2, "rel:prf"],
+      ["cpt_2", [...CPT_2, "statements", "wdt:P2550", 0], "wdt:P175"],
     ]);
     expect(questionsOf(found)).toEqual([
       { system: "wikidata", kind: "agent", texts: [PIRES] },
@@ -190,21 +196,15 @@ describe("asking and proposing", () => {
     ]);
   });
 
-  it("keeps the answers of the systems that answer and names those that fail", async () => {
+  it("keeps the answers of every system, none failing", async () => {
     const { answers, failures } = await answersTo(recorded(), questionsOf(found));
     const iri = (system: string, kind: "agent" | "work", text: string) =>
       answers.get(answerKey(system, kind, text))?.iri ?? null;
     expect(iri("wikidata", "agent", PIRES)).toBe("http://www.wikidata.org/entity/Q235650");
     expect(iri("wikidata", "work", CLAIR)).toBe("http://www.wikidata.org/entity/Q29117946");
     expect(iri("gnd", "work", CLAIR)).toBe("https://d-nb.info/gnd/1173441581");
-    expect(answers.has(answerKey("gnd", "agent", PIRES))).toBe(false);
-    expect(failures).toEqual([
-      {
-        system: "gnd",
-        message:
-          "it could not be reached (no recorded answer for https://lobid.org/gnd/search?q=Maria+Jo%C3%A3o+Pires&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10)",
-      },
-    ]);
+    expect(iri("gnd", "agent", PIRES)).toBe("https://d-nb.info/gnd/1057057150");
+    expect(failures).toEqual([]);
   });
 
   it("proposes Wikidata's candidates by TiLiE in one set of cpt_2's provenance", async () => {
@@ -212,6 +212,7 @@ describe("asking and proposing", () => {
     const prefixes = framePrefixes(at, CATALOGUE);
     const result = proposed(at, found, answers, prefixes, dayOf(new Date()));
     expect(result.count).toBe(2);
+    expect(result.placed).toEqual([{ holder: "cpt_2", count: 2 }]);
     expect(commandOf(at, result.skeleton)).toEqual({
       type: "set",
       changes: [
@@ -297,6 +298,32 @@ describe("asking and proposing", () => {
         match: "exact",
       }),
     ]);
+  });
+});
+
+describe("what the panel says after proposing", () => {
+  const words = (id: string | null) => `timeline '${id}'`;
+
+  it("lists them under Proposed when all are on the element shown", () => {
+    expect(proposedText([{ holder: "cpt_2", count: 2 }], "cpt_2", words)).toBe(
+      "Proposed 2 matches: they are listed under Proposed.",
+    );
+    expect(proposedText([{ holder: "cpt_2", count: 1 }], "cpt_2", words)).toBe(
+      "Proposed 1 match: they are listed under Proposed.",
+    );
+  });
+
+  it("counts those here and names the other elements", () => {
+    const placed = [
+      { holder: "cpt_1", count: 2 },
+      { holder: "clt_6", count: 1 },
+    ];
+    expect(proposedText(placed, "cpt_1", words)).toBe(
+      "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; each is listed under Proposed of the element it is proposed for.",
+    );
+    expect(proposedText([{ holder: "cpt_2", count: 1 }], null, words)).toBe(
+      "Proposed 1 match: 0 here, 1 on timeline 'cpt_2'; each is listed under Proposed of the element it is proposed for.",
+    );
   });
 });
 
@@ -418,10 +445,19 @@ describe("the tab", () => {
     Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   });
 
-  /** The inspector over `store` with `cpt_2` selected and the Metadata tab shown, with or without a picking. */
-  function show(store: Store, withPicking = true): void {
-    const selection = holder<Selection>(selectionOf([{ block: A, id: "cpt_2" }]));
-    const inner = providing(Inspector, userContext(), LOOKUP);
+  /**
+   * The inspector over `store` with `id` selected (`cpt_2` by default) and
+   * the Metadata tab shown, with or without a picking; the selection, which
+   * the test may change.
+   */
+  function show(
+    store: Store,
+    withPicking = true,
+    id = "cpt_2",
+    lookup: Lookup = LOOKUP,
+  ): { value: Selection } {
+    const selection = holder<Selection>(selectionOf([{ block: A, id }]));
+    const inner = providing(Inspector, userContext(), lookup);
     const component: typeof Inspector = withPicking
       ? (...args) => {
           providePicking(picking);
@@ -447,6 +483,7 @@ describe("the tab", () => {
     flushSync();
     button("Metadata", '[role="tab"]').click();
     flushSync();
+    return selection;
   }
 
   async function settle(): Promise<void> {
@@ -481,7 +518,7 @@ describe("the tab", () => {
     const store = layerit();
     show(store);
     expect(text('[data-testid="metadata-drawer-proposed"] .count')).toBe(
-      "2 names without an identifier",
+      "2 names without an identifier here and below",
     );
     const before = store.journal.length;
     one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
@@ -511,8 +548,59 @@ describe("the tab", () => {
     });
     expect(text('[data-testid="metadata-drawer-proposed"] summary')).toBe("Proposed (1)");
     expect(text('[data-testid="metadata-drawer-proposed"] .count')).toBe(
-      "1 name without an identifier",
+      "1 name without an identifier here and below",
     );
+  });
+
+  const count = () => text('[data-testid="metadata-drawer-proposed"] .count');
+  const proposedSummary = () => text('[data-testid="metadata-drawer-proposed"] summary');
+  const busy = () => one('[data-testid="metadata-propose"]').getAttribute("aria-busy");
+
+  it("proposes the names below the element shown, and says where they went", async () => {
+    const store = layerit();
+    const selection = show(store, true, "cpt_1");
+    expect(count()).toBe("2 names without an identifier here and below");
+    expect(proposedSummary()).toBe("Proposed (1)");
+    const before = store.journal.length;
+    one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
+    await settle();
+    expect(store.journal.length).toBe(before + 1);
+    expect(proposedSummary()).toBe("Proposed (1)");
+    expect(informed).toEqual([
+      "Proposed 2 matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Proposed of the element it is proposed for.",
+    ]);
+    selection.value = selectionOf([{ block: A, id: "cpt_2" }]);
+    flushSync();
+    expect(proposedSummary()).toBe("Proposed (2)");
+  });
+
+  it("shows the lookup on the element it runs for only", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const waiting: Lookup = {
+      ...LOOKUP,
+      reconcile: async (system, kind, texts, signal) => {
+        await gate;
+        return LOOKUP.reconcile(system, kind, texts, signal);
+      },
+    };
+    const store = layerit();
+    const selection = show(store, true, "cpt_2", waiting);
+    one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
+    flushSync();
+    expect([count(), busy()]).toEqual(["Looking them up…", "true"]);
+    selection.value = selectionOf([{ block: A, id: "cpt_1" }]);
+    flushSync();
+    expect([count(), busy()]).toEqual(["2 names without an identifier here and below", "false"]);
+    selection.value = selectionOf([{ block: A, id: "cpt_2" }]);
+    flushSync();
+    expect([count(), busy()]).toEqual(["Looking them up…", "true"]);
+    release();
+    await settle();
+    expect(proposedSummary()).toBe("Proposed (2)");
+    expect([count(), busy()]).toEqual(["2 names without an identifier here and below", "false"]);
   });
 
   /** Choose `text`'s first option in the composer's combobox labelled `name`. */

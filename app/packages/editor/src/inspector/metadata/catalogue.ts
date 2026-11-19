@@ -6,56 +6,20 @@
  * kinds each lookup can search are the editor's own tables, not catalogue
  * data.
  *
- * The catalogue offered is the shipped one with the viewer's type profiles
- * and lookup services (`withProfiles`): a profile's verbs lead where its
- * "is a" is stated, and a service is a system wherever a verb's fallback
- * pattern takes a thing.
+ * The catalogue every function here is given is the one the editor's type
+ * profiles offer (`ProfilesState.catalogue`: the shipped one with the
+ * viewer's profiles and lookup services), so a profile's verbs lead where
+ * its "is a" is stated, its lookup systems lead among the vocabularies, and
+ * a service is a system wherever a verb's fallback pattern takes a thing.
  */
 
 import type { Alternative, Catalogue, CatalogueVerb, Pair } from "@timetoalign/timetoshare";
-import { defaultCatalogue, expandIri, isJsonObject, samePair } from "@timetoalign/timetoshare";
+import { expandIri, isJsonObject, samePair } from "@timetoalign/timetoshare";
 import type { ValueKind } from "../../lookup/index.ts";
 import { isServiceSystem } from "../../lookup/services.ts";
-import { profilesState } from "../../profiles/profiles.svelte.ts";
-import type { Profiles } from "../../profiles/profiles.ts";
-import { withProfiles } from "../../profiles/profiles.ts";
 
 /** A JSON object as TimeToShare's statement functions read one. */
 export type JsonObject = { [key: string]: unknown };
-
-/** The catalogue of the page's profiles, kept until the profiles change. */
-let offered: { readonly profiles: Profiles; readonly catalogue: Catalogue } | null = null;
-
-function current(): Catalogue {
-  const profiles = profilesState().profiles;
-  if (offered?.profiles !== profiles) {
-    offered = { profiles, catalogue: withProfiles(defaultCatalogue(), profiles) };
-  }
-  return offered.catalogue;
-}
-
-/**
- * The catalogue the tab offers: the shipped one with the page's profiles,
- * read afresh at every access, so a reader that is reactive (a `$derived`)
- * follows a change of the profiles.
- */
-export const CATALOGUE: Catalogue = {
-  get prefixes() {
-    return current().prefixes;
-  },
-  get aliases() {
-    return current().aliases;
-  },
-  get systems() {
-    return current().systems;
-  },
-  get verbs() {
-    return current().verbs;
-  },
-  get types() {
-    return current().types;
-  },
-};
 
 /** The kind of value a verb takes, for lookups; a verb not listed takes `any`. */
 export const VERB_VALUE_KINDS: Readonly<Record<string, ValueKind>> = {
@@ -256,23 +220,49 @@ export function verbChoices(
 }
 
 /**
- * The vocabularies a reading can be stated in, in catalogue order: those
- * with a pattern of it, and those whose lookup searches its kind of value
- * (the viewer's services, after the catalogue's systems, search every
- * kind) where the fallback states it with a thing slot; then "An element of this
- * manifest" where the fallback has that slot. The fallback is labelled
- * "Other vocabularies".
+ * The lookup systems the subject's types prefer, most preferred first: the
+ * `lookup` of each of `types` (profiles and catalogue types alike) in type
+ * order, each system once.
  */
-export function systemChoices(catalogue: Catalogue, verb: VerbChoice): readonly SystemChoice[] {
+function preferredSystems(catalogue: Catalogue, types: readonly string[]): readonly string[] {
+  const order: string[] = [];
+  for (const id of types) {
+    for (const system of catalogue.types.find((type) => type.id === id)?.lookup ?? []) {
+      if (!order.includes(system)) order.push(system);
+    }
+  }
+  return order;
+}
+
+/**
+ * The vocabularies a reading can be stated in: those with a pattern of it,
+ * and those whose lookup searches its kind of value (the viewer's services,
+ * after the catalogue's systems, search every kind) where the fallback
+ * states it with a thing slot; first the systems the subject's `types`
+ * prefer, in their order (`preferredSystems`), then the rest in catalogue
+ * order; then "An element of this manifest" where the fallback has that
+ * slot. The fallback is labelled "Other vocabularies".
+ */
+export function systemChoices(
+  catalogue: Catalogue,
+  verb: VerbChoice,
+  types: readonly string[] = [],
+): readonly SystemChoice[] {
   const found = verbOfId(catalogue, verb.id);
   if (found === undefined) return [];
   const kind = valueKindOf(verb.id);
   const slot = fallbackTakesThings(found, verb.inverse);
+  const preferred = preferredSystems(catalogue, types);
+  const rank = (id: string): number => {
+    const index = preferred.indexOf(id);
+    return index < 0 ? preferred.length : index;
+  };
   const choices: SystemChoice[] = catalogue.systems
     .filter(
       (system) =>
         readings(found, system.id, verb.inverse).length > 0 || (slot && searches(system.id, kind)),
     )
+    .sort((left, right) => rank(left.id) - rank(right.id))
     .map((system) => ({
       id: system.id,
       label: system.id === FALLBACK ? "Other vocabularies" : system.name,

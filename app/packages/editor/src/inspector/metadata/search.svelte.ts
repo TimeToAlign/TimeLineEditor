@@ -7,10 +7,16 @@
  */
 
 import type { Candidate, Lookup, ValueKind } from "../../lookup/index.ts";
-import { CATALOGUE, systemChoice } from "./catalogue.ts";
 
-/** What is searched: a system and the kind of value the verb takes; `null` searches nothing. */
-export type Query = { readonly system: string; readonly kind: ValueKind } | null;
+/**
+ * What is searched: a system, as the Vocabulary field labels it, and the
+ * kind of value the verb takes; `null` searches nothing.
+ */
+export type Query = {
+  readonly system: string;
+  readonly label: string;
+  readonly kind: ValueKind;
+} | null;
 
 /** The message of anything thrown. */
 function messageOf(error: unknown): string {
@@ -75,7 +81,7 @@ export class Search {
           if (controller.signal.aborted) return;
           this.results = [];
           this.loading = false;
-          this.error = `${systemChoice(CATALOGUE, query.system).label} could not be searched: ${messageOf(error)}`;
+          this.error = `${query.label} could not be searched: ${messageOf(error)}`;
         },
       );
     }, this.#delay);

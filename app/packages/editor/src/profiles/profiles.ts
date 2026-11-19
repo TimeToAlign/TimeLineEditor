@@ -62,9 +62,6 @@ export interface Profiles {
 /** No profile and no service: the shipped catalogue alone. */
 export const NO_PROFILES: Profiles = { profiles: [], services: [] };
 
-/** The key the browser's `localStorage` keeps the profiles under, as a YAML file. */
-export const PROFILES_KEY = "tilie.profiles";
-
 /** A profile file to import or export. */
 export const PROFILES_FILE: FileKind = {
   description: "TimeLineEditor type profiles",
@@ -460,6 +457,21 @@ export function withLookup(
   else next.delete(system);
   const ordered = order.filter((id) => next.has(id));
   return { ...profile, lookup: [...ordered, ...[...next].filter((id) => !order.includes(id))] };
+}
+
+/**
+ * `profile` following a change of the service `from`: its lookup system
+ * `service:<from>` becomes `service:<to>` in its place (the service's ID
+ * changed to `to`), or is taken out (`to` null: the service deleted).
+ */
+export function withServiceLookup(profile: Profile, from: string, to: string | null): Profile {
+  const old = serviceSystem(from);
+  if (!profile.lookup.includes(old)) return profile;
+  const lookup =
+    to === null
+      ? profile.lookup.filter((system) => system !== old)
+      : profile.lookup.map((system) => (system === old ? serviceSystem(to) : system));
+  return { ...profile, lookup };
 }
 
 /** A system a profile may look its values up in. */

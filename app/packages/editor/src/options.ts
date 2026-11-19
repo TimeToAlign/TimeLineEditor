@@ -19,6 +19,12 @@ export interface StorageOptions {
    * goes.
    */
   readonly userKey?: string;
+  /**
+   * The `localStorage` key keeping the viewer's type profiles and lookup
+   * services (the File menu's "Type profiles…"), as their YAML file;
+   * without it they hold until the editor goes.
+   */
+  readonly profilesKey?: string;
 }
 
 /** What the open workspace's file is, reported after every change and every load. */

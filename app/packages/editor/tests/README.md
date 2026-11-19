@@ -28,7 +28,8 @@ the drawing's record, read in the test itself.
 
 The page is one caller of the editor: the page's one level-1 heading
 "TimeLineEditor", given to the editor's header as its title, the
-level-2 headings of the drawer, the "Your name" dialog and About, no
+level-2 headings of the drawer, the "Your name" dialog, the "Type
+profiles" dialog and About, no
 footer, and the focused canvas (`application`
 "Arranger"). With `#token=abc` in the address, the one health request is
 `api/health` with `Authorization: Bearer abc`, the fragment is gone from
@@ -84,7 +85,8 @@ name; with `score`'s editor open inside `group_1`'s, a rename keeps
 
 The File menu follows the WAI-ARIA menu button pattern: its items and
 shortcut labels (New workspace, Open… Ctrl+O, Save Ctrl+S, Save as…
-Ctrl+Shift+S, Import manifest…, Export manifest…, Your name…), the export disabled
+Ctrl+Shift+S, Import manifest…, Export manifest…, Your name…, Type
+profiles…), the export disabled
 without a selected block, and every key
 of the pattern, each checked by the focused item and `aria-expanded`. A
 refused file leaves the open workspace as it is and shows one dismissible
@@ -1333,7 +1335,8 @@ read from a recording, never typed from the implementation; `T` is
 - **Which names.** Pairs are read in code-point key order. For `cpt_2`'s
   frame the names are `rel:prf` "Maria João Pires" (performed by: kind
   agent) and `wdt:P2550` "Clair de lune" (recording of: kind work), each at
-  subject `cpt_2`, each offered in `["wikidata", "gnd"]` without a server
+  subject `cpt_2` and held by `cpt_2` (the element whose statements hold
+  it), each offered in `["wikidata", "gnd"]` without a server
   and `["wikidata", "gnd", "musicbrainz"]` with one; `dcterms:subject`
   "Nocturne" is no catalogue verb's and is left out. `cpt_1`'s frame finds
   the same two (`cpt_2` lies below it; every node of `cpt_1` has an `id`),
@@ -1341,7 +1344,8 @@ read from a recording, never typed from the implementation; `T` is
   a value node is found at that node: `cpt_2` given `{"rel:prf": [{"label":
   "Maria João Pires"}], "wdt:P2550": [{"id": "wd:Q29117946", "wdt:P175":
   [{"label": "Maria João Pires"}]}]}` yields `rel:prf` at `cpt_2` and
-  `wdt:P175` at `[…cpt_2, "statements", "wdt:P2550", 0]`.
+  `wdt:P175` at `[…cpt_2, "statements", "wdt:P2550", 0]`, both held by
+  `cpt_2`.
 - **One call per system and kind**, systems in the order Wikidata, GND,
   MusicBrainz, each name once: for `N` without a server `[wikidata agent
   ["Maria João Pires"]], [wikidata work ["Clair de lune"]], [gnd agent
@@ -1350,11 +1354,12 @@ read from a recording, never typed from the implementation; `T` is
 - **Answers.** Asked over the recordings, Wikidata's first agent is
   `http://www.wikidata.org/entity/Q235650` "Maria João Pires" and its first
   work `…/Q29117946` "Clair de lune"; the GND's first work is
-  `https://d-nb.info/gnd/1173441581`; the GND has no recording for the
-  agent "Maria João Pires", so it is named among the failures, `{system:
-  "gnd", message: "it could not be reached (no recorded answer for
-  https://lobid.org/gnd/search?q=Maria+Jo%C3%A3o+Pires&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10)"}`,
-  and the other answers stand.
+  `https://d-nb.info/gnd/1173441581` and its first agent for "Maria João
+  Pires" `https://d-nb.info/gnd/1057057150` (the recording
+  `gnd-search-agent-maria-joao-pires.json`); every system answers, so no
+  failure is named. A system that fails is named among the failures while
+  the other answers stand: with Wikidata unrecorded for "Pires, Maria
+  João" (below), the failures are `["wikidata"]`.
 - **Proposals.** On `cpt_2`'s frame they become one `set` on `{block: A,
   id: "cpt_2"}` holding `provenance` alone (the statements unchanged): the
   entries `{property: "rel:prf", value: {id: "wd:Q235650"}, status:
@@ -1362,8 +1367,9 @@ read from a recording, never typed from the implementation; `T` is
   service: "https://www.wikidata.org/w/api.php", match: "close", note:
   "found for the name “Maria João Pires”"}` and the same for `wdt:P2550`
   with `wd:Q29117946` and "found for the name “Clair de lune”": Wikidata's
-  candidate is preferred though the GND answered the work too, and
-  Wikidata's search says no `match`, so `close`. Proposing again proposes
+  candidate is preferred though the GND answered both too, and
+  Wikidata's search says no `match`, so `close`. Both went to `cpt_2`:
+  `placed` is `[{holder: "cpt_2", count: 2}]`. Proposing again proposes
   nothing (count 0, no command), nor after the first proposal is rejected.
   With Wikidata unreachable, `rel:prf` "Pires, Maria João" gets the GND's
   first, `gnd:1057057150` (lobid ranks "Pires, Maria João Marques" first,
@@ -1373,6 +1379,16 @@ read from a recording, never typed from the implementation; `T` is
   `http://musicbrainz.org/work/199ec7b6-ce07-34e9-85ca-fcf89fe808c9`
   "Clair de Lune", given as the only answer) is proposed `exact`, its IRI
   kept absolute.
+- **What the panel says** (`proposedText`, words given by hand). All on
+  the element shown (`placed` `[{holder: "cpt_2", count: 2}]`, here
+  `cpt_2`): "Proposed 2 matches: they are listed under Proposed.", one:
+  "Proposed 1 match: they are listed under Proposed.". Some elsewhere
+  (`[{holder: "cpt_1", count: 2}, {holder: "clt_6", count: 1}]`, here
+  `cpt_1`, the words of an ID `x` "timeline 'x'"): "Proposed 3 matches: 2
+  here, 1 on timeline 'clt_6'; each is listed under Proposed of the element
+  it is proposed for."; none here (`[{holder: "cpt_2", count: 1}]`, here
+  the bundle, `null`): "Proposed 1 match: 0 here, 1 on timeline 'cpt_2';
+  each is listed under Proposed of the element it is proposed for.".
 - **Confirming.** With the two proposals stored, confirming the `rel:prf`
   row by `G` gives one change on `cpt_2`: `rel:prf` becomes `[{id:
   "wd:Q235650", label: "Maria João Pires"}]` (the name's node with the
@@ -1387,14 +1403,27 @@ read from a recording, never typed from the implementation; `T` is
 - **The tab** (the Inspector mounted with a stub lookup whose `reconcile`
   answers Wikidata's candidates above and nothing elsewhere, and a
   `Picking`): on `cpt_2` with `N` the Proposed drawer offers "Propose
-  matches for unreconciled names" with "2 names without an identifier";
+  matches for unreconciled names" with "2 names without an identifier here
+  and below";
   pressed, one journal entry, "Proposed (2)" and the information "Proposed
   2 matches: they are listed under Proposed."; the names stay without an
   identifier until confirmed, so the offer stays. Pressed again, nothing is
   journalled and "No new match was found for the 2 names." is posted.
   Confirm on the `rel:prf` row: one journal entry whose `set` states
   `cpt_2`'s statements as under Confirming, "Proposed (1)", "1 name
-  without an identifier".
+  without an identifier here and below". On `cpt_1` (its names all lie on
+  `cpt_2` below it; it has one proposal of its own), the count reads "2
+  names without an identifier here and below"; pressed, one journal entry,
+  `cpt_1`'s drawer still "Proposed (1)", and the information "Proposed 2
+  matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Proposed of
+  the element it is proposed for."; `cpt_2` then shows "Proposed (2)".
+- **One lookup, the panel's.** With a stub lookup whose `reconcile` waits
+  until the test releases it: pressed on `cpt_2`, its count reads "Looking
+  them up…" and the button is `aria-busy="true"`; `cpt_1` selected
+  meanwhile shows "2 names without an identifier here and below" and
+  `aria-busy="false"`; `cpt_2` selected again reads "Looking them up…";
+  released, the proposals land on `cpt_2` ("Proposed (2)") and its count
+  reads "2 names without an identifier here and below".
 - **Picking an element.** On `cpt_2`, "derived from" in the vocabulary "An
   element of this manifest": "Pick on the canvas" shows (and not for
   another vocabulary, and not without a `Picking`). Pressed, the picking
@@ -1709,9 +1738,11 @@ Q29117946.
 Type profiles are the viewer's application settings: types of thing with
 their "is a" patterns per catalogue system, the verbs usually stated of
 such a thing and their preferred lookup systems, and the viewer's lookup
-services (Reconciliation Service API endpoints). They live in the
-browser's `localStorage` under `tilie.profiles`, never in a workspace or a
-manifest, and travel as a YAML file of the shape `{profiles: [{id, label,
+services (Reconciliation Service API endpoints). They are one state per
+editor (`ProfilesState`), given to its parts through context, kept in the
+browser's `localStorage` only under the key the host names
+(`StorageOptions.profilesKey`; the page's `tilie.profiles`), never in a
+workspace or a manifest, and travel as a YAML file of the shape `{profiles: [{id, label,
 is_a: {<system>: [{pattern}]}, verbs, lookup}], services: [{id, name,
 endpoint}]}`. What proves them is that a file is read exactly or refused
 with the first problem's path, written back byte for byte, kept across a
@@ -1760,8 +1791,9 @@ service, the catalogue offered is the shipped one itself. With
 shipped seven in their order; a profile `video` (label "film") replaces the
 shipped `video` and comes first, the other six following in their order.
 The service `mb` is the system `service:mb` named "MusicBrainz route",
-after the shipped ten. Through the Metadata tab's own functions, over the
-page's profiles: the "is a" pairs `[["type", "schema:AudioObject"]]` give
+after the shipped ten. Through the Metadata tab's own functions, over a
+state's `catalogue` (an editor's without storage, the profiles `set` on
+it): the "is a" pairs `[["type", "schema:AudioObject"]]` give
 the types `lecture_recording`, `recorded_performance`, `dj_set` (each
 states it once, the profile first), so the Verb options begin "is a",
 "performed by", "recorded at, recorded on", "is a recording of"; without
@@ -1773,19 +1805,38 @@ offers the vocabularies Wikidata, MusicBrainz, GND, MeLODy / LRMoo,
 Other vocabularies, MusicBrainz route, An element of this manifest (the
 service after the catalogue's systems, since the fallback pattern takes a
 thing); "is a", whose fallback takes no thing, offers no service. A change
-of the profiles is seen at the next read: a `$derived` over the offered
-types, followed outside a component (`follow.svelte.ts`), recomputes after
-`set`.
+of the profiles is seen at the next read: a `$derived` over the state's
+catalogue's first type, followed outside a component (`follow.svelte.ts`),
+gives `musical_work`, then `lecture_recording` after `set`.
 
-**Kept in the browser** (`profiles.test.ts`). Nothing stored gives no
-profiles; `set` stores the file's canonical YAML under `tilie.profiles`
-and a new state reads it back equal; a stored text that is no profile file
-(not YAML, `[]`, a profile naming an unknown verb) gives no profiles;
-storage throwing on read or write leaves the profiles set in memory.
-`profilesState()` is one state per page, made when the module is
-evaluated (state made inside a running `$derived` would belong to it, and
-the derived would not follow it); `resetProfiles()` reads storage into it
-again, as a new page would.
+**The vocabularies a subject prefers** (`profiles.test.ts`). The
+vocabularies of a verb lead with the lookup systems of the subject's types,
+the first type's first (each type's `lookup`, profile or catalogue type
+alike), the others following in catalogue order. "performed by" offers,
+in catalogue order, Wikidata, MusicBrainz, GND, MeLODy / LRMoo, Other
+vocabularies, An element of this manifest; for a subject of the shipped
+type `release` (lookup `[musicbrainz, wikidata]`) MusicBrainz, Wikidata,
+GND, MeLODy / LRMoo, Other vocabularies, An element of this manifest; for
+one of `lecture_recording` (lookup `[wikidata]`) and then
+`recorded_performance` and `dj_set`, as the "is a" `type
+schema:AudioObject` gives them, Wikidata first: Wikidata, MusicBrainz,
+GND, MeLODy / LRMoo, Other vocabularies, An element of this manifest; for
+one of a profile `lookup: [gnd, wikidata]` GND, Wikidata, MusicBrainz,
+MeLODy / LRMoo, Other vocabularies, An element of this manifest. The
+element choice stays last whatever the types.
+
+**Kept where the host says** (`profiles.test.ts`, `shell.test.ts`,
+`embed.test.ts`). With the key `tilie.profiles`: nothing stored gives no
+profiles; `set` stores the file's canonical YAML under the key and a new
+state reads it back equal; a stored text that is no profile file (not
+YAML, `[]`, a profile naming an unknown verb) gives no profiles; storage
+throwing on read or write leaves the profiles set in memory. Without a key
+a state reads and writes no storage at all (`getItem` and `setItem` spied:
+not called) and holds what is `set`. An embedded editor with `storage:
+null` whose "Type profiles…" dialog adds a profile and saves calls neither
+`getItem` nor `setItem` and leaves `localStorage` empty; the page (`App`)
+reads a profile file stored under `tilie.profiles` at mount (its dialog
+lists it) and stores the saved profiles there.
 
 **The services' lookup** (`profiles.test.ts`), through `createLookup` with
 the services given and the replaying `fetch` of "Looking values up",
@@ -1806,7 +1857,8 @@ Reconciling "Clair de lune" and "" sends one request `{q0: {query: "Clair
 de lune", limit: 3}}`, answered from
 `musicbrainz-reconcile-work-clair-de-lune.json`: the best candidate
 `work/199ec7b6-…` "Clair de Lune" with `match` true, and `null` for the
-blank text. The default services are the page's profiles'.
+blank text. Without services given, a lookup has none: `service:mb` is
+not searchable.
 
 **Editing helpers** (`profiles.test.ts`). The "is a" choices are the
 systems the catalogue's "is a" has a pattern in, in catalogue order:
@@ -1823,8 +1875,9 @@ catalogue type `video` it is `video` with video's patterns (notes
 dropped), verbs and lookup, and `video_2` when `video` is taken.
 
 **The dialogue** (`profiles-dialog.test.ts`), mounted alone in jsdom with
+an editor's profiles kept under `tilie.profiles` in its context and
 `files.ts` replaced by a stub that answers the file picker with a given
-text and records saved texts. Opening shows the page's profiles, the first
+text and records saved texts. Opening shows the editor's profiles, the first
 selected and focused. Add profile with "an empty profile" adds `type_1`,
 selects it and focuses its ID; its label and ID edit the draft; ticking
 `type schema:AudioObject` under "Other vocabularies", adding the verbs
@@ -1840,4 +1893,10 @@ type profiles: <problem>" and keeps the draft. Export YAML… saves the
 draft's canonical YAML as `profiles.yaml`, and refuses a draft with a
 problem without saving. Services are added (`service_1`, "service 1",
 `https://`), edited and deleted, and a saved service appears among the
-lookup choices of the next opening.
+lookup choices of the next opening. A service's lookup system follows the
+service in every profile: with `lecture_recording` looking up `[wikidata,
+service:mb]` and the service `mb`, changing the service's ID to `mbz`
+makes the lookup `[wikidata, service:mbz]` (its place kept) and Save
+stores it; deleting the service makes it `[wikidata]` and Save stores it.
+A helper alone (`withServiceLookup`): renaming or removing a service the
+profile does not look up in gives the profile itself.

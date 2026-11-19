@@ -3,9 +3,8 @@
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { View } from "@timetoalign/tilie-core";
 import { DEFAULT_USER } from "@timetoalign/tilie-core";
-import { fontMetrics, isJsonObject } from "@timetoalign/timetoshare";
+import { defaultCatalogue, fontMetrics, isJsonObject } from "@timetoalign/timetoshare";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CATALOGUE } from "../src/inspector/metadata/catalogue.ts";
 import {
   added,
   commandOf,
@@ -22,6 +21,8 @@ import { fixture, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+/** The shipped catalogue: what the tab offers without type profiles. */
+const CATALOGUE = defaultCatalogue();
 
 const view: View = storeOf(fixture("statements/layerit_recording")).view;
 

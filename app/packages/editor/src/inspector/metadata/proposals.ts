@@ -40,6 +40,8 @@ const SLOT = "?";
 
 /** A name stated without an identifier, and where it could be looked up. */
 export interface Unreconciled {
+  /** The ID of the timeline or region whose statements hold it; `null` for the bundle's. */
+  readonly holder: string | null;
   /** The element or value node stating it. */
   readonly subject: readonly PathSegment[];
   readonly property: string;
@@ -84,6 +86,7 @@ export function unreconciledOf(frame: Frame, catalogue: Catalogue, lookup: Looku
   const context = skeleton["@context"];
   const found: Unreconciled[] = [];
   const visit = (
+    holder: string | null,
     subject: readonly PathSegment[],
     [property, value]: Pair,
     path: readonly PathSegment[],
@@ -105,16 +108,16 @@ export function unreconciledOf(frame: Frame, catalogue: Catalogue, lookup: Looku
           ? []
           : RECONCILING.filter((system) => offered.has(system) && lookup.searchable(system, kind));
       if (kind !== null && systems.length > 0) {
-        found.push({ subject, property, node: value, label, kind, systems });
+        found.push({ holder, subject, property, node: value, label, kind, systems });
       }
     }
-    for (const [pair, inner] of placedPairs(skeleton, path, path)) visit(path, pair, inner);
+    for (const [pair, inner] of placedPairs(skeleton, path, path)) visit(holder, path, pair, inner);
   };
   for (const holder of statementHolders(frame.block.manifest)) {
     if (!startsWith(holder.path, frame.path)) continue;
     const container = [...holder.path, "statements"];
     for (const [pair, path] of placedPairs(skeleton, holder.path, container)) {
-      visit(holder.path, pair, path);
+      visit(holder.id, holder.path, pair, path);
     }
   }
   return found;
@@ -184,6 +187,12 @@ export function proposalNote(label: string): string {
   return `found for the name “${label}”`;
 }
 
+/** How many proposals one element was given: the timeline or region of that ID, or the bundle (`null`). */
+export interface Placed {
+  readonly holder: string | null;
+  readonly count: number;
+}
+
 /**
  * The skeleton with the best candidate of each name proposed, as TiLiE's
  * proposal: the candidate of the first system in `RECONCILING` that found
@@ -192,7 +201,8 @@ export function proposalNote(label: string): string {
  * `exact` where the service says it matches, else `close`, and the note
  * naming the name. A candidate the subject already states, or has any
  * annotation of (proposed, or rejected and so never proposed again), is
- * passed over. With the number proposed.
+ * passed over. With the number proposed, and how many went to each element
+ * (`placed`, those given one, in the order of their names).
  */
 export function proposed(
   frame: Frame,
@@ -200,9 +210,10 @@ export function proposed(
   answers: Answers,
   prefixes: Readonly<Record<string, string>>,
   day: string,
-): { readonly skeleton: Skeleton; readonly count: number } {
+): { readonly skeleton: Skeleton; readonly count: number; readonly placed: readonly Placed[] } {
   let skeleton = frame.skeleton;
   let count = 0;
+  const placed: { holder: string | null; count: number }[] = [];
   const context = skeleton["@context"];
   for (const item of found) {
     const candidate = item.systems
@@ -226,8 +237,39 @@ export function proposed(
       note: proposalNote(item.label),
     });
     count += 1;
+    const at = placed.find((entry) => entry.holder === item.holder);
+    if (at === undefined) placed.push({ holder: item.holder, count: 1 });
+    else at.count += 1;
   }
-  return { skeleton, count };
+  return { skeleton, count, placed };
+}
+
+/** "1 match", "2 matches". */
+function matches(count: number): string {
+  return `${count} ${count === 1 ? "match" : "matches"}`;
+}
+
+/**
+ * What the panel says after proposing: how many, and where they are listed.
+ * All on the element shown (`here`, its ID or `null` for the bundle): they
+ * are listed under its Proposed. Some on elements below it: the count here,
+ * then each other element's count and its words (`words`), in `placed`'s
+ * order: "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; …".
+ */
+export function proposedText(
+  placed: readonly Placed[],
+  here: string | null,
+  words: (holder: string | null) => string,
+): string {
+  const total = placed.reduce((sum, entry) => sum + entry.count, 0);
+  const others = placed.filter((entry) => entry.holder !== here);
+  if (others.length === 0) return `Proposed ${matches(total)}: they are listed under Proposed.`;
+  const own = placed.find((entry) => entry.holder === here)?.count ?? 0;
+  const parts = [
+    `${own} here`,
+    ...others.map((entry) => `${entry.count} on ${words(entry.holder)}`),
+  ];
+  return `Proposed ${matches(total)}: ${parts.join(", ")}; each is listed under Proposed of the element it is proposed for.`;
 }
 
 /**

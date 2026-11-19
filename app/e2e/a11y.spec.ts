@@ -2,8 +2,8 @@
  * Accessibility of the canvas page with `small` open: axe-core reports no
  * violation, with the inspector on its Properties, Manifest and Metadata
  * tabs (the LayerIt recording imported, a composer listbox open) and the
- * "Your name" dialog open too, and the keyboard reaches, selects and
- * releases the blocks.
+ * "Your name" dialog open too, in the "Type profiles" dialog, and the
+ * keyboard reaches, selects and releases the blocks.
  * Derivation in `README.md` ("a11y.spec.ts").
  */
 
@@ -11,7 +11,17 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { statementsFixture } from "./schema.ts";
-import { drawer, field, open, pick, SMALL, select, selection, withoutPickers } from "./support.ts";
+import {
+  chooseItem,
+  drawer,
+  field,
+  open,
+  pick,
+  SMALL,
+  select,
+  selection,
+  withoutPickers,
+} from "./support.ts";
 
 /** The hosts the Metadata tab looks values up at; this spec answers none of them. */
 const LOOKUP_HOSTS =
@@ -127,6 +137,19 @@ test("axe-core reports no violation on the Metadata tab with a listbox open and 
 test("axe-core reports no violation with the File menu open", async ({ page }) => {
   await page.getByRole("button", { name: "File" }).click();
   await expect(page.getByRole("menu")).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("axe-core reports no violation in the Type profiles dialog with a profile and a service", async ({
+  page,
+}) => {
+  await chooseItem(page, "Type profiles…");
+  const dialog = page.getByRole("dialog", { name: "Type profiles" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Add profile" }).click();
+  await dialog.getByRole("button", { name: "Add service" }).click();
+  await expect(dialog.getByTestId("profile-editor")).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });

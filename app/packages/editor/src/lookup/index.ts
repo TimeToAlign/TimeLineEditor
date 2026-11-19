@@ -19,7 +19,6 @@
 import type { ConnectOptions } from "@timetoalign/tilie-client";
 import { type Catalogue, defaultCatalogue } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
-import { profilesState } from "../profiles/profiles.svelte.ts";
 import { resolveGnd, searchGnd } from "./gnd.ts";
 import { type Candidate, GND_FILTERS, type LookupContext, type ValueKind } from "./kinds.ts";
 import {
@@ -106,8 +105,8 @@ export interface LookupOptions {
   /** The catalogue that recognises IRIs; the default catalogue by default. */
   readonly catalogue?: Catalogue;
   /**
-   * The viewer's services, read at every request: the page's type
-   * profiles' by default.
+   * The viewer's services, read at every request (the editor gives its type
+   * profiles'); none by default.
    */
   readonly services?: () => readonly Service[];
 }
@@ -135,7 +134,7 @@ export function createLookup(options: LookupOptions): Lookup {
   };
   const musicbrainz =
     options.server === null ? null : musicbrainzClient(options.server, context.fetch);
-  const services = options.services ?? (() => profilesState().profiles.services);
+  const services = options.services ?? (() => []);
   const clients = new ServiceClients(context.fetch);
   const service = (system: string): Service | undefined => serviceOf(services(), system);
 

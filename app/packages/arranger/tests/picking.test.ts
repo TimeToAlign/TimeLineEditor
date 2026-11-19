@@ -16,6 +16,7 @@ import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { pickable } from "../src/picking.ts";
 import type { Selection } from "../src/selection.ts";
+import { selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
 import { A, blockIn, CHILD_MEMBER, metrics, sourceOf, storeOf, viewOf } from "./support.ts";
@@ -92,6 +93,7 @@ describe("what a press picks", () => {
 describe("the canvas while picking", () => {
   interface Mounted {
     current(): { selection: Selection };
+    select(next: Selection): void;
   }
   let mounted: Mounted | undefined;
   let instance: ReturnType<typeof mount> | undefined;
@@ -215,6 +217,78 @@ describe("the canvas while picking", () => {
     await show(true);
     await pressEscape();
     expect(store.editing.length).toBe(1);
+  });
+
+  function pane(): Element {
+    const found = document.querySelector(".svelte-flow__pane");
+    if (found === null) throw new Error("no pane");
+    return found;
+  }
+
+  function blockNode(): HTMLElement {
+    const found = document.querySelector<HTMLElement>(`.svelte-flow__node[data-id="${A}"]`);
+    if (found === null) throw new Error("no block node");
+    return found;
+  }
+
+  async function select(addresses: readonly Address[]): Promise<void> {
+    mounted?.select(selectionOf(addresses));
+    await settle();
+  }
+
+  async function keyOn(target: Element, key: string): Promise<void> {
+    target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    await settle();
+  }
+
+  async function clickOn(target: Element): Promise<void> {
+    target.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 5, clientY: 5 }),
+    );
+    await settle();
+  }
+
+  const hintText = () => document.querySelector('[data-testid="hint"]')?.textContent;
+
+  it("keeps the selection on a press and a click on the pane while picking", async () => {
+    await show(true);
+    await select([{ block: A }]);
+    await pressOn(pane());
+    expect(picks).toEqual([]);
+    expect(hintText()).toBe("Pick a timeline or a region; Escape cancels.");
+    expect(selected()).toEqual([{ block: A }]);
+    await clickOn(pane());
+    expect(selected()).toEqual([{ block: A }]);
+  });
+
+  it("clears the selection with a click on the pane when not picking", async () => {
+    await show(false);
+    await select([{ block: A }]);
+    await clickOn(pane());
+    expect(selected()).toEqual([]);
+  });
+
+  it("picks the element Enter is sent to, and selects nothing", async () => {
+    await show(true);
+    await keyOn(card(), "Enter");
+    expect(picks).toEqual([picked("clt_1")]);
+    expect(selected()).toEqual([]);
+  });
+
+  it("picks nothing with Enter or Space on the focused block, and selects nothing", async () => {
+    await show(true);
+    for (const key of ["Enter", " "]) {
+      await keyOn(blockNode(), key);
+      expect(picks).toEqual([]);
+      expect(hintText()).toBe("Pick a timeline or a region; Escape cancels.");
+      expect(selected()).toEqual([]);
+    }
+  });
+
+  it("selects the focused block with Enter when not picking", async () => {
+    await show(false);
+    await keyOn(blockNode(), "Enter");
+    expect(selected()).toEqual([{ block: A }]);
   });
 
   it("closes the editor on Escape when not picking", async () => {

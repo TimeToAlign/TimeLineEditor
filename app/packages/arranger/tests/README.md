@@ -943,6 +943,19 @@ region; Escape cancels.", and its click selects nothing either. In
 leaves the editor open while `picking` is given (the caller cancels), and
 closes it without `picking`.
 
+Picking holds the whole canvas, so the panel that asked keeps its subject:
+with the block `{block: A}` selected, a press on the pane (its press,
+release and click) calls nothing, shows the same status line and leaves
+`[{block: A}]` selected, as does a click on the pane alone; without
+`picking` that click clears the selection, which proves the click reaches
+Svelte Flow's pane handler and is swallowed only while picking. Keys pick
+the way a press does, from the element the key is sent to: Enter on
+`clt_1`'s card element calls `picking` once with `{block: A, id:
+"clt_1"}` and selects nothing; Enter and Space on the focused block node
+(the block itself, which `pickable` maps to nothing) call nothing, show
+the status line and leave the selection empty, where without `picking`
+Enter on it selects `{block: A}`.
+
 ## Editors: what opens and what each level permits (`editors.test.ts`)
 
 An editor is a mode of the canvas on one element. What proves the dispatch

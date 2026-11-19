@@ -48,6 +48,7 @@ import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
+import type { Pressed } from "./selectionRules.ts";
 import { DONE, hitAt, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
 
@@ -99,9 +100,11 @@ interface Props {
   /**
    * While set, the canvas picks instead of selecting: a press on a
    * timeline (its line, card, band or a part of it) or a region
-   * (`pickable`) calls it with `{block, id}` and does nothing else, a
-   * press on anything else in a block does nothing, Escape is left to the
-   * caller, and the pointer is a crosshair; `null` (the default) selects.
+   * (`pickable`), or Enter or Space on such a focused element, calls it
+   * with `{block, id}` and does nothing else; a press on anything else in
+   * a block or on the pane, and Enter or Space on anything else, selects
+   * nothing and says what can be picked; Escape is left to the caller, and
+   * the pointer is a crosshair; `null` (the default) selects.
    */
   picking?: ((address: Address) => void) | null;
 }
@@ -538,31 +541,62 @@ const NOT_PICKABLE = "Pick a timeline or a region; Escape cancels.";
 let picked = false;
 
 /**
- * While picking, a primary press on a block is taken before anything inside
- * sees it: a press on what `pickable` maps calls `picking` with it, any other
- * says what can be picked. Preventing the press keeps the mouse events that
- * would start Svelte Flow's drag or pan from following it.
+ * Pick what `pressed` hit: call `picking` with what `pickable` maps it to,
+ * or say what can be picked (on the pane, the block itself and anything
+ * else `pickable` maps to nothing).
+ */
+function pickAt(pressed: Pressed, pick: (address: Address) => void): void {
+  const hit = hitAt(pressed, editing);
+  const address =
+    hit === null || pressed.node === undefined
+      ? null
+      : pickable(hit, pressed.node.data.block.manifest);
+  hint = address === null ? NOT_PICKABLE : "";
+  if (address !== null) pick(address);
+}
+
+/**
+ * While picking, a primary press on a block or on the pane is taken before
+ * anything inside sees it (`pickAt`), so it neither selects nor deselects.
+ * Preventing the press keeps the mouse events that would start Svelte
+ * Flow's drag, pan or marquee from following it. A press elsewhere (the
+ * toolbars) acts as ever.
  */
 function pickOnPress(event: PointerEvent): boolean {
   picked = false;
   if (picking === null || !event.isPrimary || event.button !== 0) return false;
   const pressed = pointer.pressedAt(event.target, { x: event.clientX, y: event.clientY });
-  if (pressed.node === undefined) return false;
+  if (pressed.node === undefined && !pressed.pane) return false;
   event.preventDefault();
   event.stopPropagation();
   picked = true;
-  const hit = hitAt(pressed, editing);
-  const address = hit === null ? null : pickable(hit, pressed.node.data.block.manifest);
-  hint = address === null ? NOT_PICKABLE : "";
-  if (address !== null) picking(address);
+  pickAt(pressed, picking);
   return true;
 }
 
-/** The click that ends a press taken by picking reaches nothing inside the canvas. */
+/**
+ * The click that ends a press taken by picking reaches nothing inside the
+ * canvas; while picking, neither does any click on a block or the pane, so
+ * Svelte Flow selects and deselects nothing.
+ */
 function onclickcapture(event: MouseEvent) {
-  if (!picked) return;
+  const taken = picked;
   picked = false;
-  event.stopPropagation();
+  if (!taken && picking === null) return;
+  const pressed = taken ? null : pointer.pressedAt(event.target);
+  if (taken || pressed?.node !== undefined || pressed?.pane === true) event.stopPropagation();
+}
+
+/**
+ * While picking, Enter or Space on the focused element of the canvas picks
+ * it, as a press on it would (`pickAt`), and selects nothing.
+ */
+function pickOnKey(event: KeyboardEvent): boolean {
+  if (picking === null) return false;
+  const plain = !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+  if (!plain || (event.key !== "Enter" && event.key !== " ")) return false;
+  pickAt(pointer.pressedAt(event.target), picking);
+  return true;
 }
 
 /** A press records itself and gives the canvas the focus, unless the focus is already inside it. */
@@ -618,7 +652,7 @@ function onkeydowncapture(event: KeyboardEvent) {
   if (event.defaultPrevented || isTextInput(event.target)) return;
   if (picking !== null && event.key === "Escape") return;
   if (!within(root, event.target) || inToolbar(event)) return;
-  if (!handleKey(keyContext(event), event)) return;
+  if (!pickOnKey(event) && !handleKey(keyContext(event), event)) return;
   event.preventDefault();
   event.stopPropagation();
 }

@@ -4,10 +4,11 @@
  * workspace. It styles only its own root, takes keys only inside its root
  * unless `shortcuts` is `"window"`, names every DOM id per instance, and
  * reaches outside itself only through its options: the server it asks, the
- * storage it keeps the autosave, the drawer's state and the user in, the
- * lookups it may make, and the callbacks. It holds the one user of the
- * editor (the journal's author, who states in the Metadata tab) and gives
- * the user and the lookup to every part through context.
+ * storage it keeps the autosave, the drawer's state, the user and the type
+ * profiles in, the lookups it may make, and the callbacks. It holds the one
+ * user of the editor (the journal's author, who states in the Metadata tab)
+ * and its type profiles, and gives the user, the profiles and the lookup to
+ * every part through context.
  */
 import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
@@ -36,6 +37,8 @@ import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
 import { Picking, providePicking } from "./pick.svelte.ts";
+import ProfilesDialog from "./profiles/ProfilesDialog.svelte";
+import { ProfilesState, provideProfiles } from "./profiles/profiles.svelte.ts";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
 import UserDialog from "./UserDialog.svelte";
@@ -80,6 +83,7 @@ let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
 let userDialog: ReturnType<typeof UserDialog> | undefined = $state();
+let profilesDialog: ReturnType<typeof ProfilesDialog> | undefined = $state();
 
 // --- Messages ---------------------------------------------------------------
 
@@ -94,7 +98,7 @@ function warn(text: string, problems: readonly Problem[] = []): void {
 provideInform((text) => messages.inform(text));
 provideWarn((text) => messages.warn(text));
 
-// --- The user and the lookup --------------------------------------------------
+// --- The user, the type profiles and the lookup ---------------------------------
 
 /** The one user: the viewer's own, read from storage once, at mount; never written to the workspace. */
 const user = new UserState(untrack(() => storage?.userKey ?? null));
@@ -108,8 +112,19 @@ async function askUser(): Promise<void> {
 }
 
 provideUser({ state: user, ask: askUser });
-// Lookups leave the browser only where the host allows them.
-provideLookup(untrack(() => (lookup ? createLookup({ server: server ?? null }) : NO_LOOKUP)));
+
+/** The viewer's type profiles and lookup services, kept only where the host's storage options say. */
+const profiles = new ProfilesState(untrack(() => storage?.profilesKey ?? null));
+provideProfiles(profiles);
+
+// Lookups leave the browser only where the host allows them; the services are the profiles' own.
+provideLookup(
+  untrack(() =>
+    lookup
+      ? createLookup({ server: server ?? null, services: () => profiles.profiles.services })
+      : NO_LOOKUP,
+  ),
+);
 
 /** A panel's question for an element on the canvas, which the canvas answers while it is asked. */
 const picking = new Picking();
@@ -358,6 +373,7 @@ const fileItems: readonly MenuItem[] = $derived([
     run: () => session.exportManifest(),
   },
   { label: "Your name…", run: () => void askUser() },
+  { label: "Type profiles…", run: () => profilesDialog?.open() },
 ]);
 
 const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
@@ -535,6 +551,7 @@ if (withTestHook) {
 
   <ConfirmDialog bind:this={confirm} />
   <UserDialog bind:this={userDialog} />
+  <ProfilesDialog bind:this={profilesDialog} />
   <AboutDialog bind:this={about} connected={server !== null} {health} {offline} {noticesUrl} />
 </div>
 

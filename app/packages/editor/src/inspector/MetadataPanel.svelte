@@ -8,19 +8,23 @@
  * `set` of the statements and provenance it changes, built on the
  * manifest's statement skeleton by TimeToShare's functions; their throws
  * and the store's refusals are posted to the message bar as warnings. The
- * user who states comes from the editor's user; lookups from its lookup,
- * which also proposes matches for the names stated without an identifier.
+ * user who states comes from the editor's user; the choices from its type
+ * profiles' catalogue; lookups from its lookup, which also proposes matches
+ * for the names stated without an identifier of the element and every
+ * element below it.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
 import type { PathSegment, Skeleton, Store, View } from "@timetoalign/tilie-core";
+import { addressWords } from "@timetoalign/tilie-core";
 import { isJsonObject, samePair } from "@timetoalign/timetoshare";
 import { onDestroy, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { lookupOf } from "../lookup/index.ts";
 import { informOf, warnOf } from "../messages.svelte.ts";
+import { profilesOf } from "../profiles/profiles.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import Composer from "./metadata/Composer.svelte";
-import { CATALOGUE, systemChoice } from "./metadata/catalogue.ts";
+import { systemChoice } from "./metadata/catalogue.ts";
 import { ComposerState } from "./metadata/composer.svelte.ts";
 import Drawers from "./metadata/Drawers.svelte";
 import type { EntryFields } from "./metadata/edits.ts";
@@ -42,11 +46,13 @@ import {
   rectangleWords,
   shownOf,
 } from "./metadata/frame.ts";
+import type { Placed } from "./metadata/proposals.ts";
 import {
   answersTo,
   confirmedProposal,
   frameIn,
   proposed,
+  proposedText,
   questionsOf,
   unreconciledOf,
 } from "./metadata/proposals.ts";
@@ -74,20 +80,27 @@ const inform = informOf();
 const warn = warnOf();
 const user = userOf();
 const lookup = lookupOf();
+const profiles = profilesOf();
+/** The catalogue the editor's type profiles offer. */
+const catalogue = $derived(profiles.catalogue);
 provideThumbnails(new Thumbnails(lookup));
 
 const composer = new ComposerState();
 
 const shown = $derived(shownOf(view, subjects, editing));
 const frame = $derived(shown.kind === "none" ? null : shown);
-const rectangles = $derived(frame === null ? [] : rectanglesOf(frame, CATALOGUE, user.state.user));
+const rectangles = $derived(frame === null ? [] : rectanglesOf(frame, catalogue, user.state.user));
 const drawers = $derived(
-  frame === null ? null : drawersOf(view, frame, CATALOGUE, user.state.user),
+  frame === null ? null : drawersOf(view, frame, catalogue, user.state.user),
 );
 /** The names below the shown element stated without an identifier that the lookup can look up. */
-const unreconciled = $derived(frame === null ? [] : unreconciledOf(frame, CATALOGUE, lookup));
-/** Whether matches are being looked up for them. */
-let proposing = $state(false);
+const unreconciled = $derived(frame === null ? [] : unreconciledOf(frame, catalogue, lookup));
+/**
+ * The key of the element whose names' matches are being looked up; `null`
+ * while none are. The lookup belongs to the panel, so another element shown
+ * meanwhile is not shown as looking them up.
+ */
+let proposingFor: string | null = $state(null);
 /** Ends the lookups of the proposals when the panel goes. */
 const proposals = new AbortController();
 onDestroy(() => proposals.abort());
@@ -150,7 +163,7 @@ function holderOf(pair: Pair): string | null {
   if (frame === null) return null;
   const context = frame.skeleton["@context"];
   return (
-    rectanglesOf(frame, CATALOGUE, user.state.user).find((rectangle) =>
+    rectanglesOf(frame, catalogue, user.state.user).find((rectangle) =>
       rectangle.pairs.some((stated) => samePair(context, stated, pair)),
     )?.key ?? null
   );
@@ -270,33 +283,38 @@ function confirm(at: Frame, row: DrawerRow): void {
  * searched is named.
  */
 async function propose(at: Frame): Promise<void> {
-  if (proposing) return;
-  proposing = true;
-  const found = unreconciledOf(at, CATALOGUE, lookup);
+  if (proposingFor !== null) return;
+  proposingFor = at.key;
+  const found = unreconciledOf(at, catalogue, lookup);
   const { answers, failures } = await answersTo(lookup, questionsOf(found), proposals.signal);
-  proposing = false;
+  proposingFor = null;
   if (proposals.signal.aborted) return;
   for (const { system, message } of failures) {
-    inform(`${systemChoice(CATALOGUE, system).label} could not be searched: ${message}`);
+    inform(`${systemChoice(catalogue, system).label} could not be searched: ${message}`);
   }
   const now = frameIn(store.view, at);
   if (now === null) return;
   let count = 0;
+  let placed: readonly Placed[] = [];
   const changed = edit(now, () => {
     const result = proposed(
       now,
-      unreconciledOf(now, CATALOGUE, lookup),
+      unreconciledOf(now, catalogue, lookup),
       answers,
-      framePrefixes(now, CATALOGUE),
+      framePrefixes(now, catalogue),
       dayOf(new Date()),
     );
     count = result.count;
+    placed = result.placed;
     return result.skeleton;
   });
   // A refusal or a throw is posted by `edit`.
   if (changed) {
+    const block = now.block.id;
     inform(
-      `Proposed ${count} ${count === 1 ? "match" : "matches"}: they are listed under Proposed.`,
+      proposedText(placed, now.id, (id) =>
+        addressWords(store.view, id === null ? { block } : { block, id }),
+      ),
     );
   } else if (count === 0) {
     inform(
@@ -356,7 +374,7 @@ function rejectRow(at: Frame, row: DrawerRow): void {
       <Drawers
         {drawers}
         unreconciled={unreconciled.length}
-        {proposing}
+        proposing={proposingFor === frame.key}
         onconfirm={(row) => confirm(frame, row)}
         onreject={(row) => rejectRow(frame, row)}
         onpropose={() => void propose(frame)}

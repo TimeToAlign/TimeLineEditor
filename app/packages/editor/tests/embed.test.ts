@@ -209,6 +209,47 @@ describe("mount", () => {
   });
 });
 
+describe("type profiles", () => {
+  /** Choose "Type profiles…" in the File menu of the editor in `element`. */
+  function openProfiles(element: HTMLElement): HTMLDialogElement {
+    element.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')?.click();
+    flushSync();
+    const item = [...element.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+      (entry) => entry.querySelector("span")?.textContent === "Type profiles…",
+    );
+    if (item === undefined) throw new Error("no Type profiles… item");
+    item.click();
+    flushSync();
+    const dialog = [...element.querySelectorAll("dialog")].find(
+      (candidate) => candidate.querySelector("h2")?.textContent === "Type profiles",
+    );
+    if (dialog === undefined) throw new Error("no Type profiles dialog");
+    return dialog;
+  }
+
+  function press(dialog: HTMLDialogElement, name: string): void {
+    const found = [...dialog.querySelectorAll<HTMLButtonElement>("button")].find(
+      (candidate) => candidate.textContent?.trim() === name,
+    );
+    if (found === undefined) throw new Error(`no button ${name}`);
+    found.click();
+    flushSync();
+  }
+
+  it("never touches localStorage without storage", () => {
+    const read = vi.spyOn(Storage.prototype, "getItem");
+    const written = vi.spyOn(Storage.prototype, "setItem");
+    const element = host();
+    embed(element, { storage: null });
+    const dialog = openProfiles(element);
+    expect(dialog.open).toBe(true);
+    press(dialog, "Add profile");
+    press(dialog, "Save");
+    expect(dialog.open).toBe(false);
+    expect([read.mock.calls, written.mock.calls, localStorage.length]).toEqual([[], [], 0]);
+  });
+});
+
 describe("destroy", () => {
   it("empties the element and removes every window listener it added", async () => {
     interceptDownloads();

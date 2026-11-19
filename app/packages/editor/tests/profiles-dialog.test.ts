@@ -3,10 +3,11 @@
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ProfilesDialog from "../src/profiles/ProfilesDialog.svelte";
-import { profilesState, resetProfiles } from "../src/profiles/profiles.svelte.ts";
+import { ProfilesState } from "../src/profiles/profiles.svelte.ts";
 import type { Profile } from "../src/profiles/profiles.ts";
-import { PROFILES_KEY, profilesText } from "../src/profiles/profiles.ts";
+import { profilesText } from "../src/profiles/profiles.ts";
 import { stubEditor } from "./dom.ts";
+import { providing, userContext } from "./support.ts";
 
 /** What the stubbed file picker hands over next, and what was saved. */
 const files = vi.hoisted(() => ({
@@ -31,13 +32,21 @@ const LECTURE: Profile = {
   lookup: ["wikidata"],
 };
 const FILM: Profile = { ...LECTURE, id: "film", label: "film", verbs: [], lookup: [] };
+const MB = { id: "mb", name: "MusicBrainz route", endpoint: "https://example.org/reconcile" };
+/** The key the page keeps the profiles under. */
+const KEY = "tilie.profiles";
 
 let mounted: ReturnType<typeof mount> | undefined;
+/** The editor's profiles the dialogue edits, kept under the page's key. */
+let held = new ProfilesState(KEY);
+
+/** The profiles in force. */
+const profilesState = () => held;
 
 beforeEach(() => {
   stubEditor();
   localStorage.clear();
-  resetProfiles();
+  held = new ProfilesState(KEY);
   files.next = null;
   files.saved = [];
 });
@@ -47,15 +56,14 @@ afterEach(() => {
   mounted = undefined;
   document.body.innerHTML = "";
   localStorage.clear();
-  resetProfiles();
   vi.unstubAllGlobals();
 });
 
-/** Mount the dialogue and open it on the page's profiles. */
+/** Mount the dialogue with the editor's profiles in its context and open it on them. */
 async function opened() {
   const target = document.createElement("div");
   document.body.append(target);
-  const dialog = mount(ProfilesDialog, { target });
+  const dialog = mount(providing(ProfilesDialog, userContext(), undefined, held), { target });
   mounted = dialog;
   flushSync();
   dialog.open();
@@ -171,9 +179,7 @@ describe("editing profiles", () => {
     await press(button(element, "Save"));
     expect(element.open).toBe(false);
     expect(profilesState().profiles).toEqual({ profiles: [LECTURE], services: [] });
-    expect(localStorage.getItem(PROFILES_KEY)).toBe(
-      profilesText({ profiles: [LECTURE], services: [] }),
-    );
+    expect(localStorage.getItem(KEY)).toBe(profilesText({ profiles: [LECTURE], services: [] }));
   });
 
   it("adds a copy of a catalogue type", async () => {
@@ -297,5 +303,42 @@ describe("files and services", () => {
     first.dialog.open();
     await tick();
     expect(checkbox(first.element, "Look values up in", "MusicBrainz route").checked).toBe(false);
+  });
+
+  /** The service fields of the dialogue's first service: ID, name, endpoint. */
+  const serviceFields = (element: HTMLElement) =>
+    [...element.querySelectorAll<HTMLInputElement>("[data-service] input")] as [
+      HTMLInputElement,
+      HTMLInputElement,
+      HTMLInputElement,
+    ];
+
+  it("renames a service's lookup system in every profile when its ID changes", async () => {
+    const looking: Profile = { ...LECTURE, lookup: ["wikidata", "service:mb"] };
+    profilesState().set({ profiles: [looking], services: [MB] });
+    const { element } = await opened();
+    type(serviceFields(element)[0], "mbz");
+    await press(button(element, "Save"));
+    expect(element.open).toBe(false);
+    expect(profilesState().profiles).toEqual({
+      profiles: [{ ...LECTURE, lookup: ["wikidata", "service:mbz"] }],
+      services: [{ ...MB, id: "mbz" }],
+    });
+  });
+
+  it("drops a deleted service's lookup system from every profile", async () => {
+    const looking: Profile = { ...LECTURE, lookup: ["wikidata", "service:mb"] };
+    profilesState().set({
+      profiles: [looking, { ...FILM, lookup: ["service:mb"] }],
+      services: [MB],
+    });
+    const { element } = await opened();
+    await press(button(element, "Delete MusicBrainz route"));
+    await press(button(element, "Save"));
+    expect(element.open).toBe(false);
+    expect(profilesState().profiles).toEqual({
+      profiles: [LECTURE, FILM],
+      services: [],
+    });
   });
 });

@@ -8,6 +8,7 @@
   "https://lobid.org/gnd/124927521.json": "gnd-record-124927521.json",
   "https://lobid.org/gnd/300042558.json": "gnd-record-300042558.json",
   "https://lobid.org/gnd/search?q=Clair+de+lune&filter=type%3AMusicalWork&format=json%3Asuggest&size=10": "gnd-search-work-clair-de-lune.json",
+  "https://lobid.org/gnd/search?q=Maria+Jo%C3%A3o+Pires&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10": "gnd-search-agent-maria-joao-pires.json",
   "https://lobid.org/gnd/search?q=Pires%2C+Maria+Jo%C3%A3o&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10": "gnd-search-agent-pires-maria-joao.json",
   "https://www.wikidata.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrnamespace=0&gsrlimit=10&gsrsearch=Clair+de+lune+haswbstatement%3AP86&prop=entityterms%7Cpageimages&wbetterms=label%7Cdescription&wbetlanguage=en&piprop=thumbnail&pithumbsize=80": "wikidata-search-work-clair-de-lune.json",
   "https://www.wikidata.org/w/api.php?action=query&format=json&formatversion=2&origin=*&generator=search&gsrnamespace=0&gsrlimit=10&gsrsearch=Maria+Jo%C3%A3o+Pires+haswbstatement%3AP31%3DQ5%7CP31%3DQ215380%7CP31%3DQ42998&prop=entityterms%7Cpageimages&wbetterms=label%7Cdescription&wbetlanguage=en&piprop=thumbnail&pithumbsize=80": "wikidata-search-agent-maria-joao-pires.json",

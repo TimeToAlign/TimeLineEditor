@@ -1,19 +1,18 @@
 /**
- * The viewer's type profiles, kept in the browser: one state per page,
- * read from `localStorage` under `PROFILES_KEY` (the profile file's
- * canonical YAML) when the editor's code is loaded. A stored text that is
- * no profile file, or storage that is unavailable, gives no profiles; a
- * change then holds until the page goes. Never part of a workspace or a
- * manifest.
- *
- * The page's state is made when this module is evaluated, never on first
- * use: state made while a `$derived` runs belongs to that derived, which
- * would then not follow its changes.
+ * The viewer's type profiles in one editor: a state the editor makes from
+ * its storage options and gives every part through context. With a key it
+ * reads `localStorage[key]` (the profile file's canonical YAML) when it is
+ * made and writes there on every change; a stored text that is no profile
+ * file, or storage that is unavailable, gives no profiles. Without a key it
+ * never touches storage: the profiles hold until the editor goes. Never part
+ * of a workspace or a manifest.
  */
 
+import type { Catalogue } from "@timetoalign/timetoshare";
 import { defaultCatalogue } from "@timetoalign/timetoshare";
+import { createContext } from "svelte";
 import type { Profiles } from "./profiles.ts";
-import { NO_PROFILES, PROFILES_KEY, parseProfiles, profilesText } from "./profiles.ts";
+import { NO_PROFILES, parseProfiles, profilesText, withProfiles } from "./profiles.ts";
 
 /** The profiles stored under `key`, or `null` when none are, or what is stored is no profile file. */
 function stored(key: string): Profiles | null {
@@ -30,38 +29,30 @@ function stored(key: string): Profiles | null {
 export class ProfilesState {
   /** The profiles and services in force; replaced whole, never mutated. */
   profiles: Profiles = $state.raw(NO_PROFILES);
-  readonly #key: string;
+  /**
+   * The catalogue the Metadata tab offers: the shipped one with these
+   * profiles (`withProfiles`), made again only when they change.
+   */
+  readonly catalogue: Catalogue = $derived(withProfiles(defaultCatalogue(), this.profiles));
+  readonly #key: string | null;
 
-  /** The profiles stored under `key`; none without. */
-  constructor(key: string = PROFILES_KEY) {
+  /** The profiles stored under `key`; none without a key, and storage is then never touched. */
+  constructor(key: string | null) {
     this.#key = key;
-    this.profiles = stored(key) ?? NO_PROFILES;
+    if (key !== null) this.profiles = stored(key) ?? NO_PROFILES;
   }
 
-  /** Read the profiles stored again, dropping what was set without storage. */
-  reload(): void {
-    this.profiles = stored(this.#key) ?? NO_PROFILES;
-  }
-
-  /** Make `profiles` the profiles in force, remembered where storage allows. */
+  /** Make `profiles` the profiles in force, remembered under the key where storage allows. */
   set(profiles: Profiles): void {
     this.profiles = profiles;
+    if (this.#key === null) return;
     try {
       localStorage.setItem(this.#key, profilesText(profiles));
     } catch {
-      // Without storage the profiles hold until the page goes.
+      // Without storage the profiles hold until the editor goes.
     }
   }
 }
 
-const page = new ProfilesState();
-
-/** The page's profiles. */
-export function profilesState(): ProfilesState {
-  return page;
-}
-
-/** Read the page's profiles from storage again, as a new page would (for tests). */
-export function resetProfiles(): void {
-  page.reload();
-}
+/** The editor's profiles, read from its context, and the call that provides them. */
+export const [profilesOf, provideProfiles] = createContext<ProfilesState>();

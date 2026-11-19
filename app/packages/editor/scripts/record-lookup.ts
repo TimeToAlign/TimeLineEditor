@@ -86,6 +86,10 @@ const LIVE: readonly Call[] = [
     name: "gnd-search-agent-pires-maria-joao",
     run: (l) => l.search("gnd", "agent", "Pires, Maria João"),
   },
+  {
+    name: "gnd-search-agent-maria-joao-pires",
+    run: (l) => l.search("gnd", "agent", "Maria João Pires"),
+  },
   { name: "gnd-search-work-clair-de-lune", run: (l) => l.search("gnd", "work", "Clair de lune") },
   { name: "gnd-record-124927521", run: (l) => l.resolve("gnd", "https://d-nb.info/gnd/124927521") },
   { name: "gnd-record-300042558", run: (l) => l.resolve("gnd", "https://d-nb.info/gnd/300042558") },

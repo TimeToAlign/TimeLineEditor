@@ -17,9 +17,12 @@ let {
   onpropose,
 }: {
   drawers: Drawers;
-  /** How many names below the shown element are stated without an identifier the lookup can find. */
+  /**
+   * How many names the shown element and the elements below it state
+   * without an identifier the lookup can find.
+   */
   unreconciled: number;
-  /** Whether matches for them are being looked up. */
+  /** Whether matches for them are being looked up for the shown element. */
   proposing: boolean;
   onconfirm: (row: DrawerRow) => void;
   onreject: (row: DrawerRow) => void;
@@ -74,7 +77,7 @@ const higherCount = $derived(
         <span class="count" role="status"
           >{proposing
             ? "Looking them up…"
-            : `${unreconciled} ${unreconciled === 1 ? "name" : "names"} without an identifier`}</span
+            : `${unreconciled} ${unreconciled === 1 ? "name" : "names"} without an identifier here and below`}</span
         >
       </p>
     {/if}

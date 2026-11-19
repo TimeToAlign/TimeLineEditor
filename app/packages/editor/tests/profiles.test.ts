@@ -4,7 +4,6 @@ import { defaultCatalogue, dumps } from "@timetoalign/timetoshare";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  CATALOGUE,
   OTHER_PROPERTY,
   systemChoices,
   typeOptions,
@@ -13,7 +12,7 @@ import {
 } from "../src/inspector/metadata/catalogue.ts";
 import { createLookup } from "../src/lookup/index.ts";
 import type { Service } from "../src/lookup/services.ts";
-import { ProfilesState, profilesState, resetProfiles } from "../src/profiles/profiles.svelte.ts";
+import { ProfilesState } from "../src/profiles/profiles.svelte.ts";
 import type { Profile, Profiles } from "../src/profiles/profiles.ts";
 import {
   isAChoices,
@@ -21,18 +20,20 @@ import {
   movedVerb,
   NO_PROFILES,
   newProfile,
-  PROFILES_KEY,
   parseProfiles,
   profilesText,
   readProfiles,
   withLookup,
   withPattern,
   withProfiles,
+  withServiceLookup,
 } from "../src/profiles/profiles.ts";
 import { follow } from "./follow.svelte.ts";
 import { RECORDED_SERVER, recorded, replay } from "./lookup-replay.ts";
 
 const SHIPPED = defaultCatalogue();
+/** The key the page keeps the profiles under. */
+const KEY = "tilie.profiles";
 
 const LECTURE: Profile = {
   id: "lecture_recording",
@@ -60,15 +61,17 @@ const LECTURE_FILE = [
   "",
 ].join("\n");
 
+/** The profiles of an editor without storage, in which the catalogue tests set theirs. */
+let state = new ProfilesState(null);
+
 beforeEach(() => {
   localStorage.clear();
-  resetProfiles();
+  state = new ProfilesState(null);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
-  resetProfiles();
 });
 
 /** A copy of the lecture profile file's value with `change` applied. */
@@ -244,18 +247,19 @@ describe("the catalogue offered", () => {
 
   const AUDIO = [["type", "schema:AudioObject"] as const];
   const firstVerbs = (count: number) =>
-    verbChoices(CATALOGUE, typesOf(CATALOGUE, {}, AUDIO))
+    verbChoices(state.catalogue, typesOf(state.catalogue, {}, AUDIO))
       .slice(0, count)
       .map((choice) => choice.label);
 
   it("orders the verbs by the shipped types without profiles", () => {
-    expect(typesOf(CATALOGUE, {}, AUDIO)).toEqual(["recorded_performance", "dj_set"]);
+    expect(state.catalogue).toBe(SHIPPED);
+    expect(typesOf(state.catalogue, {}, AUDIO)).toEqual(["recorded_performance", "dj_set"]);
     expect(firstVerbs(3)).toEqual(["is a", "is a recording of", "performed by"]);
   });
 
   it("puts a profile's verbs first where its is-a is stated", () => {
-    profilesState().set({ profiles: [LECTURE], services: [] });
-    expect(typesOf(CATALOGUE, {}, AUDIO)).toEqual([
+    state.set({ profiles: [LECTURE], services: [] });
+    expect(typesOf(state.catalogue, {}, AUDIO)).toEqual([
       "lecture_recording",
       "recorded_performance",
       "dj_set",
@@ -266,7 +270,7 @@ describe("the catalogue offered", () => {
       "recorded at, recorded on",
       "is a recording of",
     ]);
-    expect(typeOptions(CATALOGUE, "fallback").map((option) => option.label)).toEqual([
+    expect(typeOptions(state.catalogue, "fallback").map((option) => option.label)).toEqual([
       "lecture recording",
       "recorded performance",
       "video",
@@ -277,10 +281,11 @@ describe("the catalogue offered", () => {
   });
 
   it("offers a service wherever the fallback pattern takes a thing", () => {
-    profilesState().set({ profiles: [], services: [MB] });
-    const performed = verbChoices(CATALOGUE, []).find((choice) => choice.id === "performed_by");
+    state.set({ profiles: [], services: [MB] });
+    const catalogue = state.catalogue;
+    const performed = verbChoices(catalogue, []).find((choice) => choice.id === "performed_by");
     if (performed === undefined) throw new Error("performed_by is offered");
-    expect(systemChoices(CATALOGUE, performed).map((choice) => choice.label)).toEqual([
+    expect(systemChoices(catalogue, performed).map((choice) => choice.label)).toEqual([
       "Wikidata",
       "MusicBrainz",
       "GND",
@@ -290,39 +295,102 @@ describe("the catalogue offered", () => {
       "An element of this manifest",
     ]);
     const isA = { id: "is_a", inverse: false, label: "is a" };
-    expect(systemChoices(CATALOGUE, isA).map((choice) => choice.id)).not.toContain("service:mb");
-    expect(verbChoices(CATALOGUE, [], "service:mb").at(-1)).toEqual(OTHER_PROPERTY);
-    expect(verbChoices(CATALOGUE, [], "service:mb").map((choice) => choice.id)).toContain(
+    expect(systemChoices(catalogue, isA).map((choice) => choice.id)).not.toContain("service:mb");
+    expect(verbChoices(catalogue, [], "service:mb").at(-1)).toEqual(OTHER_PROPERTY);
+    expect(verbChoices(catalogue, [], "service:mb").map((choice) => choice.id)).toContain(
       "performed_by",
     );
   });
 
   it("is read afresh, so a derived value follows a change of the profiles", () => {
-    const first = follow(() => CATALOGUE.types[0]?.id);
+    const first = follow(() => state.catalogue.types[0]?.id);
     flushSync();
-    profilesState().set({ profiles: [LECTURE], services: [] });
+    state.set({ profiles: [LECTURE], services: [] });
     flushSync();
     first.stop();
     expect(first.values).toEqual(["musical_work", "lecture_recording"]);
   });
 });
 
-describe("kept in the browser", () => {
+describe("the vocabularies a subject prefers", () => {
+  const PERFORMED = { id: "performed_by", inverse: false, label: "performed by" };
+  const labels = (types: readonly string[]) =>
+    systemChoices(state.catalogue, PERFORMED, types).map((choice) => choice.label);
+
+  it("keeps the catalogue's order without types", () => {
+    expect(labels([])).toEqual([
+      "Wikidata",
+      "MusicBrainz",
+      "GND",
+      "MeLODy / LRMoo",
+      "Other vocabularies",
+      "An element of this manifest",
+    ]);
+  });
+
+  it("leads with a catalogue type's lookup systems", () => {
+    expect(labels(["release"])).toEqual([
+      "MusicBrainz",
+      "Wikidata",
+      "GND",
+      "MeLODy / LRMoo",
+      "Other vocabularies",
+      "An element of this manifest",
+    ]);
+  });
+
+  it("leads with the profile's lookup systems, the first type's first", () => {
+    state.set({ profiles: [LECTURE], services: [] });
+    const types = typesOf(state.catalogue, {}, [["type", "schema:AudioObject"]]);
+    expect(types).toEqual(["lecture_recording", "recorded_performance", "dj_set"]);
+    expect(labels(types)[0]).toBe("Wikidata");
+    expect(labels(types)).toEqual([
+      "Wikidata",
+      "MusicBrainz",
+      "GND",
+      "MeLODy / LRMoo",
+      "Other vocabularies",
+      "An element of this manifest",
+    ]);
+    state.set({ profiles: [{ ...LECTURE, lookup: ["gnd", "wikidata"] }], services: [] });
+    expect(labels(["lecture_recording"])).toEqual([
+      "GND",
+      "Wikidata",
+      "MusicBrainz",
+      "MeLODy / LRMoo",
+      "Other vocabularies",
+      "An element of this manifest",
+    ]);
+  });
+});
+
+describe("kept where the host says", () => {
   it("reads no profiles when nothing is stored", () => {
-    expect(new ProfilesState().profiles).toEqual(NO_PROFILES);
+    expect(new ProfilesState(KEY).profiles).toEqual(NO_PROFILES);
   });
 
   it("stores the file under its key and reads it back", () => {
-    new ProfilesState().set({ profiles: [LECTURE], services: [] });
-    expect(localStorage.getItem(PROFILES_KEY)).toBe(LECTURE_FILE);
-    expect(new ProfilesState().profiles).toEqual({ profiles: [LECTURE], services: [] });
+    new ProfilesState(KEY).set({ profiles: [LECTURE], services: [] });
+    expect(localStorage.getItem(KEY)).toBe(LECTURE_FILE);
+    expect(new ProfilesState(KEY).profiles).toEqual({ profiles: [LECTURE], services: [] });
   });
 
   it("reads a stored text that is no profile file as no profiles", () => {
     for (const text of ["profiles: [", "[]", LECTURE_FILE.replace("performed_by,", "recorded,")]) {
-      localStorage.setItem(PROFILES_KEY, text);
-      expect(new ProfilesState().profiles).toEqual(NO_PROFILES);
+      localStorage.setItem(KEY, text);
+      expect(new ProfilesState(KEY).profiles).toEqual(NO_PROFILES);
     }
+  });
+
+  it("touches no storage without a key, and holds what is set", () => {
+    localStorage.setItem(KEY, LECTURE_FILE);
+    const read = vi.spyOn(Storage.prototype, "getItem");
+    const written = vi.spyOn(Storage.prototype, "setItem");
+    const kept = new ProfilesState(null);
+    expect(kept.profiles).toEqual(NO_PROFILES);
+    kept.set({ profiles: [], services: [MB] });
+    expect(kept.profiles).toEqual({ profiles: [], services: [MB] });
+    expect([read.mock.calls, written.mock.calls]).toEqual([[], []]);
   });
 
   it("holds the profiles in memory when storage throws", () => {
@@ -332,20 +400,10 @@ describe("kept in the browser", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("denied", "SecurityError");
     });
-    const state = new ProfilesState();
-    expect(state.profiles).toEqual(NO_PROFILES);
-    state.set({ profiles: [LECTURE], services: [] });
-    expect(state.profiles).toEqual({ profiles: [LECTURE], services: [] });
-  });
-
-  it("is one state per page, read from storage again on reset", () => {
-    const page = profilesState();
-    expect(profilesState()).toBe(page);
-    page.set({ profiles: [LECTURE], services: [] });
-    localStorage.setItem(PROFILES_KEY, profilesText({ profiles: [], services: [MB] }));
-    resetProfiles();
-    expect(profilesState()).toBe(page);
-    expect(page.profiles).toEqual({ profiles: [], services: [MB] });
+    const stored = new ProfilesState(KEY);
+    expect(stored.profiles).toEqual(NO_PROFILES);
+    stored.set({ profiles: [LECTURE], services: [] });
+    expect(stored.profiles).toEqual({ profiles: [LECTURE], services: [] });
   });
 });
 
@@ -446,11 +504,20 @@ describe("the services' lookup", () => {
     ]);
   });
 
-  it("takes the page's profiles' services by default", () => {
-    profilesState().set({ profiles: [], services: [MB] });
+  it("has no services unless given them", () => {
     const lookup = createLookup({ server: null, fetch: replay().fetch });
+    expect(lookup.searchable("service:mb", "work")).toBe(false);
+  });
+
+  it("reads the services given at every request", () => {
+    const lookup = createLookup({
+      server: null,
+      fetch: replay().fetch,
+      services: () => state.profiles.services,
+    });
+    state.set({ profiles: [], services: [MB] });
     expect(lookup.searchable("service:mb", "work")).toBe(true);
-    profilesState().set(NO_PROFILES);
+    state.set(NO_PROFILES);
     expect(lookup.searchable("service:mb", "work")).toBe(false);
   });
 });
@@ -520,6 +587,14 @@ describe("editing helpers", () => {
     const chosen = withLookup(withLookup(LECTURE, "service:mb", true, order), "gnd", true, order);
     expect(chosen.lookup).toEqual(["wikidata", "gnd", "service:mb"]);
     expect(withLookup(chosen, "wikidata", false, order).lookup).toEqual(["gnd", "service:mb"]);
+  });
+
+  it("follows a service's change of ID or its deletion in a profile's lookup", () => {
+    const looking: Profile = { ...LECTURE, lookup: ["wikidata", "service:mb"] };
+    expect(withServiceLookup(looking, "mb", "mbz").lookup).toEqual(["wikidata", "service:mbz"]);
+    expect(withServiceLookup(looking, "mb", null).lookup).toEqual(["wikidata"]);
+    expect(withServiceLookup(LECTURE, "mb", "mbz")).toBe(LECTURE);
+    expect(withServiceLookup(LECTURE, "mb", null)).toBe(LECTURE);
   });
 
   it("makes a new profile empty or from a catalogue type", () => {

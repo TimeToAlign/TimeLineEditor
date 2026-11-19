@@ -117,7 +117,7 @@ test("an imported profile orders the verbs, exports byte for byte and outlives a
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const isA = page.getByTestId("metadata-rectangle").first();
   await expect(isA.getByTestId("metadata-vocabulary").locator("li")).toHaveText([
-    "type schema:AudioObject",
+    "type schema:AudioObject ↗",
   ]);
 
   await page.getByRole("button", { name: "＋ Add statement" }).click();
@@ -129,6 +129,21 @@ test("an imported profile orders the verbs, exports byte for byte and outlives a
     "is a",
     "performed by",
     "recorded at, recorded on",
+  ]);
+  await page.keyboard.press("Escape");
+  await choose(page, "Verb", "performed");
+  await expect(field(page, "Verb")).toHaveValue("performed by");
+  await field(page, "Vocabulary").focus();
+  await page.keyboard.press("ArrowDown");
+  const vocabularies = page.getByRole("listbox", { name: "Vocabulary" }).getByRole("option");
+  await expect(vocabularies.first()).toBeVisible();
+  expect((await vocabularies.allTextContents()).map((text) => text.trim())).toEqual([
+    "Wikidata",
+    "MusicBrainz",
+    "GND",
+    "MeLODy / LRMoo",
+    "Other vocabularies",
+    "An element of this manifest",
   ]);
   await page.keyboard.press("Escape");
   await page.getByTestId("metadata-composer").getByRole("button", { name: "Cancel" }).click();

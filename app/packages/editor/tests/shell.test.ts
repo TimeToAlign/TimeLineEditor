@@ -24,6 +24,7 @@ import type { Snapshot } from "../src/autosave.ts";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import type { Example } from "../src/examples.ts";
 import { EXAMPLES } from "../src/examples.ts";
+import { profilesText } from "../src/profiles/profiles.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import {
@@ -171,6 +172,7 @@ describe("the File menu", () => {
       ["Import manifest…", null],
       ["Export manifest…", null],
       ["Your name…", null],
+      ["Type profiles…", null],
     ]);
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe("true");
 
@@ -178,11 +180,11 @@ describe("the File menu", () => {
     await vi.waitFor(() => expect(focusedLabel()).toBe("New workspace"));
     expect([button.getAttribute("aria-expanded"), menu?.hidden]).toEqual(["true", false]);
     key(document.activeElement as Element, { key: "ArrowUp" });
-    expect(focusedLabel()).toBe("Your name…");
+    expect(focusedLabel()).toBe("Type profiles…");
     key(document.activeElement as Element, { key: "ArrowDown" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "End" });
-    expect(focusedLabel()).toBe("Your name…");
+    expect(focusedLabel()).toBe("Type profiles…");
     key(document.activeElement as Element, { key: "Home" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "Escape" });
@@ -190,7 +192,7 @@ describe("the File menu", () => {
     expect(document.activeElement).toBe(button);
 
     key(button, { key: "ArrowUp" });
-    await vi.waitFor(() => expect(focusedLabel()).toBe("Your name…"));
+    await vi.waitFor(() => expect(focusedLabel()).toBe("Type profiles…"));
   });
 });
 
@@ -936,6 +938,50 @@ describe("autosave and recovery", () => {
     expect(messages().length).toBe(1);
     expect(messages()[0]?.startsWith("Autosave is not working")).toBe(true);
     expect(hook().store().journal.length).toBe(2);
+  });
+});
+
+describe("type profiles", () => {
+  const LECTURE = {
+    id: "lecture_recording",
+    label: "lecture recording",
+    is_a: { fallback: [{ pattern: { type: ["schema:AudioObject"] } }] },
+    verbs: ["performed_by", "recorded_at_on"],
+    lookup: ["wikidata"],
+  };
+
+  afterEach(() => {
+    localStorage.removeItem("tilie.profiles");
+  });
+
+  function profilesDialog(): HTMLDialogElement {
+    const dialog = [...document.querySelectorAll("dialog")].find(
+      (candidate) => candidate.querySelector("h2")?.textContent === "Type profiles",
+    );
+    if (dialog === undefined) throw new Error("no Type profiles dialog");
+    return dialog;
+  }
+
+  it("reads the profiles stored under tilie.profiles and stores the saved ones there", () => {
+    localStorage.setItem("tilie.profiles", profilesText({ profiles: [LECTURE], services: [] }));
+    start();
+    choose("Type profiles…");
+    const dialog = profilesDialog();
+    expect(dialog.open).toBe(true);
+    expect(
+      Array.from(dialog.querySelectorAll("[data-profile]"), (entry) => entry.textContent),
+    ).toEqual(["lecture recording lecture_recording"]);
+    dialog.querySelector<HTMLButtonElement>('[aria-label="Delete lecture recording"]')?.click();
+    flushSync();
+    const save = [...dialog.querySelectorAll<HTMLButtonElement>("button")].find(
+      (candidate) => candidate.textContent?.trim() === "Save",
+    );
+    save?.click();
+    flushSync();
+    expect(dialog.open).toBe(false);
+    expect(localStorage.getItem("tilie.profiles")).toBe(
+      profilesText({ profiles: [], services: [] }),
+    );
   });
 });
 
