@@ -6,6 +6,67 @@
       "index": "a0",
       "length": 400,
       "manifest": {
+        "@context": {
+          "@version": 1.1,
+          "basis": {
+            "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+            "@type": "@id"
+          },
+          "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+          "children": "@included",
+          "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+          "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+          "date": {
+            "@id": "http://purl.org/dc/terms/date",
+            "@type": "http://www.w3.org/2001/XMLSchema#date"
+          },
+          "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+          "groups": "@included",
+          "id": "@id",
+          "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+          "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+          "label": "http://www.w3.org/2000/01/rdf-schema#label",
+          "list": "@list",
+          "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+          "match": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+            "@type": "@vocab"
+          },
+          "method": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+            "@type": "@vocab"
+          },
+          "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+          "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+          "property": {
+            "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+            "@type": "@vocab"
+          },
+          "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+          "provenance": {
+            "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+          },
+          "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+          "regions": "@included",
+          "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+          "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+          "service": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+            "@type": "@id"
+          },
+          "stated_by": {
+            "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+            "@type": "@id"
+          },
+          "statements": "@nest",
+          "status": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+            "@type": "@vocab"
+          },
+          "timelines": "@included",
+          "type": "@type",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+        },
         "graphical": {
           "order": {
             "group_1": ["score", "performance"],
@@ -100,13 +161,11 @@
             "name": "Facsimile"
           }
         ],
-        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (dd2d8291)"
+          "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": "Mixed",
-        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -115,7 +174,6 @@
             "id": "annotations",
             "is_segment_line": false,
             "length": [12, 1],
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Annotations",
@@ -124,7 +182,6 @@
               {
                 "end": [4, 1],
                 "id": "region_1",
-                "links": [],
                 "meta": {},
                 "name": "Verse",
                 "start": [0, 1]
@@ -132,7 +189,6 @@
               {
                 "end": [12, 1],
                 "id": "region_2",
-                "links": [],
                 "meta": {},
                 "name": "Chorus",
                 "start": [4, 1]
@@ -157,7 +213,6 @@
             "id": "page",
             "is_segment_line": false,
             "length": 1920,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Page",
@@ -182,7 +237,6 @@
             "id": "performance",
             "is_segment_line": false,
             "length": 12.5,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Performance",
@@ -209,7 +263,6 @@
                 "id": "excerpt",
                 "is_segment_line": false,
                 "length": 88200,
-                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Excerpt",
@@ -234,7 +287,6 @@
             "id": "recording",
             "is_segment_line": false,
             "length": 441000,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Recording",
@@ -279,7 +331,6 @@
             "id": "score",
             "is_segment_line": false,
             "length": [12, 1],
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -305,6 +356,67 @@
       "index": "a1",
       "length": 400,
       "manifest": {
+        "@context": {
+          "@version": 1.1,
+          "basis": {
+            "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+            "@type": "@id"
+          },
+          "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+          "children": "@included",
+          "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+          "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+          "date": {
+            "@id": "http://purl.org/dc/terms/date",
+            "@type": "http://www.w3.org/2001/XMLSchema#date"
+          },
+          "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+          "groups": "@included",
+          "id": "@id",
+          "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+          "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+          "label": "http://www.w3.org/2000/01/rdf-schema#label",
+          "list": "@list",
+          "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+          "match": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+            "@type": "@vocab"
+          },
+          "method": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+            "@type": "@vocab"
+          },
+          "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+          "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+          "property": {
+            "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+            "@type": "@vocab"
+          },
+          "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+          "provenance": {
+            "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+          },
+          "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+          "regions": "@included",
+          "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+          "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+          "service": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+            "@type": "@id"
+          },
+          "stated_by": {
+            "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+            "@type": "@id"
+          },
+          "statements": "@nest",
+          "status": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+            "@type": "@vocab"
+          },
+          "timelines": "@included",
+          "type": "@type",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+        },
         "graphical": {
           "order": {
             "group_1": ["exposition", "take_1"],
@@ -399,13 +511,11 @@
             "name": "Recapitulation"
           }
         ],
-        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (dd2d8291)"
+          "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": "Sonata",
-        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -414,7 +524,6 @@
             "id": "page",
             "is_segment_line": false,
             "length": 1754,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Page",
@@ -433,7 +542,6 @@
                     "id": "exposition_first",
                     "is_segment_line": false,
                     "length": [6, 1],
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "First theme",
@@ -459,7 +567,6 @@
                     "id": "exposition_second",
                     "is_segment_line": false,
                     "length": [6, 1],
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Second theme",
@@ -484,7 +591,6 @@
                 "id": "exposition",
                 "is_segment_line": true,
                 "length": [12, 1],
-                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Exposition",
@@ -504,7 +610,6 @@
                         "id": "recapitulation_first_1",
                         "is_segment_line": false,
                         "length": [3, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 1",
@@ -520,7 +625,6 @@
                         "id": "recapitulation_first_2",
                         "is_segment_line": false,
                         "length": [3, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 2",
@@ -535,7 +639,6 @@
                     "id": "recapitulation_first",
                     "is_segment_line": true,
                     "length": [6, 1],
-                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "First theme",
@@ -553,7 +656,6 @@
                         "id": "recapitulation_second_1",
                         "is_segment_line": false,
                         "length": [3, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 1",
@@ -569,7 +671,6 @@
                         "id": "recapitulation_second_2",
                         "is_segment_line": false,
                         "length": [3, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Phrase 2",
@@ -594,7 +695,6 @@
                     "id": "recapitulation_second",
                     "is_segment_line": true,
                     "length": [6, 1],
-                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Second theme",
@@ -609,7 +709,6 @@
                 "id": "recapitulation",
                 "is_segment_line": true,
                 "length": [12, 1],
-                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Recapitulation",
@@ -645,7 +744,6 @@
             "id": "score",
             "is_segment_line": false,
             "length": [32, 1],
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -654,7 +752,6 @@
               {
                 "end": [20, 1],
                 "id": "region_1",
-                "links": [],
                 "meta": {},
                 "name": "Development",
                 "start": [12, 1]
@@ -671,7 +768,6 @@
                 "id": "take_1_first",
                 "is_segment_line": false,
                 "length": 14.0,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "First theme",
@@ -687,7 +783,6 @@
                 "id": "take_1_second",
                 "is_segment_line": false,
                 "length": 16.0,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Second theme",
@@ -712,7 +807,6 @@
             "id": "take_1",
             "is_segment_line": true,
             "length": 30.0,
-            "links": [],
             "locked": true,
             "meta": {},
             "name": "Take 1",
@@ -727,7 +821,6 @@
             "id": "take_2",
             "is_segment_line": false,
             "length": 28.5,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Take 2",
@@ -753,6 +846,67 @@
       "index": "a3",
       "length": 400,
       "manifest": {
+        "@context": {
+          "@version": 1.1,
+          "basis": {
+            "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+            "@type": "@id"
+          },
+          "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+          "children": "@included",
+          "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+          "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+          "date": {
+            "@id": "http://purl.org/dc/terms/date",
+            "@type": "http://www.w3.org/2001/XMLSchema#date"
+          },
+          "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+          "groups": "@included",
+          "id": "@id",
+          "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+          "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+          "label": "http://www.w3.org/2000/01/rdf-schema#label",
+          "list": "@list",
+          "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+          "match": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+            "@type": "@vocab"
+          },
+          "method": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+            "@type": "@vocab"
+          },
+          "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+          "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+          "property": {
+            "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+            "@type": "@vocab"
+          },
+          "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+          "provenance": {
+            "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+          },
+          "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+          "regions": "@included",
+          "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+          "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+          "service": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+            "@type": "@id"
+          },
+          "stated_by": {
+            "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+            "@type": "@id"
+          },
+          "statements": "@nest",
+          "status": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+            "@type": "@vocab"
+          },
+          "timelines": "@included",
+          "type": "@type",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+        },
         "graphical": {
           "order": {
             "g1": ["t", "u"],
@@ -819,13 +973,11 @@
             "name": "Page"
           }
         ],
-        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (dd2d8291)"
+          "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": "Shared",
-        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -834,7 +986,6 @@
             "id": "t",
             "is_segment_line": false,
             "length": [8, 1],
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -849,7 +1000,6 @@
             "id": "u",
             "is_segment_line": false,
             "length": 4.0,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Performance",
@@ -864,7 +1014,6 @@
             "id": "v",
             "is_segment_line": false,
             "length": 800,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Page",
@@ -890,6 +1039,67 @@
       "index": "a2",
       "length": 400,
       "manifest": {
+        "@context": {
+          "@version": 1.1,
+          "basis": {
+            "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+            "@type": "@id"
+          },
+          "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+          "children": "@included",
+          "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+          "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+          "date": {
+            "@id": "http://purl.org/dc/terms/date",
+            "@type": "http://www.w3.org/2001/XMLSchema#date"
+          },
+          "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+          "groups": "@included",
+          "id": "@id",
+          "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+          "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+          "label": "http://www.w3.org/2000/01/rdf-schema#label",
+          "list": "@list",
+          "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+          "match": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+            "@type": "@vocab"
+          },
+          "method": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+            "@type": "@vocab"
+          },
+          "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+          "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+          "property": {
+            "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+            "@type": "@vocab"
+          },
+          "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+          "provenance": {
+            "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+          },
+          "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+          "regions": "@included",
+          "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+          "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+          "service": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+            "@type": "@id"
+          },
+          "stated_by": {
+            "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+            "@type": "@id"
+          },
+          "statements": "@nest",
+          "status": {
+            "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+            "@type": "@vocab"
+          },
+          "timelines": "@included",
+          "type": "@type",
+          "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+        },
         "graphical": {
           "order": {},
           "rules": [],
@@ -940,13 +1150,11 @@
           ]
         },
         "groups": [],
-        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (dd2d8291)"
+          "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": "Sketches",
-        "schemes": [],
         "timelines": [
           {
             "children": [
@@ -957,7 +1165,6 @@
                 "id": "page_1",
                 "is_segment_line": false,
                 "length": 1754,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page 1",
@@ -973,7 +1180,6 @@
                 "id": "page_2",
                 "is_segment_line": false,
                 "length": 1754,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page 2",
@@ -989,7 +1195,6 @@
                 "id": "page_3",
                 "is_segment_line": false,
                 "length": 1754,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page 3",
@@ -1014,7 +1219,6 @@
             "id": "pages",
             "is_segment_line": true,
             "length": 5262,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Pages",
@@ -1039,7 +1243,6 @@
             "id": "recording",
             "is_segment_line": false,
             "length": 441000,
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Recording",
@@ -1083,7 +1286,6 @@
             "id": "score",
             "is_segment_line": false,
             "length": [16, 1],
-            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -1114,6 +1316,67 @@
           "id": "bmixed0000",
           "length": 400,
           "manifest": {
+            "@context": {
+              "@version": 1.1,
+              "basis": {
+                "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+                "@type": "@id"
+              },
+              "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+              "children": "@included",
+              "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+              "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+              "date": {
+                "@id": "http://purl.org/dc/terms/date",
+                "@type": "http://www.w3.org/2001/XMLSchema#date"
+              },
+              "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+              "groups": "@included",
+              "id": "@id",
+              "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+              "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+              "label": "http://www.w3.org/2000/01/rdf-schema#label",
+              "list": "@list",
+              "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+              "match": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+                "@type": "@vocab"
+              },
+              "method": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+                "@type": "@vocab"
+              },
+              "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+              "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+              "property": {
+                "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+                "@type": "@vocab"
+              },
+              "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+              "provenance": {
+                "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+              },
+              "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+              "regions": "@included",
+              "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+              "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+              "service": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+                "@type": "@id"
+              },
+              "stated_by": {
+                "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+                "@type": "@id"
+              },
+              "statements": "@nest",
+              "status": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+                "@type": "@vocab"
+              },
+              "timelines": "@included",
+              "type": "@type",
+              "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+            },
             "graphical": {
               "order": {
                 "group_1": ["score", "performance"],
@@ -1208,13 +1471,11 @@
                 "name": "Facsimile"
               }
             ],
-            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (dd2d8291)"
+              "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": "Mixed",
-            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1223,7 +1484,6 @@
                 "id": "annotations",
                 "is_segment_line": false,
                 "length": [12, 1],
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Annotations",
@@ -1232,7 +1492,6 @@
                   {
                     "end": [4, 1],
                     "id": "region_1",
-                    "links": [],
                     "meta": {},
                     "name": "Verse",
                     "start": [0, 1]
@@ -1240,7 +1499,6 @@
                   {
                     "end": [12, 1],
                     "id": "region_2",
-                    "links": [],
                     "meta": {},
                     "name": "Chorus",
                     "start": [4, 1]
@@ -1265,7 +1523,6 @@
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1920,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page",
@@ -1290,7 +1547,6 @@
                 "id": "performance",
                 "is_segment_line": false,
                 "length": 12.5,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Performance",
@@ -1317,7 +1573,6 @@
                     "id": "excerpt",
                     "is_segment_line": false,
                     "length": 88200,
-                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Excerpt",
@@ -1342,7 +1597,6 @@
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 441000,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Recording",
@@ -1387,7 +1641,6 @@
                 "id": "score",
                 "is_segment_line": false,
                 "length": [12, 1],
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -1418,6 +1671,67 @@
           "id": "bshared000",
           "length": 400,
           "manifest": {
+            "@context": {
+              "@version": 1.1,
+              "basis": {
+                "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+                "@type": "@id"
+              },
+              "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+              "children": "@included",
+              "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+              "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+              "date": {
+                "@id": "http://purl.org/dc/terms/date",
+                "@type": "http://www.w3.org/2001/XMLSchema#date"
+              },
+              "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+              "groups": "@included",
+              "id": "@id",
+              "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+              "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+              "label": "http://www.w3.org/2000/01/rdf-schema#label",
+              "list": "@list",
+              "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+              "match": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+                "@type": "@vocab"
+              },
+              "method": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+                "@type": "@vocab"
+              },
+              "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+              "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+              "property": {
+                "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+                "@type": "@vocab"
+              },
+              "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+              "provenance": {
+                "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+              },
+              "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+              "regions": "@included",
+              "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+              "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+              "service": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+                "@type": "@id"
+              },
+              "stated_by": {
+                "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+                "@type": "@id"
+              },
+              "statements": "@nest",
+              "status": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+                "@type": "@vocab"
+              },
+              "timelines": "@included",
+              "type": "@type",
+              "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+            },
             "graphical": {
               "order": {
                 "group_1": ["exposition", "take_1"],
@@ -1512,13 +1826,11 @@
                 "name": "Recapitulation"
               }
             ],
-            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (dd2d8291)"
+              "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": "Sonata",
-            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1527,7 +1839,6 @@
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1754,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page",
@@ -1546,7 +1857,6 @@
                         "id": "exposition_first",
                         "is_segment_line": false,
                         "length": [6, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "First theme",
@@ -1572,7 +1882,6 @@
                         "id": "exposition_second",
                         "is_segment_line": false,
                         "length": [6, 1],
-                        "links": [],
                         "locked": false,
                         "meta": {},
                         "name": "Second theme",
@@ -1597,7 +1906,6 @@
                     "id": "exposition",
                     "is_segment_line": true,
                     "length": [12, 1],
-                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Exposition",
@@ -1617,7 +1925,6 @@
                             "id": "recapitulation_first_1",
                             "is_segment_line": false,
                             "length": [3, 1],
-                            "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 1",
@@ -1633,7 +1940,6 @@
                             "id": "recapitulation_first_2",
                             "is_segment_line": false,
                             "length": [3, 1],
-                            "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 2",
@@ -1648,7 +1954,6 @@
                         "id": "recapitulation_first",
                         "is_segment_line": true,
                         "length": [6, 1],
-                        "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "First theme",
@@ -1666,7 +1971,6 @@
                             "id": "recapitulation_second_1",
                             "is_segment_line": false,
                             "length": [3, 1],
-                            "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 1",
@@ -1682,7 +1986,6 @@
                             "id": "recapitulation_second_2",
                             "is_segment_line": false,
                             "length": [3, 1],
-                            "links": [],
                             "locked": false,
                             "meta": {},
                             "name": "Phrase 2",
@@ -1707,7 +2010,6 @@
                         "id": "recapitulation_second",
                         "is_segment_line": true,
                         "length": [6, 1],
-                        "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "Second theme",
@@ -1722,7 +2024,6 @@
                     "id": "recapitulation",
                     "is_segment_line": true,
                     "length": [12, 1],
-                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Recapitulation",
@@ -1758,7 +2059,6 @@
                 "id": "score",
                 "is_segment_line": false,
                 "length": [32, 1],
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -1767,7 +2067,6 @@
                   {
                     "end": [20, 1],
                     "id": "region_1",
-                    "links": [],
                     "meta": {},
                     "name": "Development",
                     "start": [12, 1]
@@ -1784,7 +2083,6 @@
                     "id": "take_1_first",
                     "is_segment_line": false,
                     "length": 14.0,
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "First theme",
@@ -1800,7 +2098,6 @@
                     "id": "take_1_second",
                     "is_segment_line": false,
                     "length": 16.0,
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Second theme",
@@ -1825,7 +2122,6 @@
                 "id": "take_1",
                 "is_segment_line": true,
                 "length": 30.0,
-                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Take 1",
@@ -1840,7 +2136,6 @@
                 "id": "take_2",
                 "is_segment_line": false,
                 "length": 28.5,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Take 2",
@@ -1871,6 +2166,67 @@
           "id": "bungroup00",
           "length": 400,
           "manifest": {
+            "@context": {
+              "@version": 1.1,
+              "basis": {
+                "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+                "@type": "@id"
+              },
+              "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+              "children": "@included",
+              "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+              "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+              "date": {
+                "@id": "http://purl.org/dc/terms/date",
+                "@type": "http://www.w3.org/2001/XMLSchema#date"
+              },
+              "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+              "groups": "@included",
+              "id": "@id",
+              "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+              "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+              "label": "http://www.w3.org/2000/01/rdf-schema#label",
+              "list": "@list",
+              "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+              "match": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+                "@type": "@vocab"
+              },
+              "method": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+                "@type": "@vocab"
+              },
+              "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+              "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+              "property": {
+                "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+                "@type": "@vocab"
+              },
+              "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+              "provenance": {
+                "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+              },
+              "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+              "regions": "@included",
+              "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+              "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+              "service": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+                "@type": "@id"
+              },
+              "stated_by": {
+                "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+                "@type": "@id"
+              },
+              "statements": "@nest",
+              "status": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+                "@type": "@vocab"
+              },
+              "timelines": "@included",
+              "type": "@type",
+              "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+            },
             "graphical": {
               "order": {},
               "rules": [],
@@ -1921,13 +2277,11 @@
               ]
             },
             "groups": [],
-            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (dd2d8291)"
+              "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": "Sketches",
-            "schemes": [],
             "timelines": [
               {
                 "children": [
@@ -1938,7 +2292,6 @@
                     "id": "page_1",
                     "is_segment_line": false,
                     "length": 1754,
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Page 1",
@@ -1954,7 +2307,6 @@
                     "id": "page_2",
                     "is_segment_line": false,
                     "length": 1754,
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Page 2",
@@ -1970,7 +2322,6 @@
                     "id": "page_3",
                     "is_segment_line": false,
                     "length": 1754,
-                    "links": [],
                     "locked": false,
                     "meta": {},
                     "name": "Page 3",
@@ -1995,7 +2346,6 @@
                 "id": "pages",
                 "is_segment_line": true,
                 "length": 5262,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Pages",
@@ -2020,7 +2370,6 @@
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 441000,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Recording",
@@ -2064,7 +2413,6 @@
                 "id": "score",
                 "is_segment_line": false,
                 "length": [16, 1],
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -2095,6 +2443,67 @@
           "id": "btwogroups",
           "length": 400,
           "manifest": {
+            "@context": {
+              "@version": 1.1,
+              "basis": {
+                "@id": "http://www.w3.org/ns/prov#hadPrimarySource",
+                "@type": "@id"
+              },
+              "broad": "http://www.w3.org/2004/02/skos/core#broadMatch",
+              "children": "@included",
+              "close": "http://www.w3.org/2004/02/skos/core#closeMatch",
+              "confirmed": "https://timetoalign.github.io/timetoshare/ns#Confirmed",
+              "date": {
+                "@id": "http://purl.org/dc/terms/date",
+                "@type": "http://www.w3.org/2001/XMLSchema#date"
+              },
+              "exact": "http://www.w3.org/2004/02/skos/core#exactMatch",
+              "groups": "@included",
+              "id": "@id",
+              "imported": "https://timetoalign.github.io/timetoshare/ns#Imported",
+              "inferred": "https://timetoalign.github.io/timetoshare/ns#Inferred",
+              "label": "http://www.w3.org/2000/01/rdf-schema#label",
+              "list": "@list",
+              "manual": "https://timetoalign.github.io/timetoshare/ns#Manual",
+              "match": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#match",
+                "@type": "@vocab"
+              },
+              "method": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#method",
+                "@type": "@vocab"
+              },
+              "narrow": "http://www.w3.org/2004/02/skos/core#narrowMatch",
+              "note": "http://www.w3.org/2000/01/rdf-schema#comment",
+              "property": {
+                "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+                "@type": "@vocab"
+              },
+              "proposed": "https://timetoalign.github.io/timetoshare/ns#Proposed",
+              "provenance": {
+                "@reverse": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+              },
+              "reconciled": "https://timetoalign.github.io/timetoshare/ns#Reconciled",
+              "regions": "@included",
+              "rejected": "https://timetoalign.github.io/timetoshare/ns#Rejected",
+              "related": "http://www.w3.org/2004/02/skos/core#relatedMatch",
+              "service": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#service",
+                "@type": "@id"
+              },
+              "stated_by": {
+                "@id": "http://www.w3.org/ns/prov#wasAttributedTo",
+                "@type": "@id"
+              },
+              "statements": "@nest",
+              "status": {
+                "@id": "https://timetoalign.github.io/timetoshare/ns#status",
+                "@type": "@vocab"
+              },
+              "timelines": "@included",
+              "type": "@type",
+              "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+            },
             "graphical": {
               "order": {
                 "g1": ["t", "u"],
@@ -2161,13 +2570,11 @@
                 "name": "Page"
               }
             ],
-            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (dd2d8291)"
+              "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": "Shared",
-            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -2176,7 +2583,6 @@
                 "id": "t",
                 "is_segment_line": false,
                 "length": [8, 1],
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -2191,7 +2597,6 @@
                 "id": "u",
                 "is_segment_line": false,
                 "length": 4.0,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Performance",
@@ -2206,7 +2611,6 @@
                 "id": "v",
                 "is_segment_line": false,
                 "length": 800,
-                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page",
