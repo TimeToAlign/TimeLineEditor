@@ -134,12 +134,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 50, 11 and 12 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 49, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([50, 11, 12]);
+    ]).toEqual([49, 11, 11]);
   });
 
   for (const name of fixtureNames) {
@@ -206,12 +206,6 @@ describe("the TOML null rule", () => {
       FlowControlElement: ["label", "name"],
       MapBase: ["name", "source_unit", "target_unit"],
       Group: ["name"],
-      Scheme: ["criteria", "name"],
-      Link: ["assertion", "label", "parts_relation"],
-      Descriptor: ["integrity", "media_type", "size"],
-      Assertion: ["asserted_on", "match", "method", "service", "status"],
-      PartSlot: ["absent", "assertion", "label"],
-      PartOf: ["assertion", "label", "position"],
     });
   });
 
@@ -248,8 +242,6 @@ describe("the TOML null rule", () => {
     expect(text).toBe(
       [
         'timetoshare = "0.2.0"',
-        "schemes = []",
-        "links = []",
         "",
         "[[groups]]",
         'id = "group_1"',
@@ -272,7 +264,6 @@ describe("the TOML null rule", () => {
         "conversion_maps = []",
         "regions = []",
         "flow_control = []",
-        "links = []",
         'number_type = "int"',
         "",
         "[timelines.meta]",
@@ -287,10 +278,70 @@ describe("the TOML null rule", () => {
         "children = []",
         "regions = []",
         "flow_control = []",
-        "links = []",
         'number_type = "fraction"',
         "",
         "[timelines.meta]",
+        "",
+        '["@context"]',
+        '"@version" = 1.1',
+        'id = "@id"',
+        'type = "@type"',
+        'statements = "@nest"',
+        'list = "@list"',
+        'timelines = "@included"',
+        'children = "@included"',
+        'regions = "@included"',
+        'groups = "@included"',
+        'label = "http://www.w3.org/2000/01/rdf-schema#label"',
+        'value = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"',
+        'note = "http://www.w3.org/2000/01/rdf-schema#comment"',
+        'manual = "https://timetoalign.github.io/timetoshare/ns#Manual"',
+        'reconciled = "https://timetoalign.github.io/timetoshare/ns#Reconciled"',
+        'imported = "https://timetoalign.github.io/timetoshare/ns#Imported"',
+        'inferred = "https://timetoalign.github.io/timetoshare/ns#Inferred"',
+        'confirmed = "https://timetoalign.github.io/timetoshare/ns#Confirmed"',
+        'proposed = "https://timetoalign.github.io/timetoshare/ns#Proposed"',
+        'rejected = "https://timetoalign.github.io/timetoshare/ns#Rejected"',
+        'exact = "http://www.w3.org/2004/02/skos/core#exactMatch"',
+        'close = "http://www.w3.org/2004/02/skos/core#closeMatch"',
+        'broad = "http://www.w3.org/2004/02/skos/core#broadMatch"',
+        'narrow = "http://www.w3.org/2004/02/skos/core#narrowMatch"',
+        'related = "http://www.w3.org/2004/02/skos/core#relatedMatch"',
+        "",
+        '["@context".provenance]',
+        '"@reverse" = "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"',
+        "",
+        '["@context".property]',
+        '"@id" = "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"',
+        '"@type" = "@vocab"',
+        "",
+        '["@context".stated_by]',
+        '"@id" = "http://www.w3.org/ns/prov#wasAttributedTo"',
+        '"@type" = "@id"',
+        "",
+        '["@context".date]',
+        '"@id" = "http://purl.org/dc/terms/date"',
+        '"@type" = "http://www.w3.org/2001/XMLSchema#date"',
+        "",
+        '["@context".method]',
+        '"@id" = "https://timetoalign.github.io/timetoshare/ns#method"',
+        '"@type" = "@vocab"',
+        "",
+        '["@context".service]',
+        '"@id" = "https://timetoalign.github.io/timetoshare/ns#service"',
+        '"@type" = "@id"',
+        "",
+        '["@context".basis]',
+        '"@id" = "http://www.w3.org/ns/prov#hadPrimarySource"',
+        '"@type" = "@id"',
+        "",
+        '["@context".match]',
+        '"@id" = "https://timetoalign.github.io/timetoshare/ns#match"',
+        '"@type" = "@vocab"',
+        "",
+        '["@context".status]',
+        '"@id" = "https://timetoalign.github.io/timetoshare/ns#status"',
+        '"@type" = "@vocab"',
         "",
         "[meta]",
         "",
@@ -438,9 +489,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 40, 17],
-      ["syntax_error", 35, 5],
-      ["syntax_error", 19, 1],
+      ["syntax_error", 98, 17],
+      ["syntax_error", 83, 5],
+      ["syntax_error", 77, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });

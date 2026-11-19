@@ -27,8 +27,9 @@ the drawing's record, read in the test itself.
 ## The page (`App.test.ts`)
 
 The page is one caller of the editor: the page's one level-1 heading
-"TimeLineEditor", given to the editor's header as its title, the drawer
-and About, no footer, and the focused canvas (`application`
+"TimeLineEditor", given to the editor's header as its title, the
+level-2 headings of the drawer, the "Your name" dialog and About, no
+footer, and the focused canvas (`application`
 "Arranger"). With `#token=abc` in the address, the one health request is
 `api/health` with `Authorization: Bearer abc`, the fragment is gone from
 the address before that request and the history gains no entry; without a
@@ -83,7 +84,7 @@ name; with `score`'s editor open inside `group_1`'s, a rename keeps
 
 The File menu follows the WAI-ARIA menu button pattern: its items and
 shortcut labels (New workspace, Open… Ctrl+O, Save Ctrl+S, Save as…
-Ctrl+Shift+S, Import manifest…, Export manifest…), the export disabled
+Ctrl+Shift+S, Import manifest…, Export manifest…, Your name…), the export disabled
 without a selected block, and every key
 of the pattern, each checked by the focused item and `aria-expanded`. A
 refused file leaves the open workspace as it is and shows one dismissible
@@ -401,15 +402,13 @@ accepts and refuses).
    a measure map and a region; a timeline's `length`, `name`; a
    flow-control element's `label`, `name`; `name`, `source_unit`,
    `target_unit` of `MapBase`, the base every conversion map type takes
-   through its `allOf`, which the walk along a value follows; and of the
-   description layer a scheme's `criteria`, `name`; a link's `assertion`,
-   `label`, `parts_relation`; a record's `integrity`, `media_type`, `size`;
-   an assertion's `asserted_on`, `match`, `method`, `service`, `status`; a
-   part slot's `absent`, `assertion`, `label`; and a `part_of` entry's
-   `assertion`, `label`, `position`. A manifest of
+   through its `allOf`, which the walk along a value follows; statements
+   and provenance have no nullable member. A manifest of
    two roots (one of unknown length, one holding a `LinearMap` whose
    `target_unit` is null), a group and a measure map has its TOML text
-   pinned whole, and reads back with all seven nulls. A measure-map row with
+   pinned whole, the format's `@context` that core gives every manifest
+   it holds written as the table `["@context"]` after the timelines, its
+   nine object terms as subtables, and reads back with all seven nulls. A measure-map row with
    `nominal_length: null` (optional, no default null) is refused
    `not_representable` at its path, "TOML has no null, and the schema
    neither requires this member nor defaults it to null", and goes through
@@ -428,10 +427,11 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 40:17 (after
-   the default timestamps' `graphical`, which sorts first, and the empty
-   `links` of the manifest), YAML `locked: [false` at 35:5, TOML
-   `locked = ` at 19:1. YAML is read by TimeToShare's `parseYaml`, the
+   reader's 1-based line and column: JSON `"locked": ,` at 98:17 (after
+   the format's `@context` and the default timestamps' `graphical`, which
+   sort first), YAML `locked: [false` at 83:5, TOML `locked = ` at 77:1
+   (the `@context` table and its subtables before the timelines' array of
+   tables). YAML is read by TimeToShare's `parseYaml`, the
    reader Import uses, so the panel refuses what Import refuses:
    `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
    (`syntax_error` at 1:4, the anchor's `&`) with one message, "an anchor
@@ -836,9 +836,12 @@ closing and reopening, nothing journalled.
 9. **Warnings.** Each shared warning case of the installed TimeToShare
    (`fixtures/warnings/<SCHEMA_VERSION>/`) loads in core and, selected,
    lists exactly its expected unknown keys, each with its pointer or "at
-   the top level", then its expected unregistered terms of links, each
-   with its pointer, in a list "Warnings"; no problem is listed, and an
-   applied edit keeps the warnings. `bare` shows no warning list.
+   the top level", then its expected warnings (core's `manifestWarnings`),
+   each message capitalised with its pointer or "at the top level", in a
+   list "Warnings"; `context_absent` is never listed, since core gives every
+   manifest it holds its `@context`, and a case left with nothing shows no
+   list. No problem is listed, and an applied edit keeps the warnings.
+   `bare` shows no warning list.
 10. **The Properties panel** commits on Enter (the block's `x` to 25 is one
    `set` of `x`), steps from the stored value, never the shown one (10.123
    shown as 10.12 steps to 11.123 and back), steps a draft instead when
@@ -1064,243 +1067,211 @@ which no position solves).
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
 
-## The Metadata tab (`metadata.test.ts`, `metadata-panel.test.ts`)
+## The Metadata tab (`metadata-frame.test.ts`, `metadata-edits.test.ts`, `metadata-panel.test.ts`)
 
-The tab shows and edits the links of TimeToShare's description layer: a
-link from the bundle, a timeline or a region to a work or another entity.
-A link is the schema package's, built from URLs through its registry of
-known schemes (`linkFromUrls`, `recognize`) and changed through its
-functions (`withLabel`, `withUri`, `withParts`, `withAssertion`,
-`assertionFor`); the editor defines none of it, so the oracles are that
-package's builders and core's store. Every change is one `set` of the
-element's `links` (core's "Links"), built from the store's current links.
-Recognition is local: no test stubs a network and none is reached.
+The tab shows and edits the statements of TimeToShare's description
+layer: property–value pairs about the thing a bundle, a timeline or a
+region stands for, each pair optionally annotated in `provenance`. What a
+pair means is the schema package's: its statement functions (`rectangles`,
+`entries`, `verbOf`, `withPair`, `withoutPair`, `withConfirmation`,
+`withRejection`, `instantiate`, `recognize`) and its shipped catalogue,
+read on core's statement skeleton (`skeletonOf`); the editor only chooses
+what to show, in which order and words, and which one `set` an action
+dispatches. So the oracles are the fixture as written, the shipped
+catalogue's labels, and core's store; every heading below is a catalogue
+label, and a verb the catalogue lacks prints the property as written.
 
-**The Op. 106 bundle** is the manifest pinned in TimeToShare's
-`js/tests/description.test.ts`, written inline: named "Beethoven, Piano
-Sonata No. 29, Op. 106", `timelines: []`, one scheme `mb_beethoven_opus`
-("Works of Ludwig van Beethoven by opus number", its URI the MusicBrainz
-series), and one link: level `work`, relation `pertains_to`, label "Piano
-Sonata No. 29 in B♭ major, Op. 106", the three URIs
-`http://musicbrainz.org/work/4a622b0d-…`, `http://www.wikidata.org/entity/Q146730`
-and `http://viaf.org/viaf/186299955`, the identifiers IMSLP
-(`http://www.wikidata.org/entity/P839`) `Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)`
-and `mb_beethoven_opus` `op. 106`, `parts_relation` `has_part` with four
-ordered slots ("I. Allegro", "II. Scherzo. Assai vivace", "III. Adagio
-sostenuto", "IV. Introduzione. Largo – Allegro risoluto"), each with the
-MusicBrainz work URI of its movement and `absent: "not_represented"`, and
-the assertion by `E` = `https://example.org/people/editor` on 2026-11-17,
-`manual`, `confirmed`.
+`L` is TimeToShare's `fixtures/0.2.0/statements/layerit_recording.yaml`,
+the one block `A` = `0000000000` of a store (`storeOf`), its roots in
+canonical order `clt_6`, `cpt_1`, `dpt_1` (paths `["timelines", 0]`, `1`,
+`2`), `cpt_2` at `["timelines", 1, "children", 0]`. The user is core's
+default, Gerhardt, who states as `G` =
+`tag:timetoalign.github.io,2026:tilie:user:Gerhardt`; `T` =
+`https://example.org/agents/tilie`, `P` = `https://example.org/people/editor`
+(the fixture's annotators, printed as written).
 
-`I` is the viewer's identity `https://orcid.org/0000-0002-1825-0097`; the
-day is 2026-11-17 throughout.
+**The frame** (`metadata-frame.test.ts`, pure, on `L`'s view):
 
-**The model** (`metadata.ts`, proven on the module alone):
+1. **What is shown.** `cpt_1` selected: a timeline frame, `target`
+   `{block: A, id: "cpt_1"}`, words `timeline 'C.Debussy - Clair de Lune,
+   Maria João Pires live at Jardin Musical'`, path `["timelines", 1]`,
+   key `{"block":"0000000000","id":"cpt_1"}`. The block selected, or
+   nothing selected with `A` the only block: the bundle, words `bundle
+   'LayerIt, Clair de lune mm. 1–6 (Pires)'`, path `[]`. `group_1`
+   selected: "Group 'recording' has no statements: a bundle, a timeline or
+   a region has. Select its block, a timeline or a region." Two subjects
+   selected: `SELECT_HINT`.
+2. **`cpt_1`'s rectangles**, headings `["is a", "performed by", "same
+   as"]` (`rectangles`' order: "is a" first, then by first pair, the pairs
+   by property in code-point order):
+   - "is a", keyed by its first pair `["type","schema:VideoObject"]`, no
+     label, rows `type schema:VideoObject` (to `http://schema.org/VideoObject`),
+     `type melod:Manifestation` (to
+     `https://lod.academy/melod/vocab/ontology#Manifestation`), `wdt:P31
+     wd:Q98069877` (to `http://www.wikidata.org/entity/Q98069877`), no
+     annotation each.
+   - "performed by", label "Maria João Pires", rows `rel:prf
+     viaf:113931950` (to `http://viaf.org/viaf/113931950`) and `wdt:P175
+     wd:Q235650` (to `http://www.wikidata.org/entity/Q235650`): one
+     rectangle, the two values sharing the VIAF cluster through the
+     Wikidata node's `schema:sameAs`. Its things, first seen first, are
+     the VIAF, Wikidata and GND IRIs, recognised as `viaf`, `wikidata`,
+     `gnd`. Annotations: `reconciled · T · 2026-11-18` with basis the
+     Wikidata and GND IRIs, then `reconciled · P · 2026-11-18` with
+     service `https://www.wikidata.org/w/api.php`. `addable` is
+     `[musicbrainz, gnd, melody]`: the verb's vocabularies in catalogue
+     order (those with a pattern of their own, and those whose lookup
+     searches agents where the fallback states it with a thing slot)
+     without Wikidata (`wdt:P175` with a Wikidata value), VIAF and the
+     fallback (`rel:prf`, the fallback's property; the fallback holds no
+     things, the value is VIAF's).
+   - "same as", no label, row `schema:sameAs
+     https://www.youtube.com/watch?v=Ch2mrPm1JnM` linking to itself,
+     annotation `manual · P · 2026-11-18`.
+3. **`cpt_1`'s drawers.** Stated higher up: one group, the bundle, with
+   its two rectangles `rdfs:seeAlso` and `schema:about` (`wd:Q29117946`),
+   which no verb reads. Proposed: one row,
+   subject `["timelines", 1]`, heading "is a recording of", label "Clair
+   de lune" (the label `clt_6`'s node gives `wd:Q29117946`), line method
+   `inferred`, who `T`, basis `#clt_6`, `#dpt_1`, status `proposed`, key
+   the canonical text of `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`.
+   Rejected: none.
+4. **`clt_6`**: headings `["is a", "dcterms:created", "is a version or
+   edition of"]`; `dcterms:created` (no verb) labelled by its literal
+   "2025-12-05", annotated `imported`; "is a version or edition of"
+   labelled "Clair de lune", rows `schema:exampleOfWork
+   http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96` and
+   `wdt:P629 wd:Q29117946` (one thing shared through the node's
+   `schema:sameAs`), its two annotations `manual` by `P` with match
+   `broad` and `reconciled` by `T` with service Wikidata. Rejected: one
+   row, "is a version or edition of" `gnd:1156628156` (no label known),
+   method `reconciled`, its note kept. Proposed: none (the value node's
+   own annotation is confirmed).
+5. **`dpt_1`**: headings `["is a"]`; proposed one row "is derived from, is
+   based on" naming the element `#cpt_1` by its name.
+6. **`cpt_2` and the bundle.** `cpt_2` states nothing: one rectangle, the
+   empty "is a", keyed `is_a`, no rows; stated higher up the bundle's two
+   rectangles, then `cpt_1`'s three. The bundle: the empty "is a",
+   `rdfs:seeAlso` and `schema:about`; nothing higher up.
+7. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
+   → its iD; `…:user:Clara%20Wieck` → "Clara Wieck";
+   `https://github.com/TimeToAlign/TimeLineEditor` → "TiLiE"; any other
+   IRI as written.
+8. **Choices.** `systemChoices` of "performed by": Wikidata, MusicBrainz,
+   GND, "MeLODy / LRMoo", "Other vocabularies", "An element of this
+   manifest". `verbChoices` for the types `cpt_1`'s "is a" states begin
+   "is a", then the usual verbs of `video` (the type three of its
+   vocabularies agree on: fallback, MeLODy and Wikidata) and end with
+   "Other property…"; with the system `wikidata` no reading Wikidata cannot
+   state is offered. `compactIri` writes
+   `http://www.wikidata.org/entity/Q235650` as `wd:Q235650` and keeps
+   `http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96`
+   absolute (no prefix holds it).
 
-1. **What is inspected.** In a view of `bundle_mixed` (block `A`) and
-   `bare` (block `B`): the block `{block: A}` selected gives the bundle,
-   target `{block: A}`, words "bundle 'Mixed'"; a card of `score`, its
-   regions band and its name part give the timeline `score`, target
-   `{block: A, id: "score"}`, words "timeline 'Score' in bundle 'Mixed'";
-   `region_1` and its label give the region `region_1`, words "region
-   'Verse' in bundle 'Mixed'"; the bundle's title gives the bundle. A group
-   gives the hint "Group 'Performance' in bundle 'Mixed' holds no links: a
-   bundle, a timeline or a region does. Select its block, a timeline or a
-   region."; a conversion map and a named timestamp give the same sentence
-   with their words. Two subjects, and nothing selected among the two
-   blocks, give "Select a block, a timeline or a region to see its links."
-   With nothing selected in the editor of `score` the timeline `score` is
-   inspected, in the bundle editor of `A` the bundle; at the top level of a
-   view of one block, that block's bundle.
-2. **The card of the Op. 106 link**: level `work`, relation `pertains_to`,
-   the label; the three URIs in order (the first preferred); the
-   identifiers "IMSLP ID" (the registry's name of the scheme URI) and
-   "Works of Ludwig van Beethoven by opus number" (the manifest's scheme by
-   its name) with their values; no records; the parts `has_part`, ordered,
-   four slots at positions 1 to 4, each with its label, its one URI, no
-   identifier, no representing element, the absence `not_represented` and
-   no assertion of its own; no `part_of`; the assertion line "asserted by
-   E · on 2026-11-17 · method manual · status confirmed", the status
-   `confirmed`; no warning. Given a second reading (the slots in the order
-   1, 3, 2, 4, asserted 2026-11-18 `imported`), the bundle holds two links
-   and so two cards, in their order, each its own.
-3. **Representation and warnings.** The shared warning case
-   `description_absent_unregistered.yaml`: the first slot is represented by
-   `intro` (a region without a name, shown by its ID), the second absent
-   `destroyed`, which is no registered reason: the card warns "'destroyed'
-   is no registered word, at /parts/1/absent", and the absence choices are
-   the five registered reasons followed by `destroyed`.
-4. **The whole description.** The Op. 106 link given everything a card
-   reads: a record `https://example.org/records/op106.jsonld` stating
-   `application/ld+json`, 2048 bytes and `sha256-AAAA`, and a record
-   `https://example.org/records/plain` stating nothing; an assertion by `E`
-   with the service `https://example.org/reconcile` and based on
-   `https://example.org/sources/a` and `https://example.org/sources/b`;
-   its first slot with a second URI `https://example.org/movements/1`, the
-   identifier `mb_beethoven_opus` `op. 106 no. 1` and an assertion of its
-   own by `I` on 2026-11-18, `inferred`; its second slot with an assertion
-   equal to the link's; and two wholes, one labelled "Hammerklavier
-   sonatas", `has_part`, position 1, asserted by `I`, and one named only by
-   the URI `https://example.org/collections/late`, `aggregates`. The card
-   reads the records "https://example.org/records/op106.jsonld
-   (application/ld+json, 2048 bytes, sha256-AAAA)" and
-   "https://example.org/records/plain"; the assertion line "asserted by E ·
-   on 2026-11-17 · method manual · service https://example.org/reconcile ·
-   based on https://example.org/sources/a, https://example.org/sources/b ·
-   status confirmed"; slot 1 both URIs, the identifier "Works of Ludwig van
-   Beethoven by opus number" `op. 106 no. 1` and "asserted by I · on
-   2026-11-18 · method inferred"; slot 2 no assertion of its own, since the
-   one it states is the link's; the wholes "part of Hammerklavier sonatas
-   (has_part), position 1" with "asserted by I" and "part of
-   https://example.org/collections/late (aggregates)" with none.
-5. **Paste.** With the viewer's assertion `{asserted_by: [I],
-   asserted_on: "2026-11-17", method: "manual"}`: the MusicBrainz work page
-   of Op. 106 gives a link equal to `linkFromUrls` of it with that
-   assertion (level `work`, the entity URI); the Wikidata page
-   `https://www.wikidata.org/wiki/Q146730` (a scheme the registry gives no
-   level) and an unknown absolute URI `https://example.org/works/op106`
-   each wait for a level, and given `work` and `expression` give the links
-   of `http://www.wikidata.org/entity/Q146730` at `work` and of the URI as
-   written at `expression`; given `agent` and the role
-   `http://id.loc.gov/vocabulary/relators/prf`, the unknown URI gives the
-   link at `agent` whose relation is that role, and given `agent` without
-   a role it is refused "The pasted text gives no link: an agent link
-   states its relation, the agent's role."; `Hammerklavier` is refused
-   "The pasted text gives no link: 'Hammerklavier' is no absolute URI."
-6. **Changes.** Label "Hammerklavier" replaces the label, an empty label
-   unstates it; adding `https://www.wikidata.org/wiki/Q146730` to a link
-   holding only the MusicBrainz URI appends the Wikidata entity URI; adding
-   a URI the link holds is "The link holds that URL already."; adding
-   `Hammerklavier` is "The URL cannot be added: 'Hammerklavier' is no
-   absolute URI."; the absence of slot 3 set to `lost` changes that slot
-   only. Each is equal to the schema package's function applied to the
-   same link.
-7. **A status is the viewer's statement** (`statusChange`, on the day
-   2026-11-17). A link with no assertion, given `confirmed` by `I`, is
-   replaced by the same link asserted `{asserted_by: [I], asserted_on:
-   "2026-11-17", method: "manual", status: "confirmed"}`. A link asserted
-   by `I` on 2026-11-01, `imported`, `match: "exact"`, `unconfirmed`,
-   given `rejected` by `I`, is replaced, its assertion `{asserted_by: [I],
-   asserted_on: "2026-11-17", method: "manual", match: "exact", status:
-   "rejected"}`: the match kept, the rest stamped. A link asserted by
-   nobody named (`{asserted_on: "2026-11-01", method: "imported"}`), given
-   `confirmed` without an identity, is replaced with `asserted_by: []`,
-   `asserted_on: "2026-11-17"`, `manual`, `confirmed`. The Op. 106 link,
-   asserted by `E`, given `rejected` by `I` is not changed: a link is
-   appended, equal to it but asserted `{asserted_by: [I], asserted_on:
-   "2026-11-17", method: "manual", status: "rejected"}`, and given
-   `rejected` without an identity the appended link's `asserted_by` is
-   empty. "Not stated" on a link whose assertion is only `{status:
-   "confirmed"}` leaves it with no assertion; on a link asserted by `I`
-   with a status it unstates the status, the assertion stamped. Each
-   result equals the schema package's `withAssertion` of the link with the
-   assertion named.
-8. **The day, the identity's form, the addresses followed.** The day of
-   2026-11-17 at 23:59 local time is `2026-11-17`; the viewer's assertion
-   without an identity is `{asserted_by: [], asserted_on, method:
-   "manual"}`. `isUri` accepts `I` and `urn:isbn:0451450523` and refuses
-   `orcid 0000`, the empty text and `https://example.org/a b`, as the
-   schema's `Uri` does. `isWebAddress` holds for `https://example.org/w`
-   and `http://example.org/w` only, not for `javascript:alert(1)`,
-   `data:text/html,hi`, `urn:isbn:0451450523`, `mailto:a@example.org`
-   or `Hammerklavier`.
+**The edits** (`metadata-edits.test.ts`, pure, exact commands, the clock
+at `2026-11-20T12:00:00Z`):
 
-**The identity** (`identity.svelte.ts`): kept under the key the host
-gives, in `localStorage` only, in one of three states. Nothing stored:
-never asked, no identity, it asks. A URI stored: that identity, answered.
-`none` stored: answered without an identity, it does not ask again. A
-stored text that is no URI as the dialog reads one (`orcid 0000`, the
-empty text) asks again, without an identity. `give(I)` writes `I` under
-the key and `give(null)` writes `none`; both make it answered. A `null` key
-remembers nothing. With `localStorage` throwing on every access the
-identity starts unasked and `give` holds it in memory: nothing throws. The
-workspace never holds it except inside the assertions the viewer makes:
-after a paste, the workspace file's text contains `I` exactly twice, in
-that link's `asserted_by` in the block's manifest and in the journalled
-`set` that added it.
+1. **Confirming `cpt_1`'s proposal** is one `set` with one change on
+   `{block: A, id: "cpt_1"}`: `statements` as before plus `"wdt:P2550":
+   [{"id": "wd:Q29117946"}]`, `provenance` as before with entry 3 replaced
+   in place by `{basis: ["#clt_6", "#dpt_1"], date: "2026-11-20", method:
+   "inferred", note: <kept>, property: "wdt:P2550", stated_by: [G],
+   status: "confirmed", value: {"id": "wd:Q29117946"}}`.
+2. **Rejecting `dpt_1`'s proposal** changes only `dpt_1`'s `provenance`:
+   its one entry `rejected` by `G` on 2026-11-20, method and note kept; no
+   `statements` member.
+3. **Removing and rejecting a rectangle.** Removing `cpt_1`'s "same as"
+   drops the YouTube pair and its confirmed annotation: `statements`
+   without `schema:sameAs`, `provenance` without entry 0. Rejecting it
+   instead drops the pair and turns entry 0 into `rejected` by `G`.
+4. **Adding.** `added` on `cpt_2` with the pair `wdt:P175 {id:
+   "wd:Q235650", label: "Maria João Pires"}` and fields `manual` by `G`
+   states it with one confirmed annotation `{date: "2026-11-20", method:
+   "manual", property: "wdt:P175", stated_by: [G], status: "confirmed",
+   value: {"id": "wd:Q235650"}}`; the command changes `cpt_2` alone, both
+   members.
+5. **Tying.** `tied` on the pair `rel:prf {id: "gnd:124927521"}` with the
+   thing `http://www.wikidata.org/entity/Q235650` and the catalogue's
+   prefixes gives `{id: "gnd:124927521", "schema:sameAs": [{id:
+   "wd:Q235650"}]}`; a node naming the thing itself is left alone.
+6. **Nothing changed.** `commandOf` of the frame's own skeleton is
+   `null`. A TimeToShare refusal reaches the caller as the function's
+   `Error` (removing a pair not stated throws "'schema:sameAs' does not
+   have this value").
 
-**The panel** (`metadata-panel.test.ts`, the Inspector mounted on a store,
-the Metadata tab chosen; dates under a fixed clock of 2026-11-17):
+**The panel** (`metadata-panel.test.ts`: the Inspector mounted on a store
+of `L` inside a wrapper that provides the user (Gerhardt; a `UserDialog`
+answering "Change…") and a stub lookup; the Metadata tab chosen; the clock
+fixed at `2026-11-20T12:00:00Z`). The stub resolves `wd:Q235650` to
+"Maria João Pires" with the cross-reference GND `124927521`, that GND
+record to "Pires, Maria João", and searches nothing.
 
-1. **The Op. 106 bundle imported.** Through the page, Import manifest…
-   with the Op. 106 text adds one block, selected, whose manifest has
-   `timelines: []`; the drawer opened and Metadata chosen show "Links of
-   bundle 'Beethoven, Piano Sonata No. 29, Op. 106'", one card in a list
-   "Links", a group named by its heading: its heading `work pertains_to
-   <label>`; three URI links, each `target="_blank"` and `rel="noopener
-   noreferrer"`, the first marked "preferred"; the two identifier rows;
-   the parts line; four slots, each with its URI link and a select "Absent"
-   showing `not_represented` among the five registered reasons; the
-   assertion line; no warning list.
-2. **Pasting a recognised URL** on the bundle of `bare` asks first for the
-   identity (the dialog "Who asserts your links?"); `orcid 0000` saved
-   shows "An identity is an absolute URI, …" and keeps the dialog open;
-   `I` saved closes it, writes `I` under the identity key and adds exactly
-   one journal entry, the `set` of `{block: A}`'s links to the pasted link
-   asserted by `I` on 2026-11-17, `manual`; the field is emptied and the
-   card shows. A second paste asks nothing. Undo removes the card.
-3. **A URL without a level** shows the level question naming the URL, the
-   focus on its select "Level" over the five levels; choosing `work` and
-   Add link adds the link; Cancel instead adds nothing and removes the
-   question. Choosing `agent` shows a field "Role" described by a hint
-   naming `http://id.loc.gov/vocabulary/relators/prf`; Add link without a
-   role posts "The pasted text gives no link: an agent link states its
-   relation, the agent's role." and adds nothing; with that role typed it
-   adds the link at `agent` whose relation is the role.
-4. **Text that is no URI** posts "The pasted text gives no link:
-   'Hammerklavier' is no absolute URI." and journals nothing.
-5. **Without storage** (`localStorage` throwing), the first paste still
-   asks, the link is asserted by the identity given, and the second paste
-   asks nothing. Cancel in the dialog adds nothing; No identity adds the
-   link asserted without `asserted_by`. With storage, No identity writes
-   `none` under the key, and an Identity made anew from that key does not
-   ask.
-6. **The card's edits**, on the Op. 106 bundle with `I` given, each one
-   `set` of the bundle's links equal to the model's: the label typed and
-   committed; Add URL, then a Wikidata page the link does not hold
-   (`Q146731`) and Enter, after which the focus is on the card's Add URL
-   button; the third slot's absence set to `lost`; Remove link. Change
-   identity replaces the identity shown on the tab. Add URL then Escape
-   closes the field, changes nothing and puts the focus on Add URL.
-7. **A status chosen is the viewer's statement.** On a link without an
-   assertion (an identity not yet given), choosing `confirmed` asks for
-   the identity; Cancel changes nothing and the select shows "not stated"
-   again; choosing it again and saving `I` replaces the link in place, one
-   card, its assertion line "asserted by I · on 2026-11-17 · method manual
-   · status confirmed". Choosing `rejected` on it then (asserted by `I`)
-   replaces it again, asking nothing. On the Op. 106 bundle (asserted by
-   `E`) with `I` given, choosing `unconfirmed` appends a second card whose
-   line is "asserted by I · on 2026-11-17 · method manual · status
-   unconfirmed", the first card unchanged, its select still showing
-   `confirmed`; one journal entry each.
-8. **State belongs to the element shown.** In `bundle_mixed` with
-   `score` holding two links and `region_1` one, the Add URL field opened
-   on `score`'s second card with text typed, and the paste field typed:
-   selecting `region_1` shows its card with an Add URL button and no URL
-   field, and an empty paste field. Back on `score`, Remove link on its
-   first card closes the field the second card had open: the list it was
-   opened on is gone. When the last card is removed the focus goes to the
-   paste field; when another card takes the place of the one removed, to
-   that card.
-9. **Only web addresses are followed.** A link whose URIs are
-   `https://example.org/w`, `javascript:alert(1)` and `data:text/html,hi`
-   shows one anchor, `https://example.org/w`, and the other two as code;
-   an identity `urn:isbn:0451450523` is shown as code, not as an anchor.
-10. **The whole description shown.** The link of model item 4 on the Op.
-    106 bundle shows its two records, its assertion line, slot 1's two URI
-    links in a list "URIs of part 1", its identifier row in a list
-    "Identifiers of part 1" and its own assertion line, slot 2 without
-    one, and the two wholes with the first one's assertion.
-11. **A refusal of the schema package keeps the stored value shown.** A
-    link at the level `expression` whose one slot names the MusicBrainz
-    work of the first movement (a work URI) and is absent `lost`: choosing
-    `unknown` posts "The link could not be changed: part slot 1 is
-    recognised at the level 'work', the link's level is 'expression'.",
-    journals nothing, and the select shows `lost`.
-12. **Where the links are.** With `score` of `bundle_mixed` selected the
-    tab reads "Links of timeline 'Score'" and a paste adds the link to
-    `score` only; with `region_1` selected, to the region; a group selected
-    shows its hint and no paste field.
+1. **Rectangles and drawers.** `cpt_1` shows "This timeline 'C.Debussy -
+   …'.", the user line "You state as Gerhardt.", a list "Statements" of
+   three groups headed as in frame item 2, the "performed by" one with the
+   label "Maria João Pires", two vocabulary rows (two anchors with
+   `rel="noreferrer"`, `target="_blank"`), the provenance line
+   "reconciled · https://example.org/agents/tilie · 2026-11-18", and a
+   "＋ vocabulary" button; the drawers read "Stated higher up (2)",
+   "Proposed (1)", "Rejected (0)". The bundle shows "Not stated yet." and
+   "State what it is".
+2. **Confirm and Reject.** Confirm on `cpt_1`'s proposed row adds one
+   journal entry, the "is a recording of" rectangle appears last and
+   takes the focus. Reject on `dpt_1`'s row adds one entry, the drawer
+   reads "Proposed (0)" and "Rejected (1)", the focus on the proposed
+   drawer's summary.
+3. **Remove.** Remove on `cpt_1`'s "performed by" leaves "is a" and "same
+   as", the focus on "same as"; Remove on the last rectangle of a timeline
+   gives the focus to "＋ Add statement".
+4. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
+   `https://www.wikidata.org/wiki/Q235650` into Value: Vocabulary reads
+   "Wikidata", the Verb field has the focus, its options begin "is a";
+   "performed by" picked and Add: one journal entry, the change on `cpt_2`
+   holding `"wdt:P175": [{"id": "wd:Q235650", "label": "Maria João
+   Pires"}]` and one annotation `manual` by `G` on 2026-11-20; the new
+   rectangle has the focus. A paste of `https://example.org/x` posts "The
+   address is no identifier the catalogue knows; choose “Other property…”
+   to state it."
+5. **An element.** On `cpt_2`, verb "is derived from, is based on",
+   vocabulary "An element of this manifest", the Value options list the
+   other timelines (`clt_6`, `cpt_1`, `dpt_1`), not `cpt_2`; `#clt_6`
+   picked and Add states `"dcterms:source": [{"id": "#clt_6"}]`.
+6. **Other property.** "Other property…" with `dcterms:subject`, a text
+   in a language, "Nocturne" in `fr`: Add states `"dcterms:subject":
+   [{"@value": "Nocturne", "@language": "fr"}]`; a property `foo` keeps
+   Add disabled with "Write the property as a compact IRI with a known
+   prefix or in full."
+7. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary": the
+   Verb field is disabled on "performed by", the Vocabulary options are
+   MusicBrainz, GND, "MeLODy / LRMoo"; GND picked, the Value options offer
+   "Pires, Maria João" (Wikidata's cross-reference resolved in the GND);
+   Add states it in the same rectangle as `rel:prf {id:
+   "gnd:124927521", label: "Pires, Maria João", "schema:sameAs": [{id:
+   "wd:Q235650"}]}` with the annotation `reconciled`, service
+   `https://www.wikidata.org/w/api.php`, basis
+   `http://www.wikidata.org/entity/Q235650`, match `exact`. Cancel instead
+   closes the composer and gives the focus back to "＋ vocabulary".
+8. **The user.** "Change…" opens the dialog "Your name"; an empty name
+   shows "A name is required."; "Clara Wieck" with
+   `https://orcid.org/0000-0002-1825-0097` saved reads "You state as Clara
+   Wieck (ORCID iD 0000-0002-1825-0097).", and a confirmation then states
+   `stated_by: ["https://orcid.org/0000-0002-1825-0097"]`.
+9. **Refusals.** A store refusal is posted with its message; a throw of
+   the statement functions as "The statement could not be changed: …";
+   neither journals anything.
+10. **State belongs to the element.** The composer opened on `cpt_2` is
+    hidden on selecting `cpt_1` and not shown again there.
+
+**The user** (`user.test.ts`): a `UserState` under key `K` with nothing
+stored is Gerhardt without iD, `statedBy` `G`; `set({name: "Clara
+Wieck", orcid: "0000-0002-1825-0097"})` stores `{"name":"Clara
+Wieck","orcid":"0000-0002-1825-0097"}` under `K`, and a new `UserState`
+from `K` reads it back, `statedBy` `https://orcid.org/0000-0002-1825-0097`.
+Stored texts that are no user (`not json`, `[]`, `{"name": ""}`, `{"name":
+"A", "orcid": "0000-0002-1825-0098"}`, a wrong check digit) give the
+default. Without a key, and with a `localStorage` whose every access
+throws, the default is read, `set` holds the user in memory and nothing
+throws.
 
 ## The message bar (`messages.test.ts`, `shell.test.ts`)
 

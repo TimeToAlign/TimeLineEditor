@@ -6,6 +6,7 @@ import type { Address, CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
+  DEFAULT_USER,
   emptyWorkspace,
   importedManifest,
   isLoadError,
@@ -169,6 +170,7 @@ describe("the File menu", () => {
       ["Save as…", "Ctrl+Shift+S"],
       ["Import manifest…", null],
       ["Export manifest…", null],
+      ["Your name…", null],
     ]);
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe("true");
 
@@ -176,11 +178,11 @@ describe("the File menu", () => {
     await vi.waitFor(() => expect(focusedLabel()).toBe("New workspace"));
     expect([button.getAttribute("aria-expanded"), menu?.hidden]).toEqual(["true", false]);
     key(document.activeElement as Element, { key: "ArrowUp" });
-    expect(focusedLabel()).toBe("Export manifest…");
+    expect(focusedLabel()).toBe("Your name…");
     key(document.activeElement as Element, { key: "ArrowDown" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "End" });
-    expect(focusedLabel()).toBe("Export manifest…");
+    expect(focusedLabel()).toBe("Your name…");
     key(document.activeElement as Element, { key: "Home" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "Escape" });
@@ -188,7 +190,7 @@ describe("the File menu", () => {
     expect(document.activeElement).toBe(button);
 
     key(button, { key: "ArrowUp" });
-    await vi.waitFor(() => expect(focusedLabel()).toBe("Export manifest…"));
+    await vi.waitFor(() => expect(focusedLabel()).toBe("Your name…"));
   });
 });
 
@@ -482,7 +484,7 @@ describe("manifests", () => {
 
   it("leaves every open editor before it adds a manifest; a refused one leaves them open", async () => {
     const warn = vi.fn();
-    const session = new WorkspaceSession({ warn });
+    const session = new WorkspaceSession({ warn, author: () => DEFAULT_USER.name });
     const { store } = session;
     const added = store.dispatch({
       type: "add",

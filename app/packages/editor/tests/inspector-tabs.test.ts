@@ -13,7 +13,7 @@ import type { Tab } from "../src/inspector/tabs.ts";
 import { initialPick, nextTab, TABS, tabLabel, toggled } from "../src/inspector/tabs.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { informing } from "./support.ts";
+import { informing, providing } from "./support.ts";
 
 const { A } = MIXED;
 /** The address of block `A`. */
@@ -73,7 +73,7 @@ afterEach(() => {
 
 function show(store: Store, selection: Address[] = [BLOCK]): void {
   const selected = holder<Selection>(selectionOf(selection));
-  app = mount(Inspector, {
+  app = mount(providing(Inspector), {
     target: document.body,
     context: informing(),
     props: {
@@ -481,7 +481,7 @@ describe("with the store's own editors", () => {
 describe("in the drawer", () => {
   /** The drawer over `store`, closed; its `setOpen` opens and closes it as its buttons do. */
   function drawer(store: Store): { setOpen(open: boolean): void } {
-    const shown = mount(InspectorDrawer, {
+    const shown = mount(providing(InspectorDrawer), {
       target: document.body,
       context: informing(),
       props: {

@@ -54,7 +54,7 @@ describe("App", () => {
 
     expect(text("header h1")).toEqual(["TimeLineEditor"]);
     expect(text("h1")).toEqual(["TimeLineEditor"]);
-    expect(text("h2")).toEqual(["Inspector", "About TimeLineEditor"]);
+    expect(text("h2")).toEqual(["Inspector", "Your name", "About TimeLineEditor"]);
     expect(document.querySelectorAll("footer").length).toBe(0);
     const arranger = document.querySelector('[role="application"][aria-label="Arranger"]');
     expect(arranger?.getAttribute("tabindex")).toBe("0");

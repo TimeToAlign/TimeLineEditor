@@ -2,745 +2,538 @@
 
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, CommandEntry, Manifest, Store } from "@timetoalign/tilie-core";
-import { isLoadError, linkHolder, loadManifest, writeWorkspace } from "@timetoalign/tilie-core";
-import type { CompleteLink } from "@timetoalign/timetoshare";
-import {
-  ABSENCE_REASONS,
-  LEVELS,
-  linkFromUrls,
-  withAssertion,
-  withLabel,
-  withParts,
-  withUri,
-} from "@timetoalign/timetoshare";
+import type { Address, Command, CommandEntry, Store } from "@timetoalign/tilie-core";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "../src/App.svelte";
 import Inspector from "../src/inspector/Inspector.svelte";
-import { Identity, NO_IDENTITY } from "../src/inspector/identity.svelte.ts";
-import { describedOf } from "../src/inspector/metadata.ts";
+import type { Candidate, Lookup } from "../src/lookup/index.ts";
+import UserDialog from "../src/UserDialog.svelte";
+import type { UserContext } from "../src/user.svelte.ts";
+import { UserState } from "../src/user.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
-import {
-  EDITOR,
-  LABEL,
-  MB,
-  MOVEMENTS,
-  NAME,
-  OP106,
-  URIS,
-  VIEWER,
-  WHOLE,
-  WORK,
-  WORK_PAGE,
-} from "./op106.ts";
-import { fileText, flushAutosaves, hook, informing, pickFile, storeOf } from "./support.ts";
-
-vi.mock("../src/autosave.ts", async (importOriginal) =>
-  (await import("./support.ts")).recordAutosaves(await importOriginal()),
-);
+import { fixture, informing, providing, storeOf, userContext } from "./support.ts";
 
 const A = "0000000000";
-const I = VIEWER;
-const E = EDITOR.asserted_by[0];
-const KEY = "test.identity";
-const WIKIDATA = "https://www.wikidata.org/wiki/Q146730";
-const UNKNOWN = "https://example.org/works/op106";
-const RELATOR = "http://id.loc.gov/vocabulary/relators/prf";
-/** The assertion of what the viewer `I` states under the fixed clock. */
-const ASSERTED = { asserted_by: [I], asserted_on: "2026-11-17", method: "manual" };
+const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
+const PIRES_WD = "http://www.wikidata.org/entity/Q235650";
+const PIRES_GND = "https://d-nb.info/gnd/124927521";
 
-let app: ReturnType<typeof mount> | undefined;
+/** The stub lookup's answers: Maria João Pires in Wikidata, with her GND record as a cross-reference. */
+const WIKIDATA_PIRES: Candidate = {
+  system: "wikidata",
+  iri: PIRES_WD,
+  label: "Maria João Pires",
+  description: "Portuguese pianist",
+  image: null,
+  crossReferences: [
+    { system: "viaf", iri: "http://viaf.org/viaf/113931950" },
+    { system: "gnd", iri: PIRES_GND },
+  ],
+  service: WIKIDATA_API,
+  match: false,
+};
+const GND_PIRES: Candidate = {
+  system: "gnd",
+  iri: PIRES_GND,
+  label: "Pires, Maria João",
+  description: null,
+  image: null,
+  crossReferences: [],
+  service: "https://lobid.org/gnd/search",
+  match: false,
+};
+
+/** Resolves the two answers, searches nothing. */
+const LOOKUP: Lookup = {
+  searchable: () => false,
+  resolvable: (system) => system === "wikidata" || system === "gnd",
+  search: async () => [],
+  resolve: async (_system, iri) =>
+    iri === PIRES_WD ? WIKIDATA_PIRES : iri === PIRES_GND ? GND_PIRES : null,
+  reconcile: async (_system, _kind, texts) => texts.map(() => null),
+};
+
+let apps: ReturnType<typeof mount>[] = [];
 
 beforeEach(() => {
   stubEditor();
+  Element.prototype.scrollIntoView = () => undefined;
   localStorage.clear();
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date(2026, 10, 17, 12, 0));
+  vi.setSystemTime(new Date("2026-11-20T12:00:00Z"));
 });
 
-afterEach(async () => {
-  if (app !== undefined) unmount(app);
-  app = undefined;
-  await flushAutosaves();
+afterEach(() => {
+  for (const app of apps) unmount(app);
+  apps = [];
   document.body.innerHTML = "";
+  Reflect.deleteProperty(Element.prototype, "scrollIntoView");
   vi.useRealTimers();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  localStorage.clear();
 });
 
-/** A manifest value as core reads it. */
-function read(value: unknown): Manifest {
-  const manifest = loadManifest(fileText(value));
-  if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
-  return manifest;
-}
+/** The store of the LayerIt recording, block `A`. */
+const layerit = (): Store => storeOf(fixture("statements/layerit_recording"));
 
-/** A bundle without timelines holding `links`. */
-const holding = (...links: unknown[]): Manifest =>
-  read({ timetoshare: "0.2.0", timelines: [], links });
-
-/** The identity `I`, given. */
-function given(uri: string = I): Identity {
-  const identity = new Identity(null);
-  identity.give(uri);
-  return identity;
-}
-
-/** Mount the inspector over `store` with `addresses` selected and the Metadata tab chosen. */
-function show(
-  store: Store,
-  addresses: Address[],
-  identity = new Identity(KEY),
-  informed: string[] = [],
-): { selection: { value: Selection }; informed: string[]; identity: Identity } {
+/** Mount the inspector over `store`, `addresses` selected, the Metadata tab chosen. */
+function show(store: Store, addresses: Address[], user: UserContext = userContext()) {
   const selection = holder<Selection>(selectionOf(addresses));
-  app = mount(Inspector, {
-    target: document.body,
-    context: informing(informed),
-    props: {
-      live: liveStore(store),
-      get selection() {
-        return selection.value;
+  const informed: string[] = [];
+  const target = document.createElement("div");
+  document.body.append(target);
+  apps.push(
+    mount(providing(Inspector, user, LOOKUP), {
+      target,
+      context: informing(informed),
+      props: {
+        live: liveStore(store),
+        get selection() {
+          return selection.value;
+        },
       },
-      identity,
-    },
-  });
+    }),
+  );
   flushSync();
-  tab("Metadata").click();
+  const tab = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+    (item) => item.textContent?.trim() === "Metadata",
+  );
+  tab?.click();
   flushSync();
-  return { selection, informed, identity };
+  return { selection, informed };
 }
 
-function tab(name: string): HTMLElement {
-  const found = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+/** Let the lookup's promises and the focus moves after `tick` run, then the DOM follow. */
+async function settle(): Promise<void> {
+  for (let round = 0; round < 6; round += 1) {
+    await Promise.resolve();
+    await tick();
+  }
+  flushSync();
+}
+
+const all = <E extends Element>(selector: string, within: ParentNode = document) => [
+  ...within.querySelectorAll<E>(selector),
+];
+
+function one<E extends Element>(selector: string, within: ParentNode = document): E {
+  const found = within.querySelector<E>(selector);
+  if (found === null) throw new Error(`no ${selector}`);
+  return found;
+}
+
+const rectangles = () => all<HTMLElement>('[data-testid="metadata-rectangle"]');
+const headings = () =>
+  rectangles().map((rectangle) => one(".verb", rectangle).textContent?.trim() ?? "");
+const rectangle = (heading: string) => {
+  const found = rectangles().find((item) => one(".verb", item).textContent?.trim() === heading);
+  if (found === undefined) throw new Error(`no rectangle ${heading}`);
+  return found;
+};
+
+function button(name: string, within: ParentNode = document): HTMLButtonElement {
+  const found = all<HTMLButtonElement>("button", within).find(
     (item) => item.textContent?.trim() === name,
   );
-  if (found === undefined) throw new Error(`no tab ${name}`);
+  if (found === undefined) throw new Error(`no button ${name}`);
   return found;
 }
 
-/** The shown panel. */
-function panel(): HTMLElement {
-  const shown = document.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])');
-  if (shown === null) throw new Error("no panel shown");
-  return shown;
-}
+const summaries = () => all<HTMLElement>("details summary").map((item) => item.textContent?.trim());
 
-/** The own text of a label: its text without that of the control it wraps. */
-function ownText(label: HTMLLabelElement): string {
-  return [...label.childNodes]
-    .filter((node) => node.nodeType === Node.TEXT_NODE)
-    .map((node) => node.textContent ?? "")
-    .join("")
-    .trim();
-}
-
-/** The control labelled `label` in the shown panel, or in the card `card` (from 0). */
-function labelled<E extends HTMLInputElement | HTMLSelectElement>(label: string, card?: number): E {
-  const scope = card === undefined ? panel() : cards()[card];
-  const found = [...(scope?.querySelectorAll<E>("input, select") ?? [])].find((item) =>
-    [...(item.labels ?? [])].some((text) => ownText(text) === label),
+/** A composer field (a combobox) by its label. */
+function field(name: string): HTMLInputElement {
+  const label = all<HTMLElement>('[data-testid="metadata-composer"] .field > span').find(
+    (item) => item.textContent === name,
   );
-  if (found === undefined) throw new Error(`no control ${label}`);
-  return found;
+  if (label === undefined) throw new Error(`no field ${name}`);
+  return one<HTMLInputElement>(`input[aria-labelledby="${label.id}"]`);
 }
 
-function button(label: string, scope: ParentNode = document): HTMLButtonElement {
-  const found = [...scope.querySelectorAll<HTMLButtonElement>("button")].find(
-    (item) => item.textContent?.trim() === label,
+/** The options a combobox's listbox lists. */
+const options = (input: HTMLInputElement) =>
+  all<HTMLElement>('[role="option"]', one(`#${input.getAttribute("aria-controls")}`)).map((item) =>
+    item.textContent?.replace(/\s+/gu, " ").trim(),
   );
-  if (found === undefined) throw new Error(`no button ${label}`);
-  return found;
+
+function type(input: HTMLInputElement, value: string): void {
+  input.value = value;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  flushSync();
 }
 
-const cards = () => [...panel().querySelectorAll<HTMLElement>('ol[aria-label="Links"] > li')];
-const group = (index: number) => cards()[index]?.querySelector<HTMLElement>('[role="group"]');
-/** The level question: the group named by the question it asks; `null` while none is asked. */
-const question = () =>
-  [...panel().querySelectorAll('[role="group"]')].find((item) =>
-    textOf(document.getElementById(item.getAttribute("aria-labelledby") ?? ""))?.startsWith(
-      "The registry tells no level",
-    ),
-  ) ?? null;
-const owner = () => panel().querySelector('[data-testid="metadata-owner"]')?.textContent?.trim();
-const dialog = () => document.querySelector<HTMLDialogElement>("dialog[open]");
-/** The text of an element, white space collapsed. */
-const textOf = (element: Element | null | undefined) =>
-  element?.textContent?.replace(/\s+/g, " ").trim();
+function press(input: HTMLInputElement, key: string): void {
+  input.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  flushSync();
+}
 
-/** Paste `text` into the paste field. */
-function paste(text: string): void {
-  const field = labelled<HTMLInputElement>("Paste a URL");
+/** Type `text` and pick the first option that offers. */
+function choose(input: HTMLInputElement, text: string): void {
+  input.focus();
+  type(input, text);
+  press(input, "ArrowDown");
+  press(input, "Enter");
+}
+
+function paste(input: HTMLInputElement, text: string): void {
   const event = new Event("paste", { bubbles: true, cancelable: true });
   Object.defineProperty(event, "clipboardData", { value: { getData: () => text } });
-  field.dispatchEvent(event);
+  input.dispatchEvent(event);
   flushSync();
 }
 
-/** Type `text` into `field`. */
-function type(field: HTMLInputElement, text: string): void {
-  field.value = text;
-  field.dispatchEvent(new Event("input", { bubbles: true }));
-  flushSync();
-}
+/** The commands journalled after the first `from` entries. */
+const commandsAfter = (store: Store, from: number): Command[] =>
+  store.journal.slice(from).map((entry) => (entry as CommandEntry).command);
 
-/** Type `text` into `field` and press `key` there. */
-function typeAndPress(field: HTMLInputElement, text: string, key = "Enter"): void {
-  type(field, text);
-  field.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-  flushSync();
-}
-
-/** Choose `value` in `select`. */
-function choose(select: HTMLSelectElement, value: string): void {
-  select.value = value;
-  select.dispatchEvent(new Event("change", { bubbles: true }));
-  flushSync();
-}
-
-/** Answer the identity dialog with `text` and `label` (Save, No identity, Cancel). */
-async function answerIdentity(text: string, label: string): Promise<void> {
-  const open = dialog();
-  if (open === null) throw new Error("no dialog");
-  const field = open.querySelector<HTMLInputElement>("input");
-  if (field !== null) {
-    field.value = text;
-    field.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-  if (label === "Save") {
-    open
-      .querySelector("form")
-      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  } else {
-    button(label, open).click();
-  }
-  flushSync();
-  await settle();
-}
-
-/** Let a pending answer, and a focus moved after it, reach the panel. */
-async function settle(): Promise<void> {
-  for (let round = 0; round < 3; round += 1) await tick();
-  flushSync();
-}
-
-/** The links of block A's manifest, or of its element `id`. */
-function linksOf(store: Store, id: string | null = null): readonly CompleteLink[] {
-  const block = store.view.blocks[A];
-  if (block === undefined) throw new Error("no block A");
-  return linkHolder(describedOf(block.manifest).complete, id)?.links ?? [];
-}
-
-/** The last journalled command. */
-function lastCommand(store: Store): unknown {
-  return (store.journal.at(-1) as CommandEntry | undefined)?.command;
-}
-
-/** The command setting the bundle's links to `links`. */
-const bundleSet = (links: readonly CompleteLink[]) => ({
-  type: "set",
-  changes: [{ target: { block: A }, values: { links } }],
-});
-
-describe("the Op. 106 bundle imported (item 1)", () => {
-  it("shows its one link through the page", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        Response.json({ name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" }),
-      ),
+describe("rectangles and drawers", () => {
+  it("shows cpt_1's three rectangles, the user line and the drawers", () => {
+    show(layerit(), [{ block: A, id: "cpt_1" }]);
+    expect(one("p.subject").textContent).toBe(
+      "This timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'.",
     );
-    app = mount(App, { target: document.body });
-    flushSync();
-    document.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')?.click();
-    flushSync();
-    [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
-      .find((item) => item.querySelector("span")?.textContent === "Import manifest…")
-      ?.click();
-    flushSync();
-    await vi.waitFor(() => pickFile("manifest.json", fileText(OP106)));
-    await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
-    const [id] = Object.keys(hook().store().view.blocks);
-    expect([hook().store().view.blocks[id ?? ""]?.manifest.timelines, hook().selection()]).toEqual([
-      [],
-      [{ block: id }],
-    ]);
-    document.querySelector<HTMLButtonElement>('button[aria-label="Open inspector"]')?.click();
-    flushSync();
-    tab("Metadata").click();
-    flushSync();
-    expect(owner()).toBe(`Links of bundle '${NAME}'`);
-    const [card, ...others] = cards();
-    expect(others).toHaveLength(0);
-    if (card === undefined) throw new Error("no card");
-    const heading = card.querySelector(".heading");
-    expect([
-      textOf(heading),
-      card.querySelector('[role="group"]')?.getAttribute("aria-labelledby"),
-    ]).toEqual([`work pertains_to ${LABEL}`, heading?.id]);
+    expect(one('[data-testid="metadata-user"]').textContent?.replace(/\s+/gu, " ").trim()).toBe(
+      "You state as Gerhardt. Change…",
+    );
+    expect(one('ol[aria-label="Statements"]').children).toHaveLength(3);
+    expect(headings()).toEqual(["is a", "performed by", "same as"]);
+    const performed = rectangle("performed by");
+    expect(performed.getAttribute("role")).toBe("group");
+    expect(one('[data-testid="metadata-label"]', performed).textContent).toBe("Maria João Pires");
     expect(
-      [...card.querySelectorAll('ul[aria-label="URIs"] li')].map((item) => {
-        const link = item.querySelector("a");
-        return [
-          link?.getAttribute("href"),
-          link?.getAttribute("target"),
-          link?.getAttribute("rel"),
-          item.querySelector(".preferred")?.textContent ?? null,
-        ];
-      }),
-    ).toEqual(
-      URIS.map((uri, index) => [
-        uri,
-        "_blank",
-        "noopener noreferrer",
-        index === 0 ? "preferred" : null,
+      all<HTMLAnchorElement>("a", performed).map((anchor) => [
+        anchor.textContent,
+        anchor.href,
+        anchor.rel,
+        anchor.target,
       ]),
-    );
-    expect(
-      [...card.querySelectorAll('ul[aria-label="Identifiers"] li')].map((item) => textOf(item)),
     ).toEqual([
-      "IMSLP ID Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)",
-      "Works of Ludwig van Beethoven by opus number op. 106",
+      ["viaf:113931950 ↗", "http://viaf.org/viaf/113931950", "noreferrer", "_blank"],
+      ["wd:Q235650 ↗", PIRES_WD, "noreferrer", "_blank"],
     ]);
-    const slots = [...card.querySelectorAll('ol[aria-label="Part slots"] > li')];
+    expect(one('[data-testid="metadata-provenance"]', performed).textContent).toBe(
+      "reconciled · https://example.org/agents/tilie · 2026-11-18",
+    );
+    expect(all('[data-testid="metadata-add-vocabulary"]', performed)).toHaveLength(1);
+    expect(summaries()).toEqual(["Stated higher up (2)", "Proposed (1)", "Rejected (0)"]);
     expect(
-      slots.map((slot) => {
-        const select = slot.querySelector("select");
-        return [
-          slot.querySelector(".slot-label")?.textContent,
-          [...slot.querySelectorAll("ul.slot-uris a")].map((link) => link.getAttribute("href")),
-          select?.value,
-          [...(select?.options ?? [])].map((option) => option.value),
-        ];
-      }),
-    ).toEqual(
-      MOVEMENTS.map(([mbid, label]) => [
-        label,
-        [`${MB}${mbid}`],
-        "not_represented",
-        [...ABSENCE_REASONS],
-      ]),
-    );
-    expect(card.querySelector(".assertion span")?.textContent).toBe(
-      `asserted by ${E} · on 2026-11-17 · method manual · status confirmed`,
-    );
-    expect(card.querySelector('ul[aria-label="Warnings"]')).toBe(null);
-  });
-});
-
-describe("pasting", () => {
-  it("asks for the identity once, then adds a recognised URL's link (item 2)", async () => {
-    const store = storeOf("bare");
-    show(store, [{ block: A }]);
-    expect(owner()).toBe("Links of the anonymous bundle");
-    paste(WORK_PAGE);
-    expect(dialog()?.querySelector("h2")?.textContent).toBe("Who asserts your links?");
-    await answerIdentity("orcid 0000", "Save");
-    expect([
-      dialog() !== null,
-      dialog()?.querySelector('[role="alert"]')?.textContent?.trim(),
-    ]).toEqual([
-      true,
-      "An identity is an absolute URI, such as https://orcid.org/0000-0002-1825-0097.",
-    ]);
-    await answerIdentity(I, "Save");
-    expect([dialog(), localStorage.getItem(KEY), store.journal.length]).toEqual([null, I, 2]);
-    const link = linkFromUrls([WORK_PAGE], { assertion: ASSERTED });
-    expect(lastCommand(store)).toEqual(bundleSet([link]));
-    expect([labelled<HTMLInputElement>("Paste a URL").value, cards().length]).toEqual(["", 1]);
-    // The workspace file holds the identity in the link's assertion only: in the block's manifest
-    // and in the journalled command that set it.
-    const file = writeWorkspace(store.snapshot());
-    expect(file.split(I).length - 1).toBe(2);
-    expect(file.split(`"asserted_by": [`).length - 1).toBe(2);
-    paste("https://musicbrainz.org/release/814c53fd-0732-4819-9753-4578f5ab992c");
-    await settle();
-    expect([dialog(), store.journal.length, cards().length]).toEqual([null, 3, 2]);
-    store.undo();
-    store.undo();
-    flushSync();
-    expect(cards()).toHaveLength(0);
-  });
-
-  it("asks for a level where the registry tells none, an agent's with its role (item 3)", async () => {
-    const store = storeOf("bare");
-    const { informed } = show(store, [{ block: A }], given());
-    paste(WIKIDATA);
-    await settle();
-    expect(textOf(question()?.querySelector("p"))).toBe(
-      `The registry tells no level for ${WIKIDATA}. What does it name?`,
-    );
-    const level = labelled<HTMLSelectElement>("Level");
-    expect([[...level.options].map((option) => option.value), document.activeElement]).toEqual([
-      [...LEVELS],
-      level,
-    ]);
-    button("Cancel", panel()).click();
-    flushSync();
-    expect([question(), store.journal.length]).toEqual([null, 1]);
-    paste(WIKIDATA);
-    await settle();
-    choose(labelled<HTMLSelectElement>("Level"), "work");
-    button("Add link", panel()).click();
-    flushSync();
-    expect([store.journal.length, linksOf(store)]).toEqual([
-      2,
-      [linkFromUrls([WIKIDATA], { level: "work", assertion: ASSERTED })],
-    ]);
-    expect(question()).toBe(null);
-    paste(UNKNOWN);
-    await settle();
-    expect(() => labelled("Role")).toThrow("no control Role");
-    choose(labelled<HTMLSelectElement>("Level"), "agent");
-    const role = labelled<HTMLInputElement>("Role");
-    expect(
-      role
-        .getAttribute("aria-describedby")
-        ?.split(" ")
-        .map((id) => textOf(document.getElementById(id))),
-    ).toEqual([
-      `The agent's role in what the element holds, usually a MARC relator URI such as ${RELATOR} (performer).`,
-    ]);
-    button("Add link", panel()).click();
-    flushSync();
-    expect([informed, store.journal.length]).toEqual([
-      ["The pasted text gives no link: an agent link states its relation, the agent's role."],
-      2,
-    ]);
-    type(role, RELATOR);
-    button("Add link", panel()).click();
-    flushSync();
-    expect(linksOf(store).at(-1)).toEqual(
-      linkFromUrls([UNKNOWN], { level: "agent", relation: RELATOR, assertion: ASSERTED }),
-    );
-  });
-
-  it("posts why a text gives no link (item 4)", async () => {
-    const store = storeOf("bare");
-    const { informed } = show(store, [{ block: A }], given());
-    typeAndPress(labelled<HTMLInputElement>("Paste a URL"), "Hammerklavier");
-    await settle();
-    expect([informed, store.journal.length]).toEqual([
-      ["The pasted text gives no link: 'Hammerklavier' is no absolute URI."],
-      1,
-    ]);
-  });
-
-  it("works without storage, and Cancel or No identity decide the paste (item 5)", async () => {
-    const throwing = () => {
-      throw new Error("no storage");
-    };
-    vi.stubGlobal("localStorage", { getItem: throwing, setItem: throwing, removeItem: throwing });
-    const store = storeOf("bare");
-    show(store, [{ block: A }]);
-    paste(WORK_PAGE);
-    await answerIdentity("", "Cancel");
-    expect([dialog(), store.journal.length]).toEqual([null, 1]);
-    paste(WORK_PAGE);
-    await answerIdentity("", "No identity");
-    expect(linksOf(store)).toEqual([
-      linkFromUrls([WORK_PAGE], { assertion: { asserted_on: "2026-11-17", method: "manual" } }),
-    ]);
-    expect(linksOf(store)[0]?.assertion?.asserted_by).toEqual([]);
-    paste(WIKIDATA);
-    await settle();
-    expect(dialog()).toBe(null);
-    button("Change identity").click();
-    flushSync();
-    await answerIdentity(I, "Save");
-    expect(panel().querySelector('[data-testid="metadata-identity"] a')?.textContent).toBe(I);
-  });
-
-  it("remembers the answer No identity (item 5)", async () => {
-    const store = storeOf("bare");
-    show(store, [{ block: A }]);
-    paste(WORK_PAGE);
-    await answerIdentity("", "No identity");
-    expect([localStorage.getItem(KEY), new Identity(KEY).asks, store.journal.length]).toEqual([
-      NO_IDENTITY,
-      false,
-      2,
-    ]);
-  });
-});
-
-describe("the card's edits (item 6)", () => {
-  it("are each one set of the bundle's links", async () => {
-    const store = storeOf(read(OP106));
-    show(store, [{ block: A }], given());
-    const [link] = linksOf(store);
-    if (link === undefined) throw new Error("no link");
-    const commands: unknown[] = [];
-    const expected: CompleteLink[][] = [];
-
-    const label = labelled<HTMLInputElement>("Label", 0);
-    label.value = "Hammerklavier";
-    label.dispatchEvent(new Event("change", { bubbles: true }));
-    flushSync();
-    expected.push([withLabel(link, "Hammerklavier")]);
-    commands.push(lastCommand(store));
-
-    button("Add URL", cards()[0]).click();
-    flushSync();
-    typeAndPress(
-      labelled<HTMLInputElement>("URL to add", 0),
-      "https://www.wikidata.org/wiki/Q146731",
-    );
-    await settle();
-    expect(document.activeElement).toBe(button("Add URL", cards()[0]));
-    const relabelled = expected.at(-1)?.[0] as CompleteLink;
-    expected.push([withUri(relabelled, ["https://www.wikidata.org/wiki/Q146731"])]);
-    commands.push(lastCommand(store));
-
-    const third = cards()[0]?.querySelectorAll<HTMLSelectElement>(
-      'ol[aria-label="Part slots"] select',
-    )[2];
-    if (third === undefined) throw new Error("no third slot");
-    choose(third, "lost");
-    const extended = expected.at(-1)?.[0] as CompleteLink;
-    expected.push([
-      withParts(
-        extended,
-        "has_part",
-        extended.parts.map((slot, index) => (index === 2 ? { ...slot, absent: "lost" } : slot)),
+      all('[data-testid="metadata-proposed-row"] .what').map((row) =>
+        row.textContent?.replace(/\s+/gu, " ").trim(),
       ),
-    ]);
-    commands.push(lastCommand(store));
+    ).toEqual(["is a recording of Clair de lune"]);
+  });
 
-    button("Add URL", cards()[0]).click();
-    flushSync();
-    typeAndPress(labelled<HTMLInputElement>("URL to add", 0), "https://example.org/x", "Escape");
-    await settle();
-    expect([
-      document.activeElement,
-      store.journal.length,
-      cards()[0]?.querySelector('input[type="url"]'),
-    ]).toEqual([button("Add URL", cards()[0]), 4, null]);
-
-    button("Remove link", cards()[0]).click();
-    flushSync();
-    await settle();
-    expected.push([]);
-    commands.push(lastCommand(store));
-    expect(document.activeElement).toBe(labelled("Paste a URL"));
-
-    expect(store.journal).toHaveLength(5);
-    expect(commands).toEqual(expected.map(bundleSet));
-    expect(linksOf(store)).toEqual([]);
-    button("Change identity").click();
-    flushSync();
-    await answerIdentity("urn:isbn:0451450523", "Save");
-    expect([WORK, textOf(panel().querySelector('[data-testid="metadata-identity"]'))]).toEqual([
-      URIS[0],
-      "Your links are asserted by urn:isbn:0451450523. Change identity",
-    ]);
+  it("offers the bundle's empty is a", () => {
+    show(layerit(), [{ block: A }]);
+    const empty = rectangles()[0];
+    if (empty === undefined) throw new Error("no rectangle");
+    expect(one("p.empty", empty).textContent).toBe("Not stated yet.");
+    expect(button("State what it is", empty)).toBeDefined();
   });
 });
 
-describe("a status chosen (item 7)", () => {
-  it("is the viewer's statement, in place on their own link", async () => {
-    const bare = linkFromUrls([WORK_PAGE]);
-    const store = storeOf(holding(bare));
-    show(store, [{ block: A }]);
-    const status = () => labelled<HTMLSelectElement>("Status", 0);
-    choose(status(), "confirmed");
-    await answerIdentity("", "Cancel");
-    expect([status().value, store.journal.length]).toEqual(["", 1]);
-    choose(status(), "confirmed");
-    await answerIdentity(I, "Save");
-    const confirmed = withAssertion(bare, { ...ASSERTED, status: "confirmed" });
-    expect([lastCommand(store), cards().length, status().value]).toEqual([
-      bundleSet([confirmed]),
-      1,
-      "confirmed",
-    ]);
-    expect(cards()[0]?.querySelector(".assertion span")?.textContent).toBe(
-      `asserted by ${I} · on 2026-11-17 · method manual · status confirmed`,
-    );
-    choose(status(), "rejected");
+describe("drawer actions", () => {
+  it("confirms a proposal into a rectangle that takes the focus", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_1" }]);
+    button("Confirm").click();
     await settle();
-    expect([dialog(), lastCommand(store), store.journal.length]).toEqual([
-      null,
-      bundleSet([withAssertion(bare, { ...ASSERTED, status: "rejected" })]),
-      3,
-    ]);
+    expect(store.journal).toHaveLength(2);
+    expect(headings()).toEqual(["is a", "performed by", "same as", "is a recording of"]);
+    expect(document.activeElement).toBe(rectangle("is a recording of"));
   });
 
-  it("appends a link of the viewer's own where another agent asserted it", async () => {
-    const store = storeOf(read(OP106));
-    show(store, [{ block: A }], given());
-    const [link] = linksOf(store);
-    if (link === undefined) throw new Error("no link");
-    choose(labelled<HTMLSelectElement>("Status", 0), "unconfirmed");
+  it("rejects a proposal, the focus on the drawer's summary", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "dpt_1" }]);
+    button("Reject").click();
     await settle();
-    const appended = withAssertion(link, { ...ASSERTED, status: "unconfirmed" });
-    expect([store.journal.length, lastCommand(store), cards().length]).toEqual([
-      2,
-      bundleSet([link, appended]),
-      2,
-    ]);
-    expect([
-      labelled<HTMLSelectElement>("Status", 0).value,
-      cards()[0]?.querySelector(".assertion span")?.textContent,
-      cards()[1]?.querySelector(".assertion span")?.textContent,
-    ]).toEqual([
-      "confirmed",
-      `asserted by ${E} · on 2026-11-17 · method manual · status confirmed`,
-      `asserted by ${I} · on 2026-11-17 · method manual · status unconfirmed`,
-    ]);
+    expect(store.journal).toHaveLength(2);
+    expect(summaries().slice(1)).toEqual(["Proposed (0)", "Rejected (1)"]);
+    expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-proposed"] summary'));
   });
 });
 
-describe("the state of the tab (item 8)", () => {
-  it("belongs to the element shown and to its list of links", async () => {
-    const store = storeOf("bundles/bundle_mixed");
-    const score = [linkFromUrls([WORK_PAGE]), linkFromUrls([WIKIDATA], { level: "work" })];
-    const verse = linkFromUrls(["https://example.org/verse"], { level: "work" });
-    expect(
-      store.dispatch({
+describe("removing", () => {
+  it("gives the focus to the next rectangle, else to Add statement", async () => {
+    const store = layerit();
+    const { selection } = show(store, [{ block: A, id: "cpt_1" }]);
+    button("Remove", rectangle("performed by")).click();
+    await settle();
+    expect(headings()).toEqual(["is a", "same as"]);
+    expect(document.activeElement).toBe(rectangle("same as"));
+    selection.value = selectionOf([{ block: A, id: "dpt_1" }]);
+    flushSync();
+    button("Remove", rectangle("is a")).click();
+    await settle();
+    expect(rectangles().map((item) => item.dataset.key)).toEqual(["is_a"]);
+    expect(document.activeElement).toBe(button("＋ Add statement"));
+  });
+});
+
+describe("the composer", () => {
+  it("states a pasted Wikidata URL after its verb is chosen", async () => {
+    const store = layerit();
+    const { informed } = show(store, [{ block: A, id: "cpt_2" }]);
+    button("＋ Add statement").click();
+    flushSync();
+    await settle();
+    expect(document.activeElement).toBe(field("Verb"));
+    paste(field("Value"), "https://www.wikidata.org/wiki/Q235650");
+    await settle();
+    expect(field("Vocabulary").value).toBe("Wikidata");
+    expect(field("Value").value).toBe("Maria João Pires");
+    expect(document.activeElement).toBe(field("Verb"));
+    choose(field("Verb"), "perf");
+    expect(field("Verb").value).toBe("performed by");
+    button("Add").click();
+    await settle();
+    expect(commandsAfter(store, 1)).toEqual([
+      {
         type: "set",
         changes: [
-          { target: { block: A, id: "score" }, values: { links: score } },
-          { target: { block: A, id: "region_1" }, values: { links: [verse] } },
+          {
+            target: { block: A, id: "cpt_2" },
+            values: {
+              statements: { "wdt:P175": [{ id: "wd:Q235650", label: "Maria João Pires" }] },
+              provenance: [
+                {
+                  date: "2026-11-20",
+                  method: "manual",
+                  property: "wdt:P175",
+                  stated_by: [G],
+                  status: "confirmed",
+                  value: { id: "wd:Q235650" },
+                },
+              ],
+            },
+          },
         ],
-      }),
-    ).toBe(null);
-    const { selection } = show(store, [{ block: A, id: "score" }], given());
-    type(labelled<HTMLInputElement>("Paste a URL"), "https://example.org/typed");
-    button("Add URL", cards()[1]).click();
+      },
+    ]);
+    expect(headings()).toEqual(["is a", "performed by"]);
+    expect(document.activeElement).toBe(rectangle("performed by"));
+
+    button("＋ Add statement").click();
     flushSync();
-    type(labelled<HTMLInputElement>("URL to add", 1), "https://example.org/added");
-    selection.value = selectionOf([{ block: A, id: "region_1" }]);
+    paste(field("Value"), "https://example.org/x");
+    expect(informed).toEqual([
+      "The address is no identifier the catalogue knows; choose “Other property…” to state it.",
+    ]);
+  });
+
+  it("states an element of the manifest", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_2" }]);
+    button("＋ Add statement").click();
     flushSync();
-    expect([
-      owner(),
-      cards().length,
-      cards()[0]?.querySelector('input[type="url"]') ?? null,
-      textOf(button("Add URL", cards()[0])),
-      labelled<HTMLInputElement>("Paste a URL").value,
-    ]).toEqual(["Links of region 'Verse'", 1, null, "Add URL", ""]);
-    selection.value = selectionOf([{ block: A, id: "score" }]);
-    flushSync();
-    button("Remove link", cards()[0]).click();
-    flushSync();
+    choose(field("Verb"), "derived from");
+    choose(field("Vocabulary"), "element");
+    field("Value").focus();
+    type(field("Value"), "");
+    press(field("Value"), "ArrowDown");
+    expect(options(field("Value"))).toEqual([
+      "#clt_6 Clair de lune, mm. 1–6 (MEI) (timeline)",
+      "#cpt_1 C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical (timeline)",
+      "#dpt_1 ClairDeLune_MariaJoaoPires_untilM6.wav (timeline)",
+    ]);
+    press(field("Value"), "Enter");
+    button("Add").click();
     await settle();
-    expect([cards().length, panel().querySelector('[id$="-add"]'), document.activeElement]).toEqual(
-      [1, null, group(0)],
+    const [command] = commandsAfter(store, 1);
+    expect(command?.type === "set" ? command.changes[0]?.values.statements : null).toEqual({
+      "dcterms:source": [{ id: "#clt_6" }],
+    });
+  });
+
+  it("states another property in a language, and says what is missing", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_2" }]);
+    button("＋ Add statement").click();
+    flushSync();
+    choose(field("Verb"), "Other");
+    const composer = one('[data-testid="metadata-composer"]');
+    const text = (label: string) => {
+      const found = all<HTMLLabelElement>("label", composer).find(
+        (item) => item.textContent?.trim() === label,
+      );
+      return one<HTMLInputElement>(`#${found?.htmlFor}`);
+    };
+    type(text("Property"), "foo");
+    expect(button("Add").disabled).toBe(true);
+    expect(one(".missing", composer).textContent).toBe(
+      "Write the property as a compact IRI with a known prefix or in full.",
     );
-    button("Remove link", cards()[0]).click();
-    flushSync();
-    await settle();
-    expect([cards().length, document.activeElement]).toEqual([0, labelled("Paste a URL")]);
-  });
-});
-
-describe("what is followed (item 9)", () => {
-  it("is a web address only", () => {
-    const uris = ["https://example.org/w", "javascript:alert(1)", "data:text/html,hi"];
-    const store = storeOf(holding({ relation: "pertains_to", level: "work", uri: uris }));
-    show(store, [{ block: A }], given("urn:isbn:0451450523"));
-    const list = cards()[0]?.querySelector('ul[aria-label="URIs"]');
-    const identity = panel().querySelector('[data-testid="metadata-identity"]');
-    expect([
-      [...(list?.querySelectorAll("a") ?? [])].map((link) => link.getAttribute("href")),
-      [...(list?.querySelectorAll("code") ?? [])].map((code) => code.textContent),
-      identity?.querySelector("a"),
-      identity?.querySelector("code")?.textContent,
-    ]).toEqual([
-      ["https://example.org/w"],
-      ["javascript:alert(1)", "data:text/html,hi"],
-      null,
-      "urn:isbn:0451450523",
-    ]);
-  });
-});
-
-describe("the whole description (item 10)", () => {
-  it("is shown on the card", () => {
-    const store = storeOf(read(WHOLE));
-    show(store, [{ block: A }], given());
-    const card = cards()[0];
-    const [first, second] = [...(card?.querySelectorAll('ol[aria-label="Part slots"] > li') ?? [])];
-    expect([
-      [...(card?.querySelectorAll('ul[aria-label="Records"] li') ?? [])].map(textOf),
-      card?.querySelector(".assertion span")?.textContent,
-      [...(first?.querySelectorAll('ul[aria-label="URIs of part 1"] a') ?? [])].map((link) =>
-        link.getAttribute("href"),
-      ),
-      [...(first?.querySelectorAll('ul[aria-label="Identifiers of part 1"] li') ?? [])].map(textOf),
-      first?.querySelector(".entry-assertion")?.textContent,
-      second?.querySelector(".entry-assertion") ?? null,
-      [...(card?.querySelectorAll('ul[aria-label="Part of"] > li') ?? [])].map(textOf),
-    ]).toEqual([
-      [
-        "https://example.org/records/op106.jsonld (application/ld+json, 2048 bytes, sha256-AAAA)",
-        "https://example.org/records/plain",
-      ],
-      `asserted by ${E} · on 2026-11-17 · method manual · service https://example.org/reconcile · based on https://example.org/sources/a, https://example.org/sources/b · status confirmed`,
-      [`${MB}${MOVEMENTS[0]?.[0]}`, "https://example.org/movements/1"],
-      ["Works of Ludwig van Beethoven by opus number op. 106 no. 1"],
-      `asserted by ${I} · on 2026-11-18 · method inferred`,
-      null,
-      [
-        `part of Hammerklavier sonatas (has_part), position 1 asserted by ${I}`,
-        "part of https://example.org/collections/late (aggregates)",
-      ],
-    ]);
-  });
-});
-
-describe("a refusal of the schema package (item 11)", () => {
-  it("is posted, and the select shows the stored value", () => {
-    const store = storeOf(
-      holding({
-        relation: "pertains_to",
-        level: "expression",
-        uri: ["https://example.org/recordings/op106"],
-        parts_relation: "has_part",
-        parts: [{ uri: [`${MB}${MOVEMENTS[0]?.[0]}`], absent: "lost" }],
-      }),
+    type(text("Property"), "dcterms:subject");
+    const language = all<HTMLInputElement>('input[type="radio"]', composer).find(
+      (item) => item.value === "language",
     );
-    const { informed } = show(store, [{ block: A }], given());
-    const absent = labelled<HTMLSelectElement>("Absent", 0);
-    choose(absent, "unknown");
-    expect([informed, store.journal.length, absent.value]).toEqual([
-      [
-        "The link could not be changed: part slot 1 is recognised at the level 'work', the link's level is 'expression'.",
-      ],
-      1,
-      "lost",
+    language?.click();
+    flushSync();
+    type(text("Value"), "Nocturne");
+    type(text("Language"), "fr");
+    button("Add").click();
+    await settle();
+    const [command] = commandsAfter(store, 1);
+    expect(command?.type === "set" ? command.changes[0]?.values.statements : null).toEqual({
+      "dcterms:subject": [{ "@value": "Nocturne", "@language": "fr" }],
+    });
+  });
+
+  it("states performed by in the GND from Wikidata's cross-reference, in the same rectangle", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_1" }]);
+    button("＋ vocabulary", rectangle("performed by")).click();
+    flushSync();
+    await settle();
+    expect(field("Verb").disabled).toBe(true);
+    expect(field("Verb").value).toBe("performed by");
+    expect(document.activeElement).toBe(field("Vocabulary"));
+    press(field("Vocabulary"), "ArrowDown");
+    expect(options(field("Vocabulary"))).toEqual(["MusicBrainz", "GND", "MeLODy / LRMoo"]);
+    choose(field("Vocabulary"), "GND");
+    await settle();
+    press(field("Value"), "ArrowDown");
+    expect(options(field("Value"))?.[0]).toContain("Pires, Maria João");
+    press(field("Value"), "Enter");
+    button("Add").click();
+    await settle();
+    const [command] = commandsAfter(store, 1);
+    const values = command?.type === "set" ? command.changes[0]?.values : undefined;
+    if (values === undefined) throw new Error("no set");
+    expect((values.statements as Record<string, unknown>)["rel:prf"]).toEqual([
+      { id: "viaf:113931950" },
+      {
+        id: "gnd:124927521",
+        label: "Pires, Maria João",
+        "schema:sameAs": [{ id: "wd:Q235650" }],
+      },
+    ]);
+    expect((values.provenance as unknown[]).at(-1)).toEqual({
+      basis: [PIRES_WD],
+      date: "2026-11-20",
+      match: "exact",
+      method: "reconciled",
+      property: "rel:prf",
+      service: WIKIDATA_API,
+      stated_by: [G],
+      status: "confirmed",
+      value: { id: "gnd:124927521" },
+    });
+    expect(headings()).toEqual(["is a", "performed by", "same as"]);
+  });
+
+  it("gives the focus back to the button that opened it on Cancel", async () => {
+    show(layerit(), [{ block: A, id: "cpt_1" }]);
+    const opener = one('[data-testid="metadata-add-vocabulary"]', rectangle("same as"));
+    (opener as HTMLButtonElement).click();
+    flushSync();
+    button("Cancel").click();
+    await settle();
+    expect(all('[data-testid="metadata-composer"]')).toHaveLength(0);
+    expect(document.activeElement).toBe(
+      one('[data-testid="metadata-add-vocabulary"]', rectangle("same as")),
+    );
+  });
+
+  it("belongs to the element it was opened on", () => {
+    const { selection } = show(layerit(), [{ block: A, id: "cpt_2" }]);
+    button("＋ Add statement").click();
+    flushSync();
+    expect(all('[data-testid="metadata-composer"]')).toHaveLength(1);
+    selection.value = selectionOf([{ block: A, id: "cpt_1" }]);
+    flushSync();
+    expect(all('[data-testid="metadata-composer"]')).toHaveLength(0);
+  });
+});
+
+describe("the user", () => {
+  it("is asked through the dialog and states the confirmation by the iD", async () => {
+    const state = new UserState(null);
+    const dialogTarget = document.createElement("div");
+    document.body.append(dialogTarget);
+    const dialog = mount(UserDialog, { target: dialogTarget });
+    apps.push(dialog);
+    const user: UserContext = {
+      state,
+      ask: async () => {
+        const answer = await dialog.ask(state.user);
+        if (answer !== null) state.set(answer);
+      },
+    };
+    const store = layerit();
+    show(store, [{ block: A, id: "cpt_1" }], user);
+    button("Change…").click();
+    flushSync();
+    const form = one<HTMLDialogElement>("dialog");
+    expect(form.open).toBe(true);
+    expect(one("h2", form).textContent).toBe("Your name");
+    const [name, orcid] = all<HTMLInputElement>("input", form);
+    if (name === undefined || orcid === undefined) throw new Error("no fields");
+    type(name, "");
+    button("Save", form).click();
+    flushSync();
+    expect(one('[role="alert"]', form).textContent).toBe("A name is required.");
+    type(name, "Clara Wieck");
+    type(orcid, "https://orcid.org/0000-0002-1825-0097");
+    button("Save", form).click();
+    await settle();
+    expect(one('[data-testid="metadata-user"]').textContent?.replace(/\s+/gu, " ").trim()).toBe(
+      "You state as Clara Wieck (ORCID iD 0000-0002-1825-0097). Change…",
+    );
+    button("Confirm").click();
+    await settle();
+    const [command] = commandsAfter(store, 1);
+    const provenance = command?.type === "set" ? command.changes[0]?.values.provenance : [];
+    expect((provenance as { stated_by: unknown }[])[3]?.stated_by).toEqual([
+      "https://orcid.org/0000-0002-1825-0097",
     ]);
   });
 });
 
-describe("where the links are (item 12)", () => {
-  it("adds to the selected timeline or region; a group shows its hint", async () => {
-    const store = storeOf("bundles/bundle_mixed");
-    const { selection } = show(store, [{ block: A, id: "score", part: ["card"] }], given());
-    expect(owner()).toBe("Links of timeline 'Score'");
-    paste(WORK_PAGE);
-    await settle();
-    const link = linkFromUrls([WORK_PAGE], { assertion: ASSERTED });
-    expect([linksOf(store, "score"), linksOf(store), linksOf(store, "region_1")]).toEqual([
-      [link],
-      [],
-      [],
-    ]);
-    selection.value = selectionOf([{ block: A, id: "region_1" }]);
+describe("refusals", () => {
+  it("posts the store's refusal and journals nothing", () => {
+    const store = layerit();
+    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
+    vi.spyOn(store, "dispatch").mockReturnValueOnce({
+      code: "schema_violation",
+      message: "refused for the test",
+      path: [],
+    });
+    button("Confirm").click();
     flushSync();
-    expect(owner()).toBe("Links of region 'Verse'");
-    paste(WORK_PAGE);
-    await settle();
-    expect(linksOf(store, "region_1")).toEqual([link]);
-    selection.value = selectionOf([{ block: A, id: "group_1" }]);
-    flushSync();
-    expect([panel().querySelector(".hint")?.textContent, owner()]).toEqual([
-      "Group 'Performance' holds no links: a bundle, a timeline or a region does. Select its block, a timeline or a region.",
-      undefined,
+    expect(informed).toEqual(["refused for the test"]);
+    expect(store.journal).toHaveLength(1);
+  });
+
+  it("posts a throw of the statement functions and journals nothing", () => {
+    const store = layerit();
+    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
+    const remove = button("Remove", rectangle("same as"));
+    const [same] = store.view.blocks[A]?.manifest.timelines[1]?.statements?.["schema:sameAs"] ?? [];
+    // The store loses the pair while the rectangle still shows it.
+    store.dispatch({
+      type: "set",
+      changes: [
+        {
+          target: { block: A, id: "cpt_1" },
+          values: {
+            statements: Object.fromEntries(
+              Object.entries(store.view.blocks[A]?.manifest.timelines[1]?.statements ?? {}).filter(
+                ([key]) => key !== "schema:sameAs",
+              ),
+            ),
+            provenance: store.view.blocks[A]?.manifest.timelines[1]?.provenance?.slice(1) ?? null,
+          },
+        },
+      ],
+    });
+    expect(same).toBeDefined();
+    remove.click();
+    expect(informed).toEqual([
+      "The statement could not be changed: 'schema:sameAs' does not have this value",
     ]);
-    expect(() => labelled("Paste a URL")).toThrow("no control Paste a URL");
+    expect(store.journal).toHaveLength(2);
   });
 });

@@ -485,12 +485,65 @@ which has no name, checked.
 **`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
 with `small` open and requires an empty violation list on the canvas, with
 an element selected, with the drawer open, on the drawer's Properties and
-Manifest tabs inspecting a timeline, on its Metadata tab inspecting the
-bundle of `bare` given one link (one card, its URIs a web address and a
-`urn:`, an assertion with a status) and with the identity dialog open over
-it (Change identity), with the File menu, the About dialog and the discard
-question open. Tab reaches the nodes in z-order, Enter selects the
+Manifest tabs inspecting a timeline, on its Metadata tab inspecting `cpt_1`
+of the LayerIt recording (TimeToShare's `statements/layerit_recording`,
+imported; every lookup request aborted) with the composer's Value listbox
+open (the elements of the manifest, "is derived from, is based on"), and
+with the "Your name" dialog open over it ("Change…"), with the File menu,
+the About dialog and the discard question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
+
+**`metadata.spec.ts`** (Chromium) imports the LayerIt recording
+(`statements/layerit_recording.yaml` through Import manifest…) into a
+fresh page, the clock fixed at `2026-11-20T12:00:00Z`; every request to
+`www.wikidata.org`, `lobid.org`, `www.youtube.com` or
+`commons.wikimedia.org` is answered from the editor's recorded lookups
+(`packages/editor/tests/lookup/index.json`, by URL) and aborted when not
+recorded. Exports are read with `loads`, so their IDs are written `#id`.
+`G` = `tag:timetoalign.github.io,2026:tilie:user:Gerhardt`. Headings are
+the shipped catalogue's labels.
+
+1. **As imported.** One block, no refusal. `cpt_1`: headings "is a",
+   "performed by", "same as"; "performed by" labelled "Maria João Pires"
+   with rows `rel:prf viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗`; a
+   "＋ vocabulary" button on each of the three rectangles (each has a
+   vocabulary not yet used); drawers "Stated higher up (2)" (the bundle's
+   `rdfs:seeAlso` and `schema:about`), "Proposed (1)", "Rejected (0)"; the
+   proposed row "is a recording of Clair de lune" with Confirm and Reject.
+   `clt_6`: "Rejected (1)", its row naming `gnd:1156628156`. `dpt_1`:
+   "Proposed (1)". The bundle: the empty "is a" with "State what it is".
+2. **Confirm.** On `cpt_1`, Confirm: "is a recording of" follows "same
+   as", the journal grows by one; the export's `#cpt_1` states
+   `wdt:P2550: [{id: "wd:Q29117946"}]`, its annotation 3 confirmed by `G`
+   on 2026-11-20 with basis, method and note kept. Undo brings the
+   proposal back.
+3. **Reject.** On `dpt_1`, Reject: "Rejected (1)"; the export's `#dpt_1`
+   states no `dcterms:source`, its one annotation rejected by `G` on
+   2026-11-20, method `inferred` and note kept.
+4. **Paste.** On `cpt_2`, "＋ Add statement", then
+   `https://www.wikidata.org/wiki/Q235650` pasted into Value: Vocabulary
+   reads "Wikidata", Value the label "Maria João Pires" (from the recorded
+   entity), Verb has the focus; "perf", ArrowDown, Enter, Add: a "performed
+   by" rectangle with the row `wdt:P175 wd:Q235650 ↗`; the export's
+   `#cpt_2` states `{"wdt:P175": [{id: "wd:Q235650", label: "Maria João
+   Pires"}]}`, annotated `manual` by `G`, no `service`.
+5. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary", GND:
+   the first Value option is the GND's preferred name of record
+   `124927521` (read from the recording), offered from Wikidata's P227 of
+   `Q235650`; Add puts the row `rel:prf gnd:124927521 ↗` between the two
+   rows; the export's `rel:prf` gains `{id: "gnd:124927521", label: <that
+   name>, "schema:sameAs": [{id: "wd:Q235650"}]}`, annotated `reconciled`,
+   service `https://www.wikidata.org/w/api.php`, basis
+   `http://www.wikidata.org/entity/Q235650`, match `exact`.
+6. **The user.** File, "Your name…", "Clara Wieck" and
+   `https://orcid.org/0000-0002-1825-0097`, Save: the user line reads "You
+   state as Clara Wieck (ORCID iD 0000-0002-1825-0097)."; Remove on "same
+   as" journals an entry by "Clara Wieck"; a Confirm then is stated by
+   `https://orcid.org/0000-0002-1825-0097`; after a reload `tilie.user`
+   holds `{"name":"Clara Wieck","orcid":"0000-0002-1825-0097"}`.
+7. **Keyboard only.** Flow 4 from Enter on "＋ Add statement", Tab, the
+   arrows, Enter and Escape (the paste dispatched as the clipboard would):
+   Escape in the open Verb listbox closes it and leaves the composer open.
 
 **`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
 below its threshold, so `grid-300` mounts all 300 nodes at any viewport,

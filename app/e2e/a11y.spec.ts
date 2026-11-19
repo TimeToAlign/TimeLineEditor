@@ -1,15 +1,21 @@
 /**
  * Accessibility of the canvas page with `small` open: axe-core reports no
  * violation, with the inspector on its Properties, Manifest and Metadata
- * tabs and the identity dialog open too, and the keyboard reaches, selects
- * and releases the blocks.
+ * tabs (the LayerIt recording imported, a composer listbox open) and the
+ * "Your name" dialog open too, and the keyboard reaches, selects and
+ * releases the blocks.
  * Derivation in `README.md` ("a11y.spec.ts").
  */
 
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { dispatch, drawer, field, open, SMALL, select, selection } from "./support.ts";
+import { statementsFixture } from "./schema.ts";
+import { drawer, field, open, pick, SMALL, select, selection, withoutPickers } from "./support.ts";
+
+/** The hosts the Metadata tab looks values up at; this spec answers none of them. */
+const LOOKUP_HOSTS =
+  /^https:\/\/(www\.wikidata\.org|lobid\.org|www\.youtube\.com|commons\.wikimedia\.org)\//u;
 
 /** The `data-id` of the focused node, or `null` when focus is elsewhere. */
 function focusedNode(page: Page): Promise<string | null> {
@@ -73,34 +79,47 @@ test("axe-core reports no violation on either tab of the inspector", async ({ pa
   expect(onManifest.violations).toEqual([]);
 });
 
-test("axe-core reports no violation on the Metadata tab and in the identity dialog", async ({
+test("axe-core reports no violation on the Metadata tab with a listbox open and in the Your name dialog", async ({
   page,
 }) => {
-  const link = {
-    relation: "pertains_to",
-    level: "work",
-    label: "Piano Sonata No. 29, Op. 106",
-    uri: [
-      "http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
-      "urn:x-example:op106",
-    ],
-    assertion: { asserted_by: ["https://example.org/people/editor"], status: "confirmed" },
-  };
-  const values = { links: [link] };
-  expect(
-    await dispatch(page, { type: "set", changes: [{ target: { block: SMALL.bare }, values }] }),
-  ).toBe(null);
-  await select(page, [{ block: SMALL.bare }]);
+  await withoutPickers(page);
+  await page.route(LOOKUP_HOSTS, (route) => route.abort());
+  await page.goto("/");
+  await page.waitForFunction(() => window.__tilie !== undefined);
+  await pick(
+    page,
+    "Import manifest…",
+    "layerit_recording.yaml",
+    statementsFixture("layerit_recording"),
+  );
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length))
+    .toBe(1);
+  const block = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
+  await select(page, [{ block, id: "cpt_1" }]);
   await page.getByRole("button", { name: "Open inspector" }).click();
   const metadata = page.getByRole("tab", { name: "Metadata", exact: true });
   await metadata.click();
   await expect(metadata).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("list", { name: "Links" }).getByRole("group")).toHaveCount(1);
+  await expect(page.getByTestId("metadata-rectangle")).toHaveCount(3);
+  await page.getByRole("button", { name: "＋ Add statement" }).click();
+  const composer = page.getByTestId("metadata-composer");
+  await composer.getByRole("combobox", { name: "Verb", exact: true }).fill("derived from");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await composer.getByRole("combobox", { name: "Vocabulary", exact: true }).fill("element");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  const value = composer.getByRole("combobox", { name: "Value", exact: true });
+  await expect(value).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox", { name: "Value" })).toBeVisible();
   const onMetadata = await new AxeBuilder({ page }).analyze();
   expect(onMetadata.violations).toEqual([]);
 
-  await page.getByRole("button", { name: "Change identity" }).click();
-  await expect(page.getByRole("dialog", { name: "Who asserts your links?" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByTestId("metadata-user").getByRole("button", { name: "Change…" }).click();
+  await expect(page.getByRole("dialog", { name: "Your name" })).toBeVisible();
   const inDialog = await new AxeBuilder({ page }).analyze();
   expect(inDialog.violations).toEqual([]);
 });

@@ -1,15 +1,16 @@
 <script lang="ts">
 /**
  * The Manifest tab: the format and options, the text, Apply and Revert,
- * the problems and the warnings (unknown keys, unregistered terms). Its state is the inspector's
- * `ManifestText`, which it follows while it is shown. The options, Include
+ * the problems and the warnings (unknown keys, then the manifest's own
+ * warnings, such as statements without a subject ID). Its state is the
+ * inspector's `ManifestText`, which it follows while it is shown. The options, Include
  * styling and Minimal, are how the block's manifest is written to a file,
  * kept in the workspace's settings and changed there (`configure`).
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
-import { manifestFileOf, NEW_MANIFEST_FILE } from "@timetoalign/tilie-core";
+import { manifestFileOf, manifestWarnings, NEW_MANIFEST_FILE } from "@timetoalign/tilie-core";
 import type { FileForm } from "@timetoalign/timetoshare";
-import { unknownKeys, unregisteredTerms } from "@timetoalign/timetoshare";
+import { unknownKeys } from "@timetoalign/timetoshare";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
@@ -52,13 +53,13 @@ function configure(change: Partial<FileForm>): void {
 }
 
 /**
- * The keys of the block's manifest no definition declares, then the terms of
- * its links outside their registered words: warnings, which never stop editing.
- * They are found in the value the text shows, the file form, so their paths
- * lead into the text.
+ * The keys of the block's manifest no definition declares, found in the
+ * value the text shows, the file form, so their paths lead into the text;
+ * then the manifest's own warnings (core's `manifestWarnings`). Warnings
+ * never stop editing.
  */
 const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
-const terms = $derived(block === null ? [] : unregisteredTerms(manifestOf(block)));
+const notes = $derived(block === null ? [] : manifestWarnings(block.manifest));
 
 function onTextKey(event: KeyboardEvent): void {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -148,7 +149,7 @@ function onTextKey(event: KeyboardEvent): void {
   >
 {/snippet}
 
-{#if warnings.length + terms.length > 0}
+{#if warnings.length + notes.length > 0}
   <ul class="warnings" aria-label="Warnings">
     {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
       <li>
@@ -156,10 +157,10 @@ function onTextKey(event: KeyboardEvent): void {
         {@render where(warning)}
       </li>
     {/each}
-    {#each terms as term (problemPointer(term))}
+    {#each notes as note (`${problemPointer(note)}\u0000${note.code}`)}
       <li>
-        Unregistered term <code>{term.term}</code>
-        {@render where(term)}
+        <span class="note">{note.message.charAt(0).toUpperCase()}{note.message.slice(1)}</span>
+        {@render where(note)}
       </li>
     {/each}
   </ul>

@@ -5,10 +5,10 @@
  * panel opening with the level's title line), Properties, Metadata,
  * Manifest, Journal and Timestamp. Only the shown panel is rendered; what
  * the Properties and Manifest tabs hold between visits (typed text, a
- * chosen format) and the viewer's identity the Metadata tab asserts links
- * with live in their state objects, which a host keeping them while the
- * inspector is not shown passes in, with the tab chosen and the pinned
- * timestamp.
+ * chosen format) lives in their state objects, which a host keeping them
+ * while the inspector is not shown passes in, with the tab chosen and the
+ * pinned timestamp. The Metadata tab takes the user and the lookup from the
+ * editor's context.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
@@ -17,7 +17,6 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import EditingBar from "./EditingBar.svelte";
-import { Identity } from "./identity.svelte.ts";
 import JournalPanel from "./JournalPanel.svelte";
 import { journalRows } from "./journal.ts";
 import ManifestTextPanel from "./ManifestTextPanel.svelte";
@@ -37,7 +36,6 @@ let {
   placement = null,
   manifest = new ManifestText(),
   drafts = new PropertyDrafts(),
-  identity = new Identity(null),
   picked = $bindable(untrack(() => initialPick(live.editing.length, live.openings))),
   pin = $bindable(null),
   timestamp = null,
@@ -51,8 +49,6 @@ let {
   manifest?: ManifestText;
   /** The Properties tab's drafts, kept while another tab is shown. */
   drafts?: PropertyDrafts;
-  /** Who asserts the links the viewer creates in the Metadata tab. */
-  identity?: Identity;
   /** The tab last chosen, and how many editors had been opened then. */
   picked?: Picked;
   /** The pinned timestamp and the tab shown before it; `null` while none is pinned. */
@@ -159,7 +155,7 @@ const hinted = $derived(block === null && !manifest.dirty);
       {:else if item === "timestamp"}
         <TimestampPanel {live} pin={timestamp} onpin={repinned} />
       {:else if item === "metadata"}
-        <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} {identity} />
+        <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
       {:else if item === "properties"}
         <PropertiesPanel
           {view}

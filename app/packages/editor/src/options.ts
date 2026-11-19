@@ -13,11 +13,12 @@ export interface StorageOptions {
   /** The `localStorage` key remembering whether the inspector drawer is open. */
   readonly inspectorKey: string;
   /**
-   * The `localStorage` key remembering the viewer's identity, the URI that
-   * asserts the links they create; without it the identity holds until the
-   * editor goes.
+   * The `localStorage` key remembering the user: the name the journal
+   * records as each change's author and the ORCID iD that states what they
+   * state in the Metadata tab; without it the user holds until the editor
+   * goes.
    */
-  readonly identityKey?: string;
+  readonly userKey?: string;
 }
 
 /** What the open workspace's file is, reported after every change and every load. */
@@ -36,6 +37,12 @@ export interface TimeLineEditorOptions {
   readonly server?: ConnectOptions | null;
   /** Where the autosave and the drawer's state are kept; by default nowhere: no autosave. */
   readonly storage?: StorageOptions | null;
+  /**
+   * Whether the Metadata tab looks values up in Wikidata, the GND, YouTube
+   * and, through the server, MusicBrainz; `true` by default. With `false`
+   * typed text never leaves the browser.
+   */
+  readonly lookup?: boolean;
   /** Where the file and undo shortcuts are taken: inside the editor (the default) or anywhere in the window. */
   readonly shortcuts?: "editor" | "window";
   /** Whether the canvas takes the focus at mount; `false` by default. */

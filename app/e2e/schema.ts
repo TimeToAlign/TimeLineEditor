@@ -42,3 +42,8 @@ export const { dumps, loads } = schema;
 export function manifestFixture(name: string): string {
   return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.yaml`), "utf8");
 }
+
+/** The text of a statement fixture by its name (`fixtures/<version>/statements/<name>.yaml`). */
+export function statementsFixture(name: string): string {
+  return manifestFixture(`statements/${name}`);
+}

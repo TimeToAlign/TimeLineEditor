@@ -10,9 +10,9 @@ import type {
   Address,
   Block,
   CommandEntry,
+  ManifestWarning,
   Store,
   UnknownKey,
-  UnregisteredTerm,
 } from "@timetoalign/tilie-core";
 import {
   isLoadError,
@@ -32,7 +32,7 @@ import type { TextOptions } from "../src/inspector/manifestText.ts";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
-import { fileText, informing, storeOf as storeOfFixtures } from "./support.ts";
+import { fileText, informing, providing, storeOf as storeOfFixtures } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -82,10 +82,10 @@ function storeOf(): Store {
 
 const warningsDirectory = path.join(directory, "..", "warnings", SCHEMA_VERSION);
 
-/** What a shared warning case expects: its unknown keys and its unregistered terms. */
+/** What a shared warning case expects: its unknown keys and its warnings. */
 interface Expected {
   readonly keys: readonly UnknownKey[];
-  readonly terms: readonly UnregisteredTerm[];
+  readonly warnings: readonly ManifestWarning[];
 }
 
 /** A shared warning case's manifest, read by core, and the case's expectation. */
@@ -97,7 +97,7 @@ function read(name: string) {
   // The case states what core finds: its lists are read as they are written.
   const expected: Expected = {
     keys: Reflect.get(value as object, "unknown_keys"),
-    terms: Reflect.get(value as object, "unregistered_terms"),
+    warnings: Reflect.get(value as object, "warnings"),
   };
   return { manifest: loadManifest(dumps(value.manifest)), expected };
 }
@@ -118,7 +118,7 @@ function show(
   placement = holder<LivePlacement | null>(null),
 ): { value: Selection } {
   const selected = holder<Selection>(selectionOf(selection));
-  app = mount(Inspector, {
+  app = mount(providing(Inspector), {
     target: document.body,
     context: informing(),
     props: {
@@ -867,11 +867,16 @@ describe("the inspector's warnings", () => {
     .sort();
 
   /** Each listed warning as its key and its JSON pointer. */
+  /** Each warning row: an unknown key's key, or a warning's message; then where it lies. */
   const listed = () =>
-    [...document.querySelectorAll('ul[aria-label="Warnings"] li')].map((item) => [
-      item.querySelectorAll("code")[0]?.textContent,
-      item.querySelectorAll("code")[1]?.textContent ?? item.querySelector(".where")?.textContent,
-    ]);
+    [...document.querySelectorAll('ul[aria-label="Warnings"] li')].map((item) => {
+      const note = item.querySelector(".note");
+      const codes = item.querySelectorAll("code");
+      const where = item.querySelector(".where")?.textContent;
+      return note === null
+        ? [codes[0]?.textContent, codes[1]?.textContent ?? where]
+        : [note.textContent, codes[0]?.textContent ?? where];
+    });
 
   it("loads every case in core", () => {
     expect(
@@ -883,19 +888,27 @@ describe("the inspector's warnings", () => {
   });
 
   for (const name of cases) {
-    it(`lists every unknown key and unregistered term of ${name} with its path, and editing continues`, () => {
+    it(`lists every unknown key and warning of ${name} with its path, and editing continues`, () => {
       const { store, expected } = warningCase(name);
       completeA(store);
       show(store, [{ block: A }]);
       openTab("Manifest");
-      expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(1);
       const rows = [
         ...expected.keys.map((item) => [
           item.key,
           item.path.length === 0 ? "at the top level" : problemPointer(item),
         ]),
-        ...expected.terms.map((item) => [item.term, problemPointer(item)]),
+        // Core gives every manifest it holds its @context, so no held manifest lacks one.
+        ...expected.warnings
+          .filter((item) => item.code !== "context_absent")
+          .map((item) => [
+            `${item.message.charAt(0).toUpperCase()}${item.message.slice(1)}`,
+            item.path.length === 0 ? "at the top level" : problemPointer(item),
+          ]),
       ];
+      expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(
+        rows.length === 0 ? 0 : 1,
+      );
       expect(listed()).toEqual(rows);
       expect(problemItems()).toHaveLength(0);
       const text = manifestText(manifestOf(blockOf(store, A)), "json", COMPLETE);
@@ -919,7 +932,7 @@ describe("the inspector's warnings", () => {
 describe("the inspector in its drawer", () => {
   /** Mount the drawer, closed, on `store` with `selection` selected. */
   function drawer(store: Store, selection: Address[]): void {
-    app = mount(InspectorDrawer, {
+    app = mount(providing(InspectorDrawer), {
       target: document.body,
       context: informing(),
       props: {

@@ -4,8 +4,10 @@
  * workspace. It styles only its own root, takes keys only inside its root
  * unless `shortcuts` is `"window"`, names every DOM id per instance, and
  * reaches outside itself only through its options: the server it asks, the
- * storage it keeps the autosave and the drawer's state in, and the
- * callbacks.
+ * storage it keeps the autosave, the drawer's state and the user in, the
+ * lookups it may make, and the callbacks. It holds the one user of the
+ * editor (the journal's author, who states in the Metadata tab) and gives
+ * the user and the lookup to every part through context.
  */
 import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
@@ -28,12 +30,15 @@ import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
 import { openFile, UNTITLED, WORKSPACE_FILE } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
+import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
+import UserDialog from "./UserDialog.svelte";
+import { provideUser, UserState } from "./user.svelte.ts";
 import { WorkspaceRefusedError, WorkspaceSession } from "./workspaceSession.svelte.ts";
 
 type Props = TimeLineEditorOptions & {
@@ -56,6 +61,7 @@ let {
   shortcuts = "editor",
   autofocus = false,
   noticesUrl = NOTICES_FILE,
+  lookup = true,
   onchange,
   onselect,
   testHook = false,
@@ -72,6 +78,7 @@ let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
+let userDialog: ReturnType<typeof UserDialog> | undefined = $state();
 
 // --- Messages ---------------------------------------------------------------
 
@@ -85,9 +92,27 @@ function warn(text: string, problems: readonly Problem[] = []): void {
 // Every component below posts its confirmations as information in the message bar.
 provideInform((text) => messages.inform(text));
 
+// --- The user and the lookup --------------------------------------------------
+
+/** The one user: the viewer's own, read from storage once, at mount; never written to the workspace. */
+const user = new UserState(untrack(() => storage?.userKey ?? null));
+
+/** Ask for the user's name and iD; a saved answer becomes the user and the open store's author. */
+async function askUser(): Promise<void> {
+  const answer = (await userDialog?.ask(user.user)) ?? null;
+  if (answer === null) return;
+  user.set(answer);
+  session.store.setAuthor(answer.name);
+}
+
+provideUser({ state: user, ask: askUser });
+// Lookups leave the browser only where the host allows them.
+provideLookup(untrack(() => (lookup ? createLookup({ server: server ?? null }) : NO_LOOKUP)));
+
 // --- The workspace ----------------------------------------------------------
 
 const session = new WorkspaceSession({
+  author: () => user.name,
   warn,
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
@@ -326,6 +351,7 @@ const fileItems: readonly MenuItem[] = $derived([
     disabled: session.exportable === null,
     run: () => session.exportManifest(),
   },
+  { label: "Your name…", run: () => void askUser() },
 ]);
 
 const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
@@ -496,12 +522,12 @@ if (withTestHook) {
       selection={session.selection}
       {placement}
       storageKey={storage?.inspectorKey ?? null}
-      identityKey={storage?.identityKey ?? null}
       knotsOf={(manifest) => canvas?.knotsOf(manifest)}
     />
   </main>
 
   <ConfirmDialog bind:this={confirm} />
+  <UserDialog bind:this={userDialog} />
   <AboutDialog bind:this={about} connected={server !== null} {health} {offline} {noticesUrl} />
 </div>
 

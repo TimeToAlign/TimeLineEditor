@@ -20,8 +20,12 @@ import { flushSync } from "svelte";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
+import type { Lookup } from "../src/lookup/index.ts";
+import { NO_LOOKUP, provideLookup } from "../src/lookup/index.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import type { TestHook } from "../src/testHook.ts";
+import type { UserContext } from "../src/user.svelte.ts";
+import { provideUser, UserState } from "../src/user.svelte.ts";
 
 const directory = path.join(
   path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
@@ -224,4 +228,26 @@ export function informing(informed: string[] = []): ReturnType<typeof informCont
   return informContext((text) => {
     informed.push(text);
   });
+}
+
+/** The editor's user context over `state` (the default user, kept nowhere), whose question does nothing. */
+export function userContext(state: UserState = new UserState(null)): UserContext {
+  return { state, ask: async () => undefined };
+}
+
+/**
+ * `component` wrapped so that it is mounted with the editor's user and
+ * lookup in its context, as the editor provides them: the wrapper sets both
+ * before the component's own setup runs.
+ */
+export function providing<C extends (...args: never[]) => unknown>(
+  component: C,
+  user: UserContext = userContext(),
+  lookup: Lookup = NO_LOOKUP,
+): C {
+  return ((...args: Parameters<C>) => {
+    provideUser(user);
+    provideLookup(lookup);
+    return Reflect.apply(component, undefined, args);
+  }) as C;
 }

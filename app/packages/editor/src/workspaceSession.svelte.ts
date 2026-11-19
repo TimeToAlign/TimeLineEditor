@@ -76,6 +76,8 @@ export interface SessionOptions {
   readonly replaced?: () => void;
   /** Called with the selected addresses whenever the selection changes. */
   readonly selected?: (selection: readonly Address[]) => void;
+  /** The user's name, every store's author from its creation. */
+  readonly author: () => string;
 }
 
 /** Whether two selections name the same addresses. */
@@ -107,6 +109,7 @@ export class WorkspaceSession {
 
   constructor(options: SessionOptions) {
     this.#options = options;
+    this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
   }
 
@@ -149,7 +152,7 @@ export class WorkspaceSession {
   ): LoadError | null {
     let next: Store;
     try {
-      next = createStore(workspace);
+      next = createStore(workspace, { author: this.#options.author() });
     } catch (error) {
       if (!(error instanceof JournalMismatchError)) throw error;
       return {
