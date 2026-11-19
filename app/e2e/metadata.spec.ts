@@ -45,14 +45,24 @@ const headings = (page: Page) => page.getByTestId("metadata-heading").locator(".
 const rectangle = (page: Page, heading: string): Locator =>
   rectangles(page).filter({ has: page.locator(".verb", { hasText: new RegExp(`^${heading}$`) }) });
 
-/** Paste `text` into `locator` as the clipboard would. */
+/**
+ * Paste `text` into `locator` as the clipboard would. Firefox ignores the
+ * standard `clipboardData` member of the event's initialiser and fills the
+ * event's data from its own `dataType` and `data` members instead, which
+ * the other engines ignore; the initialiser states both.
+ */
 async function paste(locator: Locator, text: string): Promise<void> {
   await locator.evaluate((element, pasted) => {
     const data = new DataTransfer();
-    data.setData("text", pasted);
-    element.dispatchEvent(
-      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
-    );
+    data.setData("text/plain", pasted);
+    const init: ClipboardEventInit & { dataType: string; data: string } = {
+      clipboardData: data,
+      dataType: "text/plain",
+      data: pasted,
+      bubbles: true,
+      cancelable: true,
+    };
+    element.dispatchEvent(new ClipboardEvent("paste", init));
   }, text);
 }
 

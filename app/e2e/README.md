@@ -497,7 +497,7 @@ service" (the profile's editor shown), with the File menu,
 the About dialog and the discard question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
 
-**`metadata.spec.ts`** (Chromium) imports the LayerIt recording
+**`metadata.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording
 (`statements/layerit_recording.yaml` through Import manifest…) into a
 fresh page, the clock fixed at `2026-11-20T12:00:00Z`; every request to
 `www.wikidata.org`, `lobid.org`, `www.youtube.com` or
@@ -525,7 +525,11 @@ the shipped catalogue's labels.
    states no `dcterms:source`, its one annotation rejected by `G` on
    2026-11-20, method `inferred` and note kept.
 4. **Paste.** On `cpt_2`, "＋ Add statement", then
-   `https://www.wikidata.org/wiki/Q235650` pasted into Value: Vocabulary
+   `https://www.wikidata.org/wiki/Q235650` pasted into Value (a `paste`
+   event dispatched with the text as `text/plain`, stated both in the
+   standard `clipboardData` member of its initialiser and in Firefox's own
+   `dataType` and `data` members, since Firefox ignores the former and the
+   other engines the latter): Vocabulary
    reads "Wikidata", Value the label "Maria João Pires" (from the recorded
    entity), Verb has the focus; "perf", ArrowDown, Enter, Add: a "performed
    by" rectangle with the row `wdt:P175 wd:Q235650 ↗`; the export's
