@@ -1,0 +1,39 @@
+{
+  "type": null,
+  "id": "8d331505-4d88-39ae-81c7-bec5da77af96",
+  "relations": [
+    {
+      "attribute-ids": {},
+      "end": null,
+      "type-id": "587fdd8f-080e-46a9-97af-6425ebbcb3a2",
+      "attributes": [],
+      "direction": "backward",
+      "ended": false,
+      "target-credit": "",
+      "begin": null,
+      "type": "wikidata",
+      "source-credit": "",
+      "url": {
+        "resource": "https://www.wikidata.org/wiki/Q29117946",
+        "id": "dae18cb9-21dd-459e-9b93-cf7cd9dce9a8"
+      },
+      "target-type": "url",
+      "attribute-values": {}
+    }
+  ],
+  "title": "Suite bergamasque, L. 75, CD 82 : III. Clair de lune",
+  "languages": [
+    "zxx"
+  ],
+  "attributes": [
+    {
+      "type": "JASRAC ID",
+      "type-id": "31048fcc-3dbb-3979-8f85-805afb933e0c",
+      "value": "0O5-2138-0"
+    }
+  ],
+  "disambiguation": "for piano",
+  "iswcs": [],
+  "language": "zxx",
+  "type-id": null
+}

@@ -1,0 +1,6 @@
+{
+  "https://musicbrainz.org/ws/2/work?query=Clair+de+lune&limit=5&offset=0&fmt=json": "work-clair-de-lune.json",
+  "https://musicbrainz.org/ws/2/artist?query=Maria+Jo%C3%A3o+Pires&limit=5&offset=0&fmt=json": "artist-maria-joao-pires.json",
+  "https://musicbrainz.org/ws/2/artist?query=Pires&limit=10&offset=0&fmt=json": "artist-pires-suggest.json",
+  "https://musicbrainz.org/ws/2/work/8d331505-4d88-39ae-81c7-bec5da77af96?inc=url-rels&fmt=json": "work-8d331505.json"
+}

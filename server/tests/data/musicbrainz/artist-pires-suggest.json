@@ -1,0 +1,375 @@
+{
+  "created": "2026-11-19T02:39:29.797Z",
+  "count": 276,
+  "offset": 0,
+  "artists": [
+    {
+      "id": "7f3a2f7e-6277-4d72-b673-f3a8128a6aa0",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 100,
+      "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+      "name": "Alexandre Pires",
+      "sort-name": "Pires, Alexandre",
+      "gender": "male",
+      "country": "BR",
+      "area": {
+        "id": "f45b47f8-5796-386e-b172-6c31b009a5d8",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "Brazil",
+        "sort-name": "Brazil",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "begin-area": {
+        "id": "ee9305bc-5929-4011-946a-029c0ce2c73d",
+        "type": "City",
+        "type-id": "6fd8f29a-3d0a-32fc-980d-ea697b69da78",
+        "name": "Uberlândia",
+        "sort-name": "Uberlândia",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "life-span": {
+        "begin": "1976-01-08",
+        "ended": null
+      },
+      "aliases": [
+        {
+          "sort-name": "Alexander Pires",
+          "name": "Alexander Pires",
+          "locale": null,
+          "type": null,
+          "primary": null,
+          "begin-date": null,
+          "end-date": null
+        }
+      ]
+    },
+    {
+      "id": "988d39d6-eafd-4ae7-8cab-50a6448a9216",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 97,
+      "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+      "name": "PIRES",
+      "sort-name": "PIRES",
+      "gender": "male",
+      "disambiguation": "Portuguese house DJ and producer",
+      "life-span": {
+        "ended": null
+      },
+      "tags": [
+        {
+          "count": 1,
+          "name": "house"
+        },
+        {
+          "count": 1,
+          "name": "deep house"
+        },
+        {
+          "count": 1,
+          "name": "tech house"
+        },
+        {
+          "count": 1,
+          "name": "balearic"
+        },
+        {
+          "count": 1,
+          "name": "afro house"
+        },
+        {
+          "count": 1,
+          "name": "jackin house"
+        }
+      ]
+    },
+    {
+      "id": "64cf3646-fde3-4f5e-8741-8b4d21917785",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 93,
+      "gender-id": "93452b5a-a947-30c8-934f-6a4056b151c2",
+      "name": "Maria João Pires",
+      "sort-name": "Pires, Maria João",
+      "gender": "female",
+      "country": "PT",
+      "area": {
+        "id": "781b0c54-3d54-362d-a941-8a617def4992",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "Portugal",
+        "sort-name": "Portugal",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "begin-area": {
+        "id": "9aee8c1a-c7d5-4713-af71-c022bccf50b4",
+        "type": "City",
+        "type-id": "6fd8f29a-3d0a-32fc-980d-ea697b69da78",
+        "name": "Lisboa",
+        "sort-name": "Lisboa",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "disambiguation": "pianist",
+      "isnis": [
+        "0000000109374314"
+      ],
+      "life-span": {
+        "begin": "1944-07-23",
+        "ended": null
+      },
+      "aliases": [
+        {
+          "sort-name": "マリア・ジョアオ・ピリス",
+          "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+          "name": "マリア・ジョアオ・ピリス",
+          "locale": "ja",
+          "type": "Artist name",
+          "primary": true,
+          "begin-date": null,
+          "end-date": null
+        },
+        {
+          "sort-name": "Pires, Maria Joã",
+          "name": "Maria Joã Pires",
+          "locale": null,
+          "type": null,
+          "primary": null,
+          "begin-date": null,
+          "end-date": null
+        },
+        {
+          "sort-name": "Pires, Maria Joao",
+          "name": "Maria Joao Pires",
+          "locale": null,
+          "type": null,
+          "primary": null,
+          "begin-date": null,
+          "end-date": null
+        },
+        {
+          "sort-name": "Pires, Maria-João",
+          "name": "Maria-João Pires",
+          "locale": null,
+          "type": null,
+          "primary": null,
+          "begin-date": null,
+          "end-date": null
+        }
+      ],
+      "tags": [
+        {
+          "count": 4,
+          "name": "classical"
+        },
+        {
+          "count": 1,
+          "name": "instrumental"
+        },
+        {
+          "count": 1,
+          "name": "piano"
+        },
+        {
+          "count": 2,
+          "name": "pianist"
+        },
+        {
+          "count": 1,
+          "name": "portuguese pianist"
+        }
+      ]
+    },
+    {
+      "id": "8d9c00a1-7da4-4fcd-a521-bc116dde80b9",
+      "type": "Group",
+      "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+      "score": 92,
+      "name": "Les Pires",
+      "sort-name": "Pires, les",
+      "country": "FR",
+      "area": {
+        "id": "08310658-51eb-3801-80de-5a0739207115",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "France",
+        "sort-name": "France",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "life-span": {
+        "begin": "1987",
+        "ended": null
+      },
+      "aliases": [
+        {
+          "sort-name": "Pires, les",
+          "type-id": "894afba6-2816-3c24-8072-eadb66bd04bc",
+          "name": "Les Pires",
+          "locale": "fr",
+          "type": "Artist name",
+          "primary": true,
+          "begin-date": null,
+          "end-date": null
+        }
+      ]
+    },
+    {
+      "id": "e6e5fdb0-2f22-48a8-bf0c-ee1743940a20",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 91,
+      "gender-id": "93452b5a-a947-30c8-934f-6a4056b151c2",
+      "name": "Sandra Pires",
+      "sort-name": "Pires, Sandra",
+      "gender": "female",
+      "country": "AT",
+      "area": {
+        "id": "caac77d1-a5c8-3e6e-8e27-90b44dcc1446",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "Austria",
+        "sort-name": "Austria",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "begin-area": {
+        "id": "70da59b3-1055-46d5-8e05-a16de0fc0828",
+        "type": "Subdivision",
+        "type-id": "fd3d44c5-80a1-3842-9745-2c4972d35afa",
+        "name": "Díli",
+        "sort-name": "Díli",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "ipis": [
+        "00250499754"
+      ],
+      "isnis": [
+        "000000006689313X"
+      ],
+      "life-span": {
+        "begin": "1969-08-26",
+        "ended": null
+      }
+    },
+    {
+      "id": "2d7a72cf-bf06-4234-8d1a-59d0d1241c13",
+      "score": 91,
+      "name": "Djalma Pires",
+      "sort-name": "Djalma Pires",
+      "life-span": {
+        "ended": null
+      }
+    },
+    {
+      "id": "29b8a697-236e-4bd9-a36d-bcd0646d07be",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 88,
+      "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+      "name": "Telmo Pires",
+      "sort-name": "Telmo Pires",
+      "gender": "male",
+      "country": "PT",
+      "area": {
+        "id": "781b0c54-3d54-362d-a941-8a617def4992",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "Portugal",
+        "sort-name": "Portugal",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "disambiguation": "portugees fado",
+      "life-span": {
+        "ended": null
+      }
+    },
+    {
+      "id": "9012df03-d8f6-4888-89ff-44a7062961ea",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 88,
+      "gender-id": "93452b5a-a947-30c8-934f-6a4056b151c2",
+      "name": "Carla Pires",
+      "sort-name": "Pires, Carla",
+      "gender": "female",
+      "country": "PT",
+      "area": {
+        "id": "781b0c54-3d54-362d-a941-8a617def4992",
+        "type": "Country",
+        "type-id": "06dd0ae4-8c74-30bb-b43d-95dcedf961de",
+        "name": "Portugal",
+        "sort-name": "Portugal",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "disambiguation": "fado singer",
+      "isnis": [
+        "0000000466043943"
+      ],
+      "life-span": {
+        "ended": null
+      },
+      "tags": [
+        {
+          "count": 1,
+          "name": "fado"
+        }
+      ]
+    },
+    {
+      "id": "c9cfc7f4-da2a-44d7-95d9-3f3a5e117a2d",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 87,
+      "gender-id": "36d3d30a-839d-3eda-8cb3-29be4384e4a9",
+      "name": "David Pires",
+      "sort-name": "David Pires",
+      "gender": "male",
+      "disambiguation": "Portuguese Music Artist from Luxembourg",
+      "life-span": {
+        "ended": null
+      }
+    },
+    {
+      "id": "07b1a6b0-07a3-45c3-96af-e655e9e3d1de",
+      "type": "Person",
+      "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+      "score": 87,
+      "gender-id": "93452b5a-a947-30c8-934f-6a4056b151c2",
+      "name": "Barbara Pires",
+      "sort-name": "Barbara Pires",
+      "gender": "female",
+      "area": {
+        "id": "c0e87f93-f541-480a-b6d2-991f6ea90ee2",
+        "type": "City",
+        "type-id": "6fd8f29a-3d0a-32fc-980d-ea697b69da78",
+        "name": "New Bedford",
+        "sort-name": "New Bedford",
+        "life-span": {
+          "ended": null
+        }
+      },
+      "disambiguation": "Gospel singer",
+      "life-span": {
+        "ended": null
+      }
+    }
+  ]
+}

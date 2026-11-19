@@ -1,0 +1,597 @@
+{
+  "created": "2026-11-19T02:39:27.500Z",
+  "count": 79083,
+  "offset": 0,
+  "works": [
+    {
+      "id": "199ec7b6-ce07-34e9-85ca-fcf89fe808c9",
+      "score": 100,
+      "title": "Clair de Lune",
+      "relations": [
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "650bf385-6f6d-4992-a3b9-779d144920a4",
+            "name": "Django Reinhardt",
+            "sort-name": "Reinhardt, Django",
+            "disambiguation": "French jazz guitarist and composer"
+          }
+        },
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "114ec00a-c6cf-42cf-af03-635888a66dea",
+            "name": "Joseph Kosma",
+            "sort-name": "Kosma, Joseph",
+            "disambiguation": "composer"
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "98a8152f-0d1e-4df4-b830-ea503c1f4efa",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "bdc9e168-77c4-4b74-8cd4-12c9e2c2d6e8",
+            "title": "Claire De Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "e5df5930-6802-466a-b41f-673601ad090a",
+            "title": "Claire de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "195d3837-65e1-40f0-be5a-39c4334d92ad",
+            "title": "Clair De Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "984554ca-9c2e-4aea-8c6d-7eaf212b4242",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "488ead4a-9a10-4f27-be70-78f4597f5a45",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "5e1f5460-dbe5-4688-8651-701def11fa84",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "5e3269e3-dd69-4ed9-9a18-4fbb80801435",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "1a2085e2-7001-4793-a9a6-d60b8d2c8468",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "8f319491-d621-4f50-a0b6-9d532da21ed0",
+            "title": "Clair De Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "70917599-dc48-4c0f-b847-bd917d956bd4",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "447ff2d8-5060-4247-bbd8-cf688a665352",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "1146eeae-37f5-4160-a0ac-c4d4c09c85fe",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        }
+      ],
+      "languages": []
+    },
+    {
+      "id": "a5c964fc-933f-40c9-a5c0-721ae34fc37a",
+      "type": "Song",
+      "score": 99,
+      "title": "Clair de Lune",
+      "language": "eng",
+      "iswcs": [
+        "T-061.372.893-0"
+      ],
+      "relations": [
+        {
+          "type": "lyricist",
+          "type-id": "3e48faba-ec01-47fd-8e89-30e81161661c",
+          "direction": "backward",
+          "artist": {
+            "id": "6cc49493-ead2-4c1d-8edf-17be0f1fc4cf",
+            "name": "James Nathan Lyell",
+            "sort-name": "Lyell, James Nathan"
+          }
+        },
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "6cc49493-ead2-4c1d-8edf-17be0f1fc4cf",
+            "name": "James Nathan Lyell",
+            "sort-name": "Lyell, James Nathan"
+          }
+        },
+        {
+          "type": "lyricist",
+          "type-id": "3e48faba-ec01-47fd-8e89-30e81161661c",
+          "direction": "backward",
+          "artist": {
+            "id": "1e0141c6-e564-44eb-bda1-b3515b609a40",
+            "name": "Hugo Stuart Gruzman",
+            "sort-name": "Gruzman, Hugo Stuart",
+            "disambiguation": "Austrailian composer, producer"
+          }
+        },
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "1e0141c6-e564-44eb-bda1-b3515b609a40",
+            "name": "Hugo Stuart Gruzman",
+            "sort-name": "Gruzman, Hugo Stuart",
+            "disambiguation": "Austrailian composer, producer"
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "13d18b20-f775-4e47-a4e5-1e40b3d930f9",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "69514d42-8ee6-4631-a79f-98a00197c817",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "3bf18fd0-a2b1-4192-b05a-1f159a614ef7",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "62651154-08f1-4075-8749-fa90a614c58e",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "f5da4d57-f3c9-489a-95bc-90dc2c9e2f62",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "428d6dee-f5fc-4174-95aa-575c1589c710",
+            "title": "Clair de Lune (Them Jeans edit)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "5f77f7dd-aa26-47fd-aa09-ae32de822259",
+            "title": "Clair de Lune (Prins Thomas Diskomiks)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "bd7ec7e3-fabf-4637-8aa0-bfaa3408bcaf",
+            "title": "Clair de Lune (Motez remix)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "3fa7a257-d3e7-40ed-9d34-d2e7c12f52c8",
+            "title": "Clair de Lune (instrumental)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "a91d0384-30d7-4829-8b00-8f65c3baf591",
+            "title": "Clair de Lune (Crazy P remix)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "117c11ef-2843-46f5-b6aa-5369258ec21a",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        }
+      ],
+      "languages": [
+        "eng"
+      ]
+    },
+    {
+      "id": "5439be51-bc87-4fcd-bf6e-7e34377b7030",
+      "type": "Song",
+      "score": 99,
+      "title": "Clair de lune",
+      "language": "eng",
+      "relations": [
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "5ac8d100-b388-4200-8e03-838cae02ccb8",
+            "title": "Clair de lune",
+            "video": true
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "c723428a-e3b1-4d62-bac9-300f9a4413ce",
+            "title": "Claire de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "dad63e26-af55-423e-b589-9f8d0b691d02",
+            "title": "Claire de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "46ce4866-8a76-459f-968e-e365493de2a8",
+            "title": "Claire de lune",
+            "video": true
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "db534537-d281-4d91-b573-66bc5580df4c",
+            "title": "Claire de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "98b43276-4955-4232-a851-be1a561d6d04",
+            "title": "Claire de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "87bf7115-d763-4f41-a643-d35128b5e760",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "085ccc34-cec7-439f-abbd-e5b617a6b797",
+            "title": "Clair de lune",
+            "video": true
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "0980724d-b638-4d86-909d-8d3e9cfedbca",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "69585dcb-2b1d-43ab-9129-a23966393530",
+            "title": "Clair de lune",
+            "video": null
+          }
+        }
+      ],
+      "languages": [
+        "eng"
+      ]
+    },
+    {
+      "id": "bbb4b91e-2428-40bb-9cba-6cfe4fc7365d",
+      "score": 98,
+      "title": "Clair de lune",
+      "language": "zxx",
+      "disambiguation": "for organ, Anna Lapwood",
+      "relations": [
+        {
+          "type": "arranger",
+          "type-id": "d3fd781c-5894-47e2-8c12-86cc0e2c8d08",
+          "direction": "backward",
+          "artist": {
+            "id": "245428eb-2e59-4d25-9e26-eda53bdf4a2d",
+            "name": "Anna Lapwood",
+            "sort-name": "Lapwood, Anna",
+            "disambiguation": "British organist, choir director and television and radio presenter"
+          }
+        },
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "be50643c-0377-4968-b48c-47e06b2e2a3b",
+            "name": "Claude Debussy",
+            "sort-name": "Debussy, Claude",
+            "disambiguation": "French composer"
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "e73b724c-8c59-4d3c-9fbc-bf019bafd3d1",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "697044ea-b2b0-4480-a06e-cef29ff2e281",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "e0df410b-22ac-4e83-bd66-d7fef139729c",
+            "title": "Clair de Lune (transcr. for Organ)",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "7c785195-74d8-48f8-897a-4d2894a7271e",
+            "title": "Clair de lune",
+            "video": null
+          }
+        }
+      ],
+      "languages": [
+        "zxx"
+      ]
+    },
+    {
+      "id": "e1b30463-ad42-3865-be02-5231871dd53a",
+      "type": "Song",
+      "score": 98,
+      "title": "Clair de lune",
+      "language": "fra",
+      "iswcs": [
+        "T-004.013.729-8"
+      ],
+      "aliases": [
+        {
+          "sort-name": "Clair de Lune",
+          "name": "Clair de Lune",
+          "locale": null,
+          "type": null,
+          "primary": null,
+          "begin-date": null,
+          "end-date": null
+        }
+      ],
+      "relations": [
+        {
+          "type": "composer",
+          "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+          "direction": "backward",
+          "artist": {
+            "id": "15b1cbac-060a-4136-9e07-4622c52c0f60",
+            "name": "Léo Ferré",
+            "sort-name": "Ferré, Léo"
+          }
+        },
+        {
+          "type": "lyricist",
+          "type-id": "3e48faba-ec01-47fd-8e89-30e81161661c",
+          "direction": "backward",
+          "artist": {
+            "id": "8394b1aa-606c-449f-a46e-cf9cfaa035e2",
+            "name": "Paul Verlaine",
+            "sort-name": "Verlaine, Paul",
+            "disambiguation": "French poet"
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "282bcd2c-c407-44bc-8ff9-b39aafed4cb2",
+            "title": "Clair de Lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "af4bf5fd-f328-4cac-987d-2cf3682224fd",
+            "title": "Clair de lune",
+            "video": null
+          }
+        },
+        {
+          "type": "performance",
+          "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+          "direction": "backward",
+          "recording": {
+            "id": "fff67076-ceb2-473f-8519-a5d373b3728e",
+            "title": "Clair de lune",
+            "video": null
+          }
+        }
+      ],
+      "languages": [
+        "fra"
+      ]
+    }
+  ]
+}
