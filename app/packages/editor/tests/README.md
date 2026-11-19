@@ -1385,3 +1385,95 @@ oracles are the committed end-to-end workspaces and a store of
    in an editor its own rows, then the earlier session of the same target
    read only; with two editors open, the inner level only; a session's rows
    hold its changes as rows; nothing gives no row.
+
+## The combobox (`combobox-keys.test.ts`, `combobox.test.ts`)
+
+The editor's combobox follows the WAI-ARIA Authoring Practices "Combobox
+Pattern" in the form of its example "Editable Combobox With List
+Autocomplete": the options are given by the component's user, typing never
+selects one, and the focus never leaves the text field, which names the
+active option through `aria-activedescendant`. The oracles are that pattern
+and the key table below; nothing is read off the implementation.
+
+**The key table** (`combobox-keys.test.ts`, pure). A state is closed or
+open, with an active option or none; a key arrives with or without Alt,
+over a count of options and the field's text. The answer is the next
+state, an action (none, pick the active option, enter the text, clear the
+text) and whether the key was handled (handled keys are consumed, all
+others keep their native meaning). Every row is checked for 0, 1 and 3
+options, from closed and from open with no active option and with each
+active one, each expected state written out:
+
+| Key | Closed | Open |
+|---|---|---|
+| ArrowDown | open; the first option active (none for 0 options) | the next option; after the last, the first; none for 0 options |
+| ArrowUp | open; the last option active (none for 0 options) | the previous option; before the first (or from none), the last |
+| Alt+ArrowDown | open; still none active | unchanged, handled |
+| Alt+ArrowUp | unchanged, not handled | closed, none active, the text kept |
+| Enter | the text entered, unchanged | with an active option: closed, that option picked; without: closed, the text entered |
+| Escape | with text: the text cleared; without: unchanged, not handled | closed, none active |
+| Home, End, ArrowLeft, ArrowRight | not handled; none active | not handled; none active, still open |
+| Tab | unchanged, not handled | closed, none active, not handled (the focus moves on) |
+| any other key ("a", Shift) | unchanged, not handled | unchanged, not handled |
+
+Alt changes only the two arrows: Alt+Enter is Enter, Alt+Escape is
+Escape. An active option outside the options (a list that shrank) counts as
+none: from open with option 5 of 3 active, ArrowDown makes the first
+active, ArrowUp the last, Enter enters the text. Typing makes the next
+state from the new text alone: open with text, closed without, none active
+either way. The announcement of the options is "Searching…" while
+loading, else "No results", "1 result", "2 results", "3 results".
+
+**The component** (`combobox.test.ts`) mounts `ComboboxHarness.svelte`,
+which gives the combobox three options ("Clara Schumann", "Clara Wieck",
+"Clara Haskil", keys `c1`, `c2`, `c3`; a snippet draws each, marking the
+active one), holds the text through a function binding that records every
+text the combobox writes, and records every pick, Enter and paste. Keys are
+dispatched on the text field as `keydown` events, and each assertion reads
+the DOM by role and attribute:
+
+1. **Attributes.** The field has role `combobox`, `aria-autocomplete`
+   `list`, `aria-controls` the listbox's id, and the label "Performer" as
+   `aria-label`, as does the listbox; ids end in `-input`, `-listbox` and
+   `-option-0`, `-option-1`, `-option-2` after one shared prefix. Closed:
+   `aria-expanded` `false`, the listbox hidden, no `aria-activedescendant`.
+   Typing "Clara" records the text "Clara" and opens it (`aria-expanded`
+   `true`, the listbox shown) with none active. ArrowDown makes option 0
+   active: `aria-activedescendant` is its id, it alone has `aria-selected`
+   `true`, the snippet marks it, and it was scrolled into view
+   (`scrollIntoView({block: "nearest"})` on it). Two more ArrowDowns make
+   option 2 active, one more option 0 again, ArrowUp option 2. Each
+   handled key's event is default-prevented and does not reach the
+   field's parent; ArrowLeft is neither and leaves no option active. The
+   focus stays on the field throughout.
+2. **Enter.** With option 1 active, Enter picks "Clara Wieck" (no Enter
+   recorded) and closes. Without an active option (typing "Cl", then
+   Enter) it records the Enter of "Cl" and closes, picking nothing.
+3. **Escape twice.** Open with option 0 active: the first Escape closes and
+   keeps the text, the second records the text "" (cleared); both are
+   consumed (not seen by the parent). A third, on the empty closed field,
+   is not handled: the parent sees it, and nothing is recorded.
+4. **The pointer.** On the listbox, `pointerdown` is default-prevented, so
+   the focus stays in the field. A primary-button `pointerup` on option 2
+   picks "Clara Haskil" and closes; a secondary-button one picks nothing.
+5. **Leaving.** Focus moving to a button outside the combobox closes it; a
+   `focusout` whose related target lies inside it does not.
+6. **When the list shows.** With text and no options: the listbox stays
+   hidden without the `empty` snippet; with it, the list shows and holds
+   the snippet's text "Nothing for 'Clr'", outside the listbox itself
+   (a listbox may own options alone). Loading with no options: shown,
+   `aria-busy` `true`. With the text cleared and no options, the `empty`
+   snippet does not show and the listbox stays hidden. Disabled, the field
+   is disabled and the listbox stays hidden.
+7. **Announcements.** The status region holds "3 results" while open with
+   three options and text, "1 result" with one, "No results" with none
+   (and the `empty` snippet), "Searching…" while loading, and nothing while
+   closed or without text; a given `announce` replaces the words
+   ("3 performers").
+8. **Naming.** With `labelledby` and `describedby`, the field and the
+   listbox take `aria-labelledby` and no `aria-label`, the field
+   `aria-describedby`.
+9. **Paste.** A paste whose handler answers `true` is default-prevented
+   and the handler got the clipboard's text; one answering `false` is not.
+   Without a handler, a paste is not prevented.
+10. **Focus.** The component's `focus()` focuses the field.
