@@ -5,7 +5,7 @@
  * ("properties-fields.spec.ts").
  */
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { ElementAddress } from "../packages/core/src/index.ts";
 import { sameAddress } from "../packages/core/src/index.ts";
@@ -32,6 +32,14 @@ async function inspect(page: Page, elements: ElementAddress[]): Promise<void> {
   );
   await tab(page, "Properties").click();
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
+}
+
+/**
+ * The Properties tab's Name field. Looked up inside the tab panel: the page
+ * holds a second field labelled Name, the closed "Your name" dialog's.
+ */
+function nameField(page: Page): Locator {
+  return page.getByRole("tabpanel", { name: "Properties" }).getByLabel("Name", { exact: true });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -99,7 +107,7 @@ test("the container size stands in one row, the Locked checkbox right of the hei
 
 test("the Name field comes first and renames the group in one command", async ({ page }) => {
   await inspect(page, [{ id: "group_1" }]);
-  const name = page.getByLabel("Name", { exact: true });
+  const name = nameField(page);
   await expect(name).toHaveValue("Performance");
   await name.fill("Duo");
   await name.press("Enter");
@@ -116,7 +124,7 @@ test("in an editor with nothing selected, the Name field names the edited group"
   expect(await page.evaluate((address) => window.__tilie.open(address), GROUP)).toBeNull();
   await select(page, []);
   await tab(page, "Properties").click();
-  const name = page.getByLabel("Name", { exact: true });
+  const name = nameField(page);
   await expect(name).toHaveValue("Performance");
   await name.fill("Duo");
   await name.press("Enter");

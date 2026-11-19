@@ -466,7 +466,9 @@ checkbox right of the height, checked for `excerpt`'s card (`{id:
 field comes first and renames the selected group in one command. In the
 group editor of `group_1` with nothing selected, the Name field shows the
 edited group's name, `Performance`, and `Duo` with Enter renames the
-group.
+group. The Name field is looked up inside the Properties tab panel: the
+page always holds the closed "Your name" dialog, whose field is labelled
+Name too.
 
 **`memberships.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer's
 Properties tab on `bundles`. With `score`'s card selected, the fieldset
