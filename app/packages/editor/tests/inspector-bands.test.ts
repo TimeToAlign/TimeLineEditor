@@ -274,7 +274,7 @@ describe("the Properties panel of a band", () => {
     show(store, [at(A)]);
     openTab("Manifest");
     const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
-    const edited = textarea.value.replace('"id": "tempo"', '"id": "phrase"');
+    const edited = textarea.value.replace('"id": "#tempo"', '"id": "#phrase"');
     expect(edited).not.toBe(textarea.value);
     textarea.value = edited;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));

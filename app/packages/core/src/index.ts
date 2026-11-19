@@ -14,17 +14,7 @@
 
 export const name = "@timetoalign/tilie-core" as const;
 
-/**
- * The keys of a manifest its schema does not declare, kept and written back,
- * and the bare terms of its links outside their registered words, kept and
- * read as their fallbacks: both shown as warnings.
- */
-export {
-  type UnknownKey,
-  type UnregisteredTerm,
-  unknownKeys,
-  unregisteredTerms,
-} from "@timetoalign/timetoshare";
+export type { UnknownKey, UnregisteredTerm } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
 export { importedManifest } from "./commands/timestamps.ts";
@@ -97,11 +87,15 @@ export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
 export {
+  idFormPath,
   loadManifest,
   NEW_MANIFEST_FILE,
   normalizeManifest,
   readManifestFile,
   saveManifest,
+  unknownKeys,
+  unregisteredTerms,
+  withHeldIds,
 } from "./manifest/io.ts";
 export type {
   LinkedManifest,

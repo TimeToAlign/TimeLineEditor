@@ -4,7 +4,7 @@
  * segment").
  */
 
-import { dumps, JsonFloat, loads } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { preview } from "../src/commands/preview.ts";
@@ -22,8 +22,9 @@ import {
   block,
   changed,
   deepFreeze,
-  fixtureText,
+  fileText,
   loadText,
+  manifestValue,
   refusal,
   storeOf,
   viewOf,
@@ -36,7 +37,7 @@ type Value = { [key: string]: unknown };
 
 /** A fixture's value with `change` applied to the timeline `id`, wherever it lies. */
 function edited(name: string, id: string, change: (timeline: Value) => Value): Value {
-  const value = loads(fixtureText(name)) as Value;
+  const value = manifestValue(name) as Value;
   const walk = (timeline: Value): Value => {
     const own = timeline.id === id ? change(timeline) : timeline;
     const children = own.children as Value[] | undefined;
@@ -47,7 +48,7 @@ function edited(name: string, id: string, change: (timeline: Value) => Value): V
 
 /** The manifest a value reads as: the oracle of what a command leaves. */
 function read(value: Value): Manifest {
-  return loadText(dumps(value));
+  return loadText(fileText(value));
 }
 
 function timeline(view: View, id: string): TimelineManifest {
@@ -78,7 +79,7 @@ describe("a segment line without segments", () => {
     const value = edited(MIXED, "page", (page) => ({ ...page, is_segment_line: true }));
     const next = changed(deepFreeze(view), set({ block: A }, { manifest: value }));
     expect(block(next).manifest).toEqual(read(pageCovered(true)));
-    const refused = loadManifest(dumps(value));
+    const refused = loadManifest(fileText(value));
     expect(isLoadError(refused) ? refused.problems : []).toEqual([
       {
         code: "schema_violation",

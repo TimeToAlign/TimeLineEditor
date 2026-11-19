@@ -14,7 +14,8 @@ import path from "node:path";
 import type { Editing, Level } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import type { DumpsOptions } from "@timetoalign/timetoshare";
+import { dumps, loads, SCHEMA_VERSION, withBareIds, withFileIds } from "@timetoalign/timetoshare";
 import { flushSync } from "svelte";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
@@ -31,6 +32,16 @@ const directory = path.join(
 /** The text of a manifest fixture of the installed schema version. */
 export function fixtureText(name: string): string {
   return readFileSync(path.join(directory, `${name}.yaml`), "utf8");
+}
+
+/** The value of a manifest fixture's text with its IDs bare, as the store holds them, to change. */
+export function manifestValue(name: string): { [key: string]: unknown } {
+  return withBareIds(loads(fixtureText(name)) as { [key: string]: unknown });
+}
+
+/** The text of a manifest file holding `value`, a manifest with bare IDs: every ID written `#id`. */
+export function fileText(value: unknown, options?: DumpsOptions): string {
+  return dumps(withFileIds(value), options);
 }
 
 /** A manifest fixture, failing loudly if it is refused. */

@@ -18,7 +18,7 @@ import {
   samePlaceKey,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import { canonicalOrder, type Graphical, validate } from "@timetoalign/timetoshare";
+import { canonicalOrder, type Graphical, validate, withFileIds } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   abscissaOf,
@@ -82,7 +82,7 @@ const record = (
 
 describe("the records and core's listing of the containers", () => {
   const hidden: Graphical = {
-    statements: [
+    rules: [
       { select: { element: "frame" }, set: { display: "none" } },
       { select: { element: "card" }, set: { display: "none" } },
     ],
@@ -162,9 +162,7 @@ describe("a child's shown regions band", () => {
     region: { id: "region_1", name: null, start: quarters(0), end: quarters(4), meta: {} },
   });
   const shown: Graphical = {
-    statements: [
-      { select: { addresses: [{ id: "c", facet: "regions" }] }, set: { display: "inline" } },
-    ],
+    rules: [{ select: { addresses: [{ id: "c", facet: "regions" }] }, set: { display: "inline" } }],
   };
   const root = { x: 22.6318359375, width: 414.83203125 };
 
@@ -200,7 +198,7 @@ describe("a child's shown regions band", () => {
 
   it("goes with a hidden root line, which leaves the root's card alone", () => {
     const hidden: Graphical = {
-      statements: [{ select: { addresses: [at("r")] }, set: { display: "none" } }],
+      rules: [{ select: { addresses: [at("r")] }, set: { display: "none" } }],
     };
     const drawing = drawn(manifest, [shown, hidden]);
     expect(bandsOf(drawing)).toEqual([]);
@@ -236,7 +234,7 @@ describe("a segment line's band holding its segments' content", () => {
   it("counts what they join to it, labels not", () => {
     const drawing = drawFixture("unknown_length_segments", [
       {
-        statements: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
+        rules: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
       },
     ]);
     const span = { x: 42.42431640625, width: 435.916015625 };
@@ -283,7 +281,7 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
       { id: "g2", name: null, meta: {}, members: ["clt_2"] },
     ],
   });
-  validate(manifest);
+  validate(withFileIds(manifest));
   const bands = bandsOf(drawn(manifest));
   // The cards of `clt_1` in the frame of `g1` and of `clt_2` in the frame of `g2`.
   const G1: PlaceKey = { item: "g1", member: "clt_1" };
@@ -383,9 +381,9 @@ describe("a timeline in several groups (bundle_shared_member)", () => {
     expect(cardOf(sized, G1T).width).toBe(cardOf(drawing, G1T).width);
   });
 
-  it("styles every drawing of an address with one statement", () => {
+  it("styles every drawing of an address with one rule", () => {
     const stroked = drawFixture("bundles/bundle_shared_member", [
-      { statements: [{ select: { addresses: [at("t")] }, set: { stroke: "#123456" } }] },
+      { rules: [{ select: { addresses: [at("t")] }, set: { stroke: "#123456" } }] },
     ]);
     const lines = stroked.elements.filter((item) => sameAddress(item.address, at("t")));
     expect(lines.map((item) => [item.type, item.style.stroke])).toEqual([

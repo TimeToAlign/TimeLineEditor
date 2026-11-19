@@ -28,6 +28,7 @@ import {
   fontMetrics as metrics,
   SCHEMA_VERSION,
   validate,
+  withFileIds,
 } from "@timetoalign/timetoshare";
 import {
   DEFAULT_LAYER,
@@ -210,7 +211,7 @@ export function withLocked(
     children: timeline.children.map(relock),
   });
   const relocked = { ...manifest, timelines: manifest.timelines.map(relock) };
-  validate(relocked);
+  validate(withFileIds(relocked));
   return relocked;
 }
 

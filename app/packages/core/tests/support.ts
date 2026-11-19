@@ -7,7 +7,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { dumps, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import type { DumpsOptions } from "@timetoalign/timetoshare";
+import { dumps, loads, SCHEMA_VERSION, withBareIds, withFileIds } from "@timetoalign/timetoshare";
 import { apply } from "../src/commands/apply.ts";
 import type { Command } from "../src/commands/types.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
@@ -131,9 +132,17 @@ export function load(name: string): Manifest {
   return loadText(fixtureText(name), name);
 }
 
-/** The value of a manifest fixture's text, losslessly, to change before loading it. */
+/**
+ * The value of a manifest fixture's text, losslessly and with its IDs bare,
+ * as core holds them, to change before writing it again (`fileText`).
+ */
 export function manifestValue(name: string): Record<string, unknown> {
-  return loads(fixtureText(name)) as Record<string, unknown>;
+  return withBareIds(loads(fixtureText(name)) as Record<string, unknown>);
+}
+
+/** The text of a manifest file holding `value`, a manifest with bare IDs: every ID written `#id`. */
+export function fileText(value: unknown, options?: DumpsOptions): string {
+  return dumps(withFileIds(value), options);
 }
 
 /** Freeze a value deeply, so any mutation of it throws in strict mode. */
@@ -197,7 +206,7 @@ export function unlockedView(name: string, ...ids: string[]): View {
   });
   const value = manifestValue(name);
   const manifest = loadText(
-    dumps({ ...value, timelines: (value.timelines as Record<string, unknown>[]).map(unlock) }),
+    fileText({ ...value, timelines: (value.timelines as Record<string, unknown>[]).map(unlock) }),
     name,
   );
   return changed(createView(), {

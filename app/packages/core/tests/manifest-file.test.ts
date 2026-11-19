@@ -9,7 +9,15 @@ import {
   readManifestFile,
   saveManifest,
 } from "../src/manifest/io.ts";
-import { allFixtures, fileFormText, fixture, load, loadText, manifestValue } from "./support.ts";
+import {
+  allFixtures,
+  fileFormText,
+  fileText,
+  fixture,
+  load,
+  loadText,
+  manifestValue,
+} from "./support.ts";
 
 /** A manifest file's text read, failing loudly if it is refused. */
 function read(text: string): ReadManifestFile {
@@ -95,9 +103,9 @@ describe("a manifest file written back as it came", () => {
     },
     {
       name: "bare.yaml in RFC 8785 JSON after a byte order mark",
-      text: `\uFEFF${dumps(manifestValue("bare.yaml"), { serialization: "jcs" })}`,
+      text: `\uFEFF${fileText(manifestValue("bare.yaml"), { serialization: "jcs" })}`,
       file: { minimal: false, styling: true, serialization: "json" },
-      written: dumps(manifestValue("bare.yaml"), { serialization: "json" }),
+      written: fileText(manifestValue("bare.yaml"), { serialization: "json" }),
     },
   ])("writes $name back as its form says", ({ text, file, written }) => {
     const result = read(text);
@@ -108,7 +116,7 @@ describe("a manifest file written back as it came", () => {
   it.each([
     ['{"timetoshare": ', "invalid_json"],
     ["timelines: [", "invalid_yaml"],
-    [dumps({ ...manifestValue("bare.yaml"), timetoshare: "0.6.0" }), "schema_violation"],
+    [fileText({ ...manifestValue("bare.yaml"), timetoshare: "0.6.0" }), "schema_violation"],
   ])("refuses %j as loadManifest does (%s)", (text, code) => {
     const result = readManifestFile(text);
     expect(result).toEqual(loadManifest(text));

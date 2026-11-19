@@ -1,4 +1,3 @@
-import { dumps } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { addressKey } from "../src/manifest/address.ts";
@@ -13,6 +12,7 @@ import {
   block,
   changed,
   deepFreeze,
+  fileText,
   load,
   loadText,
   manifestValue,
@@ -548,7 +548,7 @@ describe("pruning stale keys", () => {
     };
     const [first, ...others] = value.groups as [{ id: string; members: string[] }];
     const grouped = loadText(
-      dumps({
+      fileText({
         ...value,
         groups: [{ ...first, members: [...first.members, "annotations"] }, ...others],
         graphical: {
@@ -636,7 +636,7 @@ describe("band orders go with their timelines", () => {
     });
   });
 
-  it("drops a removed timeline's band addresses from statements", () => {
+  it("drops a removed timeline's band addresses from rules", () => {
     const inline = { display: "inline" };
     const styled = after(
       mixed(),
@@ -659,7 +659,7 @@ describe("band orders go with their timelines", () => {
       },
     );
     const removed = after(styled, remove("excerpt"));
-    expect(block(removed, ID).manifest.graphical?.statements).toEqual([
+    expect(block(removed, ID).manifest.graphical?.rules).toEqual([
       { select: { addresses: [{ id: "annotations", facet: "regions" }] }, set: inline },
     ]);
   });
@@ -703,7 +703,7 @@ describe("band orders go with their timelines", () => {
       group_2: ["page", "fragment"],
       fragment: E,
     });
-    expect(block(accepted, ID).manifest.graphical?.statements).toEqual([
+    expect(block(accepted, ID).manifest.graphical?.rules).toEqual([
       { select: { addresses: [{ id: "excerpt", facet: "regions" }] }, set: inline },
     ]);
   });

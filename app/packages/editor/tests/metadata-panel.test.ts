@@ -7,7 +7,6 @@ import { isLoadError, linkHolder, loadManifest, writeWorkspace } from "@timetoal
 import type { CompleteLink } from "@timetoalign/timetoshare";
 import {
   ABSENCE_REASONS,
-  dumps,
   LEVELS,
   linkFromUrls,
   withAssertion,
@@ -36,7 +35,7 @@ import {
   WORK,
   WORK_PAGE,
 } from "./op106.ts";
-import { flushAutosaves, hook, informing, pickFile, storeOf } from "./support.ts";
+import { fileText, flushAutosaves, hook, informing, pickFile, storeOf } from "./support.ts";
 
 vi.mock("../src/autosave.ts", async (importOriginal) =>
   (await import("./support.ts")).recordAutosaves(await importOriginal()),
@@ -74,7 +73,7 @@ afterEach(async () => {
 
 /** A manifest value as core reads it. */
 function read(value: unknown): Manifest {
-  const manifest = loadManifest(dumps(value));
+  const manifest = loadManifest(fileText(value));
   if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
   return manifest;
 }
@@ -262,7 +261,7 @@ describe("the Op. 106 bundle imported (item 1)", () => {
       .find((item) => item.querySelector("span")?.textContent === "Import manifest…")
       ?.click();
     flushSync();
-    await vi.waitFor(() => pickFile("manifest.json", dumps(OP106)));
+    await vi.waitFor(() => pickFile("manifest.json", fileText(OP106)));
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
     const [id] = Object.keys(hook().store().view.blocks);
     expect([hook().store().view.blocks[id ?? ""]?.manifest.timelines, hook().selection()]).toEqual([

@@ -1,4 +1,4 @@
-import { dumps, type Selector, schema } from "@timetoalign/timetoshare";
+import { type Selector, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
 import { addressKey, FACETS } from "../src/manifest/address.ts";
@@ -10,7 +10,7 @@ import {
   timelineClass,
   unitDomain,
 } from "../src/manifest/elements.ts";
-import { allFixtures, load, loadText, manifestValue } from "./support.ts";
+import { allFixtures, fileText, load, loadText, manifestValue } from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";
 
@@ -169,7 +169,7 @@ describe("the elements of a manifest", () => {
   it("lists the title of a named manifest, addressed by the part name alone", () => {
     const title = { ...BLOCK_NAME };
     const top = (members: object) =>
-      manifestElements(loadText(dumps({ ...manifestValue("bare.yaml"), ...members })))[1];
+      manifestElements(loadText(fileText({ ...manifestValue("bare.yaml"), ...members })))[1];
     expect(top({ name: "Piece" })).toEqual(title);
     expect(top({ id: "edition" })).toEqual(title);
     expect(top({})?.type).toBe("card");
@@ -279,10 +279,10 @@ describe("selector matching", () => {
 
   it("matches a free ID as a whole", () => {
     const free = load("bundles/bundle_free_ids.yaml");
-    const statement = free.graphical?.statements?.[0];
-    expect(statement?.select).toEqual({ addresses: [{ id: "take 2/intro" }] });
+    const rule = free.graphical?.rules?.[0];
+    expect(rule?.select).toEqual({ addresses: [{ id: "take 2/intro" }] });
     const found = manifestElements(free).filter((key) =>
-      selectorMatches(statement?.select ?? {}, key, timelineAncestry(free)),
+      selectorMatches(rule?.select ?? {}, key, timelineAncestry(free)),
     );
     expect(found.map((key) => [key.type, key.address, key.timeline])).toEqual([
       ["region", id("take 2/intro"), "perf/take 2"],

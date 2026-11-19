@@ -1,4 +1,4 @@
-import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError } from "../src/errors.ts";
@@ -12,6 +12,7 @@ import {
   block,
   changed,
   deepFreeze,
+  fileText,
   viewOf as fixtureView,
   key,
   loadText,
@@ -43,7 +44,7 @@ function manifestOf(length: Length, children: [string, number, Length][] = [], l
   };
 }
 
-const text = (...parts: Parameters<typeof manifestOf>) => dumps(manifestOf(...parts));
+const text = (...parts: Parameters<typeof manifestOf>) => fileText(manifestOf(...parts));
 
 function viewOf(...parts: Parameters<typeof manifestOf>): View {
   return changed(createView(), {

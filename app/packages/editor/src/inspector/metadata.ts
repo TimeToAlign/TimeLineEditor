@@ -20,7 +20,13 @@ import type {
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import { addressWords, isCommandError, linkHolders, resolveAddress } from "@timetoalign/tilie-core";
+import {
+  addressWords,
+  isCommandError,
+  linkHolders,
+  resolveAddress,
+  unregisteredTerms,
+} from "@timetoalign/tilie-core";
 import type {
   Assertion,
   CompleteAssertion,
@@ -45,7 +51,6 @@ import {
   recognize,
   SCHEMA_VERSION,
   STATUSES,
-  unregisteredTerms,
   validate,
   withAssertion,
   withLabel,
@@ -158,7 +163,7 @@ const described = new WeakMap<Manifest, Described>();
 
 /**
  * Check `value` as the schema does, putting its unregistered terms into
- * `terms`: TimeToShare's `unregisteredTerms` validates as `validate` does,
+ * `terms`: core's `unregisteredTerms` validates as the schema check does,
  * so the manifest is checked once.
  */
 function checkTerms(value: unknown, terms: UnregisteredTerm[]): asserts value is LosslessManifest {

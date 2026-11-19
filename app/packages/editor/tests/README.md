@@ -457,8 +457,8 @@ accepts and refuses).
    styling (`graphical`). With `bare` styled by one `style` command, each
    mode's JSON text is pinned whole: the fixture `bare.yaml` or
    `bare.minimal.yaml`, whose `graphical` holds its root's default
-   timestamps, without that `graphical`, or with the statement added to
-   its `statements`. In every mode
+   timestamps, without that `graphical`, or with the rule added to
+   its `rules`. In every mode
    and format an applied edit stores the complete manifest with that edit
    (the styling kept when the text leaves it out) and shows the text
    written from it; the shown text, its JSON reflowed or with keys
@@ -473,6 +473,16 @@ accepts and refuses).
    TOML's import failing, choosing TOML shows one alert, exactly `TOML
    could not be loaded (<reason>).`, and no text area; choosing JSON again
    shows the JSON text and no alert.
+9. **The text writes IDs `#id`; the store holds them bare.** The text is
+   a manifest file's, so every ID and reference in it is written `#id`
+   (item 1 shows the fixtures' bytes, written so); the store holds them
+   bare. With `bare` in block A: its JSON text with the root renamed
+   `Renamed` applies, and the store's root is `{id: "bare", name:
+   "Renamed", …}`; the text with the root's `id` written `bare` (no `#`) is
+   refused `schema_violation` at `/timelines/0/id` and adds no journal
+   entry; a text whose `graphical.order` gives `#bare` a band order whose
+   first word is `x` is refused by the store at its bare key and shown at
+   the text's, `/graphical/order/#bare/0`.
 
 **The text state.** The panel's text outlives the panel, so its rules are
 proven on the state alone, then through the component ("The tabs and

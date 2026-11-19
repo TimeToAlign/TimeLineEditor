@@ -19,6 +19,7 @@ import {
   block,
   changed,
   deepFreeze,
+  fileText,
   key,
   loadText,
   manifestValue,
@@ -101,7 +102,7 @@ function everyList(view: View): Record<string, readonly Link[]> {
 function withScheme(): View {
   const value = manifestValue("bare.yaml");
   const manifest = loadText(
-    dumps({ ...value, schemes: [{ id: "clt_1", name: "Opus numbers" }] }),
+    fileText({ ...value, schemes: [{ id: "clt_1", name: "Opus numbers" }] }),
     "bare.yaml with a scheme",
   );
   return changed(createView(), { type: "add", into: {}, block: { id: A, manifest, x: 0, y: 0 } });
@@ -216,7 +217,7 @@ describe("links", () => {
   });
 
   it("are no member of a block (item 5)", () => {
-    const manifest = loadText(dumps(manifestValue("bare.yaml")), "bare.yaml");
+    const manifest = loadText(fileText(manifestValue("bare.yaml")), "bare.yaml");
     expect(
       refused(createView(), {
         type: "add",
@@ -385,7 +386,7 @@ describe("links through edits", () => {
 
   it("are held by a manifest without timelines (item 11)", () => {
     const { graphical: _, ...value } = manifestValue("bare.yaml");
-    const read = loadManifest(dumps({ ...value, timelines: [] }));
+    const read = loadManifest(fileText({ ...value, timelines: [] }));
     if ("problems" in read) throw new Error("refused");
     expect(importedManifest(read)).toEqual(read);
     const view = applied(

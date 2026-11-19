@@ -1,4 +1,4 @@
-import { dumps, JsonFloat, loads, SCHEMA_VERSION, unknownKeys } from "@timetoalign/timetoshare";
+import { dumps, JsonFloat, loads, SCHEMA_VERSION, withBareIds } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
@@ -9,6 +9,7 @@ import {
   normalizeManifest,
   readEntry,
   saveManifest,
+  unknownKeys,
 } from "../src/manifest/io.ts";
 import type { Located } from "../src/manifest/tree.ts";
 import { locateTimeline } from "../src/manifest/tree.ts";
@@ -20,6 +21,7 @@ import {
   at,
   block,
   changed,
+  fileText,
   fixture,
   load,
   loadText,
@@ -85,11 +87,11 @@ describe("shared rejections", () => {
 describe("the version marker", () => {
   it("refuses another version at the marker and a value without one at the top", () => {
     const value = manifestValue("bare.yaml");
-    expect(problems(dumps({ ...value, timetoshare: "0.6.0" }))).toEqual([
+    expect(problems(fileText({ ...value, timetoshare: "0.6.0" }))).toEqual([
       { code: "schema_violation", path: ["timetoshare"] },
     ]);
     const { timetoshare: _, ...unmarked } = value;
-    expect(problems(dumps(unmarked))).toEqual([{ code: "schema_violation", path: [] }]);
+    expect(problems(fileText(unmarked))).toEqual([{ code: "schema_violation", path: [] }]);
   });
 });
 
@@ -132,7 +134,7 @@ describe("unknown keys", () => {
   it("are kept through loading, commands and saving, and listed", () => {
     const value = manifestValue("bare.yaml");
     const [root] = value.timelines as Node[];
-    const text = dumps({
+    const text = fileText({
       ...value,
       "x-top": 1,
       timelines: [
@@ -180,14 +182,14 @@ describe("graphical styles", () => {
     const value = manifestValue("bare.yaml");
     const graphical = {
       styles: { kept: { fill: "#ABCDEF" } },
-      statements: [
+      rules: [
         { select: {}, set: "z" },
         { select: {}, set: "a" },
         { select: {}, set: "z" },
         { select: {}, set: "kept" },
       ],
     };
-    const text = dumps({ ...value, graphical });
+    const text = fileText({ ...value, graphical });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const manifest = loadText(text);
     expect(warn).toHaveBeenCalledExactlyOnceWith("Missing graphical styles: 'a', 'z'");
@@ -213,10 +215,8 @@ describe("graphical styles", () => {
     expect(saveManifest(manifest, COMPLETE)).toBe(text);
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
-    expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles", "timestamps"]);
-    const jump = graphical?.statements?.find(
-      (statement) => statement.select.element === "jump_from",
-    );
+    expect(Object.keys(graphical ?? {})).toEqual(["order", "rules", "styles", "timestamps"]);
+    const jump = graphical?.rules?.find((rule) => rule.select.element === "jump_from");
     expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
     expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(
       Object.keys(node(manifestValue("styled__score.yaml"), "graphical", "styles", "accent")),
@@ -226,11 +226,11 @@ describe("graphical styles", () => {
   it("reads an integer beyond 2^53 only where a double holds it exactly", () => {
     const value = manifestValue("bare.yaml");
     const exact = 2n ** 53n;
-    const statements = [{ select: {}, set: { "stroke-width": exact } }];
-    const held = loadText(dumps({ ...value, graphical: { statements } }));
-    expect(held.graphical?.statements).toEqual([{ select: {}, set: { "stroke-width": 2 ** 53 } }]);
+    const rules = [{ select: {}, set: { "stroke-width": exact } }];
+    const held = loadText(fileText({ ...value, graphical: { rules } }));
+    expect(held.graphical?.rules).toEqual([{ select: {}, set: { "stroke-width": 2 ** 53 } }]);
     const styles = { wide: { opacity: 0.5, "stroke-width": exact + 1n } };
-    expect(refused(dumps({ ...value, graphical: { styles } })).problems).toEqual([
+    expect(refused(fileText({ ...value, graphical: { styles } })).problems).toEqual([
       {
         code: "invalid_value",
         message: "9007199254740993 has no exact double",
@@ -245,7 +245,7 @@ describe("lossless numbers", () => {
   const withLength = (name: string, length: unknown) => {
     const value = manifestValue(name);
     const [root, ...rest] = value.timelines as Record<string, unknown>[];
-    return dumps({ ...value, timelines: [{ ...root, length }, ...rest] });
+    return fileText({ ...value, timelines: [{ ...root, length }, ...rest] });
   };
 
   it("keeps an int above 2^53", () => {
@@ -289,10 +289,10 @@ describe("canonical order", () => {
       manifestation: "segno",
       coordinate: [1, 1],
     }));
-    const text = dumps({ ...value, timelines: [{ ...root, flow_control }] });
+    const text = fileText({ ...value, timelines: [{ ...root, flow_control }] });
     const saved = loads(saveManifest(loadText(text)));
     const ordered = node(saved, "timelines", 0).flow_control as Node[];
-    expect(ordered.map((element) => element.id)).toEqual(["～", "\u{1F3B5}"]);
+    expect(ordered.map((element) => element.id)).toEqual(["#～", "#\u{1F3B5}"]);
   });
 });
 
@@ -310,7 +310,7 @@ describe("invariants", () => {
     });
     Object.assign(node(value, ...rootPath, "children", 1), { offset: [-1, 1] });
     Object.assign(root, { regions: [{ ...region, end: [0, 1] }] });
-    const text = dumps(value);
+    const text = fileText(value);
     // At -1, clt_3 comes before clt_2 in canonical order.
     expect(problems(text)).toEqual([
       { code: "negative_child_offset", path: [...rootPath, "children", 0, "offset"] },
@@ -352,7 +352,7 @@ describe("invariants", () => {
   it("accepts a child of another number type", () => {
     const value = base();
     Object.assign(node(value, ...childPath), { number_type: "float", length: new JsonFloat(4) });
-    const text = dumps(value);
+    const text = fileText(value);
     expect(text.includes("length: 4.0\n")).toBe(true);
     expect(saveManifest(loadText(text), COMPLETE)).toBe(text);
   });
@@ -360,7 +360,7 @@ describe("invariants", () => {
   it.each(cases)("%s", (code, change, expectedPath) => {
     const value = base();
     change(value);
-    expect(problems(dumps(value))).toEqual([{ code, path: expectedPath }]);
+    expect(problems(fileText(value))).toEqual([{ code, path: expectedPath }]);
   });
 
   it.each([
@@ -391,13 +391,15 @@ describe("invariants", () => {
   ])("leaves %s to the schema", (_, change, path, message, at = childPath) => {
     const value = base();
     Object.assign(node(value, ...at), change);
-    expect(refused(dumps(value)).problems).toEqual([{ code: "schema_violation", message, path }]);
+    expect(refused(fileText(value)).problems).toEqual([
+      { code: "schema_violation", message, path },
+    ]);
   });
 
   it("refuses a negative child offset itself, which the schema accepts", () => {
     const value = base();
     Object.assign(node(value, ...childPath), { offset: [-1, 3] });
-    expect(refused(dumps(value)).problems).toEqual([
+    expect(refused(fileText(value)).problems).toEqual([
       {
         code: "negative_child_offset",
         message: "A negative child offset is not supported yet: child 'clt_2' has offset [-1, 3].",
@@ -417,7 +419,7 @@ describe("invariants", () => {
         timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "take", unit, length, children: [child] }],
       };
-      expect(refused(dumps(value)).problems).toEqual([
+      expect(refused(fileText(value)).problems).toEqual([
         {
           code: "negative_child_offset",
           message: `A negative child offset is not supported yet: child 'part' has offset ${spelled}.`,
@@ -463,7 +465,7 @@ describe("segments read unlocked", () => {
       children: (timeline.children as Node[]).map(state),
     });
     const value = manifestValue("segment_line.yaml");
-    return loadText(dumps({ ...value, timelines: (value.timelines as Node[]).map(state) }));
+    return loadText(fileText({ ...value, timelines: (value.timelines as Node[]).map(state) }));
   }
   /** Every timeline's `locked`, by id. */
   function locks(manifest: Manifest): Record<string, unknown> {
@@ -500,8 +502,8 @@ describe("segments read unlocked", () => {
     const manifest = read({ a1: true, b1: true, b2: true, c1: true });
     const saved = locks(loadText(saveManifest(manifest)));
     expect(SEGMENTS.map((id) => saved[id])).toEqual([false, false, false, false]);
-    const complete = loads(saveManifest(manifest, COMPLETE));
-    const minimal = loads(saveManifest(manifest));
+    const complete = withBareIds(loads(saveManifest(manifest, COMPLETE)));
+    const minimal = withBareIds(loads(saveManifest(manifest)));
     const stated = (value: unknown) => {
       const found: Record<string, unknown> = {};
       const walk = (timeline: Node) => {

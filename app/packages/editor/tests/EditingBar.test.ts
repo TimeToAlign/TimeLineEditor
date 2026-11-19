@@ -3,13 +3,12 @@
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Address, Manifest, Store } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { dumps, loads } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EditingBar from "../src/inspector/EditingBar.svelte";
 import { editorName } from "../src/inspector/words.ts";
 import { stubEditor } from "./dom.ts";
-import { fixtureText, storeOf } from "./support.ts";
+import { fileText, manifestValue, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -22,14 +21,14 @@ function address(block: string, id?: string): Address {
 
 /** `bundle_mixed` known only by id: its `name` and its group `group_2`'s `name` deleted, its `id` `mixed`. */
 function idOnly(): Manifest {
-  const value = loads(fixtureText("bundles/bundle_mixed")) as {
+  const value = manifestValue("bundles/bundle_mixed") as {
     [key: string]: unknown;
     groups: { [key: string]: unknown }[];
   };
   delete value.name;
   value.id = "mixed";
   delete value.groups[1]?.name;
-  const manifest = loadManifest(dumps(value));
+  const manifest = loadManifest(fileText(value));
   if (isLoadError(manifest)) throw new Error("the id-only bundle is refused");
   return manifest;
 }

@@ -1,8 +1,11 @@
 /**
- * The schema boundary: the one path from a value read from text to a
- * `Manifest` (`normalizeManifest`), the one path from a command's map,
- * region or flow-control element to its typed form (`readEntry`), and the
- * one path back (`saveManifest`).
+ * The schema boundary: the one path from a manifest file's text to a
+ * `Manifest` (`loadManifest`) and from a value with bare IDs to one
+ * (`normalizeManifest`), the one path from a command's map, region or
+ * flow-control element to its typed form (`readEntry`), and the one path
+ * back to a file (`saveManifest`). A file writes every ID `#id`; TiLiE holds
+ * every ID bare, and its one schema check of what it holds (`schemaChecked`)
+ * checks the file form.
  */
 
 import type {
@@ -13,8 +16,10 @@ import type {
   JsonNumber,
   Lossless,
   LosslessManifest,
+  Rule,
   Selector,
-  Statement,
+  UnknownKey,
+  UnregisteredTerm,
 } from "@timetoalign/timetoshare";
 import {
   canonicalOrder,
@@ -22,13 +27,20 @@ import {
   completeManifest,
   completeStyles,
   dumpsFile,
+  FileIdError,
   fileForm,
+  unknownKeys as fileUnknownKeys,
+  unregisteredTerms as fileUnregisteredTerms,
+  fromFileId,
   isJsonFloat,
   loads,
   SCHEMA_VERSION,
   SchemaValidationError,
+  toFileId,
   UnsupportedVersionError,
   validate,
+  withBareIds,
+  withFileIds,
   YamlSyntaxError,
 } from "@timetoalign/timetoshare";
 import type { LoadError, Problem } from "../errors.ts";
@@ -50,25 +62,120 @@ import type { Located } from "./tree.ts";
 import { findTimeline } from "./tree.ts";
 import type { Manifest, MeasureMap } from "./types.ts";
 
-/** The problem a schema refusal is reported as. */
-function schemaProblem(error: unknown): Problem {
+/**
+ * The problem a schema refusal is reported as, at the path the validators
+ * give: the schema itself (code `schema`) and the reading of IDs
+ * (`FileIdError`) read the value as the file writes it, every later check
+ * reads it with bare IDs and names a key of `graphical.order` bare. For a
+ * manifest TiLiE holds (`held`), a path into the file form leads into the
+ * manifest itself (`idFormPath`); an ID the file form does not write is
+ * refused as the schema refuses it.
+ */
+function schemaProblem(error: unknown, held: boolean): Problem {
+  const found = refusalOf(error);
+  const inFileForm = !(error instanceof SchemaValidationError) || error.code === "schema";
+  return held && inFileForm ? { ...found, path: idFormPath(found.path, false) } : found;
+}
+
+function refusalOf(error: unknown): Problem {
   if (error instanceof SchemaValidationError) {
     return problem(ErrorCode.schemaViolation, error.detail, error.path);
   }
   if (error instanceof UnsupportedVersionError) {
     return problem(ErrorCode.schemaViolation, error.message, ["timetoshare"]);
   }
+  if (error instanceof FileIdError) {
+    return problem(ErrorCode.schemaViolation, error.message, error.path);
+  }
   throw error;
 }
 
-/** `value` as the schema accepts it, or the schema's first problem. */
+/** The members of a manifest whose keys are IDs: `graphical.order`. */
+const KEYED_BY_ID = ["graphical", "order"] as const;
+
+/**
+ * A path into a manifest written with bare IDs as the same path into its
+ * file form (`toFile`), or back: the one segment that is an ID, a key of
+ * `graphical.order`, gains its `#`, or loses it where it has one. Every
+ * other segment is a key or an index, the same in both forms.
+ */
+export function idFormPath(path: readonly PathSegment[], toFile: boolean): PathSegment[] {
+  const [first, second, key, ...rest] = path;
+  if (first !== KEYED_BY_ID[0] || second !== KEYED_BY_ID[1] || typeof key !== "string") {
+    return [...path];
+  }
+  if (toFile) return [first, second, toFileId(key), ...rest];
+  return [first, second, key.startsWith("#") ? fromFileId(key) : key, ...rest];
+}
+
+/**
+ * A manifest written with bare IDs, as TiLiE holds every manifest, as the
+ * schema accepts it, or the schema's first problem: the value's file form
+ * (`withFileIds`) is checked, and the problem's path leads into the value
+ * itself (`idFormPath`). The one schema check of a manifest TiLiE holds.
+ */
 export function schemaChecked(value: unknown): LosslessManifest | Problem {
   try {
-    validate(value);
-    return value;
+    const file = withFileIds(value);
+    validate(file);
+    return withBareIds(file);
   } catch (error) {
-    return schemaProblem(error);
+    return schemaProblem(error, true);
   }
+}
+
+/**
+ * A manifest file's value, its IDs written `#id`, as the schema accepts it
+ * and with every ID bare (`withBareIds`), or the schema's first problem at
+ * the path the validators give.
+ */
+function fileChecked(value: unknown): LosslessManifest | Problem {
+  try {
+    validate(value);
+    return withBareIds(value);
+  } catch (error) {
+    return schemaProblem(error, false);
+  }
+}
+
+/**
+ * A manifest value in the file form, its IDs written `#id`, with every ID
+ * bare (`withBareIds`), unchecked otherwise: what TiLiE holds of a value read
+ * from outside that its commands check, such as a manifest text applied to a
+ * block. A text that writes no ID where one stands is refused at its path.
+ */
+export function withHeldIds<T>(value: T): T | LoadError {
+  try {
+    return withBareIds(value);
+  } catch (error) {
+    return refuse(schemaProblem(error, false));
+  }
+}
+
+/**
+ * The keys of a manifest TiLiE holds, its IDs bare, that its schema does not
+ * declare (TimeToShare's `unknownKeys` of its file form), each path into the
+ * manifest itself.
+ *
+ * @throws {SchemaValidationError} for a manifest the schema refuses.
+ */
+export function unknownKeys(manifest: unknown): UnknownKey[] {
+  return fileUnknownKeys(withFileIds(manifest)).map(({ path, key }) => ({
+    path: idFormPath(path, false),
+    key,
+  }));
+}
+
+/**
+ * The bare terms of the links of a manifest TiLiE holds, its IDs bare,
+ * outside their registered words (TimeToShare's `unregisteredTerms` of its
+ * file form, whose paths, found with bare IDs, lead into the manifest
+ * itself).
+ *
+ * @throws {SchemaValidationError} for a manifest the schema refuses.
+ */
+export function unregisteredTerms(manifest: unknown): UnregisteredTerm[] {
+  return fileUnregisteredTerms(withFileIds(manifest));
 }
 
 /** The schema's first problem of `value`, as a list; empty when the schema accepts it. */
@@ -165,13 +272,13 @@ export type Styling = Omit<Graphical, "timestamps">;
 /**
  * The styling of a graphical block read losslessly, its declarations as the
  * drawing reads them: every declaration's numbers doubles
- * (`plainDeclaration`), in the named styles and in the statements; the
+ * (`plainDeclaration`), in the named styles and in the rules; the
  * orders kept as they are, and every key of every object where it was. The
  * named timestamps, whose coordinates are own-axis values, are left to the
  * caller.
  */
 export function plainGraphical(graphical: Lossless<Styling>): Styling | Problem {
-  const { styles, statements, ...rest } = graphical;
+  const { styles, rules, ...rest } = graphical;
   const kept: typeof rest = graphical;
   const result: { -readonly [P in keyof Styling]: Styling[P] } = { ...kept };
   if (styles !== undefined) {
@@ -183,19 +290,17 @@ export function plainGraphical(graphical: Lossless<Styling>): Styling | Problem 
     }
     result.styles = plain;
   }
-  if (statements !== undefined) {
-    const plain: Statement[] = [];
-    for (const [index, statement] of statements.entries()) {
-      const { select, set, ...others } = statement;
+  if (rules !== undefined) {
+    const plain: Rule[] = [];
+    for (const [index, rule] of rules.entries()) {
+      const { select, set, ...others } = rule;
       const read =
-        typeof set === "string"
-          ? set
-          : plainDeclaration(set, ["graphical", "statements", index, "set"]);
+        typeof set === "string" ? set : plainDeclaration(set, ["graphical", "rules", index, "set"]);
       if (typeof read !== "string" && "code" in read) return read;
-      const kept: typeof others = statement;
+      const kept: typeof others = rule;
       plain.push({ ...kept, select: plainSelector(select), set: read });
     }
-    result.statements = plain;
+    result.rules = plain;
   }
   return result;
 }
@@ -245,8 +350,8 @@ export function manifestProblems(value: unknown): Problem[] {
 }
 
 /**
- * A manifest from a value read losslessly (`loads`), the one way a
- * value becomes a `Manifest`: the schema validates it, then it is put in its
+ * A manifest from a value with bare IDs, the one way such a value becomes a
+ * `Manifest`: the schema validates it (`schemaChecked`), then it is put in its
  * complete form (every default written out, whether it was complete or
  * minimal or anything between), in canonical order, its segments unlocked,
  * its invariants checked, its graphical declarations' numbers made doubles,
@@ -256,7 +361,11 @@ export function manifestProblems(value: unknown): Problem[] {
  */
 export function normalizeManifest(value: unknown): Manifest | LoadError {
   const checked = schemaChecked(value);
-  if ("code" in checked) return refuse(checked);
+  return "code" in checked ? refuse(checked) : normalized(checked);
+}
+
+/** A value the schema accepts, its IDs bare, as `normalizeManifest` reads it after the check. */
+function normalized(checked: LosslessManifest): Manifest | LoadError {
   const manifest = completed(checked);
   if (isLoadError(manifest) || manifest.graphical === undefined) return manifest;
   // completeStyles issues the one warning naming every missing style. It clones what it is
@@ -380,10 +489,17 @@ function readValue(text: string): unknown {
   }
 }
 
-/** A manifest from its text in any serialization (`normalizeManifest`). */
+/**
+ * A manifest from the text of a manifest file in any serialization, its
+ * IDs written `#id`: the schema checks the value as the file writes it, then
+ * every ID is made bare (`withBareIds`) and the manifest read as
+ * `normalizeManifest` reads one. A problem's path leads into the file.
+ */
 export function loadManifest(text: string): Manifest | LoadError {
   const value = readValue(text);
-  return isLoadError(value) ? value : normalizeManifest(value);
+  if (isLoadError(value)) return value;
+  const checked = fileChecked(value);
+  return "code" in checked ? refuse(checked) : normalized(checked);
 }
 
 /** A manifest read from a file, and how the file writes it. */
@@ -404,12 +520,13 @@ export function readManifestFile(text: string): ReadManifestFile | LoadError {
 
 /**
  * A manifest's text as a file of the form `file` writes it (TimeToShare's
- * `dumpsFile`), each member not given as `NEW_MANIFEST_FILE` says.
+ * `dumpsFile`), each member not given as `NEW_MANIFEST_FILE` says, every ID
+ * written `#id` (`withFileIds`).
  *
  * @throws {InvalidManifestError} for a manifest the schema or the invariants refuse.
  */
 export function saveManifest(manifest: Manifest, file: Partial<FileForm> = {}): string {
   const problems = manifestProblems(manifest);
   if (problems.length > 0) throw new InvalidManifestError(problems);
-  return dumpsFile(manifest, { ...NEW_MANIFEST_FILE, ...file });
+  return dumpsFile(withFileIds(manifest), { ...NEW_MANIFEST_FILE, ...file });
 }

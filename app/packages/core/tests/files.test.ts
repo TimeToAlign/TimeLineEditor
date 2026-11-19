@@ -1,4 +1,4 @@
-import { dumps, JsonFloat } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError } from "../src/errors.ts";
@@ -24,6 +24,7 @@ import {
   C,
   changed,
   deepFreeze,
+  fileText,
   key,
   load,
   loadText,
@@ -120,7 +121,7 @@ describe("invariants root by root", () => {
     const { graphical } = value;
     graphical.timestamps = graphical.timestamps.filter((item) => item.timeline !== "second-half");
     Object.assign(child, { unit: "seconds", number_type: "float", length: new JsonFloat(8) });
-    const result = loadManifest(dumps(value));
+    const result = loadManifest(fileText(value));
     expect(isLoadError(result) ? result.problems : result).toEqual([
       {
         code: "schema_violation",
@@ -537,7 +538,7 @@ describe("commands in blocks of several roots", () => {
     expect(file(styled).graphical).toEqual({
       order: { group_1: ["score", "page", "performance"] },
       styles: { "frame-highlight": { stroke: "#7F00FF" } },
-      statements: [
+      rules: [
         { select: { element: "frame" }, set: "frame-highlight" },
         {
           select: { addresses: [{ id: "group_1", part: ["name"] }], element: "name" },
@@ -557,16 +558,16 @@ describe("commands in blocks of several roots", () => {
       select: { element: "frame" },
       set: { stroke: "#C00000" },
     });
-    const statement = { select: { element: "frame" }, set: { stroke: "#C00000" } };
+    const rule = { select: { element: "frame" }, set: { stroke: "#C00000" } };
     expect(block(styled, A).manifest.graphical).toEqual({
       ...file(view).graphical,
       styles: {},
-      statements: [statement],
+      rules: [rule],
     });
     expect(block(styled, B).manifest.graphical).toEqual({
       ...block(view, B).manifest.graphical,
       styles: {},
-      statements: [statement],
+      rules: [rule],
     });
     expect(block(styled, C)).toBe(block(view, C));
   });
@@ -631,7 +632,7 @@ describe("delete deletes", () => {
     expect(after.timelines).toEqual(file(view).timelines);
   });
 
-  it("removes the addresses naming a removed element, and a statement left without", () => {
+  it("removes the addresses naming a removed element, and a rule left without", () => {
     const styled = [
       {
         select: { addresses: [{ id: "page" }, { id: "score", part: ["card"] }] },
@@ -651,8 +652,8 @@ describe("delete deletes", () => {
         changed(view, { type: "style", select, set: properties, blocks: [A] }),
       viewOf([A, STYLED]),
     );
-    const own = file(viewOf([A, STYLED])).graphical?.statements ?? [];
-    expect(remove(styled, "page").graphical?.statements).toEqual([
+    const own = file(viewOf([A, STYLED])).graphical?.rules ?? [];
+    expect(remove(styled, "page").graphical?.rules).toEqual([
       ...own,
       { select: { addresses: [{ id: "score", part: ["card"] }] }, set: { opacity: 0.5 } },
     ]);
@@ -691,7 +692,7 @@ describe("IDs of new elements", () => {
     const view = changed(createView(), {
       type: "add",
       into: {},
-      block: { id: A, manifest: loadText(dumps(value)), x: 0, y: 0 },
+      block: { id: A, manifest: loadText(fileText(value)), x: 0, y: 0 },
     });
     for (const id of ["group_1", "edition", "cmap_5"]) {
       expect(rejected(view, addRegion("score", region(id, quarters(2), quarters(4))))).toEqual({

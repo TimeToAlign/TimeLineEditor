@@ -15,6 +15,7 @@ import {
   loads,
   minimal,
   SCHEMA_VERSION,
+  withBareIds,
 } from "@timetoalign/timetoshare";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Format } from "../src/inspector/formats.svelte.ts";
@@ -24,7 +25,7 @@ import type { TextOptions } from "../src/inspector/manifestText.ts";
 import { applyText, follow, manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { DOCUMENT, omissibleNulls } from "../src/inspector/nulls.ts";
 import { problemPointer } from "../src/inspector/problems.ts";
-import { fixtureText, storeOf } from "./support.ts";
+import { fileText, fixtureText, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -57,7 +58,7 @@ function manifestIn(store: Store, id: string): Json {
 /** One `quarters` timeline beside a measure map whose row states `nominal_length: null`, which TOML cannot hold. */
 function nominalNull(): Manifest {
   const manifest = loadManifest(
-    dumps({
+    fileText({
       timetoshare: SCHEMA_VERSION,
       timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
       measure_maps: [
@@ -220,7 +221,7 @@ describe("the TOML null rule", () => {
    */
   function nullable(): Json {
     const manifest = loadManifest(
-      dumps({
+      fileText({
         timetoshare: SCHEMA_VERSION,
         timelines: [
           {
@@ -343,7 +344,7 @@ describe("the TOML null rule", () => {
 
   it("leaves a missing member that may not be null to the schema check", () => {
     const store = storeOf("bare");
-    const text = written("toml", manifestIn(store, A)).replace('id = "bare"\n', "");
+    const text = written("toml", manifestIn(store, A)).replace('id = "#bare"\n', "");
     const applied = applyText(store, A, "toml", text, FILE_FORM);
     expect(applied.ok ? applied : applied.problems.map(({ code, path }) => [code, path])).toEqual([
       ["schema_violation", ["timelines", 0]],
@@ -365,7 +366,7 @@ describe("applying a text", () => {
     expect(store.journal).toHaveLength(2);
     expect((store.journal[1] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: { block: A }, values: { manifest: parsed } }],
+      changes: [{ target: { block: A }, values: { manifest: withBareIds(parsed) } }],
     });
     expect(dumps(manifestIn(store, A))).toBe(dumps(parsed));
     expect(applyText(store, A, "json", text, FILE_FORM).ok).toBe(true);
@@ -377,7 +378,7 @@ describe("applying a text", () => {
     const before = dumps(manifestIn(store, A));
     const refusal = store.dispatch({
       type: "set",
-      changes: [{ target: { block: A }, values: { manifest: manifestIn(store, A) } }],
+      changes: [{ target: { block: A }, values: { manifest: blockIn(store, A).manifest } }],
     });
     expect(refusal).toEqual({
       code: "invalid_value",
@@ -515,26 +516,26 @@ describe("comments", () => {
 });
 
 describe("the four text modes", () => {
-  /** The statement the `style` of `styledBare` adds. */
-  const STATEMENT = { select: { element: "timeline" }, set: { stroke: "#800000" } };
+  /** The rule the `style` of `styledBare` adds. */
+  const RULE = { select: { element: "timeline" }, set: { stroke: "#800000" } };
   /** A fixture's text as an object. */
   const objectOf = (name: string) => loads(fixtureText(name)) as { [key: string]: Json };
   /** A value's pretty JSON, the text the panel shows in JSON. */
   const json = (value: unknown): string => dumps(value, { serialization: "json" });
-  /** `fixture` without its `graphical` (the styling), or with the statement added to it. */
+  /** `fixture` without its `graphical` (the styling), or with the rule added to it. */
   function shownOf(fixture: { [key: string]: Json }, styled: boolean): string {
     const { graphical, ...rest } = fixture;
     if (!styled) return json(rest);
     const own = graphical as { [key: string]: Json };
-    const statements = [...((own.statements ?? []) as Json[]), STATEMENT];
-    return json({ ...rest, graphical: { ...own, statements } });
+    const rules = [...((own.rules ?? []) as Json[]), RULE];
+    return json({ ...rest, graphical: { ...own, rules } });
   }
   const bare = fixtureText("bare");
   const bareMinimal = fixtureText("bare.minimal");
   /**
    * The JSON text each mode shows: the fixture `bare.yaml` or
    * `bare.minimal.yaml`, whose `graphical` holds its root's default
-   * timestamps, without that `graphical` or with the statement added to it.
+   * timestamps, without that `graphical` or with the rule added to it.
    */
   const SHOWN: Record<Mode, string> = {
     "complete without styling": shownOf(objectOf("bare"), false),
@@ -624,7 +625,7 @@ describe("the four text modes", () => {
       const reversed = compactJson(reversedKeys(shown) as never);
       const variants = [flat, reversed];
       if (options.minimal) {
-        variants.push(text.replace('"id": "bare",', '"id": "bare",\n      "locked": false,'));
+        variants.push(text.replace('"id": "#bare",', '"id": "#bare",\n      "locked": false,'));
       }
       expect(new Set([text, ...variants]).size).toBe(variants.length + 1);
       for (const variant of variants) {
@@ -645,9 +646,9 @@ describe("the four text modes", () => {
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
         expect(store.journal).toHaveLength(3);
         const { graphical } = objectOf("bare");
-        const recoloured = { ...STATEMENT, set: { stroke: "#008000" } };
+        const recoloured = { ...RULE, set: { stroke: "#008000" } };
         expect(dumps(at(manifestIn(store, A), "graphical"))).toBe(
-          dumps({ ...(graphical as { [key: string]: Json }), statements: [recoloured] }),
+          dumps({ ...(graphical as { [key: string]: Json }), rules: [recoloured] }),
         );
       });
     } else {
@@ -779,5 +780,49 @@ describe("the text state", () => {
     text.format = "yaml";
     text.follow(blockIn(store, A), { ...COMPLETE, minimal: true });
     expect(text.text).toBe(written("yaml", manifestIn(store, A), { ...COMPLETE, minimal: true }));
+  });
+});
+
+describe("IDs in the text and in the store", () => {
+  it("writes them #id in the text and stores them bare", () => {
+    const store = storeOf("bare");
+    const json = written("json", manifestIn(store, A));
+    const renamed = applyText(
+      store,
+      A,
+      "json",
+      json.replace('"name": "Bare"', '"name": "Renamed"'),
+      FILE_FORM,
+    );
+    expect(renamed.ok).toBe(true);
+    const [root] = blockIn(store, A).manifest.timelines;
+    expect([root?.id, root?.name]).toEqual(["bare", "Renamed"]);
+    expect(store.journal).toHaveLength(2);
+
+    const shown = written("json", manifestIn(store, A));
+    const bareId = applyText(
+      store,
+      A,
+      "json",
+      shown.replace('"id": "#bare"', '"id": "bare"'),
+      FILE_FORM,
+    );
+    expect(
+      bareId.ok ? [] : bareId.problems.map((item) => [item.code, problemPointer(item)]),
+    ).toEqual([["schema_violation", "/timelines/0/id"]]);
+    const ordered = applyText(
+      store,
+      A,
+      "json",
+      shown.replace(
+        '"order": {}',
+        '"order": {"#bare": ["x", "conversion_maps", "line", "markers", "regions", "flow_control"]}',
+      ),
+      FILE_FORM,
+    );
+    expect(
+      ordered.ok ? [] : ordered.problems.map((item) => [item.code, problemPointer(item)]),
+    ).toEqual([["schema_violation", "/graphical/order/#bare/0"]]);
+    expect(store.journal).toHaveLength(2);
   });
 });

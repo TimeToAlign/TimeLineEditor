@@ -71,14 +71,14 @@ against whatever TimeToShare ships. The manifests named most often:
 - `bundles/bundle_free_ids.yaml`: roots `https://example.org/piece/score`
   (quarters, region `https://example.org/piece/score#exposition`) and
   `perf/take 2` (seconds, region `take 2/intro`), both members of
-  `group_1`; one statement selects `{addresses: [{id: "take 2/intro"}]}`.
+  `group_1`; one rule selects `{addresses: [{id: "take 2/intro"}]}`.
 - `groups/group_child_member.yaml`: group `group_1` "Second half", display
   order `second-half`, `recording`; root `piece` holds the member
   `second-half` at 8; root `recording`.
 - `groups/group_number_types.yaml`: group `group_1` "Edition" of the roots
   `page`, `performance`, `score`, display order `score`, `page`,
   `performance`; `groups/group_styled.yaml` is the same with `graphical`
-  styles and statements beside its `order`.
+  styles and rules beside its `order`.
 
 ## Package name (`name.test.ts`)
 
@@ -195,7 +195,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    is refused by `loadManifest` with exactly one problem whose `path` equals
    the case's `path`. These include TimeToShare's identity and
    representation rules (an ID repeated anywhere in the manifest, an ID
-   holding a control character, an address of a statement of the wrong
+   holding a control character, an address of a rule of the wrong
    shape, a band order in the former string form, a jump origin's `target`
    naming no jump target of its timeline, a measure view naming no measure
    map, an `int` on a `fraction` axis),
@@ -218,10 +218,10 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
    `set` of the root's `name` and an `add` of a flow marker, all three are still
-   there with their values, and `saveManifest` writes them. `unknownKeys`,
-   re-exported from TimeToShare, lists exactly the three `{path, key}`
-   pairs, sorted by path then key.
-6. **Missing styles are completed.** A graphical statement naming each of
+   there with their values, and `saveManifest` writes them. Core's
+   `unknownKeys` (TimeToShare's of the manifest's file form) lists exactly
+   the three `{path, key}` pairs, sorted by path then key.
+6. **Missing styles are completed.** A graphical rule naming each of
    two absent styles produces exactly one warning naming both, the one
    TimeToShare issues (`Missing graphical styles: 'a', 'z'`, names sorted
    by code point); core adds none of its own. The loaded manifest contains
@@ -234,7 +234,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    `[9007199254740993n, 1]` and saves it as written.
 8. **Save goes through the canonical order.** `bare.yaml` given two jump
    targets at the same coordinate with the ids `"\u{1F3B5}"` (a surrogate
-   pair in UTF-16) and `"～"`, in that order, is written with `"～"` first:
+   pair in UTF-16) and `"～"`, in that order, is written with `"#～"` first:
    flow-control elements by coordinate, then id in code-point order, the
    reverse of JavaScript's default sort.
 9. **A child of another number type** (a float child of a Fraction parent,
@@ -382,6 +382,53 @@ by its `dumps` in the other two serializations.
    refused exactly as `loadManifest` refuses it: `{"timetoshare": `
    (`invalid_json`), `timelines: [` (`invalid_yaml`) and `bare.yaml` with
    its version `0.6.0` (`schema_violation` at `["timetoshare"]`).
+
+## IDs in a file and in memory (`ids.test.ts`)
+
+A manifest file writes every ID and every reference to one `#id`; core
+holds every ID bare, in the manifests it reads, its commands, its
+addresses and the workspace file alike. The conversion is the schema
+package's (`withFileIds`, `withBareIds`, proven in its suite); these tests
+prove that core converts at its boundary and only there: what a file says
+reaches the store bare, what the store holds reaches a file as `#id`, and
+the schema checks of what core holds read the file form while their
+problems point into the manifest core holds. The oracles are the fixture
+texts (written `#id` by the schema package's emitter), the bare IDs the
+commands address, and paths pinned by hand.
+
+1. **Read bare.** `groups/group_styled.yaml` loads with every ID bare: its
+   root and child IDs, the group's `id` and `members`, the keys of
+   `graphical.order`, each rule's `addresses` `id`, each named
+   timestamp's `id` and `timeline`, exactly as listed in the test, and
+   none starting with `#`. Its file round trip (item 1 of "Manifest load
+   and save") proves the way back.
+2. **Commands address bare IDs.** In a block of that fixture, a `set` of
+   the root's `name` at `{block, id: <bare root ID>}` is accepted, and at
+   `{block, id: "#" + <root ID>}` refused `unknown_target`.
+3. **A file must write IDs `#id`.** `bare.yaml` with its root's `id`
+   written bare is refused by `loadManifest` with exactly one
+   `schema_violation` at `["timelines", 0, "id"]`; with a `graphical.order`
+   key written bare, at `["graphical", "order"]`, the object whose key the
+   schema refuses.
+4. **What core holds is checked in its file form.** A manifest held with
+   bare IDs whose `graphical.order` entry for its root holds a word that is
+   no band (`"x"`) is refused by `normalizeManifest` with exactly one
+   `schema_violation` at `["graphical", "order", <bare root ID>, i]`: the key
+   loses the `#` of the file form the schema read. `idFormPath` gives
+   `["graphical", "order", "#a", 0]` for `["graphical", "order", "a", 0]`
+   and back, and leaves `["timelines", 0, "id"]` as it is.
+5. **An ID that starts with `#`.** A held manifest whose root ID is `#x`
+   is saved as `##x` and the saved text loads back to the root ID `#x`.
+6. **Unknown keys are found in the file form, at held paths.** Core's
+   `unknownKeys` and `unregisteredTerms` of a held manifest are the schema
+   package's of its file form; an unknown key on the root of
+   `bare.yaml` is listed at `["timelines", 0]`.
+7. **The workspace file keeps bare IDs.** A workspace holding a block of
+   `bare.yaml` is written with the root's `"id": "bare"` (no `#` in the
+   block's manifest), and reads back equal.
+8. **A manifest value from outside** (`withHeldIds`): `bare.yaml`'s value
+   loses every `#`; with its root's `id` written bare it is refused with
+   exactly one `schema_violation` at `["timelines", 0, "id"]`.
 
 ## Unknown length (`length.test.ts`)
 
@@ -592,7 +639,7 @@ check of who holds what.
    ["label", "end"]}]` nothing, `[{id: "phrase", facet: "regions"}]` the
    band, `[{id: "melody", part: ["card"]}]` the card and `[{part:
    ["name"]}]` nothing (the manifest is anonymous). The empty selector
-   matches every key. On `bundles/bundle_free_ids.yaml` its statement's
+   matches every key. On `bundles/bundle_free_ids.yaml` its rule's
    selector `{addresses: [{id: "take 2/intro"}]}` matches exactly the region
    `take 2/intro` of `perf/take 2`: an ID is matched whole, never split.
 6. **`inside`** matches what an element of the named type holds at any
@@ -610,7 +657,7 @@ check of who holds what.
    `{element: "boundary"}`, `{element: "child"}`, `{addresses: [{id:
    "b"}]}` and `{within: "b"}`.
 8. **Bands of a root, a child and a segment**: `{element: "band", facet:
-   "regions"}` matches every regions band, and the default statement
+   "regions"}` matches every regions band, and the default rule
    `{element: "band", facet: "regions", inside: "band"}` every one but the
    root's; `{inside: "band"}` matches everything but the block, the root's
    card, line, name and bands, and its segments' parts.
@@ -675,7 +722,7 @@ the schema agree by construction.
 
 The view is `{meta, name, settings, graphical, blocks}`; an empty one
 carries the format marker `{format: "tilie-workspace", version: 7}`, the
-name `untitled`, the workspace's `graphical` `{}` (its default statements,
+name `untitled`, the workspace's `graphical` `{}` (its default rules,
 the cascade's layer between the built-in defaults and each manifest's own)
 and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
 {scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null},
@@ -1039,14 +1086,14 @@ other commands are not judged by it.
    block goes with every block whose `parent` chain reaches it.
 7. `style` over `A` (`map.yaml`) and `B` (`bare.yaml`) without `blocks`:
    `{element: "map"}` `stroke` goes into `A` only, as `{order: {}, styles:
-   {}, statements: [{select: {element: "map"}, set: {stroke:
-   "#C00000"}}]}`; a second property merges into that statement, a selector
-   equal in canonical JSON merges, another selector is another statement;
-   `null` removes a property and the last one the statement. With `blocks:
+   {}, rules: [{select: {element: "map"}, set: {stroke:
+   "#C00000"}}]}`; a second property merges into that rule, a selector
+   equal in canonical JSON merges, another selector is another rule;
+   `null` removes a property and the last one the rule. With `blocks:
    [B]` and `name: "green"`, the declaration becomes the style `green` and
-   the statement's `set` its name, `A` untouched; without `name`, a merge
-   into a named statement turns it into a declaration, the style unchanged;
-   a style emptied by `null` goes with every statement naming it.
+   the rule's `set` its name, `A` untouched; without `name`, a merge
+   into a named rule turns it into a declaration, the style unchanged;
+   a style emptied by `null` goes with every rule naming it.
 8. A command keeps an integral float a float: `x: JsonFloat(2)` is read as
    given, except in a declaration (item 2).
 
@@ -1435,15 +1482,15 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    A, id: "score"}, "region", "id"]` and `[{block: A, id: "page"}, "region",
    "id"]`. `style` with `blocks: [A]` on `group_styled.yaml`,
    `{select: {element: "ancestor"}, set: {opacity: 0.5}}`, adds that
-   statement after the manifest's three and keeps `styles` and `order`,
+   rule after the manifest's three and keeps `styles` and `order`,
    written out literally: `order` exactly `{group_1: ["score", "page",
    "performance"]}`, `styles` exactly `{"frame-highlight": {stroke:
-   "#7F00FF"}}`, and `statements` exactly `{select: {element: "frame"},
+   "#7F00FF"}}`, and `rules` exactly `{select: {element: "frame"},
    set: "frame-highlight"}`, `{select: {addresses: [{id: "group_1", part:
    ["name"]}], element: "name"}, set: {fill: "#7F00FF"}}`, `{select:
    {element: "card", inside: "frame"}, set: {rx: 2, shadow: "#C4B5FD"}}`,
-   then the new one. Statements cascade (a later one wins), so a
-   reordered, merged or rewritten statement would draw differently, and the
+   then the new one. Rules cascade (a later one wins), so a
+   reordered, merged or rewritten rule would draw differently, and the
    string `set` names a style that must still resolve. Without `blocks`,
    `{select: {element: "frame"}, set: {stroke: "#C00000"}}` reaches the two
    blocks holding a group and not the one-root block beside them.
@@ -1474,13 +1521,13 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      removing `bars` leaves `measure_maps: []` and every timeline as it
      was.
    - **`addresses` entries naming a removed element.** `group_styled.yaml`
-     with the statements `{select: {addresses: [{id: "page"}, {id: "score",
+     with the rules `{select: {addresses: [{id: "page"}, {id: "score",
      part: ["card"]}]}, set: {opacity: 0.5}}` and `{select: {addresses:
      [{id: "page", part: ["name"]}, {id: "page", facet: "regions"}]}, set:
      {opacity: 0.4}}` styled in, removing `page`: the first keeps
      `addresses: [{id: "score", part: ["card"]}]`, the second goes (its
      part and band of `page` go with `page`), the manifest's own three
-     statements are unchanged.
+     rules are unchanged.
    - **A group left without members stays; the last root leaves an empty
      array.** `group_number_types.yaml`, removing `page`, `performance` and
      `score` in one command: `timelines` is `[]`, `groups` is exactly
@@ -1743,9 +1790,9 @@ stated already; nothing else is dropped.
 
 **Band orders go with their timelines.** Removing a timeline removes the
 entries of `graphical.order` keyed by it and by each of its descendants (as
-for a group's display order), and a statement's `addresses` naming one of
+for a group's display order), and a rule's `addresses` naming one of
 its bands (`{id: T, facet}`) go with it as those naming its cards (`{id: T,
-part: ["card"]}`) do: the address goes with its timeline, and a statement
+part: ["card"]}`) do: the address goes with its timeline, and a rule
 left without `addresses` goes.
 
 20. With `recording: R`, `excerpt: E` and `annotations: D` set: `remove
@@ -1754,24 +1801,24 @@ left without `addresses` goes.
     `remove recording` instead leaves exactly `{group_1: ["score",
     "performance"], group_2: ["page"], annotations: D}` (its descendant's
     entry goes with its own).
-21. With the statements `{select: {addresses: [{id: "excerpt", facet:
+21. With the rules `{select: {addresses: [{id: "excerpt", facet:
     "regions"}, {id: "annotations", facet: "regions"}]}, set: {display:
     "inline"}}` and `{select: {addresses: [{id: "excerpt", facet:
     "markers"}]}, set: {display: "inline"}}`, `remove excerpt` leaves
     exactly `[{select: {addresses: [{id: "annotations", facet:
     "regions"}]}, set: {display: "inline"}}]`.
 22. **No command renames.** IDs are never settable, and core renames
-    neither an entry of `graphical.order` nor an address in a statement. A
+    neither an entry of `graphical.order` nor an address in a rule. A
     timeline's ID changes only with a whole manifest (`set bundle0001
     manifest`), which brings its own `graphical`. With `excerpt: E` and the
-    statement `{select: {addresses: [{id: "excerpt", facet: "regions"}]},
+    rule `{select: {addresses: [{id: "excerpt", facet: "regions"}]},
     set: {display: "inline"}}`, the manifest with `excerpt` renamed
     `fragment` in `recording`'s children, in `group_2`'s members and in its
     display order, its band order still keyed `excerpt`, is refused:
     `schema_violation` at `["bundle0001", "manifest", "graphical", "order",
     "excerpt"]`, message `'excerpt' names no group or timeline of this
     manifest`. The same with the entry rekeyed `fragment: E` is accepted
-    (a band order names no ID, so it moves unchanged), and the statement is
+    (a band order names no ID, so it moves unchanged), and the rule is
     kept exactly as written, still addressing `{id: "excerpt", facet:
     "regions"}`.
 
@@ -1882,10 +1929,10 @@ of segment line 'form' does not start where the one before it ends`). A
 timeline that is no segment has no ways. A segment's neighbours are
 segments, which are never locked, so they may always extend.
 
-Statements naming a removed timeline in `within` go with it, for any
-removal: on `segment_children.yaml` styled with three boundary statements
+Rules naming a removed timeline in `within` go with it, for any
+removal: on `segment_children.yaml` styled with three boundary rules
 `within` `theme`, `t1` and `coda`, removing `theme` leaves exactly the
-`coda` statement.
+`coda` rule.
 
 ## Named timestamps (`timestamps.test.ts`)
 
@@ -1909,7 +1956,7 @@ holding `timestamps.yaml` (TimeToShare's fixture): root `clt_1` (quarters,
 fraction, length 8) holding the child `clt_2` at 2 of length 4 (locked);
 `timestamp_1` "Downbeat" on `clt_1` at 3/2 with the default `display`,
 `timestamp_2` "Climax" on `clt_1` at 6 with `["wedge", "name"]` and
-`timestamp_3` "Entry" on `clt_2` at 1 with all five words; no statement.
+`timestamp_3` "Entry" on `clt_2` at 1 with all five words; no rule.
 Below, `T1`, `T2` and `T3` are those three objects as the fixture holds
 them, `DEFAULT` is `["wedge", "name", "cross_section"]`, `{block: A, id:
 "x"}` is written `x`, and its part `{block: A, id: "x", part: ["line"]}`
@@ -1955,7 +2002,7 @@ three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
 5. Into `bare` of `bare.yaml` with its `graphical` object left out before
    reading, `{name: "Mid", coordinate: [5, 2]}`: the manifest's
    `graphical` is exactly `{order: {},
-   statements: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
+   rules: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
    "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT}]}`.
 6. A given `display` is stored canonically: `["cross_section", "id",
    "wedge"]` is stored `["wedge", "id", "cross_section"]`; `[]` is stored
@@ -1997,7 +2044,7 @@ three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
 
 10. After a `style` of `{addresses: [{id: "timestamp_2", part:
     ["label"]}]}` setting `display: "none"`, removing `timestamp_2` leaves the timestamps `T1`, `T3`
-    and no statement (its one address named the removed timestamp's
+    and no rule (its one address named the removed timestamp's
     label).
 11. Removing `clt_2` removes `T3` with it (`T1`, `T2` left); removing
     `clt_1` leaves no timeline and no timestamp.
@@ -2025,7 +2072,7 @@ absence for a timeline below a new root and for a manifest that has a
     `origin`, at the float `0.0` (a `JsonFloat`, as a reader returns it).
 14. Importing (`importedManifest`), each fixture read with its
     `graphical` object left out: `bare.yaml` gains exactly the `graphical`
-    `{order: {}, statements: [], styles: {}, timestamps: [{id:
+    `{order: {}, rules: [], styles: {}, timestamps: [{id:
     "timestamp_1", timeline: "bare", coordinate: [0, 1], name: "origin",
     display: ["wedge", "coordinate"]}, {id: "timestamp_2", timeline:
     "bare", coordinate: [8, 1], name: "length", display: ["wedge",
@@ -2265,7 +2312,7 @@ time `clock().toISOString()`. The tests inject a clock from
    of entries replayed and the first differing path: the name, then the
    workspace's `graphical`, then blocks by id, then a block's members: a
    block moved to 99 is entry 3 at `["blocks", A, "x"]`; a `graphical`
-   with one statement the journal never set is entry 3 at
+   with one rule the journal never set is entry 3 at
    `["graphical"]`; the same view with an empty journal is entry 0 at
    `["blocks", A]`. The settings are never compared: the same view with a
    grid of 16 opens, and its store holds that grid. A journal entry the commands refuse (a move of a block that does
@@ -2302,9 +2349,9 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    holding a value read under one granularity tells by identity alone that
    it changed).
 3. **The workspace's `graphical` is journalled.** A `set` of the workspace
-   `graphical` with one statement adds a 4th entry and leaves the settings
+   `graphical` with one rule adds a 4th entry and leaves the settings
    the same object; `undo()` restores the previous `graphical` exactly
-   (`{}`), `redo()` the statement.
+   (`{}`), `redo()` the rule.
 4. **Replay reads no setting.** `add` of block `a` under
    `blockDefaults.length` 400, `configure({blockDefaults: {length: 600}})`,
    `add` of block `b`: the journal's two `add` entries carry every
@@ -2694,14 +2741,14 @@ The **guard** compares the view before and after a command for an editor's
 target and returns the first change outside the target as `side_effect`,
 message `<what> lies outside <target>: an editor changes only what it
 edits` ("lie" where `<what>` names several things: the links of an element,
-the manifest's `links` or `schemes`, the graphical `statements` or
+the manifest's `links` or `schemes`, the graphical `rules` or
 `styles`), or nothing. Its rules are checked in a fixed order and the first hit
 decides the path, so each rule is proved once by its path, and the order by
 changes that hit several rules at once. The manifest is compared on a
 projection that hides the edited element's own object (a group's object and
 each member's), the entries of `graphical.order` keyed by what it contains
 (the group's display order, the band orders of the timelines it holds), and
-the statements and styles that reach only inside; a test that changes
+the rules and styles that reach only inside; a test that changes
 exactly one hidden thing must be accepted and one that changes exactly one
 visible thing must be refused at that thing's address. An element the
 target contains before and that no longer exists after is removed inside
@@ -2779,13 +2826,13 @@ block alone).
 10. `set bundle0001 length 500` → at `[{block: "bundle0001"}, "length"]`; `set
     bundle0001 {x: 40, y: -8, width: 900, height: 300}` → nothing.
 11. `style {select: {element: "timeline"}, set: {stroke: "#FF0000"}}` → at
-    `["bundle0001", "manifest", "graphical", "statements"]`; the same with
+    `["bundle0001", "manifest", "graphical", "rules"]`; the same with
     `select: {addresses: [{id: "score"}]}` → nothing.
 
 **Each rule's path, once:**
 
 12. **The workspace's own members.** Its `graphical` replaced by one with
-    a statement `{select: {element: "timeline"}, set: {stroke:
+    a rule `{select: {element: "timeline"}, set: {stroke:
     "#FF0000"}}` → at `[{}, "graphical"]`, message `the workspace's
     graphical lies outside …`, in `G1`'s editor and in the bundle editor
     alike. The settings are no part of a view a command changes, so an
@@ -2819,9 +2866,9 @@ block alone).
     `[bars]`, message `<bars> lies outside …`.
 16. **A named style.** After `style {select: {element: "timeline"}, set:
     {stroke: "#FF0000"}, name: "accent"}`, the same with `stroke:
-    "#00FF00"` (the statement unchanged) → at `["bundle0001", "manifest",
+    "#00FF00"` (the rule unchanged) → at `["bundle0001", "manifest",
     "graphical", "styles"]`; with `select: {addresses: [{id: "score"}]}` for both, the
-    style is used only by an inside statement → nothing.
+    style is used only by an inside rule → nothing.
 17. **A display order.** `graphical.order.group_1` replaced by
     `["performance", "score"]` → nothing in `G1`'s editor; at
     `["bundle0001", "manifest", "graphical", "order"]` in the editor of
@@ -2840,7 +2887,7 @@ block alone).
 
 19. With the second block of 13, the `style` of 11 without `blocks`
     touches both blocks and is refused at `["0000000000"]` (another block),
-    not at the statements (the manifest).
+    not at the rules (the manifest).
 20. One `after` with the workspace's `graphical` replaced (12), the
     block's `length` 500, `places` `{group_2: {x: 10}}` and the name of
     `annotations` "A" → at `[{}, "graphical"]`; without the `graphical` →
@@ -2848,9 +2895,9 @@ block alone).
     "length"]`; without the length too → at `[group_2]`; with
     the name alone → at `[annotations]`.
 
-**Statements, inside and outside:**
+**Rules, inside and outside:**
 
-21. **Inside in both manifests.** A statement lies inside a container when
+21. **Inside in both manifests.** A rule lies inside a container when
     every element it matches in each manifest compared is contained there.
     With `after`'s manifest built with `group_1`'s members `[performance]`
     (its display order removed), `{select: {addresses: [{id: "score"}]}}` is inside
@@ -2858,18 +2905,18 @@ block alone).
     `{select: {element: "timeline"}}` is outside on `before`; `{select:
     {addresses: [{id: "nothing"}]}}` matches nothing and is inside. The guard refuses
     such an `after` already at `[score]`, since `score`'s
-    object is hidden only while it is a member: a statement can move across
+    object is hidden only while it is a member: a rule can move across
     the boundary only with a change the projection shows, so this rule is
     tested on its own, without a command.
-22. **Statements selecting bands.** A band belongs to its timeline, so a
-    statement lies inside when every band it matches belongs to a timeline
+22. **Rules selecting bands.** A band belongs to its timeline, so a
+    rule lies inside when every band it matches belongs to a timeline
     the editor holds. `style {select: {addresses: [{id: "excerpt", facet:
     "regions"}]}, set: {display: "inline"}}` → nothing in the editors of `excerpt`
     and `recording`, and at `["bundle0001", "manifest",
-    "graphical", "statements"]` in the editor of `score`; `style
+    "graphical", "rules"]` in the editor of `score`; `style
     {select: {element: "band", facet: "regions"}, set: {display:
     "inline"}}`, which matches the regions band of every timeline, → at the
-    statements in `G1`'s editor and nothing in the bundle editor.
+    rules in `G1`'s editor and nothing in the bundle editor.
 
 **Editors of a timeline and of the bundle:**
 
@@ -2979,7 +3026,7 @@ that holds a member without being one.
 `writeWorkspace(workspace)` is TimeToShare's `dumps` in pretty JSON (keys sorted) of
 `{meta, name, settings, graphical, blocks, journal, sessions}`, format
 version 7 (since the settings left the journal and the workspace's default
-statements left the settings for the top-level `graphical`, which a
+rules left the settings for the top-level `graphical`, which a
 version-6 file lacks);
 `readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
@@ -2993,7 +3040,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 
 1. **Round trip.** A workspace built by a store (blocks of `bare.yaml` and
    `map.yaml`, a move, a style, an undone command excluded, the workspace's
-   `graphical` set to one statement, the grid configured to `{size: 16,
+   `graphical` set to one rule, the grid configured to `{size: 16,
    snap: false}`, the granularity's denominator to 5 and the manifest file
    of block `A` to `{minimal: false, styling: false, serialization:
    "json"}`) is written; the text read back deep-equals the workspace, and writing it

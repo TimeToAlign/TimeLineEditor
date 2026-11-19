@@ -32,7 +32,7 @@ import type { TextOptions } from "../src/inspector/manifestText.ts";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
-import { informing, storeOf as storeOfFixtures } from "./support.ts";
+import { fileText, informing, storeOf as storeOfFixtures } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -805,7 +805,7 @@ describe("a clean text", () => {
 
   it("keeps a problem of writing the manifest while the text is typed back", async () => {
     const manifest = loadManifest(
-      dumps({
+      fileText({
         timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
         measure_maps: [

@@ -1,4 +1,4 @@
-import { dumps, JsonFloat } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply, applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
@@ -16,6 +16,7 @@ import {
   block,
   changed,
   deepFreeze,
+  fileText,
   fixture,
   load,
   loadText,
@@ -54,7 +55,7 @@ const MARK = ["wedge", "coordinate"];
 /** The fixture `name` read with its `graphical` object left out. */
 function withoutGraphical(name: string): Manifest {
   const { graphical: _, ...rest } = manifestValue(name);
-  return loadText(dumps(rest), name);
+  return loadText(fileText(rest), name);
 }
 
 /** A view whose block `A` holds `manifest`. */
@@ -98,7 +99,7 @@ describe("reading a named timestamp's display", () => {
     if (third === undefined) throw new Error(`${FIXTURE} holds three timestamps`);
     third.display = [...third.display].reverse();
     expect(third.display[0]).toBe("cross_section");
-    expect(loadText(dumps(value)).graphical).toEqual(graphical);
+    expect(loadText(fileText(value)).graphical).toEqual(graphical);
   });
 });
 
@@ -196,7 +197,7 @@ describe("add a named timestamp", () => {
     });
     expect(graphicalOf(bare)).toEqual({
       order: {},
-      statements: [],
+      rules: [],
       styles: {},
       timestamps: [
         { id: "timestamp_1", timeline: "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT },
@@ -340,17 +341,17 @@ describe("set a named timestamp", () => {
 });
 
 describe("remove a named timestamp", () => {
-  it("removes it and every statement address naming it", () => {
+  it("removes it and every rule address naming it", () => {
     const styled = changed(view, {
       type: "style",
       select: { addresses: [{ id: "timestamp_2", part: ["label"] }] },
       set: { display: "none" },
       blocks: [A],
     });
-    expect(graphicalOf(styled)?.statements).toHaveLength(1);
+    expect(graphicalOf(styled)?.rules).toHaveLength(1);
     const removed = changed(styled, remove(at("timestamp_2")));
     expect(timestampsOf(removed)).toEqual([T1, T3]);
-    expect(graphicalOf(removed)?.statements).toEqual([]);
+    expect(graphicalOf(removed)?.rules).toEqual([]);
   });
 
   it("goes with the timeline it lies on", () => {
@@ -433,7 +434,7 @@ describe("the default timestamps", () => {
   it("are given on import to the roots of a manifest without a graphical object", () => {
     expect(importedManifest(withoutGraphical("bare.yaml")).graphical).toEqual({
       order: {},
-      statements: [],
+      rules: [],
       styles: {},
       timestamps: [
         mark("timestamp_1", "bare", "origin", [0, 1]),

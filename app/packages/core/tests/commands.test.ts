@@ -1,4 +1,4 @@
-import { JsonFloat, loads } from "@timetoalign/timetoshare";
+import { JsonFloat, loads, withBareIds } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
@@ -286,7 +286,7 @@ describe("set", () => {
 
   it("sets the workspace's graphical whole, leaving the settings", () => {
     const view = frozen([A, "bare.yaml"]);
-    const graphical = { statements: [{ select: { element: "map" }, set: { stroke: "#C00000" } }] };
+    const graphical = { rules: [{ select: { element: "map" }, set: { stroke: "#C00000" } }] };
     const styled = applied(view, set(WORKSPACE, { graphical }));
     expect(styled.graphical).toEqual(graphical);
     expect(styled.settings).toBe(view.settings);
@@ -297,17 +297,17 @@ describe("set", () => {
     // declaration holds the double, so the cascade computes with a number.
     const view = frozen([A, "map.yaml"]);
     const float = new JsonFloat(2);
-    const statement = { select: { element: "map" }, set: { "stroke-width": float } };
-    const stored = { statements: [{ select: { element: "map" }, set: { "stroke-width": 2 } }] };
-    expect(
-      applied(view, set(WORKSPACE, { graphical: { statements: [statement] } })).graphical,
-    ).toEqual(stored);
+    const rule = { select: { element: "map" }, set: { "stroke-width": float } };
+    const stored = { rules: [{ select: { element: "map" }, set: { "stroke-width": 2 } }] };
+    expect(applied(view, set(WORKSPACE, { graphical: { rules: [rule] } })).graphical).toEqual(
+      stored,
+    );
     const styled = applied(view, {
       type: "style",
       select: { element: "map" },
       set: { "stroke-width": float, opacity: null },
     });
-    expect(manifest(styled).graphical?.statements).toEqual([
+    expect(manifest(styled).graphical?.rules).toEqual([
       { select: { element: "map" }, set: { "stroke-width": 2 } },
     ]);
     expect(
@@ -384,9 +384,9 @@ describe("set", () => {
       [set(BLOCK, { index: "a00" }), "invalid_index", [key(BLOCK), "index"]],
       [set(BLOCK, { index: "a1" }), "duplicate_index", [key(BLOCK), "index"]],
       [
-        set(WORKSPACE, { graphical: { statements: [{ select: {}, set: { stroke: "red" } }] } }),
+        set(WORKSPACE, { graphical: { rules: [{ select: {}, set: { stroke: "red" } }] } }),
         "schema_violation",
-        [key(WORKSPACE), "graphical", "statements", 0, "set", "stroke"],
+        [key(WORKSPACE), "graphical", "rules", 0, "set", "stroke"],
       ],
       [set(at("clt_1"), { length: 0.5 }), "invalid_coordinate", [key(at("clt_1")), "length"]],
       [set(at("clt_1"), { length: 8 }), "invalid_coordinate", [key(at("clt_1")), "length"]],
@@ -868,36 +868,36 @@ describe("style", () => {
   const red = { stroke: "#C00000" };
   const style = (properties: object) => ({ type: "style", ...properties });
 
-  it("embeds a statement in every manifest it concerns and merges equal selectors", () => {
+  it("embeds a rule in every manifest it concerns and merges equal selectors", () => {
     let view = frozen([A, "map.yaml"], [B, "bare.yaml"]);
     view = applied(view, style({ select: { element: "map" }, set: red }));
     expect(manifest(view).graphical).toEqual(
-      held("map.yaml", { styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
+      held("map.yaml", { styles: {}, rules: [{ select: { element: "map" }, set: red }] }),
     );
     expect(manifest(view, B)).toEqual(load("bare.yaml"));
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": 2 } }));
-    expect(manifest(view).graphical?.statements).toEqual([
+    expect(manifest(view).graphical?.rules).toEqual([
       { select: { element: "map" }, set: { ...red, "stroke-width": 2 } },
     ]);
     const other = applied(
       view,
       style({ select: { domain: "physical", element: "map" }, set: { opacity: 0.5 } }),
     );
-    expect(manifest(other).graphical?.statements?.length).toBe(2);
+    expect(manifest(other).graphical?.rules?.length).toBe(2);
     const merged = applied(
       other,
       style({ select: { element: "map", domain: "physical" }, set: { opacity: 1 } }),
     );
-    expect(manifest(merged).graphical?.statements?.[1]).toEqual({
+    expect(manifest(merged).graphical?.rules?.[1]).toEqual({
       select: { domain: "physical", element: "map" },
       set: { opacity: 1 },
     });
     view = applied(view, style({ select: { element: "map" }, set: { stroke: null } }));
-    expect(manifest(view).graphical?.statements).toEqual([
+    expect(manifest(view).graphical?.rules).toEqual([
       { select: { element: "map" }, set: { "stroke-width": 2 } },
     ]);
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": null } }));
-    expect(manifest(view).graphical).toEqual(held("map.yaml", { styles: {}, statements: [] }));
+    expect(manifest(view).graphical).toEqual(held("map.yaml", { styles: {}, rules: [] }));
   });
 
   it("names a style in the listed blocks only", () => {
@@ -914,7 +914,7 @@ describe("style", () => {
     expect(manifest(named, B).graphical).toEqual(
       held("bare.yaml", {
         styles: { green: { stroke: "#00CC00" } },
-        statements: [{ select: { element: "timeline" }, set: "green" }],
+        rules: [{ select: { element: "timeline" }, set: "green" }],
       }),
     );
     expect(manifest(named)).toEqual(manifest(view));
@@ -925,19 +925,17 @@ describe("style", () => {
     expect(manifest(inline, B).graphical).toEqual(
       held("bare.yaml", {
         styles: { green: { stroke: "#00CC00" } },
-        statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
+        rules: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
       }),
     );
     const emptied = applied(
       named,
       style({ select: { element: "timeline" }, set: { stroke: null }, name: "green", blocks: [B] }),
     );
-    expect(manifest(emptied, B).graphical).toEqual(
-      held("bare.yaml", { styles: {}, statements: [] }),
-    );
+    expect(manifest(emptied, B).graphical).toEqual(held("bare.yaml", { styles: {}, rules: [] }));
   });
 
-  it("refuses an unknown block and a malformed statement", () => {
+  it("refuses an unknown block and a malformed rule", () => {
     const view = viewOf([A, "map.yaml"]);
     expect(rejected(view, style({ select: {}, set: red, blocks: [C] }))).toEqual({
       code: "unknown_target",
@@ -1034,7 +1032,8 @@ describe("where a timeline lies", () => {
   ];
 
   it("adds a root timeline completed as a manifest's root is", () => {
-    const [minimal] = (loads(fixture("bare.yaml").twin) as { timelines: object[] }).timelines;
+    const [minimal] = (withBareIds(loads(fixture("bare.yaml").twin)) as { timelines: object[] })
+      .timelines;
     const view = applied(mixed(), { type: "add", into: BLOCK, timeline: minimal });
     expect(timeline(view, "bare")).toEqual(root(viewOf([A, "bare.yaml"])));
   });

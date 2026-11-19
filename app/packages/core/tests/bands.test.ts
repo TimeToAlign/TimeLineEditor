@@ -1,5 +1,10 @@
 import type { PathSegment } from "@timetoalign/timetoshare";
-import { dumps, identityProblems, SchemaValidationError, validate } from "@timetoalign/timetoshare";
+import {
+  identityProblems,
+  SchemaValidationError,
+  validate,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { FACETS, isFacet } from "../src/manifest/address.ts";
 import {
@@ -10,7 +15,7 @@ import {
   LINE,
 } from "../src/manifest/order.ts";
 import type { Manifest } from "../src/manifest/types.ts";
-import { load, loadText, manifestValue } from "./support.ts";
+import { fileText, load, loadText, manifestValue } from "./support.ts";
 
 /** The default band order, drawing.md section 4. */
 const D = ["children", "conversion_maps", "line", "markers", "regions", "flow_control"];
@@ -26,10 +31,13 @@ function carrying(manifest: Manifest, id: string, value: unknown): Record<string
   return { ...manifest, graphical: { ...manifest.graphical, order: { [id]: value } } };
 }
 
-/** Where and why TimeToShare's validator refuses `value`, or `null` when it is a manifest. */
+/**
+ * Where and why TimeToShare's validator refuses `value`, a manifest with bare
+ * IDs, written as a file writes it, or `null` when it is a manifest.
+ */
 function validatorRefusal(value: unknown): { path: readonly PathSegment[]; detail: string } | null {
   try {
-    validate(value);
+    validate(withFileIds(value));
     return null;
   } catch (error) {
     if (error instanceof SchemaValidationError) return { path: error.path, detail: error.detail };
@@ -42,7 +50,7 @@ function withOrder(name: string, order: Record<string, readonly string[]>): Mani
   const value = manifestValue(name);
   const graphical = (value.graphical ?? {}) as { order?: object };
   return loadText(
-    dumps({ ...value, graphical: { ...graphical, order: { ...graphical.order, ...order } } }),
+    fileText({ ...value, graphical: { ...graphical, order: { ...graphical.order, ...order } } }),
   );
 }
 
@@ -172,7 +180,9 @@ describe("band order problems", () => {
 
   it.each(others)("refuses %s as the validators do", (_, value, message) => {
     expect(bandOrderProblem(manifest, "clt_3", value)).toBe(message);
-    expect(identityProblems(carrying(manifest, "clt_3", value))[0]?.detail).toBe(message);
+    expect(identityProblems(withFileIds(carrying(manifest, "clt_3", value)))[0]?.detail).toBe(
+      message,
+    );
   });
 
   it.each([
@@ -184,7 +194,7 @@ describe("band order problems", () => {
       `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
     );
     expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
-      path: ["graphical", "order", "clt_3", 6],
+      path: ["graphical", "order", "#clt_3", 6],
       detail,
     });
   });

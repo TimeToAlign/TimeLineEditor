@@ -6,7 +6,14 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Store, View } from "@timetoalign/tilie-core";
 import { createStore, emptyWorkspace, isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { dumps, isJsonObject, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import {
+  dumps,
+  isJsonObject,
+  loads,
+  SCHEMA_VERSION,
+  withBareIds,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 
 /** The blocks: the fixture as it is; without its title, with the id `mixed` and two names dropped; without its title. */
 export const MIXED = { A: "0000000000", B: "0000000001", C: "0000000002" } as const;
@@ -21,12 +28,12 @@ const FIXTURE = path.join(
 
 type Editable = { [key: string]: unknown };
 
-/** `bundle_mixed`, changed by `edit` first. */
+/** `bundle_mixed`, changed by `edit` first, its IDs bare as the store holds them. */
 function mixed(edit: (manifest: Editable) => void = () => {}) {
-  const value: unknown = loads(readFileSync(FIXTURE, "utf8"));
+  const value: unknown = withBareIds(loads(readFileSync(FIXTURE, "utf8")));
   if (!isJsonObject(value)) throw new Error("bundle_mixed is no JSON object");
   edit(value);
-  const manifest = loadManifest(dumps(value));
+  const manifest = loadManifest(dumps(withFileIds(value)));
   if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
   return manifest;
 }

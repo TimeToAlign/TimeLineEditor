@@ -7,13 +7,9 @@
  * kept in the workspace's settings and changed there (`configure`).
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
-import {
-  manifestFileOf,
-  NEW_MANIFEST_FILE,
-  unknownKeys,
-  unregisteredTerms,
-} from "@timetoalign/tilie-core";
+import { manifestFileOf, NEW_MANIFEST_FILE } from "@timetoalign/tilie-core";
 import type { FileForm } from "@timetoalign/timetoshare";
+import { unknownKeys, unregisteredTerms } from "@timetoalign/timetoshare";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
@@ -58,6 +54,8 @@ function configure(change: Partial<FileForm>): void {
 /**
  * The keys of the block's manifest no definition declares, then the terms of
  * its links outside their registered words: warnings, which never stop editing.
+ * They are found in the value the text shows, the file form, so their paths
+ * lead into the text.
  */
 const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
 const terms = $derived(block === null ? [] : unregisteredTerms(manifestOf(block)));

@@ -14,7 +14,13 @@ import {
   sameAddress,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import { type Address, canonicalOrder, type Statement, validate } from "@timetoalign/timetoshare";
+import {
+  type Address,
+  canonicalOrder,
+  type Rule,
+  validate,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   crossedLines,
@@ -59,28 +65,28 @@ const MARKS: readonly Word[] = ["wedge", "coordinate"];
 
 /**
  * The fixture `name` with its named timestamps replaced by `timestamps` and
- * `statements` appended to its own, in canonical order and validated.
+ * `rules` appended to its own, in canonical order and validated.
  */
 function stamped(
   name: string,
   timestamps: readonly Stamp[],
-  statements: readonly Statement[] = [],
+  rules: readonly Rule[] = [],
 ): Manifest {
   const manifest = loadFile(name);
-  const graphical = manifest.graphical ?? { styles: {}, statements: [], order: {} };
+  const graphical = manifest.graphical ?? { styles: {}, rules: [], order: {} };
   const result: Manifest = canonicalOrder({
     ...manifest,
     graphical: {
       ...graphical,
-      statements: [...(graphical.statements ?? []), ...statements],
+      rules: [...(graphical.rules ?? []), ...rules],
       timestamps,
     },
   });
-  validate(result);
+  validate(withFileIds(result));
   return result;
 }
 
-const hide = (address: Address): Statement => ({
+const hide = (address: Address): Rule => ({
   select: { addresses: [address] },
   set: { display: "none" },
 });
@@ -136,7 +142,7 @@ const keyOf = (card: PlaceKey, id: string) => placeKeyText(card) + addressKey({ 
 const CLT_1 = { item: "clt_1" };
 const DASHED = { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" };
 
-/** The fixture's own named timestamps, written again with a statement or a `display` changed. */
+/** The fixture's own named timestamps, written again with a rule or a `display` changed. */
 const STAMPS: readonly Stamp[] = [
   {
     id: "timestamp_1",
@@ -288,7 +294,7 @@ describe("display, each on its own", () => {
   });
 
   it("never draws by the cascade what its display leaves out", () => {
-    const shown: Statement = {
+    const shown: Rule = {
       select: { addresses: [at("timestamp_2", "line"), at("timestamp_2", "id")] },
       set: { display: "inline" },
     };
@@ -479,7 +485,7 @@ describe("the marks at any position", () => {
     expect(crossSection(drawing, keyOf(CLT_1, "clt_2"), 199.91552734375)).toBe(null);
   });
 
-  it("are never styled by a statement naming addresses", () => {
+  it("are never styled by a rule naming addresses", () => {
     const hidden = drawn(stamped("timestamps", STAMPS, [hide(at("timestamp_1", "line"))]));
     expect(find(hidden, "cross_section", at("timestamp_1", "line"))).toBeUndefined();
     const unnamed = crossSection(hidden, keyOf(CLT_1, "clt_1"), 124.91552734375);

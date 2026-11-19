@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { TimelineManifest } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
-import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { exampleFiles } from "../../../e2e/fixtures/generate.ts";
 import { EXAMPLES, examples } from "../src/examples.ts";
@@ -17,7 +17,7 @@ import {
   WORKSPACE_FILE,
   workspaceFileName,
 } from "../src/files.ts";
-import { fixtureText, interceptDownloads, pickFile } from "./support.ts";
+import { fileText, fixtureText, interceptDownloads, pickFile } from "./support.ts";
 
 /** The committed text of the example "Timestamps". */
 function exampleText(): string {
@@ -44,7 +44,7 @@ describe("manifestFileName", () => {
   it("is the manifest's id, else its name, else bundle, outside [A-Za-z0-9_-] replaced, then the serialization's extension", () => {
     const named = (members: object) => {
       const manifest = loadManifest(
-        dumps({
+        fileText({
           timetoshare: SCHEMA_VERSION,
           timelines: [{ id: "piece", unit: "quarters", length: [8, 1] }],
           ...members,

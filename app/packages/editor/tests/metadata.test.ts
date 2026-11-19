@@ -11,13 +11,13 @@ import { isLoadError, linkHolder, loadManifest } from "@timetoalign/tilie-core";
 import type { Assertion, CompleteLink } from "@timetoalign/timetoshare";
 import {
   ABSENCE_REASONS,
-  dumps,
   fontMetrics,
   isJsonObject,
   linkFromUrls,
   loads,
   SCHEMA_VERSION,
   withAssertion,
+  withBareIds,
   withLabel,
   withParts,
   withUri,
@@ -55,7 +55,7 @@ import {
   WORK,
   WORK_PAGE,
 } from "./op106.ts";
-import { storeOf } from "./support.ts";
+import { fileText, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -67,7 +67,7 @@ const RELATOR = "http://id.loc.gov/vocabulary/relators/prf";
 
 /** A manifest from a value, failing loudly if it is refused. */
 function manifestOf(value: unknown): Manifest {
-  const read = loadManifest(dumps(value));
+  const read = loadManifest(fileText(value));
   if (isLoadError(read)) throw new Error(read.problems[0]?.message);
   return read;
 }
@@ -228,7 +228,7 @@ describe("the card of a link", () => {
       readFileSync(path.join(directory, "description_absent_unregistered.yaml"), "utf8"),
     );
     if (!isJsonObject(value)) throw new Error("no case");
-    const { described, held } = bundleLinks(value.manifest);
+    const { described, held } = bundleLinks(withBareIds(value.manifest));
     const card = linkCard(described, held, 0);
     expect([
       card.parts?.slots.map((slot) => [slot.representedBy, slot.absent]),

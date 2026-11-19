@@ -15,8 +15,15 @@ import type {
   SetCommand,
   Store,
 } from "@timetoalign/tilie-core";
-import { ErrorCode } from "@timetoalign/tilie-core";
-import { complete, dumps, isJsonFloat, isJsonObject, minimal } from "@timetoalign/timetoshare";
+import { ErrorCode, idFormPath, isLoadError, withHeldIds } from "@timetoalign/tilie-core";
+import {
+  complete,
+  dumps,
+  isJsonFloat,
+  isJsonObject,
+  minimal,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
 import { readText, writeText } from "./formats.svelte.ts";
 import type { InspectorProblem, Result } from "./problems.ts";
@@ -43,20 +50,21 @@ function isJson(value: unknown): value is Json {
   }
 }
 
-/** The manifests already read as JSON. */
+/** The manifests already read as JSON, in the file form. */
 const checked = new WeakMap<Manifest, Json>();
 
 /**
- * A block's manifest as the JSON value it is. The manifest's type leaves
- * `meta` free (`unknown`), so its JSON is checked, once per manifest; a
- * manifest holding anything else throws a `TypeError`.
+ * A block's manifest as the JSON value its text shows, the value a manifest
+ * file writes: every ID written `#id` (`withFileIds`). The manifest's type
+ * leaves `meta` free (`unknown`), so its JSON is checked, once per manifest;
+ * a manifest holding anything else throws a `TypeError`.
  */
 export function manifestOf(block: Block): Json {
   const { manifest } = block;
   let found = checked.get(manifest);
   if (found === undefined) {
     if (!isJson(manifest)) throw new TypeError(`the manifest of block ${block.id} is no JSON`);
-    found = manifest;
+    found = withFileIds(manifest);
     checked.set(manifest, found);
   }
   return found;
@@ -107,20 +115,21 @@ function withExcluded(edited: Json, current: Json, options: TextOptions): Result
   return { ok: true, value: styling === undefined ? edited : { ...edited, [STYLING]: styling } };
 }
 
-/** The one command that replaces a block's manifest. */
+/** The one command that replaces a block's manifest, given with its IDs bare. */
 function manifestCommand(block: BlockId, manifest: Json): SetCommand {
   return { type: "set", changes: [{ target: { block }, values: { manifest } }] };
 }
 
 /**
  * A refusal of the store as the inspector shows it: a path into the block's
- * manifest (`[<block>, "manifest", …]`) loses that prefix, so it points into
- * the text; any other path is kept.
+ * manifest (`[<block>, "manifest", …]`) loses that prefix and is led into
+ * the text's file form (`idFormPath`), so it points into the text; any other
+ * path is kept.
  */
 function asInspectorProblem(problem: Problem, block: BlockId): InspectorProblem {
   const { path } = problem;
   const inManifest = path[0] === block && path[1] === "manifest";
-  return { ...problem, path: inManifest ? path.slice(2) : path };
+  return { ...problem, path: inManifest ? idFormPath(path.slice(2), true) : path };
 }
 
 /** What applying a text gives: the text to show next (with its document), or why it was refused. */
@@ -128,7 +137,8 @@ type Applied = Result<Text>;
 
 /**
  * Read `text` in `format` and dispatch ONE `set` replacing the block's
- * manifest with the value read (the store completes it). On acceptance the
+ * manifest with the value read, its IDs made bare (`withHeldIds`; the store
+ * completes it). On acceptance the
  * read document is patched with the manifest the store now holds, as
  * `options` show it (it may differ in order, completed defaults or styles),
  * so the text keeps the user's comments; on refusal nothing is dispatched or
@@ -154,7 +164,9 @@ export function applyText(
   if (sameManifest(manifest.value, manifestOf(current))) {
     return follow(read.value.source, manifestOf(current), options);
   }
-  const refusal = store.dispatch(manifestCommand(block, manifest.value));
+  const held = withHeldIds(manifest.value);
+  if (isLoadError(held)) return { ok: false, problems: held.problems };
+  const refusal = store.dispatch(manifestCommand(block, held));
   if (refusal !== null) return { ok: false, problems: [asInspectorProblem(refusal, block)] };
   return follow(read.value.source, manifestOf(store.view.blocks[block] as Block), options);
 }
