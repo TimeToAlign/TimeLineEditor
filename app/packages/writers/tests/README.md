@@ -436,9 +436,8 @@ x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2"
 stroke-width="1" stroke-dasharray="3 3"/>`, in TikZ `(124.9155,106.9062) --
 (124.9155,44.9766)` (`122.90625 − y`, 106.90625 a tie to the even
 106.9062). `timestamp_2` lists no cross-section line and `timestamp_3`'s
-timeline has no band for one to cross. `bundle__op106_work`, a bundle of
-links without a timeline, draws the block alone with its title. There are
-79 cases. Every case stating a spacing, of the block, in a place or in a
+timeline has no band for one to cross. There are
+77 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.
