@@ -5,7 +5,9 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from tilie_server import __version__
+from tilie_server.musicbrainz import MusicBrainz
 from tilie_server.routers.health import router as health_router
+from tilie_server.routers.lookup import router as lookup_router
 from tilie_server.routers.measure_maps import router as measure_maps_router
 from tilie_server.security import LocalOriginGuard, NoReferrer
 from tilie_server.settings import (
@@ -25,8 +27,16 @@ __all__ = [
 ]
 
 
-def create_app(settings: ServerSettings) -> FastAPI:
-    """Build the application for one local origin and bearer token."""
+def create_app(
+    settings: ServerSettings, *, musicbrainz: MusicBrainz | None = None
+) -> FastAPI:
+    """Build the application for one local origin and bearer token.
+
+    Args:
+        settings: The run's origin, token and editor files.
+        musicbrainz: The one client of MusicBrainz for the run's lookups; a
+            new :class:`MusicBrainz` when not given.
+    """
     static_dir = (
         DEFAULT_STATIC_DIR if settings.static_dir is None else settings.static_dir
     )
@@ -39,6 +49,8 @@ def create_app(settings: ServerSettings) -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(measure_maps_router)
+    app.include_router(lookup_router)
+    app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
     mount_static(app, static_dir)
     app.add_middleware(
         LocalOriginGuard,

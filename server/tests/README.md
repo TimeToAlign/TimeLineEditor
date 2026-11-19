@@ -96,6 +96,109 @@ files"}}`, the version being the installed package's; when no timetoshare
 is installed at all, the message is `timetoshare is not installed, so
 manifest files cannot be read`.
 
+## MusicBrainz lookup
+
+`/api/reconcile/musicbrainz` is a Reconciliation Service API 0.2 endpoint
+(W3C Entity Reconciliation Community Group) over MusicBrainz's web
+service. What proves it is MusicBrainz's own answers, recorded once and
+replayed: every expected answer is written out by hand from the recorded
+JSON, by the mapping below, never read off the route's output. The tests
+never reach the network. A replaying fetch serves the URLs of
+`data/musicbrainz/index.json`, each mapped to the recorded answer in its
+file, records every call's URL and headers, and fails the test on any other
+URL; so the URLs the route builds are proved exactly as well, and a request
+the route refuses is proved to send none. `scripts/record_musicbrainz.py`
+(not packaged) wrote the recordings on 2026-11-19 with the server's own URL
+functions and User-Agent, one request a second; it records exactly these
+four URLs under `https://musicbrainz.org/ws/2/`:
+
+| URL | Used by |
+| --- | --- |
+| `work?query=Clair+de+lune&limit=5&offset=0&fmt=json` | the work query |
+| `artist?query=Maria+Jo%C3%A3o+Pires&limit=5&offset=0&fmt=json` | the artist query |
+| `artist?query=Pires&limit=10&offset=0&fmt=json` | the suggestion |
+| `work/8d331505-4d88-39ae-81c7-bec5da77af96?inc=url-rels&fmt=json` | data extension |
+
+**The mapping.** An identifier is `<type>/<mbid>`, so the identifier space
+`http://musicbrainz.org/` followed by it is the entity's IRI. A candidate is
+`{id, name, description?, score, match, type}` in that order: `name` the
+title (an artist's name); `description` the non-empty parts joined with
+` · `: a work's type and disambiguation, an artist's type, disambiguation
+and area name, a recording's artist credit (each credited name followed by
+its join phrase) and disambiguation, a release group's primary type and
+artist credit, and absent when no part is left; `score` MusicBrainz's;
+`match` true only for a score of 100 that no other candidate reaches (so the
+first candidate, the next one scoring below 100, or none following); `type` `[{id, name}]` of the
+queried type. Search text is escaped for MusicBrainz's search syntax (each
+of `+ - & | ! ( ) { } [ ] ^ " ~ * ? : \ /` preceded by `\`), so
+`'AC/DC: "Live" (1+1)'` searched for 10 artists from 20 is the URL
+`artist?query=AC%5C%2FDC%5C%3A+%5C%22Live%5C%22+%5C%281%5C%2B1%5C%29&limit=10&offset=20&fmt=json`.
+
+| Request | Answer |
+| --- | --- |
+| `GET /api/reconcile/musicbrainz` | 200, the service manifest compared whole with the one written in the test: versions `["0.2"]`, name `MusicBrainz through tilie-server`, identifier space `http://musicbrainz.org/`, schema space `http://schema.org/`, the four default types work, artist, recording and release-group (named "release group"), view `https://musicbrainz.org/{{id}}`, suggest and property proposal at the root-relative `/api/reconcile/musicbrainz` with `/suggest/entity` and `/properties`, `property_settings` `[]`; no upstream request |
+| `POST` form `queries` `{"q0": {"query": "Clair de lune", "type": "work"}, "q1": {"query": "Maria João Pires", "type": "artist"}}` | 200 `{"q0": {"result": […]}, "q1": {"result": […]}}`, five candidates each. q0: `work/199ec7b6-…` "Clair de Lune" score 100, the one match (the next scores 99), no description; then three "Song" works and one "for organ, Anna Lapwood" at 99, 99, 98, 98. q1: `artist/64cf3646-fde3-4f5e-8741-8b4d21917785` "Maria João Pires" "Person · pianist · Portugal" 100, a match (the next scores 50); then 50, 48, 44 and "Maria Cándida Pires" at 41 without a description. Two upstream requests, the first two URLs |
+| `GET` with `queries` `{"q0": {"query": "Clair de lune", "limit": 5}}` | 200, q0 as above: a query without a type searches works |
+| `GET /api/reconcile/musicbrainz/suggest/entity?prefix=Pires&type=artist` | 200 `{"result": [ten {id, name, description?}]}`, from "Alexandre Pires" "Person · Brazil" to "Barbara Pires" "Person · Gospel singer · New Bedford"; "Djalma Pires" without a description; no score, match or type |
+| `GET …/properties?type=artist` (and without a type) | 200 `{"type": "artist" (`"work"`), "properties": [{"id": "name", "name": "name"}, {"id": "sameAs", "name": "same as"}]}`; no upstream request |
+| `POST` form `extend` `{"ids": ["work/8d331505-4d88-39ae-81c7-bec5da77af96"], "properties": [{"id": "name"}, {"id": "sameAs"}]}` | 200 `{"meta": [{"id": "name", "name": "name"}, {"id": "sameAs", "name": "same as"}], "rows": {"work/8d331505-…": {"name": [{"str": "Suite bergamasque, L. 75, CD 82 : III. Clair de lune"}], "sameAs": [{"str": "http://www.wikidata.org/entity/Q29117946"}]}}}`: the work's one URL relationship, `https://www.wikidata.org/wiki/Q29117946`, recognised by timetoshare's catalogue as that IRI. The properties asked in the other order answer `meta` and each row in that order |
+
+Recording and release-group candidates are proved against two search
+answers written in the test in MusicBrainz's JSON form (no recording of
+these types is needed for the editor): a recording credited to "Maria João
+Pires" with the join phrase " & " and "Augustin Dumay", disambiguation
+"live", is described "Maria João Pires & Augustin Dumay · live", one with
+neither credit nor disambiguation has no description; a release group of
+primary type "Album" credited to "Maria João Pires" is "Album · Maria João
+Pires", and of two release groups both scoring 100 neither is a match.
+
+**The rules of use.** MusicBrainz asks for one request a second and a
+User-Agent naming the application. Every upstream request carries exactly
+`User-Agent: tilie-server/<installed version> (
+https://github.com/TimeToAlign/TimeLineEditor )` and `Accept:
+application/json`, and no personal data. The pacing is proved with an
+injected clock and an injected sleep that advances it, never by waiting:
+three requests for three different URLs, the clock standing still, sleep
+exactly `[1.0, 1.0]`; with the clock moved 0.25 s after the first request,
+the second sleeps exactly `[0.75]`; moved 1 s, it sleeps not at all. Two
+equal queries (the second through `GET`, the first through `POST`) make one
+upstream request and answer alike; a suggestion is cached by its own URL.
+The cache keeps the least recently used answers: with room for two, after
+`a`, `b`, `a` and `c`, asking `a` again makes no request and asking `b` does.
+A failure is not cached.
+
+**Refusals and failures.** Each refusal below answers 422 `{"detail":
+<message>}` and makes no upstream request:
+
+| Request | Message |
+| --- | --- |
+| `queries` that is no JSON, a JSON list, an object holding a string, or a `POST` with neither `queries` nor `extend` | `queries is no JSON object of queries` |
+| a query without `query`, or with blank text | `query 'q0' has no text` |
+| a query, suggestion or property proposal of type `place` | `'place' is no type of this service; the types are work, artist, recording and release-group` |
+| `limit` 0, 26, `"5"` or `true` | `limit is an integer from 1 to 25` |
+| a suggestion without `prefix`, or with an empty one | `prefix is required` |
+| a suggestion with `cursor` `-1` or `x` | `cursor is an integer from 0` |
+| `extend` that is no JSON, lacks `properties`, or whose `ids` is no list of strings | `extend is no JSON object with ids and properties` |
+| the property `title` | `'title' is no property of this service; the properties are name and sameAs` |
+| the identifiers `work/8D331505-…` (upper case), `place/8d331505-…` and the bare `8d331505-…` | `'<id>' is no identifier of this service` |
+
+An upstream answer 503 is answered 502 `{"detail": "MusicBrainz answered
+503"}`, and the same request asked again reaches MusicBrainz again; a fetch
+that raises `TimeoutError` or `urllib`'s `URLError` is answered 502
+`{"detail": "MusicBrainz could not be reached"}`; an answer 200 that is no
+JSON 502 `{"detail": "MusicBrainz answered no JSON"}`. With
+`timetoshare.catalogue` made unimportable, data extension asking `sameAs`
+answers 501 `{"detail": "the installed timetoshare has no catalogue"}`
+without an upstream request, and asking only `name` still answers 200.
+Every route answers 401 without the token, and a `POST` with a foreign
+`Origin` 403 `{"detail": "forbidden origin"}`, as every `/api/` path.
+
+**The fetch.** The standard library's fetch is proved on the loopback
+interface against a server the test runs: an answer 200 and an answer 503
+are returned with their status and body, the request carries the given
+User-Agent, and a port nothing listens on raises `OSError`. The app built
+without a client holds a `MusicBrainz` of its own.
+
 ## The command
 
 **The port.** Without `--port`, `tilie` listens on port 8000, so that the
