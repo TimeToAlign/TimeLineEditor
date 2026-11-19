@@ -1,0 +1,123 @@
+/**
+ * Picking a statement's element on the canvas, and proposing matches in
+ * bulk for names stated without an identifier, on the LayerIt recording.
+ * Derivation in `README.md` ("metadata-pick.spec.ts").
+ */
+
+import type { Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { exported, field, importLayerIt, openDrawer, showMetadata } from "./metadata.ts";
+import { arranger, dispatch, framePoint, journalLength, selection } from "./support.ts";
+
+const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+
+/** The block the import added. */
+let block = "";
+
+test.beforeEach(async ({ page }) => {
+  block = await importLayerIt(page);
+});
+
+/** Type `text` into the composer's field `name` and take its first option. */
+async function choose(page: Page, name: "Verb" | "Vocabulary", text: string): Promise<void> {
+  await field(page, name).fill(text);
+  await field(page, name).press("ArrowDown");
+  await field(page, name).press("Enter");
+}
+
+/** On `cpt_2`, the composer at "derived from" in an element of the manifest. */
+async function composeElement(page: Page): Promise<void> {
+  await showMetadata(page, block, "cpt_2");
+  await page.getByRole("button", { name: "＋ Add statement" }).click();
+  await choose(page, "Verb", "derived from");
+  await choose(page, "Vocabulary", "element");
+}
+
+const pickButton = (page: Page) => page.getByRole("button", { name: "Pick on the canvas" });
+
+/** Press on `clt_6`'s card. */
+async function pressCard(page: Page): Promise<void> {
+  const { x, y } = await framePoint(page, block, { id: "clt_6", part: ["card"] });
+  await page.mouse.click(x, y);
+}
+
+test("a picked element becomes the value", async ({ page }) => {
+  await composeElement(page);
+  await pickButton(page).click();
+  await expect(pickButton(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("metadata-composer").locator("p.prompt[role=status]")).toHaveText(
+    "Pick a timeline or a region on the canvas; Escape cancels.",
+  );
+  await expect(arranger(page)).toHaveAttribute("data-picking", "");
+  const before = await journalLength(page);
+  await pressCard(page);
+  await expect(field(page, "Value")).toHaveValue("Clair de lune, mm. 1–6 (MEI) (timeline)");
+  expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
+  expect(await journalLength(page)).toBe(before);
+  await page.getByTestId("metadata-composer").getByRole("button", { name: "Add" }).click();
+  expect((await exported(page, "cpt_2")).statements).toEqual({
+    "dcterms:source": [{ id: "#clt_6" }],
+  });
+});
+
+test("Escape cancels picking", async ({ page }) => {
+  await composeElement(page);
+  await pickButton(page).click();
+  await expect(arranger(page)).toHaveAttribute("data-picking", "");
+  await page.keyboard.press("Escape");
+  await expect(pickButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(arranger(page)).not.toHaveAttribute("data-picking");
+  await expect(page.getByTestId("metadata-composer")).toBeVisible();
+  await expect(field(page, "Value")).toHaveValue("");
+  await pressCard(page);
+  await expect.poll(() => selection(page)).toEqual([{ block, id: "clt_6", part: ["card"] }]);
+});
+
+test("names without an identifier get proposals, and a confirmed one replaces its name", async ({
+  page,
+}) => {
+  expect(
+    await dispatch(page, {
+      type: "set",
+      changes: [
+        {
+          target: { block, id: "cpt_2" },
+          values: { statements: { "rel:prf": [{ label: "Maria João Pires" }] } },
+        },
+      ],
+    }),
+  ).toBeNull();
+  await showMetadata(page, block, "cpt_2");
+  const drawer = await openDrawer(page, "proposed");
+  await expect(drawer.locator(".count")).toHaveText("1 name without an identifier");
+  const before = await journalLength(page);
+  await drawer.getByRole("button", { name: "Propose matches for unreconciled names" }).click();
+  const rows = page.getByTestId("metadata-proposed-row");
+  await expect(rows).toHaveCount(1);
+  expect(await journalLength(page)).toBe(before + 1);
+  await expect(
+    page.getByText(/^GND could not be searched: it could not be reached/u),
+  ).toBeVisible();
+  await expect(rows.locator(".what")).toHaveText("performed by Maria João Pires");
+  await expect(rows.locator(".line")).toHaveText("reconciled · TiLiE · 2026-11-20");
+  await expect(rows.locator(".note")).toHaveText("found for the name “Maria João Pires”");
+  await rows.getByRole("button", { name: "Confirm" }).click();
+  await expect(rows).toHaveCount(0);
+  const cpt2 = await exported(page, "cpt_2");
+  expect(cpt2.statements).toEqual({
+    "rel:prf": [{ id: "wd:Q235650", label: "Maria João Pires" }],
+  });
+  expect(cpt2.provenance).toEqual([
+    {
+      date: "2026-11-20",
+      match: "close",
+      method: "reconciled",
+      note: "found for the name “Maria João Pires”",
+      property: "rel:prf",
+      service: "https://www.wikidata.org/w/api.php",
+      stated_by: [G],
+      status: "confirmed",
+      value: { id: "wd:Q235650" },
+    },
+  ]);
+});

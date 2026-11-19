@@ -12,44 +12,18 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { loads, statementsFixture } from "./schema.ts";
 import {
-  chooseItem,
-  downloaded,
-  journalLength,
-  pick,
-  select,
-  tab,
-  withoutPickers,
-} from "./support.ts";
+  exported,
+  field,
+  importLayerIt,
+  openDrawer,
+  RECORDED,
+  showMetadata as show,
+} from "./metadata.ts";
+import { chooseItem, journalLength } from "./support.ts";
 
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 const ORCID = "https://orcid.org/0000-0002-1825-0097";
-const RECORDED = path.join(import.meta.dirname, "../packages/editor/tests/lookup");
-const LOOKUP_HOSTS =
-  /^https:\/\/(www\.wikidata\.org|lobid\.org|www\.youtube\.com|commons\.wikimedia\.org)\//u;
-
-/** The recorded answers, by request URL. */
-const INDEX: Readonly<Record<string, string>> = JSON.parse(
-  readFileSync(path.join(RECORDED, "index.json"), "utf8"),
-);
-
-/** Answer the lookup hosts from the recordings; abort what is not recorded. */
-async function replayLookups(page: Page): Promise<void> {
-  await page.route(LOOKUP_HOSTS, async (route) => {
-    const file = INDEX[route.request().url()];
-    if (route.request().method() !== "GET" || file === undefined) {
-      await route.abort();
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: readFileSync(path.join(RECORDED, file), "utf8"),
-    });
-  });
-}
-
 /** The GND's preferred name of Maria João Pires, as lobid's recorded record gives it. */
 const GND_PIRES: string = JSON.parse(
   readFileSync(path.join(RECORDED, "gnd-record-124927521.json"), "utf8"),
@@ -59,66 +33,17 @@ const GND_PIRES: string = JSON.parse(
 let block = "";
 
 test.beforeEach(async ({ page }) => {
-  await withoutPickers(page);
-  await replayLookups(page);
-  await page.clock.setFixedTime(new Date("2026-11-20T12:00:00Z"));
-  await page.goto("/");
-  await page.waitForFunction(() => window.__tilie !== undefined);
-  await pick(
-    page,
-    "Import manifest…",
-    "layerit_recording.yaml",
-    statementsFixture("layerit_recording"),
-  );
-  await expect
-    .poll(() => page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length))
-    .toBe(1);
-  block = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
+  block = await importLayerIt(page);
 });
 
 /** Select the timeline `id` (the bundle for `null`) and show the Metadata tab. */
-async function showMetadata(page: Page, id: string | null): Promise<void> {
-  await select(page, [id === null ? { block } : { block, id }]);
-  const open = page.getByRole("button", { name: "Open inspector" });
-  if (await open.isVisible()) await open.click();
-  await tab(page, "Metadata").click();
-}
+const showMetadata = (page: Page, id: string | null) => show(page, block, id);
 
 const rectangles = (page: Page) => page.getByTestId("metadata-rectangle");
 
-/** The drawer `name` ("proposed", "rejected", "higher"), opened. */
-async function openDrawer(page: Page, name: string): Promise<Locator> {
-  const drawer = page.getByTestId(`metadata-drawer-${name}`);
-  if ((await drawer.getAttribute("open")) === null) await drawer.locator("summary").click();
-  return drawer;
-}
 const headings = (page: Page) => page.getByTestId("metadata-heading").locator(".verb");
 const rectangle = (page: Page, heading: string): Locator =>
   rectangles(page).filter({ has: page.locator(".verb", { hasText: new RegExp(`^${heading}$`) }) });
-
-/** A composer field by its label. */
-function field(page: Page, name: "Verb" | "Vocabulary" | "Value"): Locator {
-  return page.getByTestId("metadata-composer").getByRole("combobox", { name, exact: true });
-}
-
-/** The exported manifest's timeline `id` (written `#id`). */
-async function exported(page: Page, id: string): Promise<{ [key: string]: unknown }> {
-  const download = downloaded(page.waitForEvent("download"));
-  await chooseItem(page, "Export manifest…");
-  const [, text] = await download;
-  type Written = { [key: string]: unknown; children?: Written[] };
-  const manifest = loads(text) as { timelines: Written[] };
-  const find = (timelines: readonly Written[]): Written | undefined => {
-    for (const timeline of timelines) {
-      const found = timeline.id === `#${id}` ? timeline : find(timeline.children ?? []);
-      if (found !== undefined) return found;
-    }
-    return undefined;
-  };
-  const found = find(manifest.timelines);
-  if (found === undefined) throw new Error(`no #${id}`);
-  return found;
-}
 
 /** Paste `text` into `locator` as the clipboard would. */
 async function paste(locator: Locator, text: string): Promise<void> {

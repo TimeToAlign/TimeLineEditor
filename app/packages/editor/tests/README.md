@@ -1315,6 +1315,100 @@ default. Without a key, and with a `localStorage` whose every access
 throws, the default is read, `set` holds the user in memory and nothing
 throws.
 
+## Proposed matches and picking on the canvas (`metadata-proposals.test.ts`)
+
+A name stated without an identifier is a value node with a `label` and no
+`id`. Bulk proposals look such names up and propose, never state, the best
+match; confirming one states the identified thing in place of the name. What
+proves it is the exact `set` each step builds on the LayerIt store (`L`,
+block `A`, the date fixed at 2026-11-20), with `cpt_2` (`["timelines", 1,
+"children", 0]`, no statements in the fixture) first given by one accepted
+`set` the statements `N` = `{"dcterms:subject": [{"label": "Nocturne"}],
+"rel:prf": [{"label": "Maria João Pires"}], "wdt:P2550": [{"label": "Clair de
+lune"}]}`. The candidates come from the recorded answers ("Looking values
+up"), the lookup created over the replaying `fetch`, so every value below is
+read from a recording, never typed from the implementation; `T` is
+`https://github.com/TimeToAlign/TimeLineEditor`, `G` the default user's tag.
+
+- **Which names.** Pairs are read in code-point key order. For `cpt_2`'s
+  frame the names are `rel:prf` "Maria João Pires" (performed by: kind
+  agent) and `wdt:P2550` "Clair de lune" (recording of: kind work), each at
+  subject `cpt_2`, each offered in `["wikidata", "gnd"]` without a server
+  and `["wikidata", "gnd", "musicbrainz"]` with one; `dcterms:subject`
+  "Nocturne" is no catalogue verb's and is left out. `cpt_1`'s frame finds
+  the same two (`cpt_2` lies below it; every node of `cpt_1` has an `id`),
+  `clt_6`'s none, and the lookup `NO_LOOKUP` none anywhere. A name inside
+  a value node is found at that node: `cpt_2` given `{"rel:prf": [{"label":
+  "Maria João Pires"}], "wdt:P2550": [{"id": "wd:Q29117946", "wdt:P175":
+  [{"label": "Maria João Pires"}]}]}` yields `rel:prf` at `cpt_2` and
+  `wdt:P175` at `[…cpt_2, "statements", "wdt:P2550", 0]`.
+- **One call per system and kind**, systems in the order Wikidata, GND,
+  MusicBrainz, each name once: for `N` without a server `[wikidata agent
+  ["Maria João Pires"]], [wikidata work ["Clair de lune"]], [gnd agent
+  ["Maria João Pires"]], [gnd work ["Clair de lune"]]`; the nested case
+  asks "Maria João Pires" once per system.
+- **Answers.** Asked over the recordings, Wikidata's first agent is
+  `http://www.wikidata.org/entity/Q235650` "Maria João Pires" and its first
+  work `…/Q29117946` "Clair de lune"; the GND's first work is
+  `https://d-nb.info/gnd/1173441581`; the GND has no recording for the
+  agent "Maria João Pires", so it is named among the failures, `{system:
+  "gnd", message: "it could not be reached (no recorded answer for
+  https://lobid.org/gnd/search?q=Maria+Jo%C3%A3o+Pires&filter=type%3APerson+OR+type%3ACorporateBody&format=json%3Asuggest&size=10)"}`,
+  and the other answers stand.
+- **Proposals.** On `cpt_2`'s frame they become one `set` on `{block: A,
+  id: "cpt_2"}` holding `provenance` alone (the statements unchanged): the
+  entries `{property: "rel:prf", value: {id: "wd:Q235650"}, status:
+  "proposed", stated_by: [T], date: "2026-11-20", method: "reconciled",
+  service: "https://www.wikidata.org/w/api.php", match: "close", note:
+  "found for the name “Maria João Pires”"}` and the same for `wdt:P2550`
+  with `wd:Q29117946` and "found for the name “Clair de lune”": Wikidata's
+  candidate is preferred though the GND answered the work too, and
+  Wikidata's search says no `match`, so `close`. Proposing again proposes
+  nothing (count 0, no command), nor after the first proposal is rejected.
+  With Wikidata unreachable, `rel:prf` "Pires, Maria João" gets the GND's
+  first, `gnd:1057057150` (lobid ranks "Pires, Maria João Marques" first,
+  not the pianist's 124927521: the reason these are proposals), service
+  `https://lobid.org/gnd/search`, `close`. A candidate whose service says it
+  matches (MusicBrainz's `match: true` for
+  `http://musicbrainz.org/work/199ec7b6-ce07-34e9-85ca-fcf89fe808c9`
+  "Clair de Lune", given as the only answer) is proposed `exact`, its IRI
+  kept absolute.
+- **Confirming.** With the two proposals stored, confirming the `rel:prf`
+  row by `G` gives one change on `cpt_2`: `rel:prf` becomes `[{id:
+  "wd:Q235650", label: "Maria João Pires"}]` (the name's node with the
+  thing's `id`: the label-only node is gone), `wdt:P2550` and
+  `dcterms:subject` stay, and its entry is `confirmed`, `stated_by: [G]`,
+  `date: "2026-11-20"`, its method, service, match and note kept.
+  `cpt_1`'s own proposal (no name noted) is not such a proposal
+  (`confirmedProposal` gives `null`), nor is a proposal whose note names
+  no stated name.
+- **The element as it stands.** `frameIn` gives the frame over the
+  store's current manifest; after `remove cpt_2`, `null`.
+- **The tab** (the Inspector mounted with a stub lookup whose `reconcile`
+  answers Wikidata's candidates above and nothing elsewhere, and a
+  `Picking`): on `cpt_2` with `N` the Proposed drawer offers "Propose
+  matches for unreconciled names" with "2 names without an identifier";
+  pressed, one journal entry, "Proposed (2)" and the information "Proposed
+  2 matches: they are listed under Proposed."; the names stay without an
+  identifier until confirmed, so the offer stays. Pressed again, nothing is
+  journalled and "No new match was found for the 2 names." is posted.
+  Confirm on the `rel:prf` row: one journal entry whose `set` states
+  `cpt_2`'s statements as under Confirming, "Proposed (1)", "1 name
+  without an identifier".
+- **Picking an element.** On `cpt_2`, "derived from" in the vocabulary "An
+  element of this manifest": "Pick on the canvas" shows (and not for
+  another vocabulary, and not without a `Picking`). Pressed, the picking
+  is active, the button pressed, the status line reads "Pick a timeline or
+  a region on the canvas; Escape cancels."; the canvas's answer `{block:
+  A, id: "clt_6"}` fills Value with "Clair de lune, mm. 1–6 (MEI)
+  (timeline)", gives it the focus and ends the picking; Add states
+  `"dcterms:source": [{"id": "#clt_6"}]`. Escape (on the window, wherever
+  the focus is) ends a picking with nothing chosen, the composer open and
+  the focus on the button. An answer in another block posts "That element
+  lies in another block; pick a timeline or a region of this one."; `cpt_2`
+  itself "The element shown cannot be its own value; pick another timeline
+  or region."; Value stays empty. Closing the composer ends the picking.
+
 ## The message bar (`messages.test.ts`, `shell.test.ts`)
 
 The message bar over the canvas lists messages in the order posted, each

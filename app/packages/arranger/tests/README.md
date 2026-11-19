@@ -899,6 +899,50 @@ editor, `u`'s card has its own on the arranger. Enter on `{block: A, id: "t", pa
 displayed), the one in `g2` on the arranger, in the bundle editor and in
 `g2`'s editor, and nothing in `g1`'s.
 
+## Picking an element (`picking.test.ts`)
+
+While a panel asks the canvas to pick an element (the Canvas's `picking`),
+a press picks a timeline or a region instead of selecting. What proves the
+reading is that every answer comes from what the press hit, resolved in the
+block's manifest by core's resolver, exactly as the inspector reads a
+selected address for its statements: a card, a band or a part counts as its
+timeline, a region's label as its region; nothing is read from an
+address's shape. Each case presses a descriptor of the drawing (its source,
+as a press reports it) and names the `{block: A, id}` picked or `null`.
+
+- **`with_region`** (root `clt_1`, children `clt_2` and `clt_3`,
+  `region_1`): the line `{id: "clt_1"}`, the card `{id: "clt_1", part:
+  ["card"]}`, the card's shadow and the name `{id: "clt_1", part:
+  ["name"]}` pick `clt_1`; the child line `{id: "clt_2"}` and its name pick
+  `clt_2`; the region `{id: "region_1"}` and its label `{id: "region_1",
+  part: ["label"]}` pick `region_1`; the block's background, the wedge of
+  the named timestamp `timestamp_1` and its coordinate label pick nothing.
+  In `clt_1`'s timeline editor, a press on the background at the middle of
+  the regions band (layout's record: x 42.49951171875 + 417.695068359375 /
+  2, y 81.9765625 + 18.4765625 / 2) hits the band `{id: "clt_1", facet:
+  "regions"}` and picks `clt_1`.
+- **`group_child_member`**: the frame `{id: "group_1"}` and the group's
+  title `{id: "group_1", part: ["name"]}` pick nothing; the ancestor line
+  `{id: "piece"}` drawn in `second-half`'s card picks `piece`; the mark of
+  `second-half`'s start on it, `{id: "second-half", part: ["start"]}`,
+  picks `second-half`.
+- **`segment_line`**: the boundary `{id: "b", part: ["start"]}` picks the
+  segment `b`.
+- **`flow_control`**: the flow marker `flow_marker_1` and the jump origin
+  `jump_from_1` pick nothing.
+
+The canvas (`CanvasHarness` on `with_region` at the default viewport,
+`picking` given): the arranger carries `data-picking`, absent without
+`picking`. A primary press on `clt_1`'s card calls `picking` once with
+`{block: A, id: "clt_1"}`; the press and the click after it leave the
+selection empty and the journal as it was, where without `picking` the
+same press selects `{block: A, id: "clt_1", part: ["card"]}`. A press on the block's
+background calls nothing, the status line reads "Pick a timeline or a
+region; Escape cancels.", and its click selects nothing either. In
+`clt_1`'s timeline editor (nothing selected), Escape on the arranger
+leaves the editor open while `picking` is given (the caller cancels), and
+closes it without `picking`.
+
 ## Editors: what opens and what each level permits (`editors.test.ts`)
 
 An editor is a mode of the canvas on one element. What proves the dispatch

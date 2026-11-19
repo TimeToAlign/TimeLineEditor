@@ -2,18 +2,28 @@
 /**
  * The three drawers below the rectangles, native disclosures: what is
  * stated of the elements around the one shown (read only), the proposed
- * pairs with Confirm and Reject, and the rejected ones with Confirm.
+ * pairs with Confirm and Reject, and the rejected ones with Confirm. The
+ * proposed drawer also offers to propose matches for the names stated
+ * without an identifier.
  */
 import type { DrawerRow, Drawers } from "./frame.ts";
 
 let {
   drawers,
+  unreconciled,
+  proposing,
   onconfirm,
   onreject,
+  onpropose,
 }: {
   drawers: Drawers;
+  /** How many names below the shown element are stated without an identifier the lookup can find. */
+  unreconciled: number;
+  /** Whether matches for them are being looked up. */
+  proposing: boolean;
   onconfirm: (row: DrawerRow) => void;
   onreject: (row: DrawerRow) => void;
+  onpropose: () => void;
 } = $props();
 
 const higherCount = $derived(
@@ -51,6 +61,23 @@ const higherCount = $derived(
   </details>
   <details data-testid="metadata-drawer-proposed">
     <summary>Proposed ({drawers.proposed.length})</summary>
+    {#if unreconciled > 0 || proposing}
+      <p class="propose">
+        <button
+          type="button"
+          data-testid="metadata-propose"
+          aria-busy={proposing}
+          onclick={() => {
+            if (!proposing) onpropose();
+          }}>Propose matches for unreconciled names</button
+        >
+        <span class="count" role="status"
+          >{proposing
+            ? "Looking them up…"
+            : `${unreconciled} ${unreconciled === 1 ? "name" : "names"} without an identifier`}</span
+        >
+      </p>
+    {/if}
     <ul>
       {#each drawers.proposed as row (row.key)}
         <li data-testid="metadata-proposed-row" data-key={row.key}>
@@ -128,6 +155,19 @@ const higherCount = $derived(
 
   code {
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+  }
+
+  .propose {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0.2rem 0;
+  }
+
+  .count {
+    color: #595959;
     font-size: 0.78rem;
   }
 

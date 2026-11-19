@@ -43,11 +43,12 @@ import type { LiveStore } from "./liveStore.svelte.ts";
 import type { LivePlacement } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
+import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
-import { DONE, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
+import { DONE, hitAt, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
 
 interface Props {
@@ -95,6 +96,14 @@ interface Props {
   measureMaps?:
     | ((manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">)
     | undefined;
+  /**
+   * While set, the canvas picks instead of selecting: a press on a
+   * timeline (its line, card, band or a part of it) or a region
+   * (`pickable`) calls it with `{block, id}` and does nothing else, a
+   * press on anything else in a block does nothing, Escape is left to the
+   * caller, and the pointer is a crosshair; `null` (the default) selects.
+   */
+  picking?: ((address: Address) => void) | null;
 }
 
 let {
@@ -110,6 +119,7 @@ let {
   pinned = null,
   oncoordinatepin,
   measureMaps,
+  picking = null,
 }: Props = $props();
 
 /**
@@ -519,8 +529,45 @@ const marks: readonly PlacedMarks[] = $derived.by(() => {
 // Unmounted, the canvas leaves no frame waiting.
 $effect(() => () => frames.cancel());
 
+// --- Picking ---------------------------------------------------------------
+
+/** Text the status line shows after a press that picks nothing. */
+const NOT_PICKABLE = "Pick a timeline or a region; Escape cancels.";
+
+/** Whether the current press was taken by picking, so its release and click do nothing more. */
+let picked = false;
+
+/**
+ * While picking, a primary press on a block is taken before anything inside
+ * sees it: a press on what `pickable` maps calls `picking` with it, any other
+ * says what can be picked. Preventing the press keeps the mouse events that
+ * would start Svelte Flow's drag or pan from following it.
+ */
+function pickOnPress(event: PointerEvent): boolean {
+  picked = false;
+  if (picking === null || !event.isPrimary || event.button !== 0) return false;
+  const pressed = pointer.pressedAt(event.target, { x: event.clientX, y: event.clientY });
+  if (pressed.node === undefined) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  picked = true;
+  const hit = hitAt(pressed, editing);
+  const address = hit === null ? null : pickable(hit, pressed.node.data.block.manifest);
+  hint = address === null ? NOT_PICKABLE : "";
+  if (address !== null) picking(address);
+  return true;
+}
+
+/** The click that ends a press taken by picking reaches nothing inside the canvas. */
+function onclickcapture(event: MouseEvent) {
+  if (!picked) return;
+  picked = false;
+  event.stopPropagation();
+}
+
 /** A press records itself and gives the canvas the focus, unless the focus is already inside it. */
 function onpointerdowncapture(event: PointerEvent) {
+  if (pickOnPress(event)) return;
   pointer.pointerdowncapture(event);
   pinOnPress(event);
   if (root !== undefined && !root.contains(document.activeElement)) focus();
@@ -528,6 +575,7 @@ function onpointerdowncapture(event: PointerEvent) {
 
 /** A release ends the canvas pointer's press and may pin a reading, before anything inside stops it. */
 function onpointerupcapture(event: PointerEvent) {
+  if (picked) return;
   pointer.pointerupcapture(event);
   pinOnRelease(event);
 }
@@ -568,6 +616,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
  */
 function onkeydowncapture(event: KeyboardEvent) {
   if (event.defaultPrevented || isTextInput(event.target)) return;
+  if (picking !== null && event.key === "Escape") return;
   if (!within(root, event.target) || inToolbar(event)) return;
   if (!handleKey(keyContext(event), event)) return;
   event.preventDefault();
@@ -590,10 +639,12 @@ function onkeydowncapture(event: KeyboardEvent) {
   bind:this={root}
   style:--tilie-zoom={viewport.zoom}
   data-reading={reading === null ? undefined : ""}
+  data-picking={picking === null ? undefined : ""}
   bind:clientWidth={null, () => editorFocus.resized()}
   bind:clientHeight={null, () => editorFocus.resized()}
   {onpointerdowncapture}
   {onpointerupcapture}
+  {onclickcapture}
   ondblclick={pointer.dblclick}
   onpointermovecapture={onpointermove}
   {onpointerleave}
@@ -626,7 +677,7 @@ function onkeydowncapture(event: KeyboardEvent) {
       zoomOnScroll={false}
       zoomOnDoubleClick={false}
       zoomActivationKey={ZOOM_KEYS}
-      nodesDraggable={rules.move}
+      nodesDraggable={rules.move && picking === null}
       nodesConnectable={false}
       proOptions={{ hideAttribution: true }}
       onnodeclick={pointer.nodeclick}

@@ -8,18 +8,19 @@
  * `set` of the statements and provenance it changes, built on the
  * manifest's statement skeleton by TimeToShare's functions; their throws
  * and the store's refusals are posted to the message bar as warnings. The
- * user who states comes from the editor's user; lookups from its lookup.
+ * user who states comes from the editor's user; lookups from its lookup,
+ * which also proposes matches for the names stated without an identifier.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
 import type { PathSegment, Skeleton, Store, View } from "@timetoalign/tilie-core";
 import { isJsonObject, samePair } from "@timetoalign/timetoshare";
-import { tick } from "svelte";
+import { onDestroy, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { lookupOf } from "../lookup/index.ts";
 import { informOf, warnOf } from "../messages.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import Composer from "./metadata/Composer.svelte";
-import { CATALOGUE } from "./metadata/catalogue.ts";
+import { CATALOGUE, systemChoice } from "./metadata/catalogue.ts";
 import { ComposerState } from "./metadata/composer.svelte.ts";
 import Drawers from "./metadata/Drawers.svelte";
 import type { EntryFields } from "./metadata/edits.ts";
@@ -33,7 +34,22 @@ import {
   removedRectangle,
 } from "./metadata/edits.ts";
 import type { DrawerRow, Frame, Pair, RectangleView } from "./metadata/frame.ts";
-import { drawersOf, entryPair, rectanglesOf, rectangleWords, shownOf } from "./metadata/frame.ts";
+import {
+  drawersOf,
+  entryPair,
+  framePrefixes,
+  rectanglesOf,
+  rectangleWords,
+  shownOf,
+} from "./metadata/frame.ts";
+import {
+  answersTo,
+  confirmedProposal,
+  frameIn,
+  proposed,
+  questionsOf,
+  unreconciledOf,
+} from "./metadata/proposals.ts";
 import Rectangle from "./metadata/Rectangle.svelte";
 import { provideThumbnails, Thumbnails } from "./metadata/thumbnails.svelte.ts";
 
@@ -57,7 +73,8 @@ const REJECTED_SUMMARY = '[data-testid="metadata-drawer-rejected"] summary';
 const inform = informOf();
 const warn = warnOf();
 const user = userOf();
-provideThumbnails(new Thumbnails(lookupOf()));
+const lookup = lookupOf();
+provideThumbnails(new Thumbnails(lookup));
 
 const composer = new ComposerState();
 
@@ -67,6 +84,13 @@ const rectangles = $derived(frame === null ? [] : rectanglesOf(frame, CATALOGUE,
 const drawers = $derived(
   frame === null ? null : drawersOf(view, frame, CATALOGUE, user.state.user),
 );
+/** The names below the shown element stated without an identifier that the lookup can look up. */
+const unreconciled = $derived(frame === null ? [] : unreconciledOf(frame, CATALOGUE, lookup));
+/** Whether matches are being looked up for them. */
+let proposing = $state(false);
+/** Ends the lookups of the proposals when the panel goes. */
+const proposals = new AbortController();
+onDestroy(() => proposals.abort());
 /** The user line: who states what is added here. */
 const userLine = $derived(
   user.state.orcid === null
@@ -229,11 +253,56 @@ function confirm(at: Frame, row: DrawerRow): void {
     (proposed ? drawers?.proposed : drawers?.rejected) ?? [],
     proposed ? "metadata-drawer-proposed" : "metadata-drawer-rejected",
   );
-  if (!edit(at, () => confirmed(at, row, user.state.user, dayOf(new Date())))) return;
+  const day = dayOf(new Date());
+  const change = () =>
+    confirmedProposal(at, row, user.state.user, day) ?? confirmed(at, row, user.state.user, day);
+  if (!edit(at, change)) return;
   void focusAfter(() => {
     const key = pair === null ? null : holderOf(pair);
     return key === null ? fallback() : rectangleSelector(key);
   });
+}
+
+/**
+ * Propose matches for the names below `at` stated without an identifier:
+ * each looked up once per system, the answers proposed by TiLiE in one `set`
+ * on the element as it stands when they arrive; a system that cannot be
+ * searched is named.
+ */
+async function propose(at: Frame): Promise<void> {
+  if (proposing) return;
+  proposing = true;
+  const found = unreconciledOf(at, CATALOGUE, lookup);
+  const { answers, failures } = await answersTo(lookup, questionsOf(found), proposals.signal);
+  proposing = false;
+  if (proposals.signal.aborted) return;
+  for (const { system, message } of failures) {
+    inform(`${systemChoice(CATALOGUE, system).label} could not be searched: ${message}`);
+  }
+  const now = frameIn(store.view, at);
+  if (now === null) return;
+  let count = 0;
+  const changed = edit(now, () => {
+    const result = proposed(
+      now,
+      unreconciledOf(now, CATALOGUE, lookup),
+      answers,
+      framePrefixes(now, CATALOGUE),
+      dayOf(new Date()),
+    );
+    count = result.count;
+    return result.skeleton;
+  });
+  // A refusal or a throw is posted by `edit`.
+  if (changed) {
+    inform(
+      `Proposed ${count} ${count === 1 ? "match" : "matches"}: they are listed under Proposed.`,
+    );
+  } else if (count === 0) {
+    inform(
+      `No new match was found for the ${found.length === 1 ? "name" : `${found.length} names`}.`,
+    );
+  }
 }
 
 function rejectRow(at: Frame, row: DrawerRow): void {
@@ -286,8 +355,11 @@ function rejectRow(at: Frame, row: DrawerRow): void {
     {#if drawers !== null}
       <Drawers
         {drawers}
+        unreconciled={unreconciled.length}
+        {proposing}
         onconfirm={(row) => confirm(frame, row)}
         onreject={(row) => rejectRow(frame, row)}
+        onpropose={() => void propose(frame)}
       />
     {/if}
   {/if}

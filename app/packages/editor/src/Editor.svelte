@@ -35,6 +35,7 @@ import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
+import { Picking, providePicking } from "./pick.svelte.ts";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
 import UserDialog from "./UserDialog.svelte";
@@ -109,6 +110,10 @@ async function askUser(): Promise<void> {
 provideUser({ state: user, ask: askUser });
 // Lookups leave the browser only where the host allows them.
 provideLookup(untrack(() => (lookup ? createLookup({ server: server ?? null }) : NO_LOOKUP)));
+
+/** A panel's question for an element on the canvas, which the canvas answers while it is asked. */
+const picking = new Picking();
+providePicking(picking);
 
 // --- The workspace ----------------------------------------------------------
 
@@ -514,6 +519,7 @@ if (withTestHook) {
         pinned={drawer?.shownPin() ?? null}
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
+        picking={picking.active ? picking.take : null}
       />
       <MessageBar messages={messages.shown} ondismiss={(id) => messages.dismiss(id)} />
     </div>

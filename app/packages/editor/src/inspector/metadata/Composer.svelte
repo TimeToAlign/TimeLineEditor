@@ -7,15 +7,18 @@
  * recognised and fills vocabulary and value, the verb asked after. In
  * vocabulary mode ("＋ vocabulary") the verb is the rectangle's and the
  * value is first offered from the cross-references of its first thing.
- * Add states the pairs with an annotation of who, when and how.
+ * An element of the manifest may also be picked on the canvas. Add states
+ * the pairs with an annotation of who, when and how.
  */
 import { statementHolders } from "@timetoalign/tilie-core";
 import { recognize } from "@timetoalign/timetoshare";
 import { onDestroy, onMount, tick } from "svelte";
+import type { Attachment } from "svelte/attachments";
 import Combobox from "../../combobox/Combobox.svelte";
 import type { Candidate } from "../../lookup/index.ts";
 import { lookupOf } from "../../lookup/index.ts";
 import { informOf } from "../../messages.svelte.ts";
+import { hasPicking, pickingOf } from "../../pick.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import type { SystemChoice, TypeOption, VerbChoice } from "./catalogue.ts";
 import {
@@ -64,6 +67,8 @@ const uid = $props.id();
 const lookup = lookupOf();
 const user = userOf();
 const inform = informOf();
+/** The canvas to pick an element on; none where the panel is shown without one. */
+const picking = hasPicking() ? pickingOf() : null;
 
 /** What a pasted address the catalogue does not know gives. */
 const UNKNOWN_ADDRESS =
@@ -178,6 +183,60 @@ const valueOptions = $derived.by((): readonly ValueChoice[] => {
 function typeChoice(option: TypeOption): ValueChoice {
   return { kind: "type", type: option.type, label: option.label, pairs: option.pairs };
 }
+
+/** What the status line says while a pick on the canvas is awaited. */
+const PICK_PROMPT = "Pick a timeline or a region on the canvas; Escape cancels.";
+
+/** The "Pick on the canvas" button, held by an attachment, not state: the focus returns to it. */
+let pickButton: HTMLButtonElement | undefined;
+const heldPickButton: Attachment<HTMLButtonElement> = (element) => {
+  pickButton = element;
+  return () => {
+    pickButton = undefined;
+  };
+};
+/** Whether this composer awaits a pick on the canvas. */
+let awaiting = $state(false);
+
+/**
+ * "Pick on the canvas": the canvas picks a timeline or a region, which
+ * becomes the value as if chosen from the list; pressed again, or Escape,
+ * cancels. A pick in another block, or of the element shown, is refused.
+ */
+async function pickOnCanvas(): Promise<void> {
+  if (picking === null) return;
+  if (awaiting) {
+    picking.cancel();
+    return;
+  }
+  awaiting = true;
+  const address = await picking.start();
+  awaiting = false;
+  if (address === null || composer.system?.id !== ELEMENT) {
+    pickButton?.focus();
+    return;
+  }
+  const choice = elementsOf().find(
+    (candidate) => candidate.kind === "element" && candidate.id === address.id,
+  );
+  if (address.block !== frame.block.id || choice === undefined) {
+    inform(
+      address.id === frame.id && address.block === frame.block.id
+        ? "The element shown cannot be its own value; pick another timeline or region."
+        : "That element lies in another block; pick a timeline or a region of this one.",
+    );
+    pickButton?.focus();
+    return;
+  }
+  pickValue(choice);
+  await tick();
+  valueBox?.focus();
+}
+
+// A composer closed while it awaits a pick ends the pick.
+onDestroy(() => {
+  if (awaiting) picking?.cancel();
+});
 
 /** The other timelines and regions of the manifest, each a possible value: `#` and its ID. */
 function elementsOf(): ValueChoice[] {
@@ -565,6 +624,17 @@ onMount(() => {
         onenter={enterValue}
         onpaste={paste}
       />
+      {#if picking !== null && composer.system?.id === ELEMENT}
+        <button
+          type="button"
+          class="pick"
+          data-testid="metadata-pick"
+          aria-pressed={awaiting}
+          {@attach heldPickButton}
+          onclick={() => void pickOnCanvas()}>Pick on the canvas</button
+        >
+        <p class="prompt" role="status">{awaiting ? PICK_PROMPT : ""}</p>
+      {/if}
     </div>
     {#each slots as slot (slot)}
       <label class="field">
@@ -635,7 +705,17 @@ onMount(() => {
     overflow-wrap: anywhere;
   }
 
-  .missing {
+  .pick {
+    justify-self: start;
+  }
+
+  .pick[aria-pressed="true"] {
+    border-color: #0a84ff;
+    background: #e8f2ff;
+  }
+
+  .missing,
+  .prompt {
     margin: 0;
     color: #595959;
     font-size: 0.78rem;

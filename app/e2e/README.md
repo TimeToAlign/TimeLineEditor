@@ -553,6 +553,36 @@ the shipped catalogue's labels.
    entry; the export's `#cpt_1` states neither `rel:prf` nor `wdt:P175`,
    their two annotations rejected by `G` on 2026-11-20.
 
+**`metadata-pick.spec.ts`** (Chromium) starts as `metadata.spec.ts` does
+(the import, the replayed lookups and the fixed clock are `metadata.ts`'s,
+shared by both specs).
+
+1. **Pick.** On `cpt_2`, "＋ Add statement", Verb "derived from",
+   Vocabulary "An element of this manifest", "Pick on the canvas": the
+   button is pressed, the status line reads "Pick a timeline or a region on
+   the canvas; Escape cancels." and the arranger carries `data-picking`. A
+   press on a point of `clt_6`'s card (`framePoint`): Value reads "Clair de
+   lune, mm. 1–6 (MEI) (timeline)", the selection is still `cpt_2` alone,
+   nothing journalled; Add: the export's `#cpt_2` states
+   `{"dcterms:source": [{id: "#clt_6"}]}`.
+2. **Escape cancels.** "Pick on the canvas", then Escape: the button is
+   no longer pressed, the arranger no longer carries `data-picking`, the
+   composer is open with Value empty; the same press on `clt_6`'s card then
+   selects that card, `{block, id: "clt_6", part: ["card"]}`.
+3. **Bulk.** `cpt_2` given `{"rel:prf": [{label: "Maria João Pires"}]}` by
+   a `set` through the hook; on `cpt_2` the Proposed drawer, opened, offers
+   "Propose matches for unreconciled names" beside "1 name without an
+   identifier"; pressed (Wikidata's recorded agent search answers
+   `Q235650` first; the GND, unrecorded for that text, is aborted and named
+   in the message bar, and MusicBrainz, whose route no server answers here,
+   fails too): one journal entry and one proposed row, "performed
+   by Maria João Pires" (the label `cpt_1` gives `wd:Q235650`), "reconciled
+   · TiLiE · 2026-11-20", the note "found for the name “Maria João
+   Pires”". Confirm: the export's `#cpt_2` states exactly `{"rel:prf": [{id:
+   "wd:Q235650", label: "Maria João Pires"}]}`, the label-only node gone,
+   and its one annotation `confirmed` by `G` with `method: reconciled`,
+   `service: https://www.wikidata.org/w/api.php`, `match: close`.
+
 **`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
 below its threshold, so `grid-300` mounts all 300 nodes at any viewport,
 and on above it: with `grid-900` at viewport (−2000, −100) exactly the

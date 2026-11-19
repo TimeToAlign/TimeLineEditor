@@ -273,7 +273,7 @@ function isValueObject(value: unknown): value is JsonObject {
 }
 
 /** Whether `value` is a node: an object that is no value object and no ordered list. */
-function isNode(value: unknown): value is JsonObject {
+export function isNode(value: unknown): value is JsonObject {
   return isJsonObject(value) && !isValueObject(value) && !Object.hasOwn(value, "list");
 }
 

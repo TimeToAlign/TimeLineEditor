@@ -1,6 +1,6 @@
 <script lang="ts">
 /* The canvas on a store, its selection and viewport held here so a test can read and set them. */
-import type { Manifest, MeasureKnots, Pin, Store } from "@timetoalign/tilie-core";
+import type { Address, Manifest, MeasureKnots, Pin, Store } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
@@ -13,11 +13,13 @@ let {
   metrics,
   oncoordinatepin = () => {},
   measureMaps,
+  picking = null,
 }: {
   store: Store;
   metrics: FontMetrics;
   oncoordinatepin?: (pin: Pin | null) => void;
   measureMaps?: (manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">;
+  picking?: ((address: Address) => void) | null;
 } = $props();
 
 const live = $derived(liveStore(store));
@@ -77,5 +79,6 @@ export function pin(next: Pin | null): void {
     {pinned}
     {oncoordinatepin}
     {measureMaps}
+    {picking}
   />
 </div>

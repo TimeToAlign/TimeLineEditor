@@ -233,6 +233,12 @@
   cursor: crosshair;
 }
 
+/* Picking an element: every block takes the crosshair, its drawing included. */
+.tilie-canvas[data-picking] .svelte-flow__node,
+.tilie-canvas[data-picking] .tilie-block svg {
+  cursor: crosshair;
+}
+
 .tilie-canvas .tilie-coordinates {
   position: absolute;
   inset: 0;
