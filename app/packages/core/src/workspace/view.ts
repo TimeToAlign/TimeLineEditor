@@ -70,7 +70,7 @@ export interface View {
   /** The workspace's name, the default name of its file (`<name>.tle.json`); never empty. */
   readonly name: string;
   readonly settings: WorkspaceSettings;
-  /** The workspace's default statements, between the built-in defaults and each manifest's own. */
+  /** The workspace's default rules, between the built-in defaults and each manifest's own. */
   readonly graphical: Graphical;
   readonly blocks: { readonly [id: BlockId]: Block };
 }

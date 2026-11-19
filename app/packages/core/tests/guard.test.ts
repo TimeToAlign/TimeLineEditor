@@ -1,4 +1,4 @@
-import type { Declaration, Selector, Statement } from "@timetoalign/timetoshare";
+import type { Declaration, Rule, Selector } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
@@ -8,7 +8,7 @@ import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords } from "../src/workspace/address.ts";
 import type { Block } from "../src/workspace/blocks.ts";
-import { sideEffect, statementInside } from "../src/workspace/guard.ts";
+import { ruleInside, sideEffect } from "../src/workspace/guard.ts";
 import type { View } from "../src/workspace/view.ts";
 import { A, addBlock, B, block, changed, deepFreeze, viewOf } from "./support.ts";
 
@@ -50,9 +50,9 @@ const withBlock = (view: View, values: Partial<Block>): View => ({
 const withManifest = (view: View, values: Partial<Manifest>): View =>
   withBlock(view, { manifest: { ...block(view, BUNDLE).manifest, ...values } });
 
-/** The workspace's `graphical` with one statement. */
+/** The workspace's `graphical` with one rule. */
 const STYLED = {
-  statements: [{ select: { element: "timeline" as const }, set: { stroke: "#FF0000" } }],
+  rules: [{ select: { element: "timeline" as const }, set: { stroke: "#FF0000" } }],
 };
 
 const withGraphical = (view: View): View => ({ ...view, graphical: STYLED });
@@ -82,7 +82,7 @@ const refusal =
   });
 
 const outside = refusal("lies");
-/** The refusal of a change of `what`, a plural noun (the statements, the styles). */
+/** The refusal of a change of `what`, a plural noun (the rules, the styles). */
 const outsideAll = refusal("lie");
 
 describe("sideEffect, the exact cases", () => {
@@ -113,14 +113,14 @@ describe("sideEffect, the exact cases", () => {
     expect(sideEffect(before, changed(before, adapting), G1)).toBeNull();
   });
 
-  it("refuses a statement reaching outside and accepts one reaching only inside", () => {
+  it("refuses a rule reaching outside and accepts one reaching only inside", () => {
     const wide = changed(before, { type: "style", select: TIMELINES, set: RED });
     expect(sideEffect(before, wide, G1)).toEqual(
-      outsideAll("the graphical statements of bundle 'Mixed'", [
+      outsideAll("the graphical rules of bundle 'Mixed'", [
         BUNDLE,
         "manifest",
         "graphical",
-        "statements",
+        "rules",
       ]),
     );
     const narrow = changed(before, { type: "style", select: SCORE, set: RED });
@@ -198,7 +198,7 @@ describe("sideEffect, each rule's path", () => {
     );
   });
 
-  it("compares a named style only where an outside statement uses it", () => {
+  it("compares a named style only where an outside rule uses it", () => {
     const styled = (select: object, stroke: string) => ({
       type: "style",
       select,
@@ -364,7 +364,7 @@ describe("sideEffect, with the command's change set", () => {
   });
 });
 
-describe("statements inside and outside", () => {
+describe("rules inside and outside", () => {
   const was = block(before, BUNDLE).manifest;
   const { group_1: _, ...order } = was.graphical?.order ?? {};
   const shrunk = withManifest(before, {
@@ -374,15 +374,13 @@ describe("statements inside and outside", () => {
     graphical: { ...was.graphical, order },
   });
   const now = block(shrunk, BUNDLE).manifest;
-  const statement = (select: Selector): Statement => ({ select, set: RED });
+  const rule = (select: Selector): Rule => ({ select, set: RED });
 
   it("is inside only when every element it matches in each manifest is contained", () => {
-    expect(statementInside([was], "group_1")(statement(SCORE))).toBe(true);
-    expect(statementInside([was, now], "group_1")(statement(SCORE))).toBe(false);
-    expect(statementInside([was], "group_1")(statement(TIMELINES))).toBe(false);
-    expect(
-      statementInside([was, now], "group_1")(statement({ addresses: [{ id: "nothing" }] })),
-    ).toBe(true);
+    expect(ruleInside([was], "group_1")(rule(SCORE))).toBe(true);
+    expect(ruleInside([was, now], "group_1")(rule(SCORE))).toBe(false);
+    expect(ruleInside([was], "group_1")(rule(TIMELINES))).toBe(false);
+    expect(ruleInside([was, now], "group_1")(rule({ addresses: [{ id: "nothing" }] }))).toBe(true);
   });
 
   it("is moved across the boundary only by a change the projection shows", () => {
@@ -391,10 +389,10 @@ describe("statements inside and outside", () => {
 
   it("lies inside when every band it matches belongs to a timeline the editor holds", () => {
     const inline = { display: "inline" };
-    const statements = (target: Address) =>
+    const rules = (target: Address) =>
       outsideAll(
-        "the graphical statements of bundle 'Mixed'",
-        [BUNDLE, "manifest", "graphical", "statements"],
+        "the graphical rules of bundle 'Mixed'",
+        [BUNDLE, "manifest", "graphical", "rules"],
         target,
       );
     const one = changed(before, {
@@ -405,13 +403,13 @@ describe("statements inside and outside", () => {
     });
     expect(sideEffect(before, one, at("excerpt"))).toBeNull();
     expect(sideEffect(before, one, at("recording"))).toBeNull();
-    expect(sideEffect(before, one, at("score"))).toEqual(statements(at("score")));
+    expect(sideEffect(before, one, at("score"))).toEqual(rules(at("score")));
     const every = changed(before, {
       type: "style",
       select: { element: "band", facet: "regions" },
       set: inline,
     });
-    expect(sideEffect(before, every, G1)).toEqual(statements(G1));
+    expect(sideEffect(before, every, G1)).toEqual(rules(G1));
     expect(sideEffect(before, every, BLOCK)).toBeNull();
   });
 });

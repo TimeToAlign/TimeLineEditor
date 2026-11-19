@@ -475,7 +475,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           ? pick([{ size: canvas(p3) }, { snap: p3 % 2 === 0 }, { colour: 1 }], p4)
           : member === "blockDefaults"
             ? pick([{ length: canvas(p3) }, { width: canvas(p3) }], p4)
-            : pick([{}, { statements: [{ select: {}, set: { stroke: "red" } }] }], p4);
+            : pick([{}, { rules: [{ select: {}, set: { stroke: "red" } }] }], p4);
       return set(WORKSPACE, { [member]: value });
     }
     case 3: {

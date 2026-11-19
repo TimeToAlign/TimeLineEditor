@@ -36,7 +36,7 @@ import {
 } from "./support.ts";
 
 const hide = (address: Address): Graphical => ({
-  statements: [{ select: { addresses: [address] }, set: { display: "none" } }],
+  rules: [{ select: { addresses: [address] }, set: { display: "none" } }],
 });
 
 /** The rectangle of a frame or card, or the block's size. */
@@ -490,7 +490,7 @@ describe("cards in the tree", () => {
   it("belong to their timeline, with its domain", () => {
     const drawing = drawFixture("groups/group_child_member", [
       {
-        statements: [{ select: { element: "card", domain: "physical" }, set: { fill: "#ABCDEF" } }],
+        rules: [{ select: { element: "card", domain: "physical" }, set: { fill: "#ABCDEF" } }],
       },
     ]);
     expect(element(drawing, at("recording", "card")).style.fill).toBe("#ABCDEF");
@@ -501,7 +501,7 @@ describe("cards in the tree", () => {
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { inside: "card" }, set: { stroke: "#123456" } }] }],
+      [{ rules: [{ select: { inside: "card" }, set: { stroke: "#123456" } }] }],
       metrics,
     );
     expect(drawing.elements.filter((item) => item.style.stroke === "#123456")).toEqual([]);
@@ -510,7 +510,7 @@ describe("cards in the tree", () => {
 
 describe("hidden cards and frames keep their place", () => {
   const hideAll = (kind: ElementType): Graphical => ({
-    statements: [{ select: { element: kind }, set: { display: "none" } }],
+    rules: [{ select: { element: kind }, set: { display: "none" } }],
   });
   const without = (drawing: Drawing, types: readonly string[]) =>
     drawing.elements.filter((item) => !types.includes(item.type));

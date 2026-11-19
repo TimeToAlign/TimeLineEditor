@@ -245,7 +245,7 @@ workspace, manifest, in that order (section 1); the workspace layer is
 the workspace's own `graphical`, never a setting. Asked twice for one
 block and one workspace `graphical` it is the identical object, also after
 the grid is configured (the settings are no input of a drawing); after a
-`set` of the workspace's `graphical` it shows the statement (a block fill of
+`set` of the workspace's `graphical` it shows the rule (a block fill of
 `#FFFFFF`). Overrides draw the placement they give: drawn at length 800
 `bare` is `W(800) = 876.5771484375` wide and the block's own drawing stays
 the length-400 one; `bundle_mixed` with `annotations` at `{x: −30}` has the
@@ -1190,7 +1190,7 @@ items, a frame's cards, a card's rows and bands), by one rule that the
 block's resize and every frame's and card's share. `performance` (its
 row, its markers and its conversion maps band: three contents) keeps the
 spacing rule above. With both its bands
-hidden by a workspace statement (`display: none` on `{id: performance,
+hidden by a workspace rule (`display: none` on `{id: performance,
 facet: markers}` and `{id: performance, facet: conversion_maps}`) it holds
 its row alone: its card is `Hp′ = (8 + h(11) / 2) + h(11) / 2 + 8 =
 28.8046875` high (no band reaches past the name's half row), `H(m) = Hp′ +

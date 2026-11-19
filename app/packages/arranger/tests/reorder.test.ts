@@ -50,7 +50,7 @@ describe("memberOrderAt", () => {
           target: WORKSPACE,
           values: {
             graphical: {
-              statements: [{ select: { element: "frame" }, set: { display: "none" } }],
+              rules: [{ select: { element: "frame" }, set: { display: "none" } }],
             },
           },
         },

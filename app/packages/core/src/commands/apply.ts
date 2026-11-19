@@ -2,7 +2,7 @@
  * The pure reducer of the four commands. A command resolves each address to
  * a target (`targets.ts`), and the target's kind decides what happens: what
  * a `set` may give it (`set.ts`), what an `add` puts into it (`add.ts`),
- * whether a `remove` takes it (`remove.ts`); a `style` embeds a statement
+ * whether a `remove` takes it (`remove.ts`); a `style` embeds a rule
  * (`style.ts`). A command is atomic: the first refusal refuses it whole.
  * Every manifest it changed is then settled (`settle.ts`).
  */
@@ -21,7 +21,7 @@ import { settle } from "./settle.ts";
 import { applyStyle } from "./style.ts";
 import type { Command, SetCommand } from "./types.ts";
 
-export { embedStatement } from "./style.ts";
+export { embedRule } from "./style.ts";
 
 /** A command applied: the view it leaves and what it changed. */
 export interface Applied {

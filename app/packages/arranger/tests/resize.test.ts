@@ -74,7 +74,7 @@ const audio = changed(
       {
         target: WORKSPACE,
         values: {
-          graphical: { statements: [{ select: { element: "name" }, set: { display: "none" } }] },
+          graphical: { rules: [{ select: { element: "name" }, set: { display: "none" } }] },
         },
       },
     ],

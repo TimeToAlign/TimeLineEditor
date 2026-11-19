@@ -227,7 +227,7 @@ describe("band order", () => {
       DEFAULT_PLACEMENT,
       [
         DEFAULT_LAYER,
-        { statements: [{ select: { element: "name" }, set: { content: "a very wide row name" } }] },
+        { rules: [{ select: { element: "name" }, set: { content: "a very wide row name" } }] },
       ],
       metrics,
     );

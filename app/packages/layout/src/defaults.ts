@@ -10,7 +10,7 @@ export const DEFAULT_LAYER: Graphical = {
     "logical-domain": { stroke: "#00CC00", fill: "#00CC00" },
     "physical-domain": { stroke: "#0050EF", fill: "#0050EF" },
   },
-  statements: [
+  rules: [
     { select: { element: "block" }, set: { fill: "#F3F4F6", rx: 10 } },
     { select: { domain: "graphical" }, set: "graphical-domain" },
     { select: { domain: "logical" }, set: "logical-domain" },
@@ -103,15 +103,15 @@ export const DEFAULT_LAYER: Graphical = {
 
 /**
  * A manifest's own layer, the highest of its drawing (section 1): its
- * `graphical` block's `styles` and `statements`, without its `order` (the
+ * `graphical` block's `styles` and `rules`, without its `order` (the
  * display orders of its groups and the band orders of its timelines);
  * `undefined` without a block.
  */
 export function manifestLayer(manifest: Manifest): Graphical | undefined {
   if (manifest.graphical === undefined) return undefined;
-  const { styles, statements } = manifest.graphical;
+  const { styles, rules } = manifest.graphical;
   return {
     ...(styles === undefined ? {} : { styles }),
-    ...(statements === undefined ? {} : { statements }),
+    ...(rules === undefined ? {} : { rules }),
   };
 }

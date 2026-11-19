@@ -23,7 +23,7 @@ is the schema package's. All comparisons are exact (`toBe`, `toEqual`); no toler
 anywhere.
 
 "The default layers" means `[DEFAULT_LAYER]`, plus `manifestLayer` of the
-manifest when it has a `graphical` block (its `styles` and `statements`,
+manifest when it has a `graphical` block (its `styles` and `rules`,
 without its `order`); an "extra layer" is an application's layer, placed
 between the two, since no layer lies above the manifest's own. "The default
 placement" is `DEFAULT_PLACEMENT`, `{length: 400, spacing: 8, width: null,
@@ -107,16 +107,16 @@ every named timestamp stays visible.
 ## The cascade (`cascade.test.ts`)
 
 One key, the child `c` of a root `r`, exercises the eight ranks of section
-5 in order, each statement against the next lower one: layer, `addresses`,
+5 in order, each rule against the next lower one: layer, `addresses`,
 depth of `within`, class, element, `inside`, the count of domain and
-modality, then statement order; `facet` ranks exactly where class does (on
+modality, then rule order; `facet` ranks exactly where class does (on
 the regions band of `c`, `{facet: regions}` outranks `{element: band,
 inside: child}` and is outranked by `{within: c}`). A missing named style
 sets nothing, a `within` outside the manifest matches nothing, and the
 block is never matched by domain, class, facet, an element's address or
-`within`. Recording which statements the cascade tests proves that it tests
-only the general statements and those of the key's element, class, facet
-and address, in layer order: a line's key tests no statement selecting a
+`within`. Recording which rules the cascade tests proves that it tests
+only the general rules and those of the key's element, class, facet
+and address, in layer order: a line's key tests no rule selecting a
 facet, and the regions band of `c` tests those selecting `band`, the facet
 `regions` and the address `{id: c, facet: regions}`, never the line's
 `{id: c}`. On the regions bands of `c` and `r`, each selector field matches
@@ -764,7 +764,7 @@ outwards from the wedge's base; the stacks are placed by the band's one
 first fit, each as wide as its widest label; a tier is as many lines high as
 its highest stack. The cascade's `display` may still hide any one element,
 and never draws a word its `display` leaves out. Every manifest below is a
-fixture, a fixture with named timestamps or statements written onto it and
+fixture, a fixture with named timestamps or rules written onto it and
 validated, or built through commands. Label widths at size 9: `Downbeat`
 `10421 × 9 / 2048 = 45.79541015625`, `Climax` `7030 → 30.8935546875`,
 `Entry` `5449 → 23.94580078125`, `timestamp_3` `13374 → 58.7724609375`,
@@ -779,7 +779,7 @@ length 4, locked. Its named timestamps, in canonical order: `timestamp_1`
 `Downbeat` at 3/2 (`display` the default: wedge, name, cross-section line)
 and `timestamp_2` `Climax` at 6 (wedge, name) on `clt_1`, `timestamp_3`
 `Entry` at 1 on `clt_2` (all five words), so at `2 + 1 = 3` on the root's
-axis. No statement.
+axis. No rule.
 
 - Horizontal: `x0 = 16 + 25.91552734375 + 8 = 49.91552734375` (no label
   reaches left of it), `x(t) = x0 + 50t`: `Downbeat` at 124.91552734375,
@@ -848,7 +848,7 @@ timestamps written again:
   58.33056640625.
 - `timestamp_1` with `display` `[]` draws nothing; `Climax` alone keeps tier
   1, the root's line at 77.9296875.
-- A statement setting `display: inline` on `timestamp_2`'s line and ID label
+- A rule setting `display: inline` on `timestamp_2`'s line and ID label
   draws neither: `timestamp_2` draws its wedge and name label only.
 
 **Stacks in tiers.** `bare` (`x0 = 49.5771484375`, line at 22.40234375)
@@ -931,9 +931,9 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   and base corners, with the same style; on `clt_2` at 199.91552734375 the
   wedge equals `timestamp_3`'s and there is no cross-section, as
   `timestamp_3` draws none;
-- with a statement hiding `timestamp_1`'s line, that line is not drawn, but
+- with a rule hiding `timestamp_1`'s line, that line is not drawn, but
   the unnamed cross-section on `clt_1` at 124.91552734375 still runs from
-  16 to 77.9296875 in the default style, displayed: a statement naming
+  16 to 77.9296875 in the default style, displayed: a rule naming
   addresses never styles an unnamed mark;
 - in `timestamps` with `places` `{clt_1: {scale: 2}}`, the same agreements
   hold with every drawn value scaled, the line's style width 2 and dash
@@ -1388,7 +1388,7 @@ recorded twice under that address, held first by `{item: g1, member: t}`
 and then by `{item: g2, member: t}`. Each card is laid out with its own
 entry: with `places` `{g2: {cards: {t: {width: 650}}}}` only the card keyed
 `{item: g2, member: t}` is 650 wide and the one keyed `{item: g1, member:
-t}` keeps its drawn width, and a statement `{addresses: [{id: t}]} stroke
+t}` keeps its drawn width, and a rule `{addresses: [{id: t}]} stroke
 #123456` strokes both lines of `t`.
 
 **Axes.** `Drawing.axes` holds one `DrawnAxis` per line element, in their
@@ -1473,9 +1473,9 @@ A synthetic manifest has exactly 1,000 element keys, as core enumerates
 them: one root with its named timestamps `origin` and `length` (a wedge and
 a coordinate label each), 60 children with maps, regions, jump targets, flow
 markers and a jump origin, and a segment line of 40 segments. Every count comes from the inputs a
-draw is given, never from watching the code: each statement counts reads
+draw is given, never from watching the code: each rule counts reads
 of its selector, the metrics table the code points asked, the manifest listings of
-its keys. The statement with no element, class or address is tested
+its keys. The rule with no element, class or address is tested
 exactly `1,000 + 2 × 63 = 1,126` times: each key is resolved once, and
 each of the 63 lines (the root, its 60 children, the nested child and the
 segment line, the keys of type `timeline` or `child`) resolves once each

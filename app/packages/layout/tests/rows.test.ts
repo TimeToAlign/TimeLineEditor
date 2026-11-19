@@ -123,7 +123,7 @@ describe("a row", () => {
       ),
       [
         {
-          statements: [
+          rules: [
             { select: { addresses: [{ id: "b", facet: "regions" }] }, set: { display: "inline" } },
           ],
         },
@@ -157,7 +157,7 @@ describe("a row", () => {
 
   it("gives every row of a joint layout one name size and pitch", () => {
     const drawing = fewer({
-      statements: [{ select: { addresses: [at("a2", "name")] }, set: { "font-size": 20 } }],
+      rules: [{ select: { addresses: [at("a2", "name")] }, set: { "font-size": 20 } }],
     });
     expect(lines(drawing)).toEqual({
       r: 83.5625,
@@ -194,7 +194,7 @@ describe("a child's room", () => {
 
   it("is none for a hidden child, nor for anything its bands hold", () => {
     const drawing = drawn(manifest, [
-      { statements: [{ select: { addresses: [at("a")] }, set: { display: "none" } }] },
+      { rules: [{ select: { addresses: [at("a")] }, set: { display: "none" } }] },
     ]);
     expect(lines(drawing)).toEqual({ r: 37, b: 23 });
     expect(names(drawing)).toEqual([
@@ -238,7 +238,7 @@ describe("a joint row mixing segment lines and a child", () => {
     ]),
   });
   const nameSize = (address: Address): Graphical => ({
-    statements: [{ select: { addresses: [address] }, set: { "font-size": 20 } }],
+    rules: [{ select: { addresses: [address] }, set: { "font-size": 20 } }],
   });
 
   it("counts the child's name and no segment line's", () => {

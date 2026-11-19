@@ -31,7 +31,7 @@ function placementKey({ length, spacing, margin, width, height, places }: Placem
   );
 }
 
-/** The style layers a block is drawn with: the defaults, the workspace's statements, then its manifest's. */
+/** The style layers a block is drawn with: the defaults, the workspace's rules, then its manifest's. */
 export function styleLayers(
   graphical: Graphical,
   manifest: Block["manifest"],
@@ -42,7 +42,7 @@ export function styleLayers(
 /**
  * The drawing of a block: its manifest drawn at its placement with the
  * default layer, the workspace's `graphical` and the manifest's own
- * (`manifestLayer`: its styles and statements), from lowest to highest. Blocks are immutable, so the drawing is memoized per
+ * (`manifestLayer`: its styles and rules), from lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the workspace's `graphical` or the metrics
  * change identity.
  * `overrides` replace members of the block's placement (a resize measuring

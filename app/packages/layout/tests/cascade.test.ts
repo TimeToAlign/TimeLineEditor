@@ -1,6 +1,6 @@
 import { addressKey, sameAddress } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
-import type { Address, Graphical, Selector, Statement } from "@timetoalign/timetoshare";
+import type { Address, Graphical, Rule, Selector } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import {
   Cascade,
@@ -52,19 +52,16 @@ const ALL: Selector = {
 function stroke(layers: Graphical[]): string {
   return new Cascade(layers, ancestry).resolve(key, undefined).stroke;
 }
-const statement = (select: Selector, colour: string) => ({ select, set: { stroke: colour } });
+const rule = (select: Selector, colour: string) => ({ select, set: { stroke: colour } });
 const winnerFirst = (winner: Selector, loser: Selector): Graphical[] => [
-  { statements: [statement(winner, "#111111"), statement(loser, "#222222")] },
+  { rules: [rule(winner, "#111111"), rule(loser, "#222222")] },
 ];
 
 describe("rank", () => {
-  it("1. a later layer outranks every statement of an earlier one", () => {
-    expect(
-      stroke([
-        { statements: [statement(ALL, "#222222")] },
-        { statements: [statement({}, "#111111")] },
-      ]),
-    ).toBe("#111111");
+  it("1. a later layer outranks every rule of an earlier one", () => {
+    expect(stroke([{ rules: [rule(ALL, "#222222")] }, { rules: [rule({}, "#111111")] }])).toBe(
+      "#111111",
+    );
   });
 
   it("2. addresses outrank within, class, element, inside, domain and modality", () => {
@@ -124,14 +121,14 @@ describe("rank", () => {
     expect(stroke(winnerFirst({ modality: "continuous" }, {}))).toBe("#111111");
   });
 
-  it("8. of two equal statements the later wins", () => {
+  it("8. of two equal rules the later wins", () => {
     expect(stroke(winnerFirst({ element: "child" }, { element: "child" }))).toBe("#222222");
   });
 
   it("sets a named style, and nothing for a missing name", () => {
     const layer: Graphical = {
       styles: { mine: { stroke: "#333333" } },
-      statements: [
+      rules: [
         { select: {}, set: { stroke: "#111111" } },
         { select: { element: "child" }, set: "mine" },
         { select: { addresses: [at("c")] }, set: "missing" },
@@ -141,7 +138,7 @@ describe("rank", () => {
   });
 
   it("matches nothing with a within outside the manifest", () => {
-    expect(stroke([{ statements: [statement({ within: "elsewhere" }, "#111111")] }])).toBe("none");
+    expect(stroke([{ rules: [rule({ within: "elsewhere" }, "#111111")] }])).toBe("none");
   });
 
   it("never matches the block with domain, class, facet, an element's address or within", () => {
@@ -149,12 +146,12 @@ describe("rank", () => {
     const cascade = new Cascade(
       [
         {
-          statements: [
-            statement({ domain: "logical" }, "#111111"),
-            statement({ addresses: [at("c")] }, "#111111"),
-            statement({ within: "r" }, "#111111"),
-            statement({ class: "ContinuousLogicalTimeline" }, "#111111"),
-            statement({ facet: "regions" }, "#111111"),
+          rules: [
+            rule({ domain: "logical" }, "#111111"),
+            rule({ addresses: [at("c")] }, "#111111"),
+            rule({ within: "r" }, "#111111"),
+            rule({ class: "ContinuousLogicalTimeline" }, "#111111"),
+            rule({ facet: "regions" }, "#111111"),
           ],
         },
       ],
@@ -165,7 +162,7 @@ describe("rank", () => {
 });
 
 describe("candidate buckets", () => {
-  it("tests only general statements and the key's element, class, facet and address buckets", () => {
+  it("tests only general rules and the key's element, class, facet and address buckets", () => {
     const general: Selector = { domain: "logical" };
     const element: Selector = { element: "child" };
     const className: Selector = { class: "ContinuousLogicalTimeline" };
@@ -191,7 +188,7 @@ describe("candidate buckets", () => {
       otherFacet,
     ];
     const cascade = new Cascade(
-      [{ statements: selectors.map((select) => statement(select, "#111111")) }],
+      [{ rules: selectors.map((select) => rule(select, "#111111")) }],
       ancestry,
     );
     const matches = vi.spyOn(cascade, "matches");
@@ -211,7 +208,7 @@ describe("inside", () => {
     [{ inside: "child" }, "none"],
     [{ inside: "ancestor" }, "none"],
   ] as [Selector, string][])("%j on a child's line sets %s", (select, expected) => {
-    expect(stroke([{ statements: [statement(select, "#111111")] }])).toBe(expected);
+    expect(stroke([{ rules: [rule(select, "#111111")] }])).toBe(expected);
   });
 });
 
@@ -238,7 +235,7 @@ describe("bands", () => {
     [{ addresses: [{ id: "c", facet: "regions" }] }, ["#111111", "none"]],
     [{ addresses: [{ id: "c" }] }, ["none", "none"]],
   ] as [Selector, string[]][])("%j sets %j on the regions bands of c and r", (select, expected) => {
-    const cascade = new Cascade([{ statements: [statement(select, "#111111")] }], ancestry);
+    const cascade = new Cascade([{ rules: [rule(select, "#111111")] }], ancestry);
     expect(bands.map((band) => cascade.resolve(band, undefined).stroke)).toEqual(expected);
   });
 
@@ -249,19 +246,19 @@ describe("bands", () => {
         (address) => element(drawing, address).style.stroke,
       );
     };
-    expect(strokes({ statements: [statement({ addresses: [at("clt_1")] }, "#111111")] })).toEqual([
+    expect(strokes({ rules: [rule({ addresses: [at("clt_1")] }, "#111111")] })).toEqual([
       "#111111",
       "#111111",
       "#111111",
     ]);
     expect(
       strokes({
-        statements: [statement({ addresses: [{ id: "clt_1", facet: "regions" }] }, "#111111")],
+        rules: [rule({ addresses: [{ id: "clt_1", facet: "regions" }] }, "#111111")],
       }),
     ).toEqual(["#111111", "#111111", "none"]);
     expect(
       strokes({
-        statements: [statement({ addresses: [{ id: "clt_1", facet: "children" }] }, "#111111")],
+        rules: [rule({ addresses: [{ id: "clt_1", facet: "children" }] }, "#111111")],
       }),
     ).toEqual(["none", "none", "#111111"]);
   });
@@ -274,15 +271,15 @@ describe("a band's display", () => {
     into: target("clt_2"),
     region: { id: "region_2", name: null, start: quarters(0), end: quarters(2), meta: {} },
   });
-  const display = (addresses: [Address, ...Address[]], value: "inline" | "none"): Statement => ({
+  const display = (addresses: [Address, ...Address[]], value: "inline" | "none"): Rule => ({
     select: { addresses },
     set: { display: value },
   });
-  const drawnWith = (...statements: Statement[]) =>
+  const drawnWith = (...rules: Rule[]) =>
     draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, { statements }, manifestLayer(manifest)],
+      [DEFAULT_LAYER, { rules }, manifestLayer(manifest)],
       metrics,
     ).elements.flatMap((item) =>
       item.type === "region" || item.type === "child" ? [item.address] : [],
@@ -335,7 +332,7 @@ describe("one address drawn twice", () => {
     const cascade = new Cascade(
       [
         {
-          statements: [
+          rules: [
             { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
             { select: { addresses: [at("m", "start")] }, set: { fill: "#654321" } },
           ],
@@ -366,7 +363,7 @@ describe("one address drawn twice", () => {
         DEFAULT_PLACEMENT,
         [
           {
-            statements: [
+            rules: [
               { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
               { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
             ],
@@ -390,9 +387,10 @@ describe("shadow", () => {
     const parent = { ...INITIAL_STYLE, shadow: "#123456" };
     expect(cascade([]).resolve(key, parent).shadow).toBe("none");
     expect(
-      cascade([
-        { statements: [{ select: { element: "child" }, set: { shadow: "#ABCDEF" } }] },
-      ]).resolve(key, parent).shadow,
+      cascade([{ rules: [{ select: { element: "child" }, set: { shadow: "#ABCDEF" } }] }]).resolve(
+        key,
+        parent,
+      ).shadow,
     ).toBe("#ABCDEF");
   });
 
@@ -400,7 +398,7 @@ describe("shadow", () => {
     const drawing = draw(
       load("bare"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { element: "block" }, set: { shadow: "#123456" } }] }],
+      [{ rules: [{ select: { element: "block" }, set: { shadow: "#123456" } }] }],
       metrics,
     );
     expect([
@@ -423,9 +421,7 @@ describe("inheritance", () => {
       DEFAULT_PLACEMENT,
       [
         {
-          statements: [
-            { select: { element: "block" }, set: { fill: "#111111", opacity: 0.5, rx: 4 } },
-          ],
+          rules: [{ select: { element: "block" }, set: { fill: "#111111", opacity: 0.5, rx: 4 } }],
         },
       ],
       metrics,
@@ -446,7 +442,7 @@ describe("inheritance", () => {
     const drawing = draw(
       load("nested"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { addresses: [at("clt_1")] }, set: { stroke: "#123456" } }] }],
+      [{ rules: [{ select: { addresses: [at("clt_1")] }, set: { stroke: "#123456" } }] }],
       metrics,
     );
     expect(element(drawing, at("clt_3")).style.stroke).toBe("#123456");
@@ -457,7 +453,7 @@ describe("inheritance", () => {
     const drawing = draw(
       load("map"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { addresses: [at("melody")] }, set: { "stroke-width": 7 } }] }],
+      [{ rules: [{ select: { addresses: [at("melody")] }, set: { "stroke-width": 7 } }] }],
       metrics,
     );
     expect(element(drawing, at("tempo")).style["stroke-width"]).toBe(7);
@@ -470,7 +466,7 @@ describe("inheritance", () => {
     const drawing = draw(
       load("with_region"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
+      [{ rules: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
       metrics,
     );
     expect(element(drawing, at("region_1", "label")).style["font-size"]).toBe(13);
@@ -500,7 +496,7 @@ describe("maps by target unit", () => {
   it("lets a map with a null target inherit its timeline's stroke", () => {
     const drawing = drawFixture(name, [
       {
-        statements: [{ select: { addresses: [at("maps:quarters")] }, set: { stroke: "#ABCDEF" } }],
+        rules: [{ select: { addresses: [at("maps:quarters")] }, set: { stroke: "#ABCDEF" } }],
       },
     ]);
     expect(element(drawing, at("cmap_8")).style.stroke).toBe("#ABCDEF");
@@ -509,7 +505,7 @@ describe("maps by target unit", () => {
 
   it("gives a map its type as class", () => {
     const drawing = drawFixture(name, [
-      { statements: [{ select: { class: "ConstantMap" }, set: { stroke: "#FEDCBA" } }] },
+      { rules: [{ select: { class: "ConstantMap" }, set: { stroke: "#FEDCBA" } }] },
     ]);
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")

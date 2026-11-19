@@ -195,7 +195,7 @@ describe("a child's band order", () => {
 
 describe("a child's flow marker", () => {
   const shown: Graphical = {
-    statements: [
+    rules: [
       {
         select: { addresses: [{ id: "verse", facet: "flow_control" }] },
         set: { display: "inline" },

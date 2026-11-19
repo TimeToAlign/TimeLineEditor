@@ -15,7 +15,7 @@ const move = (block: string, x: number): SetCommand => ({
   type: "set",
   changes: [{ target: { block }, values: { x, y: 0 } }],
 });
-const STATEMENT = { select: { element: "map" as const }, set: { stroke: "#C00000" } };
+const RULE = { select: { element: "map" as const }, set: { stroke: "#C00000" } };
 
 /** A store holding three journalled commands, with the count of clock reads. */
 function threeEntries(): { store: Store; reads: () => number } {
@@ -95,16 +95,16 @@ describe("workspace settings", () => {
     expect(
       store.dispatch({
         type: "set",
-        changes: [{ target: {}, values: { graphical: { statements: [STATEMENT] } } }],
+        changes: [{ target: {}, values: { graphical: { rules: [RULE] } } }],
       }),
     ).toBeNull();
     expect(store.journal.length).toBe(4);
-    expect(store.view.graphical).toEqual({ statements: [STATEMENT] });
+    expect(store.view.graphical).toEqual({ rules: [RULE] });
     expect(store.view.settings).toBe(settings);
     store.undo();
     expect(store.view.graphical).toEqual({});
     store.redo();
-    expect(store.view.graphical).toEqual({ statements: [STATEMENT] });
+    expect(store.view.graphical).toEqual({ rules: [RULE] });
   });
 
   it("states every placement member in a journalled add, so a replay reads no setting", () => {

@@ -8,7 +8,7 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
-import { readStatement, toJson } from "../values.ts";
+import { readRule, toJson } from "../values.ts";
 import type { Address } from "../workspace/address.ts";
 import { readAddress } from "../workspace/address.ts";
 import type {
@@ -119,7 +119,7 @@ function parseStyle(input: Members): StyleCommand | CommandError {
   const set = styleMember(input, "set");
   if (isCommandError(set)) return set;
   const declaration = Object.fromEntries(Object.entries(set).filter(([, item]) => item !== null));
-  const read = readStatement(select, declaration, []);
+  const read = readRule(select, declaration, []);
   if ("code" in read) return read;
   const { name } = input;
   if (name !== undefined && (typeof name !== "string" || name === "")) {

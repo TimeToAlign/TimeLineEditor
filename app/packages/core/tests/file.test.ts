@@ -13,9 +13,9 @@ const JSON_TEXT = { serialization: "json" } as const;
 /** How block `A`'s manifest is written in the built workspace. */
 const A_FILE = { minimal: false, styling: false, serialization: "json" } as const;
 
-/** The workspace's `graphical`: one statement. */
+/** The workspace's `graphical`: one rule. */
 const STYLED = {
-  statements: [{ select: { element: "timeline" }, set: { stroke: "#0000FF" } }],
+  rules: [{ select: { element: "timeline" }, set: { stroke: "#0000FF" } }],
 };
 
 function built(): Workspace {
@@ -346,7 +346,7 @@ describe("the workspace file", () => {
   });
 
   it("refuses a workspace of version 6 for its version alone", () => {
-    // Version 6 wrote the workspace's statements among the settings, and no granularity.
+    // Version 6 wrote the workspace's rules among the settings, and no granularity.
     const older = edited((value) => {
       Object.assign(value.meta as Value, { version: 6 });
       const settings = value.settings as Value;

@@ -2,10 +2,10 @@
  * Removing elements from a manifest. Removing a timeline, root or child,
  * removes its subtree, the named timestamps lying on it, its ID from every
  * group and from every display order, every `addresses` entry of a
- * `graphical` statement addressing a removed element or a part, band or
- * card of one (a statement left with no `addresses` goes), and every
- * statement whose `within` names a removed timeline. Removing a named
- * timestamp removes it and the statements' `addresses` entries naming it
+ * `graphical` rule addressing a removed element or a part, band or
+ * card of one (a rule left with no `addresses` goes), and every
+ * rule whose `within` names a removed timeline. Removing a named
+ * timestamp removes it and the rules' `addresses` entries naming it
  * or its parts alike. Removing a group removes the group only: its
  * members stay where they are. A group left without members stays. Removing
  * a measure map removes it only; a measure view still naming it leaves the
@@ -117,17 +117,17 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
   if (graphical.timestamps !== undefined) {
     changed.timestamps = graphical.timestamps.filter(kept);
   }
-  if (graphical.statements !== undefined) {
-    changed.statements = graphical.statements.flatMap((statement) => {
-      const { addresses, within } = statement.select;
+  if (graphical.rules !== undefined) {
+    changed.rules = graphical.rules.flatMap((rule) => {
+      const { addresses, within } = rule.select;
       if (within !== undefined && removed.has(within)) return [];
-      if (addresses === undefined) return [statement];
+      if (addresses === undefined) return [rule];
       const [first, ...more] = addresses.filter(
         (address) => address.id === undefined || !removed.has(address.id),
       );
       if (first === undefined) return [];
-      if (more.length + 1 === addresses.length) return [statement];
-      return [{ ...statement, select: { ...statement.select, addresses: [first, ...more] } }];
+      if (more.length + 1 === addresses.length) return [rule];
+      return [{ ...rule, select: { ...rule.select, addresses: [first, ...more] } }];
     });
   }
   return { ...result, graphical: changed as ManifestGraphical };

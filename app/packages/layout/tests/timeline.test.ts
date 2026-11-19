@@ -121,13 +121,13 @@ const laid = (timeline: PreparedTimeline, children?: { start: number; width: num
 const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
 
 const show = (...facets: Facet[]): Graphical => ({
-  statements: facets.map((facet) => ({
+  rules: facets.map((facet) => ({
     select: { element: "band", facet },
     set: { display: "inline" },
   })),
 });
 const hide = (...addresses: [Address, ...Address[]]): Graphical => ({
-  statements: [{ select: { addresses }, set: { display: "none" } }],
+  rules: [{ select: { addresses }, set: { display: "none" } }],
 });
 
 describe("sides and levels by band order", () => {
@@ -227,7 +227,7 @@ describe("where a band lies", () => {
     const movement = prepared(
       scopeOf(load("unknown_length_child"), [
         {
-          statements: [
+          rules: [
             {
               select: { addresses: [{ id: "movement", facet: "regions" }] },
               set: { display: "inline" },
@@ -547,7 +547,7 @@ describe("flow markers", () => {
   it("end max(E, h(s) / 2) beyond any other timeline's line", () => {
     const shown: Graphical[] = [
       {
-        statements: [
+        rules: [
           {
             select: { addresses: [{ id: "verse", facet: "flow_control" }] },
             set: { display: "inline" },

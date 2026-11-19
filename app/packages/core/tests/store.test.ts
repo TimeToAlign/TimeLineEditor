@@ -164,7 +164,7 @@ describe("opening a workspace", () => {
     const moved = { ...workspace.view, blocks: { [A]: { ...block, x: 99 } } };
     expect(mismatch({ ...workspace, view: moved })).toEqual({ entry: 3, path: ["blocks", A, "x"] });
     const graphical = {
-      statements: [{ select: { element: "map" as const }, set: { stroke: "#C00000" } }],
+      rules: [{ select: { element: "map" as const }, set: { stroke: "#C00000" } }],
     };
     expect(mismatch({ ...workspace, view: { ...workspace.view, graphical } })).toEqual({
       entry: 3,

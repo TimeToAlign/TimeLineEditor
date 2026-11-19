@@ -19,7 +19,7 @@ describe("row names", () => {
       [
         DEFAULT_LAYER,
         {
-          statements: [
+          rules: [
             { select: { addresses: [at("a", "name")] }, set: { content: "AAAA", "max-width": 20 } },
             {
               select: { addresses: [at("b", "name")] },
@@ -52,7 +52,7 @@ describe("row names", () => {
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, { statements: [{ select: {}, set: { display: "none" } }] }],
+      [DEFAULT_LAYER, { rules: [{ select: {}, set: { display: "none" } }] }],
       metrics,
     );
     expect(drawing).toMatchObject({ width: 32, height: 44.8046875 });
@@ -95,7 +95,7 @@ describe("row names", () => {
     // so x0 = 16, the block P + x0 = 24 wide and P = 8 high.
     const drawing = emptyBundle([
       DEFAULT_LAYER,
-      { statements: [{ select: { addresses: [{ part: ["name"] }] }, set: { display: "none" } }] },
+      { rules: [{ select: { addresses: [{ part: ["name"] }] }, set: { display: "none" } }] },
     ]);
     expect(drawing).toMatchObject({ width: 24, height: 8 });
     expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([

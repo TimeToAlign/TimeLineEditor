@@ -602,7 +602,7 @@ describe("itemResizeValues, stretch", () => {
           target: WORKSPACE,
           values: {
             graphical: {
-              statements: [
+              rules: [
                 {
                   select: {
                     addresses: [

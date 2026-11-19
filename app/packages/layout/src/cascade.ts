@@ -163,7 +163,7 @@ function compareRanks(left: readonly number[], right: readonly number[]): number
 }
 
 /**
- * The statements of every layer, lowest rank first (section 2.5: layer,
+ * The rules of every layer, lowest rank first (section 2.5: layer,
  * `addresses`, `within` depth, `class` or `facet`, `element`, `inside`, the count of `domain`
  * and `modality`, position). `ancestry` maps every timeline id to the ids
  * from its root down to it, so its length is the timeline's depth (the
@@ -184,16 +184,16 @@ export class Cascade {
     this.#ancestry = ancestry;
     const ranked: Ranked[] = [];
     layers.forEach((layer, level) => {
-      (layer?.statements ?? []).forEach((statement, position) => {
+      (layer?.rules ?? []).forEach((rule, position) => {
         const set =
-          typeof statement.set === "string"
-            ? layer?.styles !== undefined && Object.hasOwn(layer.styles, statement.set)
-              ? layer.styles[statement.set]
+          typeof rule.set === "string"
+            ? layer?.styles !== undefined && Object.hasOwn(layer.styles, rule.set)
+              ? layer.styles[rule.set]
               : undefined
-            : statement.set;
+            : rule.set;
         // A style name the layer's `styles` does not hold sets nothing.
         if (set === undefined) return;
-        const select = statement.select;
+        const select = rule.select;
         const within = select.within === undefined ? 0 : (ancestry.get(select.within)?.length ?? 0);
         ranked.push({
           select,
@@ -218,19 +218,19 @@ export class Cascade {
     const byClass = new Map<string, Ranked[]>();
     const byFacet = new Map<string, Ranked[]>();
     const byAddress = new Map<string, Ranked[]>();
-    const add = (buckets: Map<string, Ranked[]>, key: string, statement: Ranked) => {
+    const add = (buckets: Map<string, Ranked[]>, key: string, rule: Ranked) => {
       const bucket = buckets.get(key) ?? [];
-      bucket.push(statement);
+      bucket.push(rule);
       buckets.set(key, bucket);
     };
-    ranked.forEach((statement, order) => {
-      const rankedStatement: Ranked = { ...statement, order };
-      const { select } = statement;
-      if (select.element !== undefined) add(byElement, select.element, rankedStatement);
-      if (select.class !== undefined) add(byClass, select.class, rankedStatement);
-      if (select.facet !== undefined) add(byFacet, select.facet, rankedStatement);
+    ranked.forEach((rule, order) => {
+      const rankedRule: Ranked = { ...rule, order };
+      const { select } = rule;
+      if (select.element !== undefined) add(byElement, select.element, rankedRule);
+      if (select.class !== undefined) add(byClass, select.class, rankedRule);
+      if (select.facet !== undefined) add(byFacet, select.facet, rankedRule);
       for (const address of select.addresses ?? []) {
-        add(byAddress, addressKey(address), rankedStatement);
+        add(byAddress, addressKey(address), rankedRule);
       }
       if (
         select.element === undefined &&
@@ -238,7 +238,7 @@ export class Cascade {
         select.facet === undefined &&
         select.addresses === undefined
       ) {
-        general.push(rankedStatement);
+        general.push(rankedRule);
       }
     });
     this.#general = general;
@@ -265,7 +265,7 @@ export class Cascade {
   /**
    * The cascaded style of an element that has no address, such as a position
    * an editor marks that no named timestamp holds: `resolve` without the
-   * statements whose selector names `addresses`, which select addressed
+   * rules whose selector names `addresses`, which select addressed
    * elements only. `element`'s own address is not compared.
    */
   resolveUnaddressed(element: ElementKey, parent: Style | undefined): Style {
@@ -275,26 +275,26 @@ export class Cascade {
   #resolve(element: ElementKey, parent: Style | undefined, addressed: boolean): Style {
     const candidates = new Set(this.#general);
     if (element.type !== null) {
-      for (const statement of this.#byElement.get(element.type) ?? []) candidates.add(statement);
+      for (const rule of this.#byElement.get(element.type) ?? []) candidates.add(rule);
     }
     if (element.class !== null) {
-      for (const statement of this.#byClass.get(element.class) ?? []) candidates.add(statement);
+      for (const rule of this.#byClass.get(element.class) ?? []) candidates.add(rule);
     }
     if (element.facet !== null) {
-      for (const statement of this.#byFacet.get(element.facet) ?? []) candidates.add(statement);
+      for (const rule of this.#byFacet.get(element.facet) ?? []) candidates.add(rule);
     }
     // Most layers select no address: the key is written only where one might match.
     if (addressed && this.#byAddress.size > 0) {
-      for (const statement of this.#byAddress.get(addressKey(element.address)) ?? []) {
-        candidates.add(statement);
+      for (const rule of this.#byAddress.get(addressKey(element.address)) ?? []) {
+        candidates.add(rule);
       }
     }
     const values: StyleValues = {};
     if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);
-    for (const statement of [...candidates].sort((left, right) => left.order - right.order)) {
-      if (!addressed && statement.select.addresses !== undefined) continue;
-      if (!this.matches(statement.select, element)) continue;
-      for (const property of PROPERTIES) property.set(values, statement.set);
+    for (const rule of [...candidates].sort((left, right) => left.order - right.order)) {
+      if (!addressed && rule.select.addresses !== undefined) continue;
+      if (!this.matches(rule.select, element)) continue;
+      for (const property of PROPERTIES) property.set(values, rule.set);
     }
     return { ...INITIAL_STYLE, ...values };
   }

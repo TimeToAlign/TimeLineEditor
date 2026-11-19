@@ -218,14 +218,14 @@ describe("redraw operation counts", () => {
     counted({ class: "ChainMap" }),
     counted({ element: "frame" }),
   ];
-  // One statement per address the drawing's keys carry, the block's `{}` included: the cascade
+  // One rule per address the drawing's keys carry, the block's `{}` included: the cascade
   // tests it only on keys there.
   const addresses = [
     ...new Map(keys.map((key) => [addressKey(key.address), selected(key.address)])).values(),
   ];
   const byAddress = addresses.map((address) => ({ address, ...counted({ addresses: [address] }) }));
   const layer: Graphical = {
-    statements: [
+    rules: [
       { select: general.select, set: { "font-size": 9 } },
       ...discriminating.map(({ select }) => ({ select, set: { stroke: "#111111" } })),
       ...byAddress.map(({ select }) => ({ select, set: {} })),
@@ -238,21 +238,21 @@ describe("redraw operation counts", () => {
   const drawn = listed(manifest);
   const { font, reads } = counting();
   draw(drawn.manifest, DEFAULT_PLACEMENT, [layer], font);
-  // The tests each statement saw while drawing: its reads less a second ranking, draw's own cascade.
+  // The tests each rule saw while drawing: its reads less a second ranking, draw's own cascade.
   const tests = all.map(({ reads: count }, index) => count() - 2 * (ranking[index] ?? 0));
 
   it("styles 1,000 element keys", () => {
     expect(keys).toHaveLength(1000);
   });
 
-  it("tests the general statement once per element key and twice per line, so resolves each key once", () => {
+  it("tests the general rule once per element key and twice per line, so resolves each key once", () => {
     // Each timeline or child line also resolves the wedge and the cross-section line no named
     // timestamp holds, once each.
     const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
     expect(tests[0]).toBe(1000 + 2 * lines);
   });
 
-  it("tests a statement with addresses, a class or an element only on keys it can match", () => {
+  it("tests a rule with addresses, a class or an element only on keys it can match", () => {
     expect(tests.slice(1, 4)).toEqual([0, 0, 0]);
     const perAddress = new Map<string, number>();
     for (const { address } of keys) {

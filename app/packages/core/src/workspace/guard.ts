@@ -1,6 +1,6 @@
 /** The side-effect guard: an open editor changes only the element it edits. */
 
-import type { Statement } from "@timetoalign/timetoshare";
+import type { Rule } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
@@ -65,10 +65,10 @@ const TOP_MEMBERS = ["id", "name", "meta"];
 const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical"];
 
 /** The `graphical` members compared first, in this order; the others follow by code point. */
-const GRAPHICAL_MEMBERS = ["statements", "styles", "order"];
+const GRAPHICAL_MEMBERS = ["rules", "styles", "order"];
 
 /** The members of a manifest and of its `graphical` named by a plural noun: they "lie" outside. */
-const PLURAL_MEMBERS: ReadonlySet<string> = new Set(["links", "schemes", "statements", "styles"]);
+const PLURAL_MEMBERS: ReadonlySet<string> = new Set(["links", "schemes", "rules", "styles"]);
 
 /** A `side_effect` refusal of `what`, at `path`; `plural` where `what` names several things. */
 type Refuse = (what: string, path: readonly PathSegment[], plural?: boolean) => CommandError;
@@ -139,24 +139,23 @@ function placeInside(scopes: readonly Scope[]): (key: PlaceKey) => boolean {
     });
 }
 
-const statementsOf = (manifest: Manifest): readonly Statement[] =>
-  manifest.graphical?.statements ?? [];
+const rulesOf = (manifest: Manifest): readonly Rule[] => manifest.graphical?.rules ?? [];
 
-function insideAll(scopes: readonly Scope[]): (statement: Statement) => boolean {
-  return (statement) =>
+function insideAll(scopes: readonly Scope[]): (rule: Rule) => boolean {
+  return (rule) =>
     scopes.every(({ keys, ancestry, inside }) =>
-      keys.every((key) => !selectorMatches(statement.select, key, ancestry) || inside(key.address)),
+      keys.every((key) => !selectorMatches(rule.select, key, ancestry) || inside(key.address)),
     );
 }
 
 /**
- * Whether a statement lies inside `element`: every element it matches, in
+ * Whether a rule lies inside `element`: every element it matches, in
  * each of `manifests`, is contained by `element` there.
  */
-export function statementInside(
+export function ruleInside(
   manifests: readonly Manifest[],
   element: string,
-): (statement: Statement) => boolean {
+): (rule: Rule) => boolean {
   return insideAll(manifests.map((manifest) => scopeOf(manifest, element)));
 }
 
@@ -170,7 +169,7 @@ export function statementInside(
  * and each of its members', stands as `{id}`; the named timestamps lying on
  * a timeline inside and the entries of `graphical.order` whose keys lie
  * inside (the group's display order, the band orders of the timelines it
- * holds) are left out; only the `statements` outside are kept, and of the
+ * holds) are left out; only the `rules` outside are kept, and of the
  * named styles only those they use.
  */
 interface Projection {
@@ -190,7 +189,7 @@ function project(
   manifest: Manifest,
   element: string,
   inside: (key: string) => boolean,
-  statements: readonly Statement[],
+  rules: readonly Rule[],
   styles: readonly string[],
 ): Projection {
   const group = manifest.groups.find((item) => item.id === element);
@@ -235,7 +234,7 @@ function project(
   }
   for (const map of byId(manifest.measure_maps)) elements.set(map.id, canonicalText(map));
   const {
-    statements: _,
+    rules: _,
     styles: named = {},
     order = {},
     timestamps = [],
@@ -250,7 +249,7 @@ function project(
   }
   const orders = Object.fromEntries(Object.entries(order).filter(([key]) => !inside(key)));
   const graphical = new Map<string, string>([
-    ["statements", canonicalText(statements)],
+    ["rules", canonicalText(rules)],
     [
       "styles",
       canonicalText(
@@ -309,9 +308,7 @@ function manifestChange(
   if (was.manifest === now.manifest) return null;
   if (changes !== undefined && changedInside(before, block, element, changes)) return null;
   const inside = insideAll(scopes);
-  const outside = scopes.map(({ manifest }) =>
-    statementsOf(manifest).filter((item) => !inside(item)),
-  );
+  const outside = scopes.map(({ manifest }) => rulesOf(manifest).filter((item) => !inside(item)));
   const styles = byCodePoint(
     new Set(outside.flat().flatMap((item) => (typeof item.set === "string" ? [item.set] : []))),
   );

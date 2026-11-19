@@ -217,8 +217,8 @@ describe("what needs no gap", () => {
   });
 });
 
-describe("statements naming a removed timeline", () => {
-  it("removes a statement whose within names a removed timeline", () => {
+describe("rules naming a removed timeline", () => {
+  it("removes a rule whose within names a removed timeline", () => {
     let view: View = viewOf([A, CHILDREN]);
     for (const [within, opacity] of [
       ["theme", 0.5],
@@ -233,7 +233,7 @@ describe("statements naming a removed timeline", () => {
       });
     }
     const result = changed(deepFreeze(view), { type: "remove", targets: [at("theme")] });
-    expect(block(result).manifest.graphical?.statements).toEqual([
+    expect(block(result).manifest.graphical?.rules).toEqual([
       { select: { element: "boundary", within: "coda" }, set: { opacity: 0.3 } },
     ]);
   });

@@ -261,26 +261,26 @@ export function readGraphical(value: unknown, path: readonly PathSegment[]): Gra
 }
 
 /**
- * A selector and a declaration, checked as one statement of a `graphical`
+ * A selector and a declaration, checked as one rule of a `graphical`
  * block and read as the plain `Selector` and `Declaration` (its numbers
  * doubles), or the first problem at `path`.
  */
-export function readStatement(
+export function readRule(
   select: Json,
   set: Json,
   path: readonly PathSegment[],
 ): { readonly select: Selector; readonly set: Declaration } | Problem {
-  const graphical = { statements: [{ select, set }] };
+  const graphical = { rules: [{ select, set }] };
   const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical });
-  const at = ["graphical", "statements", 0] as const;
+  const at = ["graphical", "rules", 0] as const;
   if ("code" in checked) return located(checked, at, path);
-  const [statement] = checked.graphical?.statements ?? [];
-  if (statement === undefined || typeof statement.set === "string") {
-    throw new Error("the schema checked one statement with a declaration");
+  const [rule] = checked.graphical?.rules ?? [];
+  if (rule === undefined || typeof rule.set === "string") {
+    throw new Error("the schema checked one rule with a declaration");
   }
-  const declaration = plainDeclaration(statement.set, [...at, "set"]);
+  const declaration = plainDeclaration(rule.set, [...at, "set"]);
   if ("code" in declaration) return located(declaration, at, path);
-  return { select: plainSelector(statement.select), set: declaration };
+  return { select: plainSelector(rule.select), set: declaration };
 }
 
 /** A reader of one member: its value as stored, a problem, or `undefined` when it pushed its problems. */

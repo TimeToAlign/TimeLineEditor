@@ -358,7 +358,7 @@ describe("the hover marks", () => {
             target: WORKSPACE,
             values: {
               graphical: {
-                statements: [{ select: { element: "boundary" }, set: { stroke: "#FF0000" } }],
+                rules: [{ select: { element: "boundary" }, set: { stroke: "#FF0000" } }],
               },
             },
           },

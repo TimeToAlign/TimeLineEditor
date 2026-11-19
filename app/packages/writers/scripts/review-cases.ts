@@ -163,7 +163,7 @@ export function reviewCases(): ReviewCase[] {
     at({ places: { group_1: { cards: { score: { spacing: 8 } } } } }),
   );
   const shown = (select: Selector): Graphical[] => [
-    { statements: [{ select, set: { display: "inline" } }] },
+    { rules: [{ select, set: { display: "inline" } }] },
   ];
   add(
     "unknown_length_child__regions-shown",

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PLACEMENT, draw } from "../src/index.ts";
 import { at, element, loadFile, metrics } from "./support.ts";
 
-const only = (select: object, set: object): Graphical[] => [{ statements: [{ select, set }] }];
+const only = (select: object, set: object): Graphical[] => [{ rules: [{ select, set }] }];
 
 describe("the tree of a manifest of one group", () => {
   const manifest = loadFile("groups/group_child_member");

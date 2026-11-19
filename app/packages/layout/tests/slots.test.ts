@@ -82,7 +82,7 @@ describe("the slots of one row", () => {
 
   it("place every slot by the widest stroke of the row's lines", () => {
     const drawing = drawn(manifest, {
-      statements: [{ select: { addresses: [{ id: "ante" }] }, set: { "stroke-width": 5 } }],
+      rules: [{ select: { addresses: [{ id: "ante" }] }, set: { "stroke-width": 5 } }],
     });
     expect(ordinates(drawing)).toEqual({
       r: 42.5,
@@ -191,7 +191,7 @@ describe("the common start", () => {
       linearMap("cons", "cons_tempo", "Tempo"),
     );
     const drawing = drawn(manifest, {
-      statements: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
+      rules: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
     });
     expect(ordinates(drawing)).toEqual({
       r: 86.953125,
@@ -205,7 +205,7 @@ describe("the common start", () => {
 
 describe("maps bands kept apart by their lines' children bands", () => {
   const regions: Graphical = {
-    statements: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
+    rules: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
   };
   /** `A`'s children band nearer its line than its maps band, `B`'s further out, both above. */
   const orders = [

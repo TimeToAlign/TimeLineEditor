@@ -13,7 +13,7 @@ import {
 } from "../src/index.ts";
 import { at, bandOrder, drawFixture, edit, element, loadFile, metrics, set } from "./support.ts";
 
-const only = (select: object, set: object): Graphical[] => [{ statements: [{ select, set }] }];
+const only = (select: object, set: object): Graphical[] => [{ rules: [{ select, set }] }];
 const drawGroup = (name: string, extra: Graphical[] = [], placement?: Placement) =>
   drawFixture(`groups/${name}`, extra, placement);
 

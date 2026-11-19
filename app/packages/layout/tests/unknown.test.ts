@@ -194,7 +194,7 @@ describe("a segment line whose segments are of unknown length", () => {
     expect(addresses(drawFixture("unknown_length_segments"), "region")).toEqual([]);
     const drawing = drawFixture("unknown_length_segments", [
       {
-        statements: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
+        rules: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
       },
     ]);
     const region = element(drawing, at("region_2"));

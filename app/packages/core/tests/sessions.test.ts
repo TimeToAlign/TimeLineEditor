@@ -898,7 +898,7 @@ describe("the side-effect guard through the store", () => {
     expect(store.dispatch(set(BLOCK, { width: 900 }))).toBeNull();
     expect(refusal(store.dispatch(style({ element: "timeline" })))).toEqual({
       code: "side_effect",
-      path: [BUNDLE, "manifest", "graphical", "statements"],
+      path: [BUNDLE, "manifest", "graphical", "rules"],
     });
     expect(store.dispatch(style({ addresses: [{ id: "score" }] }))).toBeNull();
     expect(refusal(store.open(G2))).toEqual({ code: "not_inside", path: [key(G2)] });

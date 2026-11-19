@@ -74,11 +74,11 @@ function drawingIn(view: View): Drawing {
   return drawingOf(blockIn(view, A), view.graphical, metrics);
 }
 
-/** The view with one workspace statement added. */
-function styled(view: View, statement: object): View {
+/** The view with one workspace rule added. */
+function styled(view: View, rule: object): View {
   return changed(view, {
     type: "set",
-    changes: [{ target: WORKSPACE, values: { graphical: { statements: [statement] } } }],
+    changes: [{ target: WORKSPACE, values: { graphical: { rules: [rule] } } }],
   });
 }
 
@@ -429,8 +429,8 @@ describe("the boxes holding part of the selection", () => {
     ["cards", idAddress("score"), HIDDEN_CARDS, [g1]],
     ["frames", idAddress("score"), HIDDEN_FRAMES, [cardKey("group_1", "score")]],
     ["frames", part("group_1", "name"), HIDDEN_FRAMES, []],
-  ])("with the %s hidden, %j is held only by displayed boxes", (_, selected, statement, boxes) => {
-    expect(holding([selected], styled(mixed, statement))).toEqual(held(...boxes));
+  ])("with the %s hidden, %j is held only by displayed boxes", (_, selected, rule, boxes) => {
+    expect(holding([selected], styled(mixed, rule))).toEqual(held(...boxes));
   });
 
   describe("with an item over another", () => {

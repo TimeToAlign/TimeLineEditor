@@ -31,7 +31,7 @@ import {
 } from "./support.ts";
 
 const set = (select: object, declaration: object): Graphical => ({
-  statements: [{ select, set: declaration }],
+  rules: [{ select, set: declaration }],
 });
 
 const ofType = (drawing: Drawing, ...types: DrawnElement["type"][]) =>

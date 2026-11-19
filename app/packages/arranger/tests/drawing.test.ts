@@ -41,7 +41,7 @@ describe("drawingOf", () => {
         {
           target: WORKSPACE,
           values: {
-            graphical: { statements: [{ select: { element: "block" }, set: { fill: "#FFFFFF" } }] },
+            graphical: { rules: [{ select: { element: "block" }, set: { fill: "#FFFFFF" } }] },
           },
         },
       ],
@@ -122,7 +122,7 @@ describe("drawingOf", () => {
             target: WORKSPACE,
             values: {
               graphical: {
-                statements: [{ select: { element: "block" }, set: { fill: "#FFFFFF" } }],
+                rules: [{ select: { element: "block" }, set: { fill: "#FFFFFF" } }],
               },
             },
           },

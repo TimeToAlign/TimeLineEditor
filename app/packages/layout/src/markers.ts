@@ -134,7 +134,7 @@ export interface MarkersBand extends PreparedBand {
   /**
    * The styles of a wedge and a cross-section line of the band's timeline that no named
    * timestamp holds: the cascade's, the wedge held by the band and the line by the timeline's
-   * line, without the statements naming `addresses` (`Cascade.resolveUnaddressed`).
+   * line, without the rules naming `addresses` (`Cascade.resolveUnaddressed`).
    */
   readonly unnamed: { readonly wedge: Style; readonly crossSection: Style };
 }

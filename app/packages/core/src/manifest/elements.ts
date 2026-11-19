@@ -1,7 +1,7 @@
 /**
  * The drawn elements of a manifest and the selector test over them
  * (`docs/drawing.md` in TimeToShare, sections 2.1 to 2.3): what a `graphical`
- * statement can select, for the cascade and for the `style` command alike.
+ * rule can select, for the cascade and for the `style` command alike.
  */
 
 import type { ElementType, Selector, TimeUnit } from "@timetoalign/timetoshare";

@@ -20,7 +20,7 @@ describe("workspace creation", () => {
     });
   });
 
-  it("creates exactly the fixed metadata, the name, the settings, no statements and no blocks", () => {
+  it("creates exactly the fixed metadata, the name, the settings, no rules and no blocks", () => {
     expect(createView()).toEqual({
       meta: { format: "tilie-workspace", version: 7 },
       name: "untitled",

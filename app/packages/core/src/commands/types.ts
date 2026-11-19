@@ -57,7 +57,7 @@ export type RemoveCommand = {
 };
 
 /**
- * Embed one statement in block manifests: those of `blocks`, or of every
+ * Embed one rule in block manifests: those of `blocks`, or of every
  * block holding an element `select` matches. A `null` property removes it;
  * with `name`, the declaration becomes a named style of each manifest.
  */

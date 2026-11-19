@@ -136,7 +136,7 @@ const WORKSPACE_SET: Setters<WorkspaceTarget> = {
     recordValue(changes, path, null, false, view.name, name);
     return { ...view, name };
   },
-  /** The workspace's default statements, replaced whole. */
+  /** The workspace's default rules, replaced whole. */
   graphical: (view, _, value, path, changes) => {
     const graphical = readGraphical(value, path);
     if (isCommandError(graphical)) return graphical;
