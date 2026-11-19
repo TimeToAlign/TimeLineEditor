@@ -27,9 +27,10 @@ have, the schema is changed first.
 
 - A **manifest** is one TimeToShare manifest: root timelines with exact
   coordinates, children at exact offsets, conversion maps, regions, flow
-  control; optionally groups, measure maps, an `id`, a `name`, the links
-  and schemes of the description layer (the manifest, every timeline and
-  every region hold links to what they are about), and `graphical`, the
+  control; optionally groups, measure maps, an `id`, a `name`, statements
+  (the manifest, every timeline and every region state what they stand
+  for in property–value pairs with their provenance, under an inline
+  JSON-LD `@context`), and `graphical`, the
   styling of its own drawing with the display orders of its groups and the
   band orders of its timelines. A manifest knows nothing about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
@@ -120,8 +121,9 @@ address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
 band, entry, measure map, part); a part names something only where it is
 drawn. Nothing reads an ID or an address out of
-a string. A link has neither an ID nor an address: it is changed through
-the element holding it, by one `set` of that element's whole `links` list.
+a string. A statement has neither an ID nor an address: it is changed
+through the element holding it, by one `set` of that element's whole
+`statements` or `provenance`.
 
 ## How a change travels
 
@@ -184,6 +186,15 @@ the element holding it, by one `set` of that element's whole `links` list.
   `python/src/timetoshare/validation/*`, the same module and the same
   order), a stable code in both `diagnostics` modules' `ValidationCode`, a shared rejection fixture that pins the path and
   message in both languages, and the README's rule table.
+- **A new lookup system**: an ADR on its access rules first (where it is
+  asked from, its rate limit and identification, what leaves the browser);
+  a module in the editor's `src/lookup/` behind the one `Lookup`, its
+  kinds in `kinds.ts`, and answers recorded once for its tests. A service
+  whose rules of use a browser cannot keep is asked only through the
+  server, which keeps them for every request of the run.
+- **A new viewer setting** (who the user is, type profiles): the
+  browser's `localStorage` under a key the host passes in `storage`,
+  never a workspace setting, a command or a manifest member.
 - **A new dependency**: an ADR first, always weighing "write it ourselves"
   (`AGENTS.md`, Design Rules).
 
@@ -206,9 +217,11 @@ through pixels, except the screenshot project.
 ## Embedding
 
 `Editor.svelte` is the whole editor as a component with options: the server
-(`{url, token}` or none), the storage slot (or none), the shortcut scope
-(`"editor"` or `"window"`), the notices URL, and `onchange` and `onselect`
-callbacks. It styles only its own root, names its ids per instance and
+(`{url, token}` or none), the storage slot and keys (or none: the
+user and the type profiles are kept under `userKey` and `profilesKey`
+only where the host names them), whether the Metadata tab may look values
+up (`lookup`), the shortcut scope (`"editor"` or `"window"`), the notices
+URL, and `onchange` and `onselect` callbacks. It styles only its own root, names its ids per instance and
 reaches the page only through those options. `App.svelte` is the one page
 that owns a document: it writes the title, styles `html` and `body`, takes
 the server's token from the URL fragment and binds the window shortcuts.

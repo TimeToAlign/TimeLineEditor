@@ -63,7 +63,7 @@ type:CorporateBody` returns persons and corporate bodies and nothing else.
 ## Decision
 
 The third option. The editor's `src/lookup/` holds one `Lookup`
-(`createLookup({fetch, server, language, catalogue})`): Wikidata, the GND
+(`createLookup({fetch, server, language, catalogue, services})`): Wikidata, the GND
 through lobid and YouTube's oEmbed are fetched from the browser,
 MusicBrainz through `ReconciliationClient` at the server's
 `api/reconcile/musicbrainz` with the run's token. A candidate's `service`
@@ -95,9 +95,15 @@ Primary sources: <https://www.mediawiki.org/wiki/API:Search>,
 
 Searching Wikidata, the GND and YouTube works in an embedded editor;
 MusicBrainz is searchable only where a server runs. Text typed into a
-value field reaches the service of the chosen system. The services see
-the user's address and the page's origin, as with any link the user
-follows. A service that changes its answer format or withdraws its open
+value field reaches the service of the chosen system. Requests are made
+without typing too: viewing the Metadata tab resolves the first thing each
+rectangle names, for its thumbnail, and "＋ vocabulary" resolves a
+rectangle's thing for its cross-references, so the IRIs of the things a
+manifest states reach Wikidata, the GND, YouTube or the server (and
+through it MusicBrainz) as soon as the tab shows them; proposing matches
+sends the names stated without an identifier. The services see the user's
+address and the page's origin, as with any link the user follows. With
+the option `lookup: false` none of these requests is made. A service that changes its answer format or withdraws its open
 access fails as an error the value field shows, and the other services go
 on. Exit cost: the modules of `src/lookup/` and the server's endpoint.
 
