@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import importlib
-import json
 import sys
 from fractions import Fraction
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from timetoshare import dumps, loads
 
 import tilie_server.app
 import tilie_server.routers.measure_maps
@@ -23,6 +23,7 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 ROUTE = "/api/measure-maps"
 DATA = Path(__file__).parent / "data"
 EXPANSION = "timetoalign.timelines.structure"
+FIXTURE = "group_measure_map.minimal.yaml"
 
 
 @pytest.fixture
@@ -31,8 +32,16 @@ def server(tmp_path: Path) -> TestClient:
     return TestClient(app, base_url=f"http://{HOST}:{PORT}")
 
 
+def text(name: str) -> str:
+    return (DATA / name).read_text(encoding="utf-8")
+
+
 def read(name: str) -> Any:
-    return json.loads((DATA / name).read_text(encoding="utf-8"))
+    return loads(text(name))
+
+
+def post(server: TestClient, body: str | bytes, **headers: str) -> Any:
+    return server.post(ROUTE, headers={**AUTH, **headers}, content=body)
 
 
 def row(**members: Any) -> dict[str, Any]:
@@ -56,7 +65,8 @@ def row(**members: Any) -> dict[str, Any]:
 
 
 def test_the_fixture_answers_its_hand_expanded_rows(server: TestClient) -> None:
-    response = server.post(ROUTE, headers=AUTH, json=read("group_measure_map.json"))
+    assert read(FIXTURE)["measure_maps"][0]["id"] == "#measuremap_1"
+    response = post(server, text(FIXTURE), **{"Content-Type": "application/yaml"})
     assert response.status_code == 200
     assert response.json() == read("group_measure_map.answer.json")
     assert list(response.json()["measure_maps"][0]["rows"][0]) == list(row())
@@ -65,8 +75,8 @@ def test_the_fixture_answers_its_hand_expanded_rows(server: TestClient) -> None:
 def test_the_answer_is_the_library_expansion(server: TestClient) -> None:
     from timetoalign.timelines.structure import MeasureMap
 
-    manifest = read("group_measure_map.json")
-    response = server.post(ROUTE, headers=AUTH, json=manifest)
+    manifest = read(FIXTURE)
+    response = post(server, text(FIXTURE))
     expanded = MeasureMap.expand_rows(
         manifest["measure_maps"][0]["rows"], keep_unknown_keys=True
     )
@@ -83,11 +93,12 @@ def test_the_answer_is_the_library_expansion(server: TestClient) -> None:
     assert response.json()["measure_maps"][0]["rows"] == library
 
 
-def test_floats_volta_and_unknown_keys(server: TestClient) -> None:
+@pytest.mark.parametrize("serialization", ["json", "yaml"])
+def test_floats_volta_and_unknown_keys(server: TestClient, serialization: str) -> None:
     manifest = {
         "measure_maps": [
             {
-                "id": "bars",
+                "id": "#bars",
                 "rows": [
                     {
                         "count": 1,
@@ -100,7 +111,9 @@ def test_floats_volta_and_unknown_keys(server: TestClient) -> None:
             }
         ]
     }
-    response = server.post(ROUTE, headers=AUTH, json=manifest)
+    body = dumps(manifest, serialization)
+    assert loads(body) == manifest
+    response = post(server, body)
     assert response.status_code == 200
     assert response.json() == {
         "measure_maps": [
@@ -146,19 +159,30 @@ def test_a_manifest_without_measure_maps_answers_none(
 
 
 def test_two_requests_answer_the_same(server: TestClient) -> None:
-    manifest = read("group_measure_map.json")
-    first = server.post(ROUTE, headers=AUTH, json=manifest)
-    second = server.post(ROUTE, headers=AUTH, json=manifest)
+    first = post(server, text(FIXTURE))
+    second = post(server, text(FIXTURE))
     assert first.content == second.content
 
 
 @pytest.mark.parametrize(
     ("body", "path", "message"),
     [
-        (b"{not json", [], "the body is not JSON"),
-        (b"[]", [], "the body is not a JSON object"),
+        (b"\xff", [], "the body is not UTF-8 text"),
+        (
+            b"{not json",
+            [],
+            "the body is neither JSON nor YAML: expected a key at line 1, column 2",
+        ),
+        (b"[]", [], "the body is not an object"),
+        (b"- 1\n", [], "the body is not an object"),
         (b'{"measure_maps": {}}', ["measure_maps"], "measure_maps is not a list"),
+        (
+            b'{"measure_maps": [{"id": "bars", "rows": [{"count": 1}]}]}',
+            ["measure_maps", 0, "id"],
+            "'bars' is not written as an ID: it does not start with '#'",
+        ),
     ],
+    ids=["no UTF-8", "unreadable", "JSON list", "YAML list", "maps", "bare ID"],
 )
 def test_a_body_of_another_form_is_refused(
     server: TestClient, body: bytes, path: list[Any], message: str
@@ -170,9 +194,9 @@ def test_a_body_of_another_form_is_refused(
 
 
 def test_a_map_the_library_refuses_is_named_by_its_path(server: TestClient) -> None:
-    manifest = read("group_measure_map.json")
+    manifest = read(FIXTURE)
     manifest["measure_maps"].append(
-        {"id": "broken", "rows": [{"count": 2}, {"count": 1}]}
+        {"id": "#broken", "rows": [{"count": 2}, {"count": 1}]}
     )
     response = server.post(ROUTE, headers=AUTH, json=manifest)
     assert response.status_code == 422
@@ -185,7 +209,7 @@ def test_a_map_the_library_refuses_is_named_by_its_path(server: TestClient) -> N
 
 
 def test_the_route_needs_the_token(server: TestClient) -> None:
-    response = server.post(ROUTE, json=read("group_measure_map.json"))
+    response = server.post(ROUTE, content=text(FIXTURE))
     assert response.status_code == 401
     assert response.json() == {"detail": "missing or invalid token"}
 
@@ -221,5 +245,64 @@ def test_without_the_expansion_the_server_starts_and_the_route_says_so(
             "path": [],
             "message": f"the installed timetoalign {version('timetoalign')} "
             "cannot expand measure maps",
+        }
+    }
+
+
+def without_the_reader(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> tuple[TestClient, Any]:
+    """The app built anew while timetoshare cannot be imported."""
+    # A None entry makes every import of the package raise ImportError.
+    monkeypatch.setitem(sys.modules, "timetoshare", None)
+    route = importlib.reload(tilie_server.routers.measure_maps)
+    app = importlib.reload(tilie_server.app).create_app(
+        ServerSettings(HOST, PORT, TOKEN, tmp_path)
+    )
+    return TestClient(app, base_url=f"http://{HOST}:{PORT}"), route
+
+
+@pytest.mark.parametrize(
+    "body",
+    [b'{"measure_maps": []}', b"{not json", b"[]"],
+    ids=["empty", "no JSON", "list"],
+)
+def test_without_the_reader_the_server_starts_and_the_route_says_so(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, body: bytes
+) -> None:
+    server, _ = without_the_reader(monkeypatch, tmp_path)
+    health = server.get("/api/health", headers=AUTH)
+    assert health.status_code == 200
+    assert health.json() == {
+        "name": "tilie-server",
+        "version": version("tilie-server"),
+        "timetoalign": version("timetoalign"),
+    }
+    response = post(server, body)
+    assert response.status_code == 501
+    assert response.json() == {
+        "detail": {
+            "path": [],
+            "message": f"the installed timetoshare {version('timetoshare')} "
+            "cannot read manifest files",
+        }
+    }
+
+
+def test_without_any_timetoshare_the_route_says_so(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    server, route = without_the_reader(monkeypatch, tmp_path)
+
+    def missing(name: str) -> str:
+        raise PackageNotFoundError(name)
+
+    monkeypatch.setattr(route, "version", missing)
+    response = post(server, text(FIXTURE))
+    assert response.status_code == 501
+    assert response.json() == {
+        "detail": {
+            "path": [],
+            "message": "timetoshare is not installed, so manifest files cannot be read",
         }
     }

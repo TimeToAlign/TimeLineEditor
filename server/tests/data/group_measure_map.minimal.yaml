@@ -1,0 +1,98 @@
+graphical:
+  order:
+    "#group_1": ["#score", "#midi"]
+  timestamps:
+    -
+      coordinate: 0
+      display: [wedge, coordinate]
+      id: "#timestamp_1"
+      name: origin
+      timeline: "#midi"
+    -
+      coordinate: 7680
+      display: [wedge, coordinate]
+      id: "#timestamp_2"
+      name: length
+      timeline: "#midi"
+    -
+      coordinate: [0, 1]
+      display: [wedge, coordinate]
+      id: "#timestamp_3"
+      name: origin
+      timeline: "#score"
+    -
+      coordinate: [16, 1]
+      display: [wedge, coordinate]
+      id: "#timestamp_4"
+      name: length
+      timeline: "#score"
+groups:
+  -
+    id: "#group_1"
+    members: ["#midi", "#score"]
+    name: Edition
+measure_maps:
+  -
+    id: "#measuremap_1"
+    rows:
+      -
+        actual_length: [4, 1]
+        count: 1
+        end_repeat: false
+        name: "1"
+        next: ["2"]
+        nominal_length: [4, 1]
+        number: 1
+        qstamp: [0, 1]
+        start_repeat: false
+        time_signature: "4/4"
+      -
+        actual_length: [4, 1]
+        count: 4
+        end_repeat: false
+        name: "4"
+        nominal_length: [4, 1]
+        number: 4
+        qstamp: [12, 1]
+        start_repeat: false
+        time_signature: "4/4"
+meta:
+  generator: "timetoalign 1.2.0 (dd2d8291)"
+timelines:
+  -
+    conversion_maps:
+      -
+        id: "#cmap_3"
+        maps:
+          -
+            id: "#ppq"
+            scalar: [1, 480]
+            source_unit: ticks
+            target_unit: quarters
+            type: LinearMap
+          -
+            id: "#cmap_2"
+            measure_map: "#measuremap_1"
+            source_unit: quarters
+            target_unit: null
+            type: MeasureRecordMap
+        source_unit: ticks
+        target_unit: null
+        type: ChainMap
+    id: "#midi"
+    length: 7680
+    name: MIDI
+    unit: ticks
+  -
+    conversion_maps:
+      -
+        id: "#cmap_1"
+        measure_map: "#measuremap_1"
+        source_unit: quarters
+        target_unit: null
+        type: MeasureRecordMap
+    id: "#score"
+    length: [16, 1]
+    name: Score
+    unit: quarters
+timetoshare: "0.2.0"

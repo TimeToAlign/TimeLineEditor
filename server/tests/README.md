@@ -26,8 +26,10 @@ the API. Every answer above, success or rejection, carries exactly one
 
 ## Measure maps
 
-`POST /api/measure-maps` takes a manifest and answers, for each entry of its
-`measure_maps` in the manifest's order, the entry's `id` and its rows
+`POST /api/measure-maps` takes the text of a manifest file in any of its
+serializations (canonical YAML, as the editor posts it, pretty JSON or RFC
+8785 JSON), read by timetoshare's `loads`, and answers, for each entry of
+its `measure_maps` in the manifest's order, the entry's ID and its rows
 expanded by timetoalign (`MeasureMap.expand_rows`): every measure the
 compressed rows imply, with every member of its decompressed form. What
 proves the route is the expansion read off the Measure Map standard by
@@ -45,15 +47,24 @@ pairs `[numerator, denominator]`, `null` where the map gives none; `next`
 lists the successors' counts. A row's keys outside the row form are kept by
 the expansion and left out of the answer: they are no member of a measure.
 
+**IDs.** A manifest file writes every ID as `#id`; the answer is the
+editor's own interface, no manifest file, and names each map by its bare
+ID, the one the editor matches a measure view's `measure_map` against. The
+whole manifest is read into bare IDs (timetoshare's `with_bare_ids`), so a
+file whose IDs are not in the file form is refused at the first such ID,
+with timetoshare's path and message, before any map is expanded.
+
 | Manifest | Answer |
 | --- | --- |
-| TimeToShare 0.2.0's fixture `groups/group_measure_map.json`, copied byte for byte into `data/` (rows count 1 and count 4, both 4/4 and four quarters long, row 1 naming `next` `["2"]`, row 4 stating qstamp 12) | 200, one map `measuremap_1` with four rows, compared whole with `data/group_measure_map.answer.json`: counts and numbers 1 to 4, IDs and names `"1"` to `"4"`, qstamps `[0, 1]`, `[4, 1]`, `[8, 1]`, `[12, 1]`, both lengths `[4, 1]`, `next` `[2]`, `[3]`, `[4]`, `[]`, `volta` `null`, `offset_within_measure` `[0, 1]`, no repeats |
-| two rows of 3/4: count 1 with `actual_length` 0.5 and `offset_within_measure` 2.5 (JSON floats), count 2 with `volta` 1 and an unknown key `"extra"` | 200, one map of two rows: row 1 qstamp `[0, 1]`, number 0 and name `"0"` (a first row shorter than its nominal length is the anacrusis), lengths `[3, 1]` and `[1, 2]`, offset `[5, 2]` (each float read as its exact binary value), `next` `[2]`; row 2 qstamp `[1, 2]`, number and name 2, lengths `[3, 1]`, `next` `[]`, `volta` 1, offset `[0, 1]`; no `"extra"` |
+| TimeToShare 0.2.0's fixture `groups/group_measure_map.minimal.yaml`, copied byte for byte into `data/` and posted as it is, canonical YAML in the minimal form with `#` IDs, as the editor posts a manifest (rows count 1 and count 4, both 4/4 and four quarters long, row 1 naming `next` `["2"]`, row 4 stating qstamp 12; the map's ID `"#measuremap_1"`) | 200, one map `measuremap_1` (bare) with four rows, compared whole with `data/group_measure_map.answer.json`: counts and numbers 1 to 4, IDs and names `"1"` to `"4"`, qstamps `[0, 1]`, `[4, 1]`, `[8, 1]`, `[12, 1]`, both lengths `[4, 1]`, `next` `[2]`, `[3]`, `[4]`, `[]`, `volta` `null`, `offset_within_measure` `[0, 1]`, no repeats |
+| two rows of 3/4 in a map `"#bars"`: count 1 with `actual_length` 0.5 and `offset_within_measure` 2.5 (floats), count 2 with `volta` 1 and an unknown key `"extra"`; posted once as pretty JSON and once as canonical YAML | 200, both alike: one map `bars` of two rows: row 1 qstamp `[0, 1]`, number 0 and name `"0"` (a first row shorter than its nominal length is the anacrusis), lengths `[3, 1]` and `[1, 2]`, offset `[5, 2]` (each float read as its exact binary value), `next` `[2]`; row 2 qstamp `[1, 2]`, number and name 2, lengths `[3, 1]`, `next` `[]`, `volta` 1, offset `[0, 1]`; no `"extra"` |
 | no `measure_maps`, or an empty list | 200 `{"measure_maps": []}` |
-| a body that is no JSON | 422 `{"detail": {"path": [], "message": "the body is not JSON"}}` |
-| a JSON body that is no object (a list) | 422 `{"detail": {"path": [], "message": "the body is not a JSON object"}}` |
+| a body that is no UTF-8 (the byte `0xff`) | 422 `{"detail": {"path": [], "message": "the body is not UTF-8 text"}}` |
+| a body neither serialization reads (`{not json`) | 422 `{"detail": {"path": [], "message": "the body is neither JSON nor YAML: expected a key at line 1, column 2"}}`, timetoshare's message after the colon |
+| a body that is no object (the JSON list `[]`, the YAML list `- 1`) | 422 `{"detail": {"path": [], "message": "the body is not an object"}}` |
 | `measure_maps` that is no list (an object) | 422 `{"detail": {"path": ["measure_maps"], "message": "measure_maps is not a list"}}` |
-| a second entry whose rows state count 2, then count 1 | 422 `{"detail": {"path": ["measure_maps", 1], "message": "Measure Map count 1 does not increase after count 2"}}`, the library's message, nothing for the valid first entry |
+| a map whose ID is bare (`"bars"`) | 422 `{"detail": {"path": ["measure_maps", 0, "id"], "message": "'bars' is not written as an ID: it does not start with '#'"}}` |
+| the fixture with a second entry `"#broken"` whose rows state count 2, then count 1 | 422 `{"detail": {"path": ["measure_maps", 1], "message": "Measure Map count 1 does not increase after count 2"}}`, the library's message, nothing for the valid first entry |
 | without the bearer token | 401 `{"detail": "missing or invalid token"}`, as every `/api/` path |
 
 The route reads nothing of the manifest but `measure_maps`; checking the
@@ -72,6 +83,18 @@ answers 501 `{"detail": {"path": [], "message": "the installed timetoalign
 package's. The table's other cases are never skipped: they run against
 the timetoalign the server is locked to, and a timetoalign without the
 expansion fails them.
+
+**A timetoshare without the manifest reader.** The route reads the body
+through timetoshare's `loads` and `with_bare_ids`, which timetoshare 0.2.0
+holds and timetoalign brings in (the server requires timetoshare only
+through timetoalign); a released timetoshare may lack them, and the server
+is still started then. With `timetoshare` made unimportable, the app built
+anew answers `GET /api/health` 200 and every authorized `POST
+/api/measure-maps`, whatever its body, 501 `{"detail": {"path": [],
+"message": "the installed timetoshare <version> cannot read manifest
+files"}}`, the version being the installed package's; when no timetoshare
+is installed at all, the message is `timetoshare is not installed, so
+manifest files cannot be read`.
 
 ## The command
 
