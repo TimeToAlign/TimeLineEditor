@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -1036,16 +1036,17 @@ requires-dist = [
     { name = "soundfile", marker = "extra == 'audio'", specifier = ">=0.12" },
     { name = "timetoalign", extras = ["all", "examples"], marker = "extra == 'testing'" },
     { name = "timetoalign", extras = ["loaders", "plot", "examples"], marker = "extra == 'tutorial'" },
-    { name = "timetoalign", extras = ["midi", "scores", "audio", "graphical"], marker = "extra == 'loaders'" },
-    { name = "timetoalign", extras = ["partitura", "music21", "ms3"], marker = "extra == 'scores'" },
+    { name = "timetoalign", extras = ["midi", "scores", "audio", "graphical", "rdf"], marker = "extra == 'loaders'" },
+    { name = "timetoalign", extras = ["partitura", "music21", "ms3", "verovio"], marker = "extra == 'scores'" },
     { name = "timetoalign", extras = ["testing", "docs"], marker = "extra == 'dev'" },
     { name = "timetoalign", extras = ["tutorial"], marker = "extra == 'docs'" },
     { name = "timetoalign", extras = ["tutorial", "delta", "rdf"], marker = "extra == 'all'" },
     { name = "timetoshare", git = "https://github.com/TimeToAlign/TimeToShare.git?subdirectory=python&rev=main" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "typing-extensions", specifier = ">=4.0" },
+    { name = "verovio", marker = "extra == 'verovio'", specifier = ">=4.4" },
 ]
-provides-extras = ["midi", "partitura", "music21", "ms3", "audio", "graphical", "plot", "delta", "rdf", "examples", "scores", "loaders", "tutorial", "docs", "all", "testing", "dev"]
+provides-extras = ["midi", "partitura", "music21", "ms3", "verovio", "audio", "graphical", "plot", "delta", "rdf", "examples", "scores", "loaders", "tutorial", "docs", "all", "testing", "dev"]
 
 [package.metadata.requires-dev]
 conformance = [{ name = "pymeasuremap", git = "https://github.com/measure-map/pyMeasureMap.git?rev=ddcfec3" }]
@@ -1056,14 +1057,19 @@ version = "0.2.0"
 source = { editable = "../../TimeToShare/python" }
 dependencies = [
     { name = "jsonschema" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "jsonschema", specifier = ">=4.26.0,<5" }]
+requires-dist = [
+    { name = "jsonschema", specifier = ">=4.26.0,<5" },
+    { name = "pyyaml", specifier = ">=6.0.3,<7" },
+]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "fonttools", specifier = "==4.66.0" },
+    { name = "pyld", specifier = "==3.3.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.16.9" },
 ]
