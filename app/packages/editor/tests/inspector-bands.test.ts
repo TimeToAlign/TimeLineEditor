@@ -216,6 +216,12 @@ describe("the Properties panel of a band", () => {
     flushSync();
   }
 
+  /** Choose JSON on the Manifest tab, the format these tests read (YAML is shown first). */
+  function chooseJson(): void {
+    document.querySelector<HTMLInputElement>('input[value="json"]')?.click();
+    flushSync();
+  }
+
   it("shows the three rows of a band and nothing to edit", () => {
     const store = storeOf();
     show(store, [bandOf(A, "melody", "markers")]);
@@ -226,6 +232,7 @@ describe("the Properties panel of a band", () => {
     expect(panel().querySelector(".hint")).toBe(null);
 
     openTab("Manifest");
+    chooseJson();
     // A block without a manifest file of its own is shown as a new manifest: minimal, styled.
     const expected = manifestText(manifestOf(blockOf(store.view, A)), "json", {
       includeStyling: true,
@@ -273,6 +280,7 @@ describe("the Properties panel of a band", () => {
     const store = storeOf();
     show(store, [at(A)]);
     openTab("Manifest");
+    chooseJson();
     const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
     const edited = textarea.value.replace('"id": "#tempo"', '"id": "#phrase"');
     expect(edited).not.toBe(textarea.value);

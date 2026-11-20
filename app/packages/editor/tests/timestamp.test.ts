@@ -754,9 +754,9 @@ describe("the format switch", () => {
     const store = example();
     const inspector = drawer(store, true, T);
     click("Manifest");
-    expect(group("Manifest format")).toEqual([["JSON", "YAML", "TOML"], "JSON"]);
+    expect(group("Manifest format")).toEqual([["YAML", "JSON", "TOML"], "YAML"]);
     inspector.selected([THEME]);
-    expect(group("Timestamp format")).toEqual([["Editor", "JSON", "YAML", "TOML"], "Editor"]);
+    expect(group("Timestamp format")).toEqual([["Editor", "YAML", "JSON", "TOML"], "Editor"]);
   });
 
   it("shows a named timestamp as JSON, then YAML once its codec is loaded, with one Copy", async () => {

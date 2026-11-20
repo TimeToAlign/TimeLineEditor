@@ -35,7 +35,8 @@ interface Shown extends Choice {
 }
 
 export class ManifestText {
-  format: Format = $state("json");
+  /** The format chosen; YAML, the main serialization, until another is chosen. */
+  format: Format = $state("yaml");
   /** The text in the text area. */
   text = $state("");
   /** The problems listed under the text: a refused Apply's, or writing the manifest's. */

@@ -53,6 +53,13 @@ async function showManifest(page: Page): Promise<void> {
   await expect(manifestText(page)).toBeVisible();
 }
 
+/** Show the Manifest tab and choose JSON, the format the tests that type JSON edit (YAML is shown first). */
+async function showJson(page: Page): Promise<void> {
+  await showManifest(page);
+  await page.getByLabel("JSON", { exact: true }).check();
+  await expect(page.getByLabel("Manifest (JSON)")).toBeVisible();
+}
+
 /** Apply and Revert are both enabled, or both disabled. */
 async function expectButtons(page: Page, enabled: boolean): Promise<void> {
   await expect(page.getByRole("button", { name: "Apply", exact: true })).toBeEnabled({ enabled });
@@ -98,7 +105,7 @@ test.beforeEach(async ({ page }) => {
 
 test("a YAML edit reaches the canvas as one command and Undo restores it", async ({ page }) => {
   await showManifest(page);
-  await page.getByLabel("YAML").check();
+  await expect(page.getByLabel("YAML", { exact: true })).toBeChecked();
   await expect(manifestText(page)).toHaveValue(/\n {4}name: Bare\n/);
   const text = await manifestText(page).inputValue();
   await manifestText(page).fill(text.replace("\n    name: Bare\n", "\n    name: Renamed\n"));
@@ -119,7 +126,7 @@ test("a YAML edit reaches the canvas as one command and Undo restores it", async
 });
 
 test("a refused edit shows its exact path and keeps the text", async ({ page }) => {
-  await showManifest(page);
+  await showJson(page);
   // A block without a manifest file of its own is written as a new manifest: minimal, styled.
   await expect(page.getByRole("checkbox", { name: "Minimal", exact: true })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Include styling", exact: true })).toBeChecked();
@@ -506,7 +513,7 @@ for (const mode of MODES) {
   test(`Apply and Revert follow the text, ${form} form, styling ${styling}`, async ({ page }) => {
     await select(page, [{ block: SMALL.styled, id: "score" }]);
     await expect(subject(page)).toHaveText("Timeline Score");
-    await showManifest(page);
+    await showJson(page);
     const minimal = page.getByRole("checkbox", { name: "Minimal", exact: true });
     const includeStyling = page.getByRole("checkbox", { name: "Include styling", exact: true });
     // A block without a manifest file of its own is written as a new manifest: minimal, styled.
@@ -568,7 +575,7 @@ for (const mode of MODES) {
 }
 
 test("an unapplied text survives a visit to the Properties tab", async ({ page }) => {
-  await showManifest(page);
+  await showJson(page);
   const text = manifestText(page);
   await expect(text).toHaveValue(/"name": "Bare"/);
   const shown = await text.inputValue();
