@@ -77,10 +77,11 @@ export interface CrossSectionSpec {
 /**
  * Why the expanded rows of a manifest's MeasureMaps are not at hand: there
  * is no server to expand them (`no_server`), the server cannot expand them
- * (`unsupported`), its answer is awaited (`pending`), or the request failed
- * or its answer lacks a MeasureMap (`failed`).
+ * (`unsupported`), no server answered the request (`unreachable`), its
+ * answer is awaited (`pending`), or the server refused the request or its
+ * answer lacks a MeasureMap (`failed`).
  */
-export type KnotsAbsence = "no_server" | "unsupported" | "pending" | "failed";
+export type KnotsAbsence = "no_server" | "unsupported" | "unreachable" | "pending" | "failed";
 
 /** The expanded rows of a manifest's MeasureMaps, or why they are not at hand. */
 export type Knots = readonly MeasureKnots[] | KnotsAbsence;
@@ -501,6 +502,7 @@ export function measureText(record: MeasureKnot): string {
 const MISSING_KNOTS_TEXTS: { readonly [absence in KnotsAbsence]: string } = {
   no_server: "needs a server to expand its measure map",
   unsupported: "the server cannot expand measure maps",
+  unreachable: "no server answered, so its measure map is not expanded",
   pending: "waiting for the server",
   failed: "the server did not expand its measure map",
 };

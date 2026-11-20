@@ -629,22 +629,27 @@ export function flagPlace(
 }
 
 /**
+ * What a server answers for a manifest's text: its expanded MeasureMaps,
+ * `unsupported` where the server cannot expand MeasureMaps, or
+ * `unreachable` where no server answered the request.
+ */
+export type MeasureMapsAnswer = readonly MeasureKnots[] | "unsupported" | "unreachable";
+
+/**
  * The expanded MeasureMaps of each manifest, asked of `fetch` with the
  * manifest's text once per manifest object (one version of a manifest)
  * that has MeasureMaps, and kept as the answer arrives; `changed` is
- * called then. `fetch` answers the rows, or `unsupported` where the server
- * cannot expand MeasureMaps; a request that fails leaves them `failed`.
- * Until the answer arrives they are `pending`, so nothing waits for them.
+ * called then. `fetch` answers the rows or why there are none
+ * (`MeasureMapsAnswer`); a request that fails otherwise leaves them
+ * `failed`. Until the answer arrives they are `pending`, so nothing waits
+ * for them.
  */
 export class MeasureKnotsSource {
-  readonly #fetch: (manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">;
+  readonly #fetch: (manifest: string) => Promise<MeasureMapsAnswer>;
   readonly #changed: () => void;
   readonly #known = new WeakMap<Manifest, readonly MeasureKnots[] | KnotsAbsence>();
 
-  constructor(
-    fetch: (manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">,
-    changed: () => void,
-  ) {
+  constructor(fetch: (manifest: string) => Promise<MeasureMapsAnswer>, changed: () => void) {
     this.#fetch = fetch;
     this.#changed = changed;
   }

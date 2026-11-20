@@ -1842,13 +1842,15 @@ one without; until the answer arrives they are `pending`, so hovering
 never waits. A second reading of the same manifest asks nothing; the
 answer, once there, is handed to every later reading of that manifest,
 the same array each time. A request that fails leaves them `failed`, an
-answer that the server cannot expand them `unsupported`; either is
-announced once (`changed`) and nothing is asked again. In
+answer that the server cannot expand them `unsupported`, one that no
+server answered `unreachable`; each is announced once (`changed`) and
+nothing is asked again. In
 `group_measure_map` the `MeasureRecordMap` `cmap_1` of `score` has no
 value without them and says why in core's words: with no server
 (`no_server`) `needs a server to expand its measure map`, while pending
 `waiting for the server`, `unsupported` `the server cannot expand
-measure maps`, `failed` `the server did not expand its measure map`.
+measure maps`, `unreachable` `no server answered, so its measure map is
+not expanded`, `failed` `the server did not expand its measure map`.
 
 **One reading per frame.** Pointer moves are coalesced: three moves
 before an animation frame run one reading, with the last point.

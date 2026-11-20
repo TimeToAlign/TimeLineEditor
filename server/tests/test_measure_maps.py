@@ -149,6 +149,85 @@ def test_floats_volta_and_unknown_keys(server: TestClient, serialization: str) -
     }
 
 
+def test_rows_with_their_own_ids_read_by_a_measure_record_map(
+    server: TestClient,
+) -> None:
+    def written(ID: str, count: int, qstamp: list[int], following: list[str]) -> dict:
+        return {
+            "ID": ID,
+            "actual_length": [9, 2],
+            "count": count,
+            "end_repeat": False,
+            "name": str(count),
+            "next": following,
+            "nominal_length": [9, 2],
+            "number": count,
+            "qstamp": qstamp,
+            "start_repeat": False,
+            "time_signature": "9/8",
+        }
+
+    manifest = {
+        "measure_maps": [
+            {
+                "id": "#measuremap_1",
+                "rows": [
+                    written("qhghzyb", 1, [0, 1], ["t1ajik95"]),
+                    written("t1ajik95", 2, [9, 2], ["l1lqnom3"]),
+                    written("l1lqnom3", 3, [9, 1], []),
+                ],
+            }
+        ],
+        "timelines": [
+            {
+                "conversion_maps": [
+                    {
+                        "id": "#cmap_2",
+                        "measure_map": "#measuremap_1",
+                        "source_unit": "quarters",
+                        "target_unit": None,
+                        "type": "MeasureRecordMap",
+                    }
+                ],
+                "id": "#clt_6",
+                "length": [27, 2],
+                "unit": "quarters",
+            }
+        ],
+        "timetoshare": "0.2.0",
+    }
+    response = post(
+        server, dumps(manifest, "yaml"), **{"Content-Type": "application/json"}
+    )
+    assert response.status_code == 200
+
+    def expanded(ID: str, count: int, qstamp: list[int], following: list[int]) -> dict:
+        return row(
+            ID=ID,
+            count=count,
+            qstamp=qstamp,
+            number=count,
+            name=str(count),
+            time_signature="9/8",
+            nominal_length=[9, 2],
+            actual_length=[9, 2],
+            next=following,
+        )
+
+    assert response.json() == {
+        "measure_maps": [
+            {
+                "id": "measuremap_1",
+                "rows": [
+                    expanded("qhghzyb", 1, [0, 1], [2]),
+                    expanded("t1ajik95", 2, [9, 2], [3]),
+                    expanded("l1lqnom3", 3, [9, 1], []),
+                ],
+            }
+        ]
+    }
+
+
 @pytest.mark.parametrize("manifest", [{"timetoshare": "0.2.0"}, {"measure_maps": []}])
 def test_a_manifest_without_measure_maps_answers_none(
     server: TestClient, manifest: dict[str, Any]

@@ -1065,8 +1065,11 @@ which no position solves).
 9. **The server's MeasureMaps** reach the canvas through one adapter of
    the client: the rows a server answers pass as they are (the same
    array); a `ServerError` with status 501 (the server cannot expand
-   MeasureMaps) becomes `unsupported`; any other failure (a 500, an
-   unreachable server) stays a rejection with the same error.
+   MeasureMaps) becomes `unsupported`; a request no server answered
+   (code `unreachable`, or a proxy's 502 or 504, as the development
+   server's proxy answers while no server runs behind it) becomes
+   `unreachable`; any other failure (a 500, a 422, an error that is no
+   `ServerError`) stays a rejection with the same error.
 10. **A named timestamp's MeasureMaps** are the canvas's: the drawer reads
     a named timestamp with the rows the canvas's `knotsOf` gives for its
     block's manifest, asked anew whenever its pin is read, so a pin is
