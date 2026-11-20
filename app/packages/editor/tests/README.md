@@ -375,8 +375,8 @@ writes the pending autosave before it unmounts.
 
 ## The manifest as text (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector-load.test.ts`)
 
-The Manifest panel shows the selected block's manifest as JSON, YAML or
-TOML and writes an edited text back as one `set` of the block's
+The Manifest panel shows the selected block's manifest as YAML (first, and
+the format shown until another is chosen), JSON or TOML and writes an edited text back as one `set` of the block's
 `manifest`. A text written fresh is the manifest file's text, every ID
 `#id` and the full `@context` (the format's terms and every prefix the
 statements use) added where the manifest leaves core, as Export adds them,
@@ -477,7 +477,8 @@ accepts and refuses).
    colour replaces the styling; without the styling a typed `graphical` is
    refused `hidden_member` at `["graphical"]`, "the styling is excluded;
    check Include styling to edit graphical".
-8. **The codecs load on demand, once, and a failure is shown.** In a fresh
+8. **The codecs load on demand, once, and a failure is shown.** The formats
+   are listed YAML, JSON, TOML. In a fresh
    module graph JSON is loaded and YAML and TOML are not; writing YAML
    before loading throws "the yaml codec is not loaded; await loadCodec";
    two concurrent loads of YAML give one codec; then TOML loads. With
@@ -499,8 +500,10 @@ accepts and refuses).
 proven on the state alone, then through the component ("The tabs and
 panels"):
 
+- a new text state is in YAML and shows the block's canonical YAML;
 - a clean text shows the selected block's manifest, another block's when
-  the selection changes, nothing without a block;
+  the selection changes, nothing without a block (these rules are proven
+  in JSON, chosen first);
 - an edited text is never replaced: a change of its manifest or of the
   selection marks it stale, and Apply writes it to the block it was written
   for, after which it shows the stored manifest, clean and not stale;
@@ -824,16 +827,17 @@ closing and reopening, nothing journalled.
 5. **The keys** move over the six tabs, wrapping, at the top level and in
    an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
-6. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
-   before its codec is loaded shows "Loading YAML…" and no text area, then
-   the YAML text; while the text holds an edit the format radios and both
+6. **The Manifest panel**, with `bare` and `styled__score`: it opens on
+   YAML, chosen, and before its codec is loaded shows "Loading YAML…" and
+   no text area, then the YAML text; the cases that type JSON choose it
+   first; while the text holds an edit the format radios and both
    options are disabled and "Apply or Revert to switch" is shown and named
    by their `aria-describedby`; Ctrl+Enter applies; an external `set` under
    an edit shows "The manifest changed; Revert to see it" and Revert the
    newer text; a refusal lists its code, message and pointer, code and
    pointer each in a `code` element. The panel's controls follow one
-   another in reading order: the radios, Include styling, Minimal, the text
-   area "Manifest (JSON)", Apply, Revert, the problem list, the warning
+   another in reading order: the radios (YAML, JSON, TOML), Include styling, Minimal, the text
+   area "Manifest (YAML)", Apply, Revert, the problem list, the warning
    list. The chosen tab is kept while the selection changes, and an
    unapplied text survives a visit to Properties.
 7. **Apply and Revert are enabled exactly while the text differs from the
@@ -980,8 +984,8 @@ which no position solves).
    writing `8.0` and `7680`; their cells stay, empty. A missing value has
    none.
 6. **The format switch** is one component in both tabs: a radio group of
-   segments, "Manifest format" with JSON, YAML, TOML and "Timestamp
-   format" with Editor, JSON, YAML, TOML, Editor chosen first. JSON, YAML and TOML show core's
+   segments, "Manifest format" with YAML, JSON, TOML, YAML chosen first, and "Timestamp
+   format" with Editor, YAML, JSON, TOML, Editor chosen first. JSON, YAML and TOML show core's
    `timestampJson` of the pin through the Manifest tab's codecs: the JSON
    text is TimeToShare's pretty JSON (`dumps`) of that value (for Theme its
    manifest entry and `mapping`), the YAML text its canonical YAML, keys
@@ -1061,8 +1065,11 @@ which no position solves).
 9. **The server's MeasureMaps** reach the canvas through one adapter of
    the client: the rows a server answers pass as they are (the same
    array); a `ServerError` with status 501 (the server cannot expand
-   MeasureMaps) becomes `unsupported`; any other failure (a 500, an
-   unreachable server) stays a rejection with the same error.
+   MeasureMaps) becomes `unsupported`; a request no server answered
+   (code `unreachable`, or a proxy's 502 or 504, as the development
+   server's proxy answers while no server runs behind it) becomes
+   `unreachable`; any other failure (a 500, a 422, an error that is no
+   `ServerError`) stays a rejection with the same error.
 10. **A named timestamp's MeasureMaps** are the canvas's: the drawer reads
     a named timestamp with the rows the canvas's `knotsOf` gives for its
     block's manifest, asked anew whenever its pin is read, so a pin is

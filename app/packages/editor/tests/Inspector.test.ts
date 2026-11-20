@@ -217,6 +217,13 @@ function button(name: string): HTMLButtonElement {
   return found;
 }
 
+/** Open the Manifest tab and choose JSON, the format the tests that edit the text type in (YAML is shown first). */
+function openJson(): void {
+  openTab("Manifest");
+  (document.querySelector('input[value="json"]') as HTMLInputElement).click();
+  flushSync();
+}
+
 /** Choose YAML and wait until its codec is loaded and the text shown. */
 async function chooseYaml(): Promise<void> {
   (document.querySelector('input[value="yaml"]') as HTMLInputElement).click();
@@ -241,12 +248,11 @@ describe("the inspector component", () => {
     expect(hinted()).toEqual([false, HINT, null]);
   });
 
-  it("shows a loading state until the YAML codec is there", async () => {
+  it("opens on YAML, with a loading state until its codec is there", async () => {
     const store = storeOf();
     show(store, [{ block: A }]);
     openTab("Manifest");
-    (document.querySelector('input[value="yaml"]') as HTMLInputElement).click();
-    flushSync();
+    expect(document.querySelector<HTMLInputElement>('input[value="yaml"]')?.checked).toBe(true);
     expect(document.querySelector(".loading")?.textContent).toBe("Loading YAML…");
     expect(document.querySelector("textarea")).toBe(null);
     await loadCodec("yaml");
@@ -258,7 +264,7 @@ describe("the inspector component", () => {
   it("shows, switches, applies and follows the manifest", async () => {
     const store = storeOf();
     show(store, [{ block: A, id: "bare" }]);
-    openTab("Manifest");
+    openJson();
     expect(textarea().value).toBe(shownText(store, "json"));
     await chooseYaml();
     expect(textarea().value).toBe(shownText(store, "yaml"));
@@ -314,7 +320,7 @@ describe("the inspector component", () => {
     const store = storeOf();
     completeA(store);
     show(store, [{ block: A }]);
-    openTab("Manifest");
+    openJson();
     const edited = textarea().value.replace('"locked": false', '"locked": "yes"');
     type(textarea(), edited);
     button("Apply").click();
@@ -537,12 +543,14 @@ describe("the inspector's tabs", () => {
     }
   });
 
-  it("holds the manifest's controls, problems, warnings and notices in the Manifest panel, in order", () => {
+  it("holds the manifest's controls, problems, warnings and notices in the Manifest panel, in order", async () => {
     const { store } = warningCase("timeline_class.yaml");
     completeA(store);
     show(store, [{ block: A }]);
     openTab("Manifest");
-    type(textarea(), textarea().value.replace('"meta": {}', '"meta": {"note": "edited"}'));
+    await loadCodec("yaml");
+    flushSync();
+    type(textarea(), `${textarea().value}# edited\n`);
     const root = store.view.blocks[A]?.manifest.timelines[0]?.id;
     store.dispatch({
       type: "set",
@@ -558,12 +566,12 @@ describe("the inspector's tabs", () => {
         ),
       ].map((item) => [item.tagName, item.labels?.[0]?.textContent?.trim() ?? item.textContent]),
     ).toEqual([
-      ["INPUT", "JSON"],
       ["INPUT", "YAML"],
+      ["INPUT", "JSON"],
       ["INPUT", "TOML"],
       ["INPUT", "Include styling"],
       ["INPUT", "Minimal"],
-      ["TEXTAREA", "Manifest (JSON)"],
+      ["TEXTAREA", "Manifest (YAML)"],
       ["BUTTON", "Apply"],
       ["BUTTON", "Revert"],
     ]);
@@ -616,7 +624,7 @@ describe("the inspector's tabs", () => {
 
   it("keeps an unapplied text while Properties is shown", () => {
     show(storeOf(), [{ block: A }]);
-    openTab("Manifest");
+    openJson();
     const edited = textarea().value.replace('"Bare"', '"Bared"');
     type(textarea(), edited);
     openTab("Properties");
@@ -630,7 +638,7 @@ describe("the options of a block's manifest file", () => {
   it("are the selected block's, set in the settings and kept in the workspace file", () => {
     const store = storeOf();
     const selected = show(store, [{ block: A }]);
-    openTab("Manifest");
+    openJson();
     const boxes = () => [
       ...document.querySelectorAll<HTMLInputElement>('.options input[type="checkbox"]'),
     ];
@@ -691,7 +699,7 @@ describe("Apply and Revert", () => {
     it(`are enabled exactly while the text is edited (${mode})`, () => {
       const store = storeOf();
       show(store, [{ block: B }]);
-      openTab("Manifest");
+      openJson();
       const [styling, minimal] = [
         ...document.querySelectorAll<HTMLInputElement>('.options input[type="checkbox"]'),
       ] as [HTMLInputElement, HTMLInputElement];
@@ -762,7 +770,7 @@ describe("a clean text", () => {
   it("follows the store at once when a stale text is typed back to the shown text", () => {
     const store = storeOf();
     show(store, [{ block: A }]);
-    openTab("Manifest");
+    openJson();
     const shown = textarea().value;
     const edited = shown.replace('"Bare"', '"Bared"');
     type(textarea(), edited);
@@ -788,7 +796,7 @@ describe("a clean text", () => {
   it("drops a refused Apply's problems when typed back to the shown text", () => {
     const store = storeOf();
     show(store, [{ block: A }]);
-    openTab("Manifest");
+    openJson();
     const shown = textarea().value;
     type(textarea(), shown.slice(0, shown.lastIndexOf("}")));
     button("Apply").click();
@@ -849,7 +857,7 @@ describe("an applied manifest", () => {
     expect(store.journal).toHaveLength(2);
     expect(scale().value).toBe("0");
     expect(fieldProblem("scale")).not.toBe(null);
-    openTab("Manifest");
+    openJson();
     type(textarea(), textarea().value.replace('"Bare"', '"Bared"'));
     button("Apply").click();
     flushSync();
@@ -891,7 +899,7 @@ describe("the inspector's warnings", () => {
       const { store, expected } = warningCase(name);
       completeA(store);
       show(store, [{ block: A }]);
-      openTab("Manifest");
+      openJson();
       const rows = [
         ...expected.keys.map((item) => [
           item.key,
@@ -957,7 +965,7 @@ describe("the inspector in its drawer", () => {
     expect(document.querySelectorAll('[role="tablist"], [role="tabpanel"]').length).toBe(0);
 
     toggle("Open inspector");
-    openTab("Manifest");
+    openJson();
     const shown = textarea().value;
     const edited = shown.replace('"name": "Bare"', '"name": "Hello"');
     expect(edited).not.toBe(shown);

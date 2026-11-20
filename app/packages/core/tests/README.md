@@ -3799,7 +3799,8 @@ the parity table's manifest with its MeasureMap's expanded rows
    given rows lacking the MeasureMap, `the server did not expand its
    measure map`. The texts: `missingValueText` for a map with no value at
    the position → `no value here`, `unsupported` → `the server cannot
-   expand measure maps`; `measureText` of a measure by its name, else its
+   expand measure maps`, `unreachable` → `no server answered, so its
+   measure map is not expanded`; `measureText` of a measure by its name, else its
    number, else its count (`m. 3`; `""` with number 7 → `7`; `""` with no
    number and count 9 → `9`).
 5. **Snapping on a row** (`snapOnRow(spec, row, p, h)`, `p` the pointer in

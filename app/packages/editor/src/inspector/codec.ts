@@ -3,7 +3,8 @@
 import type { Json } from "@timetoalign/tilie-core";
 import type { Result } from "./problems.ts";
 
-export const FORMATS = ["json", "yaml", "toml"] as const;
+/** The formats in the order the format switches list them: YAML, the main serialization, first. */
+export const FORMATS = ["yaml", "json", "toml"] as const;
 export type Format = (typeof FORMATS)[number];
 
 /**

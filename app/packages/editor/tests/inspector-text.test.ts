@@ -677,13 +677,24 @@ describe("the four text modes", () => {
 describe("the text state", () => {
   const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
 
-  /** A text state following block `A` of a store holding `bare` and `styled__score`. */
+  /** A text state in JSON following block `A` of a store holding `bare` and `styled__score`. */
   function following(): { store: Store; text: ManifestText } {
     const store = storeOf("bare", "styled__score");
     const text = new ManifestText();
+    text.format = "json";
     text.follow(blockIn(store, A), COMPLETE);
     return { store, text };
   }
+
+  it("starts in YAML", () => {
+    const store = storeOf("bare");
+    const text = new ManifestText();
+    text.follow(blockIn(store, A), COMPLETE);
+    expect([text.format, text.text]).toEqual([
+      "yaml",
+      written("yaml", manifestIn(store, A), COMPLETE),
+    ]);
+  });
 
   it("shows the selected block's manifest while the text is clean", () => {
     const { store, text } = following();

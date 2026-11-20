@@ -12,7 +12,7 @@ export { default as Canvas } from "./Canvas.svelte";
 export { addCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
 export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
-export type { KnotsOf } from "./coordinates.ts";
+export type { KnotsOf, MeasureMapsAnswer } from "./coordinates.ts";
 export { namedPin } from "./coordinates.ts";
 export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";

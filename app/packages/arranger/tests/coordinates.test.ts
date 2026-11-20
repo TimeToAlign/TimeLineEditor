@@ -653,12 +653,14 @@ describe("measure maps", () => {
         row,
         measureRow(() => "pending"),
         measureRow(() => "unsupported"),
+        measureRow(() => "unreachable"),
         measureRow(() => "failed"),
       ].map((item) => rowValueText(item, 3)),
     ).toEqual([
       "needs a server to expand its measure map",
       "waiting for the server",
       "the server cannot expand measure maps",
+      "no server answered, so its measure map is not expanded",
       "the server did not expand its measure map",
     ]);
   });
@@ -666,6 +668,7 @@ describe("measure maps", () => {
   it.each([
     ["fails", () => Promise.reject(new Error("unreachable")), "failed"],
     ["cannot expand them", () => Promise.resolve("unsupported" as const), "unsupported"],
+    ["does not answer", () => Promise.resolve("unreachable" as const), "unreachable"],
   ])("says why when the server %s, asking no more", async (_, answer, why) => {
     const fetch = vi.fn((_text: string) => answer());
     const changedCount = vi.fn();

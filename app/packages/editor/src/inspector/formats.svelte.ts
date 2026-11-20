@@ -1,5 +1,5 @@
 /**
- * A manifest as JSON, YAML or TOML text, read back into the lossless
+ * A manifest as YAML, JSON or TOML text, read back into the lossless
  * manifest value and patched in place.
  *
  * JSON is TimeToShare's pretty JSON (`dumps`) and lossless reader

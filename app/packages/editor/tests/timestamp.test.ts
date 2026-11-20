@@ -754,9 +754,9 @@ describe("the format switch", () => {
     const store = example();
     const inspector = drawer(store, true, T);
     click("Manifest");
-    expect(group("Manifest format")).toEqual([["JSON", "YAML", "TOML"], "JSON"]);
+    expect(group("Manifest format")).toEqual([["YAML", "JSON", "TOML"], "YAML"]);
     inspector.selected([THEME]);
-    expect(group("Timestamp format")).toEqual([["Editor", "JSON", "YAML", "TOML"], "Editor"]);
+    expect(group("Timestamp format")).toEqual([["Editor", "YAML", "JSON", "TOML"], "Editor"]);
   });
 
   it("shows a named timestamp as JSON, then YAML once its codec is loaded, with one Copy", async () => {
@@ -1247,16 +1247,26 @@ describe("a named timestamp's MeasureMaps", () => {
 describe("the server's MeasureMaps", () => {
   const rows = [{ id: "bars", rows: [] }] as const;
 
-  it("passes the rows on, tells a server that cannot expand them, and keeps every other failure", async () => {
+  it("passes the rows on, tells a server that cannot expand them and one that does not answer, and keeps every other failure", async () => {
     const answer = (result: () => Promise<typeof rows>) =>
       measureMapsOf({ measureMaps: () => result() })("{}");
     expect(await answer(() => Promise.resolve(rows))).toBe(rows);
     expect(
       await answer(() => Promise.reject(new ServerError("status", 501, "501 Not Implemented"))),
     ).toBe("unsupported");
-    const failed = new ServerError("status", 500, "500 Internal Server Error");
-    await expect(answer(() => Promise.reject(failed))).rejects.toBe(failed);
-    const unreachable = new ServerError("unreachable", null, "connection refused");
-    await expect(answer(() => Promise.reject(unreachable))).rejects.toBe(unreachable);
+    for (const unanswered of [
+      new ServerError("unreachable", null, "connection refused"),
+      new ServerError("status", 502, "502 Bad Gateway"),
+      new ServerError("status", 504, "504 Gateway Timeout"),
+    ]) {
+      expect(await answer(() => Promise.reject(unanswered))).toBe("unreachable");
+    }
+    for (const failed of [
+      new ServerError("status", 500, "500 Internal Server Error"),
+      new ServerError("status", 422, "422 Unprocessable Content"),
+      new Error("not a server error"),
+    ]) {
+      await expect(answer(() => Promise.reject(failed))).rejects.toBe(failed);
+    }
   });
 });

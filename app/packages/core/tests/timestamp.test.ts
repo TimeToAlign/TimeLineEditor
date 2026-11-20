@@ -299,6 +299,9 @@ describe("the rows of a timestamp", () => {
     expect(missingValueText({ missingKnots: "unsupported" })).toBe(
       "the server cannot expand measure maps",
     );
+    expect(missingValueText({ missingKnots: "unreachable" })).toBe(
+      "no server answered, so its measure map is not expanded",
+    );
     const [first] = parity.knots[0]?.rows ?? [];
     if (first === undefined) throw new Error("the parity rows hold a measure");
     const measure = (name: string, number: number | null, count: number): MeasureKnot => ({

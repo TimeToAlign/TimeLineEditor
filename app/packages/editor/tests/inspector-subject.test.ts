@@ -315,6 +315,8 @@ describe("the subject beside the inspector's heading", () => {
     const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
     tabs.find((tab) => tab.textContent === "Manifest")?.click();
     flushSync();
+    document.querySelector<HTMLInputElement>('input[value="json"]')?.click();
+    flushSync();
     const area = document.querySelector("textarea") as HTMLTextAreaElement;
     area.value = area.value.replace('"name": "Score"', '"name": "Scores"');
     area.dispatchEvent(new Event("input", { bubbles: true }));

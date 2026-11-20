@@ -1,13 +1,5 @@
 <script lang="ts">
-import type {
-  Address,
-  Command,
-  Granularity,
-  Manifest,
-  MeasureKnots,
-  Pin,
-  Store,
-} from "@timetoalign/tilie-core";
+import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -24,7 +16,7 @@ import CoordinateMarks from "./CoordinateMarks.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { levelOf, rulesOf } from "./containers.ts";
-import type { KnotsOf, MarkPlace, PlacedMarks } from "./coordinates.ts";
+import type { KnotsOf, MarkPlace, MeasureMapsAnswer, PlacedMarks } from "./coordinates.ts";
 import {
   FrameCoalescer,
   MeasureKnotsSource,
@@ -90,13 +82,11 @@ interface Props {
   oncoordinatepin?: (pin: Pin | null) => void;
   /**
    * The expanded MeasureMaps of a manifest, given its text (the server's
-   * measure-maps route), or `unsupported` when the server cannot expand
-   * them; without it (`undefined`: no server), until it answers, or when
-   * it fails, measure views say why their rows are missing.
+   * measure-maps route), or why the server gave none (`MeasureMapsAnswer`);
+   * without it (`undefined`: no server), until it answers, or when it
+   * fails, measure views say why their rows are missing.
    */
-  measureMaps?:
-    | ((manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">)
-    | undefined;
+  measureMaps?: ((manifest: string) => Promise<MeasureMapsAnswer>) | undefined;
   /**
    * While set, the canvas picks instead of selecting: a press on a
    * timeline (its line, card, band or a part of it) or a region
