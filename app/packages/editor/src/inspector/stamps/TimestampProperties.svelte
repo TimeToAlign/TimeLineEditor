@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * The Timestamp tab's Properties, a key/value grid: what the timestamp
- * displays (its toggles); on a group member (never for a match timestamp)
+ * displays (its toggles); the rotation of its wedge, which waits while the
+ * wedge is not displayed (its value kept); on a group member (never for a match timestamp)
  * the GroupStamp toggle, whose line then crosses every member of its
  * groups, shown for an unnamed timestamp as naming would store it; the
  * MatchStamps a match timestamp belongs to; and Delete. While the timestamp
@@ -10,26 +11,32 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Pin, TimestampDisplay } from "@timetoalign/tilie-core";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { matchStampsOf } from "../matchstamps.ts";
 import {
   DISPLAY_WORDS,
+  degreesText,
   displayCommand,
   displayOf,
-  groupsOf,
+  GROUPSTAMP_ROTATION,
   groupstampCommand,
   groupstampOf,
+  holdingGroupNames,
   offersGroupstamp,
   removeCommand,
+  rotationCommand,
+  wedgeRotationOf,
 } from "../timestamp.ts";
 import DisplayToggles from "./DisplayToggles.svelte";
 import type { StampDrafts } from "./drafts.svelte.ts";
+import WedgeRotation from "./WedgeRotation.svelte";
 
 interface Props {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
   /** The timestamp shown. */
   pin: Pin;
-  /** The tab's drafts: the refusals of `display` and `delete`. */
+  /** The tab's drafts: the refusals of `display`, `rotation`, `groupstamp` and `delete`. */
   drafts: StampDrafts<unknown>;
   /** The ID of the hint saying why the controls wait for a name; `undefined` once named. */
   describedby: string | undefined;
@@ -42,18 +49,36 @@ const uid = $props.id();
 /** The toggle of a GroupStamp: one word. */
 const GROUPSTAMP_WORDS = [{ word: "groupstamp", label: "GroupStamp" }] as const;
 
+/** The hint naming a GroupStamp's default rotation. */
+const GROUPSTAMP_TURNS = `A GroupStamp's wedge turns ${degreesText(GROUPSTAMP_ROTATION)}° by default.`;
+
 const unnamed = $derived(pin.named === null);
 const manifest = $derived(live.view.blocks[pin.spec.block]?.manifest);
+/** The innermost editor open, `null` for none. */
+const editor = $derived(live.editing.at(-1)?.kind ?? null);
 /** Whether it is a GroupStamp; `null` where no GroupStamp toggle is offered. */
 const groupstamp = $derived(
   manifest === undefined || !offersGroupstamp(manifest, pin)
     ? null
-    : groupstampOf(manifest, pin, live.editing.at(-1)?.kind ?? null),
+    : groupstampOf(manifest, pin, editor),
+);
+/** Whether its wedge is displayed, so that its rotation shows. */
+const wedgeShown = $derived(displayOf(pin).includes("wedge"));
+const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics, editor));
+/** What describes the rotation: the GroupStamp's default, the wedge turned off, the naming hint. */
+const rotationDescribed = $derived(
+  [
+    groupstamp === true ? `${uid}-turns` : null,
+    wedgeShown ? null : `${uid}-wedge-off`,
+    describedby ?? null,
+  ]
+    .filter((id) => id !== null)
+    .join(" ") || undefined,
 );
 /** What a GroupStamp's line crosses, in words. */
 const crosses = $derived.by(() => {
   if (manifest === undefined || groupstamp === null) return "";
-  const groups = groupsOf(manifest, pin.timestamp.timeline).map((name) => `'${name}'`);
+  const groups = holdingGroupNames(manifest, pin.timestamp.timeline).map((name) => `'${name}'`);
   return `A GroupStamp's line crosses every member of ${groups.join(", ")}.`;
 });
 /** The named MatchStamps whose anchors name the match timestamp shown; `null` for any other timestamp. */
@@ -65,6 +90,13 @@ const matchStamps = $derived.by(() => {
 function toggle(word: TimestampDisplay): void {
   if (pin.named !== null) {
     drafts.send("display", () => live.store.dispatch(displayCommand(pin, word)));
+  }
+}
+
+function rotate(value: number | null): void {
+  if (pin.named !== null) {
+    const command = rotationCommand(pin, value);
+    drafts.send("rotation", () => live.store.dispatch(command));
   }
 }
 
@@ -98,6 +130,25 @@ function remove(): void {
         ontoggle={toggle}
       />
       <span class="problem" role="status">{drafts.problems.display ?? ""}</span>
+    </div>
+
+    <span class="key" id="{uid}-wedge">Wedge</span>
+    <div class="field" data-testid="timestamp-rotation">
+      <WedgeRotation
+        value={rotation.value}
+        stated={rotation.stated}
+        disabled={unnamed || !wedgeShown}
+        labelledby="{uid}-wedge"
+        describedby={rotationDescribed}
+        oncommit={rotate}
+      />
+      {#if groupstamp === true}
+        <span class="hint" id="{uid}-turns">{GROUPSTAMP_TURNS}</span>
+      {/if}
+      {#if !wedgeShown}
+        <span class="hint" id="{uid}-wedge-off">Turn the Wedge on to rotate it.</span>
+      {/if}
+      <span class="problem" role="status">{drafts.problems.rotation ?? ""}</span>
     </div>
 
     {#if groupstamp !== null}

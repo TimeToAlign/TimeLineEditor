@@ -3,10 +3,11 @@
  * rows grouped by the timeline they belong to, each number written exactly
  * (its copy text, never rounded) beside its pretty unit, and copied as the
  * value, the raw text and the pretty text; the pin of a named timestamp
- * read anew from the view; its text in a format; and the commands the tab
- * sends. Nothing here computes a value: the rows, the values, whether a row
- * can be edited, the position an edit gives and the JSON are core's, the pin
- * of a named timestamp the arranger's.
+ * read anew from the view; its text in a format; the rotation of its
+ * wedge; and the commands the tab sends. Nothing here computes a value: the
+ * rows, the values, whether a row can be edited, the position an edit gives
+ * and the JSON are core's, the pin of a named timestamp the arranger's, the
+ * rotation a wedge is drawn with layout's.
  */
 
 import type { KnotsOf } from "@timetoalign/tilie-arranger";
@@ -23,12 +24,14 @@ import type {
   NamedTimestamp,
   Pin,
   Row,
+  StyleCommand,
   TimestampDisplay,
   TimestampPart,
   TimestampRow,
   View,
 } from "@timetoalign/tilie-core";
 import {
+  canonicalText,
   copyValue,
   groupsHolding,
   groupstampByDefault,
@@ -37,11 +40,12 @@ import {
   prettyText,
   prettyUnit,
   rawText,
+  sameAddress,
   timestampJson,
   timestampRows,
 } from "@timetoalign/tilie-core";
 import { toAxisValue } from "@timetoalign/tilie-core/numbers";
-import type { FontMetrics, NumberType } from "@timetoalign/timetoshare";
+import type { FontMetrics, NumberType, Selector } from "@timetoalign/timetoshare";
 import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
 import { writeText } from "./formats.svelte.ts";
@@ -371,13 +375,103 @@ export function groupstampOf(manifest: Manifest, pin: Pin, editor: EditorKind | 
 /**
  * The names (else the IDs) of the groups of `manifest` holding `timeline`:
  * those listing it or one of its ancestors among their members (core's
- * `groupsHolding`).
+ * `groupsHolding`), as the GroupStamp hint names them.
  */
-export function groupsOf(manifest: Manifest, timeline: string): string[] {
+export function holdingGroupNames(manifest: Manifest, timeline: string): string[] {
   return groupsHolding(manifest, timeline).map((group) => group.name ?? group.id);
 }
 
 /** The `set` making the named timestamp `pin` shows a groupstamp, or an ordinary timestamp. */
 export function groupstampCommand(pin: Pin, groupstamp: boolean): Command {
   return { type: "set", changes: [{ target: named(pin), values: { groupstamp } }] };
+}
+
+/**
+ * The stops of a wedge's rotation in degrees, ascending: the slider's ticks
+ * and the buttons under it.
+ */
+export const ROTATION_STOPS: readonly number[] = [-180, -135, -45, 0, 45, 135, 180];
+
+/**
+ * The rotation in degrees of a groupstamp's wedge that no rule sets: the
+ * initial value of the drawing specification (section 2.5), every other
+ * wedge's being 0.
+ */
+export const GROUPSTAMP_ROTATION = -45;
+
+/** `degrees` as the tab writes it, a negative number with a minus sign (U+2212): "−45", "0", "135". */
+export function degreesText(degrees: number): string {
+  return degrees < 0 ? `\u2212${-degrees}` : String(degrees);
+}
+
+/** The rotation of a timestamp's wedge as the Timestamp tab shows it. */
+export interface WedgeRotation {
+  /** The degrees the wedge is turned: as drawn, else as a rule states it, else its initial value. */
+  readonly value: number;
+  /** Whether a rule addressed to the wedge alone sets its `rotation` (`rotationCommand`'s rule). */
+  readonly stated: boolean;
+}
+
+/** The selector of the wedge of the named timestamp `id`, and nothing else. */
+function wedgeOf(id: string): Selector {
+  return { element: "wedge", addresses: [{ id }] };
+}
+
+/**
+ * The `style` turning the wedge of the named timestamp `pin` shows by
+ * `rotation` degrees, an integer from -180 to 180, through one rule of its
+ * block's manifest addressed to that wedge alone; `null` removes the
+ * property from the rule (the rule with it when nothing else is left), so
+ * the wedge takes its initial value again.
+ */
+export function rotationCommand(pin: Pin, rotation: number | null): StyleCommand {
+  if (pin.named === null) throw new Error("the pin shows no named timestamp");
+  return {
+    type: "style",
+    select: wedgeOf(pin.named.id),
+    set: { rotation },
+    blocks: [pin.spec.block],
+  };
+}
+
+/** The `rotation` the rule of `rotationCommand` states for the wedge of `id`; `undefined` for none. */
+function statedRotation(manifest: Manifest, id: string): number | undefined {
+  const key = canonicalText(wedgeOf(id));
+  const rule = manifest.graphical?.rules?.find((item) => canonicalText(item.select) === key);
+  if (rule === undefined) return undefined;
+  const declaration =
+    typeof rule.set === "string" ? manifest.graphical?.styles?.[rule.set] : rule.set;
+  return declaration?.rotation;
+}
+
+/**
+ * The rotation of the wedge of `pin`'s timestamp in `view` (its block drawn
+ * with `metrics`): a named one's as its first drawn wedge carries it (every
+ * drawing of one address shares it), whichever rule sets it; while its wedge
+ * is not drawn, as its rule states it, else the initial value. An unnamed
+ * one's as naming would draw it: the initial value of a groupstamp's wedge
+ * where naming stores a groupstamp (`groupstampOf`, `editor` the innermost
+ * editor open), else 0.
+ */
+export function wedgeRotationOf(
+  view: View,
+  pin: Pin,
+  metrics: FontMetrics,
+  editor: EditorKind | null,
+): WedgeRotation {
+  const block = view.blocks[pin.spec.block];
+  if (block === undefined) return { value: 0, stated: false };
+  const { manifest } = block;
+  const groupstamp = offersGroupstamp(manifest, pin) && groupstampOf(manifest, pin, editor);
+  const initial = groupstamp ? GROUPSTAMP_ROTATION : 0;
+  if (pin.named === null) return { value: initial, stated: false };
+  const address = { id: pin.named.id };
+  const stated = statedRotation(manifest, pin.named.id);
+  const drawn = drawingOf(block, view.graphical, metrics).elements.find(
+    (element) => element.type === "wedge" && sameAddress(element.address, address),
+  );
+  return {
+    value: drawn?.style.rotation ?? stated ?? initial,
+    stated: stated !== undefined,
+  };
 }
