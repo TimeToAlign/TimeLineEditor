@@ -8,8 +8,9 @@
  * YAML or TOML with one Copy; the text is a readout, not a manifest, so in
  * TOML a member whose value is null (a map without a value) is left out,
  * where JSON and YAML write the null. **Properties**, a key/value grid: the name
- * (naming an unnamed timestamp stores it), what it displays, and Delete;
- * only the name while it is unnamed. **Coordinate granularity**, the
+ * (naming an unnamed timestamp stores it), what it displays, the
+ * MatchStamps a match timestamp belongs to, and Delete; only the name while
+ * it is unnamed. **Coordinate granularity**, the
  * workspace's two settings on one line at the pane's bottom. An edit of an
  * unnamed timestamp moves its pin; every change of a named one is a
  * command. Every value, row, position and text is core's; the panel lays
@@ -24,6 +25,7 @@ import { informOf } from "../messages.svelte.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "./formats.svelte.ts";
+import { matchStampsOf } from "./matchstamps.ts";
 import type { Copies, ValueRow } from "./timestamp.ts";
 import {
   addedTimestamp,
@@ -80,6 +82,12 @@ const SHOWN: readonly { readonly value: Shown; readonly label: string }[] = [
 const view = $derived(live.view);
 const groups = $derived(pin === null ? [] : timelineRows(pin));
 const display = $derived(pin === null ? [] : displayOf(pin));
+/** The named MatchStamps whose anchors name the match timestamp shown; `null` for any other timestamp. */
+const matchStamps = $derived.by(() => {
+  if (pin === null || pin.named === null || !pin.named.matchstamp) return null;
+  const manifest = view.blocks[pin.spec.block]?.manifest;
+  return manifest === undefined ? [] : matchStampsOf(manifest, pin.named.id);
+});
 
 // --- Typed text -------------------------------------------------------------
 
@@ -413,6 +421,15 @@ function leave(kind: Kind): void {
           <span class="problem" role="status">{problems.display ?? ""}</span>
         </div>
 
+        {#if matchStamps !== null}
+          <span class="key" id="{uid}-matchstamps">MatchStamps</span>
+          <ul class="matchstamps" aria-labelledby="{uid}-matchstamps">
+            {#each matchStamps as matchStamp (matchStamp.id)}
+              <li>{matchStamp.name} <code>{matchStamp.id}</code></li>
+            {/each}
+          </ul>
+        {/if}
+
         <span class="key needs-name" aria-hidden="true"></span>
         <div class="field needs-name">
           <button
@@ -667,6 +684,17 @@ function leave(kind: Kind): void {
     border-color: #0a84ff;
     background: #e8f0fe;
     color: #0b3d91;
+  }
+
+  .matchstamps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .matchstamps code {
+    color: #595959;
+    font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
   }
 
   /* Coordinate granularity: one discreet line at the pane's bottom. */

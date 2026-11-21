@@ -40,6 +40,28 @@ export const MANIFEST_FILE: FileKind = {
   accept: { "application/yaml": [".yaml", ".yml"], "application/json": [".json"] },
 };
 
+/**
+ * A MatchClaim table, the Parquet file a package holds its MatchClaims in
+ * (`match_claims.parquet`), read through the server.
+ */
+export const MATCH_CLAIM_TABLE: FileKind = {
+  description: "MatchClaim table",
+  accept: { "application/vnd.apache.parquet": [".parquet"] },
+};
+
+/** `kind` with the MatchClaim table offered beside it, for pickers that take both at once. */
+export function withMatchClaimTable(kind: FileKind): FileKind {
+  return {
+    description: `${kind.description} and MatchClaim table`,
+    accept: { ...kind.accept, ...MATCH_CLAIM_TABLE.accept },
+  };
+}
+
+/** Whether the file named `name` is a MatchClaim table to the pickers: its extension is `.parquet`. */
+export function isMatchClaimTable(name: string): boolean {
+  return name.toLowerCase().endsWith(".parquet");
+}
+
 /** The file a manifest is exported to in `serialization`: `.yaml` for YAML, `.json` for both JSON forms. */
 export function manifestFileKind(serialization: Serialization): FileKind {
   return serialization === "yaml" ? YAML_MANIFEST : JSON_MANIFEST;
@@ -69,7 +91,7 @@ export const UNTITLED = workspaceFileName(UNTITLED_WORKSPACE);
 /** A file the browser handed over, with the handle to write back to when it gave one. */
 export interface Opened {
   readonly name: string;
-  readonly text: string;
+  readonly file: File;
   readonly handle: FileSystemFileHandle | null;
 }
 
@@ -82,6 +104,7 @@ export interface Saved {
 interface PickerOptions {
   readonly types: { description: string; accept: Record<string, string[]> }[];
   readonly suggestedName?: string;
+  readonly multiple?: boolean;
 }
 
 /** The File System Access pickers, where the browser has them. */
@@ -110,37 +133,59 @@ function cancelled(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-/** Let the viewer pick one file of `kind` and read it as text; `null` when they cancel. */
-export async function openFile(kind: FileKind): Promise<Opened | null> {
+/**
+ * Let the viewer pick files of `kind`, one or, with `multiple`, several at
+ * once; none when they cancel.
+ */
+export async function openFiles(kind: FileKind, multiple = false): Promise<Opened[]> {
   const { showOpenFilePicker } = pickers();
   if (showOpenFilePicker !== undefined) {
     try {
-      const [handle] = await showOpenFilePicker({ types: types(kind) });
-      if (handle === undefined) return null;
-      const file = await handle.getFile();
-      return { name: file.name, text: await file.text(), handle };
+      const options = multiple ? { types: types(kind), multiple } : { types: types(kind) };
+      const handles = await showOpenFilePicker(options);
+      return await Promise.all(
+        handles.map(async (handle) => {
+          const file = await handle.getFile();
+          return { name: file.name, file, handle };
+        }),
+      );
     } catch (error) {
-      if (cancelled(error)) return null;
+      if (cancelled(error)) return [];
       throw error;
     }
   }
-  const file = await chooseFile(kind);
-  return file === null ? null : { name: file.name, text: await file.text(), handle: null };
+  const files = await chooseFiles(kind, multiple);
+  return files.map((file) => ({ name: file.name, file, handle: null }));
+}
+
+/** A file the browser handed over, read as text. */
+export interface OpenedText {
+  readonly name: string;
+  readonly text: string;
+  readonly handle: FileSystemFileHandle | null;
+}
+
+/** Let the viewer pick one file of `kind` and read it as text; `null` when they cancel. */
+export async function openFile(kind: FileKind): Promise<OpenedText | null> {
+  const [opened] = await openFiles(kind);
+  if (opened === undefined) return null;
+  return { name: opened.name, text: await opened.file.text(), handle: opened.handle };
 }
 
 /** The fallback picker: a file input, clicked once, resolved on its `change` or `cancel`. */
-function chooseFile(kind: FileKind): Promise<File | null> {
+function chooseFiles(kind: FileKind, multiple: boolean): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = Object.values(kind.accept).flat().join(",");
+    input.multiple = multiple;
     input.hidden = true;
-    const settle = (file: File | null) => {
+    const settle = (files: File[]) => {
       input.remove();
-      resolve(file);
+      resolve(files);
     };
-    input.addEventListener("change", () => settle(input.files?.[0] ?? null), { once: true });
-    input.addEventListener("cancel", () => settle(null), { once: true });
+    input.addEventListener("change", () => settle([...(input.files ?? [])]), { once: true });
+    input.addEventListener("cancel", () => settle([]), { once: true });
     document.body.append(input);
     input.click();
   });

@@ -145,17 +145,25 @@ function titleLine(name: string): unknown[] {
 const titled = (word: string, name: string) => [word, name, `${word} ${name}`, 1];
 
 describe("the tab rule", () => {
-  it("has the six tabs, the level tab first and named by its level", () => {
-    expect(TABS).toEqual(["level", "properties", "metadata", "manifest", "journal", "timestamp"]);
+  it("has the seven tabs, the level tab first and named by its level", () => {
+    expect(TABS).toEqual([
+      "level",
+      "properties",
+      "metadata",
+      "manifest",
+      "journal",
+      "timestamp",
+      "matchstamp",
+    ]);
     expect(
       (["arranger", "bundle", "group", "timeline"] as const).map((level) =>
         TABS.map((tab) => tabLabel(tab, level)),
       ),
     ).toEqual([
-      ["Arranger", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
-      ["Bundle", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
-      ["Group", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
-      ["Timeline", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
+      ["Arranger", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
+      ["Bundle", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
+      ["Group", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
+      ["Timeline", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
     ]);
     expect([initialPick(0, 3), initialPick(1, 3), initialPick(2, 0)]).toEqual([
       { tab: "properties", openings: 3 },
@@ -209,6 +217,7 @@ describe("the tab rule", () => {
       nextTab("manifest", key("ArrowRight")),
       nextTab("journal", key("ArrowRight")),
       nextTab("timestamp", key("ArrowRight")),
+      nextTab("matchstamp", key("ArrowRight")),
       nextTab("level", key("ArrowLeft")),
       nextTab("properties", key("ArrowLeft")),
       nextTab("journal", key("ArrowLeft")),
@@ -227,15 +236,16 @@ describe("the tab rule", () => {
       "manifest",
       "journal",
       "timestamp",
+      "matchstamp",
       "level",
-      "timestamp",
+      "matchstamp",
       "level",
       "manifest",
       "metadata",
       "level",
-      "timestamp",
+      "matchstamp",
       "level",
-      "timestamp",
+      "matchstamp",
       undefined,
       undefined,
       undefined,
@@ -245,7 +255,7 @@ describe("the tab rule", () => {
 });
 
 describe("the tab set", () => {
-  it("shows the six tabs without an editor, each naming its panel", () => {
+  it("shows the seven tabs without an editor, each naming its panel", () => {
     show(mixedStore());
     expect(tabs()).toEqual([
       off("Arranger"),
@@ -254,12 +264,14 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     const pairs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) => {
       const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
       return [panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby") === tab.id];
     });
     expect(pairs).toEqual([
+      ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
@@ -280,12 +292,13 @@ describe("the tab set", () => {
       ["Manifest", true],
       ["Journal", true],
       ["Timestamp", true],
+      ["Matchstamp", true],
     ]);
     expect(
-      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp"].map(
+      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"].map(
         (name) => panelOf(name)?.childElementCount,
       ),
-    ).toEqual([0, 0, 0, 0, 0]);
+    ).toEqual([0, 0, 0, 0, 0, 0]);
     click("Journal");
     expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
       0,
@@ -308,6 +321,7 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     const properties = panelOf("Properties") as HTMLElement;
     expect([properties.querySelector(".hint"), properties.textContent?.includes(HINT)]).toEqual([
@@ -326,6 +340,7 @@ describe("the tab set", () => {
       ["Manifest", true],
       ["Journal", false],
       ["Timestamp", true],
+      ["Matchstamp", true],
     ]);
     expect(panelOf("Journal")?.querySelectorAll("li")).toHaveLength(3);
   });
@@ -341,6 +356,7 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     click("Journal");
     stage({ editing: [GROUP, TIMELINE] });
@@ -351,6 +367,7 @@ describe("the tab set", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     stage({ editing: [GROUP] });
     expect(tabs()).toEqual([
@@ -360,6 +377,7 @@ describe("the tab set", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     stage({ editing: [] });
     expect(tabs()).toEqual([
@@ -369,6 +387,7 @@ describe("the tab set", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
   });
 
@@ -385,6 +404,7 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     lines.push(titleLine("Group"));
     stage({ editing: [GROUP, TIMELINE] });
@@ -399,6 +419,7 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     lines.push(titleLine("Arranger"));
     expect(lines).toEqual([
@@ -421,6 +442,7 @@ describe("the tab set", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     expect(titleLine("Bundle")).toEqual(titled("Bundle", "Mixed"));
   });
@@ -451,6 +473,7 @@ describe("with the store's own editors", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     store.dispatch({
       type: "set",
@@ -465,6 +488,7 @@ describe("with the store's own editors", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     click("Journal");
     expect(
@@ -516,6 +540,7 @@ describe("in the drawer", () => {
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     expect(titleLine("Group")).toEqual(titled("Group", "Performance"));
   });
@@ -534,6 +559,7 @@ describe("in the drawer", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
   });
 
@@ -551,6 +577,7 @@ describe("in the drawer", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     setOpen(true);
     expect(tabs()).toEqual([
@@ -560,6 +587,7 @@ describe("in the drawer", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
     setOpen(false);
     setOpen(true);
@@ -570,6 +598,7 @@ describe("in the drawer", () => {
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
+      off("Matchstamp"),
     ]);
   });
 });
@@ -630,19 +659,20 @@ describe("the keys", () => {
     });
   }
 
-  it("move over the six tabs, wrapping, at the top level and in an editor", () => {
+  it("move over the seven tabs, wrapping, at the top level and in an editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     expect(steps("Properties", ["ArrowLeft", "ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
       "Arranger",
-      "Timestamp",
+      "Matchstamp",
       "Arranger",
-      "Timestamp",
+      "Matchstamp",
       "Arranger",
     ]);
     stage({ editing: [GROUP] });
     expect(
       steps("Group", [
+        "ArrowRight",
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
@@ -659,10 +689,11 @@ describe("the keys", () => {
       "Manifest",
       "Journal",
       "Timestamp",
+      "Matchstamp",
       "Group",
-      "Timestamp",
+      "Matchstamp",
       "Group",
-      "Timestamp",
+      "Matchstamp",
     ]);
   });
 });

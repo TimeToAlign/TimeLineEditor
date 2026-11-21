@@ -783,9 +783,9 @@ core's message, so the oracle is core's own nesting rule written out:
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The six tabs are
+**The tab rule** is proven as a table on the rule alone. The seven tabs are
 always present, in this order: the level tab, Properties, Metadata,
-Manifest, Journal, Timestamp. The level tab is labelled by the level's word: "Arranger" with no
+Manifest, Journal, Timestamp, Matchstamp. The level tab is labelled by the level's word: "Arranger" with no
 editor open, else "Bundle", "Group" or "Timeline" for the innermost
 editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or
@@ -838,7 +838,7 @@ closing and reopening, nothing journalled.
    meanwhile, Journal chosen, it shows Journal; with Journal chosen, a
    group editor opened while the drawer is open, the open drawer opened
    again, then closed and opened, it still shows Journal.
-5. **The keys** move over the six tabs, wrapping, at the top level and in
+5. **The keys** move over the seven tabs, wrapping, at the top level and in
    an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
 6. **The Manifest panel**, with `bare` and `styled__score`: it opens on
@@ -1100,6 +1100,111 @@ which no position solves).
     shown pin equals, part for part, that pin moved to 6 without its named
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
+
+## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`)
+
+The anchor index, the belief mask, the comparison of a named MatchStamp
+with the table and every MatchStamp command are core's, the answer's
+decoding the client's; the tests read them from their owner and prove what
+the editor adds: which index it builds for which filter, the order it puts
+coordinates and anchors in, what it shows and in which words, the commands
+it sends, and how a table reaches a block. The table is built with core's
+`matchClaimColumns` over the manifest of TimeToShare's table fixture
+(`fixtures/tables/<version>/manifest.yaml`: roots `clt_1` (quarters,
+fraction, child `clt_2`), `cpt_1` (seconds, float), `dpt_1` (samples,
+int), no `graphical`), its timelines numbered by ID (`clt_1` 0, `clt_2` 1,
+`cpt_1` 2, `dpt_1` 3), five instant MatchClaims:
+
+| Claim | A | B | Beliefs |
+|---|---|---|---|
+| `claim_1` | `clt_1` 0 | `dpt_1` 0 | none |
+| `claim_2` | `clt_1` 0 | `cpt_1` 0.0 | none |
+| `claim_3` | `clt_1` 4 | `dpt_1` 176400 | the user `false` |
+| `claim_4` | `clt_1` 4 | `dpt_1` 176400 | another actor `true` |
+| `claim_5` | `cpt_1` 8.0 | `dpt_1` 352800 | the user `true` |
+
+The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
+`tag:example.org,2026:other`.
+
+1. **The indexes.** Under the default filter (every timeline, everything
+   the user does not believe false) the compared and the shown index are
+   one object, with 4 unique anchors (`claim_3` left out, `claim_4` still
+   stating its anchor) and 3 potential MatchStamps: {`clt_1` 0, `cpt_1`
+   0.0, `dpt_1` 0}, {`clt_1` 4, `dpt_1` 176400}, {`cpt_1` 8.0, `dpt_1`
+   352800}. Under "only what I believe true" 1 anchor (`claim_5`'s). With
+   the timelines `[clt_1, dpt_1]` the compared index keeps 4 anchors and
+   the shown one has 2 (`claim_1`'s and `claim_4`'s): the timelines narrow
+   what is shown, never what a named MatchStamp is compared with. The same
+   table and filter give the same index objects again.
+2. **Screen order.** The block draws `clt_1` above `cpt_1` above `dpt_1`.
+   The potential MatchStamp of `clt_1` 0 lists its timestamps `clt_1` 0,
+   `cpt_1` 0.0, `dpt_1` 0 and its anchors [`clt_1` 0, `cpt_1` 0.0], then
+   [`clt_1` 0, `dpt_1` 0] (each anchor upper coordinate first, the anchors
+   by their first, then their second coordinate), its MatchClaims
+   `claim_1`, `claim_2`.
+3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
+   journal entry, `add` into the block: match timestamps `timestamp_1`
+   (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`
+   0), each `matchstamp: true` with the display `["cross_section"]`; the
+   MatchStamp `matchstamp_1` "Downbeat" with `anchor_1` [`timestamp_1`,
+   `timestamp_2`] showing `["line", "name"]` (the middle anchor of two is
+   the upper one), `anchor_2` [`timestamp_1`, `timestamp_3`] showing
+   `["line"]`, MatchClaims `["claim_1", "claim_2"]`; the tab then shows the
+   named MatchStamp. Opened in a timeline editor of `cpt_1`, naming first
+   closes the editor (the editing path is empty after) and is accepted;
+   in a bundle editor of the block it stays open.
+4. **A named MatchStamp against the table.** With that MatchStamp named
+   and the user's belief in `claim_1` changed to `false` (a second table),
+   the comparison marks `anchor_2` not stated (its line red, the words "not
+   stated by the table"), and the tab lists exactly "MatchClaims believed
+   false: claim_1" and "Anchors gone: anchor_2"; Update is enabled and sends
+   one `set` of `anchors` [[`clt_1` [0, 1], `cpt_1` 0.0]] and `match_claims`
+   `["claim_2"]` (one journal entry, `anchor_1` kept with its display,
+   `timestamp_3` gone); Remove deletes the MatchStamp and its three match
+   timestamps in one entry, leaving the tab on the hint. Without a table
+   nothing is compared: no anchor is marked, no difference listed, no
+   Update shown, Remove offered.
+5. **MatchClaims and beliefs.** Each MatchClaim lists every actor's belief
+   (`claim_4`: "tag:example.org,2026:other: true") and the buttons True,
+   Unlikely, False, the user's own belief pressed (`claim_5`: True), every
+   button disabled with the title saying that it needs saving MatchClaims
+   through the server; a recorded MatchClaim the table lacks reads "not in
+   the MatchClaim table", and without a table "no table loaded".
+6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
+   `cpt_1`, `dpt_1`) checked and the two belief choices; unchecking
+   `cpt_1` configures `{timelines: ["clt_1", "clt_2", "dpt_1"], belief:
+   "not_false"}` for the block (outside the journal), checking it again
+   `timelines: null`; "Only what I believe true" configures `belief:
+   "true"`. Without a server "Load MatchClaims…" is disabled and described
+   by "Matches need a server: MatchClaim tables are read through
+   tilie-server."
+7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
+   remembers the tab before, letting it go shows that tab again; a named
+   MatchStamp is named by its own address and by an anchor's, by nothing
+   else; a potential one is let go once its block's index is another
+   object, a named one once its address names nothing.
+8. **The overlay** the canvas is given: without a table `matches` is
+   `null`; with one, `{block, index, named}` with the shown index and every
+   named MatchStamp compared against the compared index, the pinned number
+   only for a potential MatchStamp of that block read from that index.
+9. **Loading** (`matchclaims-loading.test.ts`, the server stubbed as an
+   object with `matchClaims`): the pickers offer the MatchClaim table
+   beside a manifest or a workspace (`application/vnd.apache.parquet`
+   `.parquet`); a table picked with one manifest becomes that block's, its
+   request carrying the manifest as its file writes it and the file
+   unchanged; with two manifests it goes to the block whose manifest names
+   a resource of its file name. A manifest naming a table that is not
+   loaded says "<name> names the MatchClaim table match_claims.parquet,
+   which is not loaded: Load MatchClaims… in the Matchstamp tab reads it.",
+   without a server the same with "Matches need a server: …". A refused
+   table lists each problem with its row; an unreachable server, 501 and
+   any other failure each have their message. Opening another workspace
+   drops every table; the workspace file never holds one (its text equals
+   the text without the table).
+
+The Timestamp tab lists, for a match timestamp, the MatchStamps naming it
+in a list "MatchStamps" ("Downbeat matchstamp_1" for `timestamp_1`); an
+ordinary timestamp ("Theme" on `clt_1` at 1) has no such list.
 
 ## The Metadata tab (`metadata-frame.test.ts`, `metadata-edits.test.ts`, `metadata-panel.test.ts`)
 

@@ -1,17 +1,18 @@
 /**
  * The inspector's tab rule: which tabs there are, which one is shown and
- * where the keys move, and how a pinned timestamp selects the Timestamp tab.
+ * where the keys move, how a pinned timestamp selects the Timestamp tab and
+ * a pinned or selected MatchStamp the Matchstamp tab.
  * Pure: the component holds the tab last chosen and the pin, the drawer
  * tells the rule when the inspector is shown or hidden and when a timestamp
  * is pinned, and both read the store's count of editor openings.
  */
 
 import type { Level } from "@timetoalign/tilie-arranger";
-import type { Address, Manifest, Pin, View } from "@timetoalign/tilie-core";
+import type { Address, AnchorIndex, Manifest, Pin, View } from "@timetoalign/tilie-core";
 import { resolveAddress } from "@timetoalign/tilie-core";
 import { levelWord } from "./words.ts";
 
-/** The inspector's sections, in tab order: the level tab first, then the five others. */
+/** The inspector's sections, in tab order: the level tab first, then the six others. */
 export const TABS = [
   "level",
   "properties",
@@ -19,6 +20,7 @@ export const TABS = [
   "manifest",
   "journal",
   "timestamp",
+  "matchstamp",
 ] as const;
 export type Tab = (typeof TABS)[number];
 
@@ -29,6 +31,7 @@ const TAB_LABELS: { readonly [tab in Exclude<Tab, "level">]: string } = {
   manifest: "Manifest",
   journal: "Journal",
   timestamp: "Timestamp",
+  matchstamp: "Matchstamp",
 };
 
 /** The word on tab `tab` at level `level`: the level's word on the level tab (`Arranger`, `Bundle`, …). */
@@ -134,6 +137,70 @@ export function pinned(shown: Shown, held: Held | null): Shown {
 /** What is shown once `tab` is chosen: that tab; any tab but Timestamp clears the pin. */
 export function chosen(shown: Shown, tab: Tab, openings: number): Shown {
   return { picked: { tab, openings }, pin: tab === "timestamp" ? shown.pin : null };
+}
+
+/**
+ * A MatchStamp as the Matchstamp tab holds it: a potential one, pinned on
+ * the canvas, by its number in the anchor index of its block's table it was
+ * read from; or a named one, by its ID.
+ */
+export type HeldMatch =
+  | {
+      readonly kind: "potential";
+      readonly block: string;
+      readonly index: AnchorIndex;
+      readonly matchStamp: number;
+    }
+  | { readonly kind: "named"; readonly block: string; readonly id: string };
+
+/** A held MatchStamp as shown, and the tab shown before it, shown again when it is let go. */
+export type ShownMatch = HeldMatch & { readonly before: Tab };
+
+/** What the inspector shows of MatchStamps: the pick, and the MatchStamp (`null` without one). */
+export interface MatchShown {
+  readonly picked: Picked;
+  readonly match: ShownMatch | null;
+}
+
+/**
+ * What is shown once `held` is shown: the Matchstamp tab, remembering the
+ * tab shown before unless a MatchStamp already did; or, for `null`, once it
+ * is let go: the tab remembered, no MatchStamp. Letting go without one
+ * changes nothing.
+ */
+export function matchPinned(shown: MatchShown, held: HeldMatch | null): MatchShown {
+  const { picked, match } = shown;
+  if (held !== null) {
+    return {
+      picked: { tab: "matchstamp", openings: picked.openings },
+      match: { ...held, before: match?.before ?? picked.tab },
+    };
+  }
+  if (match === null) return shown;
+  return { picked: { tab: match.before, openings: picked.openings }, match: null };
+}
+
+/** The ID of the named MatchStamp `address` names in `view`, itself or one of its anchors; `null` for anything else. */
+export function namedMatchStampOf(view: View, address: Address): string | null {
+  if (address.id === undefined || address.part !== undefined) return null;
+  const resolved = resolveAddress(view, address);
+  if (!("kind" in resolved)) return null;
+  return resolved.kind === "matchstamp" || resolved.kind === "anchor"
+    ? resolved.matchstamp.id
+    : null;
+}
+
+/**
+ * Whether `held` no longer holds in `view`: a named MatchStamp its address
+ * no longer names; a potential one, its block's anchor index now another
+ * than the one it was read from (`index`, `null` without a table: the
+ * table, the filter or the user changed).
+ */
+export function matchOutlived(held: HeldMatch, view: View, index: AnchorIndex | null): boolean {
+  if (held.kind === "named") {
+    return namedMatchStampOf(view, { block: held.block, id: held.id }) !== held.id;
+  }
+  return view.blocks[held.block] === undefined || index !== held.index;
 }
 
 /** A key press as the tab list reads it. */

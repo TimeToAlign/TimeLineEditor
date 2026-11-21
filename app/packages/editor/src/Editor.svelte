@@ -29,8 +29,16 @@ import type { Example } from "./examples.ts";
 import { EXAMPLES } from "./examples.ts";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
-import { openFile, UNTITLED, WORKSPACE_FILE } from "./files.ts";
+import {
+  isMatchClaimTable,
+  openFiles,
+  UNTITLED,
+  WORKSPACE_FILE,
+  withMatchClaimTable,
+} from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
+import type { MatchOverlay } from "./inspector/matchstamps.ts";
+import { matchOverlay } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
@@ -135,6 +143,7 @@ providePicking(picking);
 const session = new WorkspaceSession({
   author: () => user.name,
   warn,
+  matchClaims: untrack(() => (server === null ? null : connect(server))),
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -240,14 +249,16 @@ async function openExample(example: Example): Promise<void> {
   }
 }
 
+/** Open a workspace file the viewer picks, with the MatchClaim tables picked beside it. */
 async function openFromFile(): Promise<void> {
   if (!(await mayReplace())) return;
   try {
-    const opened = await openFile(WORKSPACE_FILE);
-    if (opened === null) return;
-    const refusal = session.open(opened.text, opened.name, opened.handle);
+    const picked = await openFiles(withMatchClaimTable(WORKSPACE_FILE), true);
+    if (picked.length === 0) return;
+    const refusal = await session.openPicked(picked);
     if (refusal !== null) {
-      warn(`${opened.name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+      const name = picked.find((opened) => !isMatchClaimTable(opened.name))?.name ?? "The file";
+      warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
     }
   } catch (error) {
     warn(`The file could not be opened: ${messageOf(error)}`);
@@ -380,6 +391,26 @@ const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
   label: example.label,
   run: () => void openExample(example),
 }));
+
+// --- Matches ------------------------------------------------------------------
+
+/**
+ * What the canvas's match overlay draws: the potential MatchStamps of one
+ * block's MatchClaim table under its filter, its named MatchStamps compared
+ * with the table, and the potential one the Matchstamp tab shows; for the
+ * block of the MatchStamp shown, else of the selection, else the only block
+ * holding a table; nothing without a table.
+ */
+const overlay: MatchOverlay = $derived.by(() => {
+  const shown = drawer?.shownMatch() ?? null;
+  const [only, ...others] = session.tables.blocks;
+  const block =
+    shown?.block ?? session.exportable ?? (only !== undefined && others.length === 0 ? only : null);
+  const indexes = block === null ? null : (drawer?.indexesOf(block) ?? null);
+  return matchOverlay(session.live.view, block, indexes, shown, (set) => {
+    if (block !== null) drawer?.pinMatchStamp(block, set);
+  });
+});
 
 // --- The server and the autosave ---------------------------------------------
 
@@ -536,6 +567,7 @@ if (withTestHook) {
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
         picking={picking.active ? picking.take : null}
+        {...overlay}
       />
       <MessageBar messages={messages.shown} ondismiss={(id) => messages.dismiss(id)} />
     </div>
@@ -546,6 +578,8 @@ if (withTestHook) {
       {placement}
       storageKey={storage?.inspectorKey ?? null}
       knotsOf={(manifest) => canvas?.knotsOf(manifest)}
+      tables={session.tables}
+      believer={user.statedBy}
     />
   </main>
 

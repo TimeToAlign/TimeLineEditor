@@ -3,31 +3,43 @@
  * The inspector: the editing bar, then a tab list over six panels: the
  * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
  * panel opening with the level's title line), Properties, Metadata,
- * Manifest, Journal and Timestamp. Only the shown panel is rendered; what
- * the Properties and Manifest tabs hold between visits (typed text, a
- * chosen format) lives in their state objects, which a host keeping them
- * while the inspector is not shown passes in, with the tab chosen and the
- * pinned timestamp. The Metadata tab takes the user and the lookup from the
- * editor's context.
+ * Manifest, Journal, Timestamp and Matchstamp. Only the shown panel is
+ * rendered; what the Properties and Manifest tabs hold between visits
+ * (typed text, a chosen format) lives in their state objects, which a host
+ * keeping them while the inspector is not shown passes in, with the tab
+ * chosen, the pinned timestamp and the MatchStamp shown. The Metadata tab
+ * takes the user and the lookup from the editor's context.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Pin } from "@timetoalign/tilie-core";
+import { DEFAULT_USER, statedBy } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import { MatchClaimTables } from "../matchClaims.svelte.ts";
 import EditingBar from "./EditingBar.svelte";
 import JournalPanel from "./JournalPanel.svelte";
 import { journalRows } from "./journal.ts";
 import ManifestTextPanel from "./ManifestTextPanel.svelte";
+import MatchstampPanel from "./MatchstampPanel.svelte";
 import MetadataPanel from "./MetadataPanel.svelte";
 import { ManifestText } from "./manifestText.svelte.ts";
 import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
 import TimestampPanel from "./TimestampPanel.svelte";
-import type { Picked, ShownPin, Tab } from "./tabs.ts";
-import { chosen, heldOf, initialPick, nextTab, pinned, TABS, tabLabel } from "./tabs.ts";
+import type { HeldMatch, Picked, ShownMatch, ShownPin, Tab } from "./tabs.ts";
+import {
+  chosen,
+  heldOf,
+  initialPick,
+  matchPinned,
+  nextTab,
+  pinned,
+  TABS,
+  tabLabel,
+} from "./tabs.ts";
 import { levelTitle } from "./words.ts";
 
 let {
@@ -39,6 +51,9 @@ let {
   picked = $bindable(untrack(() => initialPick(live.editing.length, live.openings))),
   pin = $bindable(null),
   timestamp = null,
+  match = $bindable(null),
+  tables = new MatchClaimTables(null),
+  believer = statedBy(DEFAULT_USER),
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -55,6 +70,12 @@ let {
   pin?: ShownPin | null;
   /** The pin of the timestamp shown: `pin`'s own, or its named timestamp's read from the view. */
   timestamp?: Pin | null;
+  /** The MatchStamp the Matchstamp tab shows and the tab shown before it; `null` while none is. */
+  match?: ShownMatch | null;
+  /** The MatchClaim tables of the workspace's blocks; none read without a server. */
+  tables?: MatchClaimTables;
+  /** The IRI of the editor's user, the believer of the MatchClaim filter. */
+  believer?: string;
 } = $props();
 
 const uid = $props.id();
@@ -71,9 +92,16 @@ const openings = $derived(live.openings);
 /** The tab shown: the one chosen; the drawer chooses the level tab when an editor opened while it was closed. */
 const tab: Tab = $derived(picked.tab);
 
-/** Choose a tab; any but Timestamp clears the pin. */
+/** Choose a tab; any but Timestamp clears the pin, any but Matchstamp the MatchStamp shown. */
 function choose(next: Tab): void {
   ({ picked, pin } = chosen({ picked, pin }, next, openings));
+  if (next !== "matchstamp") match = null;
+}
+
+/** The MatchStamp shown is now `next`: a potential one named; or none once removed, the tab kept. */
+function rematched(next: HeldMatch | null): void {
+  if (next === null) match = null;
+  else ({ picked, match } = matchPinned({ picked, match }, next));
 }
 
 /** The shown timestamp is now `next`: an unnamed one moved, or named. */
@@ -154,6 +182,8 @@ const hinted = $derived(block === null && !manifest.dirty);
         <JournalPanel rows={journalRows(live, view)} />
       {:else if item === "timestamp"}
         <TimestampPanel {live} pin={timestamp} onpin={repinned} />
+      {:else if item === "matchstamp"}
+        <MatchstampPanel {live} {block} {match} {tables} {believer} onmatch={rematched} />
       {:else if item === "metadata"}
         <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
       {:else if item === "properties"}
