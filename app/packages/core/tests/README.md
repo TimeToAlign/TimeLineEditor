@@ -2389,7 +2389,7 @@ takes pairs in screen order as naming does, `match_claims` a list):
     goes with its MatchStamp` at `[anchor_1]`.
 17. **Resources follow**: of the table fixture's manifest, removing the
     child `clt_2` leaves `resource_1` naming `clt_1`, `dpt_1`, `cpt_1` in
-    its order, and `resource_2` as it was.
+    its order, and `resource_2` (Projections) naming `dpt_1`, `cpt_1` in its order.
 
 **A length leaves match timestamps where they are** (18): after naming
 `[score@[8, 1], take_1@352800]` (`timestamp_10`, `timestamp_11`, at both

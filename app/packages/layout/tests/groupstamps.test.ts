@@ -67,6 +67,12 @@ function axisOf(drawing: Drawing, id: string): DrawnAxis {
   return found;
 }
 
+/** The ordinate of the first corner of the wedge of `axis`'s marker. */
+function wedgeTop(axis: DrawnAxis): number {
+  if (axis.marker === null) throw new Error(`no marker on the line of ${axis.address.id}`);
+  return axis.marker.wedge.corners[0].y;
+}
+
 /** The upper and lower borders of the card of the member `member` in `group_1`'s frame. */
 function card(drawing: Drawing, member: string): { readonly top: number; readonly bottom: number } {
   const key = { item: "group_1", member };
@@ -105,7 +111,7 @@ describe("a groupstamp's line", () => {
     expect(performance.xStart + (performance.xEnd - performance.xStart) / 2).toBe(middle);
     expect(score.line).toBeLessThan(performance.line);
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
-    expect(top).toBe((score.marker?.wedge.corners[0].y ?? 0) + 2);
+    expect(top).toBe(wedgeTop(score) + 2);
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
     expect(first.top).toBeLessThan(score.line);
@@ -227,7 +233,7 @@ describe("a groupstamp's wedge", () => {
     expect(wedge.style.rotation).toBe(-45);
     expect(wedge.corners.map(({ dx }) => dx < 0)).toEqual([true, true]);
     const [top] = labelLine(nameLabel(drawing, "timestamp_1"));
-    expect(top).toBe((score.marker?.wedge.corners[0].y ?? 0) + 2);
+    expect(top).toBe(wedgeTop(score) + 2);
     for (const id of ["timestamp_2", "timestamp_3", "timestamp_4", "timestamp_5"]) {
       expect(wedgeOf(drawing, id).style.rotation, id).toBe(0);
     }

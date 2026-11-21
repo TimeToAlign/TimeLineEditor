@@ -531,7 +531,7 @@ describe("removing named MatchStamps", () => {
     const [first, second] = tables.resources;
     expect(block(removed).manifest.resources).toEqual([
       { ...first, timelines: ["clt_1", "dpt_1", "cpt_1"] },
-      second,
+      { ...second, timelines: ["dpt_1", "cpt_1"] },
     ]);
   });
 });

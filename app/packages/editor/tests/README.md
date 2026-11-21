@@ -343,8 +343,8 @@ fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
 `tables/manifest`, the one option carrying a source of the files served
 beside it, and every end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 162 manifest fixtures, 16 warning cases, the table fixture and 5
-workspaces, 184 options, from `bare` to
+is 164 manifest fixtures, 16 warning cases, the table fixture and 5
+workspaces, 186 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -354,7 +354,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 179 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 181 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's

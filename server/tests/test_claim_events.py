@@ -225,13 +225,14 @@ def test_a_projections_table_the_checks_refuse_is_refused(server: TestClient) ->
     index = table.schema.get_field_index("projection_of")
     field = table.schema.field(index)
     cells = table.column(index).to_pylist()
-    cells[0] = {"timeline_id": "dpt_1", "event_id": "note_1"}
+    row = table.column("id").to_pylist().index("projection_1")
+    cells[row] = {"timeline_id": "dpt_1", "event_id": "note_1"}
     broken = table.set_column(index, field, pa.array(cells, field.type))
     response = post(server, body({"claims": ["claim_1"]}, parquet(broken)))
     message = "a Projection stands for an event of another timeline than 'dpt_1'"
     problem = {
         "code": "invalid_projection_of",
-        "row": 0,
+        "row": 3,
         "column": ["projection_of", "timeline_id"],
         "message": message,
     }
