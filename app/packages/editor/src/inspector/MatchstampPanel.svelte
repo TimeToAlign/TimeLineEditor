@@ -6,8 +6,9 @@
  * saying so where the timelines filter hides some of its anchors; it stays
  * in view while the pane scrolls); **Coordinates** (`StampCoordinates`, the
  * Timestamp tab's): a hint while no MatchStamp is shown, else its
- * timestamps in screen order, each with its timeline's conversion-map rows
- * (`stampGroups`), shown disabled and copied, or its text in a format;
+ * timestamps in screen order, each with the rows the Timestamp tab shows for
+ * a timestamp there (`stampGroups`), shown disabled and copied, or its text
+ * in a format;
  * **Lines** (`MatchstampLines`): every dashed line of the MatchStamp in
  * screen order with its display toggles, inactive until it is named;
  * **MatchClaims** (`MatchClaimList`); for a
@@ -134,11 +135,12 @@ const hidden = $derived(
   stamp === null || naming === null ? null : hiddenAnchorsNote(stamp, naming),
 );
 const groups = $derived(
-  stamp === null || manifest === undefined
+  stamp === null || manifest === undefined || drawing === null
     ? null
     : stampGroups(
         manifest,
         stamp.block,
+        drawing,
         stamp.coordinates,
         view.settings.granularity,
         knotsOf?.(manifest) ?? "no_server",

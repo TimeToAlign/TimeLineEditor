@@ -2,9 +2,10 @@
 /**
  * The pane of a stamp tab (Timestamp, Matchstamp): its sections one below
  * the other, and the look they share, held here once: an area's column and
- * heading, a hint, a refusal, an action button, a code text. Only the
- * classes below are styled, so that a component a section holds (the format
- * switch, the provenance details, a question) keeps its own look.
+ * heading, a hint, a refusal, a status line, an action button, a code
+ * text. Only the classes below are styled, so that a component a section
+ * holds (the format switch, the provenance details, a question) keeps its
+ * own look.
  */
 import type { Snippet } from "svelte";
 
@@ -17,6 +18,7 @@ let { children }: { children: Snippet } = $props();
 
 <style>
   .pane {
+    position: relative;
     display: flex;
     flex: 1 0 auto;
     flex-direction: column;
@@ -46,7 +48,8 @@ let { children }: { children: Snippet } = $props();
     }
 
     p.hint,
-    p.problem {
+    p.problem,
+    p.status {
       margin: 0;
     }
 
@@ -58,8 +61,20 @@ let { children }: { children: Snippet } = $props();
       color: #b00020;
     }
 
-    .problem:empty {
-      display: none;
+    /*
+     * A live region (a refusal or a status line, `role="status"`) is always
+     * rendered, so that a screen reader hears the text arriving in it; while
+     * empty it takes no room and stays in the accessibility tree, never
+     * `display: none`.
+     */
+    .problem:empty,
+    .status:empty {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     .stamp-code {

@@ -246,6 +246,24 @@ export function timelineAncestry(manifest: Manifest): Map<string, readonly strin
 }
 
 /**
+ * The groups of `manifest` having the timeline `timeline` as a member, in
+ * the order of `groups`: those whose `members` list it or one of its
+ * ancestors, since a member's descendants are drawn inside the member's
+ * card in the group's frame. An ancestor of a listed member is in none of
+ * them; a timeline the manifest does not hold is in none. `ancestry` is
+ * the manifest's `timelineAncestry`, given where the caller holds it.
+ */
+export function groupsHolding(
+  manifest: Manifest,
+  timeline: string,
+  ancestry: ReadonlyMap<string, readonly string[]> = timelineAncestry(manifest),
+): Manifest["groups"] {
+  const lineage = ancestry.get(timeline);
+  if (lineage === undefined) return [];
+  return manifest.groups.filter((group) => lineage.some((id) => group.members.includes(id)));
+}
+
+/**
  * Whether an element matches every member present in a selector:
  * `addresses` by whole address, `class` a timeline's class or a map's type,
  * `facet` a band's facet.
@@ -419,7 +437,7 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     const frame = unownedKey("frame", address, BLOCK_KEY);
     keys.push(frame, unownedKey("name", partAddress(address, "name"), frame));
     for (const member of members) memberElements(ordered, member, frame, keys);
-    return { frame, members };
+    return { group, frame };
   });
   for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
   const ancestry = timelineAncestry(ordered);
@@ -427,10 +445,10 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;
     const timeline = findTimeline(ordered, timestamp.timeline);
     if (timeline === undefined) continue;
-    const lineage = ancestry.get(timeline.id) ?? [];
+    const holding = groupsHolding(ordered, timeline.id, ancestry);
     const address = partAddress(idAddress(timestamp.id), "line");
-    for (const { frame, members } of drawnFrames) {
-      if (members.some((member) => lineage.includes(member.timeline.id))) {
+    for (const { group, frame } of drawnFrames) {
+      if (holding.some((held) => held.id === group.id)) {
         keys.push(elementKey("cross_section", address, timeline, frame));
       }
     }

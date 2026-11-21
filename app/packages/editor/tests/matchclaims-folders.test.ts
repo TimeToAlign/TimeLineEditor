@@ -1,6 +1,6 @@
 /** The manifest's folder; the expected values are derived in `README.md` ("MatchClaims and the Matchstamp tab", item 9d). */
 
-import { DEFAULT_USER } from "@timetoalign/tilie-core";
+import { DEFAULT_USER, emptyWorkspace } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { folderPath, readInFolder } from "../src/files.ts";
@@ -130,14 +130,19 @@ function answering(choices: readonly TableChoice[] | null) {
 function memory(kept: Record<string, FileSystemDirectoryHandle> = {}) {
   const folders = new Map(Object.entries(kept));
   const remembered: [string, string][] = [];
+  const forgotten: string[] = [];
   const memo: FolderMemory = {
     recall: async (block) => folders.get(block) ?? null,
     remember: async (block, handle) => {
       remembered.push([block, handle.name]);
       folders.set(block, handle);
     },
+    forget: async (block) => {
+      forgotten.push(block);
+      folders.delete(block);
+    },
   };
-  return { memo, remembered };
+  return { memo, remembered, forgotten };
 }
 
 const canvas = {
@@ -312,6 +317,30 @@ describe("Import manifest from folder…", () => {
     expect(questions).toEqual([]);
     expect(await Promise.all(sent.map((file) => file.text()))).toEqual([await MATCH_CLAIMS.text()]);
     expect(informed.slice(1)).toEqual(LOADED_BOTH);
+  });
+
+  it("forgets the folder of a block that leaves the workspace, never of one that leaves with it", async () => {
+    const { server, sent } = serving();
+    const { memo, forgotten } = memory();
+    const { opened, questions } = session(server, memo);
+    vi.stubGlobal(
+      "showDirectoryPicker",
+      vi.fn(async () => packageFolder()),
+    );
+    await opened.importFolder(canvas, fontMetrics);
+    const [block] = Object.keys(opened.store.view.blocks);
+    if (block === undefined) throw new Error("one block is imported");
+    expect(opened.store.dispatch({ type: "remove", targets: [{ block }] })).toBe(null);
+    expect(forgotten).toEqual([block]);
+    opened.step(true);
+    expect(Object.keys(opened.store.view.blocks)).toEqual([block]);
+    expect(forgotten).toEqual([block]);
+    await opened.loadNamedTables();
+    expect(questions).toEqual([]);
+    expect(sent.length).toBe(1);
+
+    opened.replace(emptyWorkspace(), "untitled", null, true);
+    expect(forgotten).toEqual([block]);
   });
 
   it("adds nothing from a folder holding no manifest, nor from a cancelled picker", async () => {

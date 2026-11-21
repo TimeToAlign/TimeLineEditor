@@ -31,6 +31,7 @@ import {
   readingAt,
   readsGroup,
   rowValueText,
+  timelinePin,
 } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
@@ -627,6 +628,69 @@ describe("a named timestamp's pin", () => {
 
   it("is null for an ID the manifest does not hold", () => {
     expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
+  });
+});
+
+describe("a position's pin on a timeline", () => {
+  const pinAtTimeline = (view: View, timeline: string, position: Rational) =>
+    timelinePin(
+      blockIn(view, A).manifest,
+      A,
+      drawingIn(view),
+      timeline,
+      position,
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+
+  it("is a named timestamp's pin there, unnamed", () => {
+    const view = changed(viewWith("map"), {
+      type: "add",
+      into: inBlock(A, idAddress("melody")),
+      timestamp: { name: "Mark", coordinate: [4, 1] },
+    });
+    const named = namedPin(
+      blockIn(view, A).manifest,
+      A,
+      drawingIn(view),
+      "timestamp_3",
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+    expect(named).not.toBeNull();
+    expect(pinAtTimeline(view, "melody", q(4))).toEqual({ ...named, named: null });
+    const hidden = changed(view, {
+      type: "style",
+      select: { addresses: [{ id: "melody" }] },
+      set: { display: "none" },
+      blocks: [A],
+    });
+    const melody = load("map").timelines[0];
+    expect(pinAtTimeline(hidden, "melody", q(4))?.spec).toEqual({
+      block: A,
+      granularity: DEFAULT_GRANULARITY,
+      anchor: {
+        timeline: "melody",
+        name: "Melody",
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(8),
+        maps: melody?.conversion_maps,
+      },
+      members: [],
+    });
+  });
+
+  it("reads no group", () => {
+    const pin = pinAtTimeline(viewWith("groups/group_groupstamp"), "score", q(4));
+    expect(pin?.spec.members).toEqual([]);
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["score", q(4)],
+    ]);
+  });
+
+  it("is null for a timeline the manifest does not hold", () => {
+    expect(pinAtTimeline(viewWith("map"), "nowhere", q(0))).toBeNull();
   });
 });
 

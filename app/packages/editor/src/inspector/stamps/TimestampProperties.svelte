@@ -59,7 +59,6 @@ const crosses = $derived.by(() => {
 /** The named MatchStamps whose anchors name the match timestamp shown; `null` for any other timestamp. */
 const matchStamps = $derived.by(() => {
   if (pin.named === null || !pin.named.matchstamp) return null;
-  const manifest = live.view.blocks[pin.spec.block]?.manifest;
   return manifest === undefined ? [] : matchStampsOf(manifest, pin.named.id);
 });
 
@@ -162,10 +161,6 @@ function remove(): void {
   .field .hint {
     display: block;
     font-size: 0.75rem;
-  }
-
-  .field .problem:empty {
-    display: none;
   }
 
   .matchstamps {

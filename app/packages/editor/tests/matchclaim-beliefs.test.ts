@@ -223,6 +223,9 @@ function claimItem(id: string): Element {
 const text = (element: Element | null | undefined) =>
   element?.textContent?.replace(/\s+/g, " ").trim() ?? null;
 
+/** The MatchClaims' one status line, under their heading. */
+const status = () => document.querySelector("section.claims > p[role=status]");
+
 /** Open the provenance of MatchClaim `id` behind its Provenance button, unless it is open. */
 function openProvenance(id: string): void {
   const toggle = claimItem(id).querySelector<HTMLButtonElement>(
@@ -290,7 +293,16 @@ describe("provenance on demand", () => {
     expect(calls.provenance).toEqual([
       [saveManifest(tableManifest()), PICKED, ["claim_1", "claim_2"]],
     ]);
-    expect(text(claimItem("claim_1").querySelector("[role=status]"))).toBe(
+    expect(claimItem("claim_1").querySelectorAll("[role=status]").length).toBe(0);
+    expect(text(status())).toBe("");
+    expand("claim_1");
+    await settled();
+    expect(text(status())).toBe("Reading the provenance…");
+    openProvenance("claim_1");
+    const opened = claimItem("claim_1").querySelector<HTMLButtonElement>(
+      "button[aria-label='Provenance of claim_1']",
+    );
+    expect(text(claimItem("claim_1").querySelector("[data-testid=provenance] p.hint"))).toBe(
       "Reading the provenance…",
     );
 
@@ -299,6 +311,12 @@ describe("provenance on demand", () => {
       { id: "claim_2", provenance: null },
     ]);
     await settled();
+    expect(text(status())).toBe("");
+    // The entry is rendered once: the region opened while reading stays open.
+    expect(claimItem("claim_1").querySelector("button[aria-label='Provenance of claim_1']")).toBe(
+      opened,
+    );
+    expect(opened?.getAttribute("aria-expanded")).toBe("true");
     expect(paradata("claim_1")).toEqual([
       ["method", "imported"],
       ["service", SERVICE],
@@ -334,8 +352,9 @@ describe("provenance on demand", () => {
     const tables = tablesOf(server);
     const match = potential(shownOf(matchTable()), "clt_1", q(0));
     show(store, match, tables);
+    expand("claim_1");
     await settled();
-    expect(text(claimItem("claim_1").querySelector(".problem"))).toBe(
+    expect(text(status()?.querySelector(".problem"))).toBe(
       "The provenance could not be read: 500 Internal Server Error",
     );
 
@@ -381,10 +400,10 @@ describe("events on demand", () => {
     expect(calls.events).toEqual([
       [saveManifest(tableManifest()), PICKED, null, ["claim_1", "claim_2"]],
     ]);
-    expect(text(claimItem("claim_1").querySelector("[role=status]"))).toBe("Reading the events…");
+    expect(text(status())).toBe("Reading the events…");
     answer([EVENTS.claim_1, EVENTS.claim_2].filter((item) => item !== undefined));
     await settled();
-    expect(text(claimItem("claim_1").querySelector("[role=status]"))).toBe("");
+    expect(text(status())).toBe("");
     expect(eventRows("claim_1")).toEqual([
       ["clt_1", "note_1 “C4” · a Projection of note_9 on clt_2"],
       ["dpt_1", "onset_1"],
@@ -414,7 +433,7 @@ describe("events on demand", () => {
     show(store, potential(shownOf(matchTable()), "clt_1", q(0)), tablesOf(server));
     expand("claim_1");
     await settled();
-    expect(text(claimItem("claim_1").querySelector("[role=status] .problem"))).toBe(
+    expect(text(status()?.querySelector(".problem"))).toBe(
       "The MatchClaims' events could not be read: 500 Internal Server Error",
     );
     expect(eventRows("claim_1")).toEqual([]);

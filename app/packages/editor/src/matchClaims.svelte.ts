@@ -101,12 +101,13 @@ export type TableChoice =
 /**
  * The folders blocks' manifests lie in, kept beyond the session by block
  * (in the browser's storage): `recall` gives the one kept for a block,
- * `null` when none is; `remember` keeps one. Neither fails: what cannot be
- * kept is not.
+ * `null` when none is; `remember` keeps one; `forget` keeps none for a
+ * block any more. None fails: what cannot be kept is not.
  */
 export interface FolderMemory {
   recall(block: string): Promise<FileSystemDirectoryHandle | null>;
   remember(block: string, folder: FileSystemDirectoryHandle): Promise<void>;
+  forget(block: string): Promise<void>;
 }
 
 /** A manifest's folder as where it came from: the files it names, read from the folder. */
@@ -356,6 +357,16 @@ export class MatchClaimTables {
   inFolder(block: string, folder: FileSystemDirectoryHandle): void {
     this.locate(block, folderSource(folder));
     void this.#folders?.remember(block, folder);
+  }
+
+  /**
+   * Block `block` left the workspace: its manifest's folder is kept no
+   * longer beyond the session, so the folder memory holds no folder of a
+   * block that is gone. Where it came from stays located for the session,
+   * so a block an undo brings back reads its tables from there again.
+   */
+  left(block: string): void {
+    void this.#folders?.forget(block);
   }
 
   /**

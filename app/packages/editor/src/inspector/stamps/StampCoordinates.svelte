@@ -232,10 +232,6 @@ async function copy(copied: string, what: string): Promise<void> {
     font-size: 0.75rem;
   }
 
-  .value .problem:empty {
-    display: none;
-  }
-
   table {
     width: 100%;
     border-collapse: collapse;

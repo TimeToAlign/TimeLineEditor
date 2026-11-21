@@ -252,9 +252,11 @@ an object holding a function) is written without it and recovers
 `{text, name}` exactly; the autosave of an editor whose workspace has a
 handle writes it beside the text. The folders of blocks' manifests are
 kept in a database of their own by block ID: a kept `{kind:
-"directory", name}` is given back for its block, `null` for another; the
-editor's folder memory keeps nothing and fails nothing for a folder
-IndexedDB cannot store, and recalls `null` without IndexedDB.
+"directory", name}` is given back for its block, `null` for another, and
+`null` for its block once forgotten (`forgetFolder`), the other block's
+kept; the editor's folder memory keeps nothing and fails nothing for a
+folder IndexedDB cannot store, and recalls `null` and forgets without
+failing without IndexedDB.
 
 The editor uses the slot `current`. A slot holding more than an empty
 workspace is offered with "Restore the unsaved workspace from 2026-10-12
@@ -341,8 +343,8 @@ fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
 `tables/manifest`, the one option carrying a source of the files served
 beside it, and every end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 158 manifest fixtures, 16 warning cases, the table fixture and 5
-workspaces, 180 options, from `bare` to
+is 162 manifest fixtures, 16 warning cases, the table fixture and 5
+workspaces, 184 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -352,7 +354,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 175 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 179 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -1355,12 +1357,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    Copy columns `value`, `value + unit`, `pretty` with the Timestamp tab's
    buttons and texts, copied in that order: `clt_1` `0`, `0 quarters`,
    `0 ♩`; `cpt_1` `0.0`, `0.0 seconds`, `0″`; `dpt_1` `0`, `0 samples`,
-   `0 smp`. **After its coordinate row come its timeline's conversion-map
-   rows**, as the Timestamp tab lists a timestamp's own timeline (core's
-   `timestampRows` of a pin anchored on that timeline at the coordinate,
-   its members the timeline's ancestors and no other: each of the
-   MatchStamp's timestamps is its own group, followed by one group per
-   ancestor, parent first, as the Timestamp tab lists them): with the
+   `0 smp`. **Each timestamp's groups are exactly the Timestamp tab's for
+   a timestamp at that coordinate** (core's `timestampRows` of the
+   arranger's `timelinePin`, the cross-section `namedPin` reads a named
+   timestamp with, so both tabs share one spec builder): the timeline's
+   group, its coordinate row then the rows of the conversion maps drawn for
+   it, then one group per ancestor, parent first, then one per timeline of
+   its subtree its line crosses, with the maps drawn for each: with the
    LinearMap `rate` "Rate" (seconds → samples,
    scalar 44100, offset 0) added to `cpt_1` by one `add {into: cpt_1,
    map}`, the potential MatchStamp of `cpt_1` 8.0 shows the groups `cpt_1`
@@ -1383,7 +1386,20 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    heading for heading and row for row ([label, text, unit]), what the
    Timestamp tab shows for that match timestamp's own pin
    (`namedPinOf`). Before the ancestors were added the "Score" group was
-   missing, which this case fails on. The tab has no
+   missing, which this case fails on. **Crossed descendants and hidden
+   maps follow the drawing as in the Timestamp tab**: on the same manifest,
+   with the conversion-maps band of `score` hidden by one `style` (`select
+   {addresses: [{id: score, facet: conversion_maps}]}`, `set {display:
+   none}`, block A), the MatchStamp "Turn" named by one `add` with the
+   anchor [`score` `[6, 1]`, `performance` `3.0`] shows the groups "Score"
+   [coordinate `6` ♩; no `cmap_1`, `cmap_2` row: their band is not drawn],
+   "Second half" [coordinate `2` ♩: 6 − the offset 4, the child its line
+   crosses], "Performance" [coordinate `3.0` s; `cmap_3` `132300` smp];
+   the groups of its match timestamp on `score` (the first two) equal what
+   the Timestamp tab shows for that match timestamp's own pin. A builder
+   anchoring on the timeline with all its maps and its ancestors alone
+   lists the two map rows and no "Second half", which this case fails on.
+   The tab has no
    "Properties" heading: under the name header come the areas Coordinates,
    Lines, MatchClaims and the MatchClaim filter, each a `section` named by
    its heading. While the MatchStamp is potential (unnamed) the name field
@@ -1496,8 +1512,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    is collapsed; expanding the first asks the events of every MatchClaim
    the table holds of the MatchStamp, once (`["claim_1", "claim_2"]` for
    the MatchStamp of `clt_1` 0; expanding the second asks nothing more);
-   while pending the MatchClaim's status reads "Reading the events…"; a
-   refusal reads `eventsFailure`'s words; without a server the expanded
+   while pending the MatchClaims' one status line (one `role="status"`
+   element under the heading, always present, empty while no MatchClaim
+   the table holds is expanded or nothing is read) reads "Reading the
+   events…", and is empty once the answer arrives; a refusal reads
+   `eventsFailure`'s words there; without a server the expanded
    MatchClaim says "Matches need a server: …". The answer written in the
    test: `claim_1` `clt_1` event `note_1` named "C4", a Projection of
    `note_9` on `clt_2`, ↔ `dpt_1` event `onset_1` without a name and no
@@ -1646,7 +1665,14 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    information "Left expected.yaml in pkg: no manifest.", the import's
    usual warning that the named MatchClaim table is not loaded and Show
    matches (M) loads it, the folder kept for the block, and then
-   `loadNamedTables` loads both tables without a question; a folder holding no manifest
+   `loadNamedTables` loads both tables without a question. **A block that
+   leaves the workspace has its folder forgotten**: removing that block
+   (one `remove` of `{block}`) has the folder memory forget it, once, and
+   nothing else; its undo forgets nothing more and, the folder still
+   located for the session, Show matches loads both tables of the block
+   again without a question; opening another workspace (`replace`, the
+   blocks leaving with their workspace, kept in its file) forgets
+   nothing. A folder holding no manifest
    warns "The folder pkg holds no manifest TimeLineEditor can import." and
    adds nothing; a cancelled picker does nothing. The File menu offers
    "Import manifest from folder…" only where the browser has
@@ -1662,7 +1688,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    table (the fallback file input answered) resolves `[{type:
    "MatchClaim", file}, {type: "Projection", url}]` in the tables' order,
    the URL trimmed; a URL entered after a file replaces it. Cancel and
-   Escape (the dialog's `close`) resolve `null`. The URL field is a text
+   Escape (the dialog's `close`) resolve `null`. A question asked while
+   one is open resolves the open one `null`; a `close` event arriving
+   while the new one is open (the first one's, which a browser fires a
+   task after closing) dismisses nothing: the new question answers as
+   chosen. The dialog is the editor's one dialog shell, the question
+   dialog's too. The URL field is a text
    field (`inputmode="url"`), so a relative URL (`match_claims.parquet`)
    is taken as entered. "Choose the manifest's folder…" is offered only
    where the browser has `showDirectoryPicker` and a table's location is
@@ -1689,9 +1720,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     MatchStamp of `clt_1` 0 asks for the provenance of exactly
     `["claim_1", "claim_2"]` (its MatchClaims, never another row), with
     the manifest as its file writes it and the file the block holds; while
-    the answer is pending each MatchClaim's status (one `role="status"`
-    element per MatchClaim, always present, empty when there is nothing to
-    say) reads "Reading the provenance…";
+    the answer is pending the list's one status line (item 5a) is empty as
+    long as every MatchClaim is collapsed and, `claim_1` expanded (its
+    events answered at once), reads "Reading the provenance…", as the
+    Provenance region of `claim_1` opened then does; that region **stays
+    open** when the answer arrives (the same button, still expanded: the
+    MatchClaim's entry is rendered once, the settled read filling it), and
     then `claim_1` lists, behind its Provenance button, "method imported", "service
     https://example.org/aligner", "date 2026-11-20" in that order (the
     Metadata tab's order and words) and `claim_2` "No provenance

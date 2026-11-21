@@ -453,16 +453,67 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
 }
 
 /**
+ * The cross-section a timestamp on `timeline` of `manifest`, block
+ * `block`'s, drawn as `drawing`, is read with, its timeline the anchor: on
+ * the first marked line holding the timeline (`holdings`,
+ * `crossSectionSpec` anchored on it; a segment without a line of its own on
+ * its segment line's line), so its members are its ancestors and the
+ * timelines of its own subtree that line crosses, each with the maps drawn
+ * at the crossed lines; where no line holds the timeline (a hidden line),
+ * with all its own maps and its ancestors alone as members. The one spec of
+ * a timestamp read at a timeline rather than at a hovered line.
+ */
+function timelineSpec(
+  manifest: Manifest,
+  block: BlockId,
+  drawing: Drawing,
+  timeline: TimelineManifest,
+  granularity: Granularity,
+): CrossSectionSpec {
+  const [holding] = holdings(drawing, timeline.id);
+  return holding === undefined
+    ? {
+        block,
+        granularity,
+        anchor: timelineAxisOf(timeline, timeline.conversion_maps),
+        members: ancestorMembers(manifest, timeline.id),
+      }
+    : crossSectionSpec(manifest, block, drawing, holding.key, granularity, timeline.id);
+}
+
+/**
+ * The pin of the position `position` (exact, on the timeline's own axis)
+ * of the timeline `timeline` of `manifest`, block `block`'s, drawn as
+ * `drawing`, read as a named timestamp there that is no groupstamp is read
+ * (`namedPin`), but unnamed: the Matchstamp tab's Coordinates show each
+ * coordinate of a MatchStamp with it, so they list exactly the rows the
+ * Timestamp tab lists for a timestamp at that coordinate. `knots` as
+ * `timestampAt` takes them; `null` where the manifest holds no timeline
+ * `timeline`.
+ */
+export function timelinePin(
+  manifest: Manifest,
+  block: BlockId,
+  drawing: Drawing,
+  timeline: string,
+  position: Rational,
+  granularity: Granularity,
+  knots: Knots,
+): Pin | null {
+  const found = findTimeline(manifest, timeline);
+  if (found === undefined) return null;
+  const spec = timelineSpec(manifest, block, drawing, found, granularity);
+  return { spec, knots, timestamp: timestampAt(spec, position, knots), named: null };
+}
+
+/**
  * The pin of the named timestamp `id` of `manifest`, block `block`'s,
- * drawn as `drawing`: its timeline the anchor, at its coordinate, read on
- * the first marked line holding its timeline (`holdings`,
- * `crossSectionSpec` anchored on it): a segment without a line of its own
- * on its segment line's line, its members those of its own subtree that
- * line crosses; where no line holds its timeline (a hidden line), with all
- * its own maps and its ancestors alone as members. A groupstamp's adds the
- * other members of its groups' frames, read by the group
- * (`withGroupMembers`): the Timestamp tab shows the whole GroupStamp. `knots` as `timestampAt` takes them; `null`
- * where the manifest holds no timestamp `id`.
+ * drawn as `drawing`: its timeline the anchor, at its coordinate, read with
+ * the cross-section of its timeline (`timelineSpec`). A groupstamp's adds
+ * the other members of its groups' frames, read by the group
+ * (`withGroupMembers`): the Timestamp tab shows the whole GroupStamp.
+ * `knots` as `timestampAt` takes them; `null` where the manifest holds no
+ * timestamp `id`.
  */
 export function namedPin(
   manifest: Manifest,
@@ -475,16 +526,7 @@ export function namedPin(
   const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
   const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
   if (named === undefined || timeline === undefined) return null;
-  const [holding] = holdings(drawing, named.timeline);
-  const spec: CrossSectionSpec =
-    holding === undefined
-      ? {
-          block,
-          granularity,
-          anchor: timelineAxisOf(timeline, timeline.conversion_maps),
-          members: ancestorMembers(manifest, timeline.id),
-        }
-      : crossSectionSpec(manifest, block, drawing, holding.key, granularity, named.timeline);
+  const spec = timelineSpec(manifest, block, drawing, timeline, granularity);
   const holds = (axis: DrawnAxis) =>
     axis.marker?.timestamps.some((item) => item.id === named.id) ?? false;
   const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;

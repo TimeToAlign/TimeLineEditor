@@ -114,8 +114,12 @@ function timelinesOf(subjects: readonly Subject[]): readonly string[] | null {
   return ids;
 }
 
-/** The IDs of the groups `timeline` is a member of, in the manifest's order. */
-function groupsHolding(manifest: Manifest, timeline: string): readonly string[] {
+/**
+ * The IDs of the groups whose `members` list `timeline` itself, in the
+ * manifest's order: the value of its `groups` property, which lists no group
+ * holding it through an ancestor (core's `groupsHolding`).
+ */
+function groupsListing(manifest: Manifest, timeline: string): readonly string[] {
   return manifest.groups
     .filter((group) => group.members.includes(timeline))
     .map((group) => group.id);
@@ -157,7 +161,7 @@ export function groupsOf(
     const changes = timelines
       .filter((id) => group.members.includes(id) === checked)
       .map((id) => {
-        const held = groupsHolding(manifest, id);
+        const held = groupsListing(manifest, id);
         const groups = checked ? held.filter((item) => item !== group.id) : [...held, group.id];
         return groupsChange(block, id, groups);
       });
@@ -197,7 +201,7 @@ export function membersOf(
   const { manifest } = block;
   const rows = [...indexOf(manifest).ancestry].map(([timeline, path]): MembershipRow => {
     const checked = group.members.includes(timeline);
-    const held = groupsHolding(manifest, timeline);
+    const held = groupsListing(manifest, timeline);
     const groups = checked ? held.filter((item) => item !== group.id) : [...held, group.id];
     const command: SetCommand = { type: "set", changes: [groupsChange(block, timeline, groups)] };
     const name = findTimeline(manifest, timeline)?.name ?? null;

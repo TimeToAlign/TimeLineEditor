@@ -9,8 +9,10 @@
  * through the server, which answers the new table); and a Provenance
  * button that alone opens how it was made (the paradata, as the Metadata
  * tab shows a pair's, `Provenance`). One the table does not hold says so.
+ * One status line under the heading says what is being read for the
+ * MatchClaims expanded, or why a read failed.
  */
-import type { ClaimProvenanceEntry } from "@timetoalign/tilie-client";
+import type { ClaimEvents, ClaimProvenance, ClaimProvenanceEntry } from "@timetoalign/tilie-client";
 import type { Manifest } from "@timetoalign/tilie-core";
 import type { Belief } from "@timetoalign/timetoshare";
 import { SvelteSet } from "svelte/reactivity";
@@ -29,6 +31,7 @@ import { dayOf } from "../metadata/edits.ts";
 import Provenance from "../Provenance.svelte";
 import ProvenanceDetails from "../ProvenanceDetails.svelte";
 import type { HeldMatch } from "../tabs.ts";
+import { Settlements } from "./settlements.svelte.ts";
 
 interface Props {
   /** The MatchStamp shown, and how the tab holds it. */
@@ -89,6 +92,58 @@ const held = $derived(claims.filter((claim) => claim.held).map((claim) => claim.
 const events = $derived(
   expanded.size === 0 || held.length === 0 ? null : tables.events(stamp.block, manifest, held),
 );
+const eventReads = new Settlements<readonly ClaimEvents[]>();
+const provenanceReads = new Settlements<readonly ClaimProvenance[]>();
+/** How the events read settled; `undefined` while it is pending or there is none. */
+const eventsRead = $derived(events === null ? undefined : eventReads.of(events));
+/**
+ * How the provenance read settled; `undefined` while it is pending or
+ * there is none. Read as state, so the MatchClaims' entries are rendered
+ * once and an open Provenance stays open when the read settles.
+ */
+const provenanceRead = $derived(provenance === null ? undefined : provenanceReads.of(provenance));
+/**
+ * What the one status line says while a MatchClaim the table holds is
+ * expanded: each read still pending, or why it failed.
+ */
+const statusLines = $derived.by(() => {
+  if (!claims.some((claim) => claim.held && expanded.has(claim.id))) return [];
+  const lines: { key: string; text: string; problem: boolean }[] = [];
+  if (events !== null) {
+    if (eventsRead === undefined)
+      lines.push({ key: "events", text: READING_EVENTS, problem: false });
+    else if (!eventsRead.fulfilled) {
+      lines.push({ key: "events", text: eventsFailure(eventsRead.failure), problem: true });
+    }
+  }
+  if (provenance !== null) {
+    if (provenanceRead === undefined) {
+      lines.push({ key: "provenance", text: READING_PROVENANCE, problem: false });
+    } else if (!provenanceRead.fulfilled) {
+      lines.push({
+        key: "provenance",
+        text: provenanceFailure(provenanceRead.failure),
+        problem: true,
+      });
+    }
+  }
+  return lines;
+});
+/** What a MatchClaim's entry says while it has no provenance to show. */
+const waiting = $derived(
+  provenance === null
+    ? tables.connected
+      ? ""
+      : MATCHES_NEED_A_SERVER
+    : provenanceRead === undefined
+      ? READING_PROVENANCE
+      : "",
+);
+
+/** The provenance entry the read gives MatchClaim `id`; `undefined` while there is none to give. */
+function readOf(id: string): ClaimProvenanceEntry | null | undefined {
+  return provenanceRead?.fulfilled ? entryOf(provenanceRead.value, id) : undefined;
+}
 
 function toggle(id: string): void {
   if (expanded.has(id)) expanded.delete(id);
@@ -169,6 +224,11 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
 
 <section class="area claims" aria-labelledby="{uid}-claims">
   <h3 id="{uid}-claims">MatchClaims</h3>
+  <p class="status" role="status"
+    >{#each statusLines as line, at (line.key)}{at > 0 ? " " : ""}<span
+          class={{ problem: line.problem }}>{line.text}</span
+        >{/each}</p
+  >
   <ul aria-labelledby="{uid}-claims">
     {#each claims as claim, index (claim.id)}
       {@const open = expanded.has(claim.id)}
@@ -189,43 +249,24 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
           {#if !claim.held}
             <p class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</p>
           {:else}
-            <span class="status" role="status"
-              >{#if events !== null}{#await events}{READING_EVENTS}{:then}{:catch error}<span
-                    class="problem">{eventsFailure(error)}</span
-                  >{/await}{/if}{#if provenance !== null}{#await provenance}{READING_PROVENANCE}{:then}{:catch error}<span
-                    class="problem">{provenanceFailure(error)}</span
-                  >{/await}{/if}</span
-            >
             {#if events === null && open && !tables.connected}
               <p class="hint">{MATCHES_NEED_A_SERVER}</p>
-            {:else if events !== null}
-              {#await events then read}
-                {@const details = claimDetails(read, claim.id, manifest)}
-                {#if details !== null}
-                  <dl class="events" data-testid="matchclaim-events">
-                    {#each details.sides as side, at (at)}
-                      <dt title={side.timeline}>{side.timelineName}</dt>
-                      <dd>{@render event(side)}</dd>
-                    {/each}
-                    {#if details.certainty !== null}
-                      <dt>certainty</dt>
-                      <dd>{details.certainty}</dd>
-                    {/if}
-                  </dl>
-                {/if}
-              {:catch}{/await}
+            {:else if eventsRead?.fulfilled}
+              {@const details = claimDetails(eventsRead.value, claim.id, manifest)}
+              {#if details !== null}
+                <dl class="events" data-testid="matchclaim-events">
+                  {#each details.sides as side, at (at)}
+                    <dt title={side.timeline}>{side.timelineName}</dt>
+                    <dd>{@render event(side)}</dd>
+                  {/each}
+                  {#if details.certainty !== null}
+                    <dt>certainty</dt>
+                    <dd>{details.certainty}</dd>
+                  {/if}
+                </dl>
+              {/if}
             {/if}
-            {#if provenance === null}
-              {@render entry(claim, undefined, tables.connected ? "" : MATCHES_NEED_A_SERVER)}
-            {:else}
-              {#await provenance}
-                {@render entry(claim, undefined, READING_PROVENANCE)}
-              {:then read}
-                {@render entry(claim, entryOf(read, claim.id), "")}
-              {:catch}
-                {@render entry(claim, undefined, "")}
-              {/await}
-            {/if}
+            {@render entry(claim, readOf(claim.id), waiting)}
           {/if}
         </div>
       </li>
@@ -297,8 +338,8 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     display: none;
   }
 
-  .status:empty {
-    display: none;
+  .status {
+    font-size: 0.75rem;
   }
 
   .events {
