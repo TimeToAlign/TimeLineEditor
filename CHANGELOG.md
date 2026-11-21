@@ -2,6 +2,92 @@
 
 Release entries are written by release-please from the Conventional Commits since the previous release.
 
+## [0.4.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.3.0...v0.4.0) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* `displayValue`, `unitSymbol` and `copyValueWithUnit` are removed from @timetoalign/tilie-core in favour of `prettyText`, `prettyUnit` and `rawText`; the font licence export is now `TEXT_FONT_LICENCE` beside `MUSIC_FONT_LICENCE`.
+* the root start/end marker addresses no longer exist; core's `TimestampSpec`, `PinRow`, `snapPosition` and `timestampPlace` and the arranger's `timestampSpec` are replaced by the cross-section API (`CrossSectionSpec`, `Row`, `snapOnRow`, `namedPin`).
+* the workspace setting `granularity` is now `{denominator, decimals}`; a file stating the former shape is read with the defaults. core's `gridStep`, `gridText` and `GridInUse` are removed in favour of `snapPosition(p, h, numberType, length, granularity)`.
+* workspace format 7 keeps grid, block defaults and granularity in a settings section outside the journal; format 6 files are refused.
+* the workspace file format is version 6; every block and the block defaults carry `margin`, and a version-5 file is refused.
+
+### Features
+
+* add an Examples menu and leave the fixture menu out of release builds ([3d8b870](https://github.com/TimeToAlign/TimeLineEditor/commit/3d8b870bef3603eca35441d44a92a673b76dc510))
+* add an Examples menu and leave the fixture menu out of release builds ([#7](https://github.com/TimeToAlign/TimeLineEditor/issues/7)) ([1798487](https://github.com/TimeToAlign/TimeLineEditor/commit/1798487c0a25455623fa99ef1c1ee858c88e1a62))
+* an accessible combobox after the WAI-ARIA pattern ([109500e](https://github.com/TimeToAlign/TimeLineEditor/commit/109500e9035e7fa05379e99b2e54e7fcc6d8a0a1))
+* **arranger:** export one screen order and write each overlay path once ([c546c22](https://github.com/TimeToAlign/TimeLineEditor/commit/c546c228261094e7e57f0ea2ad8805802db8a6e3))
+* **arranger:** show the MatchClaim table's potential MatchStamps with m ([ea462aa](https://github.com/TimeToAlign/TimeLineEditor/commit/ea462aaf8a6da6c217b68a11888a1d509814f6fd))
+* **arranger:** take one MatchClaim overlay per block and pin MatchStamps with their block ([a9aaf18](https://github.com/TimeToAlign/TimeLineEditor/commit/a9aaf18629da208810ee9b38076ffd35d4b7d639))
+* **core:** hold, set and keep the links and schemes of manifests ([2617234](https://github.com/TimeToAlign/TimeLineEditor/commit/26172346e0ebc14e54d4f6b0a66705cd1e076360))
+* **core:** index the AlignmentAnchors of a MatchClaim table and check named MatchStamps against it ([2f20b80](https://github.com/TimeToAlign/TimeLineEditor/commit/2f20b802389210f187249d869a9a16f0ef73cf52))
+* **core:** name, update and remove MatchStamps; per-block MatchClaim filter ([75eda9d](https://github.com/TimeToAlign/TimeLineEditor/commit/75eda9de444f4b72da55458f09bf2133e71db56d))
+* **core:** read and write manifest files with #id references ([465da1f](https://github.com/TimeToAlign/TimeLineEditor/commit/465da1f2baf772175c607005841fd81564af15bb))
+* **core:** read links where they will lie and walk them in one place ([c890746](https://github.com/TimeToAlign/TimeLineEditor/commit/c89074694c0981e35845cd2479a8852889fbb487))
+* **core:** show user_units as uu ([6779e19](https://github.com/TimeToAlign/TimeLineEditor/commit/6779e1903bd5c6ff9aac09a655bc85438a489941))
+* css_pixels and user_units graphical units ([e420475](https://github.com/TimeToAlign/TimeLineEditor/commit/e420475c20a168ab22a1a2b1ba7695dca83601fa))
+* **editor:** ask before dropping a MatchClaim table changed by a belief ([1a5acf5](https://github.com/TimeToAlign/TimeLineEditor/commit/1a5acf5ce914693c0010ff379a3214ac693d5be1))
+* **editor:** drop the Metadata tab's "Stated higher up" drawer ([2e71761](https://github.com/TimeToAlign/TimeLineEditor/commit/2e717619e323b92328763927509acc86672ec4d1))
+* **editor:** list YAML first in the format switches and show it by default ([00316ba](https://github.com/TimeToAlign/TimeLineEditor/commit/00316ba10963b99d20d82607d19c46d8964aff09))
+* **editor:** load MatchClaim tables through the server and add the Matchstamp tab ([c83d248](https://github.com/TimeToAlign/TimeLineEditor/commit/c83d248eecd6bb83a6a126d317b87e4a8354a7a6))
+* **editor:** Metadata tab on candidates and beliefs, collapsed tiles with per-pair details ([b3c29a1](https://github.com/TimeToAlign/TimeLineEditor/commit/b3c29a128bac51da7b43f861659f32444a24d8f1))
+* **editor:** show and edit the links of a bundle, timeline or region in a Metadata tab ([edc6de3](https://github.com/TimeToAlign/TimeLineEditor/commit/edc6de3052cffd02df0e02cd55e0bff1beba315f))
+* **editor:** show MatchClaim provenance and record the user's beliefs ([f9faf32](https://github.com/TimeToAlign/TimeLineEditor/commit/f9faf3210f8d99fab3fc2c6bddbf71d7c225be4c))
+* **editor:** state a chosen status as the viewer's own assertion ([4892bf1](https://github.com/TimeToAlign/TimeLineEditor/commit/4892bf190b38eefd4ae043877e5bb154ae800683))
+* **layout:** draw the alignment anchors of named MatchStamps ([e7f9074](https://github.com/TimeToAlign/TimeLineEditor/commit/e7f9074ba0d939402c878e5f0793229f0a9d8a7f))
+* let a timeline join several groups and edit memberships in the inspector ([98ae8fe](https://github.com/TimeToAlign/TimeLineEditor/commit/98ae8fecb2751cdd084055e242f184e7940d66bb))
+* let a timeline join several groups and edit memberships in the inspector ([#9](https://github.com/TimeToAlign/TimeLineEditor/issues/9)) ([a591a6a](https://github.com/TimeToAlign/TimeLineEditor/commit/a591a6aaca8d8b0beefbf3a7a1571da950cd135a))
+* look up values in Wikidata, the GND, YouTube and MusicBrainz ([43c8783](https://github.com/TimeToAlign/TimeLineEditor/commit/43c87831080af111c6c91113d2ae95e4e790369e))
+* MusicBrainz lookup through a Reconciliation Service API endpoint ([569d6b2](https://github.com/TimeToAlign/TimeLineEditor/commit/569d6b277d0e6eee4982ec0ed783e1ea300f0903))
+* name elements in messages and the Journal by kind and name ([ba065e5](https://github.com/TimeToAlign/TimeLineEditor/commit/ba065e5bab773dbb26803fa502cb5581cea61f60))
+* name timestamps, edit them in the Timestamp tab and draw their cross-section lines ([154a985](https://github.com/TimeToAlign/TimeLineEditor/commit/154a9853cb1ca489729ba23da5beca5b8eb46885))
+* pick a statement's element on the canvas and propose matches in bulk ([29c7a2a](https://github.com/TimeToAlign/TimeLineEditor/commit/29c7a2af80080742be95acea47db4566f14f4352))
+* read a timestamp as the cross-section of its timeline and store what is drawn of it ([d68e198](https://github.com/TimeToAlign/TimeLineEditor/commit/d68e198f355b9124129d45915b630ececaf51b70))
+* read manifest files in YAML and JSON and write each back as it came ([466b673](https://github.com/TimeToAlign/TimeLineEditor/commit/466b673c16cb95d3acde7421af27e40dd8866d20))
+* **server:** answer a MatchClaim table as aligned typed arrays checked against its manifest ([807d885](https://github.com/TimeToAlign/TimeLineEditor/commit/807d885a1daa44e92520050c770bb3aa6f167311))
+* **server:** expand a manifest's measure maps on request ([074c74e](https://github.com/TimeToAlign/TimeLineEditor/commit/074c74e8ec4d83eb8a11bb6f67da53619888772b))
+* **server:** listen on port 8000 unless another port is asked for ([a673af0](https://github.com/TimeToAlign/TimeLineEditor/commit/a673af04c26a1eefc63e68ee69051d01e8229940))
+* **server:** read MatchClaim provenance on demand and record a belief in a new table ([ea593ff](https://github.com/TimeToAlign/TimeLineEditor/commit/ea593ff101a92abccc41759b8dd1e65e8f29b1da))
+* show coordinates under the pointer and pin them in a Timestamp tab ([7b89306](https://github.com/TimeToAlign/TimeLineEditor/commit/7b89306fcd3d7ea4b8de2cdd41f894e2986a787f))
+* statements and provenance on bundles, timelines and regions replace links ([81c9aa6](https://github.com/TimeToAlign/TimeLineEditor/commit/81c9aa6c9f1564d3802d5aebf18e30ceed64cbf6))
+* stretch one-content containers by a margin, place imports beside blocks ([efbd1c0](https://github.com/TimeToAlign/TimeLineEditor/commit/efbd1c08ef453a246a77ae172f1f3fcce648fe2d))
+* the Metadata tab states property–value pairs in rectangles ([9bbf821](https://github.com/TimeToAlign/TimeLineEditor/commit/9bbf8211c82ae97ee8895579f68fc368af24ad72))
+* type profiles as application settings, exchanged as YAML ([c6f1ffc](https://github.com/TimeToAlign/TimeLineEditor/commit/c6f1ffcb50a8f041d1fc508a071e9faf752c261d))
+* write a coordinate raw or pretty, copy it three ways, and draw musical symbols in Noto Music ([0e610c4](https://github.com/TimeToAlign/TimeLineEditor/commit/0e610c48f99d977a166d7d54e86f35cca953d38b))
+
+
+### Bug Fixes
+
+* **core:** delete a match timestamp's name when it is set to null ([7003c57](https://github.com/TimeToAlign/TimeLineEditor/commit/7003c57f2c12af2c7d9be1032dad4c7b93ccae7b))
+* **core:** hold only a manifest's own prefixes; add the context at the file boundary ([6d80d4d](https://github.com/TimeToAlign/TimeLineEditor/commit/6d80d4d6cce34b33d9ae64c49b8b0f6d6411c4f1))
+* **core:** refuse wrong positions and repeated claim IDs in MatchClaim columns ([2f6b066](https://github.com/TimeToAlign/TimeLineEditor/commit/2f6b066850c2af8dc41c33fcb5d95b991790047b))
+* **core:** store a canvas number given as -0 as 0 ([e1d0e56](https://github.com/TimeToAlign/TimeLineEditor/commit/e1d0e565501efbbfeccd639613403e1564d110fc))
+* **e2e:** answer the restore question after reloading an unsaved workspace ([9b1279f](https://github.com/TimeToAlign/TimeLineEditor/commit/9b1279fee5e4d5569c6844becf11da56bf7bd89e))
+* **e2e:** look up the Properties tab's Name field inside its tab panel ([0de180e](https://github.com/TimeToAlign/TimeLineEditor/commit/0de180e30b570c552eab7bfbefca4d1d93ebeb06))
+* **e2e:** paste into the composer in Firefox too ([d40826b](https://github.com/TimeToAlign/TimeLineEditor/commit/d40826b1760d262ac6f895c19a3435211a4b709d))
+* **editor:** compare actors as expanded IRIs and name the whole MatchStamp ([2b9316c](https://github.com/TimeToAlign/TimeLineEditor/commit/2b9316c13da00ef31719cb48b7b9a94969b044ec))
+* **editor:** name MatchStamps and alignment anchors in the inspector and journal ([252bd8d](https://github.com/TimeToAlign/TimeLineEditor/commit/252bd8df4936950943519d1df540be4bc9a41ef6))
+* **editor:** read the Manifest tab's YAML as Import does and keep a text Apply leaves unchanged ([eabc724](https://github.com/TimeToAlign/TimeLineEditor/commit/eabc72425a491480d143fe2610f74a39ac3efdd7))
+* **editor:** say that no server answered when measure maps cannot be fetched ([baf292b](https://github.com/TimeToAlign/TimeLineEditor/commit/baf292b23655f594a76a3f4e9c653d5c78d94645))
+* **editor:** write the Details word as button text and name no publisher ([feadf10](https://github.com/TimeToAlign/TimeLineEditor/commit/feadf10fa8c8297ee7fc61d06c860274af7b1087))
+* expand measure maps in development and import fixtures as examples ([bec86c3](https://github.com/TimeToAlign/TimeLineEditor/commit/bec86c3e73db84eb2b09dc839f4d4d8dc1e1da65))
+* explicit rejection, one-press Escape and stable drawer keys in the Metadata tab ([ee868df](https://github.com/TimeToAlign/TimeLineEditor/commit/ee868dff0444f343d114ca8607c4923821ec78a6))
+* list alignment anchors among the drawn elements and keep one belief filter in core ([c89016b](https://github.com/TimeToAlign/TimeLineEditor/commit/c89016b8fef634fc0f49a943f525bd9e9fe3b69d))
+* **server:** read posted manifests in any serialization and answer with bare IDs ([d02ba77](https://github.com/TimeToAlign/TimeLineEditor/commit/d02ba775fe3cadaaddc860c3c68cd42fec4a35b2))
+* **server:** record a MatchClaim belief with add_match_claim_belief ([d75e1e3](https://github.com/TimeToAlign/TimeLineEditor/commit/d75e1e371482c830ceac03fee4573a098eb00a1f))
+* **server:** record beliefs through timetoalign and compare actors as expanded IRIs ([d620f53](https://github.com/TimeToAlign/TimeLineEditor/commit/d620f5342900946c1df49363b0d6cf25b96ed6bf))
+* the Manifest tab shows the manifest as Export writes it ([3696855](https://github.com/TimeToAlign/TimeLineEditor/commit/3696855ac7a738ce824d77e0896ca491aca74c00))
+* type profiles in the File menu, stored only where the host says; picking holds the canvas ([880a7a4](https://github.com/TimeToAlign/TimeLineEditor/commit/880a7a41b604bbbe2af1f516d9649146ac4c4249))
+
+
+### Performance Improvements
+
+* **arranger:** keep the match hover cheap and the flags in one shell ([0c17f1b](https://github.com/TimeToAlign/TimeLineEditor/commit/0c17f1b83a8c35b6780d1c9e1861ecb1cee07ac5))
+* **core:** hold a checked manifest without reading its IDs back from the file form ([a4d17ac](https://github.com/TimeToAlign/TimeLineEditor/commit/a4d17acb3d085b0f09e80cba68fa6d9744365dcb))
+* draw each placement of a block once while resizing ([128d3a9](https://github.com/TimeToAlign/TimeLineEditor/commit/128d3a9ca007f3e372f711019056f98275c72ede))
+
 ## [0.3.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.2.0...v0.3.0) (2026-10-22)
 
 
