@@ -518,9 +518,10 @@ other one's is its verb and its label. `P` =
    "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical is
    a video.", "performed by Maria João Pires", "same as", every tile
    collapsed (its pairs hidden), no "Status" text; "performed by"
-   expanded: labelled "Maria João Pires", its pair rows `rel:prf
-   viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗` (the Details buttons
-   write no text into the row; their word is drawn), a "＋ Add vocabulary"
+   expanded: labelled "Maria João Pires", its pairs `rel:prf
+   viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗`, each in its row beside
+   a button reading "Details" (a pair is read from its own span, not from
+   the row, which holds the button's word too), a "＋ Add vocabulary"
    button on each of the three tiles (each has a vocabulary not yet
    used); "Candidates (1)", "Believed false by you (0)"; the candidate
    "is a recording of Clair de lune". `clt_6`: "Candidates (1)", the
@@ -637,7 +638,7 @@ schema:AudioObject` in the fallback vocabularies, verbs `performed_by`,
 `recorded_at_on`, lookup `wikidata`) and no service. File, "Type
 profiles…", "Import YAML…" with that file, Save. On `cpt_2`, which states
 nothing, "State what it is", Vocabulary "Other vocabularies", Value
-"lecture recording", Add: the "is a" rectangle holds the row `type
+"lecture recording", Add: the "is a" rectangle holds the pair `type
 schema:AudioObject ↗` (the class is a web address, so a link). "＋ Add statement", ArrowDown in Verb: the options
 begin "is a", "performed by", "recorded at, recorded on" (the profile, the
 first type stating `schema:AudioObject`, puts its verbs before the shipped

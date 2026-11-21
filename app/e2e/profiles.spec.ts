@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { pairs } from "./metadata.ts";
 import { statementsFixture } from "./schema.ts";
 import { chooseItem, downloaded, pick, select, tab, withoutPickers } from "./support.ts";
 
@@ -143,9 +144,7 @@ test("an imported profile orders the verbs, exports byte for byte and outlives a
   await expect(field(page, "Value")).toHaveValue("lecture recording");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const isA = page.getByTestId("metadata-rectangle").first();
-  await expect(isA.getByTestId("metadata-vocabulary").locator("li")).toHaveText([
-    "type schema:AudioObject ↗",
-  ]);
+  await expect(pairs(isA)).toHaveText(["type schema:AudioObject ↗"]);
 
   await page.getByRole("button", { name: "＋ Add statement" }).click();
   await expect(field(page, "Verb")).toBeFocused();

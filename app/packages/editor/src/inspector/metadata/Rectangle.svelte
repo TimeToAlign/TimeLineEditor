@@ -123,12 +123,11 @@ function toggle(key: string): void {
             </span>
             <button
               type="button"
-              class="open-details"
               aria-label="Details of {row.property} {row.value}"
               aria-expanded={detailed.has(key)}
               aria-controls="{uid}-details-{index}"
-              onclick={() => toggle(key)}
-            ></button>
+              onclick={() => toggle(key)}>Details</button
+            >
             {#if detailed.has(key) && pair !== undefined}
               <PairDetails
                 id="{uid}-details-{index}"
@@ -271,11 +270,6 @@ function toggle(key: string): void {
     font-size: 0.78rem;
     color: inherit;
     cursor: pointer;
-  }
-
-  /* The word is drawn, not written, so that the pair's row reads as the pair alone. */
-  button.open-details::after {
-    content: "Details";
   }
 
   button:focus-visible,

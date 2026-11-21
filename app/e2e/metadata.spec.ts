@@ -22,6 +22,7 @@ import {
   headings,
   importLayerIt,
   openList,
+  pairs,
   RECORDED,
   showMetadata as show,
   tile,
@@ -92,13 +93,10 @@ test("the LayerIt recording opens with its tiles collapsed and its candidates", 
   const performed = tile(page, "performed by");
   await expand(performed);
   await expect(performed.getByTestId("metadata-label")).toHaveText("Maria João Pires");
-  await expect(performed.getByTestId("metadata-vocabulary").locator("> li")).toHaveText([
-    "rel:prf viaf:113931950 ↗",
-    "wdt:P175 wd:Q235650 ↗",
-  ]);
+  await expect(pairs(performed)).toHaveText(["rel:prf viaf:113931950 ↗", "wdt:P175 wd:Q235650 ↗"]);
   await expect(
     performed.getByRole("button", { name: "Details of wdt:P175 wd:Q235650", exact: true }),
-  ).toHaveText("");
+  ).toHaveText("Details");
   for (const heading of ["C.Debussy", "performed by", "same as"]) {
     await expect(tile(page, heading).getByTestId("metadata-add-vocabulary")).toHaveCount(1);
   }
@@ -203,9 +201,7 @@ test("a pasted Wikidata URL becomes a statement after choosing its verb", async 
     "performed by Maria João Pires",
   ]);
   await expand(tile(page, "performed by"));
-  await expect(tile(page, "performed by").getByTestId("metadata-vocabulary")).toHaveText(
-    "wdt:P175 wd:Q235650 ↗",
-  );
+  await expect(pairs(tile(page, "performed by"))).toHaveText(["wdt:P175 wd:Q235650 ↗"]);
   const cpt2 = await exported(page, "cpt_2");
   expect(cpt2.statements).toEqual({
     "wdt:P175": [{ id: "wd:Q235650", label: "Maria João Pires" }],
@@ -243,9 +239,11 @@ test("＋ Add vocabulary offers the value from the first source's cross-referenc
   await expect(value).toHaveAttribute("aria-activedescendant", /-option-0$/u);
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(
-    tile(page, "performed by").getByTestId("metadata-vocabulary").locator("> li"),
-  ).toHaveText(["rel:prf viaf:113931950 ↗", "rel:prf gnd:124927521 ↗", "wdt:P175 wd:Q235650 ↗"]);
+  await expect(pairs(tile(page, "performed by"))).toHaveText([
+    "rel:prf viaf:113931950 ↗",
+    "rel:prf gnd:124927521 ↗",
+    "wdt:P175 wd:Q235650 ↗",
+  ]);
   const cpt1 = await exported(page, "cpt_1");
   expect((cpt1.statements as { [key: string]: unknown })["rel:prf"]).toEqual([
     { id: "viaf:113931950" },
