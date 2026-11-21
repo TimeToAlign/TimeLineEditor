@@ -7,7 +7,9 @@
  * host's further actions after the belief buttons, and the host's words
  * after the entry (`children`). Collapsed at first; the host renders the
  * button where it belongs, the region follows it as the next sibling and
- * takes the whole width of a wrapping row.
+ * takes the whole width of a wrapping row. A host showing the beliefs
+ * elsewhere (the Matchstamp tab's MatchClaims) opens the paradata alone
+ * (`beliefs` false).
  */
 import type { Belief } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
@@ -25,6 +27,7 @@ let {
   onbelieve,
   actions,
   children,
+  beliefs = true,
 }: {
   /** What the provenance is of, in words: the button's accessible name follows "Provenance of". */
   subject: string;
@@ -45,6 +48,8 @@ let {
   actions?: Snippet;
   /** The host's words after the entry. */
   children?: Snippet;
+  /** Whether the beliefs and the belief buttons are shown with the paradata. */
+  beliefs?: boolean;
 } = $props();
 
 const uid = $props.id();
@@ -57,12 +62,22 @@ let open = $state(false);
   class="toggle"
   aria-label="Provenance of {subject}"
   aria-expanded={open}
-  aria-controls="{uid}-provenance"
+  aria-controls={open ? `${uid}-provenance` : undefined}
   onclick={() => (open = !open)}>Provenance</button
 >
 {#if open}
   <div class="region" id="{uid}-provenance" data-testid="provenance">
-    <ProvenanceDetails {line} {missing} {mine} {label} {disabled} {title} {onbelieve} {actions} />
+    <ProvenanceDetails
+      {line}
+      {missing}
+      {mine}
+      {label}
+      {disabled}
+      {title}
+      {onbelieve}
+      {actions}
+      {beliefs}
+    />
     {@render children?.()}
   </div>
 {/if}

@@ -977,7 +977,8 @@ the Matchstamp tab's status reads "match_claims.parquet: 15 MatchClaims",
 no MatchStamp is shown (the hint), and the filter lists the manifest's
 four timelines as checkboxes. The workspace file never holds the table:
 its text has no `claim_1`. Unchecking `cpt_1` stores the block's filter
-`{timelines: ["clt_1", "clt_2", "dpt_1"], belief: "not_false"}` in
+`{timelines: ["clt_1", "clt_2", "dpt_1"], beliefs: ["true", "undecided",
+"unlikely"]}` in
 `settings.matchClaimFilters` and journals nothing. A MatchStamp named
 through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
 `dpt_1` 0], `match_claims` `["claim_1"]`, no refusal) and then selected
@@ -1011,7 +1012,10 @@ turned `false` (the server's answer for the new table; the server's own
 tests prove its beliefs); the provenance route with the fixture's entry of
 `claim_1` (`stated_by` [`ME`], date 2026-11-20, method `manual`, `ME`
 believing it true on 2026-11-20) and no entry for any other MatchClaim;
-the belief route with other Parquet bytes than the picked file's (the
+the events route with the events of `claim_1` written in the spec
+(`clt_1` event `note_1` named "C4" ↔ `dpt_1` event `onset_1`, certainty
+0.75, no Projection); the belief route with other Parquet bytes than the
+picked file's (the
 fixture's `projections.parquet`), so a saved file equal to them proves the
 editor holds and saves the answered file unchanged. A MatchStamp naming
 `claim_1` ("Downbeat", as in `matchstamps.spec.ts`) is selected. The
@@ -1020,13 +1024,17 @@ body it sends, before the request leaves: the body is a Blob, and WebKit's
 network inspector, from which Playwright takes a request's post data,
 leaves a Blob body out.
 
-1. **Provenance on demand.** Exactly one provenance request, for
-   `{claims: ["claim_1"]}`. `claim_1`'s details list its paradata as the
-   Metadata tab does (one reader, one set of words, one order): the terms
-   "stated by", "method", "date" with the definitions "Ana" (the user's
-   own IRI is worded by the user's name), "manual", "2026-11-20"; and its
-   one belief "Ana believes it true (2026-11-20)". The user's belief
-   buttons hold True pressed.
+1. **A MatchClaim expanded, its provenance on demand.** `claim_1` is a
+   collapsed disclosure button (its beliefs hidden) and no events request
+   is made; expanded, exactly one events request, and its events list the
+   terms "clt_1", "dpt_1", "certainty" with "note_1 “C4”", "onset_1",
+   "0.75", and its one belief "Ana believes it true (2026-11-20)".
+   Exactly one provenance request, for `{claims: ["claim_1"]}`. Its
+   Provenance button opens the paradata as the Metadata tab shows it (one
+   reader, one set of words, one order): the terms "stated by", "method",
+   "date" with the definitions "Ana" (the user's own IRI is worded by the
+   user's name), "manual", "2026-11-20", and no second list of beliefs.
+   The user's belief buttons hold True pressed.
 2. **A belief.** False sends exactly one belief `{claim: "claim_1",
    actor: ME, belief: "false", date: "2026-11-22"}` and reads the answered
    file through the table route (two table requests in all); the status

@@ -1,9 +1,11 @@
 /** MatchStamps as the editor takes them; the expected values are derived in `README.md` ("MatchClaims and the Matchstamp tab"). */
 
 import { drawingOf } from "@timetoalign/tilie-arranger";
-import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
+import type { ClaimEvents } from "@timetoalign/tilie-client";
+import type { AnchorIndex, BeliefState, Store } from "@timetoalign/tilie-core";
 import {
   coordinateOf,
+  DEFAULT_BELIEFS,
   DEFAULT_MATCH_CLAIM_FILTER,
   DEFAULT_USER,
   USER_TAG,
@@ -14,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import { claimEntryLine } from "../src/inspector/claimProvenance.ts";
 import type { StampCoordinate } from "../src/inspector/matchstamps.ts";
 import {
+  claimDetails,
   claimLines,
   differencesOf,
   hiddenAnchorsNote,
@@ -39,7 +42,7 @@ const A = "0000000000";
 const CONTEXT = tableManifest()["@context"];
 
 /** The block's timelines filter of the README's cases: `cpt_1` left out. */
-const NARROWED = { timelines: ["clt_1", "dpt_1"], belief: "not_false" } as const;
+const NARROWED = { timelines: ["clt_1", "dpt_1"], beliefs: DEFAULT_BELIEFS } as const;
 
 function setup(): { store: Store; drawing: Drawing } {
   const store = storeOf(tableManifest());
@@ -76,8 +79,19 @@ describe("the indexes", () => {
       plain.compared,
     );
 
-    const believed = matchIndexes(table, { timelines: null, belief: "true" }, ME, CONTEXT);
-    expect(believed.compared.anchors.count).toBe(1);
+    const counts = (beliefs: readonly BeliefState[]) =>
+      matchIndexes(table, { timelines: null, beliefs }, ME, CONTEXT).compared.anchors.count;
+    expect(counts(["true"])).toBe(1);
+    expect(counts(["false"])).toBe(1);
+    expect(counts(["undecided"])).toBe(3);
+    expect(counts(["true", "undecided", "unlikely", "false"])).toBe(4);
+    const falseOnly = matchIndexes(table, { timelines: null, beliefs: ["false"] }, ME, CONTEXT);
+    expect(stampAt(falseOnly.compared, "clt_1", q(4))).toBe(
+      stampAt(falseOnly.compared, "dpt_1", 176400n),
+    );
+
+    expect(Array.from(plain.beliefs)).toEqual([2, 2, 0, 2, 3]);
+    expect(falseOnly.beliefs).toBe(plain.beliefs);
 
     const narrowed = matchIndexes(table, NARROWED, ME, CONTEXT);
     expect(narrowed.compared).toBe(plain.compared);
@@ -267,6 +281,16 @@ describe("MatchClaims and beliefs", () => {
     ]);
   });
 
+  it("words an actor known to a catalogue by its slug", () => {
+    const plain = matchTable();
+    const work = "https://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96";
+    const table = { ...plain, beliefs: { ...plain.beliefs, actors: [ME, work] } };
+    const [line] = claimLines(table, ["claim_4"], DEFAULT_USER, CONTEXT);
+    expect(line?.beliefs).toEqual([
+      held(work, work, "mbid:8d331505-4d88-39ae-81c7-bec5da77af96", "true"),
+    ]);
+  });
+
   it("compares actors as the IRIs they stand for under the manifest's context", () => {
     const plain = matchTable();
     const compact = `tilie:${encodeURIComponent(DEFAULT_USER.name)}`;
@@ -280,7 +304,7 @@ describe("MatchClaims and beliefs", () => {
       mine: "true",
     });
     expect(claimLines(table, ["claim_5"], DEFAULT_USER, undefined)[0]?.mine).toBe(null);
-    const believed = { timelines: null, belief: "true" } as const;
+    const believed = { timelines: null, beliefs: ["true"] } as const;
     expect(matchIndexes(table, believed, ME, context).compared.anchors.count).toBe(1);
     expect(matchIndexes(table, believed, ME, undefined).compared.anchors.count).toBe(0);
   });
@@ -365,6 +389,81 @@ describe("the tab rule of MatchStamps", () => {
   });
 });
 
+describe("a MatchClaim's events", () => {
+  const events = (id: string, a: Partial<ClaimEvents>, b: Partial<ClaimEvents>): ClaimEvents => ({
+    id,
+    timeline_a_id: "clt_1",
+    event_a_id: null,
+    event_a_name: null,
+    event_a_projection: null,
+    timeline_b_id: "dpt_1",
+    event_b_id: null,
+    event_b_name: null,
+    event_b_projection: null,
+    certainty: null,
+    is_synchronous: true,
+    ...a,
+    ...b,
+  });
+
+  it("gives both sides, their Projections and the certainty", () => {
+    const manifest = tableManifest();
+    const read = [
+      events(
+        "claim_1",
+        {
+          event_a_id: "note_1",
+          event_a_name: "C4",
+          event_a_projection: { projection_of: { timeline_id: "clt_2", event_id: "note_9" } },
+        },
+        { event_b_id: "onset_1", certainty: 0.75 },
+      ),
+      events(
+        "claim_2",
+        {
+          event_a_id: "note_1",
+          event_a_name: "C4",
+          event_a_projection: { projection_of: null },
+        },
+        { timeline_b_id: "cpt_1" },
+      ),
+    ];
+    expect(claimDetails(read, "claim_1", manifest)).toEqual({
+      sides: [
+        {
+          timeline: "clt_1",
+          timelineName: "clt_1",
+          event: "note_1",
+          name: "C4",
+          projection: { of: { timeline: "clt_2", timelineName: "clt_2", event: "note_9" } },
+        },
+        {
+          timeline: "dpt_1",
+          timelineName: "dpt_1",
+          event: "onset_1",
+          name: null,
+          projection: null,
+        },
+      ],
+      certainty: 0.75,
+    });
+    expect(claimDetails(read, "claim_2", manifest)).toEqual({
+      sides: [
+        {
+          timeline: "clt_1",
+          timelineName: "clt_1",
+          event: "note_1",
+          name: "C4",
+          projection: { of: null },
+        },
+        { timeline: "cpt_1", timelineName: "cpt_1", event: null, name: null, projection: null },
+      ],
+      certainty: null,
+    });
+    expect(claimDetails(read, "claim_3", manifest)).toBe(null);
+  });
+});
+
 describe("the overlay", () => {
   it("gives every block with a table its shown index and its named comparisons", () => {
     const { store, drawing } = setup();
@@ -380,6 +479,7 @@ describe("the overlay", () => {
     expect(input?.block).toBe(A);
     expect(input?.index).toBe(indexes.shown);
     expect(input?.named).toBe(namedComparisons(manifest, indexes.compared));
+    expect(input?.beliefs).toBe(indexes.beliefs);
     expect(matchInputs(store.view, [A], () => null)).toEqual([]);
     // `stated` in the order of the MatchStamp's `alignment_anchors`: anchor_1 stated, anchor_2 not.
     const anchors = manifest.graphical?.matchstamps?.[0]?.alignment_anchors ?? [];

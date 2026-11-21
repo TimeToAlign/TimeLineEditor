@@ -16,7 +16,7 @@ import type {
   NamedComparison,
 } from "@timetoalign/tilie-arranger";
 import { inScreenOrder, screenOrder, screenPlace } from "@timetoalign/tilie-arranger";
-import type { MatchClaimTable } from "@timetoalign/tilie-client";
+import type { ClaimEvents, MatchClaimTable } from "@timetoalign/tilie-client";
 import type {
   AnchorDisplay,
   AnchorIndex,
@@ -36,6 +36,7 @@ import {
   anchorIndexOf,
   BELIEFS,
   beliefMask,
+  believedBy,
   canonicalText,
   checkMatchStamp,
   claimRowOf,
@@ -54,12 +55,13 @@ import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { axisValueOf, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Belief } from "@timetoalign/timetoshare";
-import { ANCHOR_DISPLAY } from "@timetoalign/timetoshare";
+import { ANCHOR_DISPLAY, defaultCatalogue } from "@timetoalign/timetoshare";
+import { iriNames } from "../iris.ts";
 import type { Format, Text } from "./formats.svelte.ts";
 import { writeText } from "./formats.svelte.ts";
-import type { BeliefLine } from "./metadata/frame.ts";
-import { whoOf } from "./metadata/frame.ts";
 import type { Result } from "./problems.ts";
+import type { BeliefLine } from "./provenance.ts";
+import { whoOf } from "./provenance.ts";
 import type { HeldMatch } from "./tabs.ts";
 import type { TimelineRows } from "./timestamp.ts";
 import { coordinateGroup } from "./timestamp.ts";
@@ -76,6 +78,12 @@ import { coordinateGroup } from "./timestamp.ts";
 export interface MatchIndexes {
   readonly compared: AnchorIndex;
   readonly shown: AnchorIndex;
+  /**
+   * The believer's belief in every MatchClaim of the table, per row
+   * (core's `believedBy`), which the canvas colours the anchors of a shown
+   * MatchStamp by.
+   */
+  readonly beliefs: Uint8Array;
 }
 
 /** The rows of `mask` (every row for `null`) whose two timelines are among `timelines`. */
@@ -124,18 +132,19 @@ export function matchIndexes(
   believer: string,
   context: unknown,
 ): MatchIndexes {
-  const mask = () => beliefMask(table.beliefs, believer, filter.belief, context);
+  const mask = () => beliefMask(table.beliefs, believer, filter.beliefs, context);
   const prefixes = context === undefined ? "" : canonicalText(context);
-  const compared = cachedIndex(table, JSON.stringify([believer, filter.belief, prefixes]), () =>
+  const compared = cachedIndex(table, JSON.stringify([believer, filter.beliefs, prefixes]), () =>
     anchorIndexOf(table.columns, mask()),
   );
+  const beliefs = believedBy(table.beliefs, believer, context ?? null);
   const { timelines } = filter;
-  if (timelines === null) return { compared, shown: compared };
-  const key = JSON.stringify([believer, filter.belief, prefixes, timelines]);
+  if (timelines === null) return { compared, shown: compared, beliefs };
+  const key = JSON.stringify([believer, filter.beliefs, prefixes, timelines]);
   const shown = cachedIndex(table, key, () =>
     anchorIndexOf(table.columns, timelineMask(table, timelines, mask())),
   );
-  return { compared, shown };
+  return { compared, shown, beliefs };
 }
 
 /**
@@ -203,7 +212,8 @@ export function matchInputs(
     const manifest = view.blocks[block]?.manifest;
     const indexes = manifest === undefined ? null : indexesOf(block);
     if (manifest === undefined || indexes === null) return [];
-    return [{ block, index: indexes.shown, named: namedComparisons(manifest, indexes.compared) }];
+    const named = namedComparisons(manifest, indexes.compared);
+    return [{ block, index: indexes.shown, named, beliefs: indexes.beliefs }];
   });
 }
 
@@ -500,7 +510,8 @@ export interface ClaimLine {
   readonly held: boolean;
   /**
    * Every actor's belief in it, as the table states them, each actor's IRI
-   * under the manifest's context and its words (`whoOf`); date and note
+   * under the manifest's context and its words (`whoOf`: the user's name,
+   * else a slug of the IRI, `iris.ts`); date and note
    * `null`, which only the provenance entry gives.
    */
   readonly beliefs: readonly BeliefLine[];
@@ -520,6 +531,7 @@ export function claimLines(
   context: unknown,
 ): ClaimLine[] {
   const me = actorIri(context, statedBy(user));
+  const names = iriNames(defaultCatalogue(), context);
   return ids.map((id) => {
     const row = table === null ? undefined : claimRowOf(table.columns).get(id);
     if (table === null || row === undefined) return { id, held: false, beliefs: [], mine: null };
@@ -530,11 +542,102 @@ export function claimLines(
       const name = actors[actor[at] as number];
       if (belief === undefined || name === undefined) continue;
       const iri = actorIri(context, name);
-      beliefs.push({ actor: name, iri, who: whoOf(iri, user), belief, date: null, note: null });
+      beliefs.push({
+        actor: name,
+        iri,
+        who: whoOf(iri, user, names),
+        belief,
+        date: null,
+        note: null,
+      });
     }
     const mine = beliefs.find((line) => line.iri === me)?.belief ?? null;
     return { id, held: true, beliefs, mine };
   });
+}
+
+/** An event as the tab names it: its timeline's ID and name (else the ID) and the event's ID. */
+export interface EventLine {
+  readonly timeline: string;
+  readonly timelineName: string;
+  readonly event: string;
+}
+
+/** One side of a MatchClaim as the tab shows it expanded. */
+export interface SideLine {
+  /** The side's timeline, its ID and its name (else the ID). */
+  readonly timeline: string;
+  readonly timelineName: string;
+  /** The side's event ID; `null` where the side has no event (the sentinel). */
+  readonly event: string | null;
+  /** The event's name; `null` for none. */
+  readonly name: string | null;
+  /**
+   * Whether the event is a Projection and of what: `null` for an event that
+   * is none (or not known as one, without a Projections table); `{of}`
+   * for a Projection, `of` the event it stands for, `null` for none.
+   */
+  readonly projection: { readonly of: EventLine | null } | null;
+}
+
+/** What the tab shows of a MatchClaim expanded: its two sides and its certainty. */
+export interface ClaimDetails {
+  readonly sides: readonly [SideLine, SideLine];
+  /** The certainty the table states; `null` for none. */
+  readonly certainty: number | null;
+}
+
+/** The name of the timeline `id` in `manifest`, else the ID. */
+function timelineNameOf(manifest: Manifest, id: string): string {
+  return findTimeline(manifest, id)?.name ?? id;
+}
+
+/**
+ * The details of the MatchClaim `id` among the events the server read
+ * (`read`), its timelines named from `manifest`; `null` where `read` does
+ * not hold it.
+ */
+export function claimDetails(
+  read: readonly ClaimEvents[],
+  id: string,
+  manifest: Manifest,
+): ClaimDetails | null {
+  const events = read.find((item) => item.id === id);
+  if (events === undefined) return null;
+  const side = (
+    timeline: string,
+    event: string | null,
+    name: string | null,
+    projection: ClaimEvents["event_a_projection"],
+  ): SideLine => {
+    const of = projection?.projection_of ?? null;
+    return {
+      timeline,
+      timelineName: timelineNameOf(manifest, timeline),
+      event,
+      name,
+      projection:
+        projection === null
+          ? null
+          : {
+              of:
+                of === null
+                  ? null
+                  : {
+                      timeline: of.timeline_id,
+                      timelineName: timelineNameOf(manifest, of.timeline_id),
+                      event: of.event_id,
+                    },
+            },
+    };
+  };
+  return {
+    sides: [
+      side(events.timeline_a_id, events.event_a_id, events.event_a_name, events.event_a_projection),
+      side(events.timeline_b_id, events.event_b_id, events.event_b_name, events.event_b_projection),
+    ],
+    certainty: events.certainty,
+  };
 }
 
 // --- What differs ------------------------------------------------------------
@@ -558,8 +661,8 @@ function coordinateText(manifest: Manifest, coordinate: StampCoordinate): string
  * What differs between the named MatchStamp `matchstamp` and the current
  * table (`comparison`, against `index`), each kind with what differs, only
  * the kinds that do, in the order: MatchClaims missing from the table,
- * MatchClaims the belief filter leaves out (believed false, or under "only
- * what I believe true" not believed true), anchors gone, anchors new,
+ * MatchClaims the belief filter leaves out (their state for the user is
+ * one the filter does not keep), anchors gone, anchors new,
  * MatchClaims stating other anchors, MatchClaims new.
  */
 export function differencesOf(
@@ -576,7 +679,7 @@ export function differencesOf(
   );
   const kinds: Difference[] = [
     { label: "MatchClaims missing from the table", items: comparison.claimsMissing },
-    { label: "MatchClaims the belief filter leaves out", items: comparison.claimsBelievedFalse },
+    { label: "MatchClaims the belief filter leaves out", items: comparison.claimsFilteredOut },
     { label: "Anchors gone", items: gone },
     { label: "Anchors new", items: fresh },
     { label: "MatchClaims stating other anchors", items: comparison.claimsElsewhere },
@@ -671,12 +774,7 @@ export function addedMatchStamp(
   return (after?.graphical?.matchstamps ?? []).find((item) => !known.has(item.id)) ?? null;
 }
 
-// --- The table a manifest names ----------------------------------------------
-
-/** The location of the MatchClaim table `manifest` names in its resources; `null` where it names none. */
-export function namedTable(manifest: Manifest): string | null {
-  return manifest.resources?.find((resource) => resource.type === "MatchClaim")?.url ?? null;
-}
+// --- File names --------------------------------------------------------------
 
 /** The last part of a location: the file name a picker gives for it. */
 export function fileNameOf(url: string): string {

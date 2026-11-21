@@ -1,21 +1,32 @@
 <script lang="ts">
 /**
  * The Matchstamp tab's MatchClaims: each MatchClaim behind the MatchStamp
- * shown, with its provenance as the Metadata tab shows a pair's
- * (`ProvenanceDetails`: how it was made, read through the server for these
- * MatchClaims only, every actor's belief and the user's own: true,
- * unlikely, false, recorded through the server, which answers the new
- * table); one the table does not hold says so.
+ * shown, collapsed to its ID. Expanded, it shows what matters of it: the
+ * events on both sides (each side's timeline, its event's ID and name, or
+ * that the side has no event; which event is a Projection and of what),
+ * read through the server once a MatchClaim is expanded; its certainty;
+ * every actor's belief and the user's own (true, unlikely, false, recorded
+ * through the server, which answers the new table); and a Provenance
+ * button that alone opens how it was made (the paradata, as the Metadata
+ * tab shows a pair's, `Provenance`). One the table does not hold says so.
  */
+import type { ClaimProvenanceEntry } from "@timetoalign/tilie-client";
 import type { Manifest } from "@timetoalign/tilie-core";
 import type { Belief } from "@timetoalign/timetoshare";
+import { SvelteSet } from "svelte/reactivity";
 import type { LoadedTable, MatchClaimTables } from "../../matchClaims.svelte.ts";
-import { MATCHES_NEED_A_SERVER, provenanceFailure } from "../../matchClaims.svelte.ts";
+import {
+  eventsFailure,
+  MATCHES_NEED_A_SERVER,
+  provenanceFailure,
+} from "../../matchClaims.svelte.ts";
 import { informOf, warnOf } from "../../messages.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import { claimEntryLine, entryOf, followedMatch } from "../claimProvenance.ts";
-import type { ClaimLine, MatchIndexes, ShownStamp } from "../matchstamps.ts";
+import type { ClaimLine, MatchIndexes, ShownStamp, SideLine } from "../matchstamps.ts";
+import { claimDetails } from "../matchstamps.ts";
 import { dayOf } from "../metadata/edits.ts";
+import Provenance from "../Provenance.svelte";
 import ProvenanceDetails from "../ProvenanceDetails.svelte";
 import type { HeldMatch } from "../tabs.ts";
 
@@ -60,9 +71,29 @@ const inform = informOf();
 const warn = warnOf();
 
 const NO_PROVENANCE = "No provenance entry: the table states none for it.";
+const READING_PROVENANCE = "Reading the provenance…";
+const READING_EVENTS = "Reading the events…";
 
+/** The MatchClaims expanded, by ID. */
+const expanded = new SvelteSet<string>();
 /** Whether a belief is being recorded: the belief buttons wait for it. */
 let believing = $state(false);
+
+/** The MatchClaims the table holds, whose events are read. */
+const held = $derived(claims.filter((claim) => claim.held).map((claim) => claim.id));
+/**
+ * The events of the MatchClaims held, read through the server once one of
+ * them is expanded (one request for all of them, kept by the tables);
+ * `null` before, and without a server or a table.
+ */
+const events = $derived(
+  expanded.size === 0 || held.length === 0 ? null : tables.events(stamp.block, manifest, held),
+);
+
+function toggle(id: string): void {
+  if (expanded.has(id)) expanded.delete(id);
+  else expanded.add(id);
+}
 
 /**
  * Record the user's belief `belief` in the MatchClaim `claim` through the
@@ -73,7 +104,7 @@ let believing = $state(false);
 async function believe(claim: string, belief: Belief, mine: Belief | null): Promise<void> {
   if (believing || mine === belief) return;
   const shown = stamp;
-  const held = match;
+  const before = match;
   believing = true;
   try {
     const failure = await tables.believe(shown.block, manifest, {
@@ -86,8 +117,8 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
       warn(failure);
       return;
     }
-    const next = followedMatch(held, shown, indexesOf(shown.block)?.shown ?? null);
-    if (next !== held) onmatch(next);
+    const next = followedMatch(before, shown, indexesOf(shown.block)?.shown ?? null);
+    if (next !== before) onmatch(next);
     inform(`Recorded your belief ${belief} in ${claim}; Save MatchClaims… keeps it.`);
   } finally {
     believing = false;
@@ -95,41 +126,108 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
 }
 </script>
 
-{#snippet details(claim: ClaimLine, entry: Parameters<typeof claimEntryLine>[1])}
+{#snippet event(side: SideLine)}
+  {#if side.event === null}
+    <span class="hint">no event</span>
+  {:else}
+    <code class="stamp-code">{side.event}</code>{side.name === null ? "" : ` “${side.name}”`}
+  {/if}
+  {#if side.projection !== null}
+    {@const of = side.projection.of}
+    <span class="projection"
+      >· a Projection of {#if of === null}no event{:else}<code class="stamp-code">{of.event}</code> on
+        <span title={of.timeline}>{of.timelineName}</span>{/if}</span
+    >
+  {/if}
+{/snippet}
+
+{#snippet entry(claim: ClaimLine, read: ClaimProvenanceEntry | null | undefined, waiting: string)}
+  {@const line = claimEntryLine(claim, read, user.state.user, context)}
+  <ProvenanceDetails
+    paradata={false}
+    {line}
+    missing={NO_PROVENANCE}
+    mine={claim.mine}
+    label="Your belief in {claim.id}"
+    disabled={!tables.connected || believing}
+    title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
+    onbelieve={(belief) => believe(claim.id, belief, claim.mine)}
+  />
   <div class="provenance">
-    <ProvenanceDetails
-      line={claimEntryLine(claim, entry, user.state.user, context)}
+    <Provenance
+      subject={claim.id}
+      beliefs={false}
+      {line}
       missing={NO_PROVENANCE}
       mine={claim.mine}
-      label="Your belief in {claim.id}"
-      disabled={!tables.connected || believing}
-      title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
       onbelieve={(belief) => believe(claim.id, belief, claim.mine)}
-    />
+    >
+      {#if read === undefined && waiting !== ""}<p class="hint">{waiting}</p>{/if}
+    </Provenance>
   </div>
 {/snippet}
 
 <section class="area claims" aria-labelledby="{uid}-claims">
   <h3 id="{uid}-claims">MatchClaims</h3>
   <ul aria-labelledby="{uid}-claims">
-    {#each claims as claim (claim.id)}
+    {#each claims as claim, index (claim.id)}
+      {@const open = expanded.has(claim.id)}
       <li data-claim={claim.id}>
-        <code class="stamp-code">{claim.id}</code>
-        {#if !claim.held}
-          <span class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</span>
-        {:else if provenance === null}
-          {@render details(claim, undefined)}
-        {:else}
-          {#await provenance}
-            <span class="hint" role="status">Reading the provenance…</span>
-            {@render details(claim, undefined)}
-          {:then read}
-            {@render details(claim, entryOf(read, claim.id))}
-          {:catch error}
-            <span class="problem" role="status">{provenanceFailure(error)}</span>
-            {@render details(claim, undefined)}
-          {/await}
-        {/if}
+        <button
+          type="button"
+          class="toggle"
+          aria-expanded={open}
+          aria-controls="{uid}-claim-{index}"
+          onclick={() => toggle(claim.id)}
+        >
+          <svg class="chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <path d="M6 3.5 10.5 8 6 12.5" />
+          </svg>
+          <code class="stamp-code">{claim.id}</code>
+        </button>
+        <div class="claim" id="{uid}-claim-{index}" hidden={!open}>
+          {#if !claim.held}
+            <p class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</p>
+          {:else}
+            <span class="status" role="status"
+              >{#if events !== null}{#await events}{READING_EVENTS}{:then}{:catch error}<span
+                    class="problem">{eventsFailure(error)}</span
+                  >{/await}{/if}{#if provenance !== null}{#await provenance}{READING_PROVENANCE}{:then}{:catch error}<span
+                    class="problem">{provenanceFailure(error)}</span
+                  >{/await}{/if}</span
+            >
+            {#if events === null && open && !tables.connected}
+              <p class="hint">{MATCHES_NEED_A_SERVER}</p>
+            {:else if events !== null}
+              {#await events then read}
+                {@const details = claimDetails(read, claim.id, manifest)}
+                {#if details !== null}
+                  <dl class="events" data-testid="matchclaim-events">
+                    {#each details.sides as side, at (at)}
+                      <dt title={side.timeline}>{side.timelineName}</dt>
+                      <dd>{@render event(side)}</dd>
+                    {/each}
+                    {#if details.certainty !== null}
+                      <dt>certainty</dt>
+                      <dd>{details.certainty}</dd>
+                    {/if}
+                  </dl>
+                {/if}
+              {:catch}{/await}
+            {/if}
+            {#if provenance === null}
+              {@render entry(claim, undefined, tables.connected ? "" : MATCHES_NEED_A_SERVER)}
+            {:else}
+              {#await provenance}
+                {@render entry(claim, undefined, READING_PROVENANCE)}
+              {:then read}
+                {@render entry(claim, entryOf(read, claim.id), "")}
+              {:catch}
+                {@render entry(claim, undefined, "")}
+              {/await}
+            {/if}
+          {/if}
+        </div>
       </li>
     {/each}
   </ul>
@@ -145,19 +243,88 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     list-style: none;
   }
 
-  li {
+  .toggle {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.5rem;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
-  /* A MatchClaim's provenance, under its ID: the Metadata tab's details. */
-  .provenance {
-    flex-basis: 100%;
+  .toggle:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 1px;
+  }
+
+  .chevron {
+    flex: none;
+    fill: none;
+    stroke: #1d4f91;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 120ms ease-out;
+  }
+
+  .toggle[aria-expanded="true"] .chevron {
+    transform: rotate(90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chevron {
+      transition: none;
+    }
+  }
+
+  /* A MatchClaim expanded, under its ID. */
+  .claim {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: 0.1rem 0 0.25rem 1.1rem;
     padding: 0.35rem 0.5rem;
     border-left: 3px solid #c9d8ea;
     background: #f7f9fc;
     font-size: 0.75rem;
+  }
+
+  .claim[hidden] {
+    display: none;
+  }
+
+  .status:empty {
+    display: none;
+  }
+
+  .events {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.1rem 0.5rem;
+    margin: 0;
+  }
+
+  .events dt {
+    color: #595959;
+  }
+
+  .events dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .projection {
+    color: #595959;
+  }
+
+  .provenance {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
   }
 </style>

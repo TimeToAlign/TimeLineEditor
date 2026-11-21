@@ -3,7 +3,7 @@
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
-import { coordinateOf, DEFAULT_MATCH_CLAIM_FILTER } from "@timetoalign/tilie-core";
+import { coordinateOf, DEFAULT_BELIEFS, DEFAULT_MATCH_CLAIM_FILTER } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -130,7 +130,7 @@ describe("naming", () => {
 
   it("stores the whole MatchStamp under a timelines filter, saying so first", () => {
     const store = storeOf(tableManifest());
-    const filter = { timelines: ["clt_1", "dpt_1"], belief: "not_false" } as const;
+    const filter = { timelines: ["clt_1", "dpt_1"], beliefs: DEFAULT_BELIEFS } as const;
     expect(store.configure({ matchClaimFilters: { [A]: filter } })).toBe(null);
     const table = matchTable();
     const { shown } = indexesUnder(table, filter);
@@ -372,18 +372,89 @@ describe("MatchClaims and beliefs", () => {
     show(store, potential(shown, "cpt_1", 8), tablesWith(table));
     expect(beliefs("claim_5")).toBe("Gerhardt believes it true");
     const mine = document.querySelector("li[data-claim='claim_5']");
-    const buttons = [...(mine?.querySelectorAll("button") ?? [])];
+    const buttons = [...(mine?.querySelectorAll<HTMLButtonElement>("[role=group] button") ?? [])];
     expect(
       buttons.map((item) => [
         item.textContent,
         item.getAttribute("aria-pressed"),
         item.disabled,
-        item.title,
+        item.getAttribute("title"),
       ]),
     ).toEqual([
       ["True", "true", true, NO_SERVER],
       ["Unlikely", "false", true, NO_SERVER],
       ["False", "false", true, NO_SERVER],
+    ]);
+  });
+
+  it("collapses every MatchClaim, expanded one at a time, its provenance behind its own button", () => {
+    const store = storeOf(tableManifest());
+    const table = matchTable();
+    const { shown } = indexesUnder(table);
+    show(store, potential(shown, "clt_1", q(0)), tablesWith(table));
+    const item = (claim: string) => {
+      const found = document.querySelector(`li[data-claim='${claim}']`);
+      if (found === null) throw new Error(`no MatchClaim ${claim}`);
+      return found;
+    };
+    const toggle = (claim: string) => {
+      const found = item(claim).querySelector<HTMLButtonElement>("button[aria-expanded]");
+      if (found === null) throw new Error(`no disclosure for ${claim}`);
+      return found;
+    };
+    const region = (claim: string) =>
+      document.getElementById(toggle(claim).getAttribute("aria-controls") ?? "");
+    expect([toggle("claim_1").textContent?.trim(), toggle("claim_2").textContent?.trim()]).toEqual([
+      "claim_1",
+      "claim_2",
+    ]);
+    expect(
+      ["claim_1", "claim_2"].map((claim) => [
+        toggle(claim).getAttribute("aria-expanded"),
+        region(claim)?.hidden,
+      ]),
+    ).toEqual([
+      ["false", true],
+      ["false", true],
+    ]);
+
+    toggle("claim_1").click();
+    flushSync();
+    expect(
+      ["claim_1", "claim_2"].map((claim) => [
+        toggle(claim).getAttribute("aria-expanded"),
+        region(claim)?.hidden,
+      ]),
+    ).toEqual([
+      ["true", false],
+      ["false", true],
+    ]);
+    const open = region("claim_1");
+    expect(open?.querySelector("p.hint")?.textContent).toBe(NO_SERVER);
+    expect(open?.querySelector("[role=status]")?.textContent).toBe("");
+    // The provenance opens behind its own button: the paradata alone, never the beliefs again.
+    const provenance = item("claim_1").querySelector<HTMLButtonElement>(
+      "button[aria-label='Provenance of claim_1']",
+    );
+    expect([provenance?.textContent, provenance?.getAttribute("aria-expanded")]).toEqual([
+      "Provenance",
+      "false",
+    ]);
+    expect(provenance?.hasAttribute("aria-controls")).toBe(false);
+    expect(item("claim_1").querySelector("[data-testid=provenance]")).toBe(null);
+    provenance?.click();
+    flushSync();
+    const opened = item("claim_1").querySelector("[data-testid=provenance]");
+    expect(provenance?.getAttribute("aria-controls")).toBe(opened?.id);
+    expect(opened?.querySelectorAll("[data-testid=metadata-beliefs], [role=group]").length).toBe(0);
+    expect(opened?.querySelector("p.hint")?.textContent).toBe(NO_SERVER);
+    expect(item("claim_1").querySelectorAll("[data-testid=metadata-beliefs]").length).toBe(1);
+
+    toggle("claim_1").click();
+    flushSync();
+    expect([toggle("claim_1").getAttribute("aria-expanded"), region("claim_1")?.hidden]).toEqual([
+      "false",
+      true,
     ]);
   });
 });
@@ -408,18 +479,52 @@ describe("the MatchClaim filter", () => {
     flushSync();
     expect(store.view.settings.matchClaimFilters[A]).toEqual({
       timelines: ["clt_1", "clt_2", "dpt_1"],
-      belief: "not_false",
+      beliefs: ["true", "undecided", "unlikely"],
     });
     boxes[2]?.click();
     flushSync();
     expect(store.view.settings.matchClaimFilters[A]).toEqual({
       timelines: null,
-      belief: "not_false",
+      beliefs: ["true", "undecided", "unlikely"],
     });
-    const radios = [...document.querySelectorAll<HTMLInputElement>("input[type=radio][value]")];
-    radios.find((radio) => radio.value === "true")?.click();
-    flushSync();
-    expect(store.view.settings.matchClaimFilters[A]).toEqual({ timelines: null, belief: "true" });
+    const group = [...document.querySelectorAll("[role=group]")].find(
+      (item) =>
+        document.getElementById(item.getAttribute("aria-labelledby") ?? "")?.textContent ===
+        "Beliefs",
+    );
+    const toggles = () =>
+      [...(group?.querySelectorAll<HTMLButtonElement>("button") ?? [])].map((item) => [
+        item.textContent,
+        item.getAttribute("aria-pressed"),
+      ]);
+    expect(toggles()).toEqual([
+      ["True", "true"],
+      ["Undecided", "true"],
+      ["Unlikely", "true"],
+      ["False", "false"],
+    ]);
+    const press = (label: string) => {
+      [...(group?.querySelectorAll<HTMLButtonElement>("button") ?? [])]
+        .find((item) => item.textContent === label)
+        ?.click();
+      flushSync();
+    };
+    press("False");
+    expect(store.view.settings.matchClaimFilters[A]).toEqual({
+      timelines: null,
+      beliefs: ["true", "undecided", "unlikely", "false"],
+    });
+    press("Undecided");
+    expect(store.view.settings.matchClaimFilters[A]).toEqual({
+      timelines: null,
+      beliefs: ["true", "unlikely", "false"],
+    });
+    expect(toggles()).toEqual([
+      ["True", "true"],
+      ["Undecided", "false"],
+      ["Unlikely", "true"],
+      ["False", "true"],
+    ]);
     expect(store.journal.length).toBe(journal);
   });
 

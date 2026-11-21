@@ -8,7 +8,8 @@
  * recording with the user's belief in `claim_1` turned `false`, which is the
  * server's answer for the new table (the server's tests prove its beliefs);
  * `POST /api/match-claims/provenance` by the fixture's provenance for the
- * MatchClaims asked for; `POST /api/match-claims/belief` by a Parquet file's
+ * MatchClaims asked for; `POST /api/match-claims/events` by the events of
+ * `claim_1` written below; `POST /api/match-claims/belief` by a Parquet file's
  * bytes, which the editor holds, sends back to the table route and saves
  * unchanged. A changed table is then never dropped unasked: New asks to
  * save it with the workspace, or alone once the workspace is saved.
@@ -55,8 +56,24 @@ const CLAIM_1 = {
   beliefs: [{ actor: ME, belief: "true", date: "2026-11-20" }],
 };
 
+/** The events of `claim_1`, as the server answers them. */
+const CLAIM_1_EVENTS = {
+  id: "claim_1",
+  timeline_a_id: "clt_1",
+  event_a_id: "note_1",
+  event_a_name: "C4",
+  event_a_projection: null,
+  timeline_b_id: "dpt_1",
+  event_b_id: "onset_1",
+  event_b_name: null,
+  event_b_projection: null,
+  certainty: 0.75,
+  is_synchronous: true,
+};
+
 interface Seen {
   tables: number;
+  events: number;
   provenance: unknown[];
   beliefs: unknown[];
 }
@@ -95,7 +112,7 @@ async function reportParameters(page: Page, seen: Seen): Promise<void> {
 
 /** Open a fresh page as the user `ME`, every route replayed; the requests are counted. */
 async function openPage(page: Page): Promise<Seen> {
-  const seen: Seen = { tables: 0, provenance: [], beliefs: [] };
+  const seen: Seen = { tables: 0, events: 0, provenance: [], beliefs: [] };
   await withoutPickers(page);
   await reportParameters(page, seen);
   await page.addInitScript((orcid) => {
@@ -113,6 +130,10 @@ async function openPage(page: Page): Promise<Seen> {
       status: 200,
       json: { claims: claims.map((id) => ({ id, provenance: id === "claim_1" ? CLAIM_1 : null })) },
     });
+  });
+  await page.route("**/api/match-claims/events", async (route) => {
+    seen.events += 1;
+    await route.fulfill({ status: 200, json: { claims: [CLAIM_1_EVENTS] } });
   });
   await page.route("**/api/match-claims/belief", async (route) => {
     await route.fulfill({
@@ -175,6 +196,7 @@ const answerButton = (page: Page, label: string) =>
 async function changeTable(page: Page): Promise<void> {
   await nameDownbeat(page, await importTable(page));
   const claim = claims(page).locator("li[data-claim='claim_1']");
+  await claim.getByRole("button", { name: "claim_1", exact: true }).click();
   const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
   await yours.getByRole("button", { name: "False" }).click();
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
@@ -192,13 +214,27 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   const block = await importTable(page);
   await nameDownbeat(page, block);
 
-  // The provenance of the MatchStamp's one MatchClaim, and of nothing else, as the Metadata tab words it.
+  // The MatchClaim is collapsed; expanded, its events, its beliefs, and the provenance behind its own button.
   const claim = claims(page).locator("li[data-claim='claim_1']");
-  await expect(claim.getByRole("term")).toHaveText(["stated by", "method", "date"]);
-  await expect(claim.getByRole("definition")).toHaveText(["Ana", "manual", "2026-11-20"]);
+  const disclosure = claim.getByRole("button", { name: "claim_1", exact: true });
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(claim.getByRole("list", { name: "Beliefs" })).toBeHidden();
+  expect(seen.events).toBe(0);
+  await disclosure.click();
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  const events = claim.getByTestId("matchclaim-events");
+  await expect(events.getByRole("term")).toHaveText(["clt_1", "dpt_1", "certainty"]);
+  await expect(events.getByRole("definition")).toHaveText(["note_1 “C4”", "onset_1", "0.75"]);
+  expect(seen.events).toBe(1);
   await expect(claim.getByRole("list", { name: "Beliefs" })).toHaveText(
     "Ana believes it true (2026-11-20)",
   );
+  // The provenance of the MatchStamp's one MatchClaim, and of nothing else, as the Metadata tab words it.
+  await claim.getByRole("button", { name: "Provenance of claim_1" }).click();
+  const provenance = claim.getByTestId("provenance");
+  await expect(provenance.getByRole("term")).toHaveText(["stated by", "method", "date"]);
+  await expect(provenance.getByRole("definition")).toHaveText(["Ana", "manual", "2026-11-20"]);
+  await expect(provenance.getByRole("list", { name: "Beliefs" })).toHaveCount(0);
   expect(seen.provenance).toEqual([{ claims: ["claim_1"] }]);
   const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
   await expect(yours.getByRole("button", { name: "True" })).toHaveAttribute("aria-pressed", "true");

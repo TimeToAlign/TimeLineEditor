@@ -50,8 +50,6 @@ import { lineOf } from "../provenance.ts";
 import type { JsonObject } from "./catalogue.ts";
 import { FALLBACK, systemChoices, typesOf, verbLabel } from "./catalogue.ts";
 
-export type { BeliefLine } from "../provenance.ts";
-export { whoOf } from "../provenance.ts";
 /** A property and one of its values, as the statements container holds them. */
 export type { Pair };
 
