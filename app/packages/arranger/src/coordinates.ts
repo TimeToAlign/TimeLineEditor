@@ -27,6 +27,7 @@ import type {
   MeasureKnots,
   NamedTimestamp,
   Pin,
+  Real,
   Row,
   TimelineManifest,
   Timestamp,
@@ -52,15 +53,17 @@ import {
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
-import type { AxisMap, Drawing, LineAxis, WedgeMark } from "@timetoalign/tilie-layout";
+import type { AxisMap, Drawing, DrawnAxis, LineAxis, WedgeMark } from "@timetoalign/tilie-layout";
 import {
   abscissaOf,
   crossedLines,
   crossSection,
+  frameMemberLines,
   lineAxes,
   wedgeAt,
 } from "@timetoalign/tilie-layout";
 import type { AffordanceSource } from "./boxes.ts";
+import type { Editing } from "./editing.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
 
@@ -285,6 +288,21 @@ export interface MarkPlace {
   readonly key: string;
   /** The abscissa of the timestamp's position on the line, in block-local canvas units. */
   readonly x: number;
+  /**
+   * Whether the timestamp is read across the members of the group whose frame holds the line
+   * (`readsGroup` of its pin), so that its line extends across that frame as a groupstamp's
+   * does (layout's `groupCrossSections`); not where absent.
+   */
+  readonly group?: boolean;
+}
+
+/**
+ * Whether the timestamp of `pin` is read across a group's members, as a
+ * groupstamp's is (`withGroupMembers`): some member is read by the group,
+ * scaled.
+ */
+export function readsGroup(pin: Pin): boolean {
+  return pin.spec.members.some((member) => member.scale !== undefined);
 }
 
 /**
@@ -313,7 +331,8 @@ function spans(axis: LineAxis, position: Rational): boolean {
  * Where the pinned timestamp `pin` is marked in `drawing`, its block's: on
  * the line keyed `preferred` (the line it was pinned on) while that line
  * draws its anchor, else on the first line of `axesOf` drawing it, at the
- * abscissa of its position; `null` where no such line draws its anchor or
+ * abscissa of its position, across the group's frame where the pin reads
+ * the group (`readsGroup`); `null` where no such line draws its anchor or
  * the position lies outside the line's drawn span.
  */
 export function pinnedPlace(
@@ -332,7 +351,9 @@ export function pinnedPlace(
   if (found === undefined || anchor === undefined) return null;
   const [key, axis] = found;
   const position = toRational(anchor.position);
-  return spans(axis, position) ? { key, x: abscissaOf(axis, position) } : null;
+  return spans(axis, position)
+    ? { key, x: abscissaOf(axis, position), group: readsGroup(pin) }
+    : null;
 }
 
 /**
@@ -375,36 +396,44 @@ export function holdings(drawing: Drawing, timeline: string): Holding[] {
 }
 
 /**
- * `spec`, the cross-section of the groupstamp on the timeline `timeline`,
- * with every other member of each group whose frame draws `timeline`'s line
- * in `drawing` added after its members, in the order of the lines: a
- * group's members start and end together, so each is read by the group at
- * offset 0 with the scale of its drawn length over `timeline`'s, with the
- * maps drawn at its line for it. A member already in `spec`, a frame where
- * either drawn length is 0, and a member whose line is not drawn are passed
- * over.
+ * `spec` with every member of each group whose frame draws its timestamp in
+ * `drawing` added after its members: the frames whose cards draw a line
+ * `holds` says carries the timestamp (layout's `frameMemberLines` names each
+ * frame's members). A group's members start and end together, so each other
+ * member is read by the group from the member card holding the anchor: at
+ * that member's offset from the anchor's zero (0 where the anchor is the
+ * member, its ancestor offset where the anchor is a descendant of it), scaled
+ * by its drawn end over that member's, with the maps drawn at its line for
+ * it. A timeline already in `spec`, a member card whose drawn end is 0 and
+ * an anchor whose member card is not among `spec`'s timelines are passed
+ * over. The one reading of a groupstamp's members: a named groupstamp's pin
+ * and a hover above a timeline editor take it.
  */
 function withGroupMembers(
   spec: CrossSectionSpec,
   manifest: Manifest,
   drawing: Drawing,
-  timeline: string,
+  holds: (axis: DrawnAxis) => boolean,
 ): CrossSectionSpec {
-  const lines = [...lineAxes(drawing).values()];
-  const drawnLength = (axis: LineAxis) => toRational(axis.start).add(toRational(axis.drawnLength));
-  const taken = new Set([spec.anchor.timeline, ...spec.members.map((member) => member.timeline)]);
+  const offsets = new Map<string, Real>([
+    [spec.anchor.timeline, ZERO],
+    ...spec.members.map((member) => [member.timeline, member.offset] as const),
+  ]);
+  const taken = new Set(offsets.keys());
   const members: CrossSectionMember[] = [];
-  for (const own of lines) {
-    if (own.timeline !== timeline || own.card.member !== timeline) continue;
-    const length = drawnLength(own);
-    if (length.numerator === 0n) continue;
+  for (const own of drawing.axes) {
+    const holder = own.card.member;
+    if (holder === undefined || !holds(own)) continue;
+    const lines = frameMemberLines(drawing.axes, own.card.item);
+    const offset = offsets.get(holder);
+    const held = lines.find((line) => line.address.id === holder);
+    if (offset === undefined || held === undefined) continue;
+    const drawnEnd = toRational(held.drawnEnd);
+    if (drawnEnd.numerator === 0n) continue;
     for (const line of lines) {
-      const { member } = line.card;
-      if (line.card.item !== own.card.item || member === undefined || line.timeline !== member) {
-        continue;
-      }
-      const other = drawnLength(line);
-      if (taken.has(member) || other.numerator === 0n) continue;
+      const member = line.address.id;
+      const other = toRational(line.drawnEnd);
+      if (member === undefined || taken.has(member) || other.numerator === 0n) continue;
       taken.add(member);
       const node = drawnTimeline(manifest, member);
       const maps = line.maps.flatMap(({ id, owner }) => {
@@ -412,7 +441,7 @@ function withGroupMembers(
           owner === member ? node.conversion_maps.find((item) => item.id === id) : undefined;
         return map === undefined ? [] : [map];
       });
-      members.push({ ...timelineAxisOf(node, maps), offset: ZERO, scale: other.divide(length) });
+      members.push({ ...timelineAxisOf(node, maps), offset, scale: other.divide(drawnEnd) });
     }
   }
   return members.length === 0 ? spec : { ...spec, members: [...spec.members, ...members] };
@@ -456,7 +485,9 @@ export function namedPin(
           members: ancestorMembers(manifest, timeline.id),
         }
       : crossSectionSpec(manifest, block, drawing, holding.key, granularity, named.timeline);
-  const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, named.timeline) : spec;
+  const holds = (axis: DrawnAxis) =>
+    axis.marker?.timestamps.some((item) => item.id === named.id) ?? false;
+  const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
   const position = namedCoordinate(named, timeline);
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named };
 }
@@ -530,7 +561,10 @@ export type KnotsOf = (manifest: Manifest) => readonly MeasureKnots[] | KnotsAbs
  * line's cross-section (`crossSectionSpec`), `p` the pointer's coordinate
  * on the line's axis and `h` half a device pixel there: the line's drawn
  * length (up to its reach where its length is not known) over its width,
- * over zoom × the block's scale × `ratio`, halved.
+ * over zoom × the block's scale × `ratio`, halved. Above a timeline editor
+ * (`groupScoped` of the node's editor) the cross-section also holds every
+ * member of each group whose frame draws the hovered line's timeline, read
+ * by the group as a groupstamp's (`withGroupMembers`).
  * `knotsOf` gives the expanded MeasureMaps of a manifest, or why they are
  * not at hand; without it no server expands them.
  */
@@ -577,7 +611,21 @@ export function readingAt(
   const width = axis.xEnd - axis.xStart;
   const p = toFloat(toRational(axis.start)) + ((hit.x - axis.xStart) / width) * length;
   const h = length / width / devicePixels / 2;
-  const spec = crossSectionSpec(block.manifest, block.id, drawing, hit.key, options.granularity);
+  const crossing = crossSectionSpec(
+    block.manifest,
+    block.id,
+    drawing,
+    hit.key,
+    options.granularity,
+  );
+  const spec = groupScoped(node.data.editing)
+    ? withGroupMembers(
+        crossing,
+        block.manifest,
+        drawing,
+        (line) => line.marker !== null && line.address.id === axis.timeline,
+      )
+    : crossing;
   const knots = options.knotsOf?.(block.manifest) ?? "no_server";
   const row = rowOf(hit);
   const position = snapOnRow(spec, row, p, h, knots);
@@ -593,6 +641,16 @@ export function readingAt(
     at: { x: abscissaOf(axis, position), y: axis.y },
     top,
   };
+}
+
+/**
+ * Whether a position read in the editor `editing` (the innermost open
+ * editor, `null` on the arranger) reads a group's members with its timeline
+ * as a groupstamp would: above a timeline editor, never inside one, where it
+ * stays on its timeline.
+ */
+export function groupScoped(editing: Editing | null): boolean {
+  return editing?.kind !== "timeline";
 }
 
 /** Where a timestamp lies: its anchor's name and pretty coordinate, as `Form at 13 1/2 ♩`. */

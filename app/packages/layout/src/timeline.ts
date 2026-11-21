@@ -35,13 +35,7 @@ import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
-import {
-  type CrossSectionExtent,
-  crossSectionElement,
-  type MarkersBand,
-  markersBand,
-  wedgeElement,
-} from "./markers.ts";
+import { type CrossSectionExtent, type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
 import { regionsBand } from "./regions.ts";
 import type { Entry, Scope } from "./traversal.ts";
 
@@ -434,18 +428,16 @@ export function layoutTimeline(
     const start = markersStart(prepared, (side === "above" ? above : below).bands, reach[side], w);
     const { unnamed } = prepared.markers;
     const wedge = wedgeElement(drawnLine.address, unnamed.wedge, 0, at, side, start, w);
-    const crossing =
-      extent === null
-        ? null
-        : crossSectionElement(drawnLine.address, unnamed.crossSection, 0, extent);
     const marker: LineMarker = {
       line: drawnLine,
       marker: {
         wedge: { yt: wedge.yt, yb: wedge.yb, base: wedge.base, style: wedge.style },
-        crossSection:
-          crossing === null ? null : { y1: crossing.y1, y2: crossing.y2, style: crossing.style },
+        crossSection: {
+          extent: extent === null ? null : { y1: extent[0], y2: extent[1] },
+          style: unnamed.crossSection,
+        },
         descendants,
-        timestamps: prepared.markers.timestamps(at),
+        timestamps: prepared.markers.timestamps(at, start, side),
       },
     };
     return { ...merged, markers: [marker] };

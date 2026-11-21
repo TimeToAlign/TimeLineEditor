@@ -669,7 +669,9 @@ export function pinnedOverlays(
             beliefs,
             claimRows.subarray(claimOffsets[anchor] as number, claimOffsets[anchor + 1] as number),
           );
-    byBelief.set(belief, [...(byBelief.get(belief) ?? []), connector]);
+    const same = byBelief.get(belief);
+    if (same === undefined) byBelief.set(belief, [connector]);
+    else same.push(connector);
   }
   const parts = DRAWN_BELIEFS.flatMap((belief): BeliefOverlay[] => {
     const lines = belief === "undecided" ? overlay.lines : [];

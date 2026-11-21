@@ -199,17 +199,17 @@ export interface AxisMarker {
     readonly base: number;
     readonly style: Style;
   };
-  /**
-   * The ordinates of the line's cross-section lines, `y1` the smaller: from the smallest to the
-   * largest of the line's ordinate and of the start and outer edge of its children band and of
-   * its conversion maps band, each where present; null where neither band is present, so that a
-   * cross-section line there has no length and is not drawn.
-   */
   readonly crossSection: {
-    readonly y1: number;
-    readonly y2: number;
+    /**
+     * The ordinates of the line's cross-section lines, `y1` the smaller: from the smallest to the
+     * largest of the line's ordinate and of the start and outer edge of its children band and of
+     * its conversion maps band, each where present; null where neither band is present, so that
+     * a cross-section line there has no length and is not drawn.
+     */
+    readonly extent: { readonly y1: number; readonly y2: number } | null;
+    /** The style of a cross-section line of the line's timeline, drawn or not. */
     readonly style: Style;
-  } | null;
+  };
   /**
    * The IDs of the timelines its cross-section lines cross besides its own: its displayed
    * descendants drawn with a line of their own in the member drawing, every one within its
@@ -224,10 +224,25 @@ export interface AxisMarker {
   readonly timestamps: readonly AxisTimestamp[];
 }
 
-/** A named timestamp held by a drawn line: its ID and the abscissa of its cross-section line. */
+/**
+ * A named timestamp held by a drawn line: its ID, the abscissa of its
+ * cross-section line, that line's style, and the ordinates its stack of
+ * labels lies between.
+ */
 export interface AxisTimestamp {
   readonly id: string;
   readonly x: number;
+  /**
+   * The style of its cross-section line, whether or not the line has a length there; null where
+   * its `display` does not list `cross_section` or the line is not displayed.
+   */
+  readonly line: Style | null;
+  /**
+   * The ordinates `[y1, y2]`, `y1` the smaller, of the lines of the markers band its labels lie
+   * on, from the first line of its stack to the end of the last (each `h(s)` high, `s` the band's
+   * largest label size); null where it draws no label.
+   */
+  readonly labels: readonly [number, number] | null;
 }
 
 /**

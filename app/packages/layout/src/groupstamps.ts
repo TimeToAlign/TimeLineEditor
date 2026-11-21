@@ -1,115 +1,107 @@
 /**
  * The lines of the groupstamps: a named timestamp with `groupstamp: true`
- * lies on a group's member, and its line extends across every member of
- * each group having that member, in the group's frame. The members'
- * coordinates and lines derive from the group (the members of a frame share
- * its start and its length, so one abscissa is one proportion of each
- * member's drawn length) and are never stored; they are drawn in the
- * timestamp's own line style, without wedges or labels.
+ * lies on a group's member (a timeline the group lists, or a descendant of
+ * one), and its line extends across every member of each group whose frame
+ * draws it. The other members' coordinates and lines derive from the group
+ * (the members of a frame share its start and its length, so one abscissa is
+ * one proportion of each member's drawn length) and are never stored; they
+ * are drawn in the timestamp's own line style, without wedges or labels.
  */
 
-import {
-  findTimeline,
-  idAddress,
-  type Manifest,
-  type NamedTimestamp,
-  partAddress,
-} from "@timetoalign/tilie-core";
-import { elementKey } from "@timetoalign/tilie-core/drawing";
+import type { Manifest } from "@timetoalign/tilie-core";
+import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import type { DrawnAxis } from "./boxes.ts";
-import { scaledStyle } from "./canvas.ts";
-import type { Cascade, Style } from "./cascade.ts";
 import type { VerticalLineElement } from "./elements.ts";
-import { type Holder, shown } from "./traversal.ts";
 
-/** A group's frame as the groupstamps read it: its holder (key and style) and its item's scale. */
-export interface FrameHolder {
-  readonly holder: Holder;
-  readonly scale: number;
+/** An interval of ordinates `[y1, y2]`, `y1 ≤ y2`, in the drawing's units. */
+export type Span = readonly [number, number];
+
+/** Whether `axis` is drawn in a card held by a group's frame. */
+const inFrame = (axis: DrawnAxis): boolean => axis.card.member !== undefined;
+
+/**
+ * The member lines of the frame of the group `group` among the drawn lines
+ * `axes`, in their order: the line of each member card's own timeline (the
+ * timeline the group lists), never an ancestor line drawn above it nor a
+ * descendant's line drawn in its children band. The one statement of which
+ * lines a group's frame holds, which a groupstamp spans and whose timelines
+ * a groupstamp's timestamp reads.
+ */
+export function frameMemberLines(axes: readonly DrawnAxis[], group: string): DrawnAxis[] {
+  return axes.filter(
+    (axis) =>
+      axis.card.item === group &&
+      axis.card.member !== undefined &&
+      axis.address.id === axis.card.member &&
+      axis.marker !== null,
+  );
 }
 
 /**
- * The style of the line of the timestamp `timestamp`, on the member `member`
- * drawn as a root in the frame held by `frame`: the cascade's for the
- * timestamp's line held by the member's line, as the member's own card draws
- * it; undefined where the member's line or the timestamp's line is not
- * displayed.
+ * The ordinates a groupstamp's line spans in the frame drawing the line
+ * `primary` (a line drawn in a card of a group's frame), among the drawn lines
+ * `axes`: from the topmost to the bottommost cross-section segment of the
+ * frame's member lines (`frameMemberLines`; each its cross-section extent,
+ * else the point on its line), less each of `cuts`; the pieces in order from
+ * the top, none without a length. None where `primary` is drawn in no frame.
  */
-function lineStyle(
-  manifest: Manifest,
-  timestamp: NamedTimestamp,
-  frame: Holder,
-  cascade: Cascade,
-): Style | undefined {
-  const member = findTimeline(manifest, timestamp.timeline);
-  if (member === undefined) return undefined;
-  const lineKey = elementKey("timeline", idAddress(member.id), member, frame.key);
-  const memberStyle = cascade.resolve(lineKey, frame.style);
-  if (!shown(memberStyle)) return undefined;
-  const address = partAddress(idAddress(timestamp.id), "line");
-  const style = cascade.resolve(elementKey("cross_section", address, member, lineKey), memberStyle);
-  return shown(style) ? style : undefined;
+export function groupSpans(
+  axes: readonly DrawnAxis[],
+  primary: DrawnAxis,
+  cuts: readonly Span[],
+): Span[] {
+  if (!inFrame(primary)) return [];
+  const ordinates = frameMemberLines(axes, primary.card.item).flatMap(({ line, marker }) => {
+    const extent = marker?.crossSection.extent ?? null;
+    return extent === null ? [line] : [extent.y1, extent.y2];
+  });
+  if (ordinates.length === 0) return [];
+  let pieces: Span[] = [[Math.min(...ordinates), Math.max(...ordinates)]];
+  for (const [low, high] of cuts) {
+    pieces = pieces.flatMap(([y1, y2]): Span[] =>
+      high <= y1 || low >= y2
+        ? [[y1, y2]]
+        : [
+            [y1, Math.min(y2, low)],
+            [Math.max(y1, high), y2],
+          ],
+    );
+  }
+  return pieces.filter(([y1, y2]) => y2 > y1);
 }
-
-/** Whether `axis` is the line of the member drawn as the root of a card in the frame of `group`. */
-const memberLineIn = (axis: DrawnAxis, group: string): boolean =>
-  axis.card.item === group &&
-  axis.card.member !== undefined &&
-  axis.address.id === axis.card.member &&
-  axis.marker !== null;
 
 /**
  * The lines of `manifest`'s groupstamps among the drawn lines `axes`, in block
  * coordinates: timestamp by timestamp in the order of `graphical.timestamps`,
- * group by group in the order of `groups`, for each groupstamp listing
- * `cross_section` in its `display` and for each group having its timeline as
- * a member whose frame `frames` holds (by the group's ID), one vertical line
- * at the abscissa of the timestamp on its timeline's line in that frame,
- * spanning the cross-section segments of every member's line drawn in the
- * frame (each its cross-section extent, else the point on its line), less
- * the timestamp's own cross-section line where that is drawn (so the span
- * may give two lines, above and below it). Its address is the timestamp's
- * line's, `{id, part: ["line"]}`, and its style that line's, at the frame's
- * scale. None where the member's line or the timestamp's line is not
- * displayed, where the timestamp's line is not drawn in the frame, or
- * where a span has no length. They take no room.
+ * frame by frame in the order of the lines, for each groupstamp whose
+ * cross-section line is listed and displayed (its `AxisTimestamp.line`) and
+ * for each line drawn in a card of a group's frame that holds it, vertical
+ * `cross_section` elements at the timestamp's abscissa there over the frame's
+ * spans (`groupSpans`), less the timestamp's own cross-section line where
+ * that has a length and less the lines its stack of labels lies on, so that
+ * the line passes behind its labels. Their address is the timestamp's line's,
+ * `{id, part: ["line"]}`, and their style that line's, at the frame's scale.
+ * They take no room.
  */
 export function groupstampElements(
   manifest: Manifest,
   axes: readonly DrawnAxis[],
-  cascade: Cascade,
-  frames: ReadonlyMap<string, FrameHolder>,
 ): VerticalLineElement[] {
   const lines: VerticalLineElement[] = [];
   for (const timestamp of manifest.graphical?.timestamps ?? []) {
-    if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;
-    for (const group of manifest.groups) {
-      const frame = frames.get(group.id);
-      if (frame === undefined || !group.members.includes(timestamp.timeline)) continue;
-      const style = lineStyle(manifest, timestamp, frame.holder, cascade);
-      if (style === undefined) continue;
-      const members = axes.filter((axis) => memberLineIn(axis, group.id));
-      const marker = members.find((axis) => axis.address.id === timestamp.timeline)?.marker;
-      const x = marker?.timestamps.find((item) => item.id === timestamp.id)?.x;
-      if (marker === null || marker === undefined || x === undefined) continue;
-      const ordinates = members.flatMap(({ line, marker: crossed }) => {
-        const extent = crossed?.crossSection ?? null;
-        return extent === null ? [line] : [extent.y1, extent.y2];
-      });
-      const top = Math.min(...ordinates);
-      const bottom = Math.max(...ordinates);
-      const drawn = marker.crossSection;
-      const spans: (readonly [number, number])[] =
-        drawn === null
-          ? [[top, bottom]]
-          : [
-              [top, drawn.y1],
-              [drawn.y2, bottom],
-            ];
-      const address = partAddress(idAddress(timestamp.id), "line");
-      const scaled = scaledStyle(style, frame.scale);
-      for (const [y1, y2] of spans) {
-        if (y2 > y1) lines.push({ type: "cross_section", address, style: scaled, x, y1, y2 });
+    if (!timestamp.groupstamp) continue;
+    const address = partAddress(idAddress(timestamp.id), "line");
+    for (const axis of axes) {
+      if (!inFrame(axis)) continue;
+      const held = axis.marker?.timestamps.find((item) => item.id === timestamp.id);
+      if (held === undefined || held.line === null) continue;
+      const own = axis.marker?.crossSection.extent ?? null;
+      const cuts: Span[] = [
+        ...(own === null ? [] : [[own.y1, own.y2] as const]),
+        ...(held.labels === null ? [] : [held.labels]),
+      ];
+      for (const [y1, y2] of groupSpans(axes, axis, cuts)) {
+        lines.push({ type: "cross_section", address, style: held.line, x: held.x, y1, y2 });
       }
     }
   }

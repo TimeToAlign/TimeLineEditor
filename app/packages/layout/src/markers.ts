@@ -136,9 +136,10 @@ export interface MarkersBand extends PreparedBand {
   /**
    * Every named timestamp it holds, in the order it places them, with the abscissa of its
    * cross-section line at the line placed at `at`, whether or not that line is drawn: where the
-   * alignment anchors joining its timestamp meet it (section 8.7).
+   * alignment anchors joining its timestamp meet it (section 8.7); that line's style; and the
+   * ordinates of the lines its stack of labels lies on, the band drawn from `start` on `side`.
    */
-  timestamps(at: LinePosition): AxisTimestamp[];
+  timestamps(at: LinePosition, start: number, side: Side): AxisTimestamp[];
   /**
    * The styles of a wedge and a cross-section line of the band's timeline that no named
    * timestamp holds: the cascade's, the wedge held by the band and the line by the timeline's
@@ -284,7 +285,23 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
               ? []
               : [crossSectionElement(drawn.address, drawn.style, at.x(position), extent)],
           ),
-    timestamps: (at) => stamps.map(({ id, at: position }) => ({ id, x: at.x(position) })),
+    timestamps: (at, start, side) =>
+      stamps.map((stamp) => {
+        const tier = tierOf.get(stamp);
+        const first = tier === undefined ? 0 : (before[tier - 1] ?? 0);
+        const from = start + w / 2 + MARKER_HEIGHT + LABEL_GAP + first * h(size);
+        const ordinates = [
+          at.yAt(side, from),
+          at.yAt(side, from + stamp.labels.length * h(size)),
+        ] as const;
+        return {
+          id: stamp.id,
+          x: at.x(stamp.at),
+          line: stamp.line?.style ?? null,
+          labels:
+            stamp.labels.length === 0 ? null : [Math.min(...ordinates), Math.max(...ordinates)],
+        };
+      }),
     unnamed: {
       wedge: cascade.resolveUnaddressed(
         unnamedKey("wedge", line.bands.markers.key),
