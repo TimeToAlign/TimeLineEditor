@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 PACKAGE_NAME = "tilie-server"
@@ -12,12 +12,17 @@ API_PREFIX = "/api/"
 
 @dataclass(frozen=True)
 class ServerSettings:
-    """The network, authorization, and static-app settings for one run."""
+    """The network, authorization, static-app and file settings for one run.
+
+    ``root`` is the folder whose files the file routes serve: the user's home
+    folder unless another is given.
+    """
 
     host: str
     port: int
     token: str
     static_dir: Path | None = None
+    root: Path = field(default_factory=Path.home)
 
     def allowed_hosts(self) -> frozenset[str]:
         """Return the ``Host`` header values this server answers to."""

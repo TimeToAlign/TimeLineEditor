@@ -81,6 +81,14 @@ def choose_port(
     )
 
 
+def existing_folder(given: str) -> Path:
+    """The folder ``--root`` names; refused unless it exists."""
+    folder = Path(given)
+    if not folder.is_dir():
+        raise argparse.ArgumentTypeError(f"{given!r} is no existing folder")
+    return folder
+
+
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="tilie",
@@ -108,6 +116,13 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         type=Path,
         default=None,
         help="serve this directory instead of the bundled app (development)",
+    )
+    parser.add_argument(
+        "--root",
+        type=existing_folder,
+        default=Path.home(),
+        help="the folder whose files the editor may open and save (default: your "
+        "home folder)",
     )
     return parser.parse_args(argv)
 
@@ -197,6 +212,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         port=port,
         token=token,
         static_dir=args.static_dir,
+        root=args.root,
     )
     app = create_app(settings)
     config = uvicorn.Config(
