@@ -4,6 +4,7 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import BlockNode from "../src/BlockNode.svelte";
 import { LEVELS } from "../src/containers.ts";
 import { GestureSlot } from "../src/gesture.ts";
+import { NO_PAINT } from "../src/matches.ts";
 import type { BlockNodeData } from "../src/node.ts";
 import type { NodeActions } from "../src/nodeActions.ts";
 import { setNodeActions } from "../src/nodeActions.ts";
@@ -22,7 +23,7 @@ const IDLE: NodeActions = {
   reducedMotion: () => false,
   coordinates: () => false,
   matches: () => false,
-  staleAnchors: () => new Set(),
+  matchPaint: () => NO_PAINT,
   gestures: new GestureSlot(),
 };
 
@@ -44,7 +45,7 @@ setNodeActions({
   reducedMotion: () => current().reducedMotion(),
   coordinates: () => current().coordinates(),
   matches: () => current().matches(),
-  staleAnchors: (block) => current().staleAnchors(block),
+  matchPaint: (block) => current().matchPaint(block),
   get gestures() {
     return current().gestures;
   },

@@ -11,6 +11,7 @@ import { vi } from "vitest";
 import type { LevelRules } from "../src/containers.ts";
 import { LEVELS } from "../src/containers.ts";
 import { GestureSlot } from "../src/gesture.ts";
+import { NO_PAINT } from "../src/matches.ts";
 import type { Matrix } from "../src/motion.ts";
 import type { NodeActions, NodePreview } from "../src/nodeActions.ts";
 import { metrics } from "./support.ts";
@@ -222,7 +223,7 @@ export function recordingActions(
       reducedMotion: () => reducedMotion,
       coordinates: () => false,
       matches: () => false,
-      staleAnchors: () => new Set(),
+      matchPaint: () => NO_PAINT,
       gestures: new GestureSlot(),
     },
   };

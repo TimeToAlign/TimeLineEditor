@@ -33,7 +33,7 @@ import { bandGesture } from "./gestures/band.ts";
 import { cardDrawing, heldGesture } from "./gestures/held.ts";
 import type { Ghost, NodeHost } from "./gestures/host.ts";
 import { itemGesture } from "./gestures/item.ts";
-import { STALE_STROKE } from "./matches.ts";
+import { OUT_OF_DATE_MARK } from "./matches.ts";
 import { settle, slide } from "./motion.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
@@ -72,10 +72,11 @@ interface Entry {
   readonly box: DrawnBox | undefined;
   /** The named timestamp or MatchStamp it draws a part of (`ownerOf`); `null` for anything else. */
   readonly owner: Owner | null;
-  /** The key of the owner's address; `null` without an owner. */
-  readonly ownerKey: string | null;
-  /** Whether it draws an alignment anchor's line, which a stale anchor draws red. */
-  readonly anchorLine: boolean;
+  /**
+   * The keys of the addresses whose selection it shows: its owner's and what
+   * a press on it selects (`Owner.selects`); none without an owner.
+   */
+  readonly ownerKeys: readonly string[];
 }
 
 /** Whether a role is a box's own rectangle: a frame's or a card's, never a card's shadow. */
@@ -107,8 +108,7 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
       ),
       box: isBoxShape(role) ? shapeBox(drawing, element) : undefined,
       owner,
-      ownerKey: owner === null ? null : addressKey(owner.address),
-      anchorLine: descriptor.source.type === "alignment_anchor",
+      ownerKeys: owner === null ? [] : [...new Set([owner.address, owner.selects].map(addressKey))],
     };
   });
 }
@@ -167,7 +167,7 @@ function onpointerleave() {
 function isSelected(entry: Entry): boolean {
   return (
     showsSelection(entry.role, entry.address, data.selectedElements) ||
-    (entry.ownerKey !== null && data.selectedElements.has(entry.ownerKey))
+    entry.ownerKeys.some((key) => data.selectedElements.has(key))
   );
 }
 
@@ -183,14 +183,23 @@ function passes(owner: Owner | null): boolean {
   );
 }
 
-/** The address keys of this block's alignment anchors drawn red. */
-const stale = $derived(actions.staleAnchors(data.block.id));
+/** How this block's named MatchStamps are painted over their style (`namedPaint`), by address key. */
+const paint = $derived(actions.matchPaint(data.block.id));
 
-/** An entry's attributes, an alignment anchor the table no longer states stroked red. */
+/** An entry's attributes, a part of a named MatchStamp painted by belief or as out of date. */
 function attributesOf(entry: Entry): Readonly<Record<string, string>> {
-  return entry.anchorLine && stale.has(addressKey(entry.address))
-    ? { ...entry.attributes, stroke: STALE_STROKE }
-    : entry.attributes;
+  const painted = paint.get(addressKey(entry.address));
+  return painted === undefined
+    ? entry.attributes
+    : { ...entry.attributes, [painted.attribute]: painted.colour };
+}
+
+/** An entry's text, the name label of a named MatchStamp out of date marked. */
+function textOf(entry: Entry): string | null {
+  const { text } = entry.descriptor;
+  return text !== null && paint.get(addressKey(entry.address))?.marked === true
+    ? `${OUT_OF_DATE_MARK}${text}`
+    : text;
 }
 
 /** Whether an element shows the selection on itself: any but a box, whose selection is a mark. */
@@ -505,7 +514,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         pointer-events={passes(entry.owner) ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
-        animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
+        animate:slide={slideParams(entry)}>{textOf(entry)}</svelte:element
       >
     {/each}
     {#each affordances as { affordance, timestamp, owner, key } (key)}

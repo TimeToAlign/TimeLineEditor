@@ -58,6 +58,11 @@ export interface MatchStampUpdate {
 export interface MatchStampCheck {
   /** Per named anchor the index's anchor stating it, `null` when it is not stated. */
   readonly stated: readonly (number | null)[];
+  /**
+   * Per named anchor the rows of the MatchClaims stating it, those the mask
+   * passes, ascending; empty where it is not stated.
+   */
+  readonly statedBy: readonly Uint32Array[];
   readonly outOfDate: boolean;
   /** The current potential MatchStamps, ascending. */
   readonly current: readonly number[];
@@ -94,6 +99,12 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
     const found = anchorOf(index, left, right);
     return found < 0 ? null : found;
   });
+  const { claimOffsets, claimRows } = index.anchors;
+  const statedBy = stated.map((anchor) =>
+    anchor === null
+      ? new Uint32Array(0)
+      : claimRows.subarray(claimOffsets[anchor] as number, claimOffsets[anchor + 1] as number),
+  );
   const current = [...currentSet].sort((x, y) => x - y);
   const currentAnchors = current.flatMap((m) => Array.from(matchStampAnchors(index, m)));
   currentAnchors.sort((x, y) => x - y);
@@ -129,6 +140,7 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
     0;
   return {
     stated,
+    statedBy,
     outOfDate,
     current,
     anchorsGone,

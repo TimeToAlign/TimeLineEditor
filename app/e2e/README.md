@@ -980,7 +980,13 @@ through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
 Properties show the name "Downbeat" and the MatchClaim `claim_1`; Remove
 empties `graphical.matchstamps` in exactly one journal entry, and the
 selection losing the MatchStamp lets it go, so the tab shown before it,
-Properties, is selected again. The manifest imported without its table
+Properties, is selected again. Named the same way, its match timestamp
+on `clt_1` (whose children band gives its line a length) is written with
+`display` `["cross_section"]`, its line only; a click on that line
+(`line[data-id=<it>][data-part="line"]`, dispatched on the element, the
+canvas's selection reading the element clicked) selects `{block, id:
+"matchstamp_1"}`, not the timestamp, and the Matchstamp tab is selected
+with the name "Downbeat". The manifest imported without its table
 makes no table request and the message bar reads "The manifest names the
 MatchClaim table match_claims.parquet, which is not loaded: Load
 MatchClaims… in the Matchstamp tab reads it."

@@ -61,6 +61,40 @@ export interface Owner {
   readonly kind: "timestamp" | "matchstamp";
   /** Whether it belongs to a MatchStamp: a MatchStamp itself, or a match timestamp. */
   readonly match: boolean;
+  /**
+   * What a press on it selects: the owner, but for a match timestamp's line
+   * the MatchStamp holding it (`holdingMatchStamp`), whose selection the
+   * line shows too.
+   */
+  readonly selects: ElementAddress;
+}
+
+const holdersByManifest = new WeakMap<Manifest, ReadonlyMap<string, string>>();
+
+/**
+ * The named MatchStamp a press on the line of match timestamp `timestamp`
+ * of `manifest` selects, `undefined` where none holds it: of the
+ * MatchStamps one of whose alignment anchors joins it, the first in the
+ * manifest's order whose anchor joining it shows the MatchStamp's name
+ * (`display` lists `name`), else the first. Read once per manifest.
+ */
+export function holdingMatchStamp(manifest: Manifest, timestamp: string): string | undefined {
+  let holders = holdersByManifest.get(manifest);
+  if (holders === undefined) {
+    const first = new Map<string, string>();
+    const named = new Map<string, string>();
+    for (const matchstamp of manifest.graphical?.matchstamps ?? []) {
+      for (const anchor of matchstamp.alignment_anchors) {
+        for (const id of anchor.timestamps) {
+          if (!first.has(id)) first.set(id, matchstamp.id);
+          if (anchor.display.includes("name") && !named.has(id)) named.set(id, matchstamp.id);
+        }
+      }
+    }
+    holders = new Map([...first, ...named]);
+    holdersByManifest.set(manifest, holders);
+  }
+  return holders.get(timestamp);
 }
 
 /**
@@ -68,17 +102,25 @@ export interface Owner {
  * part read up to its owner): a named timestamp's own address `{id}` for
  * its wedge, its labels and its line; the address of the MatchStamp holding
  * an alignment anchor for the anchor's line and its name label; `null` for
- * any other element.
+ * any other element. A press on a match timestamp's line selects its
+ * MatchStamp (`holdingMatchStamp`), a press on anything else its owner.
  */
 export function ownerOf(manifest: Manifest, element: ElementAddress): Owner | null {
   let resolved = resolveElement(manifest, element);
   while (resolved?.kind === "part") resolved = resolved.owner;
   if (resolved?.kind === "timestamp" && element.id !== undefined) {
+    const address = idAddress(element.id);
     const match = resolved.timestamp.matchstamp === true;
-    return { address: idAddress(element.id), kind: "timestamp", match };
+    const holder =
+      match && element.part?.length === 1 && element.part[0] === "line"
+        ? holdingMatchStamp(manifest, element.id)
+        : undefined;
+    const selects = holder === undefined ? address : idAddress(holder);
+    return { address, kind: "timestamp", match, selects };
   }
   if (resolved?.kind === "anchor") {
-    return { address: idAddress(resolved.matchstamp.id), kind: "matchstamp", match: true };
+    const address = idAddress(resolved.matchstamp.id);
+    return { address, kind: "matchstamp", match: true, selects: address };
   }
   return null;
 }
@@ -86,8 +128,8 @@ export function ownerOf(manifest: Manifest, element: ElementAddress): Owner | nu
 /**
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
  * the band or the element it hit, a named timestamp for any of its parts
- * and a named MatchStamp for any alignment anchor's line or label
- * (`ownerOf`), a timestamp for its affordance, whose source carries the
+ * but a match timestamp's line, and a named MatchStamp for that line and
+ * for any alignment anchor's line or label (`ownerOf`), a timestamp for its affordance, whose source carries the
  * timestamp's own address, or the block where it hit the block itself; `null`
  * off every block and outside the edited element, where a press changes
  * nothing. A band is hit only with a drawing point: a key selects none.
@@ -100,7 +142,7 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
   if (address === null || node === undefined) return null;
   const { element } = addressParts(address);
   const owner = element === null ? null : ownerOf(node.data.block.manifest, element);
-  return owner === null ? address : inBlock(node.id, owner.address);
+  return owner === null ? address : inBlock(node.id, owner.selects);
 }
 
 /**

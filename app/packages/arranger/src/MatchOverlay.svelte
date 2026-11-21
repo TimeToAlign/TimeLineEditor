@@ -6,7 +6,6 @@ import {
   HOVERED_STROKE,
   MATCH_DASH,
   MATCH_STROKE_WIDTH,
-  PINNED_STROKE,
   POTENTIAL_OPACITY,
   POTENTIAL_STROKE,
   pathOf,
@@ -15,7 +14,9 @@ import {
 /**
  * "Show matches": per block, the potential MatchStamps' cross-section lines
  * and connectors in light grey, the hovered MatchStamp's over them in dark
- * grey, the pinned one's in the cross-section blue on top. Each is one path,
+ * grey, the pinned one's on top: its lines in the cross-section blue, its
+ * connectors by the user's belief in their MatchClaims, a path per colour
+ * (`pinnedOverlays`). Each is one path,
  * drawn in its block's drawing units in an `<svg>` laid over the block's
  * node exactly as the node's own, so strokes and dashes scale with the zoom
  * as the drawing's do. They never take the pointer: the canvas reads what
@@ -63,16 +64,17 @@ const width = attributeText(MATCH_STROKE_WIDTH);
             stroke-dasharray={MATCH_DASH}
           />
         {/if}
-        {#if layer.pinned !== null}
+        {#each layer.pinned as part (part.belief)}
           <path
             data-match="pinned"
-            d={pathOf(layer.pinned)}
+            data-belief={part.belief}
+            d={pathOf(part.overlay)}
             fill="none"
-            stroke={PINNED_STROKE}
+            stroke={part.stroke}
             stroke-width={width}
             stroke-dasharray={MATCH_DASH}
           />
-        {/if}
+        {/each}
       </svg>
     {/each}
   </ViewportPortal>

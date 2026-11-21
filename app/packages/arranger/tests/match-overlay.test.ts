@@ -2,8 +2,10 @@
 /**
  * Show matches on the canvas: the mode and its key, the message without a
  * table, the overlay of potential MatchStamps, the hovered one with its flag,
- * what a click pins, the pinned one, the named anchors drawn red, and how a
- * named MatchStamp takes the pointer in either mode. Derived in `README.md`
+ * what a click pins, the pinned one by belief, the named MatchStamps painted
+ * by belief or as out of date, how a named MatchStamp takes the pointer in
+ * either mode and what a click on a match timestamp's line selects. Derived
+ * in `README.md`
  * ("Show matches on the canvas").
  */
 
@@ -18,7 +20,7 @@ import type { Selection } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
-import { NAMED, T } from "./matchTables.ts";
+import { BELIEVED, NAMED, NAMED_IN_D, T } from "./matchTables.ts";
 import { A, B, blockIn, metrics, storeOf, viewOf } from "./support.ts";
 
 // The canvas's calls of what a hover costs are counted; each still does what it does.
@@ -44,6 +46,9 @@ const NODE = { x: 40, y: 80 };
 const SCORE_Y = 43.20703125;
 const AT_300 = 361.0927734375;
 const WITH_T: readonly MatchOverlayInput[] = [{ block: A, index: T, named: NAMED }];
+const WITH_BELIEFS: readonly MatchOverlayInput[] = [
+  { block: A, index: T, named: NAMED, beliefs: BELIEVED },
+];
 /** Block B: the same manifest 250 below block A. */
 const B_BELOW = 250;
 const WITH_T_TWICE: readonly MatchOverlayInput[] = [
@@ -307,6 +312,35 @@ describe("hovering and pinning", () => {
     expect(path("pinned")?.getAttribute("d")).toBe(STAMP_1);
   });
 
+  it("draws the pinned one's anchors by the user's belief", async () => {
+    await show(WITH_BELIEFS);
+    await key("m");
+    harness.pinMatchStamp({ block: A, matchStamp: 0 });
+    await settle();
+    const pinned = [
+      ...document.querySelectorAll(`[data-matches="${A}"] path[data-match="pinned"]`),
+    ];
+    expect(
+      pinned.map((element) =>
+        ["data-belief", "stroke", "d"].map((name) => element.getAttribute(name)),
+      ),
+    ).toEqual([
+      ["true", "#339933", "M361.0928 43.207L361.0928 100.5859"],
+      [
+        "undecided",
+        "#1BA1E2",
+        [
+          "M361.0928 157.9648V157.9648",
+          "M361.0928 43.207V43.207",
+          "M261.0928 100.5859V100.5859",
+          "M361.0928 100.5859V100.5859",
+          "M361.0928 157.9648L261.0928 100.5859",
+        ].join(""),
+      ],
+      ["false", "#E51400", "M361.0928 157.9648L361.0928 100.5859"],
+    ]);
+  });
+
   it("makes nothing again while the pointer moves on one MatchStamp", async () => {
     await show(WITH_T);
     await key("m");
@@ -366,14 +400,64 @@ describe("the named MatchStamps", () => {
       "stroke",
     );
 
-  it("draw an anchor the table no longer states red, in either mode, only with a table", async () => {
+  /**
+   * Give score, take_1 and take_2 a child each, spanning it, so that each
+   * card draws a children band and a timestamp's line has a length.
+   */
+  async function withChildren(): Promise<void> {
+    const children = [
+      ["score", "quarters", [0, 1], [8, 1]],
+      ["take_1", "samples", 0, 352800],
+      ["take_2", "samples", 0, 396900],
+    ] as const;
+    for (const [parent, unit, offset, length] of children) {
+      const refusal = store.dispatch({
+        type: "add",
+        into: inBlock(A, idAddress(parent)),
+        child: { id: `${parent}_child`, offset, unit, length },
+      });
+      expect(refusal).toBeNull();
+    }
+    await settle();
+  }
+
+  /** The drawn element of `id`'s part `part` in block A's node. */
+  const partOf = (id: string, part: string) =>
+    one(`.svelte-flow__node[data-id] svg [data-id="${id}"][data-part="${part}"]`);
+  /** The strokes of `anchor_1`, `anchor_2` and the lines of `timestamp_1` … `timestamp_3`. */
+  const strokes = () => [
+    strokeOf("anchor_1"),
+    strokeOf("anchor_2"),
+    ...["timestamp_1", "timestamp_2", "timestamp_3"].map((id) =>
+      partOf(id, "line").getAttribute("stroke"),
+    ),
+  ];
+
+  it("draw an anchor by its belief, one out of date all red, in either mode, only with a table", async () => {
     await show(WITH_T);
-    expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#E51400"]);
+    await withChildren();
+    const BLUE = "#1BA1E2";
+    const RED = "#E51400";
+    expect(strokes()).toEqual([BLUE, RED, RED, BLUE, RED]);
     await key("m");
-    expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#E51400"]);
+    expect(strokes()).toEqual([BLUE, RED, RED, BLUE, RED]);
+    harness.showMatches(WITH_BELIEFS);
+    await settle();
+    expect(strokes()).toEqual(["#E07000", RED, RED, BLUE, RED]);
     harness.showMatches([]);
     await settle();
-    expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#1BA1E2"]);
+    expect(strokes()).toEqual([BLUE, BLUE, BLUE, BLUE, BLUE]);
+  });
+
+  it("mark the name of one out of date", async () => {
+    await show([{ block: A, index: T, named: NAMED_IN_D }]);
+    await withChildren();
+    const label = partOf("anchor_1", "name");
+    expect([label.textContent, label.getAttribute("fill")]).toEqual([
+      "! Bar 2, downbeat (take 1)",
+      "#E51400",
+    ]);
+    expect(strokes()).toEqual(["#E51400", "#1BA1E2", "#E51400", "#E51400", "#1BA1E2"]);
   });
 
   /** The elements of block A's node letting the pointer through, as `[tag, data-id, data-part]`. */
@@ -429,6 +513,33 @@ describe("the named MatchStamps", () => {
         element.getAttribute("data-part"),
       ),
     ).toEqual([null, "name"]);
+  });
+
+  /** Click the drawn element of `id`'s part `part` in block A's node; the selection after it. */
+  async function clickPart(id: string, part: string): Promise<Address[]> {
+    partOf(id, part).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle();
+    return [...harness.current().selection.values()];
+  }
+  /** The drawn elements of block A showing the selection, as `data-id` and `data-part`. */
+  const glowing = () =>
+    [...one(".svelte-flow__node[data-id] svg").querySelectorAll("[data-selected]")].map(
+      (element) => `${element.getAttribute("data-id")} ${element.getAttribute("data-part")}`,
+    );
+
+  it("are selected by a match timestamp's line with Show matches off", async () => {
+    await show(WITH_T);
+    await withChildren();
+    expect(await clickPart("timestamp_1", "line")).toEqual([inBlock(A, idAddress("matchstamp_1"))]);
+    expect(glowing().sort()).toEqual([
+      "anchor_1 name",
+      "anchor_1 null",
+      "timestamp_1 line",
+      "timestamp_2 line",
+    ]);
+    expect(await clickPart("timestamp_3", "line")).toEqual([inBlock(A, idAddress("matchstamp_2"))]);
+    expect(await clickPart("timestamp_3", "name")).toEqual([inBlock(A, idAddress("timestamp_3"))]);
+    expect(glowing().sort()).toEqual(["timestamp_3 line", "timestamp_3 name"]);
   });
 });
 

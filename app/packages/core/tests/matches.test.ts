@@ -14,7 +14,15 @@ import {
   matchStampMembers,
   segmentsOf,
 } from "../src/matches/anchors.ts";
-import { actorIri, BELIEF_FILTERS, BELIEFS, beliefMask } from "../src/matches/beliefs.ts";
+import {
+  ANCHOR_BELIEFS,
+  actorIri,
+  anchorBelief,
+  BELIEF_FILTERS,
+  BELIEFS,
+  beliefMask,
+  believedBy,
+} from "../src/matches/beliefs.ts";
 import type { ClaimTimeline, ClaimValues } from "../src/matches/columns.ts";
 import { matchClaimColumns } from "../src/matches/columns.ts";
 import type { NamedAnchor, NamedMatchStampSpec } from "../src/matches/compare.ts";
@@ -587,6 +595,7 @@ describe("a named MatchStamp against the index", () => {
   it("finds one that matches the table up to date", () => {
     const check = checkMatchStamp(index, spec(chain, ["claim_4", "claim_5", "claim_6"]));
     expect(check).toMatchObject({ stated: [6, 11], outOfDate: false, current: [6], ...unchanged });
+    expect(check.statedBy).toEqual([Uint32Array.from([3, 4]), Uint32Array.from([5])]);
     expect(check.update).toEqual({
       matchStamp: 6,
       coordinates: Uint32Array.from([6, 16, 20]),
@@ -627,6 +636,7 @@ describe("a named MatchStamp against the index", () => {
       claimsElsewhere: [],
       claimsNew: ["claim_8"],
     });
+    expect(check.statedBy).toEqual([Uint32Array.from([6]), new Uint32Array(0)]);
     expect(check.update).toEqual({
       matchStamp: 7,
       coordinates: Uint32Array.from([7, 17, 21]),
@@ -832,6 +842,39 @@ describe("the belief filter", () => {
     };
     expect(rows(beliefMask(twice, A, "not_false", context))).toEqual([1]);
     expect(rows(beliefMask(twice, A, "true", context))).toEqual([0]);
+  });
+
+  it("gives the believer's belief per row, the most critical of several", () => {
+    expect(ANCHOR_BELIEFS).toEqual(["false", "unlikely", "undecided", "true"]);
+    const ofA = believedBy(beliefs, A);
+    expect(Array.from(ofA)).toEqual([3, 2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2]);
+    expect(believedBy(beliefs, A)).toBe(ofA);
+    const ofB = Array.from(believedBy(beliefs, B));
+    expect(ofB).toEqual(every.map((row) => (row === 12 || row === 13 ? 3 : 2)));
+    expect(Array.from(believedBy(beliefs, "https://example.org/nobody"))).toEqual(
+      every.map(() => 2),
+    );
+
+    const context = { orcid: "https://orcid.org/" };
+    const compact = "orcid:0000-0002-1825-0097";
+    const written = { ...beliefs, actors: [B, compact] };
+    expect(Array.from(believedBy(written, A, context))).toEqual(Array.from(ofA));
+    const twice = {
+      actors: [compact, A],
+      offsets: Uint32Array.from([0, 2, 2]),
+      actor: Uint32Array.from([0, 1]),
+      word: Uint8Array.from([BELIEFS.indexOf("false"), BELIEFS.indexOf("true")]),
+    };
+    expect(Array.from(believedBy(twice, A, context))).toEqual([0, 2]);
+  });
+
+  it("draws an anchor by the most critical belief in the MatchClaims stating it", () => {
+    const ofA = believedBy(beliefs, A);
+    expect(anchorBelief(ofA, [0, 10])).toBe("true");
+    expect(anchorBelief(ofA, [0, 5])).toBe("unlikely");
+    expect(anchorBelief(ofA, Uint32Array.from([0, 5, 12]))).toBe("false");
+    expect(anchorBelief(ofA, [1, 2])).toBe("undecided");
+    expect(anchorBelief(ofA, [])).toBe("undecided");
   });
 
   it("refuses another filter word", () => {

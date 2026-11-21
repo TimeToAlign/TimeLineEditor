@@ -9,6 +9,7 @@
  */
 
 import { BELIEFS, expandIri } from "@timetoalign/timetoshare";
+import { canonicalText } from "../json.ts";
 
 export { BELIEFS };
 
@@ -83,4 +84,69 @@ export function beliefMask(
     }
   }
   return mask;
+}
+
+/**
+ * The beliefs an alignment anchor of a shown MatchStamp is drawn by, the
+ * most critical first: an anchor stated by several MatchClaims takes the
+ * first of their beliefs in this order, `undecided` where the believer
+ * states none.
+ */
+export const ANCHOR_BELIEFS = ["false", "unlikely", "undecided", "true"] as const;
+export type AnchorBelief = (typeof ANCHOR_BELIEFS)[number];
+
+const UNDECIDED = ANCHOR_BELIEFS.indexOf("undecided");
+/** Each word of `BELIEFS`, by its number there, as its number in `ANCHOR_BELIEFS`. */
+const RANKS = Uint8Array.from(BELIEFS, (word) => ANCHOR_BELIEFS.indexOf(word));
+
+const believedCache = new WeakMap<
+  ClaimBeliefs,
+  { readonly believer: string; readonly context: string; readonly rows: Uint8Array }
+>();
+
+/**
+ * The believer's belief in every MatchClaim, per row its number in
+ * `ANCHOR_BELIEFS`: `undecided` where the believer states none, the most
+ * critical where the believer states several (two actors standing for the
+ * believer's IRI); actors compare as `beliefMask` compares them
+ * (`actorIri` under `context`). The same array for the same beliefs,
+ * believer and context, made again only when one of them changes.
+ */
+export function believedBy(
+  beliefs: ClaimBeliefs,
+  believer: string,
+  context: unknown = null,
+): Uint8Array {
+  const prefixes = context === null || context === undefined ? "" : canonicalText(context);
+  const known = believedCache.get(beliefs);
+  if (known?.believer === believer && known.context === prefixes) return known.rows;
+  const { offsets, actor, word } = beliefs;
+  const rows = new Uint8Array(offsets.length - 1).fill(UNDECIDED);
+  const wanted = actorIri(context, believer);
+  const named = beliefs.actors.map((name) => actorIri(context, name) === wanted);
+  if (named.includes(true)) {
+    for (let row = 0; row < rows.length; row += 1) {
+      const end = offsets[row + 1] as number;
+      for (let index = offsets[row] as number; index < end; index += 1) {
+        if (named[actor[index] as number] !== true) continue;
+        const rank = RANKS[word[index] as number] as number;
+        if (rank < (rows[row] as number) || rows[row] === UNDECIDED) rows[row] = rank;
+      }
+    }
+  }
+  believedCache.set(beliefs, { believer, context: prefixes, rows });
+  return rows;
+}
+
+/**
+ * The belief an alignment anchor stated by the MatchClaims of `rows` is
+ * drawn by, `believed` the believer's per row (`believedBy`): the most
+ * critical among them, `undecided` for none.
+ */
+export function anchorBelief(believed: Uint8Array, rows: ArrayLike<number>): AnchorBelief {
+  let rank = rows.length === 0 ? UNDECIDED : ANCHOR_BELIEFS.length - 1;
+  for (let at = 0; at < rows.length; at += 1) {
+    rank = Math.min(rank, believed[rows[at] as number] as number);
+  }
+  return ANCHOR_BELIEFS[rank] as AnchorBelief;
 }

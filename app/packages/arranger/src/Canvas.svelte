@@ -35,15 +35,24 @@ import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
 import type { LiveStore } from "./liveStore.svelte.ts";
 import MatchFlag from "./MatchFlag.svelte";
 import MatchOverlay from "./MatchOverlay.svelte";
-import type { MatchHit, MatchLayer, MatchOverlayInput, MatchStampPin, Screen } from "./matches.ts";
+import type {
+  MatchHit,
+  MatchLayer,
+  MatchOverlayInput,
+  MatchPaint,
+  MatchStampPin,
+  Screen,
+} from "./matches.ts";
 import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
   NO_MATCHES,
+  NO_PAINT,
   NO_TABLES,
+  namedPaint,
   overlayOf,
-  staleAnchors,
+  pinnedOverlays,
   stampOverlay,
 } from "./matches.ts";
 import type { LivePlacement } from "./node.ts";
@@ -115,11 +124,16 @@ interface Props {
    * What "Show matches" draws: one entry per block with a loaded MatchClaim
    * table, the anchor index of that table drawn over that block alone, and
    * the block's named MatchStamps compared with it, whose alignment anchors
-   * no longer stated are drawn red; empty (the default) without a server or
-   * a loaded table, when "Show matches" says so and nothing is drawn red.
+   * take the user's belief in the MatchClaims stating them (`beliefs`), one
+   * out of date drawn all red; empty (the default) without a server or a
+   * loaded table, when "Show matches" says so and named MatchStamps draw as
+   * styled.
    */
   matches?: readonly MatchOverlayInput[];
-  /** The pinned potential MatchStamp, drawn blue in its block; `null` for none. */
+  /**
+   * The pinned potential MatchStamp, drawn blue in its block, its anchors by
+   * the user's belief; `null` for none.
+   */
   pinnedMatchStamp?: MatchStampPin | null;
   /**
    * While "Show matches" is on, called with the potential MatchStamp a click
@@ -411,7 +425,7 @@ setNodeActions({
   reducedMotion: () => reducedMotion.current,
   coordinates: () => coordinates,
   matches: () => showMatches,
-  staleAnchors: (block) => staleByBlock.get(block) ?? NONE_STALE,
+  matchPaint: (block) => paintByBlock.get(block) ?? NO_PAINT,
   gestures,
 });
 
@@ -609,9 +623,6 @@ $effect(() => () => frames.cancel());
 
 // --- Show matches ----------------------------------------------------------
 
-/** No anchor drawn red. */
-const NONE_STALE: ReadonlySet<string> = new Set();
-
 /** The match input of each block holding a table, by the block's ID. */
 const matchInputs: ReadonlyMap<string, MatchOverlayInput> = $derived(
   new Map(matches.map((input) => [input.block, input])),
@@ -628,16 +639,17 @@ const screen: Screen = $derived({
 });
 
 /**
- * The address keys of each block's alignment anchors its table no longer
- * states (`staleAnchors`), for every block with a table; none without one.
+ * How each block's named MatchStamps are painted (`namedPaint`): by the
+ * user's beliefs, all red where out of date; for every block with a table,
+ * in either mode, none without one.
  */
-const staleByBlock: ReadonlyMap<string, ReadonlySet<string>> = $derived.by(
+const paintByBlock: ReadonlyMap<string, MatchPaint> = $derived.by(
   () =>
     new Map(
-      matches.flatMap(({ block, named }) => {
+      matches.flatMap(({ block, named, beliefs }) => {
         const manifest = view.blocks[block]?.manifest;
-        const stale = manifest === undefined ? NONE_STALE : staleAnchors(manifest, named);
-        return stale.size === 0 ? [] : [[block, stale] as const];
+        const paint = manifest === undefined ? NO_PAINT : namedPaint(manifest, named, beliefs);
+        return paint.size === 0 ? [] : [[block, paint] as const];
       }),
     ),
 );
@@ -708,10 +720,14 @@ const stampLayers: ReadonlyMap<string, Pick<MatchLayer, "hovered" | "pinned">> =
         const hovered = hoveredBlock === block ? hoveredStamp : null;
         const pinned = pinnedMatchStamp?.block === block ? pinnedMatchStamp.matchStamp : null;
         if (hovered === null && pinned === null) return [];
+        const beliefs = matchInputs.get(block)?.beliefs;
         const layer = {
           hovered:
             hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
-          pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
+          pinned:
+            pinned === null
+              ? []
+              : pinnedOverlays(index, stampOverlay(index, lines, pinned), beliefs),
         };
         return [[block, layer] as const];
       }),
@@ -731,7 +747,7 @@ const matchLayers: readonly MatchLayer[] = $derived.by(() =>
       scale: placed.scale,
       potential: overlay,
       hovered: stamps?.hovered ?? null,
-      pinned: stamps?.pinned ?? null,
+      pinned: stamps?.pinned ?? [],
     };
   }),
 );
