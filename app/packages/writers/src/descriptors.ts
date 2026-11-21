@@ -343,6 +343,8 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     case "boundary":
     case "cross_section":
       return [writer.line(element.x, element.y1, element.x, element.y2)];
+    case "alignment_anchor":
+      return [writer.line(element.x1, element.y1, element.x2, element.y2)];
     case "name":
     case "label":
       return [writer.text(element.x, element.baseline, element.anchor, element.text)];

@@ -216,6 +216,18 @@ export interface AxisMarker {
    * children band, in traversal order (section 6.1).
    */
   readonly descendants: readonly string[];
+  /**
+   * The named timestamps the line holds, its timeline's and those of its segments without a line
+   * of their own, in the order its markers band places them, each with the abscissa of its
+   * cross-section line, drawn or not (section 8.7).
+   */
+  readonly timestamps: readonly AxisTimestamp[];
+}
+
+/** A named timestamp held by a drawn line: its ID and the abscissa of its cross-section line. */
+export interface AxisTimestamp {
+  readonly id: string;
+  readonly x: number;
 }
 
 /**

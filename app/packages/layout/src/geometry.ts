@@ -259,6 +259,11 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
         right: element.x,
         bottom: Math.max(element.y1, element.y2),
       };
+    case "alignment_anchor":
+      return boundsOfPoints([
+        [element.x1, element.y1],
+        [element.x2, element.y2],
+      ]);
     case "wedge":
       return boundsOfPoints(wedgePoints(element));
     case "name":

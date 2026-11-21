@@ -57,6 +57,10 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "cross_section" },
       set: { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" },
     },
+    {
+      select: { element: "alignment_anchor" },
+      set: { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" },
+    },
     { select: { element: "ancestor" }, set: { "stroke-width": 3, opacity: 0.35 } },
     {
       select: { element: "ancestor", modality: "continuous" },

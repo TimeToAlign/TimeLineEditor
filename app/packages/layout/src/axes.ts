@@ -142,6 +142,60 @@ export function crossSection(drawing: Drawing, lineKey: string, x: number): Cros
 }
 
 /**
+ * A cross-section segment (section 8.7): the vertical segment from `(x, y1)`
+ * to `(x, y2)`, `y1 ≤ y2`, in block-local canvas units, that a cross-section
+ * line at `x` spans, drawn or not; the point `(x, y)` on its line, `y1 = y2
+ * = y`, where neither the children band nor the conversion maps band of the
+ * line is present.
+ */
+export interface CrossSectionSegment {
+  readonly x: number;
+  readonly y1: number;
+  readonly y2: number;
+}
+
+/** The cross-section segment at `x` of the drawn line `axis`, whose marker is `marker`. */
+function segmentAt(axis: DrawnAxis, marker: AxisMarker, x: number): CrossSectionSegment {
+  const crossing = marker.crossSection;
+  return crossing === null
+    ? { x, y1: axis.line, y2: axis.line }
+    : { x, y1: crossing.y1, y2: crossing.y2 };
+}
+
+/**
+ * The cross-section segment at the abscissa `x` of the line keyed `lineKey`
+ * in `drawing` (a key of `lineAxes`), as a named timestamp of its timeline
+ * lying there has it (section 8.7): the extent of the line's cross-section
+ * lines, else the point on the line; null where the key names no line, or an
+ * ancestor line, which draws none. What `anchorLine` joins.
+ */
+export function crossSectionSegment(
+  drawing: Drawing,
+  lineKey: string,
+  x: number,
+): CrossSectionSegment | null {
+  const marked = markedLine(drawing, lineKey);
+  return marked === null ? null : segmentAt(marked.axis, marked.marker, x);
+}
+
+/**
+ * Every cross-section segment of the named timestamp `id` among the drawn
+ * lines `axes` (section 8.7): one in every member drawing that draws its
+ * timeline's line, or its segment line's for a segment without a line of its
+ * own, in the order of the lines, which is the order of their descriptors;
+ * none where no line drawn holds it.
+ */
+export function timestampSegments(axes: readonly DrawnAxis[], id: string): CrossSectionSegment[] {
+  return axes.flatMap((axis) => {
+    const { marker } = axis;
+    if (marker === null) return [];
+    return marker.timestamps.flatMap((timestamp) =>
+      timestamp.id === id ? [segmentAt(axis, marker, timestamp.x)] : [],
+    );
+  });
+}
+
+/**
  * The lines a cross-section line of the line keyed `lineKey` in `drawing`
  * crosses, as keys of `lineAxes`: that line's first, then those of its
  * timeline's displayed descendants drawn with a line of their own in the

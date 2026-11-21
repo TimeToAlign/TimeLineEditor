@@ -144,6 +144,19 @@ export interface VerticalLineElement extends Addressed {
   readonly y2: number;
 }
 
+/**
+ * The line of an alignment anchor of a named MatchStamp, from `(x1, y1)` to
+ * `(x2, y2)`: from a cross-section segment of its first timestamp to one of
+ * its second (section 8.7).
+ */
+export interface AnchorElement extends Addressed {
+  readonly type: "alignment_anchor";
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+}
+
 export interface MarkerElement extends Addressed {
   readonly type: "wedge";
   readonly x: number;
@@ -170,6 +183,7 @@ export type DrawnElement =
   | RegionElement
   | JumpElement
   | VerticalLineElement
+  | AnchorElement
   | MarkerElement
   | TextElement;
 
