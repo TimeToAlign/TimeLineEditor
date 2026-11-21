@@ -9,7 +9,7 @@ import type { Style } from "./cascade.ts";
 import type { DrawnElement, Point } from "./elements.ts";
 
 /** A style at the scale `scale`: each of its lengths multiplied by it (section 8.6). */
-function scaledStyle(style: Style, scale: number): Style {
+export function scaledStyle(style: Style, scale: number): Style {
   if (scale === 1) return style;
   const dashes = style["stroke-dasharray"];
   const maxWidth = style["max-width"];

@@ -74,9 +74,35 @@ export function timelineAxisOf(
   };
 }
 
-/** A timeline the cross-section line may cross: its zero lies `offset` from the anchor's zero, on the anchor's axis, exactly. */
+/**
+ * A timeline a timestamp may hold: its zero lies `offset` from the anchor's
+ * zero, on the anchor's axis, exactly. A member of a group the anchor is a
+ * member of, read by the group (a groupstamp's), has a `scale` too: the
+ * members of a group start and end together, so its coordinate is the
+ * anchor's times its drawn length over the anchor's. Its coordinate at a
+ * position `p` on the anchor's axis is `(p − offset) × scale`, `scale` 1
+ * where it is not given.
+ */
 export interface CrossSectionMember extends TimelineAxis {
   readonly offset: Real;
+  readonly scale?: Real;
+}
+
+/** `member`'s own coordinate at `position` on the anchor's axis, exactly: `(position − offset) × scale`. */
+function ownAt(member: CrossSectionMember, position: Rational): Rational {
+  const own = position.subtract(toRational(member.offset));
+  return member.scale === undefined ? own : own.multiply(toRational(member.scale));
+}
+
+/** The position on the anchor's axis of `member`'s own coordinate `own`, exactly: `own / scale + offset`. */
+function onAnchorAxis(member: CrossSectionMember, own: Rational): Rational {
+  const unscaled = member.scale === undefined ? own : own.divide(toRational(member.scale));
+  return unscaled.add(toRational(member.offset));
+}
+
+/** Where `member`'s span ends on the anchor's axis: `offset + length / scale`; null for an unknown length. */
+function endOnAnchor(member: CrossSectionMember): Rational | null {
+  return member.length === null ? null : onAnchorAxis(member, toRational(member.length));
 }
 
 /**
@@ -188,8 +214,9 @@ export interface RowAxis {
   readonly missingKnots: KnotsAbsence | null;
   /**
    * The row's raw value at `position` on the anchor's axis: the member's
-   * coordinate (`position` minus the offset, written in the member's number
-   * type), or the map's result there; `undefined` where it gives none.
+   * coordinate (`position` minus the offset, times the scale, written in the
+   * member's number type), or the map's result there; `undefined` where it
+   * gives none.
    */
   valueAt(position: Rational): MapResult | undefined;
   /** The row's value at `position` as readers show it, on its unit; `null` where it gives none. */
@@ -199,7 +226,7 @@ export interface RowAxis {
    * exact: a map's inverse over the member's span `[0, length]`, settled on
    * the member's axis (a float on a fraction axis to the nearest multiple
    * of `1 / denominator`, any value on an int axis to the nearest integer,
-   * an exact value kept), the offset added, settled on the anchor's axis
+   * an exact value kept), divided by the scale, the offset added, settled on the anchor's axis
    * alike; a coordinate is the value itself. `null` where none is: the map
    * is not invertible over the span or gives the value nowhere. The
    * position is not held to the member's span.
@@ -249,10 +276,10 @@ function axisOf(
 ): RowAxis {
   const start = toRational(member.offset);
   const coordinate = (position: Rational): CoordinateValue | undefined =>
-    expressAs(position.subtract(start), member.numberType);
+    expressAs(ownAt(member, position), member.numberType);
   const onAnchor = (own: Real): Rational =>
     settled(
-      start.add(settled(own, member.numberType, spec.granularity)),
+      onAnchorAxis(member, settled(own, member.numberType, spec.granularity)),
       spec.anchor.numberType,
       spec.granularity,
     );
@@ -332,9 +359,9 @@ export function rowAxis(
   return axisIn(spec, row, readingOf(knots));
 }
 
-/** Whether `member`'s closed span on the anchor's axis, `[offset, offset + length]` (unbounded above for an unknown length), holds `position`. */
+/** Whether `member`'s closed span on the anchor's axis, `[offset, offset + length / scale]` (unbounded above for an unknown length), holds `position`. */
 function crosses(member: CrossSectionMember, position: Rational): boolean {
-  const own = position.subtract(toRational(member.offset));
+  const own = ownAt(member, position);
   return own.numerator >= 0n && (member.length === null || compareReal(own, member.length) <= 0);
 }
 
@@ -478,10 +505,11 @@ export function snapOnRow(
   const { member, start } = axis;
   const stepsByOne = member.numberType === "int";
   const own = (): Rational => {
-    const at = position.subtract(start);
+    const at = ownAt(member, position);
+    const scaled = member.scale === undefined ? reach : reach.multiply(toRational(member.scale));
     const snapped = stepsByOne
       ? nearest(at, 1n)
-      : snapValue(at, reach, member.numberType, spec.granularity);
+      : snapValue(at, scaled, member.numberType, spec.granularity);
     const found = axisOf(spec, member, null, reading).positionOf(snapped);
     if (found === null) throw new Error("a coordinate leads back to its position");
     return found;
@@ -489,7 +517,7 @@ export function snapOnRow(
   const onValues = row.map !== null && !stepsByOne;
   const picked =
     (onValues ? snappedOnValues(axis, position, reach, spec.granularity) : null) ?? own();
-  const end = member.length === null ? null : start.add(toRational(member.length));
+  const end = endOnAnchor(member);
   const last = spec.anchor.length;
   const high = end === null || (last !== null && compareReal(end, last) > 0) ? last : end;
   return clampValue(picked, start.numerator < 0n ? ZERO : start, high);
@@ -543,7 +571,7 @@ export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Pro
   };
   const { anchor } = pin.spec;
   return (
-    outside(position.subtract(axis.start), timeline, axis.member.length) ??
+    outside(ownAt(axis.member, position), timeline, axis.member.length) ??
     outside(position, anchor.timeline, anchor.length) ??
     position
   );

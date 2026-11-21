@@ -228,6 +228,29 @@ describe("the cross-section", () => {
     ]);
   });
 
+  it("reads a group's member by its scale, the group's members starting and ending together", () => {
+    const grouped = load("groups/group_groupstamp.yaml");
+    const performance = findTimeline(grouped, "performance");
+    if (performance === undefined) throw new Error("the group has performance");
+    const member = { ...axisOf(performance), offset: q(0), scale: q(1, 2) };
+    const spec = { ...specOf(grouped, "score", []), members: [member] };
+    expect(positions(timestampAt(spec, q(4)))).toEqual([
+      ["score", q(4)],
+      ["performance", 2.0],
+    ]);
+    expect(positions(timestampAt(spec, q(8)))).toEqual([
+      ["score", q(8)],
+      ["performance", 4.0],
+    ]);
+    const pin = pinOf(spec, q(4));
+    expect(positionFor(pin, row("performance"), q(3))).toEqual(q(6));
+    const outside = positionFor(pin, row("performance"), q(5));
+    expect(isCommandError(outside) && outside.message).toBe(
+      "5 lies outside 'performance' (0 to 4)",
+    );
+    expect(snapOnRow(spec, row("performance"), 3.13, 0.004)).toEqual(q(313, 100));
+  });
+
   it("crosses contiguous members both at their boundary, in the order given", () => {
     const form = specOf(SEGMENTS, "form");
     expect(form.members.map((member) => [member.timeline, member.offset])).toEqual([

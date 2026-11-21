@@ -4,7 +4,8 @@
  * (`withStatementContext`), every
  * segment line given its first segment (`withSegmentLinesCovered`), in its
  * complete form and canonical order (an added element may leave out what
- * has a default), checked against the schema and the invariants, and the
+ * has a default), every groupstamp off a group member made an ordinary
+ * timestamp (`withGroupstampsOnMembers`), checked against the schema and the invariants, and the
  * block's places fitted to the drawing the manifest now makes.
  */
 
@@ -36,6 +37,7 @@ import { nextId, TIMELINE_PREFIX } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { withBlock } from "./mutations.ts";
+import { withGroupstampsOnMembers } from "./timestamps.ts";
 
 /** The zero of each number type, the offset of a line's first segment. */
 const ZEROS: { readonly [type in NumberType]: CoordinateValue } = {
@@ -195,7 +197,8 @@ function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifes
 /**
  * Settle each manifest `changes` names: cut its `@context` to the prefixes
  * it declares itself and its statements use (covering states nothing, so
- * the context holds for the covered manifest too), cover its segment lines, complete it, order it and, with
+ * the context holds for the covered manifest too), cover its segment lines, complete it, order it,
+ * make every groupstamp off a group member an ordinary timestamp and, with
  * `checked`, refuse its first schema or invariant problem, at `[<block id>,
  * "manifest", …]`; then fit its block's places to it (`keptPlaces`, the
  * block's manifest in `before` telling which card a stale key named). A
@@ -213,8 +216,9 @@ export function settle(
     if (block === undefined) continue;
     const lines = covered(withStatementContext(block.manifest), checked);
     if ("code" in lines) return { ...lines, path: [id, "manifest", ...lines.path] };
-    const manifest = completeOrdered(lines);
-    if ("code" in manifest) return { ...manifest, path: [id, "manifest", ...manifest.path] };
+    const ordered = completeOrdered(lines);
+    if ("code" in ordered) return { ...ordered, path: [id, "manifest", ...ordered.path] };
+    const manifest = withGroupstampsOnMembers(ordered);
     if (checked) {
       // The invariants read a manifest the schema accepts, so they run only then.
       const schema = schemaProblems(manifest);

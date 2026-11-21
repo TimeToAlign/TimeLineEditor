@@ -582,6 +582,20 @@ describe("a named timestamp's pin", () => {
     ]);
   });
 
+  it("of a groupstamp holds the other members of its group, read by the group", () => {
+    const view = viewWith("groups/group_groupstamp");
+    const pin = pinIn(view, "timestamp_1");
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["score", q(4)],
+      ["performance", 2.0],
+    ]);
+    expect(
+      pin?.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
+    ).toEqual([["performance", q(0), q(1, 2)]]);
+    const plain = pinIn(view, "timestamp_3");
+    expect(plain?.timestamp.parts.map(({ timeline }) => timeline)).toEqual(["performance"]);
+  });
+
   it("is null for an ID the manifest does not hold", () => {
     expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
   });

@@ -374,6 +374,50 @@ export function holdings(drawing: Drawing, timeline: string): Holding[] {
   });
 }
 
+/**
+ * `spec`, the cross-section of the groupstamp on the timeline `timeline`,
+ * with every other member of each group whose frame draws `timeline`'s line
+ * in `drawing` added after its members, in the order of the lines: a
+ * group's members start and end together, so each is read by the group at
+ * offset 0 with the scale of its drawn length over `timeline`'s, with the
+ * maps drawn at its line for it. A member already in `spec`, a frame where
+ * either drawn length is 0, and a member whose line is not drawn are passed
+ * over.
+ */
+function withGroupMembers(
+  spec: CrossSectionSpec,
+  manifest: Manifest,
+  drawing: Drawing,
+  timeline: string,
+): CrossSectionSpec {
+  const lines = [...lineAxes(drawing).values()];
+  const drawnLength = (axis: LineAxis) => toRational(axis.start).add(toRational(axis.drawnLength));
+  const taken = new Set([spec.anchor.timeline, ...spec.members.map((member) => member.timeline)]);
+  const members: CrossSectionMember[] = [];
+  for (const own of lines) {
+    if (own.timeline !== timeline || own.card.member !== timeline) continue;
+    const length = drawnLength(own);
+    if (length.numerator === 0n) continue;
+    for (const line of lines) {
+      const { member } = line.card;
+      if (line.card.item !== own.card.item || member === undefined || line.timeline !== member) {
+        continue;
+      }
+      const other = drawnLength(line);
+      if (taken.has(member) || other.numerator === 0n) continue;
+      taken.add(member);
+      const node = drawnTimeline(manifest, member);
+      const maps = line.maps.flatMap(({ id, owner }) => {
+        const map =
+          owner === member ? node.conversion_maps.find((item) => item.id === id) : undefined;
+        return map === undefined ? [] : [map];
+      });
+      members.push({ ...timelineAxisOf(node, maps), offset: ZERO, scale: other.divide(length) });
+    }
+  }
+  return members.length === 0 ? spec : { ...spec, members: [...spec.members, ...members] };
+}
+
 /** A named timestamp's coordinate, exact on its own timeline's axis. */
 function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rational {
   return toRational(realOf(axisCoordinate(named.coordinate, timeline)));
@@ -386,7 +430,9 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
  * `crossSectionSpec` anchored on it): a segment without a line of its own
  * on its segment line's line, its members those of its own subtree that
  * line crosses; where no line holds its timeline (a hidden line), with all
- * its own maps and its ancestors alone as members. `knots` as `timestampAt` takes them; `null`
+ * its own maps and its ancestors alone as members. A groupstamp's adds the
+ * other members of its groups' frames, read by the group
+ * (`withGroupMembers`): the Timestamp tab shows the whole GroupStamp. `knots` as `timestampAt` takes them; `null`
  * where the manifest holds no timestamp `id`.
  */
 export function namedPin(
@@ -410,8 +456,9 @@ export function namedPin(
           members: ancestorMembers(manifest, timeline.id),
         }
       : crossSectionSpec(manifest, block, drawing, holding.key, granularity, named.timeline);
+  const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, named.timeline) : spec;
   const position = namedCoordinate(named, timeline);
-  return { spec, knots, timestamp: timestampAt(spec, position, knots), named };
+  return { spec: read, knots, timestamp: timestampAt(read, position, knots), named };
 }
 
 /**

@@ -1,6 +1,7 @@
 /**
  * Named timestamps as commands give and take them: the readers of the
- * values a command gives one (its coordinate, its `display`), and the two
+ * values a command gives one (its coordinate, its `display`, whether it is
+ * a groupstamp), the groupstamp's default and its rule, and the two
  * timestamps every new root is given, `origin` and `length`, which the
  * editor also gives every root of a manifest it imports without a
  * `graphical` object. Once made they are like any other named timestamp.
@@ -24,6 +25,7 @@ import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import { toJson } from "../values.ts";
 import { manifestIds } from "../workspace/address.ts";
 import { nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import type { EditorKind } from "../workspace/sessions.ts";
 import { withTimestamps } from "./mutations.ts";
 
 /**
@@ -85,6 +87,74 @@ export function readDisplay<W extends string>(
   return words.filter((word) => given.has(word));
 }
 
+/** Whether the timeline `timeline` of `manifest` is a member of some group (`members`, never a descendant of one). */
+export function isGroupMember(manifest: Manifest, timeline: string): boolean {
+  return manifest.groups.some((group) => group.members.includes(timeline));
+}
+
+/**
+ * Whether a timestamp made on the timeline `timeline` of `manifest` is a
+ * groupstamp unless the command says otherwise: on a group member, when it
+ * is made above a timeline editor (the arranger at the top level, a bundle
+ * editor, a group editor; `editor` the innermost editor open, `null` for
+ * none), and never when made in a timeline editor or on a timeline that is
+ * no group's member. The editor gives the result to `add` as `groupstamp`;
+ * `add` itself, which knows no editor, takes `false` where none is given.
+ */
+export function groupstampByDefault(
+  manifest: Manifest,
+  timeline: string,
+  editor: EditorKind | null,
+): boolean {
+  return editor !== "timeline" && isGroupMember(manifest, timeline);
+}
+
+/**
+ * Whether a timestamp on `timeline` is a groupstamp, as a command gives it:
+ * `true` or `false` (`invalid_value` for anything else), `true` only on a
+ * group member and never for a match timestamp (`match`), each refused as
+ * `invalid_value` at `path`. A groupstamp's line extends across every
+ * member of each group having its timeline as a member; their coordinates
+ * and lines derive from the group and are never stored.
+ */
+export function readGroupstamp(
+  value: unknown,
+  manifest: Manifest,
+  timeline: string,
+  match: boolean,
+  path: readonly PathSegment[],
+): boolean | CommandError {
+  const refused = (message: string) => problem(ErrorCode.invalidValue, message, path);
+  if (typeof value !== "boolean") return refused("a groupstamp is true or false");
+  if (!value) return false;
+  if (match) return refused("a match timestamp is never a groupstamp");
+  if (!isGroupMember(manifest, timeline)) {
+    return refused(`'${timeline}' is a member of no group, so no timestamp on it is a groupstamp`);
+  }
+  return true;
+}
+
+/**
+ * `manifest` with every groupstamp whose timeline is no group's member any
+ * more (a group removed, a member left its group) made an ordinary
+ * timestamp (`groupstamp: false`), so that a command ending a membership is
+ * never refused for the groupstamps it leaves; `manifest` itself when there
+ * is none. Applied to every manifest a command settles, never on reading a
+ * file.
+ */
+export function withGroupstampsOnMembers(manifest: Manifest): Manifest {
+  const timestamps = manifest.graphical?.timestamps ?? [];
+  const stray = (timestamp: NamedTimestamp) =>
+    timestamp.groupstamp && !isGroupMember(manifest, timestamp.timeline);
+  if (!timestamps.some(stray)) return manifest;
+  return withTimestamps(
+    manifest,
+    timestamps.map((timestamp) =>
+      stray(timestamp) ? { ...timestamp, groupstamp: false } : timestamp,
+    ),
+  );
+}
+
 /** What the timestamps a new root is given show: a wedge and the coordinate. */
 const DEFAULT_TIMESTAMP_DISPLAY: readonly TimestampDisplay[] = ["wedge", "coordinate"];
 
@@ -104,7 +174,15 @@ export function withDefaultTimestamps(manifest: Manifest, timeline: TimelineMani
     const id = nextId(TIMESTAMP_PREFIX, taken);
     taken.add(id);
     const display = [...DEFAULT_TIMESTAMP_DISPLAY];
-    return { id, timeline: timeline.id, coordinate, name, display, matchstamp: false };
+    return {
+      id,
+      timeline: timeline.id,
+      coordinate,
+      name,
+      display,
+      matchstamp: false,
+      groupstamp: false,
+    };
   });
   return withTimestamps(manifest, [...(manifest.graphical?.timestamps ?? []), ...added]);
 }

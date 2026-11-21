@@ -1798,7 +1798,15 @@ maps), no members, `late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
 and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID
-the manifest does not hold gives `null`.
+the manifest does not hold gives `null`. A groupstamp's pin holds the
+whole GroupStamp: every other member of each group whose frame draws its
+timeline, after its own members, at offset 0 with the scale of its drawn
+length over the timeline's (the members of a frame start and end
+together). In `groups/group_groupstamp` the groupstamp `timestamp_1` at 4
+on `score` (8 quarters) gives the member `performance` (4.0 seconds) at
+offset 0, scale 1/2, and the parts `score` 4, `performance` the float 2.0;
+`timestamp_3` (`length`, no groupstamp) on `performance` holds
+`performance` alone.
 
 **The affordance of a named timestamp that draws nothing**
 (`affordancesOf`): a named timestamp whose `display` is emptied (`set
@@ -2498,7 +2506,12 @@ display: wedge, name label, cross-section line).
   `timestamp_3`'s wedge, name label or line selects exactly `{block: A,
   id: "timestamp_3"}`, and all three then show the selection (in drawing
   order, the wedge, the name label, the line); a selected name label part
-  alone shows it on the label only.
+  alone shows it on the label only. A groupstamp's line across the other
+  members of its group is the timestamp's line too: in
+  `groups/group_groupstamp` (neither member draws a cross-section extent,
+  so the one line at `timestamp_1`'s address is the group's), a click on
+  it selects exactly `{block: A, id: "timestamp_1"}`, the primary
+  timestamp.
 - **A timestamp that draws nothing.** In `timestamps` (`clt_1`, 8
   quarters over 400 from 49.91552734375) with `display` `[]` set on
   `timestamp_2` ("Climax", at 6 on `clt_1`) the drawing draws no element

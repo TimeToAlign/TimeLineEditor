@@ -372,6 +372,18 @@ describe("the mode split", () => {
     expect(glowing()).toEqual([null, "name", "line"]);
   });
 
+  it("selects a groupstamp by its line across the other members of its group", async () => {
+    await show(viewOf({ id: A, fixture: "groups/group_groupstamp", x: 40, y: 80 }));
+    const node = one(".svelte-flow__node[data-id] svg");
+    const lines = [...node.querySelectorAll('line[data-id="timestamp_1"][data-part="line"]')];
+    expect(lines).toHaveLength(1);
+    lines[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle();
+    expect([...harness.current().selection.values()]).toEqual([
+      inBlock(A, idAddress("timestamp_1")),
+    ]);
+  });
+
   it("shows a selected name label part on the label alone", async () => {
     await show(namedView());
     harness.select(selectionOf([inBlock(A, partAddress(idAddress("timestamp_3"), "name"))]));

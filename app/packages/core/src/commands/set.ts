@@ -89,7 +89,7 @@ import type {
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
-import { readDisplay, readTimestampCoordinate } from "./timestamps.ts";
+import { readDisplay, readGroupstamp, readTimestampCoordinate } from "./timestamps.ts";
 import { lengthProblem, moveTimeline, placeChild, setGroups } from "./topology.ts";
 
 /**
@@ -938,6 +938,25 @@ const TIMESTAMP_SET: Setters<TimestampTarget> = {
     return timestampChange(view, target, path, changes, timestamp.display, display, {
       ...timestamp,
       display,
+    });
+  } /**
+   * Whether the timestamp is a groupstamp (`readGroupstamp`): `true` only on
+   * a group member and never for a match timestamp; its line then extends
+   * across every member of each group having its timeline as a member.
+   */,
+  groupstamp: (view, target, value, path, changes) => {
+    const { block, timestamp } = target;
+    const groupstamp = readGroupstamp(
+      value,
+      block.manifest,
+      timestamp.timeline,
+      timestamp.matchstamp,
+      path,
+    );
+    if (isCommandError(groupstamp)) return groupstamp;
+    return timestampChange(view, target, path, changes, timestamp.groupstamp, groupstamp, {
+      ...timestamp,
+      groupstamp,
     });
   },
 };

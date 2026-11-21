@@ -2149,6 +2149,45 @@ the same result):
 19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
     (with `timestamp_3`) and every case of item 18 are accepted.
 
+**Groupstamps.** A timestamp on a group's member may be a groupstamp
+(`groupstamp: true`): its line extends across every member of each group
+having its timeline as a member, their coordinates and lines derived from
+the group, never stored. What proves it: `add` and `set` store the flag
+exactly where the schema allows it and refuse it, each with its own
+message, where it does not (anything but a boolean, a timeline no group
+has as a member, a match timestamp); its default follows the editor a
+timestamp is made in; and a command ending a membership is never refused
+for the groupstamps it leaves, which become ordinary timestamps. The
+cases read TimeToShare's `groups/group_groupstamp.yaml`: `group_1`
+holding `performance` (seconds, 4.0) and `score` (quarters, 8), and the
+groupstamp `timestamp_1` "Bar 2" on `score` at `[4, 1]`; every other
+timestamp there and in `timestamps.yaml` states `groupstamp: false` (the
+complete form).
+
+20. `add` into `performance` `{name: "Cue", coordinate: 1.0, groupstamp:
+    true}` stores `groupstamp: true` on `timestamp_6`; without
+    `groupstamp` it stores `false`. Refused, `invalid_value` at
+    `[<into>, "timestamp", "groupstamp"]`: `"yes"` ("a groupstamp is true
+    or false"); into `clt_1` of `timestamps.yaml` (no groups) `true`
+    ("'clt_1' is a member of no group, so no timestamp on it is a
+    groupstamp"); `false` there is accepted.
+21. `set` on `timestamp_1 {groupstamp: false}` stores `false`, then
+    `{groupstamp: true}` gives it back; `timestamp_1 {groupstamp: true}`
+    as stored is "the command changes nothing"; on `timestamp_1` of
+    `timestamps.yaml` `{groupstamp: true}` is refused as in item 20 at
+    `[timestamp_1, "groupstamp"]`; on the match timestamp `timestamp_1`
+    of `bundles/bundle_matchstamps.yaml` `{groupstamp:
+    true}` is "a match timestamp is never a groupstamp" (that refusal
+    comes before the membership's).
+22. Ending the membership: removing `group_1` leaves `timestamp_1` an
+    ordinary timestamp (`groupstamp: false`, every other member as it
+    was), accepted by the schema check; undo gives `true` back.
+23. The default (`groupstampByDefault(manifest, timeline, editor)`): on
+    `score` `true` with no editor open, in a bundle editor and in a group
+    editor, `false` in a timeline editor; on `clt_1` of `timestamps.yaml`
+    `false` with none. `isGroupMember` is true for `score` and
+    `performance`, false for `clt_1` and for an ID no timeline carries.
+
 ## Named MatchStamps (`matchstamps.test.ts`)
 
 A named MatchStamp is `{id, name, alignment_anchors, match_claims}` in its
@@ -4009,7 +4048,18 @@ the parity table's manifest with its MeasureMap's expanded rows
    the anchor lies). Of `bundle_mixed`'s `excerpt` (at 44100 in
    `recording`): `recording` at −44100, 441000 long; at 44100 the parts
    are `excerpt` 44100, `recording` 88200 (ints).
-4. **Contiguous members are both crossed; the caller's order stands.**
+4. **A group's member, read by the group** (a groupstamp's): its
+   coordinate is the anchor's position, less its offset, times its
+   `scale` (its drawn length over the anchor's). `groups/group_groupstamp.yaml`:
+   anchor `score` (quarters, 8) with the member `performance` (seconds,
+   float, 4.0) at offset 0, scale 1/2: at 4 the parts are `score` 4,
+   `performance` the float 2.0; at 8, 4.0 (the closed span `[0, 8]` on
+   `score`'s axis). `positionFor` on `performance`'s coordinate: 3 → 6;
+   5 → `5 lies outside 'performance' (0 to 4)`. `snapOnRow` on its row at
+   `p = 3.13`, `h = 0.004`: 1.565 on its axis, the reach scaled to 0.002;
+   0 places 2, 1 place 1.6, 2 places 1.57 miss, 3 places 1.565 is it:
+   **313/100** on `score`'s axis.
+5. **Contiguous members are both crossed; the caller's order stands.**
    `form` of `segment_line.yaml` with its descendants in traversal order
    (`a` at 0 of 8, `a1` at 0 of 8, `b` at 8 of 12, `b1` at 8 of 6, `b2` at
    14 of 6, `c` at 20 of 12, `c1` at 20 of 12, offsets from `form`'s
@@ -4018,7 +4068,7 @@ the parity table's manifest with its MeasureMap's expanded rows
    `form` 27/2, `b` 11/2, `b1` 11/2 (`b2` starts at 14); at 32 `form` 32,
    `c` 12, `c1` 12. Given `b`, then `a`, at 8 the parts are `form`, `b`,
    `a`.
-5. **Rows.** `timestampRows` lists per part its coordinate, then its maps:
+6. **Rows.** `timestampRows` lists per part its coordinate, then its maps:
    `recording` at 100000 gives six rows, `{recording, null}` labelled
    `Recording` with the int 100000, `{recording, cmap_5}` labelled `cmap_5`
    (the map has no name), `{excerpt, null}` `Excerpt` 55900, `{excerpt,
@@ -4041,7 +4091,7 @@ the parity table's manifest with its MeasureMap's expanded rows
    measure map is not expanded`; `measureText` of a measure by its name, else its
    number, else its count (`m. 3`; `""` with number 7 → `7`; `""` with no
    number and count 9 → `9`).
-6. **Snapping on a row** (`snapOnRow(spec, row, p, h)`, `p` the pointer in
+7. **Snapping on a row** (`snapOnRow(spec, row, p, h)`, `p` the pointer in
    the anchor's units from its zero, `h` half a device pixel there):
    - `score`'s own coordinate, `p = 3.13`, `h = 0.004`: `snapValue` on the
      fraction axis, the divisors of 2520 ascending: 1 to 7 miss (3, 3, 3,
@@ -4079,10 +4129,10 @@ the parity table's manifest with its MeasureMap's expanded rows
    - Refused with a `RangeError`: `p` NaN or infinite, `h` 0, −1, NaN or
      infinite, a row of a timeline the spec lacks or a map its timeline
      lacks.
-7. **A pin moves.** A pin `{spec, knots, timestamp, named}` of `score` at
+8. **A pin moves.** A pin `{spec, knots, timestamp, named}` of `score` at
    16/5 (`named` `null`): `pinAt(pin, 8)` keeps `spec`, `knots` and
    `named` (the same objects) and holds exactly `timestampAt(spec, 8)`.
-8. **An edited value gives a position** (`positionFor(pin, row, value)`,
+9. **An edited value gives a position** (`positionFor(pin, row, value)`,
    exact on the anchor's axis, never snapped):
    - `score`'s coordinate: 10 → 10; 1/7 → 1/7. `cmap_1` 1536 → 16/5;
      `cmap_2` 8/5 (the text `1.6`) → 16/5.
@@ -4104,7 +4154,7 @@ the parity table's manifest with its MeasureMap's expanded rows
      anchor's span too: on `b2`'s pin at 1 (anchor `b2`, its ancestors as
      members), `form` 16 → **2**; `form` 40 → `40 lies outside 'form' (0
      to 32)`; `form` 25 → 11 on `b2`, `11 lies outside 'b2' (0 to 6)`.
-9. **The JSON value** (`timestampJson`): unnamed, `{timeline, coordinate,
+10. **The JSON value** (`timestampJson`): unnamed, `{timeline, coordinate,
    mapping}`, the coordinate the anchor's bare value as a manifest writes
    it; named, the named timestamp's members as the manifest holds them
    (whatever members it has, in its order), then `mapping`. `mapping` is keyed by ID in part
