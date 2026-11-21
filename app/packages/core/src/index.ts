@@ -165,10 +165,12 @@ export type {
   TimestampRow,
 } from "./maps/timestamp.ts";
 export {
+  ancestorMembers,
   measureText,
   pinAt,
   positionFor,
   snapOnRow,
+  timelineAxisOf,
   timestampAt,
   timestampJson,
   timestampRows,

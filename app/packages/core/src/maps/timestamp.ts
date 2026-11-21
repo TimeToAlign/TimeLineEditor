@@ -2,9 +2,10 @@
  * A timestamp: the cross-section of a timeline at a position.
  *
  * The timestamp of a timeline (the anchor) at a position, exact on the
- * anchor's own axis, is everything its cross-section line crosses there:
- * the anchor, then each member (the anchor's segments and displayed
- * descendants, as the caller lists them) whose span holds the position,
+ * anchor's own axis, is its cross-section there: the anchor, then each
+ * member (the anchor's ancestors, whose coordinates follow from its own by
+ * the offsets up the tree, and the segments and displayed descendants its
+ * line crosses, as the caller lists them) whose span holds the position,
  * each with its coordinate and the value of each of its drawn maps. A
  * **row** is one of those values: a member's own coordinate or one of its
  * maps' values. One row abstraction (`rowAxis`) evaluates a row forward
@@ -22,14 +23,16 @@ import { numberTypeOf } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { Json, JsonObject } from "../json.ts";
-import type { ConversionMap, NamedTimestamp } from "../manifest/types.ts";
+import type { Roots } from "../manifest/tree.ts";
+import { locateTimeline } from "../manifest/tree.ts";
+import type { ConversionMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { jsonFloat, jsonInteger, toAxisValue } from "../number/coordinate.ts";
+import { axisCoordinate, jsonFloat, jsonInteger, toAxisValue } from "../number/coordinate.ts";
 import { coordinateDict } from "../number/display.ts";
 import { clampValue, nearest, snapValue } from "../number/grid.ts";
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
-import { compareReal, fromFloat, toRational } from "../number/real.ts";
+import { compareReal, fromFloat, realOf, toRational } from "../number/real.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 import type { Granularity } from "../workspace/view.ts";
 import type { CompileContext } from "./compile.ts";
@@ -56,16 +59,55 @@ export interface TimelineAxis {
   readonly maps: readonly ConversionMap[];
 }
 
+/** `timeline` as a cross-section reads it, with the maps `maps` (those drawn for it, in drawing order). */
+export function timelineAxisOf(
+  timeline: TimelineManifest,
+  maps: readonly ConversionMap[],
+): TimelineAxis {
+  return {
+    timeline: timeline.id,
+    name: timeline.name ?? timeline.id,
+    unit: timeline.unit,
+    numberType: timeline.number_type,
+    length: timeline.length === null ? null : realOf(axisCoordinate(timeline.length, timeline)),
+    maps,
+  };
+}
+
 /** A timeline the cross-section line may cross: its zero lies `offset` from the anchor's zero, on the anchor's axis, exactly. */
 export interface CrossSectionMember extends TimelineAxis {
   readonly offset: Real;
 }
 
 /**
+ * The ancestors of the timeline `timeline` of `manifest` as members of its
+ * cross-section, its parent first, up to its root: each one's zero lies
+ * minus the sum of the offsets from the timeline up to it from the
+ * timeline's zero, exactly (a parent's coordinate is its child's plus the
+ * child's offset), and each carries no map. Empty for a root and for an ID
+ * no timeline carries.
+ */
+export function ancestorMembers(manifest: Roots, timeline: string): CrossSectionMember[] {
+  const members: CrossSectionMember[] = [];
+  let at = locateTimeline(manifest, timeline);
+  let offset = ZERO;
+  while (at?.parent !== undefined) {
+    const { parent } = at;
+    const own = toRational(realOf(axisCoordinate(at.timeline.offset, parent.timeline)));
+    offset = offset.subtract(own);
+    members.push({ ...timelineAxisOf(parent.timeline, []), offset });
+    at = parent;
+  }
+  return members;
+}
+
+/**
  * What a timestamp is read from: the anchor, the members its cross-section
- * line may cross (the anchor excluded, in the order given), and the
- * granularity its floats are shown with and its pointer positions picked
- * to.
+ * may hold (the anchor excluded, in the order given: by the canvas's
+ * convention the anchor's ancestors, parent first, then the timelines its
+ * line crosses), and the granularity its floats are shown with and its
+ * pointer positions picked to. An ancestor's span holds its descendant's,
+ * so an ancestor is crossed wherever its descendant is.
  */
 export interface CrossSectionSpec {
   readonly block: BlockId;
@@ -392,10 +434,14 @@ function snappedOnValues(
  * (exact): `p` is the pointer, in units from the anchor's zero, `h` half a
  * device pixel in the anchor's units.
  *
- * - The member's own coordinate: the simplest value of the member's number
- *   type within `h` of `p` minus the offset (`snapValue`), the offset
- *   added.
- * - A map's value: `v`, the map's value at `p`, is snapped within `hv`,
+ * - A member of an int axis (samples, ticks, pixels), on its coordinate's
+ *   row and on every map's row alike: the integer nearest to `p` minus the
+ *   offset (a tie going up), the offset added, so such a timeline steps by
+ *   1 whatever the granularity; no map's value axis decides its step.
+ * - Any other member's own coordinate: the simplest value of the member's
+ *   number type within `h` of `p` minus the offset (`snapValue`), the
+ *   offset added.
+ * - A map's value of any other member: `v`, the map's value at `p`, is snapped within `hv`,
  *   half the absolute difference of its values at `p − h` and `p + h`,
  *   under the cap of the map's target number type (the value's own kind
  *   where the map names no target unit); the snapped value is inverted
@@ -430,14 +476,19 @@ export function snapOnRow(
   const position = fromFloat(p);
   const reach = fromFloat(h);
   const { member, start } = axis;
+  const stepsByOne = member.numberType === "int";
   const own = (): Rational => {
-    const snapped = snapValue(position.subtract(start), reach, member.numberType, spec.granularity);
+    const at = position.subtract(start);
+    const snapped = stepsByOne
+      ? nearest(at, 1n)
+      : snapValue(at, reach, member.numberType, spec.granularity);
     const found = axisOf(spec, member, null, reading).positionOf(snapped);
     if (found === null) throw new Error("a coordinate leads back to its position");
     return found;
   };
+  const onValues = row.map !== null && !stepsByOne;
   const picked =
-    (row.map === null ? null : snappedOnValues(axis, position, reach, spec.granularity)) ?? own();
+    (onValues ? snappedOnValues(axis, position, reach, spec.granularity) : null) ?? own();
   const end = member.length === null ? null : start.add(toRational(member.length));
   const last = spec.anchor.length;
   const high = end === null || (last !== null && compareReal(end, last) > 0) ? last : end;
@@ -472,8 +523,9 @@ function refused(message: string): Problem {
  * `positionOf`. Refused, each as `invalid_value` at `[]`: a row of a
  * timeline the timestamp does not show, a map its timeline does not draw,
  * a value no position gives (the map is not invertible over its
- * timeline's span, or gives the value nowhere), and a position outside
- * the timeline's `[0, length]`.
+ * timeline's span, or gives the value nowhere), a position outside the
+ * timeline's `[0, length]`, and one outside the anchor's (an ancestor's
+ * value beyond the anchor's span).
  */
 export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Problem {
   const { timeline } = row;
@@ -484,13 +536,17 @@ export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Pro
   if (axis === null) return refused(`'${timeline}' shows no map '${row.map}'`);
   const position = axis.positionOf(value);
   if (position === null) return refused(`no position on '${timeline}' gives ${value}`);
-  const own = position.subtract(axis.start);
-  const { length } = axis.member;
-  if (own.numerator < 0n || (length !== null && compareReal(own, length) > 0)) {
+  const outside = (own: Rational, name: string, length: Real | null): Problem | null => {
+    if (own.numerator >= 0n && (length === null || compareReal(own, length) <= 0)) return null;
     const span = length === null ? "at least 0" : `0 to ${toRational(length)}`;
-    return refused(`${own} lies outside '${timeline}' (${span})`);
-  }
-  return position;
+    return refused(`${own} lies outside '${name}' (${span})`);
+  };
+  const { anchor } = pin.spec;
+  return (
+    outside(position.subtract(axis.start), timeline, axis.member.length) ??
+    outside(position, anchor.timeline, anchor.length) ??
+    position
+  );
 }
 
 /** What a measure is shown as: its name, else its number, else its count. */

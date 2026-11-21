@@ -3,8 +3,8 @@
  * it picks there and the timestamp of that position.
  *
  * A timestamp is the cross-section of a timeline at a position: the
- * timeline of the hovered line (the anchor), then every timeline its
- * cross-section line crosses (layout's `crossedLines`: its displayed
+ * timeline of the hovered line (the anchor), then its ancestors, then
+ * every timeline its cross-section line crosses (layout's `crossedLines`: its displayed
  * descendants with a line of their own, and the segments of every crossed
  * line), each with the maps drawn for it. A line is hovered anywhere from
  * the line out to the outermost map drawn at it, `HIT_TOLERANCE` device
@@ -28,18 +28,19 @@ import type {
   NamedTimestamp,
   Pin,
   Row,
-  TimelineAxis,
   TimelineManifest,
   Timestamp,
   TimestampRow,
 } from "@timetoalign/tilie-core";
 import {
+  ancestorMembers,
   findTimeline,
   idAddress,
   measureText,
   prettyText,
   saveManifest,
   snapOnRow,
+  timelineAxisOf,
   timestampAt,
   timestampRows,
 } from "@timetoalign/tilie-core";
@@ -207,18 +208,6 @@ export function rowOf(hit: Pick<LineHit, "axis" | "map">): Row {
     : { timeline: map.owner, map: map.id };
 }
 
-/** A timeline read by a cross-section: its axis, its length and `maps`. */
-function timelineAxis(timeline: TimelineManifest, maps: readonly ConversionMap[]): TimelineAxis {
-  return {
-    timeline: timeline.id,
-    name: timeline.name ?? timeline.id,
-    unit: timeline.unit,
-    numberType: timeline.number_type,
-    length: timeline.length === null ? null : realOf(axisCoordinate(timeline.length, timeline)),
-    maps,
-  };
-}
-
 /** The timeline `id` of `manifest`, which a drawing of it draws. */
 function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
   const timeline = findTimeline(manifest, id);
@@ -230,14 +219,17 @@ function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
  * The cross-section read on the line keyed `lineKey` (a key of `markedOf`)
  * of `drawing`, block `block`'s drawing of `manifest`, anchored on the
  * timeline `anchor` (the line's own by default, else a segment the line
- * holds): the anchor's timeline, then as members every timeline in its
- * subtree that the cross-section line crosses (`crossedLines` after the
- * line itself, and the segments of every crossed line), each once, in
- * traversal order (pre-order, children by offset), each at its offset from
- * the anchor's zero, exact. Every timeline carries the maps drawn for it at
- * the crossed lines, in the order they are drawn, as the manifest holds
- * them. No ancestor of the anchor, and no sibling segment of a segment
- * anchor, is a member.
+ * holds): the anchor's timeline, then as members its ancestors, parent
+ * first, without maps (core's `ancestorMembers`: a parent's coordinate is
+ * its child's plus the child's offset, up to the root, whether the anchor
+ * is drawn in its parent's card or in a card of its own as a group's
+ * member), then every timeline in its subtree that the cross-section line
+ * crosses (`crossedLines` after the line itself, and the segments of every
+ * crossed line), each once, in traversal order (pre-order, children by
+ * offset), each at its offset from the anchor's zero, exact. Every
+ * timeline of the subtree carries the maps drawn for it at the crossed
+ * lines, in the order they are drawn, as the manifest holds them. No
+ * sibling segment of a segment anchor is a member.
  */
 export function crossSectionSpec(
   manifest: Manifest,
@@ -268,12 +260,12 @@ export function crossSectionSpec(
     ]),
   );
   const root = drawnTimeline(manifest, anchor ?? line.timeline);
-  const members: CrossSectionMember[] = [];
+  const members: CrossSectionMember[] = ancestorMembers(manifest, root.id);
   const walk = (timeline: TimelineManifest, offset: Rational): void => {
     for (const child of orderedChildren(timeline)) {
       const at = offset.add(toRational(realOf(axisCoordinate(child.offset, timeline))));
       if (crossed.has(child.id)) {
-        members.push({ ...timelineAxis(child, drawn.get(child.id) ?? []), offset: at });
+        members.push({ ...timelineAxisOf(child, drawn.get(child.id) ?? []), offset: at });
       }
       walk(child, at);
     }
@@ -282,7 +274,7 @@ export function crossSectionSpec(
   return {
     block,
     granularity,
-    anchor: timelineAxis(root, drawn.get(root.id) ?? []),
+    anchor: timelineAxisOf(root, drawn.get(root.id) ?? []),
     members,
   };
 }
@@ -394,7 +386,7 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
  * `crossSectionSpec` anchored on it): a segment without a line of its own
  * on its segment line's line, its members those of its own subtree that
  * line crosses; where no line holds its timeline (a hidden line), with all
- * its own maps and no members. `knots` as `timestampAt` takes them; `null`
+ * its own maps and its ancestors alone as members. `knots` as `timestampAt` takes them; `null`
  * where the manifest holds no timestamp `id`.
  */
 export function namedPin(
@@ -414,8 +406,8 @@ export function namedPin(
       ? {
           block,
           granularity,
-          anchor: timelineAxis(timeline, timeline.conversion_maps),
-          members: [],
+          anchor: timelineAxisOf(timeline, timeline.conversion_maps),
+          members: ancestorMembers(manifest, timeline.id),
         }
       : crossSectionSpec(manifest, block, drawing, holding.key, granularity, named.timeline);
   const position = namedCoordinate(named, timeline);
@@ -423,8 +415,9 @@ export function namedPin(
 }
 
 /**
- * A named timestamp whose `display` is empty, which the drawing therefore
- * draws nothing of, as the canvas alone shows it so it stays selectable: a
+ * A named timestamp whose `display` is empty (not a match timestamp),
+ * which the drawing therefore draws nothing of, as the canvas alone shows
+ * it so it stays selectable: a
  * wedge where its own would lie on one line. It is its own canvas source
  * (`drawn`): a press on it hits the timestamp's address.
  */
@@ -442,7 +435,9 @@ const affordancesByDrawing = new WeakMap<
 
 /**
  * The affordances of the named timestamps of `manifest` whose `display` is
- * empty, `drawing` being its drawing: each on every marked line holding its
+ * empty, `drawing` being its drawing, but for a match timestamp, which
+ * leaves no placeholder (its MatchStamp is reached through its lines and
+ * connectors): each on every marked line holding its
  * timeline (`holdings`), whatever its length, its wedge at the abscissa of
  * its coordinate (layout's `abscissaOf`: the line's start on a zero-length
  * line), in the order the manifest lists them; a place outside the line's
@@ -454,7 +449,7 @@ export function affordancesOf(manifest: Manifest, drawing: Drawing): readonly Af
   const known = affordancesByDrawing.get(drawing);
   if (known?.manifest === manifest) return known.affordances;
   const affordances = (manifest.graphical?.timestamps ?? []).flatMap((named) => {
-    if (named.display.length > 0) return [];
+    if (named.display.length > 0 || named.matchstamp) return [];
     const timeline = findTimeline(manifest, named.timeline);
     if (timeline === undefined) return [];
     const coordinate = namedCoordinate(named, timeline);

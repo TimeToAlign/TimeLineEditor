@@ -259,8 +259,30 @@ describe("the cross-section", () => {
     expect(anchor.maps).toEqual(load("map").timelines[0]?.conversion_maps);
   });
 
-  it("of a child holds no ancestor", () => {
-    expect(shape(specOf(viewWith("map"), "phrase"))).toEqual([["phrase", q(0), q(4), ["ticks"]]]);
+  it("of a child holds its ancestors, parent first, without maps", () => {
+    expect(shape(specOf(viewWith("map"), "phrase"))).toEqual([
+      ["phrase", q(0), q(4), ["ticks"]],
+      ["melody", q(-2), q(8), []],
+    ]);
+    const reading = readAt(viewWith("map"), MELODY_START + 200, 40.5);
+    expect(
+      reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ).toEqual([
+      ["melody", q(4)],
+      ["phrase", q(2)],
+    ]);
+  });
+
+  it("of a child that is a group's member holds its ancestors in its own card", () => {
+    const view = viewWith(MIXED);
+    const excerpt = axis(view, "excerpt");
+    const reading = readAt(view, (excerpt.xStart + excerpt.xEnd) / 2, excerpt.y);
+    expect(
+      reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ).toEqual([
+      ["excerpt", 44100n],
+      ["recording", 88200n],
+    ]);
   });
 
   it("holds every crossed line and every segment once, in traversal order", () => {
@@ -287,6 +309,7 @@ describe("the cross-section", () => {
     ]);
     expect(shape(specOf(view, "b"))).toEqual([
       ["b", q(0), q(12), []],
+      ["form", q(-8), q(32), []],
       ["b1", q(0), q(6), []],
       ["b2", q(6), q(6), ["b2_ticks"]],
     ]);
@@ -338,6 +361,14 @@ describe("the position, snapped on the hovered row", () => {
         maps: [],
       },
       {
+        timeline: "form",
+        name: "Form",
+        unit: "quarters",
+        numberType: "fraction",
+        position: q(841, 48),
+        maps: [],
+      },
+      {
         timeline: "b2",
         name: "b2",
         unit: "quarters",
@@ -374,8 +405,8 @@ describe("the position, snapped on the hovered row", () => {
     const line = axis(view, "dpt_1");
     const reading = readAt(view, line.xStart + 123.75, line.y);
     expect([reading?.position, reading?.pin.timestamp.parts[0]?.position]).toEqual([
-      q(13600),
-      13600n,
+      q(13643),
+      13643n,
     ]);
   });
 
@@ -444,7 +475,26 @@ describe("a named timestamp's pin", () => {
         length: q(6),
         maps: b2?.conversion_maps,
       },
-      members: [],
+      members: [
+        {
+          timeline: "b",
+          name: "B",
+          unit: "quarters",
+          numberType: "fraction",
+          length: q(12),
+          maps: [],
+          offset: q(-6),
+        },
+        {
+          timeline: "form",
+          name: "Form",
+          unit: "quarters",
+          numberType: "fraction",
+          length: q(32),
+          maps: [],
+          offset: q(-14),
+        },
+      ],
     });
     expect(pin?.spec).toEqual(
       crossSectionSpec(
@@ -462,7 +512,11 @@ describe("a named timestamp's pin", () => {
         position,
         maps.map((map) => map.value),
       ]),
-    ).toEqual([["b2", q(1), [{ unit: "ticks", numberType: "int", value: 480n }]]]);
+    ).toEqual([
+      ["b2", q(1), [{ unit: "ticks", numberType: "int", value: 480n }]],
+      ["b", q(7), []],
+      ["form", q(15), []],
+    ]);
   });
 
   it("of a line of unknown length is read on that line", () => {
@@ -565,6 +619,13 @@ describe("the affordance of a named timestamp that draws nothing", () => {
   it("is none for a timestamp that displays anything", () => {
     expect(affordances(withLate())).toEqual([]);
   });
+
+  it("is none for a match timestamp that displays nothing", () => {
+    const matches = viewWith("bundles/bundle_matchstamps");
+    expect(affordances(undisplayed(matches, "timestamp_1"))).toEqual([]);
+    const both = undisplayed(undisplayed(matches, "timestamp_1"), "timestamp_4");
+    expect(affordances(both).map(({ address }) => address)).toEqual([idAddress("timestamp_4")]);
+  });
 });
 
 describe("the flag", () => {
@@ -578,6 +639,7 @@ describe("the flag", () => {
     ]);
     expect(parts).toEqual([
       ["b", "B", [[{ timeline: "b", map: null }, "B", "9 25/48 ♩"]]],
+      ["form", "Form", [[{ timeline: "form", map: null }, "Form", "17 25/48 ♩"]]],
       [
         "b2",
         "b2",
