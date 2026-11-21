@@ -2,10 +2,10 @@
  * The Metadata tab's view model: which element's statements it shows
  * (`shownOf`), its rectangles as the panel reads them (`rectanglesOf`: one
  * verb about one thing, in as many vocabularies as state it) and its
- * drawers (`drawersOf`: what is stated of the elements around it, what is
- * proposed and what was rejected). Everything is read from the manifest's
- * statement skeleton through TimeToShare's statement functions and its
- * catalogue; nothing here changes a manifest.
+ * drawers (`drawersOf`: what is proposed and what was rejected).
+ * Everything is read from the manifest's statement skeleton through
+ * TimeToShare's statement functions and its catalogue; nothing here changes
+ * a manifest.
  */
 
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
@@ -213,17 +213,8 @@ export interface DrawerRow {
   readonly line: EntryLine;
 }
 
-/** The rectangles stated of one element around the shown one. */
-export interface HigherGroup {
-  /** The element's address key: two elements may share their words. */
-  readonly key: string;
-  readonly words: string;
-  readonly rectangles: readonly RectangleView[];
-}
-
-/** What the three drawers hold. */
+/** What the two drawers hold. */
 export interface Drawers {
-  readonly higher: readonly HigherGroup[];
   readonly proposed: readonly DrawerRow[];
   readonly rejected: readonly DrawerRow[];
 }
@@ -405,13 +396,16 @@ function addableOf(
   return choices.map((choice) => choice.id).filter((system) => !used(system));
 }
 
-/** The rectangles of the subject at `path` of `skeleton`. */
-function rectanglesAt(
-  skeleton: Skeleton,
-  path: readonly PathSegment[],
+/**
+ * The rectangles of the frame's element: TimeToShare's `rectangles`, "is a"
+ * always first (empty, keyed `is_a`, where nothing states it).
+ */
+export function rectanglesOf(
+  frame: Frame,
   catalogue: Catalogue,
   user: User,
-): RectangleView[] {
+): readonly RectangleView[] {
+  const { skeleton, path } = frame;
   const context = contextOf(skeleton);
   const confirmed = entriesAt(skeleton, path, "confirmed");
   return rectangles(catalogue, skeleton, path).map((rectangle) => {
@@ -439,18 +433,6 @@ function rectanglesAt(
       pairs,
     };
   });
-}
-
-/**
- * The rectangles of the frame's element: TimeToShare's `rectangles`, "is a"
- * always first (empty, keyed `is_a`, where nothing states it).
- */
-export function rectanglesOf(
-  frame: Frame,
-  catalogue: Catalogue,
-  user: User,
-): readonly RectangleView[] {
-  return rectanglesAt(frame.skeleton, frame.path, catalogue, user);
 }
 
 /** The value at `path` in `value`. */
@@ -572,33 +554,9 @@ function rowsOf(
   );
 }
 
-/** The paths of the elements around the frame's: the bundle, then each timeline holding it, outermost first. */
-function ancestorsOf(path: readonly PathSegment[]): PathSegment[][] {
-  const found: PathSegment[][] = [];
-  for (let length = 0; length < path.length; length += 2) found.push(path.slice(0, length));
-  return found;
-}
-
-/**
- * The drawers of the frame's element: the rectangles stated of the
- * elements around it (the bundle, then the timelines holding it, outermost
- * first; only rectangles with pairs, only elements with any), and the
- * proposed and rejected pairs of the element and its value nodes.
- */
-export function drawersOf(view: View, frame: Frame, catalogue: Catalogue, user: User): Drawers {
-  const higher = ancestorsOf(frame.path).flatMap((path): HigherGroup[] => {
-    const id = path.length === 0 ? null : at(frame.skeleton, [...path, "id"]);
-    const target: Address =
-      typeof id === "string" ? { block: frame.block.id, id } : { block: frame.block.id };
-    const found = rectanglesAt(frame.skeleton, path, catalogue, user).filter(
-      (rectangle) => rectangle.pairs.length > 0,
-    );
-    return found.length === 0
-      ? []
-      : [{ key: addressKey(target), words: addressWords(view, target), rectangles: found }];
-  });
+/** The drawers of the frame's element: the proposed and rejected pairs of the element and its value nodes. */
+export function drawersOf(frame: Frame, catalogue: Catalogue, user: User): Drawers {
   return {
-    higher,
     proposed: rowsOf(frame, catalogue, user, "proposed"),
     rejected: rowsOf(frame, catalogue, user, "rejected"),
   };

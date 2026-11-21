@@ -233,7 +233,7 @@ describe("rectangles and drawers", () => {
       "reconciled · https://example.org/agents/tilie · 2026-11-18",
     );
     expect(all('[data-testid="metadata-add-vocabulary"]', performed)).toHaveLength(1);
-    expect(summaries()).toEqual(["Stated higher up (2)", "Proposed (1)", "Rejected (0)"]);
+    expect(summaries()).toEqual(["Proposed (1)", "Rejected (0)"]);
     expect(
       all('[data-testid="metadata-proposed-row"] .what').map((row) =>
         row.textContent?.replace(/\s+/gu, " ").trim(),
@@ -267,7 +267,7 @@ describe("drawer actions", () => {
     button("Reject", one('[data-testid="metadata-drawer-proposed"]')).click();
     await settle();
     expect(store.journal).toHaveLength(2);
-    expect(summaries().slice(1)).toEqual(["Proposed (0)", "Rejected (1)"]);
+    expect(summaries()).toEqual(["Proposed (0)", "Rejected (1)"]);
     expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-proposed"] summary'));
   });
 });
@@ -320,7 +320,7 @@ describe("rejecting", () => {
     await settle();
     expect(store.journal).toHaveLength(3);
     expect(headings()).toEqual(["is a"]);
-    expect(summaries()).toEqual(["Stated higher up (2)", "Proposed (1)", "Rejected (3)"]);
+    expect(summaries()).toEqual(["Proposed (1)", "Rejected (3)"]);
     expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-rejected"] summary'));
     expect(informed).toEqual([
       "Rejected “performed by Maria João Pires”: it is listed under Rejected.",
@@ -555,41 +555,6 @@ describe("the composer", () => {
     selection.value = selectionOf([{ block: A, id: "cpt_1" }]);
     flushSync();
     expect(all('[data-testid="metadata-composer"]')).toHaveLength(0);
-  });
-});
-
-describe("stated higher up", () => {
-  it("lists two ancestors of one name apart", () => {
-    const store = layerit();
-    const name = store.view.blocks[A]?.manifest.timelines[1]?.name ?? null;
-    expect([
-      store.dispatch({
-        type: "set",
-        changes: [
-          {
-            target: { block: A, id: "cpt_2" },
-            values: { name, statements: { "schema:sameAs": [{ id: "https://example.org/take" }] } },
-          },
-        ],
-      }),
-      store.dispatch({
-        type: "add",
-        into: { block: A, id: "cpt_2" },
-        region: { id: "region_1", start: 0.0, end: 10.0 },
-      }),
-    ]).toEqual([null, null]);
-    show(store, [{ block: A, id: "region_1" }]);
-    expect([
-      summaries()[0],
-      all('[data-testid="metadata-drawer-higher"] h4').map((heading) => heading.textContent),
-    ]).toEqual([
-      "Stated higher up (6)",
-      [
-        "bundle 'LayerIt, Clair de lune mm. 1–6 (Pires)'",
-        "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'",
-        "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'",
-      ],
-    ]);
   });
 });
 

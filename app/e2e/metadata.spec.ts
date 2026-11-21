@@ -79,22 +79,18 @@ test("the LayerIt recording opens with its rectangles and drawers", async ({ pag
   for (const heading of ["is a", "performed by", "same as"]) {
     await expect(rectangle(page, heading).getByTestId("metadata-add-vocabulary")).toHaveCount(1);
   }
-  await expect(page.locator("details summary")).toHaveText([
-    "Stated higher up (2)",
-    "Proposed (1)",
-    "Rejected (0)",
-  ]);
+  await expect(page.locator("details summary")).toHaveText(["Proposed (1)", "Rejected (0)"]);
   await openDrawer(page, "proposed");
   const proposed = page.getByTestId("metadata-proposed-row");
   await expect(proposed.locator(".what")).toHaveText("is a recording of Clair de lune");
   await expect(proposed.getByRole("button")).toHaveText(["Confirm", "Reject"]);
 
   await showMetadata(page, "clt_6");
-  await expect(page.locator("details summary").nth(2)).toHaveText("Rejected (1)");
+  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (1)");
   await expect(page.getByTestId("metadata-rejected-row")).toContainText("gnd:1156628156");
 
   await showMetadata(page, "dpt_1");
-  await expect(page.locator("details summary").nth(1)).toHaveText("Proposed (1)");
+  await expect(page.locator("details summary").nth(0)).toHaveText("Proposed (1)");
 
   await showMetadata(page, null);
   await expect(
@@ -132,7 +128,7 @@ test("rejecting a proposal keeps it as a rejected annotation", async ({ page }) 
   await showMetadata(page, "dpt_1");
   await openDrawer(page, "proposed");
   await page.getByTestId("metadata-proposed-row").getByRole("button", { name: "Reject" }).click();
-  await expect(page.locator("details summary").nth(2)).toHaveText("Rejected (1)");
+  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (1)");
   const dpt1 = await exported(page, "dpt_1");
   expect((dpt1.statements as { [key: string]: unknown })["dcterms:source"]).toBe(undefined);
   expect(dpt1.provenance).toEqual([
@@ -303,7 +299,7 @@ test("a rectangle is rejected by its own button, never by an arrow key", async (
   await expect(
     page.getByText("Rejected “performed by Maria João Pires”: it is listed under Rejected."),
   ).toBeVisible();
-  await expect(page.locator("details summary").nth(2)).toHaveText("Rejected (2)");
+  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (2)");
   expect(await journalLength(page)).toBe(before + 1);
   const cpt1 = await exported(page, "cpt_1");
   const statements = cpt1.statements as { [key: string]: unknown };

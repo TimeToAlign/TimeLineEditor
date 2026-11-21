@@ -245,7 +245,7 @@ describe("asking and proposing", () => {
     );
     expect(twice.count).toBe(0);
     expect(commandOf(now, twice.skeleton)).toBeNull();
-    const [row] = drawersOf(again.view, now, CATALOGUE, DEFAULT_USER).proposed;
+    const [row] = drawersOf(now, CATALOGUE, DEFAULT_USER).proposed;
     if (row === undefined) throw new Error("no proposal");
     expect(
       again.dispatch(commandOf(now, rejected(now, row, DEFAULT_USER, "2026-11-20"))),
@@ -341,7 +341,7 @@ describe("confirming a proposal found for a name", () => {
   it("states the thing in place of the name", async () => {
     const store = await withProposals();
     const at = frame(store.view, "cpt_2");
-    const row = drawersOf(store.view, at, CATALOGUE, DEFAULT_USER).proposed.find(
+    const row = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed.find(
       ({ entry }) => entry.property === "rel:prf",
     );
     if (row === undefined) throw new Error("no proposal");
@@ -371,11 +371,11 @@ describe("confirming a proposal found for a name", () => {
   it("is no such confirmation for cpt_1's own proposal, nor for a note naming no name", async () => {
     const store = await withProposals();
     const cpt1 = frame(store.view, "cpt_1");
-    const [own] = drawersOf(store.view, cpt1, CATALOGUE, DEFAULT_USER).proposed;
+    const [own] = drawersOf(cpt1, CATALOGUE, DEFAULT_USER).proposed;
     if (own === undefined) throw new Error("no proposal");
     expect(confirmedProposal(cpt1, own, DEFAULT_USER, "2026-11-20")).toBeNull();
     const at = frame(store.view, "cpt_2");
-    const [row] = drawersOf(store.view, at, CATALOGUE, DEFAULT_USER).proposed;
+    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
     if (row === undefined) throw new Error("no proposal");
     const renamed = { ...row, entry: { ...row.entry, note: "found for the name “Someone”" } };
     expect(confirmedProposal(at, renamed, DEFAULT_USER, "2026-11-20")).toBeNull();
