@@ -3900,6 +3900,147 @@ the parity table's manifest with its MeasureMap's expanded rows
      {unit: "ticks", number_type: "int", value: 480}}` (1·480), with no
      key `b2`: the anchor is never repeated in `mapping`.
 
+## MatchClaims, anchors and potential MatchStamps (`matches.test.ts`, `matches-budget.test.ts`)
+
+The MatchClaim table reaches core as typed columns (the repository's
+`decisions/0029-match-claim-columns.md` states the encoding): per row a
+claim ID, a timeline number per side into the list of timelines (each with
+its number type), and four value columns (side A and B, start and end),
+each a float position, an int64 numerator and an int64 denominator; one
+presence mask per anchor (start, end), and the caller's row mask of the
+belief filter. From them core builds the anchor index and compares a named
+MatchStamp with it. The format's rules (TimeToShare's README, "From
+MatchClaims to anchors") are the oracle: a row passing the mask with a
+start anchor gives the anchor of its two start values, with an end anchor
+also that of its two end values, and is then an interval claim bounding a
+matched span; a NOMATCH row and a masked row give nothing; two anchors are
+the same when both coordinates are equal, exactly on their timeline's axis,
+whichever side states which; a potential MatchStamp is one connected set of
+coordinates under the unique anchors. Every expected value below follows
+from these rules by hand; the float position only orders and is never
+compared for equality on an exact axis.
+
+**The case.** Timelines `clt_1` (fraction), `dpt_1` (int), `cpt_1`
+(float), numbered 0, 1, 2. Rows (`claim_N` is row N − 1; A ↔ B):
+
+| Row | Claim | A | B | |
+|---|---|---|---|---|
+| 0 | `claim_1` | `clt_1` 1/2 | `dpt_1` 22050 | instant |
+| 1 | `claim_2` | `clt_1` 1 → 2 | `dpt_1` 44100 → 88200 | interval |
+| 2 | `claim_3` | `clt_1` 3/2 | `dpt_1` 66150 | inside `claim_2`'s span |
+| 3 | `claim_4` | `clt_1` 3 | `dpt_1` 132300 | one anchor, two claims |
+| 4 | `claim_5` | `dpt_1` 132300 | `clt_1` 3 | the same anchor, sides swapped |
+| 5 | `claim_6` | `dpt_1` 132300 | `cpt_1` 3.0 | chain over three timelines |
+| 6 | `claim_7` | `clt_1` 4 | `dpt_1` 176400 | `clt_1` 4 shared by two anchors |
+| 7 | `claim_8` | `clt_1` 4 | `cpt_1` 4.0 | |
+| 8 | `claim_9` | `clt_1` | `dpt_1` | NOMATCH, no anchor |
+| 9 | `claim_10` | `clt_1` 5 | `dpt_1` 220500 | masked (believed false) |
+| 10 | `claim_11` | `clt_1` 1/2 | `dpt_1` 22050 | masked, an anchor row 0 states |
+| 11 | `claim_12` | `clt_1` 1/3 | `dpt_1` 14700 | |
+| 12 | `claim_13` | `clt_1` d | `dpt_1` 14701 | d = 6004799503160661/2^54, the double nearest 1/3 |
+| 13 | `claim_14` | `clt_1` 6 | `dpt_1` 2^53 | |
+| 14 | `claim_15` | `clt_1` 7 | `dpt_1` 2^53 + 1 | the same double as 2^53 |
+
+1. **Coordinates**: 22, numbered by timeline, then position, then exact
+   value: `clt_1` d, 1/3, 1/2, 1, 3/2, 2, 3, 4, 6, 7 (0–9; d and 1/3 share
+   the position 0.3333333333333333, and d < 1/3), `dpt_1` 14700, 14701,
+   22050, 44100, 66150, 88200, 132300, 176400, 2^53, 2^53 + 1 (10–19; the
+   last two share the position 2^53), `cpt_1` 3.0, 4.0 (20, 21); the
+   timeline offsets `[0, 10, 20, 22]`. Each value reads back exactly in
+   its number type (a Rational, a bigint, a float). Masked values (5,
+   220500) are no coordinates.
+2. **Anchors**: 12 from 13 stating rows' anchors, ordered by their lower,
+   then higher coordinate: (0, 11) row 12, (1, 10) 11, (2, 12) 0, (3, 13)
+   1, (4, 14) 2, (5, 15) 1, (6, 16) rows 3 and 4, (7, 17) 6, (7, 21) 7,
+   (8, 18) 13, (9, 19) 14, (16, 20) 5. Each row's start anchor (row 1's end
+   anchor 5), −1 for rows 8, 9, 10.
+3. **Neighbours**: per coordinate its joined coordinates ascending, with
+   the anchor joining each: 7 → 17, 21 (anchors 7, 8), 16 → 6, 20 (6, 11),
+   every other coordinate one.
+4. **Potential MatchStamps**: 10, numbered by their first coordinate:
+   {0, 11}, {1, 10}, {2, 12}, {3, 13}, {4, 14}, {5, 15}, {6, 16, 20}, {7,
+   17, 21}, {8, 18}, {9, 19}; the anchors of {6, 16, 20} are 6 and 11, its
+   claim rows 3, 4, 5.
+5. **Matched spans**: one, row 1, from anchor 3 to anchor 5.
+6. **Segments** of `clt_1` and `dpt_1`: anchors 0, 1, 2, 3, 4, 5, 6, 7, 9,
+   10 in `clt_1`'s order, the gaps from anchor 3 to 4 and 4 to 5 covered by
+   row 1's span, no other; of `dpt_1` and `clt_1` the anchors 1, 0, 2, …
+   in `dpt_1`'s order with the same gaps covered; of `clt_1` and `cpt_1`
+   anchor 8 alone, no gap. A timeline paired with itself is refused.
+7. **Order and hit testing**: on `clt_1` at 1.4 within 0.2 the coordinate
+   4 (3/2); at 2.5 within 0.25 none; at 2.5 within 0.5 the tie goes to the
+   lower coordinate, 5; at 0.3333333333333333 within 0 the first of the
+   two, 0. `dpt_1` from 44100 to 88200 (both ends included) holds
+   coordinates 13 to 15. Looking a value up exactly: `clt_1` 1/3 → 1, d →
+   0, `dpt_1` 2^53 + 1 → 19, `cpt_1` 3.0 → 20; `cpt_1` the bigint 3, `clt_1`
+   5 (masked) and an unknown timeline → none.
+8. **Without a mask** every row counts: 24 coordinates, 13 anchors, 11
+   potential MatchStamps, anchor (2, 12) stated by rows 0 and 10.
+9. **Float axes**: −0.0 and 0.0 on `cpt_1` are one coordinate.
+10. **Refusals** (`RangeError`, exact message): a column whose length is
+    not the row count; a timeline number beyond the list; an end anchor
+    without a start anchor; on an int axis a denominator other than 1; on
+    a fraction axis a denominator below 1 or a fraction not in lowest
+    terms; a position that is not finite; a mask of another length.
+11. **The oracle.** fast-check builds columns over small value domains
+    (so values, anchors and sets collide often), with random masks; a
+    reference written in the test with string keys of exact values, plain
+    maps and a breadth-first search gives the coordinates, anchors with
+    their rows, and connected sets, which the index must equal.
+
+**A named MatchStamp against the index.** The input is a named
+MatchStamp's alignment anchors (each two coordinates given by timeline ID
+and value, and whether it carries the name) and the claim IDs it records.
+An alignment anchor is stated when the index holds an anchor of its two
+coordinates. The current potential MatchStamps are those holding any of
+its coordinates. The differences: anchors gone (named, not stated),
+anchors new (in the current MatchStamps, not named), claims missing
+(recorded, not in the table), claims believed false (recorded, in the
+table, masked), claims elsewhere (recorded, passing the mask, behind none
+of the current MatchStamps), claims new (behind the current MatchStamps,
+not recorded). Out of date exactly when one of the six is not empty. The
+Update result is the current potential MatchStamp holding the stated
+anchor that carries the name, else the largest holding a stated anchor
+(most coordinates, then most stated anchors, then the first stated anchor
+in the named order), none when no anchor is stated. On the case's index:
+
+1. Anchors (`clt_1` 3, `dpt_1` 132300) and (`dpt_1` 132300, `cpt_1` 3.0,
+   name), claims `claim_4`, `claim_5`, `claim_6`: stated as anchors 6 and
+   11, up to date, every difference empty; Update the MatchStamp {6, 16,
+   20} with anchors 6, 11, claims `claim_4`, `claim_5`, `claim_6`, the
+   name on anchor 11. Recording `claim_1` and `claim_9` besides: out of
+   date, both claims elsewhere.
+2. (`clt_1` 4, `dpt_1` 176400, name) and (`clt_1` 5, `dpt_1` 220500),
+   claims `claim_7`, `claim_10`, `claim_99`: stated 7 and none; anchors
+   gone [1], new [8]; `claim_99` missing, `claim_10` believed false,
+   `claim_8` new; Update {7, 17, 21}, anchors 7, 8, claims `claim_7`,
+   `claim_8`, the name on 7.
+3. A MatchStamp now split in two: (`clt_1` 4, `dpt_1` 176400), (`clt_1` 3,
+   `dpt_1` 132300), (`dpt_1` 132300, `cpt_1` 3.0), (`dpt_1` 176400,
+   `cpt_1` 3.0, name), claims `claim_4` … `claim_7`, `claim_17`: stated 7,
+   6, 11, none; gone [3], new [8], `claim_17` missing, `claim_8` new; the
+   name's anchor is not stated and both MatchStamps have three
+   coordinates, so Update takes {6, 16, 20}, which holds two stated
+   anchors, with no name anchor.
+4. (`clt_1` 1/2, `dpt_1` 22050) and (`clt_1` 4, `dpt_1` 176400), no name:
+   Update the larger, {7, 17, 21}.
+5. (`clt_1` 5, `dpt_1` 220500, name), claim `claim_10`: nothing stated,
+   no current MatchStamp, gone [0], `claim_10` believed false, no Update.
+6. (`clt_1` 1/2, `dpt_1` 44100): both coordinates exist, the anchor does
+   not; the current MatchStamps are {2, 12} and {3, 13}: new [2, 3],
+   claims `claim_1`, `claim_2` new, no Update.
+
+**Measurements** (`matches-budget.test.ts`, run with the default suite):
+a generator writes 250,000 claims over three timelines (instants,
+intervals, NOMATCH rows; values from small grids so coordinates are
+shared). The target: the columns' check (once per table) and the index's
+build within 100 ms of the columns' arrival, a hover (the hit test, the
+potential MatchStamp's members and anchors) answered within 1 ms. The
+check, the build and the mean of 1,000 hovers are printed, each the
+minimum of 5 runs after one warm-up; since this file shares the machine
+with the suite, it asserts only ten times the target (1 s, 10 ms), which
+no healthy run reaches.
+
 ## Budgets (`budget.test.ts`)
 
 The budgets time the code, so they do not run with the default suite, whose
