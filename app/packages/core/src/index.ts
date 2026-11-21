@@ -205,7 +205,7 @@ export {
   segmentsOf,
 } from "./matches/anchors.ts";
 export type { BeliefFilter, ClaimBeliefs } from "./matches/beliefs.ts";
-export { BELIEF_FILTERS, BELIEFS, beliefMask } from "./matches/beliefs.ts";
+export { actorIri, BELIEF_FILTERS, BELIEFS, beliefMask } from "./matches/beliefs.ts";
 export type {
   ClaimSide,
   ClaimTimeline,
@@ -214,7 +214,7 @@ export type {
   ValueCell,
   ValueColumn,
 } from "./matches/columns.ts";
-export { checkColumns, matchClaimColumns, valueCell } from "./matches/columns.ts";
+export { checkColumns, claimRowOf, matchClaimColumns, valueCell } from "./matches/columns.ts";
 export type {
   MatchStampCheck,
   MatchStampUpdate,

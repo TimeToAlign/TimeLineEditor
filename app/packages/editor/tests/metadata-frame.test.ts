@@ -2,7 +2,7 @@
 
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, View } from "@timetoalign/tilie-core";
-import { canonicalText, DEFAULT_USER } from "@timetoalign/tilie-core";
+import { canonicalText, DEFAULT_USER, USER_TAG } from "@timetoalign/tilie-core";
 import { defaultCatalogue, fontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,6 +15,8 @@ import type { Frame, RectangleView } from "../src/inspector/metadata/frame.ts";
 import {
   beliefOf,
   candidatesOf,
+  lineOf,
+  paradataRows,
   rectanglesOf,
   rectangleWords,
   SELECT_HINT,
@@ -352,5 +354,46 @@ describe("the choices the composer offers", () => {
       "wd:Q235650",
     );
     expect(compactIri(CATALOGUE.prefixes, MB_WORK)).toBe(MB_WORK);
+  });
+});
+
+describe("a provenance entry", () => {
+  const GERHARDT = { name: "Gerhardt", orcid: null };
+  const CONTEXT = { tilie: USER_TAG, ex: "https://example.org/" };
+  const entry = {
+    stated_by: ["ex:people/editor", "tilie:Gerhardt"],
+    date: "2026-11-18",
+    method: "manual",
+    basis: ["ex:sources/a", "ex:sources/b"],
+    beliefs: [
+      { actor: "tilie:Gerhardt", belief: "true", date: "2026-11-19" },
+      { actor: "ex:people/editor", belief: "unlikely", date: "2026-11-18", note: "check" },
+    ],
+  };
+
+  it("reads every actor as the IRI it stands for under the manifest's context", () => {
+    const line = lineOf(entry, GERHARDT, CONTEXT);
+    expect(line.who).toBe(`${P}, Gerhardt`);
+    expect(line.beliefs.map((held) => [held.actor, held.iri, held.who, held.belief])).toEqual([
+      ["tilie:Gerhardt", G, "Gerhardt", "true"],
+      ["ex:people/editor", P, P, "unlikely"],
+    ]);
+    expect(beliefOf(line, GERHARDT)).toBe("true");
+    const unexpanded = lineOf(entry, GERHARDT, undefined);
+    expect(unexpanded.beliefs.map((held) => held.iri)).toEqual([
+      "tilie:Gerhardt",
+      "ex:people/editor",
+    ]);
+    expect(beliefOf(unexpanded, GERHARDT)).toBe(null);
+  });
+
+  it("lists its paradata in one order with one set of labels", () => {
+    expect(paradataRows(lineOf(entry, GERHARDT, CONTEXT))).toEqual([
+      { key: "who", label: "stated by", text: `${P}, Gerhardt` },
+      { key: "method", label: "method", text: "manual" },
+      { key: "basis", label: "basis", text: "ex:sources/a, ex:sources/b" },
+      { key: "date", label: "date", text: "2026-11-18" },
+    ]);
+    expect(paradataRows(lineOf({}, GERHARDT, CONTEXT))).toEqual([]);
   });
 });

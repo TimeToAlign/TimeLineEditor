@@ -1137,8 +1137,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the timelines `[clt_1, dpt_1]` the compared index keeps 4 anchors and
    the shown one has 2 (`claim_1`'s and `claim_4`'s): the timelines narrow
    what is shown, never what a named MatchStamp is compared with. The same
-   table and filter give the same index objects again.
-2. **Screen order.** The block draws `clt_1` above `cpt_1` above `dpt_1`.
+   table, filter and context give the same index objects again.
+2. **Screen order** is the arranger's one screen order (`screenPlace`,
+   `screenOrder`, `inScreenOrder` over the block's drawing, which its own
+   tests prove), the flag's too; the editor keeps no order of its own.
+   The block draws `clt_1` above `cpt_1` above `dpt_1`.
    The potential MatchStamp of `clt_1` 0 lists its timestamps `clt_1` 0,
    `cpt_1` 0.0, `dpt_1` 0 and its anchors [`clt_1` 0, `cpt_1` 0.0], then
    [`clt_1` 0, `dpt_1` 0] (each anchor upper coordinate first, the anchors
@@ -1155,23 +1158,64 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    named MatchStamp. Opened in a timeline editor of `cpt_1`, naming first
    closes the editor (the editing path is empty after) and is accepted;
    in a bundle editor of the block it stays open.
+   **Under a timelines filter** naming stores the MatchStamp the table
+   states, never the part the filter shows: the timelines filter limits
+   what is shown, never what is stated. With the timelines `[clt_1,
+   dpt_1]` the shown potential MatchStamp of `clt_1` 0 is {`clt_1` 0,
+   `dpt_1` 0}, MatchClaim `claim_1`; what naming stores
+   (`stampToName`) is the compared index's MatchStamp holding its first
+   coordinate, {`clt_1` 0, `cpt_1` 0.0, `dpt_1` 0}, MatchClaims `claim_1`,
+   `claim_2`, and the tab says so before the name is typed: "Naming also
+   stores 1 anchor on timelines the MatchClaim filter hides." Named
+   "Downbeat", it is the MatchStamp above (`anchor_1` [`timestamp_1`,
+   `timestamp_2`], `anchor_2` [`timestamp_1`, `timestamp_3`], MatchClaims
+   `["claim_1", "claim_2"]`), and compared with the compared index it is
+   not out of date: no difference. Without a timelines filter what naming
+   stores is the shown MatchStamp itself (the same object) and the tab
+   says nothing.
 4. **A named MatchStamp against the table.** With that MatchStamp named
    and the user's belief in `claim_1` changed to `false` (a second table),
    the comparison marks `anchor_2` not stated (its line red, the words "not
-   stated by the table"), and the tab lists exactly "MatchClaims believed
-   false: claim_1" and "Anchors gone: anchor_2"; Update is enabled and sends
+   stated by the table"), and the tab lists exactly "MatchClaims the belief
+   filter leaves out: claim_1" and "Anchors gone: anchor_2" (the label
+   holds under both filters: under "Only what I believe true" it also
+   names MatchClaims nobody believes either way, core's
+   `claimsBelievedFalse`); Update is enabled and sends
    one `set` of `anchors` [[`clt_1` [0, 1], `cpt_1` 0.0]] and `match_claims`
    `["claim_2"]` (one journal entry, `anchor_1` kept with its display,
    `timestamp_3` gone); Remove deletes the MatchStamp and its three match
    timestamps in one entry, leaving the tab on the hint. Without a table
    nothing is compared: no anchor is marked, no difference listed, no
    Update shown, Remove offered.
-5. **MatchClaims and beliefs.** Each MatchClaim lists every actor's belief
-   (`claim_4`: "tag:example.org,2026:other: true") and the buttons True,
+5. **MatchClaims and beliefs.** A MatchClaim's provenance is shown by the
+   Metadata tab's details (one component, one reader: `claimEntryLine`
+   gives the Metadata tab's `EntryLine`, `paradataRows` its rows, the
+   same words and order as a pair's details; "The Metadata tab" below).
+   Before its entry is read, each MatchClaim lists the beliefs the table
+   states, every actor worded by `whoOf` (`claim_4`: "tag:example.org,2026:other
+   believes it true"; the user's own by the user's name), with no date, no
+   note and no paradata; an entry the table does not state reads "No
+   provenance entry: the table states none for it."; a MatchClaim without
+   beliefs "No one has stated a belief.". The buttons True,
    Unlikely, False, the user's own belief pressed (`claim_5`: True); without
    a server every button is disabled with the title "Matches need a server:
    …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
    table", and without a table "no table loaded".
+   **Actors compare as the IRIs they stand for** under the manifest's
+   `@context` (core's `actorIri`, the library's rule), in the belief
+   filter, in the user's own belief and in the words: the table with the
+   user written compact, `tilie:<the default user's name, URI-encoded>`,
+   under the context `{tilie: USER_TAG}` gives `claim_5` the belief
+   `{actor: the compact text, iri: the user's IRI, who: the user's name,
+   belief: "true"}` and the user's own belief `true`; the filter "only what
+   I believe true" keeps 1 anchor (`claim_5`'s). Without the context the
+   compact actor is no IRI of the user: no belief of the user, 0 anchors.
+   `claimEntryLine` of `claim_4`: `null` for an entry the table does not
+   state; while unread, the table's beliefs and no paradata; once read
+   (`stated_by` the user, 2026-11-20, `imported`, the service
+   `https://example.org/aligner`, the other actor believing it true on
+   2026-11-21 with the note "seen in the score"), the entry's line, `who`
+   the user's name and the belief with its date and note.
 6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
    `cpt_1`, `dpt_1`) checked and the two belief choices; unchecking
    `cpt_1` configures `{timelines: ["clt_1", "clt_2", "dpt_1"], belief:
@@ -1222,12 +1266,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     `["claim_1", "claim_2"]` (its MatchClaims, never another row), with
     the manifest as its file writes it and the file the block holds; while
     the answer is pending each MatchClaim reads "Reading the provenance…";
-    then `claim_1` lists "Date 2026-11-20", "Method imported", "Service
-    https://example.org/aligner" in that order and `claim_2` "No provenance
+    then `claim_1` lists "method imported", "service
+    https://example.org/aligner", "date 2026-11-20" in that order (the
+    Metadata tab's order and words) and `claim_2` "No provenance
     entry: the table states none for it."; the other actor's belief in
     `claim_4`, recorded with the date 2026-11-21 and the note "seen in the
-    score", reads "tag:example.org,2026:other: true, 2026-11-21 “seen in
-    the score”". Showing the same MatchStamp again from the same table asks
+    score", reads "tag:example.org,2026:other believes it true
+    (2026-11-21): seen in the score". Showing the same MatchStamp again from the same table asks
     nothing more; a refused request reads "The provenance could not be
     read: <the server's message>", and the next showing asks again. Without
     a server nothing is asked.
@@ -1412,6 +1457,24 @@ default, Gerhardt, who states and believes as `G` =
 8. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
    → its iD; `…:user:Clara%20Wieck` → "Clara Wieck"; `TILIE` → "TiLiE";
    any other IRI as written.
+   **A provenance entry** (`lineOf`, the one reader of the Metadata tab's
+   and the Matchstamp tab's details) reads every actor and every IRI of
+   `stated_by` as the IRI it stands for under the manifest's context
+   (core's `actorIri`, as the belief filter does). The entry `stated_by`
+   [`ex:people/editor`, `tilie:Gerhardt`], date 2026-11-18, method
+   `manual`, basis [`ex:sources/a`, `ex:sources/b`], beliefs
+   `tilie:Gerhardt` true (2026-11-19) and `ex:people/editor` unlikely
+   (2026-11-18, note "check"), under the context `{tilie: USER_TAG, ex:
+   "https://example.org/"}`, for the user Gerhardt (no ORCID): `who`
+   "`P`, Gerhardt"; beliefs `[actor as written, iri, who, belief]`
+   [`tilie:Gerhardt`, `G`, "Gerhardt", true], [`ex:people/editor`, `P`,
+   `P`, unlikely]; `beliefOf` `"true"`. Without the context the IRIs are
+   the texts as written and `beliefOf` is `null`. `paradataRows` lists
+   `{key, label, text}` in the one order and words of both tabs: who
+   "stated by", method "method", service "service", basis "basis" (joined
+   by ", "), match "match", note "note", date "date", only those the entry
+   states: here stated by, method, basis "ex:sources/a, ex:sources/b",
+   date; an empty entry none.
 9. **Choices.** `systemChoices` of "performed by": Wikidata, MusicBrainz,
    GND, "MeLODy / LRMoo", "Other vocabularies", "An element of this
    manifest". `verbChoices` for the types `cpt_1`'s "is a" states begin

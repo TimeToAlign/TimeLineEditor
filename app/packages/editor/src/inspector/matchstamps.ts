@@ -15,6 +15,7 @@ import type {
   MatchStampPin,
   NamedComparison,
 } from "@timetoalign/tilie-arranger";
+import { inScreenOrder, screenOrder, screenPlace } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import type {
   AnchorDisplay,
@@ -27,15 +28,20 @@ import type {
   MatchStampCheck,
   MatchStampUpdate,
   NamedMatchStamp,
+  User,
   View,
 } from "@timetoalign/tilie-core";
 import {
+  actorIri,
   anchorIndexOf,
   BELIEFS,
   beliefMask,
+  canonicalText,
   checkMatchStamp,
+  claimRowOf,
   claimRowsOf,
   coordinateDict,
+  coordinateOf,
   coordinateValue,
   copyValue,
   findTimeline,
@@ -44,15 +50,17 @@ import {
   matchStampSpec,
   prettyText,
   prettyUnit,
+  statedBy,
 } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { axisValueOf, toRational } from "@timetoalign/tilie-core/numbers";
-import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
-import { abscissaOf, lineAxes } from "@timetoalign/tilie-layout";
+import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Belief } from "@timetoalign/timetoshare";
 import { ANCHOR_DISPLAY } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
 import { writeText } from "./formats.svelte.ts";
+import type { BeliefLine } from "./metadata/frame.ts";
+import { whoOf } from "./metadata/frame.ts";
 import type { Result } from "./problems.ts";
 import type { HeldMatch } from "./tabs.ts";
 
@@ -106,20 +114,25 @@ function cachedIndex(table: MatchClaimTable, key: string, build: () => AnchorInd
 
 /**
  * The indexes of `table` under `filter` for the believer `believer` (the
- * editor's one user), each built once per table and filter.
+ * editor's one user), the actors compared as their IRIs under `context`
+ * (the block's manifest's `@context`, `undefined` for none: `actorIri`),
+ * each built once per table, filter and context.
  */
 export function matchIndexes(
   table: MatchClaimTable,
   filter: MatchClaimFilter,
   believer: string,
+  context: unknown,
 ): MatchIndexes {
-  const mask = () => beliefMask(table.beliefs, believer, filter.belief);
-  const compared = cachedIndex(table, JSON.stringify([believer, filter.belief]), () =>
+  const mask = () => beliefMask(table.beliefs, believer, filter.belief, context);
+  const prefixes = context === undefined ? "" : canonicalText(context);
+  const compared = cachedIndex(table, JSON.stringify([believer, filter.belief, prefixes]), () =>
     anchorIndexOf(table.columns, mask()),
   );
   const { timelines } = filter;
   if (timelines === null) return { compared, shown: compared };
-  const shown = cachedIndex(table, JSON.stringify([believer, filter.belief, timelines]), () =>
+  const key = JSON.stringify([believer, filter.belief, prefixes, timelines]);
+  const shown = cachedIndex(table, key, () =>
     anchorIndexOf(table.columns, timelineMask(table, timelines, mask())),
   );
   return { compared, shown };
@@ -198,29 +211,6 @@ export interface StampCoordinate {
   readonly value: CoordinateValue;
 }
 
-/** Where a coordinate is drawn in its block: its line's ordinate, then its abscissa. */
-type ScreenKey = readonly [number, number];
-
-/** The drawn lines of a block, in drawing order, which screen order reads. */
-export type Lines = readonly LineAxis[];
-
-/** The drawn lines of `drawing`. */
-export function linesOf(drawing: Drawing): Lines {
-  return [...lineAxes(drawing).values()];
-}
-
-/** Where `coordinate` is drawn: on the first line drawing its timeline; after every line where none does. */
-function screenKey(lines: Lines, coordinate: StampCoordinate): ScreenKey {
-  const line = lines.find((item) => item.timeline === coordinate.timeline);
-  if (line === undefined) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
-  const { value } = coordinate;
-  return [line.y, abscissaOf(line, typeof value === "number" ? value : toRational(value))];
-}
-
-function compareKeys(left: ScreenKey, right: ScreenKey): number {
-  return left[0] - right[0] || left[1] - right[1];
-}
-
 /** Whether two coordinates are one: one timeline, one exact value. */
 function sameCoordinate(left: StampCoordinate, right: StampCoordinate): boolean {
   if (left.timeline !== right.timeline) return false;
@@ -230,39 +220,33 @@ function sameCoordinate(left: StampCoordinate, right: StampCoordinate): boolean 
   return toRational(left.value).equals(toRational(right.value));
 }
 
-/** `coordinates` in screen order: top to bottom, then left to right; an equal place keeps the given order. */
-export function inScreenOrder(
-  lines: Lines,
-  coordinates: readonly StampCoordinate[],
-): StampCoordinate[] {
-  return coordinates
-    .map((coordinate) => ({ coordinate, key: screenKey(lines, coordinate) }))
-    .sort((left, right) => compareKeys(left.key, right.key))
-    .map(({ coordinate }) => coordinate);
-}
-
 type Pair = readonly [StampCoordinate, StampCoordinate];
 
-/** `pair` in screen order: its upper coordinate first, the left one on one line. */
-function pairInScreenOrder(lines: Lines, [left, right]: Pair): Pair {
-  return compareKeys(screenKey(lines, right), screenKey(lines, left)) < 0
+/** `pair` in screen order (the arranger's `screenOrder` in `drawing`): its upper coordinate first, the left one on one line. */
+function pairInScreenOrder(drawing: Drawing, [left, right]: Pair): Pair {
+  return screenOrder(screenPlace(drawing, right), screenPlace(drawing, left)) < 0
     ? [right, left]
     : [left, right];
 }
 
 /**
- * `pairs` in screen order: each pair its upper coordinate first (the left
- * one on one line), the pairs by their first coordinate, then their second.
+ * `pairs` in screen order in `drawing`: each pair its upper coordinate
+ * first (the left one on one line), the pairs by their first coordinate,
+ * then their second; pairs at one place keep the given order.
  */
-export function pairsInScreenOrder(lines: Lines, pairs: readonly Pair[]): Pair[] {
+function pairsInScreenOrder(drawing: Drawing, pairs: readonly Pair[]): Pair[] {
   return pairs
     .map((given) => {
-      const pair = pairInScreenOrder(lines, given);
-      return { pair, first: screenKey(lines, pair[0]), second: screenKey(lines, pair[1]) };
+      const pair = pairInScreenOrder(drawing, given);
+      return {
+        pair,
+        first: screenPlace(drawing, pair[0]),
+        second: screenPlace(drawing, pair[1]),
+      };
     })
     .sort(
       (left, right) =>
-        compareKeys(left.first, right.first) || compareKeys(left.second, right.second),
+        screenOrder(left.first, right.first) || screenOrder(left.second, right.second),
     )
     .map(({ pair }) => pair);
 }
@@ -314,12 +298,12 @@ function claimIds(index: AnchorIndex, anchors: ArrayLike<number>): string[] {
   return Array.from(claimRowsOf(index, anchors), (row) => index.columns.claimIds[row] as string);
 }
 
-/** The potential MatchStamp `matchStamp` of `index`, in block `block` drawn as `lines`. */
+/** The potential MatchStamp `matchStamp` of `index`, in block `block` drawn as `drawing`. */
 export function potentialStamp(
   block: string,
   index: AnchorIndex,
   matchStamp: number,
-  lines: Lines,
+  drawing: Drawing,
 ): ShownStamp {
   const anchors = matchStampAnchors(index, matchStamp);
   const members = Array.from(matchStampMembers(index, matchStamp), (c) =>
@@ -329,8 +313,8 @@ export function potentialStamp(
     block,
     id: null,
     name: null,
-    coordinates: inScreenOrder(lines, members),
-    anchors: pairsInScreenOrder(lines, indexPairs(index, anchors)).map((coordinates) => ({
+    coordinates: inScreenOrder(drawing, members, (coordinate) => coordinate),
+    anchors: pairsInScreenOrder(drawing, indexPairs(index, anchors)).map((coordinates) => ({
       key: JSON.stringify(coordinates.map((c) => [c.timeline, String(c.value)])),
       id: null,
       coordinates,
@@ -343,7 +327,7 @@ export function potentialStamp(
 
 /**
  * The named MatchStamp `matchstamp` of `manifest`, in block `block` drawn
- * as `lines`, its anchors in the manifest's order, each stated or not as
+ * as `drawing`, its anchors in the manifest's order, each stated or not as
  * `comparison` (the current table's) says; `null` without a table.
  */
 export function namedStamp(
@@ -351,7 +335,7 @@ export function namedStamp(
   manifest: Manifest,
   matchstamp: NamedMatchStamp,
   comparison: MatchStampCheck | null,
-  lines: Lines,
+  drawing: Drawing,
 ): ShownStamp {
   const spec = matchStampSpec(manifest, matchstamp);
   const anchors = matchstamp.alignment_anchors.map((anchor, at): StampAnchor => {
@@ -360,7 +344,7 @@ export function namedStamp(
     return {
       key: anchor.id,
       id: anchor.id,
-      coordinates: pairInScreenOrder(lines, coordinates),
+      coordinates: pairInScreenOrder(drawing, coordinates),
       display: anchor.display,
       stated: comparison === null ? null : comparison.stated[at] !== null,
     };
@@ -375,10 +359,46 @@ export function namedStamp(
     block,
     id: matchstamp.id,
     name: matchstamp.name,
-    coordinates: inScreenOrder(lines, unique),
+    coordinates: inScreenOrder(drawing, unique, (coordinate) => coordinate),
     anchors,
     claims: matchstamp.match_claims,
   };
+}
+
+/**
+ * The potential MatchStamp that naming `stamp` stores: the MatchStamp of
+ * the compared index (the belief filter alone) holding `stamp`'s first
+ * coordinate, so that a MatchStamp named under a timelines filter is the
+ * whole MatchStamp the table states and is not out of date the moment it
+ * is named (the timelines filter limits what is shown, never what is
+ * stated). `stamp` itself where both indexes are one, or where the compared
+ * index does not hold its coordinate.
+ */
+export function stampToName(
+  stamp: ShownStamp,
+  indexes: MatchIndexes,
+  drawing: Drawing,
+): ShownStamp {
+  const [first] = stamp.coordinates;
+  if (indexes.shown === indexes.compared || first === undefined) return stamp;
+  const { compared } = indexes;
+  const coordinate = coordinateOf(compared, first.timeline, first.value);
+  const matchStamp = coordinate < 0 ? undefined : compared.matchStamps.of[coordinate];
+  return matchStamp === undefined
+    ? stamp
+    : potentialStamp(stamp.block, compared, matchStamp, drawing);
+}
+
+/**
+ * What the tab says before `stamp` (as shown) is named as `named`
+ * (`stampToName`): how many of the anchors naming stores lie on timelines
+ * the MatchClaim filter hides; `null` when it stores what is shown.
+ */
+export function hiddenAnchorsNote(stamp: ShownStamp, named: ShownStamp): string | null {
+  const hidden = named.anchors.length - stamp.anchors.length;
+  if (hidden <= 0) return null;
+  const anchors = hidden === 1 ? "1 anchor" : `${hidden} anchors`;
+  return `Naming also stores ${anchors} on timelines the MatchClaim filter hides.`;
 }
 
 /** The named MatchStamps of `manifest` an anchor of which names the match timestamp `timestamp`. */
@@ -470,51 +490,46 @@ export function stampText(format: Format, manifest: Manifest, stamp: ShownStamp)
 
 // --- MatchClaims and beliefs -------------------------------------------------
 
-/** One actor's belief in a MatchClaim. */
-export interface BeliefLine {
-  readonly actor: string;
-  readonly belief: Belief;
-}
-
 /** A MatchClaim behind a MatchStamp as the tab lists it. */
 export interface ClaimLine {
   readonly id: string;
   /** Whether the table holds it; `false` without a table. */
   readonly held: boolean;
-  /** Every actor's belief in it, as the table states them. */
+  /**
+   * Every actor's belief in it, as the table states them, each actor's IRI
+   * under the manifest's context and its words (`whoOf`); date and note
+   * `null`, which only the provenance entry gives.
+   */
   readonly beliefs: readonly BeliefLine[];
   /** The belief of `user`; `null` while they state none. */
   readonly mine: Belief | null;
 }
 
-const rowCache = new WeakMap<MatchClaimTable, ReadonlyMap<string, number>>();
-
-function rowOf(table: MatchClaimTable, id: string): number | undefined {
-  let rows = rowCache.get(table);
-  if (rows === undefined) {
-    rows = new Map(table.columns.claimIds.map((claim, row) => [claim, row]));
-    rowCache.set(table, rows);
-  }
-  return rows.get(id);
-}
-
-/** The MatchClaims `ids` with their beliefs in `table` (none without one), `user` the IRI of the editor's user. */
+/**
+ * The MatchClaims `ids` with their beliefs in `table` (none without one),
+ * `user` the editor's user, actors compared as their IRIs under `context`
+ * (the manifest's `@context`, `actorIri`), as the belief filter compares them.
+ */
 export function claimLines(
   table: MatchClaimTable | null,
   ids: readonly string[],
-  user: string,
+  user: User,
+  context: unknown,
 ): ClaimLine[] {
+  const me = actorIri(context, statedBy(user));
   return ids.map((id) => {
-    const row = table === null ? undefined : rowOf(table, id);
+    const row = table === null ? undefined : claimRowOf(table.columns).get(id);
     if (table === null || row === undefined) return { id, held: false, beliefs: [], mine: null };
     const { actors, offsets, actor, word } = table.beliefs;
     const beliefs: BeliefLine[] = [];
     for (let at = offsets[row] as number; at < (offsets[row + 1] as number); at += 1) {
       const belief = BELIEFS[word[at] as number];
       const name = actors[actor[at] as number];
-      if (belief !== undefined && name !== undefined) beliefs.push({ actor: name, belief });
+      if (belief === undefined || name === undefined) continue;
+      const iri = actorIri(context, name);
+      beliefs.push({ actor: name, iri, who: whoOf(iri, user), belief, date: null, note: null });
     }
-    const mine = beliefs.find((line) => line.actor === user)?.belief ?? null;
+    const mine = beliefs.find((line) => line.iri === me)?.belief ?? null;
     return { id, held: true, beliefs, mine };
   });
 }
@@ -537,8 +552,9 @@ function coordinateText(manifest: Manifest, coordinate: StampCoordinate): string
  * What differs between the named MatchStamp `matchstamp` and the current
  * table (`comparison`, against `index`), each kind with what differs, only
  * the kinds that do, in the order: MatchClaims missing from the table,
- * MatchClaims believed false, anchors gone, anchors new, MatchClaims
- * stating other anchors, MatchClaims new.
+ * MatchClaims the belief filter leaves out (believed false, or under "only
+ * what I believe true" not believed true), anchors gone, anchors new,
+ * MatchClaims stating other anchors, MatchClaims new.
  */
 export function differencesOf(
   manifest: Manifest,
@@ -554,7 +570,7 @@ export function differencesOf(
   );
   const kinds: Difference[] = [
     { label: "MatchClaims missing from the table", items: comparison.claimsMissing },
-    { label: "MatchClaims believed false", items: comparison.claimsBelievedFalse },
+    { label: "MatchClaims the belief filter leaves out", items: comparison.claimsBelievedFalse },
     { label: "Anchors gone", items: gone },
     { label: "Anchors new", items: fresh },
     { label: "MatchClaims stating other anchors", items: comparison.claimsElsewhere },
@@ -575,7 +591,8 @@ function anchorPair([left, right]: Pair): readonly [AnchorValue, AnchorValue] {
 
 /**
  * The `add` naming the potential MatchStamp `stamp` `name`: its anchors in
- * screen order, as `stamp` holds them, and the MatchClaims behind it.
+ * screen order, as `stamp` holds them, and the MatchClaims behind it. The
+ * tab names `stampToName` of the MatchStamp it shows.
  */
 export function nameCommand(stamp: ShownStamp, name: string): Command {
   return {
@@ -617,9 +634,9 @@ export function updateCommand(
   id: string,
   update: MatchStampUpdate,
   index: AnchorIndex,
-  lines: Lines,
+  drawing: Drawing,
 ): Command {
-  const anchors = pairsInScreenOrder(lines, indexPairs(index, update.anchors));
+  const anchors = pairsInScreenOrder(drawing, indexPairs(index, update.anchors));
   return {
     type: "set",
     changes: [

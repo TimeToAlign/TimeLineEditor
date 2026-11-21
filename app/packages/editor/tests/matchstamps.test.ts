@@ -2,14 +2,21 @@
 
 import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
-import { coordinateOf, DEFAULT_MATCH_CLAIM_FILTER } from "@timetoalign/tilie-core";
+import {
+  coordinateOf,
+  DEFAULT_MATCH_CLAIM_FILTER,
+  DEFAULT_USER,
+  USER_TAG,
+} from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
 import { compactJson, fontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
-import type { Lines, StampCoordinate } from "../src/inspector/matchstamps.ts";
+import { claimEntryLine } from "../src/inspector/claimProvenance.ts";
+import type { StampCoordinate } from "../src/inspector/matchstamps.ts";
 import {
   claimLines,
   differencesOf,
-  linesOf,
+  hiddenAnchorsNote,
   matchIndexes,
   matchInputs,
   nameCommand,
@@ -18,6 +25,7 @@ import {
   pinnedMatchStampOf,
   potentialStamp,
   removeCommand,
+  stampToName,
   updateCommand,
 } from "../src/inspector/matchstamps.ts";
 import type { HeldMatch, MatchShown } from "../src/inspector/tabs.ts";
@@ -27,11 +35,17 @@ import { storeOf } from "./support.ts";
 
 const A = "0000000000";
 
-function setup(): { store: Store; lines: Lines } {
+/** The table fixture's manifest's context: it declares none. */
+const CONTEXT = tableManifest()["@context"];
+
+/** The block's timelines filter of the README's cases: `cpt_1` left out. */
+const NARROWED = { timelines: ["clt_1", "dpt_1"], belief: "not_false" } as const;
+
+function setup(): { store: Store; drawing: Drawing } {
   const store = storeOf(tableManifest());
   const block = store.view.blocks[A];
   if (block === undefined) throw new Error("the block is missing");
-  return { store, lines: linesOf(drawingOf(block, store.view.graphical, fontMetrics)) };
+  return { store, drawing: drawingOf(block, store.view.graphical, fontMetrics) };
 }
 
 /** The number of the potential MatchStamp holding `timeline` at `value` in `index`. */
@@ -45,29 +59,27 @@ function stampAt(index: AnchorIndex, timeline: string, value: Parameters<typeof 
 const text = ({ timeline, value }: StampCoordinate) => [timeline, String(value)];
 
 /** Name the potential MatchStamp of `clt_1` 0 "Downbeat" in `store`. */
-function nameDownbeat(store: Store, lines: Lines): void {
-  const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME);
-  const stamp = potentialStamp(A, shown, stampAt(shown, "clt_1", q(0)), lines);
+function nameDownbeat(store: Store, drawing: Drawing): void {
+  const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
+  const stamp = potentialStamp(A, shown, stampAt(shown, "clt_1", q(0)), drawing);
   expect(store.dispatch(nameCommand(stamp, "Downbeat"))).toBe(null);
 }
 
 describe("the indexes", () => {
   it("builds one index per table and filter, the timelines narrowing only the shown one", () => {
     const table = matchTable();
-    const plain = matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME);
+    const plain = matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
     expect(plain.shown).toBe(plain.compared);
     expect([plain.compared.anchors.count, plain.compared.matchStamps.count]).toEqual([4, 3]);
-    expect(matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME)).toEqual(plain);
-    expect(matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME).compared).toBe(plain.compared);
+    expect(matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT)).toEqual(plain);
+    expect(matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT).compared).toBe(
+      plain.compared,
+    );
 
-    const believed = matchIndexes(table, { timelines: null, belief: "true" }, ME);
+    const believed = matchIndexes(table, { timelines: null, belief: "true" }, ME, CONTEXT);
     expect(believed.compared.anchors.count).toBe(1);
 
-    const narrowed = matchIndexes(
-      table,
-      { timelines: ["clt_1", "dpt_1"], belief: "not_false" },
-      ME,
-    );
+    const narrowed = matchIndexes(table, NARROWED, ME, CONTEXT);
     expect(narrowed.compared).toBe(plain.compared);
     expect(narrowed.shown.anchors.count).toBe(2);
   });
@@ -75,9 +87,9 @@ describe("the indexes", () => {
 
 describe("a potential MatchStamp", () => {
   it("lists its timestamps and anchors in screen order and the claims behind it", () => {
-    const { lines } = setup();
-    const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME);
-    const stamp = potentialStamp(A, shown, stampAt(shown, "clt_1", q(0)), lines);
+    const { drawing } = setup();
+    const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
+    const stamp = potentialStamp(A, shown, stampAt(shown, "clt_1", q(0)), drawing);
     expect(stamp.coordinates.map(text)).toEqual([
       ["clt_1", "0"],
       ["cpt_1", "0"],
@@ -98,9 +110,9 @@ describe("a potential MatchStamp", () => {
   });
 
   it("is named in one entry: match timestamps, the anchors, the middle one showing the name", () => {
-    const { store, lines } = setup();
+    const { store, drawing } = setup();
     const before = store.journal.length;
-    nameDownbeat(store, lines);
+    nameDownbeat(store, drawing);
     expect(store.journal.length).toBe(before + 1);
     const graphical = store.view.blocks[A]?.manifest.graphical;
     expect(
@@ -130,45 +142,92 @@ describe("a potential MatchStamp", () => {
   });
 });
 
+describe("naming under a timelines filter", () => {
+  it("names the MatchStamp the table states, which is not out of date, and says so", () => {
+    const { store, drawing } = setup();
+    const indexes = matchIndexes(matchTable(), NARROWED, ME, CONTEXT);
+    const shown = potentialStamp(A, indexes.shown, stampAt(indexes.shown, "clt_1", q(0)), drawing);
+    expect(shown.coordinates.map(text)).toEqual([
+      ["clt_1", "0"],
+      ["dpt_1", "0"],
+    ]);
+    expect(shown.claims).toEqual(["claim_1"]);
+
+    const named = stampToName(shown, indexes, drawing);
+    expect(named.coordinates.map(text)).toEqual([
+      ["clt_1", "0"],
+      ["cpt_1", "0"],
+      ["dpt_1", "0"],
+    ]);
+    expect(named.claims).toEqual(["claim_1", "claim_2"]);
+    expect(hiddenAnchorsNote(shown, named)).toBe(
+      "Naming also stores 1 anchor on timelines the MatchClaim filter hides.",
+    );
+
+    expect(store.dispatch(nameCommand(named, "Downbeat"))).toBe(null);
+    const manifest = store.view.blocks[A]?.manifest;
+    const matchstamp = manifest?.graphical?.matchstamps?.[0];
+    if (manifest === undefined || matchstamp === undefined) throw new Error("not named");
+    expect(matchstamp.match_claims).toEqual(["claim_1", "claim_2"]);
+    expect(matchstamp.alignment_anchors.map((anchor) => anchor.timestamps)).toEqual([
+      ["timestamp_1", "timestamp_2"],
+      ["timestamp_1", "timestamp_3"],
+    ]);
+    const [compared] = namedComparisons(manifest, indexes.compared);
+    if (compared === undefined) throw new Error("no comparison");
+    expect(compared.comparison.outOfDate).toBe(false);
+    expect(differencesOf(manifest, matchstamp, compared.comparison, indexes.compared)).toEqual([]);
+  });
+
+  it("names what is shown where no filter narrows it", () => {
+    const { drawing } = setup();
+    const indexes = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
+    const shown = potentialStamp(A, indexes.shown, stampAt(indexes.shown, "clt_1", q(0)), drawing);
+    const named = stampToName(shown, indexes, drawing);
+    expect(named).toBe(shown);
+    expect(hiddenAnchorsNote(shown, named)).toBe(null);
+  });
+});
+
 describe("a named MatchStamp against the table", () => {
   /** The table with the user believing `claim_1` false. */
   const doubted = () => matchTable([[[ME, "false"]], ...BELIEFS_BY_ROW.slice(1)]);
 
   it("marks the anchors no longer stated and lists what differs", () => {
-    const { store, lines } = setup();
-    nameDownbeat(store, lines);
+    const { store, drawing } = setup();
+    nameDownbeat(store, drawing);
     const manifest = store.view.blocks[A]?.manifest;
     const named = manifest?.graphical?.matchstamps?.[0];
     if (manifest === undefined || named === undefined) throw new Error("not named");
-    const { compared } = matchIndexes(doubted(), DEFAULT_MATCH_CLAIM_FILTER, ME);
+    const { compared } = matchIndexes(doubted(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
     const [comparison] = namedComparisons(manifest, compared);
     expect(comparison?.id).toBe("matchstamp_1");
     if (comparison === undefined) throw new Error("no comparison");
-    const stamp = namedStamp(A, manifest, named, comparison.comparison, lines);
+    const stamp = namedStamp(A, manifest, named, comparison.comparison, drawing);
     expect(stamp.anchors.map((anchor) => [anchor.id, anchor.stated])).toEqual([
       ["anchor_1", true],
       ["anchor_2", false],
     ]);
     expect(differencesOf(manifest, named, comparison.comparison, compared)).toEqual([
-      { label: "MatchClaims believed false", items: ["claim_1"] },
+      { label: "MatchClaims the belief filter leaves out", items: ["claim_1"] },
       { label: "Anchors gone", items: ["anchor_2"] },
     ]);
-    expect(namedStamp(A, manifest, named, null, lines).anchors.map((a) => a.stated)).toEqual([
+    expect(namedStamp(A, manifest, named, null, drawing).anchors.map((a) => a.stated)).toEqual([
       null,
       null,
     ]);
   });
 
   it("updates in one entry from the current potential MatchStamp, and is removed in one", () => {
-    const { store, lines } = setup();
-    nameDownbeat(store, lines);
+    const { store, drawing } = setup();
+    nameDownbeat(store, drawing);
     const manifest = store.view.blocks[A]?.manifest;
     if (manifest === undefined) throw new Error("no manifest");
-    const { compared } = matchIndexes(doubted(), DEFAULT_MATCH_CLAIM_FILTER, ME);
+    const { compared } = matchIndexes(doubted(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
     const update = namedComparisons(manifest, compared)[0]?.comparison.update;
     if (update == null) throw new Error("no update");
     const before = store.journal.length;
-    expect(store.dispatch(updateCommand(A, "matchstamp_1", update, compared, lines))).toBe(null);
+    expect(store.dispatch(updateCommand(A, "matchstamp_1", update, compared, drawing))).toBe(null);
     expect(store.journal.length).toBe(before + 1);
     const graphical = store.view.blocks[A]?.manifest.graphical;
     expect(graphical?.matchstamps?.[0]?.alignment_anchors).toEqual([
@@ -184,24 +243,97 @@ describe("a named MatchStamp against the table", () => {
   });
 });
 
+/** A belief as the tab lists it before the provenance is read: no date, no note. */
+const held = (actor: string, iri: string, who: string, belief: string) => ({
+  actor,
+  iri,
+  who,
+  belief,
+  date: null,
+  note: null,
+});
+
 describe("MatchClaims and beliefs", () => {
   it("lists every actor's belief and the user's own", () => {
     const table = matchTable();
-    expect(claimLines(table, ["claim_4", "claim_5", "claim_9"], ME)).toEqual([
-      { id: "claim_4", held: true, beliefs: [{ actor: OTHER, belief: "true" }], mine: null },
-      { id: "claim_5", held: true, beliefs: [{ actor: ME, belief: "true" }], mine: "true" },
+    const me = DEFAULT_USER.name;
+    expect(claimLines(table, ["claim_4", "claim_5", "claim_9"], DEFAULT_USER, CONTEXT)).toEqual([
+      { id: "claim_4", held: true, beliefs: [held(OTHER, OTHER, OTHER, "true")], mine: null },
+      { id: "claim_5", held: true, beliefs: [held(ME, ME, me, "true")], mine: "true" },
       { id: "claim_9", held: false, beliefs: [], mine: null },
     ]);
-    expect(claimLines(null, ["claim_1"], ME)).toEqual([
+    expect(claimLines(null, ["claim_1"], DEFAULT_USER, CONTEXT)).toEqual([
       { id: "claim_1", held: false, beliefs: [], mine: null },
     ]);
+  });
+
+  it("compares actors as the IRIs they stand for under the manifest's context", () => {
+    const plain = matchTable();
+    const compact = `tilie:${encodeURIComponent(DEFAULT_USER.name)}`;
+    const table = { ...plain, beliefs: { ...plain.beliefs, actors: [compact, OTHER] } };
+    const context = { tilie: USER_TAG };
+    const [line] = claimLines(table, ["claim_5"], DEFAULT_USER, context);
+    expect(line).toEqual({
+      id: "claim_5",
+      held: true,
+      beliefs: [held(compact, ME, DEFAULT_USER.name, "true")],
+      mine: "true",
+    });
+    expect(claimLines(table, ["claim_5"], DEFAULT_USER, undefined)[0]?.mine).toBe(null);
+    const believed = { timelines: null, belief: "true" } as const;
+    expect(matchIndexes(table, believed, ME, context).compared.anchors.count).toBe(1);
+    expect(matchIndexes(table, believed, ME, undefined).compared.anchors.count).toBe(0);
+  });
+
+  it("gives one entry line per MatchClaim, read or not", () => {
+    const [claim] = claimLines(matchTable(), ["claim_4"], DEFAULT_USER, CONTEXT);
+    if (claim === undefined) throw new Error("no line");
+    expect(claimEntryLine(claim, null, DEFAULT_USER, CONTEXT)).toBe(null);
+    expect(claimEntryLine(claim, undefined, DEFAULT_USER, CONTEXT)).toEqual({
+      method: null,
+      who: null,
+      date: null,
+      service: null,
+      basis: [],
+      match: null,
+      note: null,
+      beliefs: [held(OTHER, OTHER, OTHER, "true")],
+    });
+    const entry = {
+      stated_by: [ME],
+      date: "2026-11-20",
+      method: "imported",
+      service: "https://example.org/aligner",
+      beliefs: [
+        { actor: OTHER, belief: "true" as const, date: "2026-11-21", note: "seen in the score" },
+      ],
+    };
+    expect(claimEntryLine(claim, entry, DEFAULT_USER, CONTEXT)).toEqual({
+      method: "imported",
+      who: DEFAULT_USER.name,
+      date: "2026-11-20",
+      service: "https://example.org/aligner",
+      basis: [],
+      match: null,
+      note: null,
+      beliefs: [
+        {
+          actor: OTHER,
+          iri: OTHER,
+          who: OTHER,
+          belief: "true",
+          date: "2026-11-21",
+          note: "seen in the score",
+        },
+      ],
+    });
   });
 });
 
 describe("the tab rule of MatchStamps", () => {
   it("shows a MatchStamp in the Matchstamp tab and lets it go to the tab before", () => {
     const { store } = setup();
-    const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME);
+    const { shown } = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, ME, CONTEXT);
     const held: HeldMatch = { kind: "potential", block: A, index: shown, matchStamp: 0 };
     const start: MatchShown = { picked: { tab: "journal", openings: 2 }, match: null };
     const pinned = matchPinned(start, held);
@@ -213,14 +345,14 @@ describe("the tab rule of MatchStamps", () => {
     expect(matchPinned(start, null)).toBe(start);
 
     expect(matchOutlived(held, store.view, shown)).toBe(false);
-    const other = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, OTHER).shown;
+    const other = matchIndexes(matchTable(), DEFAULT_MATCH_CLAIM_FILTER, OTHER, CONTEXT).shown;
     expect(matchOutlived(held, store.view, other)).toBe(true);
     expect(matchOutlived(held, store.view, null)).toBe(true);
   });
 
   it("names a named MatchStamp by its address and an anchor's, by nothing else", () => {
-    const { store, lines } = setup();
-    nameDownbeat(store, lines);
+    const { store, drawing } = setup();
+    nameDownbeat(store, drawing);
     const { view } = store;
     expect(namedMatchStampOf(view, { block: A, id: "matchstamp_1" })).toBe("matchstamp_1");
     expect(namedMatchStampOf(view, { block: A, id: "anchor_2" })).toBe("matchstamp_1");
@@ -235,10 +367,10 @@ describe("the tab rule of MatchStamps", () => {
 
 describe("the overlay", () => {
   it("gives every block with a table its shown index and its named comparisons", () => {
-    const { store, lines } = setup();
-    nameDownbeat(store, lines);
+    const { store, drawing } = setup();
+    nameDownbeat(store, drawing);
     const table = matchTable([[[ME, "false"]], ...BELIEFS_BY_ROW.slice(1)]);
-    const indexes = matchIndexes(table, { timelines: ["clt_1", "dpt_1"], belief: "not_false" }, ME);
+    const indexes = matchIndexes(table, NARROWED, ME, CONTEXT);
     const indexesOf = (block: string) => (block === A ? indexes : null);
     expect(matchInputs(store.view, [], indexesOf)).toEqual([]);
     const manifest = store.view.blocks[A]?.manifest;
@@ -257,11 +389,7 @@ describe("the overlay", () => {
   });
 
   it("pins a potential MatchStamp with its block, read from that block's shown index", () => {
-    const indexes = matchIndexes(
-      matchTable(),
-      { timelines: ["clt_1", "dpt_1"], belief: "not_false" },
-      ME,
-    );
+    const indexes = matchIndexes(matchTable(), NARROWED, ME, CONTEXT);
     const indexesOf = (block: string) => (block === A ? indexes : null);
     const pinned: HeldMatch = { kind: "potential", block: A, index: indexes.shown, matchStamp: 1 };
     expect(pinnedMatchStampOf(pinned, indexesOf)).toEqual({ block: A, matchStamp: 1 });

@@ -169,7 +169,7 @@ function button(label: string): HTMLButtonElement | undefined {
 }
 
 const shownOf = (table: MatchClaimTable) =>
-  matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME).shown;
+  matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME, tableManifest()["@context"]).shown;
 
 /** Let the pending promises settle, then flush the tab. */
 async function settled(): Promise<void> {
