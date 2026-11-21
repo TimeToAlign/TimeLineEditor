@@ -15,6 +15,7 @@
             {
               "coordinate": 0.0,
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_3",
               "matchstamp": false,
               "name": "origin",
@@ -23,6 +24,7 @@
             {
               "coordinate": 2.25,
               "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": false,
               "id": "timestamp_9",
               "matchstamp": false,
               "name": "Entry",
@@ -31,6 +33,7 @@
             {
               "coordinate": 8.0,
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_4",
               "matchstamp": false,
               "name": "length",
@@ -39,6 +42,7 @@
             {
               "coordinate": [5, 1],
               "display": ["wedge", "id"],
+              "groupstamp": false,
               "id": "timestamp_8",
               "matchstamp": false,
               "name": "Cadence",
@@ -47,6 +51,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -55,6 +60,7 @@
             {
               "coordinate": [4, 1],
               "display": ["wedge", "name", "cross_section"],
+              "groupstamp": false,
               "id": "timestamp_5",
               "matchstamp": false,
               "name": "Theme",
@@ -63,6 +69,7 @@
             {
               "coordinate": [21, 2],
               "display": ["wedge", "name", "id", "coordinate", "cross_section"],
+              "groupstamp": false,
               "id": "timestamp_6",
               "matchstamp": false,
               "name": "Climax",
@@ -71,6 +78,7 @@
             {
               "coordinate": [14, 1],
               "display": [],
+              "groupstamp": false,
               "id": "timestamp_7",
               "matchstamp": false,
               "name": "Silent",
@@ -79,6 +87,7 @@
             {
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",

@@ -213,7 +213,7 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
     "true",
   );
   await expect(
-    page.getByTestId("matchstamp-properties").getByRole("textbox", { name: "Name" }),
+    page.getByTestId("matchstamp-name").getByRole("textbox", { name: "Name" }),
   ).toHaveValue("Downbeat");
 });
 

@@ -305,8 +305,8 @@ fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
 `tables/manifest`, the one option carrying a source of the files served
 beside it, and every end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 156 manifest fixtures, 16 warning cases, the table fixture and 5
-workspaces, 178 options, from `bare` to
+is 158 manifest fixtures, 16 warning cases, the table fixture and 5
+workspaces, 180 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -316,7 +316,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 173 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 175 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -438,15 +438,16 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 107:17 (after
+   reader's 1-based line and column: JSON `"locked": ,` at 109:17 (after
    `@context`, the default timestamps' `graphical` and `resources`, which
-   sort first), YAML `locked: [false` at 91:5 (the line after the
+   sort first), YAML `locked: [false` at 93:5 (the line after the
    unclosed sequence, after `@context`, `graphical` and `resources`).
    Schema 0.2.0's resources, MatchStamps and beliefs moved both by the
    lines they add before the timeline: `resources: []`, `graphical`'s
    `matchstamps: []`, each default timestamp's `matchstamp: false`, and the
    context's belief terms in place of the status terms (five lines more
-   in pretty JSON, four in YAML).
+   in pretty JSON, four in YAML); its `groupstamp` key, written `false` on
+   each of the two default timestamps, moves both by two lines more.
    TOML `locked = ` at 17:1 (the line after the missing value; the
    top-level keys, `resources = []` among them, `[meta]` and the
    timeline's keys before it,

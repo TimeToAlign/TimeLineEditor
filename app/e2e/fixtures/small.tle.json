@@ -15,6 +15,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -23,6 +24,7 @@
             {
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -79,6 +81,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -87,6 +90,7 @@
             {
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -196,6 +200,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -204,6 +209,7 @@
             {
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -296,6 +302,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -304,6 +311,7 @@
             {
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -608,6 +616,7 @@
             {
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -616,6 +625,7 @@
             {
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
+              "groupstamp": false,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -736,6 +746,7 @@
                 {
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -744,6 +755,7 @@
                 {
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
@@ -805,6 +817,7 @@
                 {
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -813,6 +826,7 @@
                 {
                   "coordinate": [16, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
@@ -906,6 +920,7 @@
                 {
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -914,6 +929,7 @@
                 {
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
@@ -1011,6 +1027,7 @@
                 {
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -1019,6 +1036,7 @@
                 {
                   "coordinate": [16, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
@@ -1349,6 +1367,7 @@
                 {
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -1357,6 +1376,7 @@
                 {
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
+                  "groupstamp": false,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
