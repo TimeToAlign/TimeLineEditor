@@ -60,7 +60,7 @@ Run each command from the stated directory.
 | `app/` | `pnpm format` | Apply Biome formatting. |
 | `app/` | `pnpm typecheck` | Type-check the workspace. |
 | `app/` | `pnpm test` | Run Vitest. |
-| `app/` | `pnpm test:budget` | Run core's timing budgets, the workspace store's and the MatchClaim anchor index's, alone, one file at a time (excluded from `pnpm test`). |
+| `app/` | `pnpm test:budget` | Run the timing budgets alone, one file at a time (excluded from `pnpm test`): core's, the workspace store's and the MatchClaim anchor index's, then the arranger's, Show matches' overlay and hover. |
 | `app/` | `pnpm test:build` | Run the tests that need a production build (the attributions and notices file) alone (excluded from `pnpm test`). |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm build:embed` | Build the embeddable editor into `app/packages/editor/dist-embed/` (`tilie.js`, `tilie.css`, `assets/`, the notices file). |
