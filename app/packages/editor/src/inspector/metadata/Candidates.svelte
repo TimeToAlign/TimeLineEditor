@@ -50,12 +50,11 @@ function toggle(key: string): void {
     <span class="what"><span class="verb">{item.heading}</span> <strong>{item.label}</strong></span>
     <button
       type="button"
-      class="open-details"
       aria-label="Details of {item.heading} {item.label}"
       aria-expanded={detailed.has(item.key)}
       aria-controls="{uid}-{list}-{index}"
-      onclick={() => toggle(item.key)}
-    ></button>
+      onclick={() => toggle(item.key)}>Details</button
+    >
     {#if detailed.has(item.key)}
       <PairDetails
         id="{uid}-{list}-{index}"
@@ -164,10 +163,5 @@ function toggle(key: string): void {
     font-size: 0.78rem;
     color: inherit;
     cursor: pointer;
-  }
-
-  /* The word is drawn, not written, so that the row reads as the candidate alone. */
-  button.open-details::after {
-    content: "Details";
   }
 </style>

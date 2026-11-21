@@ -1292,18 +1292,20 @@ every other one's is its verb and its label.
    reads "Nothing states yet what LayerIt, Clair de lune mm. 1–6 (Pires)
    is." and offers "State what it is".
 2. **Expanded.** One click on "performed by"'s expand button: expanded,
-   its pairs shown, each its own row reading `rel:prf viaf:113931950 ↗`
-   and `wdt:P175 wd:Q235650 ↗` (two anchors with `rel="noreferrer"`,
-   `target="_blank"`), each with a button named "Details of rel:prf
-   viaf:113931950" and "Details of wdt:P175 wd:Q235650", and one
-   "＋ Add vocabulary".
+   its pairs shown, each its own row whose pair reads `rel:prf
+   viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗` (two anchors with
+   `rel="noreferrer"`, `target="_blank"`), each row with a button
+   reading "Details", named "Details of rel:prf viaf:113931950" and
+   "Details of wdt:P175 wd:Q235650", and one "＋ Add vocabulary". A row
+   is its pair and its button, so the pair is read from its own span.
 3. **Details.** Details of `wdt:P175`: the paradata "stated by" `P`,
    "method" reconciled, "service" Wikidata's API, "note" "Portuguese
    pianist; the video's title names her", "date" 2026-11-18; the belief
    "https://example.org/people/editor believes it true (2026-11-18)"; the
    buttons True, Unlikely, False (none pressed) and Remove. Details of
    `rel:prf`: "No one has stated a belief.". Details of a pair of "is a":
-   "No provenance entry: the manifest's publisher states it."
+   "No provenance entry: the manifest states it." (a pair listed in
+   `statements` is stated by the manifest; no other actor is named).
 4. **Believing a stated pair.** False in `wdt:P175`'s details: one
    journal entry whose `set` changes `cpt_1`'s `provenance` alone, entry 1
    holding `P`'s and `G`'s beliefs; the tiles unchanged (the pair stays

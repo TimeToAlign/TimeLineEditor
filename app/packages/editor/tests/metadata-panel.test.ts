@@ -293,7 +293,7 @@ describe("tiles and candidates", () => {
     expect(one('[data-testid="metadata-expand"]', performed).getAttribute("aria-expanded")).toBe(
       "true",
     );
-    expect(all('[data-testid="metadata-vocabulary"] > li', performed).map(words)).toEqual([
+    expect(all('[data-testid="metadata-vocabulary"] > li > .pair', performed).map(words)).toEqual([
       "rel:prf viaf:113931950 ↗",
       "wdt:P175 wd:Q235650 ↗",
     ]);
@@ -311,6 +311,10 @@ describe("tiles and candidates", () => {
     expect(
       all<HTMLButtonElement>("button", performed).map((item) => item.getAttribute("aria-label")),
     ).toEqual([null, "Details of rel:prf viaf:113931950", "Details of wdt:P175 wd:Q235650", null]);
+    expect(all('[data-testid="metadata-vocabulary"] > li > button', performed).map(words)).toEqual([
+      "Details",
+      "Details",
+    ]);
     expect(words(one('[data-testid="metadata-add-vocabulary"]', performed))).toBe(
       "＋ Add vocabulary",
     );
@@ -341,7 +345,7 @@ describe("the details of a pair", () => {
     );
     expand(rectangles()[0] as HTMLElement);
     expect(words(one("p", details("type schema:VideoObject")))).toBe(
-      "No provenance entry: the manifest's publisher states it.",
+      "No provenance entry: the manifest states it.",
     );
   });
 

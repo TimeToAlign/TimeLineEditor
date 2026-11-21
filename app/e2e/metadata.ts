@@ -88,6 +88,10 @@ export const tile = (page: Page, heading: string): Locator =>
     has: page.getByTestId("metadata-heading").filter({ hasText: new RegExp(`^\\s*${heading}`) }),
   });
 
+/** The pairs of `tile`, each its row's property and value without the row's Details button. */
+export const pairs = (tile: Locator): Locator =>
+  tile.getByTestId("metadata-vocabulary").locator("> li > .pair");
+
 /** Expand `tile` with its expand button, once. */
 export async function expand(tile: Locator): Promise<void> {
   const toggle = tile.getByTestId("metadata-expand");

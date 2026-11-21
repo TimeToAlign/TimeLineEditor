@@ -6,7 +6,7 @@
  * believes it and how, and the actions: the user's own belief (true,
  * unlikely, false), one button each, the one the user holds pressed; and
  * Remove where the pair is stated. A pair without an entry is stated by
- * the manifest's publisher. Believing a candidate true states it;
+ * the manifest. Believing a candidate true states it;
  * believing a stated pair false records the belief and leaves the pair
  * stated, so Remove stays an action of its own.
  */
@@ -45,7 +45,7 @@ const WORDS: Readonly<Record<Belief, string>> = {
 
 <div class="details" {id} data-testid="metadata-details">
   {#if line === null}
-    <p class="muted">No provenance entry: the manifest's publisher states it.</p>
+    <p class="muted">No provenance entry: the manifest states it.</p>
   {:else}
     <dl data-testid="metadata-paradata">
       {#if line.who !== null}<dt>stated by</dt><dd>{line.who}</dd>{/if}
