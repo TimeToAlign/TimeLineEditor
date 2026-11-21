@@ -192,12 +192,12 @@ function chooseFiles(kind: FileKind, multiple: boolean): Promise<File[]> {
 }
 
 /**
- * Save `text`: into `handle` when given, else to a file the viewer picks,
- * offered as `name`. Without the pickers the text is downloaded as `name`.
- * `null` when the viewer cancels.
+ * Save `text` (a text, or the bytes of a `Blob`): into `handle` when
+ * given, else to a file the viewer picks, offered as `name`. Without the
+ * pickers it is downloaded as `name`. `null` when the viewer cancels.
  */
 export async function saveFile(
-  text: string,
+  text: string | Blob,
   kind: FileKind,
   name: string,
   handle: FileSystemFileHandle | null = null,
@@ -224,7 +224,7 @@ export async function saveFile(
   }
 }
 
-function download(text: string, name: string, type: string): void {
+function download(text: string | Blob, name: string, type: string): void {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;

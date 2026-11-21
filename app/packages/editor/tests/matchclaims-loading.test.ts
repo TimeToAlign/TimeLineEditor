@@ -1,6 +1,6 @@
 /** Loading MatchClaim tables; the expected values are derived in `README.md` ("MatchClaims and the Matchstamp tab", item 9). */
 
-import type { MatchClaimTable, Server } from "@timetoalign/tilie-client";
+import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import { ServerError } from "@timetoalign/tilie-client";
 import { DEFAULT_USER, emptyWorkspace } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
@@ -13,6 +13,7 @@ import {
   WORKSPACE_FILE,
   withMatchClaimTable,
 } from "../src/files.ts";
+import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
 import { loadFailure, MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { matchTable, TABLE_MANIFEST_TEXT, tableManifest } from "./matches.ts";
@@ -30,10 +31,16 @@ const canvas = {
 /** A server answering every table with `table`, recording each request's manifest text and file. */
 function serving(table: MatchClaimTable = matchTable()) {
   const requests: [string, Blob][] = [];
-  const server: Pick<Server, "matchClaims"> = {
+  const server: MatchClaimServer = {
     matchClaims: async (manifest, file) => {
       requests.push([manifest, file]);
       return table;
+    },
+    matchClaimProvenance: async () => {
+      throw new Error("loading asks no provenance");
+    },
+    believeMatchClaim: async () => {
+      throw new Error("loading records no belief");
     },
   };
   return { server, requests };
@@ -48,7 +55,7 @@ function pickFiles(files: readonly File[]): HTMLInputElement {
   return input;
 }
 
-function session(server: Pick<Server, "matchClaims"> | null, warned: string[] = []) {
+function session(server: MatchClaimServer | null, warned: string[] = []) {
   return new WorkspaceSession({
     warn: (text) => warned.push(text),
     author: () => DEFAULT_USER.name,
@@ -158,7 +165,12 @@ describe("loading through the session", () => {
 
     const { server } = serving();
     const online = session(server);
-    online.tables.hold("0000000000", { name: "match_claims.parquet", table: matchTable() });
+    online.tables.hold("0000000000", {
+      name: "match_claims.parquet",
+      table: matchTable(),
+      file: new Blob([PARQUET]),
+      changed: false,
+    });
     online.replace(emptyWorkspace(), "w.tle.json", null, true);
     expect(online.tables.blocks).toEqual([]);
   });

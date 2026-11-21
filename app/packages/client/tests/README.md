@@ -95,6 +95,40 @@ call or the exact result.
    entries for 15 rows), claim IDs that are not `rows` lines, and a belief
    naming no actor of the header.
 
+6. **Provenance and beliefs** (`decisions/0031-match-claim-provenance.md`).
+   `matchClaimProvenance(manifest, table, claims)` sends one `POST` to the
+   base URL with `match-claims/provenance` appended, and
+   `believeMatchClaim(manifest, table, belief)` one to
+   `match-claims/belief`, both with `Content-Type:
+   application/octet-stream` and the `Authorization` rule above. Each body
+   is compared byte for byte: the parameters' UTF-8 length as a
+   little-endian 32-bit integer, the parameters as JSON (`{"claims":
+   [...]}` in the order given; `{"claim", "actor", "belief", "date"}` in
+   that order), then exactly the body `matchClaims` sends for the same
+   manifest and file.
+
+   The provenance answer's oracle is the server's (its tests README,
+   "MatchClaim provenance and beliefs"): the answer to `claim_6`,
+   `claim_15`, `claim_1` of TimeToShare's table fixture, written in the test
+   as that README lists it, resolves to the three entries compared whole,
+   `claim_15`'s `null`, absent members absent. A 2xx body not of the
+   route's form rejects with code `status` and the message "the provenance
+   answer is not the provenance of the MatchClaims asked for": an answer
+   for other IDs or in another order, one entry too few, a provenance that
+   is neither `null` nor an object, a member of an unknown name, a
+   `stated_by` that is no list of strings, a belief word that is none of
+   the three, a belief's `note` that is no string. A refusal (422,
+   `["claims", 1]`) rejects with the server's message and path.
+
+   The belief answer is a Parquet file, which the client checks only for
+   the four bytes `PAR1` at its start and at its end and hands on
+   unchanged: the answer's bytes come back as a `Blob` of type
+   `application/vnd.apache.parquet` holding exactly those bytes. Fewer
+   than eight bytes, or bytes without `PAR1` at either end, reject with
+   code `status` and the message "the belief answer is not a Parquet
+   file"; a refusal rejects with the server's message, path and problems
+   (a succession problem listed).
+
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or
 rendering code) is enforced by `.dependency-cruiser.cjs` and proven by
