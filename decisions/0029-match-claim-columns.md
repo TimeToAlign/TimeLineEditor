@@ -84,8 +84,8 @@ comparison, never through the mask.
 Every array is a little-endian typed array, so the server can send them
 as raw bytes, each aligned to eight bytes, behind a small header, and the
 browser views them where they lie. The byte layout of that answer belongs
-to the server and its client; this record fixes the arrays and their
-encoding. `checkColumns` refuses columns that break the encoding (a length
+to the server and its client (decision 0030); this record fixes the arrays
+and their encoding. `checkColumns` refuses columns that break the encoding (a length
 other than `rows`, a claim ID given to two rows, a timeline index out of
 range, an end anchor without a start anchor, a non-finite position, an
 `int` denominator other than 1, a `fraction` denominator below 1 or not in

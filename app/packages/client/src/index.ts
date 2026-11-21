@@ -4,6 +4,16 @@
  * typed calls.
  */
 
+import {
+  decodeMatchClaims,
+  MALFORMED_MATCH_CLAIMS,
+  type MatchClaimTable,
+  matchClaimsRequest,
+} from "./matchClaims.ts";
+
+export type { BeliefFilter, ClaimBeliefs, MatchClaimTable } from "./matchClaims.ts";
+export { BELIEF_WORDS, beliefMask } from "./matchClaims.ts";
+
 export const name = "@timetoalign/tilie-client" as const;
 
 /** Where a server is and how to authenticate to it. */
@@ -54,20 +64,48 @@ export interface ExpandedMeasureMap {
 
 export type ServerErrorCode = "unreachable" | "status";
 
+/** One problem a table check found: its code, its row (`null` for the table), its column's path. */
+export interface TableProblem {
+  readonly code: string;
+  readonly row: number | null;
+  readonly column: readonly string[];
+  readonly message: string;
+}
+
+/**
+ * Why the server refused a request, as a route that explains itself answers
+ * (`{"detail": {path, message, problems?}}`): the path of what it refuses,
+ * its message, and for a refused table every problem found in it.
+ */
+export interface Refusal {
+  readonly path: readonly (string | number)[];
+  readonly message: string;
+  readonly problems: readonly TableProblem[];
+}
+
 /**
  * A call the server did not answer: `unreachable` when the request failed
  * (no status), `status` when the answer's HTTP status is not 2xx or its body
- * is not what the route answers.
+ * is not what the route answers. `refusal` holds the server's reasons where
+ * the route gives them.
  */
 export class ServerError extends Error {
   readonly code: ServerErrorCode;
   readonly status: number | null;
+  readonly refusal: Refusal | null;
 
-  constructor(code: ServerErrorCode, status: number | null, message: string, cause?: unknown) {
+  constructor(
+    code: ServerErrorCode,
+    status: number | null,
+    message: string,
+    cause?: unknown,
+    refusal: Refusal | null = null,
+  ) {
     super(message, { cause });
     this.name = "ServerError";
     this.code = code;
     this.status = status;
+    this.refusal = refusal;
   }
 }
 
@@ -81,6 +119,15 @@ export interface Server {
    * with a `ServerError` when the server does not answer them.
    */
   measureMaps(manifest: string): Promise<readonly ExpandedMeasureMap[]>;
+  /**
+   * A package's MatchClaim table, checked by the server against its
+   * manifest: one request for the manifest's text and the table's file,
+   * sent unchanged. Resolves to the anchor index's columns and every row's
+   * beliefs, each array a view into the answer; rejects with a
+   * `ServerError`, whose `refusal` lists the check's problems where the
+   * server refuses the table.
+   */
+  matchClaims(manifest: string, table: Blob): Promise<MatchClaimTable>;
 }
 
 /** The message of a health answer that is not `{name, version, timetoalign}`, each a string. */
@@ -161,6 +208,36 @@ function isExpandedMeasureMap(value: unknown): value is ExpandedMeasureMap {
   );
 }
 
+/** Whether `value` is one problem of a table check. */
+function isTableProblem(value: unknown): value is TableProblem {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    typeof value.code === "string" &&
+    "row" in value &&
+    (value.row === null || isInteger(value.row)) &&
+    "column" in value &&
+    Array.isArray(value.column) &&
+    value.column.every((part) => typeof part === "string") &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
+}
+
+/** The refusal a body states, `{"detail": {path, message, problems?}}`, or `null`. */
+function refusalOf(body: unknown): Refusal | null {
+  if (typeof body !== "object" || body === null || !("detail" in body)) return null;
+  const detail = body.detail;
+  if (typeof detail !== "object" || detail === null) return null;
+  if (!("path" in detail) || !Array.isArray(detail.path)) return null;
+  if (!detail.path.every((part) => typeof part === "string" || isInteger(part))) return null;
+  if (!("message" in detail) || typeof detail.message !== "string") return null;
+  const problems = "problems" in detail ? detail.problems : [];
+  if (!Array.isArray(problems) || !problems.every(isTableProblem)) return null;
+  return { path: detail.path, message: detail.message, problems };
+}
+
 /** The measure maps of a 2xx body of the measure-maps route, or `undefined`. */
 function measureMapsOf(body: unknown): readonly ExpandedMeasureMap[] | undefined {
   if (typeof body !== "object" || body === null || !("measure_maps" in body)) return undefined;
@@ -173,7 +250,12 @@ export function connect({ url, token }: ConnectOptions): Server {
   const headers: Record<string, string> =
     token === null ? {} : { Authorization: `Bearer ${token}` };
 
-  async function request(route: string, init: RequestInit): Promise<Response> {
+  /**
+   * The 2xx answer to one request. With `explained`, an answer outside 2xx
+   * whose body states a refusal rejects with the server's message and the
+   * refusal; otherwise with `<status> <status text>`.
+   */
+  async function request(route: string, init: RequestInit, explained = false): Promise<Response> {
     let response: Response;
     try {
       response = await fetch(`${url}${route}`, init);
@@ -182,8 +264,16 @@ export function connect({ url, token }: ConnectOptions): Server {
       throw new ServerError("unreachable", null, message, cause);
     }
     if (!response.ok) {
-      const message = `${response.status} ${response.statusText}`.trim();
-      throw new ServerError("status", response.status, message);
+      let refusal: Refusal | null = null;
+      if (explained) {
+        try {
+          refusal = refusalOf(await response.json());
+        } catch {
+          refusal = null;
+        }
+      }
+      const message = refusal?.message ?? `${response.status} ${response.statusText}`.trim();
+      throw new ServerError("status", response.status, message, undefined, refusal);
     }
     return response;
   }
@@ -225,6 +315,27 @@ export function connect({ url, token }: ConnectOptions): Server {
         body: manifest,
       });
       return answer(response, measureMapsOf, MALFORMED_MEASURE_MAPS);
+    },
+    async matchClaims(manifest, table) {
+      const response = await request(
+        "match-claims",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: matchClaimsRequest(manifest, table),
+        },
+        true,
+      );
+      let decoded: MatchClaimTable | undefined;
+      try {
+        decoded = decodeMatchClaims(await response.arrayBuffer());
+      } catch (cause) {
+        throw new ServerError("status", response.status, MALFORMED_MATCH_CLAIMS, cause);
+      }
+      if (decoded === undefined) {
+        throw new ServerError("status", response.status, MALFORMED_MATCH_CLAIMS);
+      }
+      return decoded;
     },
   };
 }

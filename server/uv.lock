@@ -1066,12 +1066,15 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0,<5" },
+    { name = "pyarrow", marker = "extra == 'tables'", specifier = ">=25.0.0,<26" },
     { name = "pyyaml", specifier = ">=6.0.3,<7" },
 ]
+provides-extras = ["tables"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "fonttools", specifier = "==4.66.0" },
+    { name = "pyarrow", specifier = "==25.0.0" },
     { name = "pyld", specifier = "==3.3.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.16.9" },

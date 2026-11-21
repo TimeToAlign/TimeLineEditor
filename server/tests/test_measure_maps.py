@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from timetoshare import dumps, loads
 
 import tilie_server.app
+import tilie_server.manifests
 import tilie_server.routers.measure_maps
 from tilie_server.app import create_app
 from tilie_server.settings import ServerSettings
@@ -328,17 +329,15 @@ def test_without_the_expansion_the_server_starts_and_the_route_says_so(
     }
 
 
-def without_the_reader(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> tuple[TestClient, Any]:
+def without_the_reader(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
     """The app built anew while timetoshare cannot be imported."""
     # A None entry makes every import of the package raise ImportError.
     monkeypatch.setitem(sys.modules, "timetoshare", None)
-    route = importlib.reload(tilie_server.routers.measure_maps)
+    importlib.reload(tilie_server.routers.measure_maps)
     app = importlib.reload(tilie_server.app).create_app(
         ServerSettings(HOST, PORT, TOKEN, tmp_path)
     )
-    return TestClient(app, base_url=f"http://{HOST}:{PORT}"), route
+    return TestClient(app, base_url=f"http://{HOST}:{PORT}")
 
 
 @pytest.mark.parametrize(
@@ -349,7 +348,7 @@ def without_the_reader(
 def test_without_the_reader_the_server_starts_and_the_route_says_so(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, body: bytes
 ) -> None:
-    server, _ = without_the_reader(monkeypatch, tmp_path)
+    server = without_the_reader(monkeypatch, tmp_path)
     health = server.get("/api/health", headers=AUTH)
     assert health.status_code == 200
     assert health.json() == {
@@ -371,12 +370,12 @@ def test_without_the_reader_the_server_starts_and_the_route_says_so(
 def test_without_any_timetoshare_the_route_says_so(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    server, route = without_the_reader(monkeypatch, tmp_path)
+    server = without_the_reader(monkeypatch, tmp_path)
 
     def missing(name: str) -> str:
         raise PackageNotFoundError(name)
 
-    monkeypatch.setattr(route, "version", missing)
+    monkeypatch.setattr(tilie_server.manifests, "version", missing)
     response = post(server, text(FIXTURE))
     assert response.status_code == 501
     assert response.json() == {
