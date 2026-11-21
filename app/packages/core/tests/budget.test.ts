@@ -70,11 +70,15 @@ function measure(blocks: number, entries: number) {
 }
 
 describe("budgets", () => {
-  it("opens and saves 300 blocks with 1,000 entries within 250 ms, a command within 1 ms", () => {
+  it("opens 300 blocks with 1,000 entries within 300 ms, saves them within 250 ms, a command within 1 ms", () => {
     const { read, write, dispatch } = measure(300, 1000);
-    expect(read, `readWorkspace took ${read} ms`).toBeLessThanOrEqual(250);
-    expect(write, `writeWorkspace took ${write} ms`).toBeLessThanOrEqual(250);
-    expect(dispatch, `dispatch took ${dispatch} ms`).toBeLessThanOrEqual(1);
+    // Opening validates every block's manifest through TimeToShare. Its 0.2.0 manifests gained
+    // `resources`, named MatchStamps, provenance beliefs and a context of 35 terms, which every
+    // manifest carries and every check reads: about 260 ms where 235 ms were measured before,
+    // so the budget is that figure with the anchor index's margin of about 15 %.
+    expect.soft(read, `readWorkspace took ${read} ms`).toBeLessThanOrEqual(300);
+    expect.soft(write, `writeWorkspace took ${write} ms`).toBeLessThanOrEqual(250);
+    expect.soft(dispatch, `dispatch took ${dispatch} ms`).toBeLessThanOrEqual(1);
   });
 
   it("measures opening and verifying 300 blocks with 1,000 entries", { timeout: 60_000 }, () => {
