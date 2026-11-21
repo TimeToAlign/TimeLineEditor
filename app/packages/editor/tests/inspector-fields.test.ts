@@ -24,7 +24,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { editorAt, informing } from "./support.ts";
+import { blockId, editorAt, storeOf as fixtureStore, informing } from "./support.ts";
 
 const M = "bmixed0000";
 
@@ -151,6 +151,61 @@ describe("the name field", () => {
     expect(nameCommand(workspace, "")).toEqual({
       type: "set",
       changes: [{ target: {}, values: { name: "" } }],
+    });
+  });
+});
+
+describe("the name field among named MatchStamps", () => {
+  const S = blockId(0);
+  const stampsStore = () => fixtureStore("bundles/bundle_matchstamps");
+  const fieldIn = (store: Store, id: string) => nameIn(store, selectionOf([{ block: S, id }]));
+  const manifestOf = (store: Store) => store.view.blocks[S]?.manifest;
+
+  it.each<[string, string, boolean]>([
+    ["matchstamp_1", "Bar 2, downbeat (take 1)", false],
+    ["timestamp_3", "Take 2, bar 2", true],
+    ["timestamp_4", "origin", false],
+  ])("names %s %j, nullable %j", (id, name, nullable) => {
+    const store = stampsStore();
+    expect(fieldIn(store, id)).toEqual({
+      target: { block: S, id },
+      name,
+      nullable,
+      manifest: manifestOf(store),
+    });
+  });
+
+  it("is absent for an alignment anchor", () => {
+    expect(fieldIn(stampsStore(), "anchor_1")).toBe(null);
+  });
+
+  it("deletes a match timestamp's name when emptied, and sends a MatchStamp's empty", () => {
+    const store = stampsStore();
+    const timestamp = fieldIn(store, "timestamp_3");
+    const matchstamp = fieldIn(store, "matchstamp_1");
+    if (timestamp === null || matchstamp === null) throw new Error("no name field");
+    expect(nameCommand(matchstamp, "")).toEqual({
+      type: "set",
+      changes: [{ target: { block: S, id: "matchstamp_1" }, values: { name: "" } }],
+    });
+    const command = nameCommand(timestamp, "");
+    expect(command).toEqual({
+      type: "set",
+      changes: [{ target: { block: S, id: "timestamp_3" }, values: { name: null } }],
+    });
+    if (command === null) throw new Error("no command");
+    const entries = store.journal.length;
+    expect(store.dispatch(command)).toBe(null);
+    expect(store.journal).toHaveLength(entries + 1);
+    const stored = manifestOf(store)?.graphical?.timestamps?.find(
+      (item) => item.id === "timestamp_3",
+    );
+    expect(stored).toStrictEqual({
+      id: "timestamp_3",
+      timeline: "take_2",
+      coordinate: 99225,
+      display: ["name", "cross_section"],
+      matchstamp: true,
     });
   });
 });

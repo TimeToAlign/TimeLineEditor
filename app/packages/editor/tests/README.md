@@ -659,7 +659,15 @@ ancestor, has no card).
    null; target `{block, id: "cmap_4"}`), the jump origin `jump_from_1`
    likewise (every flow-control element has the schema's nullable `name`),
    and a measure map `bars` added to the block (empty; target `{block, id:
-   "bars"}`). No field for a band or two things, in one
+   "bars"}`). In the MatchStamps store (see "Words"): `matchstamp_1` its
+   name "Bar 2, downbeat (take 1)", target `{block, id: "matchstamp_1"}`,
+   not nullable (the schema requires a MatchStamp's name); the match
+   timestamp `timestamp_3` "Take 2, bar 2", nullable (a match timestamp's
+   name is optional), and the ordinary `timestamp_4` "origin", not
+   nullable; no field for the alignment anchor `anchor_1`. Emptying
+   `timestamp_3`'s field gives `{name: null}`, which the store applies in
+   one entry, leaving `timestamp_3` without a `name` member; emptying
+   `matchstamp_1`'s gives `{name: ""}`. No field for a band or two things, in one
    block or in two; mounted, two blocks selected show no field and the
    geometry hint. The command: a text equal to the stored name is none; an
    empty text unstates a nullable name (`{name: null}`) and is sent as
@@ -1535,9 +1543,15 @@ going to the information function unless a second one is given.
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 
 The words are the editor's; what they name is core's resolver's. The
-oracles are the committed end-to-end workspaces and a store of
+oracles are the committed end-to-end workspaces, a store of
 `bundle_mixed` three times (as it is; without its title, with the id
-`mixed` and two names dropped; without its title).
+`mixed` and two names dropped; without its title), and a store of the
+schema package's `bundles/bundle_matchstamps` as block `0000000000`
+(the bundle "MatchStamps": `matchstamp_1` "Bar 2, downbeat (take 1)" with
+`anchor_1`, whose `display` lists `name`; `matchstamp_2` "Bar 2, downbeat
+(take 2)" with `anchor_2`; the match timestamps `timestamp_1`, without a
+name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
+`timestamp_4` "origin").
 
 1. **The subject beside the heading.** One address gives the words of what
    it names, then its name, or its id without one: `bmixed0000` "Bundle"
@@ -1560,7 +1574,12 @@ oracles are the committed end-to-end workspaces and a store of
    such ID or block; a part its element does not have, `start` of a region;
    a part of a card; a band with a part; a band of a group or of a jump;
    the card of a timeline drawn in no card, `{block: "styled0000", id: "a",
-   part: ["card"]}`). Mounted, the words stand beside the
+   part: ["card"]}`). In the MatchStamps store: `matchstamp_1`
+   "MatchStamp" "Bar 2, downbeat (take 1)"; `anchor_2` "Alignment anchor"
+   with its id `anchor_2` (an anchor has no name); `anchor_1`'s drawn
+   label `{part: ["name"]}` "Name of alignment anchor" with the id
+   `anchor_1`; the match timestamp `timestamp_1` "Timestamp" with its id,
+   `timestamp_3` "Timestamp" "Take 2, bar 2". Mounted, the words stand beside the
    drawer's heading and describe the drawer while shown; an id shows in a
    `code` element; the name follows an applied text without a change of
    selection.
@@ -1583,7 +1602,12 @@ oracles are the committed end-to-end workspaces and a store of
    'Score' in bundle 'Mixed'" for a value without either, "Added
    timestamp 'Upbeat' to timeline 'Score' in bundle 'Mixed'", "Set display
    of timestamp 'origin' in bundle 'Mixed'" (and `name` alike), "Removed
-   timestamp 'origin' in bundle 'Mixed'", "Set x, y of
+   timestamp 'origin' in bundle 'Mixed'", "Added MatchStamp 'Bar 4' to
+   bundle 'Mixed'" (an `add` of a `matchstamp` into the block, by the
+   value's name); in the MatchStamps store's view, whose one block needs
+   no bundle words, "Set name of MatchStamp 'Bar 2, downbeat (take 1)'",
+   "Set display of alignment anchor 'anchor_2'", "Removed MatchStamp
+   'Bar 2, downbeat (take 2)'"; "Set x, y of
    bundle 'Mixed'" (" and 1 more" for more changes), a block's size by the
    Properties form's words ("Set container width, container height of
    bundle 'Mixed'"), "Set place of group 'Performance' in bundle 'Mixed'

@@ -2282,32 +2282,43 @@ takes pairs in screen order as naming does, `match_claims` a list):
     `anchor_2` is stored `["line", "name"]`; `[]` is stored; `["flag"]` is
     `invalid_value` `'flag' is no display word` at `[anchor_2,
     "display"]`; `anchor_1`'s own words reordered change nothing.
+12. **A match timestamp's name deleted** (`set name` on `timestamp_N`):
+    `null` on `timestamp_3` is one journal entry, and the manifest is the
+    fixture's with `timestamp_3` `{id: "timestamp_3", timeline: "take_2",
+    coordinate: 99225, display: ["name", "cross_section"], matchstamp:
+    true}`, no `name` member left (compared strictly, so a member stated
+    as absent fails); one undo gives back the view before it, whose
+    `timestamp_3` is named "Take 2, bar 2" again. `null` on `timestamp_1`,
+    a match timestamp without a name, is `invalid_value` `the command
+    changes nothing` at `[timestamp_1, "name"]`; on `timestamp_4`, an
+    ordinary timestamp, whose name the schema requires, `invalid_value` `a
+    name is a non-empty string` at `[timestamp_4, "name"]`.
 
 **Removing** (`remove`):
 
-12. `matchstamp_1`: the MatchStamps are `M2`; the timestamps `TS` without
+13. `matchstamp_1`: the MatchStamps are `M2`; the timestamps `TS` without
     `timestamp_2` (`timestamp_1` stays: `M2` names it). A rule addressing
     `anchor_1` goes with it. One journal entry; undo gives the fixture's
     manifest back.
-13. Both MatchStamps: none is left, and neither are `timestamp_1`,
+14. Both MatchStamps: none is left, and neither are `timestamp_1`,
     `timestamp_2`, `timestamp_3`; the six `origin` and `length` timestamps
     stay.
-14. **With what they name**: removing the timeline `take_1` removes
+15. **With what they name**: removing the timeline `take_1` removes
     `matchstamp_1` (its anchor named `timestamp_2`) and `anchor_1`, keeps
     `M2` and `timestamp_1`; removing `timestamp_3` removes `matchstamp_2`
     and keeps `M1`.
-15. An anchor alone, `anchor_1`, is `not_removable` `an alignment anchor
+16. An anchor alone, `anchor_1`, is `not_removable` `an alignment anchor
     goes with its MatchStamp` at `[anchor_1]`.
-16. **Resources follow**: of the table fixture's manifest, removing the
+17. **Resources follow**: of the table fixture's manifest, removing the
     child `clt_2` leaves `resource_1` naming `clt_1`, `dpt_1`, `cpt_1` in
     its order, and `resource_2` as it was.
 
-**A length leaves match timestamps where they are** (17): after naming
+**A length leaves match timestamps where they are** (18): after naming
 `[score@[8, 1], take_1@352800]` (`timestamp_10`, `timestamp_11`, at both
 ends), `set` of `score`'s length to `[10, 1]` moves the `length`
 timestamp `timestamp_5` to 10 and leaves `timestamp_10` at 8.
 
-**From the table to a command and back** (18): over the index of the
+**From the table to a command and back** (19): over the index of the
 matches case (in `matches.test.ts`, which builds it), `anchorValues(index, [6, 11])` is
 `[[clt_1@[3, 1], dpt_1@132300], [dpt_1@132300, cpt_1@3.0]]` (each anchor's
 lower coordinate first, an integral float a `JsonFloat`). For `M1`,

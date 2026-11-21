@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import { inspectedSubject } from "../src/inspector/words.ts";
 import { holder } from "./holder.svelte.ts";
-import { informing } from "./support.ts";
+import { blockId, storeOf as fixtureStore, informing } from "./support.ts";
 
 /** The end-to-end workspaces, the generator's output. */
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
@@ -73,6 +73,7 @@ describe("inspectedSubject", () => {
   const small = viewOf("small");
   const MIXED = "bmixed0000";
   const UNGROUPED = "bungroup00";
+  const STAMPS = blockId(0);
 
   it.each(
     keyed([
@@ -126,6 +127,22 @@ describe("inspectedSubject", () => {
       expect(inspectedSubject(view, selected(address))).toEqual(subject);
     },
   );
+
+  it.each(
+    keyed([
+      [at(STAMPS, { id: "matchstamp_1" }), named("MatchStamp", "Bar 2, downbeat (take 1)")],
+      [at(STAMPS, { id: "anchor_2" }), unnamed("Alignment anchor", "anchor_2")],
+      [
+        at(STAMPS, { id: "anchor_1", part: ["name"] }),
+        unnamed("Name of alignment anchor", "anchor_1"),
+      ],
+      [at(STAMPS, { id: "timestamp_1" }), unnamed("Timestamp", "timestamp_1")],
+      [at(STAMPS, { id: "timestamp_3" }), named("Timestamp", "Take 2, bar 2")],
+    ]),
+  )("names %s among named MatchStamps", (_key, address, subject) => {
+    const view = fixtureStore("bundles/bundle_matchstamps").view;
+    expect(inspectedSubject(view, selected(address))).toEqual(subject);
+  });
 
   it("names a bundle with an id and a name by its name", () => {
     const view = withManifestId("bundles", MIXED, "mixed");

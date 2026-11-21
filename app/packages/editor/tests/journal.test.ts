@@ -7,6 +7,7 @@ import type { JournalRow, JournalSource } from "../src/inspector/journal.ts";
 import { journalRows } from "../src/inspector/journal.ts";
 import { editorName } from "../src/inspector/words.ts";
 import { MIXED, mixedStore, mixedView } from "./mixed.ts";
+import { blockId, storeOf as fixtureStore } from "./support.ts";
 
 const { A, B, C } = MIXED;
 
@@ -166,6 +167,11 @@ describe("journalRows", () => {
           changes: [{ target: address(A, "timestamp_9"), values: { name: "Zero" } }],
         }),
         entry({ type: "remove", targets: [address(A, "timestamp_9")] }),
+        entry({
+          type: "add",
+          into: address(A),
+          matchstamp: { name: "Bar 4", anchors: [], match_claims: [] },
+        }),
       ].map((only) => textOf(only)),
     ).toEqual([
       "Added block '0000000003'",
@@ -185,6 +191,30 @@ describe("journalRows", () => {
       "Set display of timestamp 'origin' in bundle 'Mixed'",
       "Set name of timestamp 'origin' in bundle 'Mixed'",
       "Removed timestamp 'origin' in bundle 'Mixed'",
+      "Added MatchStamp 'Bar 4' to bundle 'Mixed'",
+    ]);
+  });
+
+  it("writes the commands on MatchStamps and their anchors by their words", () => {
+    const stamps = fixtureStore("bundles/bundle_matchstamps").view;
+    const S = blockId(0);
+    const rowText = (only: Entry) => journalRows(source(level([only])), stamps)[0]?.text;
+    expect(
+      [
+        entry({
+          type: "set",
+          changes: [{ target: address(S, "matchstamp_1"), values: { name: "Downbeat" } }],
+        }),
+        entry({
+          type: "set",
+          changes: [{ target: address(S, "anchor_2"), values: { display: ["line", "name"] } }],
+        }),
+        entry({ type: "remove", targets: [address(S, "matchstamp_2")] }),
+      ].map(rowText),
+    ).toEqual([
+      "Set name of MatchStamp 'Bar 2, downbeat (take 1)'",
+      "Set display of alignment anchor 'anchor_2'",
+      "Removed MatchStamp 'Bar 2, downbeat (take 2)'",
     ]);
   });
 
