@@ -957,6 +957,83 @@ misses the one-pixel line), selects exactly `{block: "map0000000", id:
 "timestamp_3"}` and shows it in the Timestamp pane (Name "Four",
 coordinate `4`, Delete enabled), and hovering shows no flag and no marks.
 
+**`matchstamps.spec.ts`** (Chromium, Firefox, WebKit) proves MatchClaim
+tables in the built editor on TimeToShare's table fixture
+(`fixtures/tables/<version>/`: `manifest.yaml`, whose `resources` name
+`match_claims.parquet`, and that Parquet file). Every `POST
+/api/match-claims` is answered with the client's recording
+(`packages/client/tests/data/match-claims.answer.bin`, the server's answer
+for exactly this manifest and table, written by the server's
+`scripts/record_match_claims.py`) and counted; the number of MatchClaims
+is read from the recording's header (15), never restated. Importing the
+manifest together with its table (Import manifest…, both files picked)
+makes one block and exactly one table request; with the block selected
+the Matchstamp tab's status reads "match_claims.parquet: 15 MatchClaims",
+no MatchStamp is shown (the hint), and the filter lists the manifest's
+four timelines as checkboxes. The workspace file never holds the table:
+its text has no `claim_1`. Unchecking `cpt_1` stores the block's filter
+`{timelines: ["clt_1", "clt_2", "dpt_1"], belief: "not_false"}` in
+`settings.matchClaimFilters` and journals nothing. A MatchStamp named
+through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
+`dpt_1` 0], `match_claims` `["claim_1"]`, no refusal) and then selected
+(`{block, id: "matchstamp_1"}`) selects the Matchstamp tab, whose
+Properties show the name "Downbeat" and the MatchClaim `claim_1`; Remove
+empties `graphical.matchstamps` in exactly one journal entry, and the
+selection losing the MatchStamp lets it go, so the tab shown before it,
+Properties, is selected again. The manifest imported without its table
+makes no table request and the message bar reads "The manifest names the
+MatchClaim table match_claims.parquet, which is not loaded: Load
+MatchClaims… in the Matchstamp tab reads it."
+
+**`matchclaim-beliefs.spec.ts`** (Chromium, Firefox, WebKit) proves a
+MatchClaim's provenance and the user's belief end to end, on the same
+fixture imported with its table. The user is set before the page loads
+(`tilie.user` `{name: "Ana", orcid: "0000-0002-1825-0097"}`), so the
+user's IRI is `ME` = `https://orcid.org/0000-0002-1825-0097`, the actor
+whose `true` the fixture records in `claim_1`; the clock is fixed at
+2026-11-22 12:00 local time. The three routes are replayed and every
+request recorded: the table route with the recording, and once a belief
+was sent with the same recording whose first belief word (`claim_1`'s) is
+turned `false` (the server's answer for the new table; the server's own
+tests prove its beliefs); the provenance route with the fixture's entry of
+`claim_1` (`stated_by` [`ME`], date 2026-11-20, method `manual`, `ME`
+believing it true on 2026-11-20) and no entry for any other MatchClaim;
+the belief route with other Parquet bytes than the picked file's (the
+fixture's `projections.parquet`), so a saved file equal to them proves the
+editor holds and saves the answered file unchanged. A MatchStamp naming
+`claim_1` ("Downbeat", as in `matchstamps.spec.ts`) is selected.
+
+1. **Provenance on demand.** Exactly one provenance request, for
+   `{claims: ["claim_1"]}`. `claim_1`'s details list its paradata as the
+   Metadata tab does (one reader, one set of words, one order): the terms
+   "stated by", "method", "date" with the definitions "Ana" (the user's
+   own IRI is worded by the user's name), "manual", "2026-11-20"; and its
+   one belief "Ana believes it true (2026-11-20)". The user's belief
+   buttons hold True pressed.
+2. **A belief.** False sends exactly one belief `{claim: "claim_1",
+   actor: ME, belief: "false", date: "2026-11-22"}` and reads the answered
+   file through the table route (two table requests in all); the status
+   reads "match_claims.parquet: 15 MatchClaims, changed", False is pressed,
+   the journal keeps its length, and the workspace's text has no
+   `claim_2`. The index is rebuilt under the block's filter, so the named
+   MatchStamp now rests on a MatchClaim the filter leaves out: the
+   differences list "MatchClaims the belief filter leaves out". Save
+   MatchClaims… downloads `match_claims.parquet` byte-equal to the belief
+   route's answer; the status then reads "match_claims.parquet: 15
+   MatchClaims" and the button is gone.
+3. **New with a changed table and an unsaved workspace** asks
+   "untitled.tle.json and the MatchClaim table match_claims.parquet have
+   unsaved changes. Save them?"; Cancel keeps the block and the changed
+   table. Asked again, Save downloads exactly two files in this order:
+   `untitled.tle.json` with the workspace's text as it was before New,
+   then `match_claims.parquet` byte-equal to the belief route's answer;
+   the empty workspace is then open (no block, file name
+   `untitled.tle.json`).
+4. **New with only the table changed** (the workspace saved first by
+   Ctrl+S) asks "The MatchClaim table match_claims.parquet has unsaved
+   changes. Save them?"; Discard opens the empty workspace, and New again
+   asks nothing.
+
 **`budget.spec.ts`** (`@budget`, Chromium only) measures script time with
 `grid-300` at viewport (20, 20), all nodes mounted: `ScriptDuration` from
 the DevTools Protocol's performance metrics, read around 60 pointer moves
