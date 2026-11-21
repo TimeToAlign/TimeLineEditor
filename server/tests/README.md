@@ -287,11 +287,10 @@ accepted.
 `POST /api/match-claims/events` answers, for the MatchClaims it is asked
 for, the events on their two sides (`decisions/0032-match-claim-events.md`).
 Its body is the parameters' length and the parameters (`{"claims": […]}`)
-as the provenance routes take them, then the Projections table's length
-(a little-endian 32-bit integer, 0 for none) and the table, then the body
-of `POST /api/match-claims` unchanged. The oracle is again TimeToShare's
-table fixture, its MatchClaim table and its `projections.parquet`, whose
-rows are written out by hand in the test, never read off an answer:
+as the provenance routes take them, then the body of `POST
+/api/match-claims` unchanged; nothing lies between the two. The oracle is
+again TimeToShare's table fixture and its MatchClaim table, whose rows are
+written out by hand in the test, never read off an answer:
 
 | MatchClaim | Side A: timeline, event, name | Side B: timeline, event, name | Synchronous |
 | --- | --- | --- | --- |
@@ -302,39 +301,24 @@ rows are written out by hand in the test, never read off an answer:
 | `claim_12` | `clt_1` `note_10` `E5` | `dpt_1`, no event | no |
 | `claim_15` | `clt_2` `note_13` `A5` | `dpt_1` `projection_9` – | yes |
 
-Every certainty is 1.0. The Projections table holds `projection_1` on
-`dpt_1` standing for `clt_1` `note_1`, `projection_4` for `clt_1`
-`note_4`, `projection_9` for `clt_2` `note_13`, and `projection_6` on
-`dpt_1` and `projection_7` on `cpt_1` standing for no event.
-
-Each answered MatchClaim is `{"id", "timeline_a_id", "event_a_id",
-"event_a_name", "event_a_projection", "timeline_b_id", "event_b_id",
-"event_b_name", "event_b_projection", "certainty", "is_synchronous"}`, a
-null cell `null`; a side's `event_*_projection` is `{"projection_of":
-{"timeline_id", "event_id"}}` where its event is a Projection of the
-posted table that stands for an event, `{"projection_of": null}` for one
-that stands for none, and `null` where the event is none of the table's
-Projections, the side has no event, or no Projections table is posted.
+Every certainty is 1.0. Each answered MatchClaim has exactly the members
+`{"id", "timeline_a_id", "event_a_id", "event_a_name", "timeline_b_id",
+"event_b_id", "event_b_name", "certainty", "is_synchronous"}`, a null cell
+`null`. The route reads no table but the MatchClaim table: the request
+leaves no place for another, so a body that once carried a second table
+between the parameters and the manifest's length is read as the
+manifest's length and refused by the table route's own split.
 
 | Request | Answer |
 | --- | --- |
-| `claims` `["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]` with the Projections table | 200, the six rows above in that order: `claim_1` B `{"projection_of": {"timeline_id": "clt_1", "event_id": "note_1"}}`, `claim_4` A for `note_4`, `claim_11` both sides `{"projection_of": null}`, `claim_15` B for `clt_2` `note_13`, every other side `null` (`onset_2` is no Projection; `claim_12`'s B has no event) |
-| `claims` `["claim_1"]` without a Projections table (length 0) | `claim_1` with `event_b_projection` `null`: without the table nothing is known as a Projection |
+| `claims` `["claim_1", "claim_4", "claim_7", "claim_11", "claim_12", "claim_15"]` | 200, the six rows above in that order, each of exactly the nine members |
 | `claims` `[]` | 200 `{"claims": []}` |
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
 | `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
 | a parameter `note` | 422 at `["note"]`, `'note' is no parameter of this route` |
-| the Projections table's prefix missing (the parameters, then two bytes) | 422 at `[]`, `the body does not state the Projections table's length` |
-| a Projections prefix stating 100 bytes before 10 | 422, `the body states a Projections table of 100 bytes and holds 10` |
-| Projections bytes that are no Parquet file (`not parquet`) | 422, `the Projections table is no Parquet file` |
-| the Projections table with `projection_1`'s `projection_of` on its own timeline `dpt_1` | 422 with TimeToShare's problem `invalid_projection_of`, row 3 (`projection_1`, the rows being in timeline order; the test finds the row by its ID), column `["projection_of", "timeline_id"]`, its message |
+| the parameters, then a length 0 and the table route's body (the former empty Projections part) | 422 at `[]`, `the manifest is not an object`: the table route's refusal of a manifest of length 0 |
 | the fixture against its manifest without `clt_2` | 422 with the table route's problems (`unknown_timeline`, row 14) |
 | without the bearer token | 401 |
-
-With `timetoalign.core` lacking `EventReference` (the name removed from
-the module; the route reads the event a Projection stands for through it),
-the route answers 501 `the installed timetoalign <version>
-cannot read Projections`.
 
 ## MusicBrainz lookup
 

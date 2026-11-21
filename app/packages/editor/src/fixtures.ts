@@ -5,8 +5,9 @@
  * the top of `fixtures/<version>/` or below it, corpus fixtures and minimal
  * twins included, the manifest of each warning case of that version and
  * the manifest of the table fixture (`tables/<version>/manifest.yaml`), whose
- * MatchClaim and Projections tables are served beside it, so its files can
- * be read from where it came from, each imported as one more block; and the
+ * MatchClaim table is served beside it, so it can be read from where the
+ * manifest came from (the other resources it names are not served: the
+ * editor reads none), each imported as one more block; and the
  * end-to-end workspaces
  * (`app/e2e/fixtures/*.tle.json`), each opened as the workspace. The
  * rejection cases, refused by design, and the drawings, which are no
@@ -72,7 +73,7 @@ function caseManifest(name: string, text: string): string {
  * The menu's entries in code-unit order of their labels: every workspace
  * file, every manifest fixture of `SCHEMA_VERSION` and every warning case
  * of that version among `manifests`, and the table fixture's manifest of
- * that version with its tables read from `tables` (`servedSource`); files of
+ * that version with its MatchClaim table read from `tables` (`servedSource`); files of
  * other versions are skipped.
  */
 export function fixtures(workspaces: Files, manifests: Files, tables: Files): Example[] {
@@ -128,7 +129,7 @@ export const FIXTURES: readonly Example[] =
           { query: "?raw", import: "default" },
         ),
         import.meta.glob<string>(
-          "../node_modules/@timetoalign/timetoshare/fixtures/tables/*/*.parquet",
+          "../node_modules/@timetoalign/timetoshare/fixtures/tables/*/match_claims.parquet",
           { query: "?url", import: "default" },
         ),
       )

@@ -10,18 +10,19 @@
  * records the user's belief in one, answering the new file
  * (`decisions/0031-match-claim-provenance.md`): the block then holds the
  * new file, marked changed until the user saves it. Whatever replaces a
- * changed table asks first (`unsavedQuestion`).
+ * changed table asks first (`unsavedQuestion`). The server reads the
+ * events on both sides of given MatchClaims of the file too (`events`;
+ * `decisions/0032-match-claim-events.md`).
  *
- * A block also holds the Projections table its manifest names, which the
- * server reads beside the MatchClaim table to say which events of a
- * MatchClaim are Projections and of what (`events`;
- * `decisions/0032-match-claim-events.md`). The tables a manifest names are
- * loaded from where the manifest came from (its `ManifestSource`) when they
- * can be reached from there; otherwise the user chooses them (`AskTables`):
- * a file on their system or a URL, or, where the browser hands over
- * folders, the manifest's folder, which the block then keeps for the
- * session and, where the browser can, beyond it (`FolderMemory`), so its
- * tables load from there without a question.
+ * The MatchClaim table a manifest names is loaded from where the manifest
+ * came from (its `ManifestSource`) when it can be reached from there;
+ * otherwise the user chooses it (`AskTables`): a file on their system or a
+ * URL, or, where the browser hands over folders, the manifest's folder,
+ * which the block then keeps for the session and, where the browser can,
+ * beyond it (`FolderMemory`), so its table loads from there without a
+ * question. The editor reads no other resource a manifest names: it
+ * implements no event resource, and the MatchClaim table alone carries what
+ * the match display needs.
  */
 
 import type {
@@ -54,24 +55,14 @@ export interface ChangedTable {
   readonly loaded: LoadedTable;
 }
 
-/** A block's Projections table: its file's name and the file. */
-export interface LoadedProjections {
-  readonly name: string;
-  readonly file: Blob;
-}
-
 /** What the tables need of a server: the table route, the provenance routes and the events route. */
 export type MatchClaimServer = Pick<
   Server,
   "matchClaims" | "matchClaimProvenance" | "believeMatchClaim" | "matchClaimEvents"
 >;
 
-/** The types of the tables a manifest names in its `resources` that the editor reads. */
-export type TableType = "MatchClaim" | "Projection";
-
-/** A table a manifest names: its type and its location (`null` for a table it names none of). */
+/** The MatchClaim table a manifest names: its location (`null` where it names none). */
 export interface NamedTable {
-  readonly type: TableType;
   readonly url: string | null;
 }
 
@@ -90,12 +81,12 @@ export interface ManifestSource {
 }
 
 /**
- * What the user chose: for one table a file of their system or a URL; or
- * the folder the manifest lies in, which holds every table it names.
+ * What the user chose for the MatchClaim table: a file of their system, a
+ * URL, or the folder the manifest lies in, which holds the table it names.
  */
 export type TableChoice =
-  | { readonly type: TableType; readonly file: File }
-  | { readonly type: TableType; readonly url: string }
+  | { readonly file: File }
+  | { readonly url: string }
   | { readonly folder: FileSystemDirectoryHandle };
 
 /**
@@ -115,17 +106,14 @@ export function folderSource(folder: FileSystemDirectoryHandle): ManifestSource 
   return { read: (url) => readInFolder(folder, url) };
 }
 
-/** What the user is asked to choose: the tables of the manifest called `manifest`. */
+/** What the user is asked to choose: the MatchClaim table of the manifest called `manifest`. */
 export interface TableRequest {
   readonly manifest: string;
-  readonly tables: readonly NamedTable[];
+  readonly table: NamedTable;
 }
 
-/**
- * Ask the user for the files of `request`'s tables: what they chose (a table
- * left without a choice is absent), `null` when they cancel.
- */
-export type AskTables = (request: TableRequest) => Promise<readonly TableChoice[] | null>;
+/** Ask the user for the file of `request`'s table: what they chose, `null` when they cancel. */
+export type AskTables = (request: TableRequest) => Promise<TableChoice | null>;
 
 /** What a load has to say in the message bar: information and warnings. */
 export interface TableMessages {
@@ -136,16 +124,17 @@ export interface TableMessages {
 const NO_MESSAGES: TableMessages = { informed: [], warned: [] };
 
 /**
- * The tables `manifest` names in its `resources` that the editor reads, the
- * MatchClaim table first, then the Projections table; one of a type it
- * does not name is absent.
+ * The location of the MatchClaim table `manifest` names in its `resources`
+ * (the first resource of type `MatchClaim`), `null` where it names none.
  */
-export function namedTables(manifest: Manifest): NamedTable[] {
-  const types: readonly TableType[] = ["MatchClaim", "Projection"];
-  return types.flatMap((type) => {
-    const url = manifest.resources?.find((resource) => resource.type === type)?.url;
-    return url === undefined ? [] : [{ type, url }];
-  });
+export function namedTable(manifest: Manifest): string | null {
+  return manifest.resources?.find((resource) => resource.type === "MatchClaim")?.url ?? null;
+}
+
+/** A table the user chose or the manifest's source gave: its file's name and the file. */
+interface TableFile {
+  readonly name: string;
+  readonly file: Blob;
 }
 
 /** The last part of a location: the file name a picker gives for it. */
@@ -158,13 +147,8 @@ export function manifestTitle(manifest: Manifest): string {
   return manifest.name ?? manifest.id ?? "The manifest";
 }
 
-/** The words for a table of type `type`. */
-export function tableWords(type: TableType): string {
-  return type === "MatchClaim" ? "MatchClaim table" : "Projections table";
-}
-
 /** The file at the URL `text` (absolute, or relative to the page), named by its last part. */
-async function fetched(text: string): Promise<{ name: string; file: Blob }> {
+async function fetched(text: string): Promise<TableFile> {
   let url: URL;
   try {
     url = new URL(text, globalThis.location?.href);
@@ -235,7 +219,7 @@ export function eventsFailure(error: unknown): string {
   return failure(
     "The MatchClaims' events could not be read",
     error,
-    "this server cannot read Projections.",
+    "this server cannot read MatchClaim tables.",
   );
 }
 
@@ -279,12 +263,8 @@ export class MatchClaimTables {
     LoadedTable,
     Map<string, Promise<readonly ClaimProvenance[]>>
   >();
-  /** The events asked of each table, by the Projections table sent with them, then as `#provenance`. */
-  readonly #events = new WeakMap<
-    LoadedTable,
-    Map<LoadedProjections | null, Map<string, Promise<readonly ClaimEvents[]>>>
-  >();
-  readonly #projections = new SvelteMap<string, LoadedProjections>();
+  /** The events asked of each table, as `#provenance`. */
+  readonly #events = new WeakMap<LoadedTable, Map<string, Promise<readonly ClaimEvents[]>>>();
   /** Where each block's manifest came from, where it came from somewhere its files can be read. */
   readonly #sources = new Map<string, ManifestSource>();
   readonly #ask: AskTables | null;
@@ -334,16 +314,6 @@ export class MatchClaimTables {
     this.#tables.set(block, loaded);
   }
 
-  /** The Projections table of block `block`; `null` while none is loaded. */
-  projectionsOf(block: string): LoadedProjections | null {
-    return this.#projections.get(block) ?? null;
-  }
-
-  /** Hold `loaded` as the Projections table of block `block`, replacing any held. */
-  holdProjections(block: string, loaded: LoadedProjections): void {
-    this.#projections.set(block, loaded);
-  }
-
   /** Block `block`'s manifest came from `source`: the files it names are read from there. */
   locate(block: string, source: ManifestSource): void {
     this.#sources.set(block, source);
@@ -386,145 +356,107 @@ export class MatchClaimTables {
   /** Forget every table and where every manifest came from: another workspace was opened. */
   clear(): void {
     this.#tables.clear();
-    this.#projections.clear();
     this.#sources.clear();
   }
 
   /**
-   * Load the tables block `block`'s manifest `manifest` names, when it names
-   * a MatchClaim table and the block holds none (what Show matches asks):
-   * each from where the manifest came from (located this session, or its
-   * folder kept from an earlier one) where it can be reached there, the
-   * others as the user chooses them (one question for all, the user's
-   * `AskTables`; cancelled, they are left). The MatchClaim table is read
-   * through the server (`load`), the Projections table held as it is. What
-   * the message bar says of it: nothing without a server, which Show matches
-   * says itself.
+   * Load the MatchClaim table block `block`'s manifest `manifest` names,
+   * when it names one and the block holds none (what Show matches asks):
+   * from where the manifest came from (located this session, or its folder
+   * kept from an earlier one) where it can be reached there, else as the
+   * user chooses it (the user's `AskTables`; cancelled, it is left), read
+   * through the server (`load`). What the message bar says of it: nothing
+   * without a server, which Show matches says itself.
    */
   async loadNamed(block: string, manifest: Manifest): Promise<TableMessages> {
-    const named = namedTables(manifest);
-    if (this.#server === null || this.of(block) !== null) return NO_MESSAGES;
-    if (!named.some(({ type }) => type === "MatchClaim")) return NO_MESSAGES;
+    const url = namedTable(manifest);
+    if (this.#server === null || this.of(block) !== null || url === null) return NO_MESSAGES;
     const source = await this.#sourceOf(block);
-    const reached: { type: TableType; name: string; file: Blob }[] = [];
-    const unreached: NamedTable[] = [];
     const warned: string[] = [];
-    for (const table of named) {
-      if (table.type === "Projection" && this.projectionsOf(block) !== null) continue;
-      const url = table.url ?? "";
-      try {
-        const file = source === null ? null : await source.read(url);
-        if (file === null) unreached.push(table);
-        else reached.push({ type: table.type, name: fileNameOf(url), file });
-      } catch (error) {
-        warned.push(
-          `${url} could not be read from where the manifest came from: ${messageOf(error)}`,
-        );
-        unreached.push(table);
-      }
+    let reached: TableFile | null = null;
+    try {
+      const file = source === null ? null : await source.read(url);
+      if (file !== null) reached = { name: fileNameOf(url), file };
+    } catch (error) {
+      warned.push(
+        `${url} could not be read from where the manifest came from: ${messageOf(error)}`,
+      );
     }
-    const chosen =
-      unreached.length === 0 ? [] : await this.#chosen(block, manifest, unreached, warned);
-    if (chosen === null && reached.length === 0) return { informed: [], warned };
-    const taken = await this.#take(block, manifest, [...reached, ...(chosen ?? [])]);
-    return { informed: taken.informed, warned: [...warned, ...taken.warned] };
+    const taken = reached ?? (await this.#chosen(block, manifest, { url }, warned));
+    return this.#take(block, manifest, taken, warned);
   }
 
   /**
-   * Let the user choose the tables of block `block`'s manifest `manifest`
-   * (Load MatchClaims…): its MatchClaim table, and its Projections table
-   * where it names one, each a file of their system or a URL, then load
-   * what they chose as `loadNamed` loads it. Without a server nothing is
-   * asked and `MATCHES_NEED_A_SERVER` is the warning.
+   * Let the user choose the MatchClaim table of block `block`'s manifest
+   * `manifest` (Load MatchClaims…), a file of their system or a URL, then
+   * load it as `loadNamed` loads it. Without a server nothing is asked and
+   * `MATCHES_NEED_A_SERVER` is the warning.
    */
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
     if (this.#server === null) return { informed: [], warned: [MATCHES_NEED_A_SERVER] };
-    const named = namedTables(manifest);
-    const tables: NamedTable[] = named.some(({ type }) => type === "MatchClaim")
-      ? named
-      : [{ type: "MatchClaim", url: null }, ...named];
     const warned: string[] = [];
-    const chosen = await this.#chosen(block, manifest, tables, warned);
-    if (chosen === null) return { informed: [], warned };
-    const taken = await this.#take(block, manifest, chosen);
-    return { informed: taken.informed, warned: [...warned, ...taken.warned] };
+    const url = namedTable(manifest);
+    const chosen = await this.#chosen(block, manifest, { url }, warned);
+    return this.#take(block, manifest, chosen, warned);
   }
 
   /**
-   * The files the user chooses for `tables` of block `block`'s manifest
-   * `manifest`, each URL read; `null` when they cancel (or nobody can be
-   * asked). A URL that cannot be read adds its warning to `warned` and is
-   * left. A folder chosen becomes the block's (`inFolder`) and every table
-   * named is read from it; one it does not hold is said in `warned`.
+   * The file the user chooses for `table` of block `block`'s manifest
+   * `manifest`, a URL read; `null` when they cancel (or nobody can be
+   * asked). A URL that cannot be read adds its warning to `warned` and
+   * gives `null`. A folder chosen becomes the block's (`inFolder`) and the
+   * table named is read from it; one it does not hold is said in `warned`.
    */
   async #chosen(
     block: string,
     manifest: Manifest,
-    tables: readonly NamedTable[],
+    table: NamedTable,
     warned: string[],
-  ): Promise<{ type: TableType; name: string; file: Blob }[] | null> {
-    const choices =
-      this.#ask === null ? null : await this.#ask({ manifest: manifestTitle(manifest), tables });
-    if (choices === null) return null;
-    const files: { type: TableType; name: string; file: Blob }[] = [];
-    for (const choice of choices) {
-      if ("folder" in choice) {
-        this.inFolder(block, choice.folder);
-        files.push(...(await this.#fromFolder(choice.folder, tables, warned)));
-        continue;
-      }
-      if ("file" in choice) {
-        files.push({ type: choice.type, name: choice.file.name, file: choice.file });
-        continue;
-      }
-      try {
-        files.push({ type: choice.type, ...(await fetched(choice.url)) });
-      } catch (error) {
-        warned.push(`The ${tableWords(choice.type)} was not loaded: ${messageOf(error)}`);
-      }
+  ): Promise<TableFile | null> {
+    const choice =
+      this.#ask === null ? null : await this.#ask({ manifest: manifestTitle(manifest), table });
+    if (choice === null) return null;
+    if ("folder" in choice) {
+      this.inFolder(block, choice.folder);
+      return table.url === null ? null : this.#fromFolder(choice.folder, table.url, warned);
     }
-    return files;
+    if ("file" in choice) return { name: choice.file.name, file: choice.file };
+    try {
+      return await fetched(choice.url);
+    } catch (error) {
+      warned.push(`The MatchClaim table was not loaded: ${messageOf(error)}`);
+      return null;
+    }
   }
 
-  /** The files of `tables` that `folder` holds; each it does not hold, or fails to read, said in `warned`. */
+  /** The file `url` names in `folder`; `null`, said in `warned`, where the folder does not hold it or fails to read it. */
   async #fromFolder(
     folder: FileSystemDirectoryHandle,
-    tables: readonly NamedTable[],
+    url: string,
     warned: string[],
-  ): Promise<{ type: TableType; name: string; file: Blob }[]> {
-    const files: { type: TableType; name: string; file: Blob }[] = [];
-    for (const { type, url } of tables) {
-      if (url === null) continue;
-      try {
-        const file = await readInFolder(folder, url);
-        if (file === null) warned.push(`The folder ${folder.name} holds no ${url}.`);
-        else files.push({ type, name: fileNameOf(url), file });
-      } catch (error) {
-        warned.push(`${url} could not be read from the folder ${folder.name}: ${messageOf(error)}`);
-      }
+  ): Promise<TableFile | null> {
+    try {
+      const file = await readInFolder(folder, url);
+      if (file !== null) return { name: fileNameOf(url), file };
+      warned.push(`The folder ${folder.name} holds no ${url}.`);
+    } catch (error) {
+      warned.push(`${url} could not be read from the folder ${folder.name}: ${messageOf(error)}`);
     }
-    return files;
+    return null;
   }
 
-  /** Hold `files` as block `block`'s tables: the MatchClaim table read through the server. */
+  /** Hold `taken` (none: nothing) as block `block`'s table, read through the server; the messages, after `warned`. */
   async #take(
     block: string,
     manifest: Manifest,
-    files: readonly { type: TableType; name: string; file: Blob }[],
+    taken: TableFile | null,
+    warned: readonly string[],
   ): Promise<TableMessages> {
-    const informed: string[] = [];
-    const warned: string[] = [];
-    for (const { type, name, file } of files) {
-      if (type === "Projection") {
-        this.holdProjections(block, { name, file });
-        informed.push(`Loaded the Projections of ${name}.`);
-        continue;
-      }
-      const failure = await this.load(block, manifest, file, name);
-      if (failure === null) informed.push(`Loaded the MatchClaims of ${name}.`);
-      else warned.push(failure);
-    }
-    return { informed, warned };
+    if (taken === null) return { informed: [], warned };
+    const failure = await this.load(block, manifest, taken.file, taken.name);
+    return failure === null
+      ? { informed: [`Loaded the MatchClaims of ${taken.name}.`], warned }
+      : { informed: [], warned: [...warned, failure] };
   }
 
   /**
@@ -579,14 +511,11 @@ export class MatchClaimTables {
   /**
    * The events on both sides of the MatchClaims `claims` of block `block`'s
    * table, in that order (`ClaimEvents`: each side's timeline, event ID and
-   * name, whether its event is a Projection of the block's Projections
-   * table and of what; the certainty; whether it states synchrony), read
-   * through the server with `manifest` and the Projections table the block
-   * holds: asked once per table, Projections table and list of claims, the
-   * promise kept while both are held (a failed one is let go, so asking
+   * name; the certainty; whether it states synchrony), read through the
+   * server with `manifest`: asked once per table and list of claims, the
+   * promise kept while the table is held (a failed one is let go, so asking
    * again asks the server again; `eventsFailure` words its error). `null`
-   * without a server or a table. Without a Projections table no event is
-   * known as a Projection.
+   * without a server or a table.
    */
   events(
     block: string,
@@ -595,27 +524,16 @@ export class MatchClaimTables {
   ): Promise<readonly ClaimEvents[]> | null {
     const loaded = this.of(block);
     if (this.#server === null || loaded === null) return null;
-    const projections = this.projectionsOf(block);
-    let byProjections = this.#events.get(loaded);
-    if (byProjections === undefined) {
-      byProjections = new Map();
-      this.#events.set(loaded, byProjections);
-    }
-    let asked = byProjections.get(projections);
+    let asked = this.#events.get(loaded);
     if (asked === undefined) {
       asked = new Map();
-      byProjections.set(projections, asked);
+      this.#events.set(loaded, asked);
     }
     const key = JSON.stringify(claims);
     const known = asked.get(key);
     if (known !== undefined) return known;
     const held = asked;
-    const read = this.#server.matchClaimEvents(
-      saveManifest(manifest),
-      loaded.file,
-      projections?.file ?? null,
-      claims,
-    );
+    const read = this.#server.matchClaimEvents(saveManifest(manifest), loaded.file, claims);
     held.set(key, read);
     read.catch(() => {
       if (held.get(key) === read) held.delete(key);

@@ -59,7 +59,7 @@ import {
   type MatchClaimServer,
   MatchClaimTables,
   manifestTitle,
-  namedTables,
+  namedTable,
   saveFailure,
   type TableMessages,
   unsavedQuestion,
@@ -370,33 +370,24 @@ export class WorkspaceSession {
   }
 
   /**
-   * Read the tables among `picked` as tables of `blocks`: a file whose name
-   * is that of the Projections table a block's manifest names becomes that
-   * block's Projections table; every other one is a MatchClaim table, read
-   * through the server as the table of the block whose manifest names a
-   * MatchClaim table of its file name, else of the only block; a table no
-   * block takes is reported. Then every block of `blocks` whose manifest
-   * names a MatchClaim table that is still not loaded says so in the
-   * message bar, and how to load it.
+   * Read the tables among `picked` as tables of `blocks`: every one is a
+   * MatchClaim table, read through the server as the table of the block
+   * whose manifest names a MatchClaim table of its file name, else of the
+   * only block; a table no block takes is reported. Then every block of
+   * `blocks` whose manifest names a MatchClaim table that is still not
+   * loaded says so in the message bar, and how to load it.
    */
   async readTables(picked: readonly Opened[], blocks: readonly string[]): Promise<void> {
     const manifestOf = (block: string) => this.store.view.blocks[block]?.manifest;
-    const naming = (type: string, name: string) =>
+    const naming = (name: string) =>
       blocks.filter((block) => {
         const manifest = manifestOf(block);
-        if (manifest === undefined) return false;
-        return namedTables(manifest).some(
-          (table) => table.type === type && table.url !== null && fileNameOf(table.url) === name,
-        );
+        const url = manifest === undefined ? null : namedTable(manifest);
+        return url !== null && fileNameOf(url) === name;
       });
     for (const opened of picked) {
       if (!isMatchClaimTable(opened.name)) continue;
-      const projected = naming("Projection", opened.name);
-      for (const block of projected) {
-        this.tables.holdProjections(block, { name: opened.name, file: opened.file });
-      }
-      if (projected.length > 0) continue;
-      const named = naming("MatchClaim", opened.name);
+      const named = naming(opened.name);
       const [block] = named.length > 0 ? named : blocks.length === 1 ? blocks : [];
       const manifest = block === undefined ? undefined : manifestOf(block);
       if (block === undefined || manifest === undefined) {
@@ -409,8 +400,8 @@ export class WorkspaceSession {
     for (const block of blocks) {
       const manifest = manifestOf(block);
       if (manifest === undefined || this.tables.of(block) !== null) continue;
-      const url = namedTables(manifest).find(({ type }) => type === "MatchClaim")?.url;
-      if (url === undefined || url === null) continue;
+      const url = namedTable(manifest);
+      if (url === null) continue;
       const named = manifestTitle(manifest);
       this.#options.warn(
         this.tables.connected
@@ -421,10 +412,10 @@ export class WorkspaceSession {
   }
 
   /**
-   * Load the tables every block's manifest names whose MatchClaim table is
-   * not loaded (what turning Show matches on asks), block after block in
+   * Load the MatchClaim table every block's manifest names where it is not
+   * loaded (what turning Show matches on asks), block after block in
    * the canvas's one order of blocks (the arranger's `blocksInOrder`): from where
-   * the manifest came from, else as the user chooses them
+   * the manifest came from, else as the user chooses it
    * (`MatchClaimTables.loadNamed`); what each load says goes to the
    * message bar. A call while one is under way is ignored.
    */

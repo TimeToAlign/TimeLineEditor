@@ -4,8 +4,12 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FIXTURES } from "../src/fixtures.ts";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /** The installed schema package's `fixtures/` directory. */
 const ROOT = path.join(
@@ -64,6 +68,14 @@ describe("the fixture menu", () => {
     expect(FIXTURES.filter(({ source }) => source !== undefined).map(({ label }) => label)).toEqual(
       ["tables/manifest"],
     );
+  });
+
+  it("serves the table fixture's MatchClaim table alone", async () => {
+    const fetched = vi.fn(async () => new Response("fetched"));
+    vi.stubGlobal("fetch", fetched);
+    const source = FIXTURES.find(({ label }) => label === "tables/manifest")?.source;
+    expect(await source?.read("projections.parquet")).toBe(null);
+    expect(fetched).not.toHaveBeenCalled();
   });
 });
 

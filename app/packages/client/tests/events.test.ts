@@ -5,7 +5,6 @@ import { connect, ServerError } from "../src/index.ts";
 
 const manifest = "name: Café\n";
 const parquet = Uint8Array.of(80, 65, 82, 49, 0, 80, 65, 82, 49);
-const projections = Uint8Array.of(80, 65, 82, 49, 1, 2, 80, 65, 82, 49);
 const MALFORMED = "the events answer is not the events of the MatchClaims asked for";
 
 afterEach(() => {
@@ -36,10 +35,10 @@ async function sent(init: RequestInit): Promise<number[]> {
 /** The body `matchClaims` sends for `manifest` and `parquet`: "Café\n" is twelve bytes. */
 const TABLE_BODY = [12, 0, 0, 0, ...new TextEncoder().encode(manifest), ...parquet];
 
-/** `parameters` behind their length, the Projections table `between` behind its length, the table's body. */
-function expectedBody(parameters: string, between: readonly number[]): number[] {
+/** `parameters` behind their length, then the table's body. */
+function expectedBody(parameters: string): number[] {
   const text = Array.from(new TextEncoder().encode(parameters));
-  return [text.length, 0, 0, 0, ...text, between.length, 0, 0, 0, ...between, ...TABLE_BODY];
+  return [text.length, 0, 0, 0, ...text, ...TABLE_BODY];
 }
 
 const CLAIM_1 = {
@@ -47,11 +46,9 @@ const CLAIM_1 = {
   timeline_a_id: "clt_1",
   event_a_id: "note_1",
   event_a_name: "C4",
-  event_a_projection: null,
   timeline_b_id: "dpt_1",
   event_b_id: "projection_1",
   event_b_name: null,
-  event_b_projection: { projection_of: { timeline_id: "clt_1", event_id: "note_1" } },
   certainty: 1.0,
   is_synchronous: true,
 };
@@ -60,11 +57,9 @@ const CLAIM_11 = {
   timeline_a_id: "dpt_1",
   event_a_id: "projection_6",
   event_a_name: null,
-  event_a_projection: { projection_of: null },
   timeline_b_id: "cpt_1",
   event_b_id: "projection_7",
   event_b_name: null,
-  event_b_projection: { projection_of: null },
   certainty: 1.0,
   is_synchronous: true,
 };
@@ -73,11 +68,9 @@ const CLAIM_12 = {
   timeline_a_id: "clt_1",
   event_a_id: "note_10",
   event_a_name: "E5",
-  event_a_projection: null,
   timeline_b_id: "dpt_1",
   event_b_id: null,
   event_b_name: null,
-  event_b_projection: null,
   certainty: 1.0,
   is_synchronous: false,
 };
@@ -86,18 +79,10 @@ const ANSWER = { claims: [CLAIM_1, CLAIM_11, CLAIM_12] };
 const ASKED = ["claim_1", "claim_11", "claim_12"] as const;
 
 describe("matchClaimEvents", () => {
-  const call = (
-    sentProjections: Blob | null = new Blob([projections]),
-    asked: readonly string[] = ASKED,
-  ) =>
-    connect({ url: "api/", token: "t" }).matchClaimEvents(
-      manifest,
-      new Blob([parquet]),
-      sentProjections,
-      asked,
-    );
+  const call = (asked: readonly string[] = ASKED) =>
+    connect({ url: "api/", token: "t" }).matchClaimEvents(manifest, new Blob([parquet]), asked);
 
-  it("posts the claims, then the Projections table, then the table's request", async () => {
+  it("posts the claims, then the table's request", async () => {
     const stub = stubFetch(async () => Response.json(ANSWER));
     await call();
     expect(stub.mock.calls.length).toBe(1);
@@ -107,16 +92,14 @@ describe("matchClaimEvents", () => {
       "POST",
       { Authorization: "Bearer t", "Content-Type": "application/octet-stream" },
     ]);
-    expect(await sent(init)).toEqual(
-      expectedBody('{"claims":["claim_1","claim_11","claim_12"]}', Array.from(projections)),
-    );
+    expect(await sent(init)).toEqual(expectedBody('{"claims":["claim_1","claim_11","claim_12"]}'));
   });
 
-  it("sends the length 0 and no table without a Projections table", async () => {
+  it("sends no claims as an empty list", async () => {
     const stub = stubFetch(async () => Response.json({ claims: [] }));
-    await call(null, []);
+    expect(await call([])).toEqual([]);
     const [, init] = stub.mock.calls[0] as [string, RequestInit];
-    expect(await sent(init)).toEqual(expectedBody('{"claims":[]}', []));
+    expect(await sent(init)).toEqual(expectedBody('{"claims":[]}'));
   });
 
   it("answers the events of the claims asked for, in their order", async () => {
@@ -135,12 +118,9 @@ describe("matchClaimEvents", () => {
     ["a MatchClaim too few", { claims: [CLAIM_1, CLAIM_11] }],
     ["a member missing", withClaim(0, withoutCertainty)],
     ["an unknown member", withClaim(0, { ...CLAIM_1, is_explicit: true })],
+    ["a side's Projection", withClaim(0, { ...CLAIM_1, event_a_projection: null })],
     ["an event ID that is a number", withClaim(0, { ...CLAIM_1, event_a_id: 1 })],
     ["a certainty that is text", withClaim(0, { ...CLAIM_1, certainty: "1" })],
-    [
-      "a Projection without its event ID",
-      withClaim(0, { ...CLAIM_1, event_b_projection: { projection_of: { timeline_id: "x" } } }),
-    ],
   ])("rejects an answer with %s", async (_case, body) => {
     stubFetch(async () => Response.json(body));
     const error = await rejection(call());

@@ -116,12 +116,12 @@ function serving() {
   return { server, sent };
 }
 
-/** The user answering every question with `choices`, recording the questions. */
-function answering(choices: readonly TableChoice[] | null) {
+/** The user answering every question with `choice`, recording the questions. */
+function answering(choice: TableChoice | null) {
   const questions: TableRequest[] = [];
   const ask: AskTables = async (request) => {
     questions.push(request);
-    return choices;
+    return choice;
   };
   return { ask, questions };
 }
@@ -150,10 +150,8 @@ const canvas = {
   focus: () => undefined,
 };
 
-const LOADED_BOTH = [
-  "Loaded the MatchClaims of match_claims.parquet.",
-  "Loaded the Projections of projections.parquet.",
-];
+/** What loading the table fixture's MatchClaim table says; its Projections table is never read. */
+const LOADED = ["Loaded the MatchClaims of match_claims.parquet."];
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -223,42 +221,40 @@ describe("a location in a folder", () => {
 });
 
 describe("the folder chosen in the dialog", () => {
-  it("gives every table it holds, and is kept as the block's", async () => {
+  it("gives the MatchClaim table it holds, and is kept as the block's", async () => {
     const { server, sent } = serving();
     const chosen = packageFolder();
-    const { ask } = answering([{ folder: chosen }]);
+    const { ask } = answering({ folder: chosen });
     const { memo, remembered } = memory();
     const tables = new MatchClaimTables(server, ask, memo);
     expect(await tables.loadNamed("b", tableManifest())).toEqual({
-      informed: LOADED_BOTH,
+      informed: LOADED,
       warned: [],
     });
     expect(await Promise.all(sent.map((file) => file.text()))).toEqual([await MATCH_CLAIMS.text()]);
     expect(tables.of("b")?.name).toBe("match_claims.parquet");
-    expect(tables.projectionsOf("b")?.name).toBe("projections.parquet");
-    expect(await tables.projectionsOf("b")?.file.text()).toBe(await PROJECTIONS.text());
     expect(remembered).toEqual([["b", "pkg"]]);
   });
 
-  it("says which table it does not hold", async () => {
-    const { server } = serving();
-    const chosen = folder("pkg", { "match_claims.parquet": MATCH_CLAIMS });
-    const tables = new MatchClaimTables(server, answering([{ folder: chosen }]).ask);
+  it("says so where it does not hold the table", async () => {
+    const { server, sent } = serving();
+    const chosen = folder("pkg", { "projections.parquet": PROJECTIONS });
+    const tables = new MatchClaimTables(server, answering({ folder: chosen }).ask);
     expect(await tables.loadNamed("b", tableManifest())).toEqual({
-      informed: ["Loaded the MatchClaims of match_claims.parquet."],
-      warned: ["The folder pkg holds no projections.parquet."],
+      informed: [],
+      warned: ["The folder pkg holds no match_claims.parquet."],
     });
-    expect(tables.projectionsOf("b")).toBe(null);
+    expect([sent, tables.of("b")]).toEqual([[], null]);
   });
 });
 
 describe("a kept folder", () => {
-  it("gives the tables without a question", async () => {
+  it("gives the table without a question", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const tables = new MatchClaimTables(server, ask, memory({ b: packageFolder() }).memo);
     expect(await tables.loadNamed("b", tableManifest())).toEqual({
-      informed: LOADED_BOTH,
+      informed: LOADED,
       warned: [],
     });
     expect(questions).toEqual([]);
@@ -270,12 +266,7 @@ describe("a kept folder", () => {
     const denied = packageFolder({ query: "prompt", request: "denied" });
     const tables = new MatchClaimTables(server, ask, memory({ b: denied }).memo);
     expect(await tables.loadNamed("b", tableManifest())).toEqual({ informed: [], warned: [] });
-    expect(questions.map(({ tables: asked }) => asked)).toEqual([
-      [
-        { type: "MatchClaim", url: "match_claims.parquet" },
-        { type: "Projection", url: "projections.parquet" },
-      ],
-    ]);
+    expect(questions.map(({ table }) => table)).toEqual([{ url: "match_claims.parquet" }]);
   });
 });
 
@@ -316,7 +307,7 @@ describe("Import manifest from folder…", () => {
     await opened.loadNamedTables();
     expect(questions).toEqual([]);
     expect(await Promise.all(sent.map((file) => file.text()))).toEqual([await MATCH_CLAIMS.text()]);
-    expect(informed.slice(1)).toEqual(LOADED_BOTH);
+    expect(informed.slice(1)).toEqual(LOADED);
   });
 
   it("forgets the folder of a block that leaves the workspace, by a command or another workspace opened", async () => {

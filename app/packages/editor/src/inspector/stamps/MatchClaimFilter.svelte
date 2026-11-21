@@ -1,9 +1,9 @@
 <script lang="ts">
 /**
  * The Matchstamp tab's MatchClaim filter, at the pane's bottom: the block's
- * table (Load MatchClaims…, the tables' manual route: the user chooses the
- * MatchClaim table and the Projections table the manifest names, read
- * through the server; once a belief changed it, Save MatchClaims… saves
+ * table (Load MatchClaims…, the table's manual route: the user chooses the
+ * MatchClaim table, read through the server; once a belief changed it,
+ * Save MatchClaims… saves
  * the new file, never the workspace; Load MatchClaims… over a changed table
  * first asks to save it), its timelines
  * and the belief filter, one toggle per belief state (true, undecided,
