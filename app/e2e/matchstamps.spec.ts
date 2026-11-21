@@ -151,7 +151,7 @@ test("a manifest naming a table that is not loaded says so", async ({ page }) =>
   const seen = await openPage(page);
   await importFiles(page, [{ name: "manifest.yaml", buffer: MANIFEST }]);
   await expect(page.getByTestId("message").locator("p")).toHaveText(
-    "The manifest names the MatchClaim table match_claims.parquet, which is not loaded: Load MatchClaims… in the Matchstamp tab reads it.",
+    "The manifest names the MatchClaim table match_claims.parquet, which is not loaded: Show matches (M) loads it.",
   );
   expect(seen.requests).toBe(0);
 });

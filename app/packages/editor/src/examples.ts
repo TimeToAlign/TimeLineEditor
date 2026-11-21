@@ -7,6 +7,7 @@
  */
 
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import type { ManifestSource } from "./matchClaims.svelte.ts";
 
 /** How an example is read: a manifest imported as a block, or a workspace opened. */
 export type ExampleKind = "manifest" | "workspace";
@@ -17,6 +18,8 @@ export interface Example {
   readonly kind: ExampleKind;
   /** The file's text, fetched on first use. */
   readonly text: () => Promise<string>;
+  /** Where a manifest's files are read from: those served beside it; absent where none are. */
+  readonly source?: ManifestSource;
 }
 
 /** The files a glob found: path → their text, loaded on demand. */

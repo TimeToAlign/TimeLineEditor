@@ -90,6 +90,9 @@ function serving(
       calls.beliefs.push([manifest, file, belief]);
       return options.believe === undefined ? ANSWERED : options.believe();
     },
+    matchClaimEvents: async () => {
+      throw new Error("beliefs ask no events");
+    },
   };
   return { server, calls };
 }

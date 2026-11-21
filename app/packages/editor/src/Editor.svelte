@@ -47,6 +47,7 @@ import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
 import { Picking, providePicking } from "./pick.svelte.ts";
 import ProfilesDialog from "./profiles/ProfilesDialog.svelte";
 import { ProfilesState, provideProfiles } from "./profiles/profiles.svelte.ts";
+import TablesDialog from "./TablesDialog.svelte";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
 import UserDialog from "./UserDialog.svelte";
@@ -88,6 +89,7 @@ let root: HTMLElement | undefined = $state();
 let arranger: HTMLElement | undefined = $state();
 let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
+let tablesDialog: ReturnType<typeof TablesDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
 let userDialog: ReturnType<typeof UserDialog> | undefined = $state();
@@ -143,7 +145,9 @@ providePicking(picking);
 const session = new WorkspaceSession({
   author: () => user.name,
   warn,
+  inform: (text) => messages.inform(text),
   matchClaims: untrack(() => (server === null ? null : connect(server))),
+  askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -529,6 +533,7 @@ if (withTestHook) {
     cancel: () => session.store.cancel(),
     bands: (block) => bandsOf(session.store.view, block),
     boxes: (block) => boxesOf(session.store.view, block),
+    loadTables: () => session.loadNamedTables(),
   };
   $effect(() => installTestHook(hook));
 }
@@ -587,6 +592,7 @@ if (withTestHook) {
   </main>
 
   <ConfirmDialog bind:this={confirm} />
+  <TablesDialog bind:this={tablesDialog} />
   <UserDialog bind:this={userDialog} />
   <ProfilesDialog bind:this={profilesDialog} />
   <AboutDialog bind:this={about} connected={server !== null} {health} {offline} {noticesUrl} />

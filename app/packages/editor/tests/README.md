@@ -28,7 +28,8 @@ the drawing's record, read in the test itself.
 
 The page is one caller of the editor: the page's one level-1 heading
 "TimeLineEditor", given to the editor's header as its title, the
-level-2 headings of the drawer, the "Your name" dialog, the "Type
+level-2 headings of the drawer, the tables dialog (closed, so naming no
+manifest: "Load the tables of "), the "Your name" dialog, the "Type
 profiles" dialog and About, no
 footer, and the focused canvas (`application`
 "Arranger"). With `#token=abc` in the address, the one health request is
@@ -299,10 +300,13 @@ exactly, each once, every `*.yaml` below the installed schema package's
 and `bundles/`, `corpus_*` and the minimal twins included) labelled by its
 path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
-`fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
-end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
-code-unit order. For the installed package that is 156 manifest fixtures,
-16 warning cases and 5 workspaces, 177 options, from `bare` to
+`fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, the table
+fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
+`tables/manifest`, the one option carrying a source of the files served
+beside it, and every end-to-end workspace as `e2e/<name>`; no label
+repeats and the list is in code-unit order. For the installed package that
+is 156 manifest fixtures, 16 warning cases, the table fixture and 5
+workspaces, 178 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -312,7 +316,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 172 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 173 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -1103,7 +1107,7 @@ which no position solves).
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
 
-## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`, `matchclaim-beliefs.test.ts`)
+## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`, `matchclaim-beliefs.test.ts`, `tables-dialog.test.ts`)
 
 The anchor index, the belief mask, the comparison of a named MatchStamp
 with the table and every MatchStamp command are core's, the answer's
@@ -1249,14 +1253,83 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `.parquet`); a table picked with one manifest becomes that block's, its
    request carrying the manifest as its file writes it and the file
    unchanged; with two manifests it goes to the block whose manifest names
-   a resource of its file name. A manifest naming a table that is not
-   loaded says "<name> names the MatchClaim table match_claims.parquet,
-   which is not loaded: Load MatchClaims… in the Matchstamp tab reads it.",
+   a resource of its file name; a file named as the manifest's Projections
+   table (`projections.parquet`) becomes the block's Projections table,
+   held as it is and never sent to the table route. A manifest naming a
+   table that is not loaded says "<name> names the MatchClaim table
+   match_claims.parquet, which is not loaded: Show matches (M) loads it.",
    without a server the same with "Matches need a server: …". A refused
    table lists each problem with its row; an unreachable server, 501 and
    any other failure each have their message. Opening another workspace
    drops every table; the workspace file never holds one (its text equals
    the text without the table).
+
+9a. **The tables a manifest names** (`matchclaims-loading.test.ts`, the
+   server stubbed as above, the user's answer to the dialog stubbed as a
+   function recording each question). The table fixture's manifest names
+   `match_claims.parquet` (MatchClaim) and `projections.parquet`
+   (Projection), in that order (`namedTables`). Loading them for a block
+   (`loadNamed`, what Show matches asks):
+   - from a source that reaches both (`ManifestSource` answering each
+     location with a `Blob` of its own), both are taken without a question:
+     the table route gets the manifest as its file writes it and exactly
+     the MatchClaim file, the block holds the Projections file under the
+     name `projections.parquet`, and the messages are the information
+     "Loaded the MatchClaims of match_claims.parquet." then "Loaded the
+     Projections of projections.parquet.";
+   - from a source that reaches the MatchClaim table only, the reached one
+     is taken and the user is asked once, for the Projections table alone
+     (`{manifest: "Tables", tables: [{type: "Projection", url:
+     "projections.parquet"}]}`, the manifest named by its name);
+   - without a source both are asked for in one question; choosing a file
+     for the MatchClaim table and the URL `https://example.org/p/projections.parquet`
+     for the Projections table takes the file and fetches the URL (`fetch`
+     stubbed, called once with that URL), the Projections table held under
+     `projections.parquet`; a URL answered 404 warns "The Projections table
+     was not loaded: https://example.org/p/projections.parquet could not be
+     read: 404 Not Found" and loads the rest; text that is no URL
+     (`http://`) warns "The Projections table was not loaded: 'http://' is
+     no URL";
+   - cancelled, nothing is loaded, nothing is said, and the table route is
+     not called; a source that rejects warns "match_claims.parquet could
+     not be read from where the manifest came from: <its message>" and
+     asks for it as if unreached;
+   - a block already holding a MatchClaim table, a manifest naming no
+     MatchClaim table and a session without a server ask nothing and say
+     nothing.
+   The session's `loadNamedTables` runs it for every block in the view's
+   order and posts the information through `inform`, the warnings through
+   `warn`. The manual route (`choose`, Load MatchClaims…) always asks, for
+   the MatchClaim table (with `url` `null` where the manifest names none)
+   and the Projections table where the manifest names one, and loads what
+   is chosen the same way; without a server it asks nothing and warns
+   "Matches need a server: …". The Fixture menu's `tables/manifest` entry
+   carries a source reading the files served beside the fixture
+   (`servedSource`): `match_claims.parquet` and `projections.parquet` are
+   served, `other.parquet` is not (`null`).
+
+9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
+   jsdom with `showModal` stubbed). Asked for the two tables of "Tables",
+   it is titled "Load the tables of Tables", shows one group per table
+   ("MatchClaim table match_claims.parquet", "Projections table
+   projections.parquet") with "Choose file…", "No file chosen" and a URL
+   field; Load is disabled until one table has a file or a URL. Entering
+   a URL for the Projections table and choosing a file for the MatchClaim
+   table (the fallback file input answered) resolves `[{type:
+   "MatchClaim", file}, {type: "Projection", url}]` in the tables' order,
+   the URL trimmed; a URL entered after a file replaces it. Cancel and
+   Escape (the dialog's `close`) resolve `null`.
+
+9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
+   manifest, claims)` asks the server's events route once per table,
+   Projections table and list of claims, with the manifest as its file
+   writes it, the held MatchClaim file and the held Projections file
+   (`null` without one): asking the same again returns the same promise;
+   holding a Projections table afterwards asks again, with it; a refused
+   request is let go, so the next call asks again; without a server or a
+   table it is `null`. `eventsFailure` words a refusal "The MatchClaims'
+   events could not be read: <problems>", 501 "…: this server cannot read
+   Projections.".
 
 10. **Provenance on demand** (`matchclaim-beliefs.test.ts`, the server
     stubbed as an object answering the three calls and recording each
