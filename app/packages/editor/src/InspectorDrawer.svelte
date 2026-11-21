@@ -8,7 +8,8 @@
  * pinned timestamp) is kept here, so closing the drawer loses none of it;
  * an editor opened while it is closed has the level tab shown when it
  * opens, and a timestamp pinned while it is closed opens it, as does
- * selecting exactly one named timestamp. An unnamed pin is dropped, the
+ * selecting exactly one named timestamp, or exactly one start or end mark
+ * of a timeline, which pins that position. An unnamed pin is dropped, the
  * tab kept, once its block's manifest or the granularity changes or its
  * block is deleted; a named timestamp's pin is read anew from the view
  * after every change, and dropped once the timestamp is gone. A potential
@@ -46,7 +47,7 @@ import {
   pinned,
   toggled,
 } from "./inspector/tabs.ts";
-import { namedAddress, namedPinOf } from "./inspector/timestamp.ts";
+import { boundaryPinOf, namedAddress, namedPinOf } from "./inspector/timestamp.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 import type { MatchClaimTables } from "./matchClaims.svelte.ts";
 
@@ -183,21 +184,25 @@ export function shownMatch(): HeldMatch | null {
 
 /**
  * The selection changed to `addresses`: exactly one named timestamp is
- * shown in the Timestamp tab, opening the drawer; any other selection
- * clears a named timestamp shown, an unnamed pin staying.
+ * shown in the Timestamp tab, opening the drawer, and exactly one start or
+ * end mark of a timeline pins that position there, unnamed
+ * (`boundaryPinOf`); any other selection clears a named timestamp shown, an
+ * unnamed pin staying.
  */
 export function selected(addresses: readonly Address[]): void {
   const [only, ...others] = addresses;
   const one = only !== undefined && others.length === 0 ? only : null;
-  const named =
-    one !== null && namesTimestamp(live.view, one)
-      ? namedPinOf(live.view, one, fontMetrics, knotsOf)
-      : null;
+  const shown =
+    one === null
+      ? null
+      : namesTimestamp(live.view, one)
+        ? namedPinOf(live.view, one, fontMetrics, knotsOf)
+        : boundaryPinOf(live.view, one, fontMetrics, knotsOf);
   const matchStamp = one === null ? null : namedMatchStampOf(live.view, one);
   if (one !== null && one.block !== undefined && matchStamp !== null) {
     showMatch({ kind: "named", block: one.block, id: matchStamp });
   } else if (match !== null && match.kind === "named") showMatch(null);
-  if (named !== null) pinTimestamp(named);
+  if (shown !== null) pinTimestamp(shown);
   else if (pin !== null && pin.pin.named !== null) pinTimestamp(null);
 }
 

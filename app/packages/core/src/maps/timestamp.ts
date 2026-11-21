@@ -57,6 +57,13 @@ export interface TimelineAxis {
   readonly numberType: NumberType;
   readonly length: Real | null;
   readonly maps: readonly ConversionMap[];
+  /**
+   * The ordinate, in canvas units of its block's drawing, of the drawn line
+   * at which the reading crosses the timeline (its own line, an ancestor
+   * line, a segment line holding it); absent where it is not drawn there.
+   * The rows of a timestamp are listed top to bottom by it (`timestampRows`).
+   */
+  readonly ordinate?: number;
 }
 
 /** `timeline` as a cross-section reads it, with the maps `maps` (those drawn for it, in drawing order). */
@@ -621,13 +628,37 @@ export interface TimestampRow {
 }
 
 /**
- * The rows of `pin`'s timestamp in order: per part, its coordinate, then
- * its maps in drawing order. A coordinate is always editable; a map while
- * it is invertible over its timeline's span.
+ * The parts of `pin`'s timestamp top to bottom where the reading crosses
+ * each one's timeline (its `ordinate` in the spec), stably, so parts at one
+ * ordinate keep the timestamp's order, and every part without an ordinate
+ * after those with one, in that order too.
+ */
+function partsTopDown(pin: Pin): TimestampPart[] {
+  const { spec } = pin;
+  const ordinates = new Map<string, number>();
+  for (const axis of [spec.anchor, ...spec.members]) {
+    if (axis.ordinate !== undefined) ordinates.set(axis.timeline, axis.ordinate);
+  }
+  return pin.timestamp.parts.toSorted((a, b) => {
+    const above = ordinates.get(a.timeline);
+    const below = ordinates.get(b.timeline);
+    if (above === undefined || below === undefined) {
+      return (above === undefined ? 1 : 0) - (below === undefined ? 1 : 0);
+    }
+    return above - below;
+  });
+}
+
+/**
+ * The rows of `pin`'s timestamp in order: its parts top to bottom where the
+ * reading crosses their timelines (`partsTopDown`), per part its
+ * coordinate, then its maps in drawing order. A coordinate is always
+ * editable; a map while it is invertible over its timeline's span. The
+ * timestamp's own parts keep the anchor first.
  */
 export function timestampRows(pin: Pin): TimestampRow[] {
   const reading = readingOf(pin.knots);
-  return pin.timestamp.parts.flatMap((part) => {
+  return partsTopDown(pin).flatMap((part) => {
     const { timeline } = part;
     const coordinate: TimestampRow = {
       row: { timeline, map: null },

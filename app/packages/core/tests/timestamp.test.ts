@@ -326,6 +326,51 @@ describe("the rows of a timestamp", () => {
     ]);
   });
 
+  it("list the parts top to bottom where the reading crosses each timeline", () => {
+    const placed = (
+      spec: CrossSectionSpec,
+      ordinates: { readonly [timeline: string]: number },
+    ): CrossSectionSpec => {
+      const crossed = <T extends TimelineAxis>(axis: T): T => {
+        const ordinate = ordinates[axis.timeline];
+        return ordinate === undefined ? axis : { ...axis, ordinate };
+      };
+      return { ...spec, anchor: crossed(spec.anchor), members: spec.members.map(crossed) };
+    };
+    const timelines = (pin: Pin) => [...new Set(timestampRows(pin).map((item) => item.timeline))];
+    const raised = pinOf(placed(RECORDING, { recording: 50, excerpt: 20 }), q(100000));
+    expect(timestampRows(raised).map((item) => item.row)).toEqual([
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+      row("recording"),
+      row("recording", "cmap_5"),
+    ]);
+    expect(raised.timestamp.parts.map(({ timeline }) => timeline)).toEqual([
+      "recording",
+      "excerpt",
+    ]);
+    expect(timelines(pinOf(placed(RECORDING, { recording: 50 }), q(100000)))).toEqual([
+      "recording",
+      "excerpt",
+    ]);
+    const form = pinOf(placed(specOf(SEGMENTS, "form"), { form: 40, a: 10, a1: 10 }), q(8));
+    expect(timelines(form)).toEqual(["a", "a1", "form", "b", "b1"]);
+    expect(form.timestamp.parts.map(({ timeline }) => timeline)).toEqual([
+      "form",
+      "a",
+      "a1",
+      "b",
+      "b1",
+    ]);
+    expect(timelines(pinOf(specOf(SEGMENTS, "form"), q(8)))).toEqual([
+      "form",
+      "a",
+      "a1",
+      "b",
+      "b1",
+    ]);
+  });
+
   it("are editable exactly where a map is invertible over its timeline's span", () => {
     const rows = timestampRows(pinOf(QUARTERS, q(2)));
     expect(rows.map((item) => [item.row.map, item.editable])).toEqual([

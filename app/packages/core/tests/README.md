@@ -4114,7 +4114,18 @@ the parity table's manifest with its MeasureMap's expanded rows
    `form` 27/2, `b` 11/2, `b1` 11/2 (`b2` starts at 14); at 32 `form` 32,
    `c` 12, `c1` 12. Given `b`, then `a`, at 8 the parts are `form`, `b`,
    `a`.
-6. **Rows.** `timestampRows` lists per part its coordinate, then its maps:
+6. **Rows.** `timestampRows` lists the parts top to bottom where the
+   reading crosses each timeline (the `ordinate` the caller gives the
+   anchor and each member, canvas units growing downwards), stably (parts
+   at one ordinate in the timestamp's order), every part without an
+   ordinate after those with one, in the timestamp's order; the
+   timestamp's own parts keep the anchor first. `recording` at 100000
+   with `recording` at 50 and `excerpt` at 20 lists `excerpt`'s rows, then
+   `recording`'s; with only `recording` at 50, `recording`'s then
+   `excerpt`'s; `form` of `segment_line.yaml` at 8 with `form` at 40, `a`
+   and `a1` at 10, `b` and `b1` absent lists `a`, `a1`, `form`, `b`, `b1`
+   (the parts `form`, `a`, `a1`, `b`, `b1`); without ordinates, the
+   timestamp's order. Per part its coordinate, then its maps:
    `recording` at 100000 gives six rows, `{recording, null}` labelled
    `Recording` with the int 100000, `{recording, cmap_5}` labelled `cmap_5`
    (the map has no name), `{excerpt, null}` `Excerpt` 55900, `{excerpt,

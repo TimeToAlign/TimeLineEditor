@@ -1,0 +1,144 @@
+graphical:
+  order:
+    "#group_1": ["#dpt_1", "#cgt_3"]
+groups:
+  -
+    id: "#group_1"
+    members: ["#cgt_3", "#dpt_1"]
+    name: "LayerIt session"
+measure_maps:
+  -
+    id: "#measuremap_1"
+    rows:
+      -
+        ID: qhghzyb
+        actual_length: [9, 2]
+        count: 1
+        end_repeat: false
+        name: "1"
+        next: [t1ajik95]
+        nominal_length: [9, 2]
+        number: 1
+        qstamp: [0, 1]
+        start_repeat: false
+        time_signature: "9/8"
+      -
+        ID: t1ajik95
+        actual_length: [9, 2]
+        count: 2
+        end_repeat: false
+        name: "2"
+        next: [l1lqnom3]
+        nominal_length: [9, 2]
+        number: 2
+        qstamp: [9, 2]
+        start_repeat: false
+        time_signature: "9/8"
+      -
+        ID: l1lqnom3
+        actual_length: [9, 2]
+        count: 3
+        end_repeat: false
+        name: "3"
+        next: [p13e44d5]
+        nominal_length: [9, 2]
+        number: 3
+        qstamp: [9, 1]
+        start_repeat: false
+        time_signature: "9/8"
+      -
+        ID: p13e44d5
+        actual_length: [9, 2]
+        count: 4
+        end_repeat: false
+        name: "4"
+        next: [j1wjncss]
+        nominal_length: [9, 2]
+        number: 4
+        qstamp: [27, 2]
+        start_repeat: false
+        time_signature: "9/8"
+      -
+        ID: j1wjncss
+        actual_length: [9, 2]
+        count: 5
+        end_repeat: false
+        name: "5"
+        next: [e1ksyeqi]
+        nominal_length: [9, 2]
+        number: 5
+        qstamp: [18, 1]
+        start_repeat: false
+        time_signature: "9/8"
+      -
+        ID: e1ksyeqi
+        actual_length: [9, 2]
+        count: 6
+        end_repeat: false
+        name: "6"
+        nominal_length: [9, 2]
+        number: 6
+        qstamp: [45, 2]
+        start_repeat: false
+        time_signature: "9/8"
+timelines:
+  -
+    children:
+      -
+        children:
+          -
+            conversion_maps:
+              -
+                id: "#lmap_2"
+                scalar: 0.04675470144567245
+                source_unit: css_pixels
+                target_unit: seconds
+                type: LinearMap
+            id: "#cgt_3"
+            length: 713.3617548979767
+            locked: true
+            name: "mm. 1-6"
+            offset: 0.0
+            unit: css_pixels
+        conversion_maps:
+          -
+            id: "#lmap_1"
+            scalar: 0.04675470144567245
+            source_unit: css_pixels
+            target_unit: seconds
+            type: LinearMap
+        id: "#cgt_2"
+        length: 855.5289364103584
+        locked: true
+        name: "ScoreWarp time axis"
+        offset: 76.70371459980326
+        unit: css_pixels
+    id: "#cgt_1"
+    length: 932.2326510101616
+    name: "ScoreWarp SVG"
+    unit: css_pixels
+  -
+    conversion_maps:
+      -
+        id: "#cmap_2"
+        measure_map: "#measuremap_1"
+        source_unit: quarters
+        target_unit: null
+        type: MeasureRecordMap
+    id: "#clt_6"
+    length: [27, 1]
+    name: "Clair de lune, mm. 1–6 (MEI)"
+    unit: quarters
+  -
+    conversion_maps:
+      -
+        id: "#cmap_1"
+        scalar: [1, 44100]
+        source_unit: samples
+        target_unit: seconds
+        type: LinearMap
+    id: "#dpt_1"
+    length: 1470868
+    name: "WAV excerpt"
+    unit: samples
+timetoshare: "0.2.0"

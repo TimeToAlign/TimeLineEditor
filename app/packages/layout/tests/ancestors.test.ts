@@ -1,4 +1,13 @@
-import { type ElementAddress, sameAddress, samePlaceKey } from "@timetoalign/tilie-core";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import {
+  type ElementAddress,
+  isLoadError,
+  loadManifest,
+  type Manifest,
+  sameAddress,
+  samePlaceKey,
+} from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
@@ -15,12 +24,14 @@ import {
   at,
   bandOrder,
   baseOf,
+  child,
   drawFixture,
   edit,
   element,
   loadFile,
   metrics,
   set,
+  target,
   unturned,
 } from "./support.ts";
 
@@ -541,5 +552,77 @@ describe("the cascade on each drawing of an address", () => {
     );
     expect(styleOf(byId, at("second-half", "start"))).toEqual(["#654321"]);
     expect(styleOf(byId, at("timestamp_3"))).toEqual(["#000000"]);
+  });
+});
+
+describe("a member's cross-section lines cross its ancestor lines", () => {
+  const here = {
+    type: "add",
+    into: target("middle"),
+    timestamp: { name: "Here", coordinate: [2, 1], display: ["cross_section"] },
+  };
+  const drawEdited = (manifest: Manifest, extra: Graphical[] = []) =>
+    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
+  /** The marker extent of `timeline`'s one drawn line. */
+  const extentOf = (drawing: Drawing, timeline: string) =>
+    drawing.axes.find((axis) => axis.address.id === timeline && axis.marker !== null)?.marker
+      ?.crossSection.extent;
+  const lineOf = (drawing: Drawing, id: string) =>
+    element(drawing, at(id, "line")) as DrawnElement & { x: number; y1: number; y2: number };
+  const yOf = (drawing: Drawing, id: string) => (element(drawing, at(id)) as { y: number }).y;
+
+  it("runs from the outermost ancestor line to the member's line", () => {
+    const drawing = drawEdited(edit("groups/group_parent_both", here));
+    const top = yOf(drawing, "piece");
+    const line = yOf(drawing, "middle");
+    expect([top, line]).toEqual([67.78125, 81.78125]);
+    expect(extentOf(drawing, "middle")).toEqual({ y1: top, y2: line });
+    const crossing = lineOf(drawing, "timestamp_5");
+    expect([crossing.x, crossing.y1, crossing.y2]).toEqual([
+      xOf(drawing, "middle") + 100,
+      top,
+      line,
+    ]);
+    expect(crossing.x).toBe(211.70361328125);
+    expect(extentOf(drawing, "recording")).toBeNull();
+  });
+
+  it("never reaches the ancestors from a descendant of the member", () => {
+    const manifest = edit("groups/group_parent_both", here, child("middle", "inner", 1, 2), {
+      type: "add",
+      into: target("inner"),
+      timestamp: { name: "In", coordinate: [1, 1], display: ["cross_section"] },
+    });
+    const drawing = drawEdited(manifest);
+    const top = yOf(drawing, "piece");
+    expect([top, yOf(drawing, "middle")]).toEqual([67.78125, 99.78125]);
+    expect(extentOf(drawing, "middle")).toEqual({ y1: top, y2: 99.78125 });
+    expect(extentOf(drawing, "inner")).toBeNull();
+    expect(all(drawing, at("timestamp_6", "line"))).toEqual([]);
+  });
+
+  it("reaches no ancestor line that is not displayed", () => {
+    const drawing = drawEdited(edit("groups/group_parent_both", here), [
+      { rules: [{ select: { addresses: [at("piece")] }, set: { display: "none" } }] },
+    ]);
+    expect(all(drawing, at("piece"))).toEqual([]);
+    expect(extentOf(drawing, "middle")).toBeNull();
+    expect(all(drawing, at("timestamp_5", "line"))).toEqual([]);
+  });
+
+  it("crosses every ancestor line of a grouped child in a recorded session", () => {
+    const text = readFileSync(
+      path.join(import.meta.dirname, "data", "clair-de-lune-session.yaml"),
+      "utf8",
+    );
+    const manifest = loadManifest(text);
+    if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
+    const drawing = drawEdited(manifest);
+    const top = yOf(drawing, "cgt_1");
+    expect([top, yOf(drawing, "cgt_2"), yOf(drawing, "cgt_3")]).toEqual([
+      104.68359375, 138.66015625, 156.16015625,
+    ]);
+    expect(extentOf(drawing, "cgt_3")).toEqual({ y1: top, y2: 156.16015625 });
+    expect(extentOf(drawing, "dpt_1")).toEqual({ y1: 40.8046875, y2: 47.3046875 });
   });
 });

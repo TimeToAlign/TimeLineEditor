@@ -4,7 +4,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { KnotsOf } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, namedPin, selectionOf } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  liveStore,
+  namedPin,
+  selectionOf,
+  timelinePin,
+} from "@timetoalign/tilie-arranger";
 import { ServerError } from "@timetoalign/tilie-client";
 import type {
   Address,
@@ -534,6 +540,71 @@ describe("pinning, in the drawer", () => {
   });
 });
 
+describe("a timeline's start or end mark, selected", () => {
+  const MIDDLE_START: Address = { block: A, id: "middle", part: ["start"] };
+  const MIDDLE_END: Address = { block: A, id: "middle", part: ["end"] };
+
+  /** The arranger's pin of `timeline` in block A of `store` at `position`, read without a server. */
+  function onTimeline(store: Store, timeline: string, position: Rational): Pin | null {
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const drawing = drawingOf(block, store.view.graphical, fontMetrics);
+    const granularity = store.view.settings.granularity;
+    return timelinePin(block.manifest, A, drawing, timeline, position, granularity, "no_server");
+  }
+
+  it("pins the member's start and end, its ancestor above it", () => {
+    const store = storeOf("groups/group_parent_both");
+    const inspector = drawer(store, false);
+    inspector.selected([MIDDLE_START]);
+    expect([
+      document.querySelector('[data-testid="inspector"]')?.hasAttribute("hidden"),
+      selected(),
+      groups(),
+      inspector.shownPin(),
+      inspector.shownPin()?.named,
+    ]).toEqual([
+      false,
+      "Timestamp",
+      [
+        ["Piece", [row("coordinate", "4", "♩")]],
+        ["Middle", [row("coordinate", "0", "♩")]],
+      ],
+      onTimeline(store, "middle", q(0)),
+      null,
+    ]);
+    inspector.selected([MIDDLE_END]);
+    expect([groups(), inspector.shownPin()]).toEqual([
+      [
+        ["Piece", [row("coordinate", "12", "♩")]],
+        ["Middle", [row("coordinate", "8", "♩")]],
+      ],
+      onTimeline(store, "middle", q(8)),
+    ]);
+    inspector.selected([{ block: A }]);
+    expect([selected(), inspector.shownPin()]).toEqual([
+      "Timestamp",
+      onTimeline(store, "middle", q(8)),
+    ]);
+  });
+
+  it("pins nothing for an end of unknown length", () => {
+    const inspector = drawer(storeOf("unknown_length"), true);
+    click("Journal");
+    inspector.selected([{ block: A, id: "score", part: ["end"] }]);
+    expect([selected(), inspector.shownPin()]).toEqual(["Journal", null]);
+  });
+
+  it("pins nothing for a mark's label or two addresses", () => {
+    const inspector = drawer(storeOf("groups/group_parent_both"), true);
+    click("Journal");
+    inspector.selected([{ block: A, id: "middle", part: ["start", "label"] }]);
+    expect([selected(), inspector.shownPin()]).toEqual(["Journal", null]);
+    inspector.selected([MIDDLE_START, MIDDLE_END]);
+    expect([selected(), inspector.shownPin()]).toEqual(["Journal", null]);
+  });
+});
+
 describe("coordinates, Editor", () => {
   it("group the rows by timeline, every number exact with its unit", () => {
     const store = mixed();
@@ -551,7 +622,9 @@ describe("coordinates, Editor", () => {
     const store = example();
     const inspector = drawer(store, true, T);
     inspector.selected([THEME]);
+    // Top to bottom: `phrase`'s line lies above `score`'s.
     expect(groups()).toEqual([
+      ["Phrase", [row("coordinate", "0", "♩"), row("Phrase ticks", "0", "ticks")]],
       [
         "Score",
         [
@@ -561,7 +634,6 @@ describe("coordinates, Editor", () => {
           row("Ticks", "1920", "ticks"),
         ],
       ],
-      ["Phrase", [row("coordinate", "0", "♩"), row("Phrase ticks", "0", "ticks")]],
     ]);
   });
 

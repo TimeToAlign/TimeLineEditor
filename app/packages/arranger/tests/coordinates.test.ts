@@ -64,6 +64,13 @@ function lineOf(view: View, id: string): [string, LineAxis] {
 
 const axis = (view: View, id: string): LineAxis => lineOf(view, id)[1];
 
+/** The ordinate of the first line drawn for timeline `id` in block A, an ancestor line included. */
+function drawnY(view: View, id: string): number {
+  const found = drawingIn(view).axes.find((item) => item.address.id === id);
+  if (found === undefined) throw new Error(`no drawn line of ${id}`);
+  return found.line;
+}
+
 /** The spec read on the line of `id` in block A. */
 function specOf(view: View, id: string): CrossSectionSpec {
   const block = blockIn(view, A);
@@ -478,6 +485,7 @@ describe("a named timestamp's pin", () => {
         numberType: "fraction",
         length: q(6),
         maps: b2?.conversion_maps,
+        ordinate: drawnY(view, "b"),
       },
       members: [
         {
@@ -488,6 +496,7 @@ describe("a named timestamp's pin", () => {
           length: q(12),
           maps: [],
           offset: q(-6),
+          ordinate: drawnY(view, "b"),
         },
         {
           timeline: "form",
@@ -497,9 +506,11 @@ describe("a named timestamp's pin", () => {
           length: q(32),
           maps: [],
           offset: q(-14),
+          ordinate: drawnY(view, "form"),
         },
       ],
     });
+    expect([drawnY(view, "b"), drawnY(view, "form")]).toEqual([36.4765625, 87.9296875]);
     expect(pin?.spec).toEqual(
       crossSectionSpec(
         blockIn(view, A).manifest,
@@ -550,9 +561,11 @@ describe("a named timestamp's pin", () => {
         numberType: "fraction",
         length: null,
         maps: [],
+        ordinate: 22.40234375,
       },
       members: [],
     });
+    expect(drawnY(view, "late")).toBe(22.40234375);
     expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
       ["late", q(0)],
     ]);
@@ -817,6 +830,63 @@ describe("a reading across a group whose member has a child", () => {
   });
 });
 
+describe("a reading across a group whose member is a child", () => {
+  const view = viewWith("groups/group_parent_both");
+
+  /** The reading at the middle of the line of `id`, on the arranger. */
+  function readMiddle(id: string) {
+    const line = axis(view, id);
+    const reading = readAt(view, line.xStart + (line.xEnd - line.xStart) / 2, line.y);
+    if (reading === null) throw new Error(`${id} is not read there`);
+    return reading;
+  }
+
+  /** The rows of a reading's flag as `[timeline, coordinate text]`, its parts' ordinates beside. */
+  function rowsOf(reading: ReturnType<typeof readMiddle>) {
+    const { spec } = reading.pin;
+    const ordinates = new Map(
+      [spec.anchor, ...spec.members].map((member) => [member.timeline, member.ordinate]),
+    );
+    return flagParts(reading.pin).map(({ timeline, rows }) => [
+      timeline,
+      rows.map((row) => rowValueText(row, 3)),
+      ordinates.get(timeline),
+    ]);
+  }
+
+  it("reads the other member's ancestors, at the member's offset and scale", () => {
+    const reading = readMiddle("recording");
+    expect(
+      reading.pin.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
+    ).toEqual([
+      ["middle", q(0), q(4, 5)],
+      ["piece", q(-5), q(4, 5)],
+    ]);
+    expect(
+      reading.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ).toEqual([
+      ["recording", 5.0],
+      ["middle", q(4)],
+      ["piece", q(8)],
+    ]);
+  });
+
+  it("lists the flag top to bottom where it crosses each line", () => {
+    const top = [drawnY(view, "piece"), drawnY(view, "middle"), drawnY(view, "recording")];
+    expect(top).toEqual([67.78125, 81.78125, 139.16015625]);
+    expect(rowsOf(readMiddle("recording"))).toEqual([
+      ["piece", ["8 ♩"], top[0]],
+      ["middle", ["4 ♩"], top[1]],
+      ["recording", ["5″"], top[2]],
+    ]);
+    expect(rowsOf(readMiddle("middle"))).toEqual([
+      ["piece", ["8 ♩"], top[0]],
+      ["middle", ["4 ♩"], top[1]],
+      ["recording", ["5″"], top[2]],
+    ]);
+  });
+});
+
 describe("the affordance of a named timestamp that draws nothing", () => {
   const affordances = (view: View) => affordancesOf(blockIn(view, A).manifest, drawingIn(view));
 
@@ -867,9 +937,10 @@ describe("the flag", () => {
       name,
       rows.map((row) => [row.row, row.label, rowValueText(row, 3)]),
     ]);
+    // `b` and its segment `b2` lie on `b`'s line, above `form`'s: top to bottom, the timestamp's
+    // order kept at one ordinate.
     expect(parts).toEqual([
       ["b", "B", [[{ timeline: "b", map: null }, "B", "9 25/48 ♩"]]],
-      ["form", "Form", [[{ timeline: "form", map: null }, "Form", "17 25/48 ♩"]]],
       [
         "b2",
         "b2",
@@ -878,6 +949,12 @@ describe("the flag", () => {
           [{ timeline: "b2", map: "b2_ticks" }, "Ticks", "1 690 ticks"],
         ],
       ],
+      ["form", "Form", [[{ timeline: "form", map: null }, "Form", "17 25/48 ♩"]]],
+    ]);
+    expect(reading.pin.timestamp.parts.map(({ timeline }) => timeline)).toEqual([
+      "b",
+      "form",
+      "b2",
     ]);
   });
 

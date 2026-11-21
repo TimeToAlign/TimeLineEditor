@@ -768,6 +768,39 @@ start and end are its named timestamps `origin` and `length` (in
 member's own band order moves and which hiding the marks leaves drawn.
 `inside: ancestor` matches the marks, never the member's own wedges.
 
+**A member's cross-section lines cross its ancestor lines** (section 6.6):
+the extent of the cross-section lines of the root of a member drawing with
+an ancestor band reaches up to its outermost displayed ancestor line, as it
+reaches its children and conversion maps bands, and stops there, short of
+the marks above it. What proves it: the ordinates are read off other
+records of the same drawing (the ancestor line's `y`, the member's line
+`y`, the children band's edge), and agree with the values below.
+
+- `group_parent_both` (`middle`, offset 4, length 8 in `piece` of 16) with
+  the named timestamp `Here` at 2 on `middle`, `display` `[cross_section]`
+  (`timestamp_5`): `middle` has no band a cross-section crosses, so before
+  this rule its line had no length and was not drawn; now it runs at `x0 +
+  400 × 2 / 8 = 111.70361328125 + 100 = 211.70361328125` from `piece`'s
+  ancestor line, 67.78125, to `middle`'s line, 81.78125, and `middle`'s
+  marker carries that extent. `recording`, a root member without ancestors
+  or bands, keeps no extent.
+- The same with a child `inner` of `middle` (offset 1, length 2) and a
+  named timestamp at 1 on `inner`, `display` `[cross_section]`: `middle`'s
+  extent runs from the ancestor line, 67.78125, to its line, 99.78125, past
+  the children band above it; `inner`'s stays null, so its timestamp draws
+  no line: a descendant of the member never reaches the member's
+  ancestors.
+- Hiding the ancestor line (`{addresses: [{id: piece}]}`, `display: none`)
+  removes the ancestor band, and `middle`'s extent is null again.
+- `data/clair-de-lune-session.yaml` (a session of a score image, its time
+  axis, a six-measure excerpt drawn on it, a recording and the score's
+  encoding; the grouped child `cgt_3` "mm. 1-6" below `cgt_2` below
+  `cgt_1`, both its ancestors displayed): `cgt_3`'s extent runs from
+  `cgt_1`'s ancestor line, 104.68359375, to its own line, 156.16015625,
+  crossing `cgt_2`'s at 138.66015625 (it was `{149.66015625, 156.16015625}`,
+  its maps band alone); the root member `dpt_1` keeps `{40.8046875,
+  47.3046875}`, its maps band.
+
 ## Named timestamps (`timestamps.test.ts`)
 
 A named timestamp `X` of `graphical.timestamps` draws the elements its
