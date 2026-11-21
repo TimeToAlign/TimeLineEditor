@@ -4538,11 +4538,20 @@ claims over three timelines (instants, intervals, NOMATCH rows; values from
 small grids so coordinates are shared). The columns' check (once per
 table; it builds the map from claim ID to row that refuses a repeated ID
 and that every comparison of a named MatchStamp reads) and the index's
-build take at most 200 ms together, and a hover (the hit test, the
+build take at most 250 ms together, and a hover (the hit test, the
 potential MatchStamp's members and anchors), the mean of 1,000, at most 1
-ms. Measured: the check 57 to 59 ms (the map from IDs about 40 ms of it),
-the build 116 to 118 ms, a hover about 1 µs, over three runs; the figures
-are printed.
+ms. The figures are printed. The budget was 200 ms, set on a measurement
+of 173 to 177 ms (the check 57 to 59 ms, the map from IDs about 40 ms of
+it, the build 116 to 118 ms) that the same machine no longer reproduces:
+the commit that set it measures 200 ms today (the median of five runs,
+the check 63 ms, the build 139 ms), and so does every later commit, the
+code it times unchanged since and TimeToShare reaching it only through
+types. The cost is the check's map from claim IDs and the build's sort,
+inherent to what the index does, so the budget is the figure measured by
+`pnpm test:budget` on a quiet machine, a median of 212 to 218 ms (the
+check 66 to 69 ms, the build 141 to 152 ms; single runs from 193 to 237
+ms), with the margin of about 15 % the other budgets keep. A hover takes
+about 1 µs.
 
 ## External gates
 
