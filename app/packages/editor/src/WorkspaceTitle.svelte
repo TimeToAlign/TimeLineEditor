@@ -102,7 +102,7 @@ const field: Attachment<HTMLInputElement> = (input) => {
       type="button"
       class="name"
       data-testid="file-name"
-      aria-label="Workspace name {name}, click to rename"
+      aria-label="Workspace name {name}, {dirty ? 'unsaved changes, ' : ''}click to rename"
       title={fileName}
       onclick={edit}
       onkeydown={(event) => {

@@ -18,6 +18,7 @@ import type { ElementType } from "@timetoalign/timetoshare";
 import type { ElementAddress, Facet } from "./address.ts";
 import { BUNDLE_ADDRESS, bandAddress, cardAddress, FACETS, idAddress } from "./address.ts";
 import { orderedChildren } from "./elements.ts";
+import type { AncestorCard } from "./files.ts";
 import { memberDrawings } from "./files.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
@@ -233,6 +234,12 @@ export interface ContainerRef {
   readonly facet: Facet | null;
 }
 
+/** An ancestor card's container beside what it draws (`memberDrawings`): one entry, never two lists. */
+export interface AncestorCardRef {
+  readonly ref: ContainerRef;
+  readonly card: AncestorCard;
+}
+
 /** Every container of a manifest, indexed by its place key and its timeline. */
 export interface Containers {
   readonly block: ContainerRef;
@@ -240,8 +247,8 @@ export interface Containers {
   readonly all: readonly ContainerRef[];
   /** Every frame and card that has a place, by its place key (`placeKeyText`): no ancestor card. */
   readonly byKey: ReadonlyMap<string, ContainerRef>;
-  /** The ancestor cards, in drawing order. */
-  readonly ancestorCards: readonly ContainerRef[];
+  /** The ancestor cards, in drawing order, each with its root, its member and its group. */
+  readonly ancestorCards: readonly AncestorCardRef[];
   /** Every frame by its group's ID. */
   readonly frames: ReadonlyMap<string, ContainerRef>;
   /** The cards of every timeline drawn in one, ancestor cards included, by timeline ID, in drawing order. */
@@ -334,7 +341,8 @@ export function containersOf(manifest: Manifest): Containers {
     listIn(cards, timeline.id, ref);
     bandsOf(ref, timeline);
   };
-  const ancestorCards = drawn.ancestorCards.map(({ group, root }) => {
+  const ancestorCards = drawn.ancestorCards.map((card): AncestorCardRef => {
+    const { group, root } = card;
     const ref: ContainerRef = {
       kind: "card",
       key: { item: group.id, member: root.timeline.id },
@@ -345,7 +353,7 @@ export function containersOf(manifest: Manifest): Containers {
     };
     add(ref);
     listIn(cards, root.timeline.id, ref);
-    return ref;
+    return { ref, card };
   });
   for (const { group, members } of drawn.frames) {
     const frame: ContainerRef = {

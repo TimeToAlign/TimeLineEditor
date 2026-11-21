@@ -990,7 +990,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    keyed `{item: T}`; `byKey` holds exactly the seven frames and cards
    that have a place under their `placeKeyText` (`["group_1"]`,
    `["group_1","score"]`, …, `["annotations"]`), never the ancestor card,
-   `ancestorCards` that one card, `frames` the two groups, `cards` the six
+   `ancestorCards` that one card beside its group `group_2`, its member
+   `excerpt` and its root `recording`, `frames` the two groups, `cards` the six
    timelines with a card, `recording` first. A card is followed by its timeline's five bands, addressed
    `{id: T, facet}`, held by it and keyed by nothing. The block's container
    is exactly `{kind: "block", key: null, address: {}, holder: null,
@@ -1092,7 +1093,10 @@ string form is `addressKey`, and nothing splits or composes an ID.
     `groups/group_parents_mixed.yaml` (one group `group_1`, display order
     `exposition`, `take`, `system`, `audio`) `memberDrawings` gives three,
     in display order: `sonata` aligned to `exposition`, `session` to `take`,
-    `page` to `system` (`audio` is a root member and has none); on
+    `page` to `system` (`audio` is a root member and has none), and the
+    container registry's `ancestorCards` lists the three containers, each
+    beside exactly the card `memberDrawings` gives in the same place, so
+    the layout reads one list; on
     `bundle_shared_parent.yaml`, `score` behind `group_1` aligned to
     `exposition` and behind `group_2` aligned to `recapitulation`. `placedCards`
     leaves them out: `set {place: {x: 1}}` on `recording` of
@@ -2278,7 +2282,9 @@ timestamp there and in `timestamps.yaml` states `groupstamp: false` (the
 complete form).
 
 20. `add` into `performance` `{name: "Cue", coordinate: 1.0, groupstamp:
-    true}` stores `groupstamp: true` on `timestamp_6`; without
+    true}` stores exactly `{id: "timestamp_6", timeline: "performance",
+    coordinate: JsonFloat(1), name: "Cue", display: ["wedge", "name",
+    "cross_section"], matchstamp: false, groupstamp: true}`; without
     `groupstamp` it stores `false`. Refused, `invalid_value` at
     `[<into>, "timestamp", "groupstamp"]`: `"yes"` ("a groupstamp is true
     or false"); into `clt_1` of `timestamps.yaml` (no groups) `true`
@@ -2291,7 +2297,8 @@ complete form).
     `[timestamp_1, "groupstamp"]`. A match timestamp is a timestamp like
     any other here: on the match timestamp `timestamp_1` of
     `bundles/bundle_matchstamp_cards.yaml` (on `score`, a member of both
-    groups) `{groupstamp: true}` is stored, `matchstamp` kept `true`; on
+    groups, `groupstamp: false`) `{groupstamp: true}` is stored, the
+    timestamp otherwise equal to the one before, `matchstamp` kept `true`; on
     the match timestamp `timestamp_1` of `bundles/bundle_matchstamps.yaml`
     (on `score`, a bundle without groups) it is refused as in item 20:
     "'score' is a member of no group, so no timestamp on it is a
@@ -2308,7 +2315,9 @@ complete form).
     1]`, length `[4, 1]`) added into `score`, `isGroupMember` is true for
     `motif`, its default is `true` with no editor open, and `add` into
     `motif` `{name: "Motif", coordinate: [1, 1], groupstamp: true}`
-    stores `groupstamp: true` on `timestamp_6`, accepted by the schema
+    stores exactly `{id: "timestamp_6", timeline: "motif", coordinate: [1,
+    1], name: "Motif", display: ["wedge", "name", "cross_section"],
+    matchstamp: false, groupstamp: true}`, accepted by the schema
     check. In `groups/group_child_member.yaml` (`group_1` listing
     `recording` and `second-half`, the child of `piece`) it is true for
     `second-half` and `recording`, false for `piece`, the ancestor of a
@@ -2774,15 +2783,16 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    the file, POSIX and relative to the workspace file's folder (a setting
    of the workspace, never a manifest key). The entry `{"minimal": true,
    "serialization": "yaml", "styling": true, "location":
-   "../layerit-story/step1.yaml"}` configured for `A` is held exactly so,
+   "../story/step1.yaml"}` configured for `A` is held exactly so,
    `manifestFileOf` gives it, and the workspace file written from it holds
    exactly that object under `settings.manifests[A]` and reads back equal,
    writing the same text again; an entry without `location` is held and
-   written without the member (no `null`, no empty string). The first
-   block of the workspace file the editor's user saved on 2026-11-21 (its
-   three entries `{minimal: false, serialization: "yaml", styling: true}`,
-   none with a location), trimmed to that block and its `add`, reads with
-   no problem and keeps its entry unchanged. Refused, leaving the settings
+   written without the member (no `null`, no empty string). A workspace
+   file the editor wrote before locations, `data/before-locations.tle.json`
+   (one block `block00001`, whose manifest holds no timeline, its `add`
+   in the journal, and its entry
+   `{minimal: true, serialization: "yaml", styling: true}`), reads with no
+   problem and keeps its entry unchanged. Refused, leaving the settings
    as they were, `invalid_value` at `["settings", "manifests", A,
    "location"]`: `""` (a location is never empty), `"/home/x.yaml"` (no
    absolute path), `"file:x.yaml"` and `"C:\\x.yaml"` (no scheme or drive),

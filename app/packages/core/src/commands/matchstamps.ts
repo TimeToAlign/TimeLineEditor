@@ -26,11 +26,14 @@ import type {
   Manifest,
   NamedMatchStamp,
   NamedTimestamp,
+  TimelineManifest,
 } from "../manifest/types.ts";
 import type { AnchorIndex } from "../matches/anchors.ts";
 import { coordinateValue } from "../matches/anchors.ts";
 import type { NamedMatchStampSpec } from "../matches/compare.ts";
+import type { CoordinateValue } from "../number/coordinate.ts";
 import { axisCoordinate, axisValueOf } from "../number/coordinate.ts";
+import type { Real } from "../number/real.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import { readObject, unknownMember } from "../values.ts";
 import { ANCHOR_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
@@ -155,6 +158,41 @@ function withName(display: readonly AnchorDisplay[]): AnchorDisplay[] {
   return ANCHOR_DISPLAY.filter((word) => word === "name" || display.includes(word));
 }
 
+/** The match timestamp of `timestamps` on `timeline` at `at`, exact on its own axis; none is undefined. */
+function matchTimestampIn(
+  timestamps: readonly NamedTimestamp[],
+  timeline: TimelineManifest,
+  at: Real,
+): NamedTimestamp | undefined {
+  return timestamps.find(
+    (item) =>
+      item.matchstamp &&
+      item.timeline === timeline.id &&
+      compareReal(realOf(axisCoordinate(item.coordinate, timeline)), at) === 0,
+  );
+}
+
+/**
+ * Whether naming a MatchStamp one of whose coordinates lies on `timeline`
+ * at `value` (exact, on the timeline's own axis) stores the match timestamp
+ * there as a groupstamp: the match timestamp `manifest` holds there, which
+ * naming takes, keeps its own `groupstamp`; a new one is a groupstamp
+ * exactly where its timeline lies in a group (`isGroupMember`), as naming
+ * adds it (`namedMatchStamp`). False where the manifest holds no timeline
+ * `timeline`.
+ */
+export function namedAsGroupstamp(
+  manifest: Manifest,
+  timeline: string,
+  value: CoordinateValue,
+): boolean {
+  const found = findTimeline(manifest, timeline);
+  if (found === undefined) return false;
+  const at = realOf({ unit: found.unit, numberType: found.number_type, value });
+  const held = matchTimestampIn(manifest.graphical?.timestamps ?? [], found, at);
+  return held?.groupstamp ?? isGroupMember(manifest, timeline);
+}
+
 /**
  * The match timestamps the given anchors lie on, and the manifest's named
  * timestamps with the new ones appended: each coordinate's match timestamp
@@ -173,12 +211,8 @@ function placedTimestamps(
   const timestamps = [...(manifest.graphical?.timestamps ?? [])];
   const idOf = (given: AnchorCoordinate): string => {
     const { timeline } = given.at;
-    const found = timestamps.find(
-      (item) =>
-        item.matchstamp &&
-        item.timeline === timeline.id &&
-        sameCoordinate({ at: given.at, coordinate: item.coordinate }, given),
-    );
+    const at = realOf(axisCoordinate(given.coordinate, timeline));
+    const found = matchTimestampIn(timestamps, timeline, at);
     if (found !== undefined) return found.id;
     const id = nextId(TIMESTAMP_PREFIX, taken);
     taken.add(id);

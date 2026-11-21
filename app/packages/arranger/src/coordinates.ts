@@ -591,11 +591,14 @@ function timelineSpec(
  * The pin of the position `position` (exact, on the timeline's own axis)
  * of the timeline `timeline` of `manifest`, block `block`'s, drawn as
  * `drawing`, read with the spec `namedPin` reads a named timestamp there
- * with (never a group's), but unnamed: the Matchstamp tab's Coordinates show each
- * coordinate of a MatchStamp with it, so they list exactly the rows the
- * Timestamp tab lists for a timestamp at that coordinate. `knots` as
- * `timestampAt` takes them; `null` where the manifest holds no timeline
- * `timeline`.
+ * with, but unnamed: where `groupstamp`, the spec of a groupstamp there,
+ * the members of the groups whose frames draw the timeline's line added
+ * (`withGroupMembers`, every drawn line of the timeline holding it), else
+ * the timeline's alone. The Matchstamp tab's Coordinates show each
+ * coordinate of a potential MatchStamp with it, `groupstamp` what naming
+ * stores, so they list exactly the rows the Timestamp tab lists for the
+ * timestamp naming stores at that coordinate. `knots` as `timestampAt`
+ * takes them; `null` where the manifest holds no timeline `timeline`.
  */
 export function timelinePin(
   manifest: Manifest,
@@ -605,11 +608,14 @@ export function timelinePin(
   position: Rational,
   granularity: Granularity,
   knots: Knots,
+  groupstamp = false,
 ): Pin | null {
   const found = findTimeline(manifest, timeline);
   if (found === undefined) return null;
   const spec = timelineSpec(manifest, block, drawing, found, granularity);
-  return { spec, knots, timestamp: timestampAt(spec, position, knots), named: null };
+  const holds = (axis: DrawnAxis) => axis.marker !== null && axis.address.id === timeline;
+  const read = groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
+  return { spec: read, knots, timestamp: timestampAt(read, position, knots), named: null };
 }
 
 /**

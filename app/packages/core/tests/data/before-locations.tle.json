@@ -1,0 +1,59 @@
+{
+  "blocks": {
+    "block00001": {
+      "height": null,
+      "id": "block00001",
+      "index": "a0",
+      "length": 400,
+      "manifest": { "timelines": [], "timetoshare": "0.2.0" },
+      "margin": 0,
+      "parent": null,
+      "places": {},
+      "scale": 1,
+      "spacing": 8,
+      "width": null,
+      "x": 0,
+      "y": 0
+    }
+  },
+  "graphical": {},
+  "journal": [
+    {
+      "author": "tester",
+      "command": {
+        "block": {
+          "height": null,
+          "id": "block00001",
+          "length": 400,
+          "manifest": { "timelines": [], "timetoshare": "0.2.0" },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
+          "x": 0,
+          "y": 0
+        },
+        "into": {},
+        "type": "add"
+      },
+      "time": "2026-11-21T18:00:00.000Z"
+    }
+  ],
+  "meta": { "format": "tilie-workspace", "version": 7 },
+  "name": "untitled",
+  "sessions": {},
+  "settings": {
+    "blockDefaults": {
+      "height": null,
+      "length": 400,
+      "margin": 0,
+      "scale": 1,
+      "spacing": 8,
+      "width": null
+    },
+    "granularity": { "decimals": 3, "denominator": 2520 },
+    "grid": { "size": 8, "snap": true },
+    "manifests": { "block00001": { "minimal": true, "serialization": "yaml", "styling": true } },
+    "matchClaimFilters": {}
+  }
+}

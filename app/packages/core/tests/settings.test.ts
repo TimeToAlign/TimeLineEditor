@@ -301,7 +301,7 @@ describe("where each block's manifest file lies", () => {
     minimal: true,
     serialization: "yaml",
     styling: true,
-    location: "../layerit-story/step1.yaml",
+    location: "../story/step1.yaml",
   } as const;
 
   it("holds the optional location exactly, and writes and reads it back", () => {
@@ -355,13 +355,13 @@ describe("where each block's manifest file lies", () => {
   });
 
   it("reads a block of a workspace the editor saved before locations, its entry unchanged", () => {
-    const text = readFileSync(new URL("./data/layerit-step.tle.json", import.meta.url), "utf8");
+    const text = readFileSync(new URL("./data/before-locations.tle.json", import.meta.url), "utf8");
     const read = readWorkspace(text);
     if (isLoadError(read)) throw new Error(JSON.stringify(read.problems));
     expect(read.view.settings.manifests).toEqual({
-      vvn359k35o: { minimal: true, serialization: "yaml", styling: true },
+      block00001: { minimal: true, serialization: "yaml", styling: true },
     });
-    expect(Object.keys(read.view.blocks)).toEqual(["vvn359k35o"]);
+    expect(Object.keys(read.view.blocks)).toEqual(["block00001"]);
     expect(createStore(read).view.blocks).toEqual(read.view.blocks);
   });
 });

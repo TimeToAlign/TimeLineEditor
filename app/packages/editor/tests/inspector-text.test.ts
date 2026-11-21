@@ -134,12 +134,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 50, 13 and 15 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 51, 14 and 16 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([50, 13, 15]);
+    ]).toEqual([51, 14, 16]);
   });
 
   for (const name of fixtureNames) {

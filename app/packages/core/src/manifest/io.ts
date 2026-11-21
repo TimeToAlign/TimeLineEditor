@@ -413,13 +413,14 @@ export function normalizeManifest(value: unknown): Manifest | LoadError {
 function normalized(checked: LosslessManifest): Manifest | LoadError {
   const manifest = completed(checked);
   if (isLoadError(manifest) || manifest.graphical === undefined) return manifest;
-  // completeStyles issues the one warning naming every missing style. It clones what it is
-  // given structurally, which would turn a coordinate's `JsonFloat` into a plain object, so
-  // the named timestamps and MatchStamps, which name no style, stay out of it; spread over the
-  // block, the styling keeps every key in its place.
-  const { timestamps: _, matchstamps: __, ...styled } = manifest.graphical;
-  const { timestamps: ___, matchstamps: ____, ...styling } = completeStyles(styled).graphical;
-  return { ...manifest, graphical: { ...manifest.graphical, ...styling } };
+  // completeStyles issues the one warning naming every missing style and adds it to the
+  // styles, the one member it changes; it reads the styling alone, never the named timestamps
+  // and MatchStamps.
+  const { timestamps: _, matchstamps: __, ...styling } = manifest.graphical;
+  const { styles } = completeStyles(styling).graphical;
+  return styles === undefined
+    ? manifest
+    : { ...manifest, graphical: { ...manifest.graphical, styles } };
 }
 
 /**

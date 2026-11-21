@@ -15,7 +15,7 @@ import {
   type Real,
   sameAddress,
 } from "@timetoalign/tilie-core";
-import { BLOCK_KEY, elementKey, memberDrawings } from "@timetoalign/tilie-core/drawing";
+import { BLOCK_KEY, elementKey } from "@timetoalign/tilie-core/drawing";
 import { placedAt } from "../canvas.ts";
 import { CARD_SPACING, K, SHADOW_OFFSET } from "../constants.ts";
 import type { DrawnElement } from "../elements.ts";
@@ -90,9 +90,8 @@ export function ancestorCards(
   measure: TextMeasure,
 ): LaidAncestorCard[] {
   const { manifest, placement, cascade } = context;
-  const refs = indexOf(manifest).containers.ancestorCards;
-  return memberDrawings(manifest).ancestorCards.flatMap(({ group, member, root }, index) => {
-    const ref = refs[index];
+  return indexOf(manifest).containers.ancestorCards.flatMap(({ ref, card: ancestor }) => {
+    const { group, member, root } = ancestor;
     const R = root.timeline;
     const M = member.timeline;
     const address = cardAddress(R.id);
@@ -101,7 +100,7 @@ export function ancestorCards(
     const item = items[frameAt];
     const cardAt = item?.cards.findIndex((card) => card.member.timeline.id === M.id) ?? -1;
     const drawn = drawings[frameAt]?.drawn[cardAt];
-    if (ref === undefined || item === undefined || drawn === undefined || !shown(style)) return [];
+    if (item === undefined || drawn === undefined || !shown(style)) return [];
     const target =
       lineAt(drawn.elements, "ancestor", idAddress(R.id)) ??
       lineAt(drawn.elements, "timeline", idAddress(M.id));

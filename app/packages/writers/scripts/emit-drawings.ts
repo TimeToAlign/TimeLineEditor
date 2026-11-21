@@ -65,6 +65,8 @@ export const HAND_DERIVED: readonly string[] = [
   "label_float_rounding",
   "timestamps",
   "bundle__bundle_matchstamp_cards",
+  "map_band_order_subset",
+  "group__group_child_member_stamps",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

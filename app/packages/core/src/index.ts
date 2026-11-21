@@ -17,7 +17,7 @@ export const name = "@timetoalign/tilie-core" as const;
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";
-export { anchorValues, matchStampSpec } from "./commands/matchstamps.ts";
+export { anchorValues, matchStampSpec, namedAsGroupstamp } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
 export {
   groupstampByDefault,
@@ -59,6 +59,7 @@ export {
   TITLE_ADDRESS,
 } from "./manifest/address.ts";
 export type {
+  AncestorCardRef,
   CardPlace,
   ContainerDescriptor,
   ContainerKind,
@@ -300,6 +301,7 @@ export {
   DEFAULT_GRANULARITY,
   DEFAULT_MATCH_CLAIM_FILTER,
   DEFAULT_SETTINGS,
+  isRelativeLocation,
   MAX_DECIMALS,
   manifestFileOf,
   matchClaimFilterOf,

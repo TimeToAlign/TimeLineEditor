@@ -75,7 +75,7 @@ describe("the title", () => {
     expect(target.textContent).toBe("• untitled");
     expect(target.querySelectorAll("button").length).toBe(1);
     expect(button(target).getAttribute("aria-label")).toBe(
-      "Workspace name untitled, click to rename",
+      "Workspace name untitled, unsaved changes, click to rename",
     );
     expect(target.querySelector(".file")).toBeNull();
   });
@@ -83,6 +83,9 @@ describe("the title", () => {
   it("shows the file's name after a name that does not give it", () => {
     const { target } = mountTitle("LayerIt", "untitled.tle.json", false);
     expect(target.textContent).toBe("LayerIt — untitled.tle.json");
+    expect(button(target).getAttribute("aria-label")).toBe(
+      "Workspace name LayerIt, click to rename",
+    );
   });
 });
 

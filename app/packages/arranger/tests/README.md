@@ -939,7 +939,8 @@ README derives the geometry the points below are taken from.
    `recording`'s ancestor card behind `group_2`): Delete with `{block: A,
    id: recording, part: [card]}` selected sends nothing, refuses nothing
    and keeps the selection; with `dlt_1` selected beside it, it removes
-   `dlt_1` alone.
+   `dlt_1` alone: the manifest it leaves equals, whole, the one Delete
+   leaves with `dlt_1` selected by itself.
 
 ## Picking an element (`picking.test.ts`)
 

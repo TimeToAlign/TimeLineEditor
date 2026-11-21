@@ -15,7 +15,7 @@
  */
 
 import type { TimeUnit } from "@timetoalign/timetoshare";
-import { JsonFloat } from "@timetoalign/timetoshare";
+import { JsonFloat, jsonInteger } from "@timetoalign/timetoshare";
 import type { ConversionMap } from "../manifest/types.ts";
 import { Rational } from "../number/rational.ts";
 import { fromFloat, toFloat, toRational } from "../number/real.ts";
@@ -53,12 +53,11 @@ const NOTHING: Evaluate = () => undefined;
 const NO_KNOTS: readonly MeasureKnots[] = Object.freeze([]);
 const compiled = new WeakMap<ConversionMap, WeakMap<readonly MeasureKnots[], MapEvaluator>>();
 
-/** An integer of a manifest: a JSON integer, or an integral float in a Fraction pair. */
+/** An integer of a manifest: a JSON integer, or an integral float in a Fraction pair (`jsonInteger`). */
 function readInteger(value: unknown): bigint {
-  if (typeof value === "bigint") return value;
-  const number = value instanceof JsonFloat ? value.value : value;
-  if (typeof number === "number" && Number.isInteger(number)) return BigInt(number);
-  throw new TypeError(`${String(value)} is not an integer`);
+  const integer = jsonInteger(value);
+  if (integer === null) throw new TypeError(`${String(value)} is not an integer`);
+  return integer;
 }
 
 /** A map parameter read by its JSON form: an integer an int, any other number a float, a pair a Fraction. */
