@@ -1,3 +1,4 @@
+import * as timetoshare from "@timetoalign/timetoshare";
 import { JsonFloat } from "@timetoalign/timetoshare";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -805,6 +806,8 @@ describe("the belief filter", () => {
     expect(BELIEFS).toEqual(["true", "false", "unlikely"]);
     expect(BELIEF_STATES).toEqual(["true", "undecided", "unlikely", "false"]);
     expect(DEFAULT_BELIEFS).toEqual(["true", "undecided", "unlikely"]);
+    expect(BELIEF_STATES).toBe(timetoshare.BELIEF_STATES);
+    expect(DEFAULT_BELIEFS).toBe(timetoshare.DEFAULT_BELIEFS);
   });
 
   it("gives the rows of the table fixture's cases", () => {
@@ -891,7 +894,7 @@ describe("the belief filter", () => {
 
   it("refuses a word that is no belief state", () => {
     expect(() => beliefMask(beliefs, A, ["maybe" as "true"])).toThrow(
-      new RangeError("'maybe' is no belief state: write 'true', 'undecided', 'unlikely', 'false'"),
+      new Error("'maybe' is no belief state: write 'true', 'undecided', 'unlikely' or 'false'"),
     );
   });
 });

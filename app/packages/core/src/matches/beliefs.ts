@@ -8,22 +8,23 @@
  * compares an actor with another.
  */
 
-import { BELIEFS, expandIri } from "@timetoalign/timetoshare";
+import {
+  BELIEF_STATES,
+  BELIEFS,
+  type BeliefState,
+  checkBeliefFilter,
+  DEFAULT_BELIEFS,
+  expandIri,
+} from "@timetoalign/timetoshare";
 import { canonicalText } from "../json.ts";
 
-export { BELIEFS };
-
-/**
- * The four states of the belief filter, in the order the editor offers
- * them: what the believer holds of a MatchClaim, `undecided` where the
- * believer holds no belief. The same states as timetoalign's
- * `BELIEF_STATES`.
+/*
+ * The belief filter's four states (`true`, `undecided`, `unlikely`,
+ * `false`, the order the editor offers them; `undecided` where the believer
+ * holds no belief), its default (every state but `false`) and its check are
+ * TimeToShare's, as timetoalign's are.
  */
-export const BELIEF_STATES = ["true", "undecided", "unlikely", "false"] as const;
-export type BeliefState = (typeof BELIEF_STATES)[number];
-
-/** The states the belief filter keeps by default: every state but `false`. */
-export const DEFAULT_BELIEFS: readonly BeliefState[] = ["true", "undecided", "unlikely"];
+export { BELIEF_STATES, BELIEFS, type BeliefState, DEFAULT_BELIEFS };
 
 /**
  * Every MatchClaim's beliefs: those of `offsets[row]` up to `offsets[row +
@@ -56,7 +57,8 @@ export function actorIri(context: unknown, actor: string): string {
  * `kept` holds all four states. The believer and every actor compare as
  * their IRIs under `context` (`actorIri`).
  *
- * @throws {RangeError} for a word of `kept` that is no belief state.
+ * @throws Error for a word of `kept` that is no belief state
+ * (TimeToShare's `checkBeliefFilter`, its message).
  */
 export function beliefMask(
   beliefs: ClaimBeliefs,
@@ -64,14 +66,9 @@ export function beliefMask(
   kept: readonly BeliefState[] = DEFAULT_BELIEFS,
   context: unknown = null,
 ): Uint8Array | null {
-  const unknown = kept.find((state) => !BELIEF_STATES.includes(state));
-  if (unknown !== undefined) {
-    throw new RangeError(
-      `'${unknown}' is no belief state: write ${BELIEF_STATES.map((state) => `'${state}'`).join(", ")}`,
-    );
-  }
-  if (believer === null || BELIEF_STATES.every((state) => kept.includes(state))) return null;
-  const keeps = Uint8Array.from(ANCHOR_BELIEFS, (state) => (kept.includes(state) ? 1 : 0));
+  const states = checkBeliefFilter(kept);
+  if (believer === null || BELIEF_STATES.every((state) => states.has(state))) return null;
+  const keeps = Uint8Array.from(ANCHOR_BELIEFS, (state) => (states.has(state) ? 1 : 0));
   const believed = believedBy(beliefs, believer, context);
   const mask = new Uint8Array(believed.length);
   for (let row = 0; row < believed.length; row += 1) {
