@@ -3,8 +3,11 @@
  * there is as an example (`examples.ts`), opened as the Examples menu opens
  * one: each manifest fixture of the installed schema package's version, at
  * the top of `fixtures/<version>/` or below it, corpus fixtures and minimal
- * twins included, and the manifest of each warning case of that version,
- * each imported as one more block; and the end-to-end workspaces
+ * twins included, the manifest of each warning case of that version and
+ * the manifest of the table fixture (`tables/<version>/manifest.yaml`), whose
+ * MatchClaim and Projections tables are served beside it, so its files can
+ * be read from where it came from, each imported as one more block; and the
+ * end-to-end workspaces
  * (`app/e2e/fixtures/*.tle.json`), each opened as the workspace. The
  * rejection cases, refused by design, and the drawings, which are no
  * manifests, are left out. A production build contains neither the menu
@@ -12,18 +15,44 @@
  *
  * An entry's label is unique: a manifest fixture's path below the
  * version's directory without `.yaml` (`bare`, `bare.minimal`,
- * `groups/corpus_tilia`), `warnings/<name>` for a warning case and
- * `e2e/<name>` for an end-to-end workspace.
+ * `groups/corpus_tilia`), `warnings/<name>` for a warning case,
+ * `tables/manifest` for the table fixture and `e2e/<name>` for an
+ * end-to-end workspace.
  */
 
 import { dumps, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { Example } from "./examples.ts";
+import type { ManifestSource } from "./matchClaims.svelte.ts";
 
 /** The files a glob found: path → their text, loaded on demand. */
 type Files = Record<string, () => Promise<string>>;
 
 /** Where the schema package's fixtures lie in a path the glob found. */
 const FIXTURE_ROOT = "/timetoshare/fixtures/";
+
+/** The table fixture's directory below the fixtures' root. */
+const TABLES = `tables/${SCHEMA_VERSION}`;
+
+/**
+ * Where the table fixture's files are served: the location `url` resolved
+ * against the fixture's directory, read from the one of `served` (path →
+ * the URL it is served at) whose path is that file's; `null` for a file
+ * that is not served.
+ */
+export function servedSource(served: Files): ManifestSource {
+  return {
+    async read(url) {
+      const name = new URL(url, `file:///${TABLES}/`).pathname.slice(1);
+      const entry = Object.entries(served).find(([path]) =>
+        path.endsWith(`${FIXTURE_ROOT}${name}`),
+      );
+      if (entry === undefined) return null;
+      const response = await fetch(await entry[1]());
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
+      return response.blob();
+    },
+  };
+}
 
 /** The manifest of a warning case `{manifest, unknown_keys}`, as canonical YAML. */
 function caseManifest(name: string, text: string): string {
@@ -42,9 +71,11 @@ function caseManifest(name: string, text: string): string {
 /**
  * The menu's entries in code-unit order of their labels: every workspace
  * file, every manifest fixture of `SCHEMA_VERSION` and every warning case
- * of that version among `manifests`; files of other versions are skipped.
+ * of that version among `manifests`, and the table fixture's manifest of
+ * that version with its tables read from `tables` (`servedSource`); files of
+ * other versions are skipped.
  */
-export function fixtures(workspaces: Files, manifests: Files): Example[] {
+export function fixtures(workspaces: Files, manifests: Files, tables: Files): Example[] {
   const entries: Example[] = Object.entries(workspaces).map(([path, text]) => ({
     label: `e2e/${path.slice(path.lastIndexOf("/") + 1, -".tle.json".length)}`,
     kind: "workspace",
@@ -56,6 +87,13 @@ export function fixtures(workspaces: Files, manifests: Files): Example[] {
     const below = path.slice(path.indexOf(FIXTURE_ROOT) + FIXTURE_ROOT.length, -".yaml".length);
     if (below.startsWith(version)) {
       entries.push({ label: below.slice(version.length), kind: "manifest", text });
+    } else if (below === `${TABLES}/manifest`) {
+      entries.push({
+        label: "tables/manifest",
+        kind: "manifest",
+        text,
+        source: servedSource(tables),
+      });
     } else if (below.startsWith(warnings)) {
       const label = `warnings/${below.slice(warnings.length)}`;
       entries.push({
@@ -88,6 +126,10 @@ export const FIXTURES: readonly Example[] =
             "!../node_modules/@timetoalign/timetoshare/fixtures/*/drawings/**",
           ],
           { query: "?raw", import: "default" },
+        ),
+        import.meta.glob<string>(
+          "../node_modules/@timetoalign/timetoshare/fixtures/tables/*/*.parquet",
+          { query: "?url", import: "default" },
         ),
       )
     : [];

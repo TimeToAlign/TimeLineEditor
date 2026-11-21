@@ -4,6 +4,7 @@
  * typed calls.
  */
 
+import { type ClaimEvents, eventsOf, eventsRequest, MALFORMED_EVENTS } from "./claimEvents.ts";
 import {
   type ClaimProvenance,
   isParquet,
@@ -21,6 +22,7 @@ import {
   matchClaimsRequest,
 } from "./matchClaims.ts";
 
+export type { ClaimEvents, EventReference, SideProjection } from "./claimEvents.ts";
 export type {
   BeliefWord,
   ClaimBelief,
@@ -165,6 +167,22 @@ export interface Server {
    * `refusal` says what the server refused.
    */
   believeMatchClaim(manifest: string, table: Blob, belief: StatedBelief): Promise<Blob>;
+  /**
+   * The events on both sides of the MatchClaims `claims` of a package's
+   * table, in that order, and where a side's event is a Projection of the
+   * Projections table `projections` (`null`: none sent), what it stands for:
+   * one request for them, the Projections table, the manifest's text and
+   * the MatchClaim table's file, both tables checked by the server against
+   * the manifest. Rejects with a `ServerError`, whose `refusal` says what the
+   * server refused (a MatchClaim the table lacks at `["claims", <index>]`, a
+   * table's problems).
+   */
+  matchClaimEvents(
+    manifest: string,
+    table: Blob,
+    projections: Blob | null,
+    claims: readonly string[],
+  ): Promise<readonly ClaimEvents[]>;
 }
 
 /** The message of a health answer that is not `{name, version, timetoalign}`, each a string. */
@@ -386,6 +404,19 @@ export function connect({ url, token }: ConnectOptions): Server {
         true,
       );
       return answer(response, (body) => provenanceOf(body, asked), MALFORMED_PROVENANCE);
+    },
+    async matchClaimEvents(manifest, table, projections, claims) {
+      const asked = [...claims];
+      const response = await request(
+        "match-claims/events",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: eventsRequest(asked, projections, manifest, table),
+        },
+        true,
+      );
+      return answer(response, (body) => eventsOf(body, asked), MALFORMED_EVENTS);
     },
     async believeMatchClaim(manifest, table, { claim, actor, belief, date }) {
       const response = await request(

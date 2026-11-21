@@ -91,6 +91,11 @@ export interface TestHook {
   bands(block: BlockId): HookBand[];
   /** The containers of block `block`'s drawing, in its box order (`boxesOf`). */
   boxes(block: BlockId): HookBox[];
+  /**
+   * Load the tables every block's manifest names whose MatchClaim table is
+   * not loaded, as turning Show matches on is to (`loadNamedTables`).
+   */
+  loadTables(): Promise<void>;
 }
 
 declare global {

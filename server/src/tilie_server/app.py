@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from tilie_server import __version__
 from tilie_server.musicbrainz import MusicBrainz
+from tilie_server.routers.claim_events import router as claim_events_router
 from tilie_server.routers.claim_provenance import router as claim_provenance_router
 from tilie_server.routers.health import router as health_router
 from tilie_server.routers.lookup import router as lookup_router
@@ -53,6 +54,7 @@ def create_app(
     app.include_router(measure_maps_router)
     app.include_router(match_claims_router)
     app.include_router(claim_provenance_router)
+    app.include_router(claim_events_router)
     app.include_router(lookup_router)
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
     mount_static(app, static_dir)

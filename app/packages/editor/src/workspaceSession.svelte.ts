@@ -47,12 +47,16 @@ import {
   withMatchClaimTable,
   workspaceFileName,
 } from "./files.ts";
-import { fileNameOf, namedTable } from "./inspector/matchstamps.ts";
+import { fileNameOf } from "./inspector/matchstamps.ts";
 import {
+  type AskTables,
   MATCHES_NEED_A_SERVER,
   type MatchClaimServer,
   MatchClaimTables,
+  manifestTitle,
+  namedTables,
   saveFailure,
+  type TableMessages,
   unsavedQuestion,
 } from "./matchClaims.svelte.ts";
 import { messageOf } from "./messages.svelte.ts";
@@ -83,6 +87,8 @@ export interface ImportTarget {
 export interface SessionOptions {
   /** Show a warning, kept until dismissed; editing goes on. */
   readonly warn: (text: string, problems?: readonly Problem[]) => void;
+  /** Show information that goes away by itself; without it, none is shown. */
+  readonly inform?: (text: string) => void;
   /** Called after the open workspace was replaced by another. */
   readonly replaced?: () => void;
   /** Called with the selected addresses whenever the selection changes. */
@@ -91,6 +97,8 @@ export interface SessionOptions {
   readonly author: () => string;
   /** The server MatchClaim tables are read through; without it (the default) none is read. */
   readonly matchClaims?: MatchClaimServer | null;
+  /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
+  readonly askTables?: AskTables | null;
 }
 
 /** Whether two selections name the same addresses. */
@@ -120,11 +128,12 @@ export class WorkspaceSession {
   #listeners = new Set<() => void>();
   #unsubscribe: () => void;
   #saving = false;
+  #loadingTables = false;
   readonly #options: SessionOptions;
 
   constructor(options: SessionOptions) {
     this.#options = options;
-    this.tables = new MatchClaimTables(options.matchClaims ?? null);
+    this.tables = new MatchClaimTables(options.matchClaims ?? null, options.askTables ?? null);
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
   }
@@ -286,21 +295,33 @@ export class WorkspaceSession {
   }
 
   /**
-   * Read the MatchClaim tables among `picked` through the server, each as
-   * the table of one of `blocks`: the block whose manifest names a table of
-   * its file name, else the only block; a table no block takes is reported.
-   * Then every block of `blocks` whose manifest names a MatchClaim table that
-   * is still not loaded says so in the message bar, and how to load it.
+   * Read the tables among `picked` as tables of `blocks`: a file whose name
+   * is that of the Projections table a block's manifest names becomes that
+   * block's Projections table; every other one is a MatchClaim table, read
+   * through the server as the table of the block whose manifest names a
+   * MatchClaim table of its file name, else of the only block; a table no
+   * block takes is reported. Then every block of `blocks` whose manifest
+   * names a MatchClaim table that is still not loaded says so in the
+   * message bar, and how to load it.
    */
   async readTables(picked: readonly Opened[], blocks: readonly string[]): Promise<void> {
     const manifestOf = (block: string) => this.store.view.blocks[block]?.manifest;
+    const naming = (type: string, name: string) =>
+      blocks.filter((block) => {
+        const manifest = manifestOf(block);
+        if (manifest === undefined) return false;
+        return namedTables(manifest).some(
+          (table) => table.type === type && table.url !== null && fileNameOf(table.url) === name,
+        );
+      });
     for (const opened of picked) {
       if (!isMatchClaimTable(opened.name)) continue;
-      const named = blocks.filter((block) => {
-        const manifest = manifestOf(block);
-        const url = manifest === undefined ? null : namedTable(manifest);
-        return url !== null && fileNameOf(url) === opened.name;
-      });
+      const projected = naming("Projection", opened.name);
+      for (const block of projected) {
+        this.tables.holdProjections(block, { name: opened.name, file: opened.file });
+      }
+      if (projected.length > 0) continue;
+      const named = naming("MatchClaim", opened.name);
       const [block] = named.length > 0 ? named : blocks.length === 1 ? blocks : [];
       const manifest = block === undefined ? undefined : manifestOf(block);
       if (block === undefined || manifest === undefined) {
@@ -312,15 +333,43 @@ export class WorkspaceSession {
     }
     for (const block of blocks) {
       const manifest = manifestOf(block);
-      const url = manifest === undefined ? null : namedTable(manifest);
-      if (url === null || this.tables.of(block) !== null) continue;
-      const named = manifest?.name ?? manifest?.id ?? "The manifest";
+      if (manifest === undefined || this.tables.of(block) !== null) continue;
+      const url = namedTables(manifest).find(({ type }) => type === "MatchClaim")?.url;
+      if (url === undefined || url === null) continue;
+      const named = manifestTitle(manifest);
       this.#options.warn(
         this.tables.connected
-          ? `${named} names the MatchClaim table ${url}, which is not loaded: Load MatchClaims… in the Matchstamp tab reads it.`
+          ? `${named} names the MatchClaim table ${url}, which is not loaded: Show matches (M) loads it.`
           : `${named} names the MatchClaim table ${url}, which is not loaded. ${MATCHES_NEED_A_SERVER}`,
       );
     }
+  }
+
+  /**
+   * Load the tables every block's manifest names whose MatchClaim table is
+   * not loaded (what turning Show matches on asks), block after block in
+   * the view's order: from where the manifest came from, else as the user
+   * chooses them (`MatchClaimTables.loadNamed`); what each load says goes
+   * to the message bar. A call while one is under way is ignored.
+   */
+  async loadNamedTables(): Promise<void> {
+    if (this.#loadingTables) return;
+    this.#loadingTables = true;
+    try {
+      for (const block of Object.keys(this.store.view.blocks)) {
+        const manifest = this.store.view.blocks[block]?.manifest;
+        if (manifest === undefined) continue;
+        this.post(await this.tables.loadNamed(block, manifest));
+      }
+    } finally {
+      this.#loadingTables = false;
+    }
+  }
+
+  /** Post what a load of tables says: its information, then its warnings. */
+  post(messages: TableMessages): void {
+    for (const text of messages.informed) this.#options.inform?.(text);
+    for (const text of messages.warned) this.#options.warn(text);
   }
 
   /**
@@ -346,11 +395,17 @@ export class WorkspaceSession {
     return null;
   }
 
-  /** Add the manifest of the manifest example `example` as one new block (`#add`). */
+  /**
+   * Add the manifest of the manifest example `example` as one new block
+   * (`#add`); the files it names are read from where the example lies, when
+   * it says where (`Example.source`).
+   */
   async importExample(example: Example, canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
     try {
       const block = this.#add(example.label, await example.text(), canvas, metrics);
-      if (block !== null) await this.readTables([], [block]);
+      if (block === null) return;
+      if (example.source !== undefined) this.tables.locate(block, example.source);
+      await this.readTables([], [block]);
     } catch (error) {
       this.#options.warn(`The example could not be added: ${messageOf(error)}`);
     }

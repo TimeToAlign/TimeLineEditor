@@ -65,21 +65,30 @@ export const PARQUET_MEDIA_TYPE = "application/vnd.apache.parquet";
 const PREFIX = 4;
 
 /**
- * A request of the two routes: the parameters' UTF-8 length (little-endian),
- * the parameters as JSON, then the request of `POST /api/match-claims`.
+ * A request of the routes taking parameters: the parameters' UTF-8 length
+ * (little-endian), the parameters as JSON, the parts `between` (none for
+ * the provenance and belief routes), then the request of `POST
+ * /api/match-claims`.
  */
-export function parametersRequest(parameters: object, manifest: string, table: Blob): Blob {
+export function parametersRequest(
+  parameters: object,
+  manifest: string,
+  table: Blob,
+  between: readonly BlobPart[] = [],
+): Blob {
   const text = new TextEncoder().encode(JSON.stringify(parameters));
   const prefix = new Uint8Array(PREFIX);
   new DataView(prefix.buffer).setUint32(0, text.length, true);
-  return new Blob([prefix, text, matchClaimsRequest(manifest, table)]);
+  return new Blob([prefix, text, ...between, matchClaimsRequest(manifest, table)]);
 }
 
-function isRecord(value: unknown): value is object {
+/** Whether `value` is a JSON object: neither `null` nor a list. */
+export function isRecord(value: unknown): value is object {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function member(value: object, key: string): unknown {
+/** The member `key` of `value`; `undefined` where it has none. */
+export function member(value: object, key: string): unknown {
   return key in value ? Reflect.get(value, key) : undefined;
 }
 
