@@ -153,7 +153,7 @@ anchor are zero.
 | the fixture's manifest written as pretty JSON | the same bytes as for the YAML |
 | the fixture's table with one more column, `note` | the same bytes: a column the table type does not declare is kept by the checks and no part of a MatchClaim |
 | the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 30, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
-| the fixture's table with A in `claim_1`'s belief written compactly, `orcid:0000-0002-1825-0097`, against the fixture's manifest with an `@context` declaring `orcid` as `https://orcid.org/` (and a statement `dcterms:creator` naming that compact IRI, since timetoalign keeps the prefixes a manifest's statements use) | the fixture's bytes: actors are answered as timetoalign compares them, expanded under the manifest's `@context`, so the compact and the full spelling are one actor, A |
+| the fixture's table with A in `claim_1`'s belief written compactly, `orcid:0000-0002-1825-0097`, against the fixture's manifest with an `@context` declaring `orcid` as `https://orcid.org/`, a prefix no statement uses (timetoalign compares actors under every prefix a manifest declares) | the fixture's bytes: actors are answered as timetoalign compares them, expanded under the manifest's `@context`, so the compact and the full spelling are one actor, A |
 | the same table against the fixture's manifest as it is (no `@context`) | `actors` `[B, A, "orcid:0000-0002-1825-0097"]` and `belief_actors` `2 1 1 1 0 0`: a prefix the context does not declare expands to nothing, and the actor is compared as written |
 | a table built in the test on a samples, a quarters and a seconds timeline: 2^53 + 1 samples, the stated `[2, 4]` quarters, `[2^62 + 1, 3]` quarters and −0.0 seconds | numerator 9007199254740993 with position 2^53 (the double nearest it, ties to even); `1/2` with 0.5; the pair unchanged (already in lowest terms) with Python's `float` of the fraction, the correctly rounded quotient; 0.0 with its sign bit clear |
 | the fixture against its manifest without the child `clt_2` | 422 `{"detail": {"path": [], "message": "the manifest has no timeline 'clt_2'", "problems": [{"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"], "message": "the manifest has no timeline 'clt_2'"}]}}`: TimeToShare's check, every problem, as its own `match_claim_problems` lists them |
@@ -218,7 +218,7 @@ compares actors (`stated_by` is answered as written).
 
 **A belief.** The belief is recorded by timetoalign: the server reads the
 manifest as an `AlignmentBundle`, adds the table's MatchClaims and calls
-its `add_belief`, so the belief replaces the earlier one of the same actor
+its `add_match_claim_belief`, so the belief replaces the earlier one of the same actor
 as timetoalign compares actors, expanded under the manifest's `@context`. The answer is 200 `application/vnd.apache.parquet`, a
 Parquet file read back in the test. Every column but `provenance` equals
 the fixture's, compared whole; so do the provenance cells of every row but

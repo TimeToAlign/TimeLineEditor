@@ -280,10 +280,11 @@ def belief_answer(body: bytes) -> bytes:
 
     timetoalign records the belief: the manifest is read as an
     ``AlignmentBundle``, the table's MatchClaims are added to it, and its
-    ``add_belief`` replaces the actor's earlier belief in the MatchClaim,
-    actors compared as IRIs under the manifest's ``@context``. The new
-    table is checked against the manifest as a posted one is, and against
-    the posted table by the succession rule, before it is written.
+    ``add_match_claim_belief`` replaces the actor's earlier belief in the
+    MatchClaim, actors compared as IRIs under every prefix the manifest's
+    ``@context`` declares. The new table is checked against the manifest
+    as a posted one is, and against the posted table by the succession
+    rule, before it is written.
 
     Raises:
         Refusal: As :func:`read_request`, :func:`checked_belief` and
@@ -305,7 +306,7 @@ def belief_answer(body: bytes) -> bytes:
     bundle = manifest_bundle(manifest)
     try:
         bundle.add_match_claim_field(field_class.from_table(checked))
-        bundle.add_belief(claim, actor=actor, belief=belief, date=date)
+        bundle.add_match_claim_belief(claim, actor=actor, belief=belief, date=date)
     except (KeyError, ValueError) as error:
         raise Refusal([], str(error.args[0] if error.args else error)) from error
     new = believed_table(table, bundle.match_claim_table.table)
