@@ -20,6 +20,7 @@ export type { AnchorValue } from "./commands/matchstamps.ts";
 export { anchorValues, matchStampSpec } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
 export {
+  groupsHolding,
   groupstampByDefault,
   importedManifest,
   isGroupMember,

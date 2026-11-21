@@ -23,7 +23,7 @@ import { toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
 import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import { toJson } from "../values.ts";
-import { manifestIds } from "../workspace/address.ts";
+import { indexOf, manifestIds } from "../workspace/address.ts";
 import { nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import type { EditorKind } from "../workspace/sessions.ts";
 import { withTimestamps } from "./mutations.ts";
@@ -87,9 +87,22 @@ export function readDisplay<W extends string>(
   return words.filter((word) => given.has(word));
 }
 
-/** Whether the timeline `timeline` of `manifest` is a member of some group (`members`, never a descendant of one). */
+/**
+ * The groups of `manifest` having the timeline `timeline` as a member, in
+ * the order of `groups`: those whose `members` list it or one of its
+ * ancestors, since a member's descendants are drawn inside the member's
+ * card in the group's frame. An ancestor of a listed member is in none of
+ * them; a timeline the manifest does not hold is in none.
+ */
+export function groupsHolding(manifest: Manifest, timeline: string): Manifest["groups"] {
+  const lineage = indexOf(manifest).ancestry.get(timeline);
+  if (lineage === undefined) return [];
+  return manifest.groups.filter((group) => lineage.some((id) => group.members.includes(id)));
+}
+
+/** Whether the timeline `timeline` of `manifest` is a member of some group (`groupsHolding`). */
 export function isGroupMember(manifest: Manifest, timeline: string): boolean {
-  return manifest.groups.some((group) => group.members.includes(timeline));
+  return groupsHolding(manifest, timeline).length > 0;
 }
 
 /**

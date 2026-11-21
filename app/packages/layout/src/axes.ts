@@ -18,6 +18,7 @@ import type { AxisMap, AxisMarker, AxisSegment, DrawnAxis } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import type { Drawing, Point } from "./elements.ts";
 import { wedgePoints } from "./geometry.ts";
+import { groupSpans } from "./groupstamps.ts";
 import { add, negate } from "./numbers.ts";
 
 /** One drawn line of a drawing, in block-local canvas units, with the coordinates it stands for. */
@@ -138,10 +139,28 @@ function markedLine(
  * or an ancestor line, which draws none.
  */
 export function crossSection(drawing: Drawing, lineKey: string, x: number): CrossSection | null {
-  const crossing = markedLine(drawing, lineKey)?.marker.crossSection ?? null;
-  if (crossing === null) return null;
-  const { y1, y2, style } = crossing;
-  return { x, y1, y2, style };
+  const crossing = markedLine(drawing, lineKey)?.marker.crossSection;
+  if (crossing === undefined || crossing.extent === null) return null;
+  const { y1, y2 } = crossing.extent;
+  return { x, y1, y2, style: crossing.style };
+}
+
+/**
+ * The lines a groupstamp lying at the abscissa `x` of the line keyed
+ * `lineKey` in `drawing` (a key of `lineAxes`) draws across the frame
+ * holding that line's card, as a named groupstamp of its timeline lying there
+ * draws them (`groupstampElements`): over the frame's spans (`groupSpans`)
+ * less the line's own cross-section extent, which `crossSection` gives,
+ * with the style of a cross-section line of that timeline that no named
+ * timestamp holds; none where the line's card is held by no frame, and
+ * where the key names no line, or an ancestor line.
+ */
+export function groupCrossSections(drawing: Drawing, lineKey: string, x: number): CrossSection[] {
+  const marked = markedLine(drawing, lineKey);
+  if (marked === null) return [];
+  const { extent, style } = marked.marker.crossSection;
+  const cuts = extent === null ? [] : [[extent.y1, extent.y2] as const];
+  return groupSpans(drawing.axes, marked.axis, cuts).map(([y1, y2]) => ({ x, y1, y2, style }));
 }
 
 /**
@@ -159,7 +178,7 @@ export interface CrossSectionSegment {
 
 /** The cross-section segment at `x` of the drawn line `axis`, whose marker is `marker`. */
 function segmentAt(axis: DrawnAxis, marker: AxisMarker, x: number): CrossSectionSegment {
-  const crossing = marker.crossSection;
+  const crossing = marker.crossSection.extent;
   return crossing === null
     ? { x, y1: axis.line, y2: axis.line }
     : { x, y1: crossing.y1, y2: crossing.y2 };

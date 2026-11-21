@@ -1,5 +1,11 @@
 <script lang="ts">
-import { crossSection, type Style, wedgeAt } from "@timetoalign/tilie-layout";
+import {
+  type CrossSection,
+  crossSection,
+  groupCrossSections,
+  type Style,
+  wedgeAt,
+} from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
 import { ViewportPortal } from "@xyflow/svelte";
 import type { PlacedMarks } from "./coordinates.ts";
@@ -9,7 +15,10 @@ import type { PlacedMarks } from "./coordinates.ts";
  * pinned unnamed timestamp, each as a named timestamp lying there draws its
  * own (layout's `wedgeAt` and `crossSection`, with their resolved styles); a
  * line without a cross-section (neither its children band nor its
- * conversion maps band is present) draws the wedge alone.
+ * conversion maps band is present) draws the wedge alone. A position read
+ * across its group (`MarkPlace.group`) also draws the lines a groupstamp
+ * lying there draws across the frame holding the line (layout's
+ * `groupCrossSections`).
  * Each is drawn in its block's drawing units, in an `<svg>` laid over the
  * block's node exactly as the node's own, so strokes and dashes scale with
  * the zoom as the drawing's do. They never take the pointer.
@@ -22,11 +31,28 @@ function opacityOf(style: Style): string | undefined {
 }
 </script>
 
+{#snippet crossing(line: CrossSection, testid: string)}
+  <line
+    data-testid={testid}
+    x1={attributeText(line.x)}
+    y1={attributeText(line.y1)}
+    x2={attributeText(line.x)}
+    y2={attributeText(line.y2)}
+    stroke={line.style.stroke}
+    stroke-width={attributeText(line.style["stroke-width"])}
+    stroke-dasharray={line.style["stroke-dasharray"] === "none"
+      ? undefined
+      : line.style["stroke-dasharray"]}
+    opacity={opacityOf(line.style)}
+  />
+{/snippet}
+
 {#if marks.length > 0}
   <ViewportPortal target="front" class="tilie-overlay">
     {#each marks as mark (mark.kind)}
       {@const wedge = wedgeAt(mark.drawing, mark.key, mark.x)}
       {@const line = crossSection(mark.drawing, mark.key, mark.x)}
+      {@const group = mark.group === true ? groupCrossSections(mark.drawing, mark.key, mark.x) : []}
       <svg
         class="tilie-coordinate-marks"
         data-mark={mark.kind}
@@ -46,20 +72,11 @@ function opacityOf(style: Style): string | undefined {
           />
         {/if}
         {#if line !== null}
-          <line
-            data-testid="coordinate-line"
-            x1={attributeText(line.x)}
-            y1={attributeText(line.y1)}
-            x2={attributeText(line.x)}
-            y2={attributeText(line.y2)}
-            stroke={line.style.stroke}
-            stroke-width={attributeText(line.style["stroke-width"])}
-            stroke-dasharray={line.style["stroke-dasharray"] === "none"
-              ? undefined
-              : line.style["stroke-dasharray"]}
-            opacity={opacityOf(line.style)}
-          />
+          {@render crossing(line, "coordinate-line")}
         {/if}
+        {#each group as piece (piece.y1)}
+          {@render crossing(piece, "coordinate-group-line")}
+        {/each}
       </svg>
     {/each}
   </ViewportPortal>

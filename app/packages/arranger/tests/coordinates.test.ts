@@ -29,9 +29,11 @@ import {
   namedPin,
   placeText,
   readingAt,
+  readsGroup,
   rowValueText,
 } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
+import type { Editing } from "../src/editing.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
@@ -282,6 +284,7 @@ describe("the cross-section", () => {
     ).toEqual([
       ["excerpt", 44100n],
       ["recording", 88200n],
+      ["page", 960n],
     ]);
   });
 
@@ -596,8 +599,80 @@ describe("a named timestamp's pin", () => {
     expect(plain?.timestamp.parts.map(({ timeline }) => timeline)).toEqual(["performance"]);
   });
 
+  it("of a groupstamp on a member's descendant reads the group from the member", () => {
+    const motif = { id: "motif", unit: "quarters", number_type: "fraction", length: [4, 1] };
+    const nested = changed(viewWith("groups/group_groupstamp"), {
+      type: "add",
+      into: inBlock(A, idAddress("score")),
+      child: { ...motif, offset: [2, 1] },
+    });
+    const view = changed(nested, {
+      type: "add",
+      into: inBlock(A, idAddress("motif")),
+      timestamp: { name: "Motif", coordinate: [1, 1], groupstamp: true },
+    });
+    const pin = pinIn(view, "timestamp_6");
+    expect(
+      pin?.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
+    ).toEqual([
+      ["score", q(-2), undefined],
+      ["performance", q(-2), q(1, 2)],
+    ]);
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["motif", q(1)],
+      ["score", q(3)],
+      ["performance", 1.5],
+    ]);
+  });
+
   it("is null for an ID the manifest does not hold", () => {
     expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
+  });
+});
+
+describe("a reading above a timeline editor", () => {
+  const view = viewWith("groups/group_groupstamp");
+  const score = axis(view, "score");
+  const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+
+  /** The reading at the middle of `score`'s line with the editor `editing` open. */
+  function readIn(editing: Editing | null) {
+    const shown = project(view, NOTHING_SELECTED, [], metrics, editing);
+    const [node] = shown;
+    if (node === undefined) throw new Error("no node");
+    const point = { x: node.position.x + middle, y: node.position.y + score.y };
+    const options = { zoom: 1, ratio: 1, granularity: DEFAULT_GRANULARITY };
+    return readingAt(shown, point, options);
+  }
+
+  const partsOf = (reading: ReturnType<typeof readIn>) =>
+    reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]);
+
+  it("holds the other members of the group whose frame draws the line", () => {
+    const editors: (Editing | null)[] = [
+      null,
+      { target: { block: A }, kind: "bundle" },
+      { target: inBlock(A, idAddress("group_1")), kind: "group" },
+    ];
+    for (const editing of editors) {
+      const reading = readIn(editing);
+      expect(partsOf(reading)).toEqual([
+        ["score", q(4)],
+        ["performance", 2.0],
+      ]);
+      expect(reading === null ? null : readsGroup(reading.pin)).toBe(true);
+    }
+  });
+
+  it("stays on its timeline in a timeline editor", () => {
+    const reading = readIn({ target: inBlock(A, idAddress("score")), kind: "timeline" });
+    expect(partsOf(reading)).toEqual([["score", q(4)]]);
+    expect(reading === null ? null : readsGroup(reading.pin)).toBe(false);
+  });
+
+  it("holds no group where there is none", () => {
+    const reading = readAt(viewWith("map"), MELODY_START + 200, axis(viewWith("map"), "melody").y);
+    expect(reading === null ? null : readsGroup(reading.pin)).toBe(false);
   });
 });
 

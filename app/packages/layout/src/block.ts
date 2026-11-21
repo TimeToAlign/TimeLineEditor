@@ -19,7 +19,7 @@ import type { DrawnAxis } from "./boxes.ts";
 import { Cascade } from "./cascade.ts";
 import { F, P } from "./constants.ts";
 import type { Drawing, Placement } from "./elements.ts";
-import { type FrameHolder, groupstampElements } from "./groupstamps.ts";
+import { groupstampElements } from "./groupstamps.ts";
 import { TextMeasure } from "./metrics.ts";
 import type { Context, Holder } from "./traversal.ts";
 
@@ -70,15 +70,8 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  const frames = new Map<string, FrameHolder>(
-    items.flatMap(({ frame, scale }) =>
-      frame === null || frame.ref.key === null
-        ? []
-        : [[frame.ref.key.item, { holder: frame.holder, scale }] as const],
-    ),
-  );
   const after = (axes: readonly DrawnAxis[]) => [
-    ...groupstampElements(manifest, axes, cascade, frames),
+    ...groupstampElements(manifest, axes),
     ...anchorElements(manifest, axes, cascade, block.style, measure),
   ];
   return emitDrawing(laid, { style: block.style, title, Pt, margin, after }, placement, measure);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { apply, applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
 import {
+  groupsHolding,
   groupstampByDefault,
   importedManifest,
   isGroupMember,
@@ -708,5 +709,35 @@ describe("groupstamps", () => {
     expect(
       ["score", "performance", "clt_1", "nope"].map((id) => isGroupMember(manifest, id)),
     ).toEqual([true, true, false, false]);
+  });
+
+  it("count a member's descendants as its group's members, never its ancestors", () => {
+    const motif = { id: "motif", unit: "quarters", number_type: "fraction", length: [4, 1] };
+    const nested = changed(grouped, {
+      type: "add",
+      into: at("score"),
+      child: { ...motif, offset: [2, 1] },
+    });
+    const manifest = block(nested).manifest;
+    expect(isGroupMember(manifest, "motif")).toBe(true);
+    expect(groupstampByDefault(manifest, "motif", null)).toBe(true);
+    const added = changed(
+      nested,
+      add("motif", { name: "Motif", coordinate: [1, 1], groupstamp: true }),
+    );
+    expect(stampOf(added, "timestamp_6")).toMatchObject({ timeline: "motif", groupstamp: true });
+    const child = load("groups/group_child_member.yaml");
+    expect(["second-half", "recording", "piece"].map((id) => isGroupMember(child, id))).toEqual([
+      true,
+      true,
+      false,
+    ]);
+    const ids = (of: Manifest, id: string) => groupsHolding(of, id).map((group) => group.id);
+    expect([
+      ids(manifest, "motif"),
+      ids(child, "second-half"),
+      ids(child, "piece"),
+      ids(child, "nope"),
+    ]).toEqual([["group_1"], ["group_1"], [], []]);
   });
 });

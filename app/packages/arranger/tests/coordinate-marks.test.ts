@@ -14,10 +14,11 @@ import {
   inBlock,
   partAddress,
   pinAt,
+  sameAddress,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import { crossSection, wedgeAt } from "@timetoalign/tilie-layout";
+import { crossSection, groupCrossSections, wedgeAt } from "@timetoalign/tilie-layout";
 import { ADDRESS_ATTRIBUTES, attributeText, writeSvg } from "@timetoalign/tilie-writers";
 import type { Viewport } from "@xyflow/svelte";
 import { mount, unmount } from "svelte";
@@ -25,6 +26,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 import type { KnotsOf } from "../src/coordinates.ts";
 import { axesOf, readingAt } from "../src/coordinates.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
+import type { Editing } from "../src/editing.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
@@ -283,6 +285,62 @@ describe("the pinned timestamp", () => {
   });
 });
 
+describe("a pinned timestamp read across its group", () => {
+  /** The pin a reading at the middle of `score`'s line makes with the editor `editing` open. */
+  function pinOnScore(editing: Editing | null): { pin: Pin; key: string; x: number } {
+    const { drawing, x: left, y: top } = shown();
+    const key = lineKey(drawing, "score");
+    const score = axesOf(drawing).get(key);
+    if (score === undefined) throw new Error("no line of score");
+    const x = score.xStart + (score.xEnd - score.xStart) / 2;
+    const reading = readingAt(
+      project(store.view, NOTHING_SELECTED, [], metrics, editing),
+      { x: left + x, y: top + score.y },
+      { zoom: 1, ratio: 1, granularity: DEFAULT_GRANULARITY },
+    );
+    if (reading === null) throw new Error("score is not read there");
+    return { pin: reading.pin, key, x };
+  }
+
+  /** The group lines the pinned marks draw, as attributes. */
+  const groupLines = () =>
+    [
+      ...document.querySelectorAll(
+        '.tilie-coordinate-marks[data-mark="pin"] [data-testid="coordinate-group-line"]',
+      ),
+    ].map((element) => attributes(element, LINE));
+
+  it("is marked across the frame holding its line, as layout's group lines", async () => {
+    await show(viewOf({ id: A, fixture: "groups/group_groupstamp", x: 40, y: 80 }));
+    const { pin, key, x } = pinOnScore(null);
+    harness.pin(pin);
+    await settle();
+    const expected = groupCrossSections(shown().drawing, key, x).map((line) => ({
+      x1: attributeText(line.x),
+      y1: attributeText(line.y1),
+      x2: attributeText(line.x),
+      y2: attributeText(line.y2),
+      stroke: line.style.stroke,
+      "stroke-width": attributeText(line.style["stroke-width"]),
+      "stroke-dasharray": line.style["stroke-dasharray"],
+      opacity: null,
+    }));
+    expect(expected).toHaveLength(1);
+    expect(groupLines()).toEqual(expected);
+
+    harness.pin(pinOnScore({ target: inBlock(A, idAddress("score")), kind: "timeline" }).pin);
+    await settle();
+    expect(groupLines()).toEqual([]);
+  });
+
+  it("is never marked across a group on a block without groups", async () => {
+    await show(mapView());
+    harness.pin(pinOnMelody(AT_4));
+    await settle();
+    expect(groupLines()).toEqual([]);
+  });
+});
+
 describe("pinning", () => {
   it("pins on a line, clears elsewhere, and clears when Show coordinates is turned off", async () => {
     await show(mapView());
@@ -376,12 +434,20 @@ describe("the mode split", () => {
     await show(viewOf({ id: A, fixture: "groups/group_groupstamp", x: 40, y: 80 }));
     const node = one(".svelte-flow__node[data-id] svg");
     const lines = [...node.querySelectorAll('line[data-id="timestamp_1"][data-part="line"]')];
-    expect(lines).toHaveLength(1);
-    lines[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    await settle();
-    expect([...harness.current().selection.values()]).toEqual([
-      inBlock(A, idAddress("timestamp_1")),
-    ]);
+    const stamp = partAddress(idAddress("timestamp_1"), "line");
+    const drawn = shown().drawing.elements.filter(
+      (item) => item.type === "cross_section" && sameAddress(item.address, stamp),
+    );
+    expect(lines).toHaveLength(drawn.length);
+    for (const line of lines) {
+      harness.select(NOTHING_SELECTED);
+      await settle();
+      line.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await settle();
+      expect([...harness.current().selection.values()]).toEqual([
+        inBlock(A, idAddress("timestamp_1")),
+      ]);
+    }
   });
 
   it("shows a selected name label part on the label alone", async () => {

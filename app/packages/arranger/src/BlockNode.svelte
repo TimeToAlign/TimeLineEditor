@@ -2,6 +2,7 @@
 import type { ElementAddress, Manifest } from "@timetoalign/tilie-core";
 import { addressKey, placedElement, placeKeyText, samePlaceKey } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
+import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
 import { ADDRESS_ATTRIBUTES, attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
@@ -66,6 +67,8 @@ interface Entry {
   readonly key: string;
   /** The element address it carries (its source's), `{}` for the background. */
   readonly address: ElementAddress;
+  /** Its address's key (`addressKey`), computed once per drawing. */
+  readonly addressKey: string;
   readonly role: Role;
   readonly attributes: Readonly<Record<string, string>>;
   /** The frame or card whose own rectangle it draws; `undefined` for anything else. */
@@ -95,13 +98,15 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
     const { address, element } = descriptor.source;
     const role = roleOf(descriptor);
     const owner = ownerOf(manifest, address);
-    const pair = `${addressKey(address)}#${descriptor.tag}`;
+    const key = addressKey(address);
+    const pair = `${key}#${descriptor.tag}`;
     const n = seen.get(pair) ?? 0;
     seen.set(pair, n + 1);
     return {
       descriptor,
       key: `${pair}#${n}`,
       address,
+      addressKey: key,
       role,
       attributes: Object.fromEntries(
         descriptor.attrs.map(([name, value]) => [name, domValue(value)]),
@@ -127,7 +132,7 @@ const shapes = $derived.by(() => {
       entry.box !== undefined
         ? boxKey(entry.box)
         : entry.role === "boundary"
-          ? addressKey(entry.address)
+          ? entry.addressKey
           : null;
     if (key === null) continue;
     found.set(key, [...(found.get(key) ?? []), entry]);
@@ -188,19 +193,37 @@ const paint = $derived(actions.matchPaint(data.block.id));
 
 /** An entry's attributes, a part of a named MatchStamp painted by belief or as out of date. */
 function attributesOf(entry: Entry): Readonly<Record<string, string>> {
-  const painted = paint.get(addressKey(entry.address));
+  if (paint.size === 0) return entry.attributes;
+  const painted = paint.get(entry.addressKey);
   return painted === undefined
     ? entry.attributes
     : { ...entry.attributes, [painted.attribute]: painted.colour };
 }
 
-/** An entry's text, the name label of a named MatchStamp out of date marked. */
-function textOf(entry: Entry): string | null {
-  const { text } = entry.descriptor;
-  return text !== null && paint.get(addressKey(entry.address))?.marked === true
-    ? `${OUT_OF_DATE_MARK}${text}`
-    : text;
-}
+/** The canvas's text measure, for the out-of-date marks. */
+const measure = new TextMeasure(actions.metrics);
+
+/**
+ * The out-of-date marks (`OUT_OF_DATE_MARK`) of the name labels of named
+ * MatchStamps out of date, each its own text beside its label, as wide as
+ * the layout measures it and ending where the label starts, so that the label
+ * keeps the width the layout measured and cut it to; in the label's size and
+ * painted colour, one per marked label.
+ */
+const outOfDate = $derived.by(() => {
+  if (paint.size === 0) return [];
+  return entries.flatMap((entry) => {
+    const painted = paint.get(entry.addressKey);
+    const label = data.drawing.elements[entry.descriptor.source.element];
+    const { text } = entry.descriptor;
+    if (painted?.marked !== true || text === null || label === undefined) return [];
+    if (label.type !== "label" && label.type !== "name") return [];
+    const size = label.style["font-size"];
+    const start = label.anchor === "middle" ? label.x - measure.width(text, size) / 2 : label.x;
+    const x = start - measure.width(OUT_OF_DATE_MARK, size);
+    return [{ key: entry.key, x, y: label.baseline, size, fill: painted.colour }];
+  });
+});
 
 /** Whether an element shows the selection on itself: any but a box, whose selection is a mark. */
 function glows(entry: Entry): boolean {
@@ -268,8 +291,7 @@ const hoverMarks: readonly Mark[] = $derived(
     key === null
       ? []
       : (shapes.get(key) ?? []).flatMap((entry) =>
-          data.inside.has(addressKey(entry.address)) &&
-          (entry.role === "boundary" || !isSelected(entry))
+          data.inside.has(entry.addressKey) && (entry.role === "boundary" || !isSelected(entry))
             ? [{ entry, mark: "hover" as const }]
             : [],
         ),
@@ -297,7 +319,7 @@ function shapeOf(entry: Entry): Record<string, string> {
 
 /** Whether the element lies under a selected one, and so goes with it on Delete. */
 function isAffected(entry: Entry): boolean {
-  return data.affectedElements.has(addressKey(entry.address));
+  return data.affectedElements.has(entry.addressKey);
 }
 
 /**
@@ -510,11 +532,21 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         visibility={hidden.has(entry.descriptor) ? "hidden" : undefined}
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
-        data-outside={isOutside(addressKey(entry.address)) ? "" : undefined}
+        data-outside={isOutside(entry.addressKey) ? "" : undefined}
         pointer-events={passes(entry.owner) ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
-        animate:slide={slideParams(entry)}>{textOf(entry)}</svelte:element
+        animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
+      >
+    {/each}
+    {#each outOfDate as mark (mark.key)}
+      <text
+        class="tilie-out-of-date"
+        x={attributeText(mark.x)}
+        y={attributeText(mark.y)}
+        font-size={attributeText(mark.size)}
+        fill={mark.fill}
+        pointer-events="none">{OUT_OF_DATE_MARK}</text
       >
     {/each}
     {#each affordances as { affordance, timestamp, owner, key } (key)}
@@ -533,7 +565,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         {...shapeOf(entry)}
         class="tilie-mark"
         data-mark="holding"
-        data-marks={addressKey(entry.address)}
+        data-marks={entry.addressKey}
         data-box={entry.role}
         aria-hidden="true"
       />
@@ -544,7 +576,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         {...shapeOf(entry)}
         class="tilie-mark"
         data-mark={mark}
-        data-marks={addressKey(entry.address)}
+        data-marks={entry.addressKey}
         data-box={isBoxShape(entry.role) ? entry.role : undefined}
         aria-hidden="true"
       />

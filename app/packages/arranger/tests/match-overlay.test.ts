@@ -11,6 +11,8 @@
 
 import type { Address, Store, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import { TextMeasure } from "@timetoalign/tilie-layout";
+import { attributeText } from "@timetoalign/tilie-writers";
 import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
@@ -449,15 +451,40 @@ describe("the named MatchStamps", () => {
     expect(strokes()).toEqual([BLUE, BLUE, BLUE, BLUE, BLUE]);
   });
 
-  it("mark the name of one out of date", async () => {
+  it("mark the name of one out of date beside its label", async () => {
     await show([{ block: A, index: T, named: NAMED_IN_D }]);
     await withChildren();
     const label = partOf("anchor_1", "name");
     expect([label.textContent, label.getAttribute("fill")]).toEqual([
-      "! Bar 2, downbeat (take 1)",
+      "Bar 2, downbeat (take 1)",
       "#E51400",
     ]);
+    const drawing = drawingOf(blockIn(store.view, A), store.view.graphical, metrics);
+    const drawn = drawing.elements.find(
+      (item) => item.address.id === "anchor_1" && item.address.part?.[0] === "name",
+    );
+    if (drawn?.type !== "label") throw new Error("anchor_1 draws no name label");
+    const size = drawn.style["font-size"];
+    const measure = new TextMeasure(metrics);
+    const start = drawn.x - measure.width(drawn.text, size) / 2;
+    const mark = one(".svelte-flow__node[data-id] svg .tilie-out-of-date");
+    expect(
+      ["x", "y", "font-size", "fill", "pointer-events", "data-id"].map((name) =>
+        mark.getAttribute(name),
+      ),
+    ).toEqual([
+      attributeText(start - measure.width("! ", size)),
+      attributeText(drawn.baseline),
+      attributeText(size),
+      "#E51400",
+      "none",
+      null,
+    ]);
+    expect(mark.textContent).toBe("! ");
     expect(strokes()).toEqual(["#E51400", "#1BA1E2", "#E51400", "#E51400", "#1BA1E2"]);
+    harness.showMatches([]);
+    await settle();
+    expect(document.querySelector(".tilie-out-of-date")).toBeNull();
   });
 
   /** The elements of block A's node letting the pointer through, as `[tag, data-id, data-part]`. */

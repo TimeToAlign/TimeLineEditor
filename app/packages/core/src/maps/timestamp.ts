@@ -359,10 +359,14 @@ export function rowAxis(
   return axisIn(spec, row, readingOf(knots));
 }
 
+/** Whether the own coordinate `own` lies on the closed span `[0, length]`, unbounded above for an unknown length. */
+function withinSpan(own: Rational, length: Real | null): boolean {
+  return own.numerator >= 0n && (length === null || compareReal(own, length) <= 0);
+}
+
 /** Whether `member`'s closed span on the anchor's axis, `[offset, offset + length / scale]` (unbounded above for an unknown length), holds `position`. */
 function crosses(member: CrossSectionMember, position: Rational): boolean {
-  const own = ownAt(member, position);
-  return own.numerator >= 0n && (member.length === null || compareReal(own, member.length) <= 0);
+  return withinSpan(ownAt(member, position), member.length);
 }
 
 function partOf(
@@ -565,7 +569,7 @@ export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Pro
   const position = axis.positionOf(value);
   if (position === null) return refused(`no position on '${timeline}' gives ${value}`);
   const outside = (own: Rational, name: string, length: Real | null): Problem | null => {
-    if (own.numerator >= 0n && (length === null || compareReal(own, length) <= 0)) return null;
+    if (withinSpan(own, length)) return null;
     const span = length === null ? "at least 0" : `0 to ${toRational(length)}`;
     return refused(`${own} lies outside '${name}' (${span})`);
   };

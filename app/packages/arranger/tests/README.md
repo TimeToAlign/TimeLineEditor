@@ -1704,7 +1704,9 @@ own as a group's member holds them as one drawn in its parent's card.
   `melody` 4, `phrase` 2 as before. A child that is a group's member, in
   its own card: `bundle_mixed`'s `excerpt` (at 44100 in `recording`, 88200
   long) hovered at the middle of its line on the line reads `excerpt`
-  44100 (an int axis steps by 1) and `recording` 88200.
+  44100 (an int axis steps by 1) and `recording` 88200, then, on the
+  arranger (below, "Above a timeline editor"), its group `group_2`'s other
+  member `page` (1920 pixels) at 44100 × 1920 / 88200 = 960.
 - **Segment lines and segments, each once.** `segment_line` with `b2_ticks`
   (`map`'s `ticks` under another ID) added to `b`'s segment `b2`: `form`'s
   line crosses the lines of `a`, `b` and `c`, which are also `form`'s
@@ -1766,6 +1768,17 @@ for the right row, `p` and `h`.
 read up to its reach exactly as a line of that length would be
 (`unknown_length` above).
 
+**Above a timeline editor a reading holds the group** (`groupScoped` of the
+node's editor, the rule of a groupstamp's default): on the arranger, in a
+bundle editor and in a group editor the reading's cross-section also holds
+every other member of each group whose frame draws the hovered line's
+timeline, read by the group as a groupstamp's pin reads them; in a timeline
+editor it stays on its timeline. In `groups/group_groupstamp`, `score`
+hovered at the middle of its line (8 quarters over 400) reads the parts
+`score` 4, `performance` the float 2.0 on the arranger, in a bundle editor
+and in a group editor, `score` 4 alone in a timeline editor; `readsGroup`
+of the pin is true, resp. false. Without groups (`map`) nothing changes.
+
 The reading's pin is unnamed (`named` `null`), reads its MeasureMaps as
 the reading does (`no_server` without a server) and holds the reading's
 timestamp; its spec carries the granularity it was read with (the same
@@ -1799,14 +1812,22 @@ hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
 and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID
 the manifest does not hold gives `null`. A groupstamp's pin holds the
-whole GroupStamp: every other member of each group whose frame draws its
-timeline, after its own members, at offset 0 with the scale of its drawn
-length over the timeline's (the members of a frame start and end
-together). In `groups/group_groupstamp` the groupstamp `timestamp_1` at 4
-on `score` (8 quarters) gives the member `performance` (4.0 seconds) at
-offset 0, scale 1/2, and the parts `score` 4, `performance` the float 2.0;
-`timestamp_3` (`length`, no groupstamp) on `performance` holds
-`performance` alone.
+whole GroupStamp: every other member of each group whose frame draws it
+(a line drawn in a card of the frame holds the timestamp; layout's
+`frameMemberLines` names the frame's members, the one statement both the
+drawing and the pin read), after its own members, read from the member
+card holding the timestamp's timeline: at that member's offset from the
+anchor's zero (0 where the anchor is the member, the ancestor offset where
+it is a descendant) with the scale of the other member's drawn end over
+that member's (the members of a frame start and end together). In
+`groups/group_groupstamp` the groupstamp `timestamp_1` at 4 on `score` (8
+quarters) gives the member `performance` (4.0 seconds) at offset 0, scale
+1/2, and the parts `score` 4, `performance` the float 2.0; `timestamp_3`
+(`length`, no groupstamp) on `performance` holds `performance` alone. On a
+member's descendant: with a child `motif` (offset 2, 4 quarters) added to
+`score` and the groupstamp `timestamp_6` at 1 on it, the members are
+`score` at −2 (its ancestor), then `performance` at −2, scale 1/2, and the
+parts `motif` 1, `score` 3, `performance` the float 1.5.
 
 **The affordance of a named timestamp that draws nothing**
 (`affordancesOf`): a named timestamp whose `display` is emptied (`set
@@ -2531,7 +2552,12 @@ display: wedge, name label, cross-section line).
 - **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the
   pinned marks equal layout's at 263.53662109375; the pin replaced by the
   same pin moved to 2 (core's `pinAt`) moves them to 163.53662109375. A
-  pin with `named` set, and no pin, draw no pinned marks.
+  pin with `named` set, and no pin, draw no pinned marks. A pin read
+  across its group (`readsGroup`) also draws the lines layout's
+  `groupCrossSections` gives at its abscissa on its line (`coordinate-group-line`,
+  their attributes exactly those): in `groups/group_groupstamp`, `score`'s
+  pin at its middle draws one, from `score`'s line to `performance`'s;
+  the same pin read in a timeline editor, and every pin on `map`, none.
 - **Pinning.** With Show coordinates on, a press released where it began
   on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of
   `melody` at exactly 4 and announces `Pinned Melody at 4 ♩`; one 30
@@ -2552,10 +2578,11 @@ display: wedge, name label, cross-section line).
   order, the wedge, the name label, the line); a selected name label part
   alone shows it on the label only. A groupstamp's line across the other
   members of its group is the timestamp's line too: in
-  `groups/group_groupstamp` (neither member draws a cross-section extent,
-  so the one line at `timestamp_1`'s address is the group's), a click on
-  it selects exactly `{block: A, id: "timestamp_1"}`, the primary
-  timestamp.
+  `groups/group_groupstamp` the node draws as many lines at `timestamp_1`'s
+  address as layout's drawing holds `cross_section` elements there (the
+  group's, above and below its label, and its own where it has a length),
+  and a click on each selects
+  exactly `{block: A, id: "timestamp_1"}`, the primary timestamp.
 - **A timestamp that draws nothing.** In `timestamps` (`clt_1`, 8
   quarters over 400 from 49.91552734375) with `display` `[]` set on
   `timestamp_2` ("Climax", at 6 on `clt_1`) the drawing draws no element
@@ -2644,9 +2671,14 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   `timestamp_1` and `timestamp_3` `#E51400`, that of `timestamp_2` its
   style's `#1BA1E2`, with the mode on or off; with B, `anchor_1` turns
   `#E07000`; with `matches` empty everything keeps `#1BA1E2`. With
-  `matchstamp_1` compared with D, its name label reads `! Bar 2, downbeat
-  (take 1)` with `fill="#E51400"`, and `anchor_1` and the lines of
-  `timestamp_1` and `timestamp_2` are `#E51400`.
+  `matchstamp_1` compared with D, its name label keeps its text `Bar 2,
+  downbeat (take 1)` with `fill="#E51400"`, and the out-of-date mark is its
+  own text `! ` (`.tilie-out-of-date`, `fill="#E51400"`, no address
+  attribute, passing the pointer) at the label's baseline and size, its
+  `x` the label's start (its anchor `x` less half its measured width) less
+  the mark's measured width, so the label keeps the width the layout
+  measured; `anchor_1` and the lines of `timestamp_1` and `timestamp_2`
+  are `#E51400`. Without a table there is no mark.
 - **A match timestamp's line selects its MatchStamp.** With the children
   above and the mode off
   (and "Show coordinates" off), a click on `timestamp_1`'s line selects

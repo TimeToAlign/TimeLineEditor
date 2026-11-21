@@ -2152,7 +2152,10 @@ the same result):
 **Groupstamps.** A timestamp on a group's member may be a groupstamp
 (`groupstamp: true`): its line extends across every member of each group
 having its timeline as a member, their coordinates and lines derived from
-the group, never stored. What proves it: `add` and `set` store the flag
+the group, never stored. A timeline is a group's member when the group's
+`members` list it or one of its ancestors (a member's descendants are
+drawn inside the member's card in the group's frame); an ancestor of a
+listed member is none. What proves it: `add` and `set` store the flag
 exactly where the schema allows it and refuse it, each with its own
 message, where it does not (anything but a boolean, a timeline no group
 has as a member, a match timestamp); its default follows the editor a
@@ -2187,6 +2190,17 @@ complete form).
     editor, `false` in a timeline editor; on `clt_1` of `timestamps.yaml`
     `false` with none. `isGroupMember` is true for `score` and
     `performance`, false for `clt_1` and for an ID no timeline carries.
+24. A member's descendant: with a child `motif` (quarters, offset `[2,
+    1]`, length `[4, 1]`) added into `score`, `isGroupMember` is true for
+    `motif`, its default is `true` with no editor open, and `add` into
+    `motif` `{name: "Motif", coordinate: [1, 1], groupstamp: true}`
+    stores `groupstamp: true` on `timestamp_6`, accepted by the schema
+    check. In `groups/group_child_member.yaml` (`group_1` listing
+    `recording` and `second-half`, the child of `piece`) it is true for
+    `second-half` and `recording`, false for `piece`, the ancestor of a
+    listed member. `groupsHolding` gives the groups themselves: `group_1`
+    for `motif` and for `second-half`, none for `piece` and for an ID no
+    timeline carries.
 
 ## Named MatchStamps (`matchstamps.test.ts`)
 

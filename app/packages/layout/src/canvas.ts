@@ -155,16 +155,23 @@ export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): 
               base: scale * marker.wedge.base,
               style: scaledStyle(marker.wedge.style, scale),
             },
-            crossSection:
-              marker.crossSection === null
-                ? null
-                : {
-                    y1: y(marker.crossSection.y1),
-                    y2: y(marker.crossSection.y2),
-                    style: scaledStyle(marker.crossSection.style, scale),
-                  },
+            crossSection: {
+              extent:
+                marker.crossSection.extent === null
+                  ? null
+                  : {
+                      y1: y(marker.crossSection.extent.y1),
+                      y2: y(marker.crossSection.extent.y2),
+                    },
+              style: scaledStyle(marker.crossSection.style, scale),
+            },
             descendants: marker.descendants,
-            timestamps: marker.timestamps.map(({ id, x }) => ({ id, x: dx + scale * x })),
+            timestamps: marker.timestamps.map(({ id, x, line, labels }) => ({
+              id,
+              x: dx + scale * x,
+              line: line === null ? null : scaledStyle(line, scale),
+              labels: labels === null ? null : [y(labels[0]), y(labels[1])],
+            })),
           },
     xStart: dx + scale * axis.xStart,
     xEnd: dx + scale * axis.xEnd,

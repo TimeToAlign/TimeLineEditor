@@ -528,10 +528,17 @@ describe("the elements core enumerates", () => {
       const own = addressKey(item.address);
       drawn.set(own, [...(drawn.get(own) ?? []), item.type]);
     }
+    // A groupstamp's line is also drawn in pieces across the frames of its groups
+    // (groupstamps.test.ts counts those pieces).
+    const grouped = new Set(
+      (loadFile(name).graphical?.timestamps ?? []).flatMap((timestamp) =>
+        timestamp.groupstamp ? [addressKey(at(timestamp.id, "line"))] : [],
+      ),
+    );
     for (const [address, types] of drawn) {
       const keys = listed.get(address) ?? [];
       expect([...new Set(types)], address).toEqual([...new Set(keys)]);
-      expect(types.length, address).toBeLessThanOrEqual(keys.length);
+      if (!grouped.has(address)) expect(types.length, address).toBeLessThanOrEqual(keys.length);
     }
   });
 });
