@@ -62,7 +62,7 @@ function matched(
       rules: [...(graphical.rules ?? []), ...rules],
       timestamps: [
         ...(graphical.timestamps ?? []),
-        ...timestamps.map((timestamp) => ({ ...timestamp, matchstamp: true })),
+        ...timestamps.map((timestamp) => ({ ...timestamp, matchstamp: true, groupstamp: false })),
       ],
       matchstamps: [...stamps],
     },

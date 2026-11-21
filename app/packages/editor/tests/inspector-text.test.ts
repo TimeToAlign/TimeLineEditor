@@ -134,12 +134,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 49, 11 and 14 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 49, 12 and 14 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([49, 11, 14]);
+    ]).toEqual([49, 12, 14]);
   });
 
   for (const name of fixtureNames) {
@@ -429,8 +429,8 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 107, 17],
-      ["syntax_error", 91, 5],
+      ["syntax_error", 109, 17],
+      ["syntax_error", 93, 5],
       ["syntax_error", 17, 1],
     ]);
     expect(store.journal).toHaveLength(1);

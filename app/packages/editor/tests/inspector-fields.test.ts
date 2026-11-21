@@ -206,6 +206,7 @@ describe("the name field among named MatchStamps", () => {
       coordinate: 99225,
       display: ["name", "cross_section"],
       matchstamp: true,
+      groupstamp: false,
     });
   });
 });

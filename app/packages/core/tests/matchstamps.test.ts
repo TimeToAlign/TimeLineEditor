@@ -38,6 +38,7 @@ const match = (id: string, timeline: string, coordinate: unknown) => ({
   coordinate,
   display: ["cross_section"],
   matchstamp: true,
+  groupstamp: false,
 });
 /** The fixture's timestamp `id`. */
 const ts = (id: string): NamedTimestamp => {
@@ -457,6 +458,7 @@ describe("updating a named MatchStamp", () => {
                 coordinate: 99225,
                 display: ["name", "cross_section"],
                 matchstamp: true,
+                groupstamp: false,
               }
             : item,
         ),

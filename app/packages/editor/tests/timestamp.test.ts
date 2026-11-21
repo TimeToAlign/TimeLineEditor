@@ -801,6 +801,7 @@ describe("the format switch", () => {
         "{",
         '  "coordinate": [0, 1],',
         '  "display": ["wedge", "coordinate"],',
+        '  "groupstamp": false,',
         '  "id": "timestamp_1",',
         '  "mapping": {',
         '    "cmap_1": null',
@@ -818,6 +819,7 @@ describe("the format switch", () => {
       [
         "coordinate = [ 0, 1 ]",
         'display = [ "wedge", "coordinate" ]',
+        "groupstamp = false",
         'id = "timestamp_1"',
         "matchstamp = false",
         'name = "origin"',
@@ -840,6 +842,7 @@ describe("the format switch", () => {
       [
         "coordinate = [ 4, 1 ]",
         'display = [ "wedge", "name", "cross_section" ]',
+        "groupstamp = false",
         'id = "timestamp_5"',
         "matchstamp = false",
         'name = "Theme"',
@@ -1198,6 +1201,7 @@ describe("a named timestamp's MeasureMaps", () => {
         "{",
         '  "coordinate": [6, 1],',
         '  "display": ["wedge", "name", "cross_section"],',
+        '  "groupstamp": false,',
         '  "id": "timestamp_5",',
         '  "mapping": {',
         '    "cmap_1": {',
@@ -1222,6 +1226,7 @@ describe("a named timestamp's MeasureMaps", () => {
       [
         "coordinate: [6, 1]",
         "display: [wedge, name, cross_section]",
+        "groupstamp: false",
         "id: timestamp_5",
         "mapping:",
         "  cmap_1:",
@@ -1247,6 +1252,7 @@ describe("a named timestamp's MeasureMaps", () => {
         'name = "Bar two"',
         'display = [ "wedge", "name", "cross_section" ]',
         "matchstamp = false",
+        "groupstamp = false",
         "",
         "[mapping]",
         "",

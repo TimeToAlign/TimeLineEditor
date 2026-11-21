@@ -187,6 +187,7 @@ function placedTimestamps(
       coordinate: given.coordinate,
       display,
       matchstamp: true,
+      groupstamp: false,
     });
     return id;
   };
