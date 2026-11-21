@@ -1101,7 +1101,7 @@ which no position solves).
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
 
-## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`)
+## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`, `matchclaim-beliefs.test.ts`)
 
 The anchor index, the belief mask, the comparison of a named MatchStamp
 with the table and every MatchStamp command are core's, the answer's
@@ -1166,10 +1166,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    Update shown, Remove offered.
 5. **MatchClaims and beliefs.** Each MatchClaim lists every actor's belief
    (`claim_4`: "tag:example.org,2026:other: true") and the buttons True,
-   Unlikely, False, the user's own belief pressed (`claim_5`: True), every
-   button disabled with the title saying that it needs saving MatchClaims
-   through the server; a recorded MatchClaim the table lacks reads "not in
-   the MatchClaim table", and without a table "no table loaded".
+   Unlikely, False, the user's own belief pressed (`claim_5`: True); without
+   a server every button is disabled with the title "Matches need a server:
+   …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
+   table", and without a table "no table loaded".
 6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
    `cpt_1`, `dpt_1`) checked and the two belief choices; unchecking
    `cpt_1` configures `{timelines: ["clt_1", "clt_2", "dpt_1"], belief:
@@ -1210,6 +1210,45 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    any other failure each have their message. Opening another workspace
    drops every table; the workspace file never holds one (its text equals
    the text without the table).
+
+10. **Provenance on demand** (`matchclaim-beliefs.test.ts`, the server
+    stubbed as an object answering the three calls and recording each
+    call). The provenance answers are written in the test: `claim_1` made
+    by the service `https://example.org/aligner`, `imported`, on
+    2026-11-20; `claim_2` without provenance. Showing the potential
+    MatchStamp of `clt_1` 0 asks for the provenance of exactly
+    `["claim_1", "claim_2"]` (its MatchClaims, never another row), with
+    the manifest as its file writes it and the file the block holds; while
+    the answer is pending each MatchClaim reads "Reading the provenance…";
+    then `claim_1` lists "Date 2026-11-20", "Method imported", "Service
+    https://example.org/aligner" in that order and `claim_2` "No provenance
+    entry: the table states none for it."; the other actor's belief in
+    `claim_4`, recorded with the date 2026-11-21 and the note "seen in the
+    score", reads "tag:example.org,2026:other: true, 2026-11-21 “seen in
+    the score”". Showing the same MatchStamp again from the same table asks
+    nothing more; a refused request reads "The provenance could not be
+    read: <the server's message>", and the next showing asks again. Without
+    a server nothing is asked.
+11. **A belief.** With a server the buttons are enabled. Pressing False on
+    `claim_2` sends exactly one belief, `{claim: "claim_2", actor: the
+    user's IRI, belief: "false", date: today as YYYY-MM-DD}`, with the
+    manifest's text and the held file, then reads the answered file through
+    the table route (the same manifest text, the answered `Blob`); the block
+    then holds that table and file, marked changed: the status reads
+    "match_claims.parquet: 5 MatchClaims, changed" and "Save MatchClaims…"
+    is offered; the journal is as long as before (nothing is written into
+    the workspace). The tab follows the MatchStamp into the new table: the
+    stub answers the table with the user's `false` in `claim_2`, so under
+    the default filter the MatchStamp of `clt_1` 0 is {`clt_1` 0, `dpt_1`
+    0}, the potential MatchStamp reported is that one of the new table's
+    shown index, and the message says "Recorded your belief false in
+    claim_2; Save MatchClaims… keeps it.". Pressing the user's own belief
+    (True on `claim_5`) sends nothing. A refused belief warns "Your belief
+    in claim_2 was not recorded: <the problems, each with its row>" and the
+    block keeps its table unchanged. "Save MatchClaims…" downloads the held
+    file under the table's name (`match_claims.parquet`, its bytes
+    unchanged, the Parquet media type) where the browser has no save
+    picker; the table is then no longer changed and the button is gone.
 
 The Timestamp tab lists, for a match timestamp, the MatchStamps naming it
 in a list "MatchStamps" ("Downbeat matchstamp_1" for `timestamp_1`); an

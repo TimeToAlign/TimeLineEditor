@@ -18,8 +18,6 @@ import { informing, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const NO_SERVER = "Matches need a server: MatchClaim tables are read through tilie-server.";
-const NO_ROUTE =
-  "Needs saving MatchClaims through the server, which no route does yet: the MatchClaim table is never written here.";
 
 let mounted: ReturnType<typeof mount> | null = null;
 
@@ -32,7 +30,9 @@ afterEach(() => {
 /** Tables held without a server, `table` as block A's when given. */
 function tablesWith(table: MatchClaimTable | null): MatchClaimTables {
   const tables = new MatchClaimTables(null);
-  if (table !== null) tables.hold(A, { name: "match_claims.parquet", table });
+  if (table !== null) {
+    tables.hold(A, { name: "match_claims.parquet", table, file: new Blob([]), changed: false });
+  }
   return tables;
 }
 
@@ -209,7 +209,7 @@ describe("a named MatchStamp", () => {
 });
 
 describe("MatchClaims and beliefs", () => {
-  it("lists the beliefs and the user's own, every belief button disabled", () => {
+  it("lists the beliefs and the user's own, every belief button disabled without a server", () => {
     const store = storeOf(tableManifest());
     const table = matchTable();
     const { shown } = matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME);
@@ -233,9 +233,9 @@ describe("MatchClaims and beliefs", () => {
         item.title,
       ]),
     ).toEqual([
-      ["True", "true", true, NO_ROUTE],
-      ["Unlikely", "false", true, NO_ROUTE],
-      ["False", "false", true, NO_ROUTE],
+      ["True", "true", true, NO_SERVER],
+      ["Unlikely", "false", true, NO_SERVER],
+      ["False", "false", true, NO_SERVER],
     ]);
   });
 });

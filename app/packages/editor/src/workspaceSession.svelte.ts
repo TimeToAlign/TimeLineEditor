@@ -17,7 +17,6 @@ import {
   NOTHING_SELECTED,
   selectionOf,
 } from "@timetoalign/tilie-arranger";
-import type { Server } from "@timetoalign/tilie-client";
 import type { Address, LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -49,7 +48,11 @@ import {
   workspaceFileName,
 } from "./files.ts";
 import { fileNameOf, namedTable } from "./inspector/matchstamps.ts";
-import { MATCHES_NEED_A_SERVER, MatchClaimTables } from "./matchClaims.svelte.ts";
+import {
+  MATCHES_NEED_A_SERVER,
+  type MatchClaimServer,
+  MatchClaimTables,
+} from "./matchClaims.svelte.ts";
 import { messageOf } from "./messages.svelte.ts";
 
 /** A workspace file the reader refused, with its problems. */
@@ -85,7 +88,7 @@ export interface SessionOptions {
   /** The user's name, every store's author from its creation. */
   readonly author: () => string;
   /** The server MatchClaim tables are read through; without it (the default) none is read. */
-  readonly matchClaims?: Pick<Server, "matchClaims"> | null;
+  readonly matchClaims?: MatchClaimServer | null;
 }
 
 /** Whether two selections name the same addresses. */

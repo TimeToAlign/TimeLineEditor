@@ -7,19 +7,21 @@
  * text in JSON, YAML or TOML with one Copy. **Properties**: the name (naming
  * a potential MatchStamp stores it), each alignment anchor with its `line`
  * and `name` toggles (an anchor the current table no longer states marked
- * red), the MatchClaims behind it with every actor's belief and the user's
- * own (true, unlikely, false: shown, not yet written, since the MatchClaim
- * table is written only through the server and no route takes a belief),
- * what differs from the current table when a named MatchStamp is out of
- * date, and Update and Remove. **MatchClaim filter**, at the pane's bottom:
- * the block's table (Load MatchClaims…, read through the server), its
- * timelines and the belief filter, stored per block in the workspace's
- * settings. A MatchStamp command first closes every group and timeline
+ * red), the MatchClaims behind it, each with its provenance (how it was
+ * made, read through the server for these MatchClaims only), every actor's
+ * belief and the user's own (true, unlikely, false: recorded through the
+ * server, which answers the new table), what differs from the current
+ * table when a named MatchStamp is out of date, and Update and Remove.
+ * **MatchClaim filter**, at the pane's bottom: the block's table (Load
+ * MatchClaims…, read through the server; once a belief changed it, Save
+ * MatchClaims… saves the new file, never the workspace), its timelines and
+ * the belief filter, stored per block in the workspace's settings. A MatchStamp command first closes every group and timeline
  * editor, and a bundle editor of another block, since an editor changes
  * nothing outside what it edits.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import { drawingOf } from "@timetoalign/tilie-arranger";
+import type { BeliefWord } from "@timetoalign/tilie-client";
 import type {
   AnchorDisplay,
   BeliefFilter,
@@ -30,10 +32,11 @@ import type {
 } from "@timetoalign/tilie-core";
 import { matchClaimFilterOf } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
-import { MATCH_CLAIM_TABLE, openFiles } from "../files.ts";
+import { MATCH_CLAIM_TABLE, openFiles, saveFile } from "../files.ts";
 import type { MatchClaimTables } from "../matchClaims.svelte.ts";
-import { MATCHES_NEED_A_SERVER } from "../matchClaims.svelte.ts";
+import { MATCHES_NEED_A_SERVER, provenanceFailure } from "../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../messages.svelte.ts";
+import { beliefRows, beliefText, entryOf, followedMatch, paradataRows } from "./claimProvenance.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "./formats.svelte.ts";
@@ -55,6 +58,7 @@ import {
   stampText,
   updateCommand,
 } from "./matchstamps.ts";
+import { dayOf } from "./metadata/edits.ts";
 import type { HeldMatch } from "./tabs.ts";
 
 interface Props {
@@ -83,17 +87,16 @@ const HINT =
 const UNNAMED = "Naming the MatchStamp stores it; then its anchors' display can be set.";
 const NAME_PLACEHOLDER = "Type a name to keep it";
 const EMPTY_NAME = "A named MatchStamp keeps a name; Remove deletes it.";
-const NO_BELIEF_ROUTE =
-  "Needs saving MatchClaims through the server, which no route does yet: the MatchClaim table is never written here.";
+const NO_PROVENANCE = "No provenance entry: the table states none for it.";
 const NO_UPDATE =
   "None of its anchors is stated by the current table, so there is nothing to update from.";
 
 /** The words of the belief buttons, in the order shown. */
-const BELIEF_BUTTONS = [
+const BELIEF_BUTTONS: readonly { readonly belief: BeliefWord; readonly label: string }[] = [
   { belief: "true", label: "True" },
   { belief: "unlikely", label: "Unlikely" },
   { belief: "false", label: "False" },
-] as const;
+];
 
 /** The toggles of an anchor's display. */
 const ANCHOR_TOGGLES: readonly { readonly word: AnchorDisplay; readonly label: string }[] = [
@@ -153,6 +156,12 @@ const rows = $derived(
 const claims = $derived(
   stamp === null ? [] : claimLines(loaded?.table ?? null, stamp.claims, believer),
 );
+/** The provenance of the MatchClaims the table holds, read through the server; `null` without a server or table. */
+const provenance = $derived.by(() => {
+  if (stamp === null || manifest === undefined) return null;
+  const held = claims.filter((claim) => claim.held).map((claim) => claim.id);
+  return held.length === 0 ? null : tables.provenance(stamp.block, manifest, held);
+});
 const differences = $derived(
   named === null || comparison === null || indexes === null || manifest === undefined
     ? []
@@ -253,6 +262,46 @@ function remove(): void {
   if (send("remove", stamp.block, removeCommand(stamp.block, stamp.id))) onmatch(null);
 }
 
+// --- Beliefs ----------------------------------------------------------------
+
+/** Whether a belief is being recorded: the belief buttons wait for it. */
+let believing = $state(false);
+
+/**
+ * Record the user's belief `belief` in the MatchClaim `claim` through the
+ * server: the block then holds the new table, marked changed, and the tab
+ * follows the MatchStamp into it. The user's own belief again records
+ * nothing.
+ */
+async function believe(claim: string, belief: BeliefWord, mine: BeliefWord | null): Promise<void> {
+  if (stamp === null || match === null || manifest === undefined || believing) return;
+  if (mine === belief) return;
+  const shown = stamp;
+  const held = match;
+  believing = true;
+  try {
+    const failure = await tables.believe(shown.block, manifest, {
+      claim,
+      actor: believer,
+      belief,
+      date: dayOf(new Date()),
+    });
+    if (failure !== null) {
+      warn(failure);
+      return;
+    }
+    const replaced = tables.of(shown.block);
+    const next =
+      replaced === null || filter === null
+        ? null
+        : followedMatch(held, shown, matchIndexes(replaced.table, filter, believer).shown);
+    if (next !== held) onmatch(next);
+    inform(`Recorded your belief ${belief} in ${claim}; Save MatchClaims… keeps it.`);
+  } finally {
+    believing = false;
+  }
+}
+
 // --- Coordinates ------------------------------------------------------------
 
 let shown: Shown = $state("editor");
@@ -325,6 +374,21 @@ function toggleTimeline(timeline: string): void {
 
 let loading = $state(false);
 
+/** Save the block's changed table, offered under its file's name. */
+async function saveTable(): Promise<void> {
+  if (blockId === null || loaded === null) return;
+  const id = blockId;
+  const saving = loaded;
+  try {
+    const saved = await saveFile(saving.file, MATCH_CLAIM_TABLE, saving.name);
+    if (saved === null) return;
+    tables.saved(id, saving);
+    inform(`Saved the MatchClaims as ${saved.name}.`);
+  } catch (error) {
+    warn(`The MatchClaims were not saved: ${messageOf(error)}`);
+  }
+}
+
 /** Let the viewer pick the block's MatchClaim table and read it through the server. */
 async function loadTable(): Promise<void> {
   if (blockId === null || manifest === undefined) return;
@@ -344,6 +408,21 @@ async function loadTable(): Promise<void> {
   }
 }
 </script>
+
+{#snippet beliefList(
+  lines: Parameters<typeof beliefRows>[0],
+  entry: Parameters<typeof beliefRows>[1],
+)}
+  <ul class="beliefs" aria-label="Beliefs">
+    {#each beliefRows(lines, entry) as line (line.actor)}
+      <li class="belief">
+        {beliefText(line)}
+      </li>
+    {:else}
+      <li class="hint">nobody states a belief</li>
+    {/each}
+  </ul>
+{/snippet}
 
 {#snippet copyIcon()}
   <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
@@ -479,24 +558,46 @@ async function loadTable(): Promise<void> {
             {#if !claim.held}
               <span class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</span>
             {:else}
-              <span class="beliefs">
-                {#each claim.beliefs as line (line.actor)}
-                  <span class="belief">{line.actor}: {line.belief}</span>
-                {:else}
-                  <span class="hint">nobody states a belief</span>
-                {/each}
-              </span>
               <span class="toggles" role="group" aria-label="Your belief in {claim.id}">
                 {#each BELIEF_BUTTONS as button (button.belief)}
                   <button
                     type="button"
                     class="toggle"
                     aria-pressed={claim.mine === button.belief}
-                    disabled
-                    title={NO_BELIEF_ROUTE}>{button.label}</button
+                    disabled={!tables.connected || believing}
+                    title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
+                    onclick={() => believe(claim.id, button.belief, claim.mine)}
+                    >{button.label}</button
                   >
                 {/each}
               </span>
+              {#if provenance === null}
+                {@render beliefList(claim.beliefs, undefined)}
+              {:else}
+                {#await provenance}
+                  {@render beliefList(claim.beliefs, undefined)}
+                  <span class="hint" role="status">Reading the provenance…</span>
+                {:then read}
+                  {@const entry = entryOf(read, claim.id)}
+                  {@render beliefList(claim.beliefs, entry)}
+                  {#if entry === null}
+                    <span class="hint no-provenance">{NO_PROVENANCE}</span>
+                  {:else if entry !== undefined}
+                    {@const rows = paradataRows(entry)}
+                    {#if rows.length > 0}
+                      <dl class="paradata" aria-label="How {claim.id} was made">
+                        {#each rows as row (row.label)}
+                          <dt>{row.label}</dt>
+                          <dd>{row.text}</dd>
+                        {/each}
+                      </dl>
+                    {/if}
+                  {/if}
+                {:catch error}
+                  {@render beliefList(claim.beliefs, undefined)}
+                  <span class="problem" role="status">{provenanceFailure(error)}</span>
+                {/await}
+              {/if}
             {/if}
           </li>
         {/each}
@@ -541,8 +642,11 @@ async function loadTable(): Promise<void> {
           <span class="hint" data-testid="matchclaims-status">No MatchClaim table loaded.</span>
         {:else}
           <span data-testid="matchclaims-status"
-            >{loaded.name}: {loaded.table.columns.rows} MatchClaims</span
+            >{loaded.name}: {loaded.table.columns.rows} MatchClaims{#if loaded.changed}, changed{/if}</span
           >
+          {#if loaded.changed}
+            <button type="button" onclick={saveTable}>Save MatchClaims…</button>
+          {/if}
         {/if}
         <button
           type="button"
@@ -782,11 +886,25 @@ async function loadTable(): Promise<void> {
   }
 
   .beliefs {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
+    flex-basis: 100%;
+    gap: 0.1rem;
     color: #595959;
     font-size: 0.75rem;
+  }
+
+  .paradata {
+    display: grid;
+    flex-basis: 100%;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.1rem 0.75rem;
+    margin: 0;
+    color: #595959;
+    font-size: 0.75rem;
+  }
+
+  .paradata dd {
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .toggles {

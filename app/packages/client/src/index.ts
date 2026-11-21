@@ -5,12 +5,30 @@
  */
 
 import {
+  type ClaimProvenance,
+  isParquet,
+  MALFORMED_BELIEF_ANSWER,
+  MALFORMED_PROVENANCE,
+  PARQUET_MEDIA_TYPE,
+  parametersRequest,
+  provenanceOf,
+  type StatedBelief,
+} from "./claimProvenance.ts";
+import {
   decodeMatchClaims,
   MALFORMED_MATCH_CLAIMS,
   type MatchClaimTable,
   matchClaimsRequest,
 } from "./matchClaims.ts";
 
+export type {
+  BeliefWord,
+  ClaimBelief,
+  ClaimProvenance,
+  ClaimProvenanceEntry,
+  StatedBelief,
+} from "./claimProvenance.ts";
+export { PARQUET_MEDIA_TYPE } from "./claimProvenance.ts";
 export type { MatchClaimTable } from "./matchClaims.ts";
 
 export const name = "@timetoalign/tilie-client" as const;
@@ -127,6 +145,26 @@ export interface Server {
    * server refuses the table.
    */
   matchClaims(manifest: string, table: Blob): Promise<MatchClaimTable>;
+  /**
+   * The provenance of the MatchClaims `claims` of a package's table, in
+   * that order: one request for them, the manifest's text and the table's
+   * file, the table checked by the server as `matchClaims` has it checked.
+   * Rejects with a `ServerError`, whose `refusal` says what the server
+   * refused (a MatchClaim the table lacks at `["claims", <index>]`).
+   */
+  matchClaimProvenance(
+    manifest: string,
+    table: Blob,
+    claims: readonly string[],
+  ): Promise<readonly ClaimProvenance[]>;
+  /**
+   * The table with `belief` recorded: the new `match_claims.parquet`, a
+   * `Blob` of the Parquet media type, as the server wrote it after checking
+   * it against the manifest and against `table` by the succession rule.
+   * Nothing is stored on the server. Rejects with a `ServerError`, whose
+   * `refusal` says what the server refused.
+   */
+  believeMatchClaim(manifest: string, table: Blob, belief: StatedBelief): Promise<Blob>;
 }
 
 /** The message of a health answer that is not `{name, version, timetoalign}`, each a string. */
@@ -335,6 +373,40 @@ export function connect({ url, token }: ConnectOptions): Server {
         throw new ServerError("status", response.status, MALFORMED_MATCH_CLAIMS);
       }
       return decoded;
+    },
+    async matchClaimProvenance(manifest, table, claims) {
+      const asked = [...claims];
+      const response = await request(
+        "match-claims/provenance",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: parametersRequest({ claims: asked }, manifest, table),
+        },
+        true,
+      );
+      return answer(response, (body) => provenanceOf(body, asked), MALFORMED_PROVENANCE);
+    },
+    async believeMatchClaim(manifest, table, { claim, actor, belief, date }) {
+      const response = await request(
+        "match-claims/belief",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: parametersRequest({ claim, actor, belief, date }, manifest, table),
+        },
+        true,
+      );
+      let file: ArrayBuffer;
+      try {
+        file = await response.arrayBuffer();
+      } catch (cause) {
+        throw new ServerError("status", response.status, MALFORMED_BELIEF_ANSWER, cause);
+      }
+      if (!isParquet(new Uint8Array(file))) {
+        throw new ServerError("status", response.status, MALFORMED_BELIEF_ANSWER);
+      }
+      return new Blob([file], { type: PARQUET_MEDIA_TYPE });
     },
   };
 }
