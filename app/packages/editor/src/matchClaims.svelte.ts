@@ -179,6 +179,14 @@ export function manifestTitle(manifest: Manifest): string {
   return manifest.name ?? manifest.id ?? "The manifest";
 }
 
+/**
+ * Whether the location `url` is an absolute `http` or `https` URL: fetched
+ * as it stands, never looked for beside a manifest.
+ */
+function isWebUrl(url: string): boolean {
+  return /^https?:\/\//iu.test(url);
+}
+
 /** The file at the URL `text` (absolute, or relative to the page), named by its last part. */
 async function fetched(text: string): Promise<TableFile> {
   let url: URL;
@@ -366,7 +374,8 @@ export class MatchClaimTables {
   /**
    * The question for the table of block `block`, as `places` reaches the
    * server's files (`null`: a file of the user's system): with a `source`
-   * of its manifest, its table's file; without one, where the manifest lies.
+   * of its manifest, its table's file, missing beside it; without one,
+   * where the manifest lies.
    */
   #question(
     block: string,
@@ -385,6 +394,20 @@ export class MatchClaimTables {
     };
   }
 
+  /**
+   * The question for the table of block `block` that is missing from no
+   * place: its file, on the user's system without the server's files
+   * (`places` `null`), else located in the file dialog near the manifest.
+   */
+  #tableQuestion(block: string, places: ManifestPlaces | null): TableQuestion {
+    if (places === null) return { kind: "file" };
+    return {
+      kind: "table",
+      missing: null,
+      locate: () => places.choose([MATCH_CLAIM_TABLE], places.pathOf(block)),
+    };
+  }
+
   /** Forget every table and where every manifest came from: another workspace was opened. */
   clear(): void {
     this.#tables.clear();
@@ -394,22 +417,29 @@ export class MatchClaimTables {
   /**
    * Load the MatchClaim table block `block`'s manifest `manifest` names,
    * when it names one and the block holds none (what Show matches asks):
-   * from where the manifest came from (`#sourceOf`) where it lies there,
-   * silently, else as the user chooses it in one question (`#question`;
-   * cancelled, it is left), read through the server (`load`). What the
-   * message bar says of it: nothing without a server, which Show matches
-   * says itself.
+   * named by an absolute `http` or `https` URL, fetched from there;
+   * otherwise from where the manifest came from (`#sourceOf`) where it lies
+   * there; either silently, else as the user chooses it in one question
+   * (`#tableQuestion` after a URL, else `#question`; cancelled, it is
+   * left), read through the server (`load`). What the message bar says of
+   * it: nothing without a server, which Show matches says itself.
    */
   async loadNamed(block: string, manifest: Manifest): Promise<TableMessages> {
     const url = namedTable(manifest);
     if (this.#server === null || this.of(block) !== null || url === null) return NO_MESSAGES;
     const places = this.#places();
-    const source = this.#sourceOf(block, places);
     const warned: string[] = [];
-    const reached = source === null ? null : await this.#read(source, url, warned);
-    const taken =
-      reached ??
-      (await this.#chosen(block, manifest, url, this.#question(block, places, source), warned));
+    let reached: TableFile | null;
+    let question: TableQuestion;
+    if (isWebUrl(url)) {
+      reached = await this.#fetchedTable(url, warned);
+      question = this.#tableQuestion(block, places);
+    } else {
+      const source = this.#sourceOf(block, places);
+      reached = source === null ? null : await this.#read(source, url, warned);
+      question = this.#question(block, places, source);
+    }
+    const taken = reached ?? (await this.#chosen(block, manifest, url, question, warned));
     return this.#take(block, manifest, taken, warned);
   }
 
@@ -423,17 +453,19 @@ export class MatchClaimTables {
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
     if (this.#server === null) return { informed: [], warned: [MATCHES_NEED_A_SERVER] };
     const warned: string[] = [];
-    const places = this.#places();
-    const question: TableQuestion =
-      places === null
-        ? { kind: "file" }
-        : {
-            kind: "table",
-            missing: null,
-            locate: () => places.choose([MATCH_CLAIM_TABLE], places.pathOf(block)),
-          };
+    const question = this.#tableQuestion(block, this.#places());
     const chosen = await this.#chosen(block, manifest, namedTable(manifest), question, warned);
     return this.#take(block, manifest, chosen, warned);
+  }
+
+  /** The table at the URL `url`; `null` where (said in `warned`) it cannot be fetched. */
+  async #fetchedTable(url: string, warned: string[]): Promise<TableFile | null> {
+    try {
+      return await fetched(url);
+    } catch (error) {
+      warned.push(messageOf(error));
+      return null;
+    }
   }
 
   /** The table at `url` from `source`; `null` where it holds none, or (said in `warned`) cannot be read. */

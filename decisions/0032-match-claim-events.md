@@ -74,14 +74,19 @@ order, or with a member missing, unknown or of another type. The editor
 MatchClaims it shows with the manifest as its file writes it and the
 MatchClaim table it holds, once per table and list of MatchClaims.
 
-**Where the editor takes the table from.** A block remembers where its
-manifest came from for the session (`ManifestSource`), never in the
-workspace file. Where the table can be read beside the manifest (a
-fixture served beside it, a folder the user chose) it is taken from
-there; otherwise the editor asks the user, in one dialog per manifest, for
-the table's file or URL. A URL is fetched by the browser, at the user's
-request, as any page would; one the browser may not read (no CORS
-permission) is reported as not loaded.
+**Where the editor takes the table from.** A table the manifest names by
+an absolute `http` or `https` URL is fetched from there. One named by a
+location relative to the manifest is read beside the manifest's file:
+the workspace keeps where each block's manifest lies (its location
+relative to the workspace file), and the editor reads the table through
+the server's file route (decision 0033); an example's manifest is read
+beside the files served with it. Where the table cannot be found so (no
+server, a manifest whose file the workspace does not locate, a table
+missing beside it, a URL that cannot be fetched), the editor asks the
+user, in one dialog per manifest, for the manifest's file, the table's
+file or its URL; a manifest's file located in the dialog is kept in the
+workspace. A URL is fetched by the browser as any page would; one the
+browser may not read (no CORS permission) is reported as not loaded.
 
 Amended 2026-11-21: the route took, between the parameters and the table
 route's body, the Projections table behind its length (0 for none), and
@@ -92,6 +97,13 @@ the match display needs. The request lost that part and the answer those
 two members; the editor's dialog asks for the MatchClaim table alone. A
 manifest naming a Projections table keeps its `resources` entry unchanged:
 the editor neither reads nor drops it.
+
+Amended again 2026-11-21: the editor took the table only from where a
+block's manifest came from in the session, never remembered, or else from
+the dialog. Since the server opens the user's files by path (decision
+0033), the workspace keeps where each manifest lies and the table is read
+beside it through the server in every session; a table named by an
+absolute URL is fetched without a question.
 
 ## Maintenance and dependencies
 
@@ -117,4 +129,8 @@ cost is local: the route, the client's call and the editor's accessor.
 
 ## Review date
 
-2027-05-21, or when packages open as folders through the server.
+2027-05-21, or when the editor saves MatchClaim tables through the server.
+Reviewed 2026-11-21, when packages came to open as folders through the
+server (decision 0033), the condition this date first named: the route
+stands, since the editor still sends the table it holds, which after a
+belief differs from the file until the user saves it.

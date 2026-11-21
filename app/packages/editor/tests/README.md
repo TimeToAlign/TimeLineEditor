@@ -1953,6 +1953,22 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      "step1.match_claims.parquet is not beside step1.yaml.".
    - A path the server refuses (`{path: "gone.parquet"}`, 404 "no such
      file") warns "gone.parquet could not be read: no such file".
+   - A manifest naming its MatchClaim table by an absolute URL
+     (`https://example.org/p/step1.match_claims.parquet`, and the same
+     with `http://`), its file located at `story/step1.yaml`: the URL is
+     fetched (`fetch` stubbed, called once with exactly that URL), the
+     server reads nothing, nothing is asked, and the table is loaded under
+     `step1.match_claims.parquet`, the messages exactly `{informed:
+     ["Loaded the MatchClaims of step1.match_claims.parquet."], warned:
+     []}`. The URL is fetched whatever the block's source: a block located
+     with a source (an example's) reads nothing from it either. A URL
+     answered 404 warns
+     "https://example.org/p/step1.match_claims.parquet could not be read:
+     404 Not Found" and asks once, as Load MatchClaims… asks (`{kind:
+     "table", missing: null}`, so the dialog's title is the plain "Load
+     the MatchClaim table of LayerIt", never "… is not beside …"); the
+     server still reads nothing, and cancelled, nothing is loaded. A
+     relative location is read beside the manifest as above.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). Asked for the MatchClaim table of
