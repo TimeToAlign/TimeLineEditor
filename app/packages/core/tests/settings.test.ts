@@ -7,7 +7,12 @@ import { isSessionEntry } from "../src/workspace/sessions.ts";
 import type { SettingsChange, Store } from "../src/workspace/store.ts";
 import { createStore, replay } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
-import { createView, manifestFileOf } from "../src/workspace/view.ts";
+import {
+  createView,
+  DEFAULT_MATCH_CLAIM_FILTER,
+  manifestFileOf,
+  matchClaimFilterOf,
+} from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
 const empty = () => ({ view: createView(), journal: [], sessions: {} });
@@ -284,6 +289,81 @@ describe("how each block's manifest is written", () => {
     // The values are wrong on purpose: the store checks what an untyped caller gives.
     const refused = store.configure({ manifests } as SettingsChange);
     expect(refused && { code: refused.code, path: refused.path }).toEqual({ code, path });
+    expect(store.view).toBe(view);
+  });
+});
+
+describe("which MatchClaims a block shows", () => {
+  const FILTER = { timelines: ["take_1", "score"], belief: "true" } as const;
+  const HELD = { timelines: ["score", "take_1"], belief: "true" };
+
+  it("holds no entry in a new workspace, a block without one showing every MatchClaim not believed false", () => {
+    expect(createView().settings.matchClaimFilters).toEqual({});
+    expect(DEFAULT_MATCH_CLAIM_FILTER).toEqual({ timelines: null, belief: "not_false" });
+    expect(matchClaimFilterOf(createView().settings, A)).toBe(DEFAULT_MATCH_CLAIM_FILTER);
+  });
+
+  it("is set block by block outside the journal, each entry whole, its timelines by code point", () => {
+    const { store } = threeEntries();
+    const journal = store.journal;
+    expect(store.configure({ matchClaimFilters: { [A]: FILTER } })).toBeNull();
+    expect(store.journal).toEqual(journal);
+    expect(matchClaimFilterOf(store.view.settings, A)).toEqual(HELD);
+    expect(matchClaimFilterOf(store.view.settings, B)).toBe(DEFAULT_MATCH_CLAIM_FILTER);
+    const entry = store.view.settings.matchClaimFilters[A];
+    const other = { timelines: null, belief: "not_false" } as const;
+    expect(store.configure({ matchClaimFilters: { [B]: other } })).toBeNull();
+    expect(store.view.settings.matchClaimFilters[A]).toEqual(entry);
+    const settings = store.view.settings;
+    const same = { timelines: ["score", "take_1"], belief: "true" } as const;
+    expect(store.configure({ matchClaimFilters: { [A]: same } })).toBeNull();
+    expect(store.view.settings).toBe(settings);
+  });
+
+  it.each<[string, unknown, readonly (string | number)[], string, string]>([
+    [
+      "a belief filter it does not know",
+      { [A]: { ...FILTER, belief: "maybe" } },
+      ["settings", "matchClaimFilters", A, "belief"],
+      "invalid_value",
+      'expected "not_false" or "true"',
+    ],
+    [
+      "timelines that are no list",
+      { [A]: { ...FILTER, timelines: "score" } },
+      ["settings", "matchClaimFilters", A, "timelines"],
+      "invalid_value",
+      "expected null or a list of timeline IDs",
+    ],
+    [
+      "a timeline listed twice",
+      { [A]: { ...FILTER, timelines: ["score", "score"] } },
+      ["settings", "matchClaimFilters", A, "timelines", 1],
+      "invalid_value",
+      "'score' is listed twice",
+    ],
+    [
+      "an entry without its belief filter",
+      { [A]: { timelines: null } },
+      ["settings", "matchClaimFilters", A, "belief"],
+      "missing_member",
+      "missing member belief",
+    ],
+    [
+      "a key that is no block ID",
+      { A: FILTER },
+      ["settings", "matchClaimFilters", "A"],
+      "invalid_block_id",
+      "invalid block id 'A'",
+    ],
+  ])("refuses %s at its path", (_, matchClaimFilters, path, code, message) => {
+    const { store } = threeEntries();
+    const view = store.view;
+    // The values are wrong on purpose: the store checks what an untyped caller gives.
+    const refused = store.configure({ matchClaimFilters } as SettingsChange);
+    expect(refused && { code: refused.code, message: refused.message, path: refused.path }).toEqual(
+      { code, message, path },
+    );
     expect(store.view).toBe(view);
   });
 });

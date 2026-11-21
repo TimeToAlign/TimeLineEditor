@@ -11,12 +11,13 @@ function viewWith(...blocks: Block[]): View {
 }
 
 describe("workspace creation", () => {
-  it("defaults blocks to the drawing's placement defaults and scale 1, the granularity to 1/2520 and 3 places, and states no manifest file", () => {
+  it("defaults blocks to the drawing's placement defaults and scale 1, the granularity to 1/2520 and 3 places, and states no manifest file and no MatchClaim filter", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       granularity: { denominator: 2520, decimals: 3 },
       manifests: {},
+      matchClaimFilters: {},
     });
   });
 

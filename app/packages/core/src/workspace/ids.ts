@@ -36,6 +36,12 @@ export const TIMELINE_PREFIX = {
 /** The prefix of a named timestamp's ID (`timestamp_N`), which `add` mints. */
 export const TIMESTAMP_PREFIX = "timestamp";
 
+/** The prefix of a named MatchStamp's ID (`matchstamp_N`), which naming one mints. */
+export const MATCHSTAMP_PREFIX = "matchstamp";
+
+/** The prefix of an alignment anchor's ID (`anchor_N`), which naming or updating a MatchStamp mints. */
+export const ANCHOR_PREFIX = "anchor";
+
 /**
  * The smallest `{prefix}_{N}`, `N` counted from 1, that `taken` does not
  * hold: the ID an element added to a manifest is given, `taken` being the

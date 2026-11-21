@@ -1,5 +1,7 @@
+import { JsonFloat } from "@timetoalign/timetoshare";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { anchorValues } from "../src/commands/matchstamps.ts";
 import type { AnchorIndex } from "../src/matches/anchors.ts";
 import {
   anchorIndexOf,
@@ -702,6 +704,41 @@ describe("a named MatchStamp against the index", () => {
       claims: ["claim_1"],
       nameAnchor: null,
     });
+  });
+
+  it("updates from the largest current MatchStamp, though it holds no stated anchor", () => {
+    const check = checkMatchStamp(
+      index,
+      spec(
+        [
+          anchor(at("clt_1", q(1, 2)), at("dpt_1", 22050n)),
+          anchor(at("dpt_1", 176400n), at("cpt_1", 3.0), true),
+        ],
+        [],
+      ),
+    );
+    expect(check.stated).toEqual([2, null]);
+    expect(check.current).toEqual([2, 6, 7]);
+    expect(check.update).toEqual({
+      matchStamp: 6,
+      coordinates: Uint32Array.from([6, 16, 20]),
+      anchors: Uint32Array.from([6, 11]),
+      claims: ["claim_4", "claim_5", "claim_6"],
+      nameAnchor: null,
+    });
+  });
+
+  it("gives an index's anchors as a command gives them", () => {
+    expect(anchorValues(index, [6, 11])).toEqual([
+      [
+        { timeline: "clt_1", coordinate: [3, 1] },
+        { timeline: "dpt_1", coordinate: 132300 },
+      ],
+      [
+        { timeline: "dpt_1", coordinate: 132300 },
+        { timeline: "cpt_1", coordinate: new JsonFloat(3) },
+      ],
+    ]);
   });
 
   it("offers no Update when no anchor is stated", () => {

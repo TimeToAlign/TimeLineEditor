@@ -16,6 +16,8 @@ export const name = "@timetoalign/tilie-core" as const;
 
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
+export type { AnchorValue } from "./commands/matchstamps.ts";
+export { anchorValues, matchStampSpec } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
 export { importedManifest } from "./commands/timestamps.ts";
 export type {
@@ -125,6 +127,8 @@ export {
 } from "./manifest/statements.ts";
 export { findTimeline, isSegment } from "./manifest/tree.ts";
 export type {
+  AlignmentAnchor,
+  AnchorDisplay,
   AxisValue,
   ChildTimeline,
   ConversionMap,
@@ -133,6 +137,7 @@ export type {
   Manifest,
   ManifestGraphical,
   MeasureMap,
+  NamedMatchStamp,
   NamedTimestamp,
   ProvenanceEntry,
   Region,
@@ -265,12 +270,21 @@ export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace
 export { createStore } from "./workspace/store.ts";
 export type { User } from "./workspace/user.ts";
 export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
-export type { Granularity, View, WorkspaceSettings } from "./workspace/view.ts";
+export type {
+  BeliefFilter,
+  Granularity,
+  MatchClaimFilter,
+  View,
+  WorkspaceSettings,
+} from "./workspace/view.ts";
 export {
+  BELIEF_FILTERS,
   createView,
   DEFAULT_GRANULARITY,
+  DEFAULT_MATCH_CLAIM_FILTER,
   DEFAULT_SETTINGS,
   MAX_DECIMALS,
   manifestFileOf,
+  matchClaimFilterOf,
   UNTITLED_WORKSPACE,
 } from "./workspace/view.ts";

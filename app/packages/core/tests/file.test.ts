@@ -12,6 +12,7 @@ const JSON_TEXT = { serialization: "json" } as const;
 
 /** How block `A`'s manifest is written in the built workspace. */
 const A_FILE = { minimal: false, styling: false, serialization: "json" } as const;
+const A_FILTER = { timelines: ["melody"], belief: "true" } as const;
 
 /** The workspace's `graphical`: one rule. */
 const STYLED = {
@@ -37,6 +38,7 @@ function built(): Workspace {
   expect(store.configure({ grid: { size: 16, snap: false } })).toBeNull();
   expect(store.configure({ granularity: { denominator: 5 } })).toBeNull();
   expect(store.configure({ manifests: { [A]: A_FILE } })).toBeNull();
+  expect(store.configure({ matchClaimFilters: { [A]: A_FILTER } })).toBeNull();
   return store.snapshot();
 }
 
@@ -68,12 +70,14 @@ describe("the workspace file", () => {
       "granularity",
       "grid",
       "manifests",
+      "matchClaimFilters",
     ]);
     expect(value.settings).toEqual({
       grid: { size: 16, snap: false },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       granularity: { denominator: 5, decimals: 3 },
       manifests: { [A]: A_FILE },
+      matchClaimFilters: { [A]: { belief: "true", timelines: ["melody"] } },
     });
     expect(value.graphical).toEqual(STYLED);
     expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
@@ -333,6 +337,27 @@ describe("the workspace file", () => {
       }),
     );
     expect(kept.view.settings.manifests).toEqual({ [A]: A_FILE });
+    for (const shape of [undefined, []]) {
+      const lenient = read(
+        edited((value) => {
+          const settings = value.settings as Value;
+          if (shape === undefined) delete settings.matchClaimFilters;
+          else settings.matchClaimFilters = shape;
+        }),
+      );
+      expect(lenient.view.settings.matchClaimFilters).toEqual({});
+      expect({ ...lenient.view.settings, matchClaimFilters: null }).toEqual({
+        ...workspace.view.settings,
+        matchClaimFilters: null,
+      });
+    }
+    const filters = read(
+      edited((value) => {
+        const entries = { [A]: A_FILTER, [B]: { timelines: null, belief: "maybe" } };
+        (value.settings as Value).matchClaimFilters = entries;
+      }),
+    );
+    expect(filters.view.settings.matchClaimFilters).toEqual({ [A]: A_FILTER });
     const strict = readWorkspace(
       edited((value) => {
         const settings = value.settings as Value;

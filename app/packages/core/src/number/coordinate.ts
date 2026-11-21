@@ -170,7 +170,11 @@ export function axisCoordinate(
 
 /** A coordinate's bare value as a manifest writes it on its own axis, numbers as `parse` reads them. */
 export function toAxisValue(coordinate: Coordinate): AxisValue {
-  const { value } = coordinate;
+  return axisValueOf(coordinate.value);
+}
+
+/** An exact value as a manifest writes it on its own axis (`toAxisValue`). */
+export function axisValueOf(value: CoordinateValue): AxisValue {
   return value instanceof Rational
     ? [jsonInteger(value.numerator), jsonInteger(value.denominator)]
     : typeof value === "bigint"

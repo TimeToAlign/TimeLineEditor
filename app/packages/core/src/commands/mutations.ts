@@ -17,6 +17,7 @@ import type { Located } from "../manifest/tree.ts";
 import type {
   ChildTimeline,
   Manifest,
+  NamedMatchStamp,
   NamedTimestamp,
   TimelineManifest,
 } from "../manifest/types.ts";
@@ -153,7 +154,9 @@ function placedTimeline(manifest: Manifest, at: Located, timeline: TimelineManif
 
 /**
  * The named timestamps of `timeline` lying exactly at its end, in
- * canonical order; none where its length is unknown.
+ * canonical order, but its match timestamps, which stand for a coordinate
+ * the MatchClaims give and never follow a length; none where its length is
+ * unknown.
  */
 export function timestampsAtEnd(
   manifest: Manifest,
@@ -163,7 +166,8 @@ export function timestampsAtEnd(
   if (length === null) return [];
   const end = realOf(length);
   return namedTimestamps(manifest, timeline.id).filter(
-    ({ coordinate }) => compareReal(realOf(axisCoordinate(coordinate, timeline)), end) === 0,
+    ({ coordinate, matchstamp }) =>
+      !matchstamp && compareReal(realOf(axisCoordinate(coordinate, timeline)), end) === 0,
   );
 }
 
@@ -260,6 +264,18 @@ export function withTimestamps(
   timestamps: readonly NamedTimestamp[],
 ): Manifest {
   return { ...manifest, graphical: { ...manifest.graphical, timestamps } };
+}
+
+/**
+ * `manifest` with its named timestamps and its named MatchStamps replaced,
+ * its `graphical` object's other members kept (and created when it has none).
+ */
+export function withMatchStamps(
+  manifest: Manifest,
+  timestamps: readonly NamedTimestamp[],
+  matchstamps: readonly NamedMatchStamp[],
+): Manifest {
+  return { ...manifest, graphical: { ...manifest.graphical, timestamps, matchstamps } };
 }
 
 /** `object` with `key` set to `value`, or without `key` when `value` is undefined. */

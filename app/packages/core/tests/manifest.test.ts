@@ -122,6 +122,7 @@ describe("the minimal form in, either form out", () => {
       meta: {},
       groups: [],
       measure_maps: [],
+      resources: [],
       timelines: [root],
     });
   });
@@ -212,7 +213,13 @@ describe("graphical styles", () => {
     expect(saveManifest(manifest, COMPLETE)).toBe(text);
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
-    expect(Object.keys(graphical ?? {})).toEqual(["order", "rules", "styles", "timestamps"]);
+    expect(Object.keys(graphical ?? {})).toEqual([
+      "matchstamps",
+      "order",
+      "rules",
+      "styles",
+      "timestamps",
+    ]);
     const jump = graphical?.rules?.find((rule) => rule.select.element === "jump_from");
     expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
     expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(

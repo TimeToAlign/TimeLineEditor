@@ -4,7 +4,8 @@
  * block goes with every block whose `parent` chain reaches it; an element
  * takes along what `withoutElements` says goes with it. A segment (a child of
  * a segment line) cannot be removed unless it goes with another target
- * (`segment_not_removable`): it would leave a gap in its segment line.
+ * (`segment_not_removable`): it would leave a gap in its segment line. An
+ * alignment anchor is removed only with its MatchStamp (`not_removable`).
  */
 
 import type { CommandError } from "../errors.ts";
@@ -48,14 +49,17 @@ interface Removal {
 }
 
 /**
- * The ID of a group, measure map, timeline, entry or timestamp target;
- * `null` for the workspace or a block.
+ * The ID of a group, measure map, timeline, entry, timestamp or MatchStamp
+ * target; `null` for the workspace, a block or an alignment anchor.
  */
 function removalOf(target: Target): Removal | null {
   switch (target.kind) {
     case "workspace":
     case "block":
+    case "anchor":
       return null;
+    case "matchstamp":
+      return { element: target.matchstamp.id, line: null };
     case "group":
       return { element: target.group.id, line: null };
     case "measure_map":
@@ -88,6 +92,11 @@ export function applyRemove(
     if (isCommandError(target)) return target;
     if (target.kind === "workspace") {
       return problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [
+        addressKey(address),
+      ]);
+    }
+    if (target.kind === "anchor") {
+      return problem(ErrorCode.notRemovable, "an alignment anchor goes with its MatchStamp", [
         addressKey(address),
       ]);
     }

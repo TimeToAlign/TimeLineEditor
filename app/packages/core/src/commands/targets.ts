@@ -10,7 +10,7 @@ import { isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type { Group, MeasureMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
-import type { Address } from "../workspace/address.ts";
+import type { Address, AnchorFound, MatchStampFound } from "../workspace/address.ts";
 import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -77,6 +77,20 @@ export interface TimestampTarget {
   readonly timestamp: NamedTimestamp;
 }
 
+/** A named MatchStamp of a block's manifest. */
+export interface MatchStampTarget extends MatchStampFound {
+  readonly kind: "matchstamp";
+  readonly address: Address;
+  readonly block: Block;
+}
+
+/** An alignment anchor of a named MatchStamp of a block's manifest. */
+export interface AnchorTarget extends AnchorFound {
+  readonly kind: "anchor";
+  readonly address: Address;
+  readonly block: Block;
+}
+
 export type Target =
   | WorkspaceTarget
   | BlockTarget
@@ -84,7 +98,9 @@ export type Target =
   | MeasureMapTarget
   | TimelineTarget
   | EntryTarget
-  | TimestampTarget;
+  | TimestampTarget
+  | MatchStampTarget
+  | AnchorTarget;
 export type TargetKind = Target["kind"];
 
 /** The target of each kind, the type each kind's table of setters reads. */
@@ -99,6 +115,8 @@ export interface TargetOfKind {
   readonly region: EntryTarget;
   readonly flow_control: EntryTarget;
   readonly timestamp: TimestampTarget;
+  readonly matchstamp: MatchStampTarget;
+  readonly anchor: AnchorTarget;
 }
 
 /**
@@ -130,6 +148,14 @@ export function targetOf(view: View, address: Address): Target | CommandError {
     case "timestamp": {
       const { block, at, index, timestamp } = resolved;
       return { kind: "timestamp", address, block, at, index, timestamp };
+    }
+    case "matchstamp": {
+      const { block, index, matchstamp } = resolved;
+      return { kind: "matchstamp", address, block, index, matchstamp };
+    }
+    case "anchor": {
+      const { block, index, matchstamp, position, anchor } = resolved;
+      return { kind: "anchor", address, block, index, matchstamp, position, anchor };
     }
     default:
       return namesNothing(view, address);

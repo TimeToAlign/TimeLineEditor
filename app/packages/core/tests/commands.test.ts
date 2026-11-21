@@ -44,6 +44,7 @@ const ticks = () => load("map.yaml").timelines[0]?.children[0]?.conversion_maps[
 const held = (name: string, graphical: object) => ({
   order: {},
   timestamps: load(name).graphical?.timestamps ?? [],
+  matchstamps: [],
   ...graphical,
 });
 /** The refusal of a `set` that changes nothing, at its first value. */
