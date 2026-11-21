@@ -4356,9 +4356,11 @@ every row but 0, 5, 10 and 12; A `["unlikely"]` row 5; A `["false"]` row
 12; A `["false", "true"]` (any order) rows 0, 10 and 12; A `[]` no row;
 A with all four states `null`; B `["true"]` rows 12 and 13; B by default
 every row; an actor holding no belief every row by default, none for
-`["true"]`. A word that is no state throws the `RangeError` "'maybe' is no
-belief state: write 'true', 'undecided', 'unlikely', 'false'" (for
-`maybe`), as timetoalign's `check_belief_filter` refuses it.
+`["true"]`. A word that is no state throws TimeToShare's error "'maybe' is
+no belief state: write 'true', 'undecided', 'unlikely' or 'false'" (for
+`maybe`): the states, the default and the check are TimeToShare's
+(`BELIEF_STATES`, `DEFAULT_BELIEFS`, `checkBeliefFilter`), which
+timetoalign's `check_belief_filter` matches word for word.
 `DEFAULT_BELIEFS` is `["true", "undecided", "unlikely"]`, the workspace's
 MatchClaim filter's default.
 

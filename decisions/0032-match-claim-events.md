@@ -62,8 +62,10 @@ The last option. **`POST /api/match-claims/events`** takes:
 
 Both tables are checked against the manifest by TimeToShare's table checks
 (`match_claim_problems`, `projection_problems`); timetoalign reads the
-MatchClaim table (`MatchClaimField.from_table`) and each Projection asked
-about (`Projection.from_row`).
+MatchClaim table in the package form (`MatchClaimField.from_package_table`)
+and the event each Projection asked about stands for
+(`EventReference.from_row` over its `projection_of` cell; the route answers
+no position).
 
 The answer is JSON `{"claims": [...]}`, one entry per MatchClaim asked,
 in the order asked: `{"id", "timeline_a_id", "event_a_id", "event_a_name",
@@ -81,7 +83,7 @@ no Projections table was sent: the presence of the object, not its
 "message", "problems"?}}`, a parameter's at its name (`["claims", 1]`, a
 MatchClaim the table lacks), a Projections table that cannot be split
 off or is no Parquet file at `[]`, a table the checks refuse with every
-problem; 501 when the installed timetoalign has no `Projection`.
+problem; 501 when the installed timetoalign has no `EventReference`.
 
 The client (`@timetoalign/tilie-client`'s `matchClaimEvents(manifest,
 table, projections, claims)`) refuses an answer for other MatchClaims, in

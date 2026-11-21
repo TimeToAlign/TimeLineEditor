@@ -272,14 +272,14 @@ COMPACT_A = "orcid:0000-0002-1825-0097"
 """A written compactly under the prefix ``orcid``."""
 
 
-def orcid_manifest() -> bytes:
-    """The fixture's manifest with an ``@context`` declaring ``orcid``.
+def undeclared_manifest() -> bytes:
+    """The fixture's manifest without the prefix ``orcid`` in its ``@context``.
 
-    No statement uses the prefix: it is declared for the actors of the
-    MatchClaim table alone.
+    The fixture's manifest declares ``orcid`` for the actors of its
+    MatchClaim table alone; no statement uses it.
     """
     manifest = loads(fixture_manifest().decode())
-    manifest["@context"] = {**FORMAT_CONTEXT, "orcid": "https://orcid.org/"}
+    manifest["@context"] = dict(FORMAT_CONTEXT)
     return dumps(manifest).encode()
 
 
@@ -296,7 +296,7 @@ def test_actors_are_answered_expanded_under_the_manifests_context(
     server: TestClient,
 ) -> None:
     table = parquet(with_belief_actor(fixture_table(), 0, 0, COMPACT_A))
-    response = post(server, body(orcid_manifest(), table))
+    response = post(server, body(fixture_manifest(), table))
     assert response.status_code == 200
     assert response.content == fixture_answer(server)
 
@@ -305,7 +305,7 @@ def test_an_actor_whose_prefix_is_undeclared_is_answered_as_written(
     server: TestClient,
 ) -> None:
     table = parquet(with_belief_actor(fixture_table(), 0, 0, COMPACT_A))
-    response = post(server, body(fixture_manifest(), table))
+    response = post(server, body(undeclared_manifest(), table))
     assert response.status_code == 200
     header, arrays = decoded(response.content)
     assert header == {**FIXTURE_HEADER, "actors": [B, A, COMPACT_A]}
@@ -332,26 +332,28 @@ def claim(
     return row
 
 
-def cell(unit: str, number_type: str, numerator: int, denominator: int = 1) -> dict:
-    value = numerator / denominator
-    return dict(
-        value=value,
-        numerator=numerator,
-        denominator=denominator,
-        unit=unit,
-        number_type=number_type,
-    )
+def cell(
+    unit: str, number_type: str, number: int | float, denominator: int = 1
+) -> dict:
+    """A coordinate cell in the package form: the number once, as its type says."""
+    if number_type == "float":
+        members = dict(numerator=None, denominator=None, value=float(number))
+    elif number_type == "int":
+        members = dict(numerator=number, denominator=None, value=None)
+    else:
+        members = dict(numerator=number, denominator=denominator, value=None)
+    return dict(**members, unit=unit, number_type=number_type)
 
 
 def test_values_keep_their_axis_exactly(server: TestClient) -> None:
     big = 2**53 + 1
     huge = 2**62 + 1
-    negative_zero = cell("seconds", "float", 0, 1) | {"value": -0.0}
+    negative_zero = cell("seconds", "float", -0.0)
     rows = [
         claim(
             "c1",
             ("dpt", "e1", cell("samples", "int", big)),
-            ("clt", "e2", cell("quarters", "fraction", 2, 4)),
+            ("clt", "e2", cell("quarters", "fraction", 1, 2)),
         ),
         claim(
             "c2",

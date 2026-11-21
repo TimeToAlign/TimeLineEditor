@@ -305,11 +305,11 @@ def belief_answer(body: bytes) -> bytes:
     claim, actor, belief, date = checked_belief(parameters, claim_rows(table))
     bundle = manifest_bundle(manifest)
     try:
-        bundle.add_match_claim_field(field_class.from_table(checked))
+        bundle.add_match_claim_field(field_class.from_package_table(checked))
         bundle.add_match_claim_belief(claim, actor=actor, belief=belief, date=date)
     except (KeyError, ValueError) as error:
         raise Refusal([], str(error.args[0] if error.args else error)) from error
-    new = believed_table(table, bundle.match_claim_table.table)
+    new = believed_table(table, bundle.match_claim_table.package_table)
     checked_table(tables, field_class, new, manifest)
     succeeding(tables, table, new)
     sink = pa.BufferOutputStream()

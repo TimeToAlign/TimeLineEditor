@@ -268,7 +268,7 @@ def test_the_route_needs_the_token(server: TestClient) -> None:
 def test_without_timetoalign_projections_the_route_says_so(
     monkeypatch: pytest.MonkeyPatch, server: TestClient
 ) -> None:
-    monkeypatch.delattr(timetoalign.core, "Projection")
+    monkeypatch.delattr(timetoalign.core, "EventReference")
     response = post(server, b"")
     assert response.status_code == 501
     assert response.json() == {

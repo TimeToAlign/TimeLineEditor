@@ -44,22 +44,26 @@ SIDE_COLUMNS = ("timeline_{}_id", "event_{}_id", "event_{}_name")
 """The MatchClaim table's columns of one side, ``{}`` the side's letter."""
 
 
-def projection_model() -> Callable[[Mapping[str, Any]], Any]:
-    """Return timetoalign's reader of a Projections table row
-    (``Projection.from_row``).
+def projection_model() -> Callable[[Mapping[str, Any] | None], Any]:
+    """Return timetoalign's reader of the event a Projection stands for
+    (``EventReference.from_row``, the reader of a Projections table's
+    ``projection_of`` cell).
+
+    The route answers that event alone, so it reads no Projection's
+    position: the table's checks have accepted every position.
 
     Raises:
-        Refusal: 501, if the installed timetoalign has no Projection.
+        Refusal: 501, if the installed timetoalign has no EventReference.
     """
     try:
-        from timetoalign.core import Projection
+        from timetoalign.core import EventReference
     except ImportError as error:
         message = (
             f"the installed timetoalign {version('timetoalign')} cannot read "
             "Projections"
         )
         raise Refusal([], message, status_code=501) from error
-    return Projection.from_row
+    return EventReference.from_row
 
 
 def split_projections(body: bytes) -> tuple[bytes | None, bytes]:
@@ -129,7 +133,7 @@ def projections_of(
     Args:
         table: A checked Projections table.
         wanted: The ``(timeline ID, event ID)`` of the events asked about.
-        from_row: timetoalign's ``Projection.from_row``.
+        from_row: timetoalign's ``EventReference.from_row``.
 
     Returns:
         For every wanted event that is a Projection of ``table``, the event
@@ -147,7 +151,7 @@ def projections_of(
         key = (row["timeline_id"], row["id"])
         if key not in wanted:
             continue
-        reference = from_row(row).projection_of
+        reference = from_row(row["projection_of"])
         found[key] = (
             None
             if reference is None

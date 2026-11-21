@@ -264,14 +264,14 @@ COMPACT_A = "orcid:0000-0002-1825-0097"
 """A written compactly under the prefix ``orcid``."""
 
 
-def orcid_manifest() -> bytes:
-    """The fixture's manifest with an ``@context`` declaring ``orcid``.
+def undeclared_manifest() -> bytes:
+    """The fixture's manifest without the prefix ``orcid`` in its ``@context``.
 
-    No statement uses the prefix: it is declared for the actors of the
-    MatchClaim table alone.
+    The fixture's manifest declares ``orcid`` for the actors of its
+    MatchClaim table alone; no statement uses it.
     """
     manifest = loads(fixture_manifest().decode())
-    manifest["@context"] = {**FORMAT_CONTEXT, "orcid": "https://orcid.org/"}
+    manifest["@context"] = dict(FORMAT_CONTEXT)
     return dumps(manifest).encode()
 
 
@@ -294,7 +294,7 @@ CLAIM_13 = {
 
 @pytest.mark.parametrize(
     ("manifest", "actor"),
-    [(orcid_manifest, A), (fixture_manifest, COMPACT_A)],
+    [(fixture_manifest, A), (undeclared_manifest, COMPACT_A)],
     ids=["declared", "undeclared"],
 )
 def test_a_beliefs_actor_is_answered_as_it_compares(
@@ -389,19 +389,19 @@ def test_a_belief_is_recorded_in_its_row_alone(
     [
         (
             fixture_table,
-            orcid_manifest,
+            fixture_manifest,
             belief("claim_6", COMPACT_A, "false"),
             [held(COMPACT_A, "false", DAY)],
         ),
         (
             lambda: with_belief_actor(fixture_table(), 5, 0, COMPACT_A),
-            orcid_manifest,
+            fixture_manifest,
             belief("claim_6", A, "false"),
             [held(A, "false", DAY)],
         ),
         (
             fixture_table,
-            fixture_manifest,
+            undeclared_manifest,
             belief("claim_6", COMPACT_A, "false"),
             [
                 held(A, "unlikely", "2026-11-21", "the onset is blurred"),
