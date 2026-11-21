@@ -6,23 +6,21 @@
  * element whose statements or provenance differ.
  */
 
-import type { Address, SetCommand, Skeleton, User } from "@timetoalign/tilie-core";
-import { canonicalText, statedBy } from "@timetoalign/tilie-core";
-import type { PairProvenance } from "@timetoalign/timetoshare";
+import type { Address, PathSegment, SetCommand, Skeleton } from "@timetoalign/tilie-core";
+import { canonicalText, TILIE_AGENT } from "@timetoalign/tilie-core";
+import type { Belief, PairProvenance } from "@timetoalign/timetoshare";
 import {
   expandIri,
   isJsonObject,
-  withConfirmation,
+  withBelief,
   withoutPair,
   withPair,
-  withRejection,
 } from "@timetoalign/timetoshare";
 import type { JsonObject } from "./catalogue.ts";
 import { compactIri } from "./catalogue.ts";
-import type { DrawerRow, Frame, Pair, RectangleView, Thing } from "./frame.ts";
-import { entryPair } from "./frame.ts";
+import type { CandidateRow, Frame, Pair, Thing } from "./frame.ts";
 
-/** The annotation written for every pair an Add states. */
+/** The paradata written for every pair an Add states; the person in `stated_by` believes it `true`. */
 export interface EntryFields {
   readonly stated_by: readonly [string];
   readonly date: string;
@@ -32,24 +30,36 @@ export interface EntryFields {
   readonly match?: "exact" | "close" | "broad" | "narrow" | "related";
 }
 
-/** The skeleton with `pairs` stated on the frame's element, each with its annotation from `fields`. */
+/**
+ * The skeleton with `pairs` stated on the frame's element, each with its
+ * paradata from `fields` and the belief `true` of the person who states it
+ * (`fields.stated_by`) on `fields.date`.
+ */
 export function added(frame: Frame, pairs: readonly Pair[], fields: EntryFields): Skeleton {
   const provenance: PairProvenance = { ...fields };
+  const [actor] = fields.stated_by;
   return pairs.reduce(
     (skeleton, [property, value]) =>
-      withPair(skeleton, frame.path, property, value, { provenance }),
+      withPair(skeleton, frame.path, property, value, { provenance, actor, date: fields.date }),
     frame.skeleton,
   );
 }
 
+/** The note of the "same as" a tie writes, in words. */
+export const TIE_NOTE =
+  "written by “＋ Add vocabulary” to keep the value with the thing it was chosen for";
+
 /**
  * `pairs` with every value node whose `id` names another thing than
- * `thing` tied to it: `schema:sameAs` gains `{id: <thing, compact>}`, once.
+ * `thing` tied to it: `schema:sameAs` gains `{id: <thing, compact>}`, once,
+ * and the node's `provenance` an entry saying so: inferred by TiLiE on
+ * `day` from the thing, with `TIE_NOTE`; no one believes it.
  */
 export function tied(
   pairs: readonly Pair[],
   thing: Thing,
   prefixes: Readonly<Record<string, string>>,
+  day: string,
 ): Pair[] {
   const same = compactIri(prefixes, thing.iri);
   return pairs.map(([property, value]): Pair => {
@@ -62,53 +72,53 @@ export function tied(
         typeof item.id === "string" &&
         (expandIri(prefixes, item.id) ?? item.id) === thing.iri,
     );
-    return [property, known ? value : { ...value, "schema:sameAs": [...before, { id: same }] }];
+    if (known) return [property, value];
+    const entries = Array.isArray(value.provenance) ? value.provenance : [];
+    const tie = {
+      basis: [thing.iri],
+      date: day,
+      method: "inferred",
+      note: TIE_NOTE,
+      property: "schema:sameAs",
+      stated_by: [TILIE_AGENT],
+      value: { id: same },
+    };
+    return [
+      property,
+      { ...value, "schema:sameAs": [...before, { id: same }], provenance: [...entries, tie] },
+    ];
   });
 }
 
-/** The skeleton without the rectangle's pairs and their confirmed annotations. */
-export function removedRectangle(frame: Frame, rectangle: RectangleView): Skeleton {
-  return rectangle.pairs.reduce(
-    (skeleton, [property, value]) => withoutPair(skeleton, frame.path, property, value),
-    frame.skeleton,
-  );
+/** The skeleton without the pair the frame's element states, and its provenance entry. */
+export function removed(frame: Frame, [property, value]: Pair): Skeleton {
+  return withoutPair(frame.skeleton, frame.path, property, value);
 }
 
-/** The skeleton with the rectangle's pairs rejected by `user` on `day`: removed, kept as rejected annotations. */
-export function rejectedRectangle(
+/**
+ * The skeleton with `actor`'s belief in the pair of the subject at
+ * `subject` (the frame's element or a value node it states), on `day`,
+ * replacing the actor's earlier one; whether the pair is stated stays as it is.
+ */
+export function believed(
   frame: Frame,
-  rectangle: RectangleView,
-  user: User,
+  subject: readonly PathSegment[],
+  [property, value]: Pair,
+  actor: string,
+  belief: Belief,
   day: string,
 ): Skeleton {
-  const decision = { stated_by: [statedBy(user)], date: day };
-  return rectangle.pairs.reduce(
-    (skeleton, [property, value]) => withRejection(skeleton, frame.path, property, value, decision),
-    frame.skeleton,
-  );
+  return withBelief(frame.skeleton, subject, property, value, { actor, belief, date: day });
 }
 
-/** The pair of a drawer row, as the statement functions take it. */
-function rowPair(frame: Frame, row: DrawerRow): Pair {
-  return entryPair(frame.skeleton["@context"], { ...row.entry });
-}
-
-/** The skeleton with a drawer row's pair confirmed by `user` on `day`: stated, its annotation confirmed. */
-export function confirmed(frame: Frame, row: DrawerRow, user: User, day: string): Skeleton {
-  const [property, value] = rowPair(frame, row);
-  return withConfirmation(frame.skeleton, row.subject, property, value, {
-    stated_by: [statedBy(user)],
-    date: day,
-  });
-}
-
-/** The skeleton with a drawer row's pair rejected by `user` on `day`. */
-export function rejected(frame: Frame, row: DrawerRow, user: User, day: string): Skeleton {
-  const [property, value] = rowPair(frame, row);
-  return withRejection(frame.skeleton, row.subject, property, value, {
-    stated_by: [statedBy(user)],
-    date: day,
-  });
+/**
+ * The skeleton with a candidate stated by `actor` on `day`: the pair
+ * stated, its entry kept as the stated pair's, and the actor's belief
+ * `true` recorded in it.
+ */
+export function stated(frame: Frame, row: CandidateRow, actor: string, day: string): Skeleton {
+  const [property, value] = row.pair;
+  return withPair(frame.skeleton, row.subject, property, value, { actor, date: day });
 }
 
 /** An element of a skeleton that may hold statements, with its bare ID (`null`: the bundle). */

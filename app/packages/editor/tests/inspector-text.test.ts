@@ -134,12 +134,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 49, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 49, 11 and 13 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([49, 11, 11]);
+    ]).toEqual([49, 11, 13]);
   });
 
   for (const name of fixtureNames) {
@@ -242,6 +242,7 @@ describe("the TOML null rule", () => {
     expect(text).toBe(
       [
         'timetoshare = "0.2.0"',
+        "resources = []",
         "",
         "[[groups]]",
         'id = "group_1"',
@@ -428,9 +429,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 98, 17],
-      ["syntax_error", 83, 5],
-      ["syntax_error", 16, 1],
+      ["syntax_error", 107, 17],
+      ["syntax_error", 91, 5],
+      ["syntax_error", 17, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });

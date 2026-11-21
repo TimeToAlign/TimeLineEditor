@@ -13,11 +13,14 @@ import {
 } from "../src/inspector/metadata/catalogue.ts";
 import type { Frame, RectangleView } from "../src/inspector/metadata/frame.ts";
 import {
-  drawersOf,
+  beliefOf,
+  candidatesOf,
   rectanglesOf,
   rectangleWords,
   SELECT_HINT,
   shownOf,
+  typeLabels,
+  typeSentence,
   whoOf,
 } from "../src/inspector/metadata/frame.ts";
 import { fixture, storeOf } from "./support.ts";
@@ -29,7 +32,8 @@ const CATALOGUE = defaultCatalogue();
 
 const T = "https://example.org/agents/tilie";
 const P = "https://example.org/people/editor";
-const CPT_1 = "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'";
+const CPT_1_NAME = "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical";
+const CPT_1 = `timeline '${CPT_1_NAME}'`;
 const BUNDLE = "bundle 'LayerIt, Clair de lune mm. 1–6 (Pires)'";
 const SEE_ALSO =
   "https://github.com/FernandoAze/LayerIt/tree/c88ca33065d49f622fca7225b784240df34a0fe8/src/input_files/ClairDeLune";
@@ -55,30 +59,45 @@ const rows = (rectangle: RectangleView | undefined) =>
   rectangle?.rows.map((row) => [row.property, row.value, row.href]);
 const lines = (rectangle: RectangleView | undefined) =>
   rectangle?.entries.map((line) =>
-    line === null ? null : [line.method, line.who, line.date, line.service, line.basis, line.match],
+    line === null
+      ? null
+      : [
+          line.method,
+          line.who,
+          line.date,
+          line.service,
+          line.basis,
+          line.match,
+          line.beliefs.map((held) => [held.actor, held.belief, held.date]),
+        ],
   );
+/** `P`'s belief `"true"` of 2026-11-18. */
+const P_TRUE = [[P, "true", "2026-11-18"]];
 
 describe("what the tab shows", () => {
   it("frames a timeline by its target, words, path and key", () => {
     const cpt1 = frame("cpt_1");
-    expect([cpt1.kind, cpt1.target, cpt1.id, cpt1.words, cpt1.path, cpt1.key]).toEqual([
+    expect([cpt1.kind, cpt1.target, cpt1.id, cpt1.words, cpt1.name, cpt1.path, cpt1.key]).toEqual([
       "timeline",
       { block: A, id: "cpt_1" },
       "cpt_1",
       CPT_1,
+      CPT_1_NAME,
       ["timelines", 1],
       '{"block":"0000000000","id":"cpt_1"}',
     ]);
+    expect(frame("cpt_2").name).toBe("cpt_2");
   });
 
   it("frames the bundle when its block is selected, or nothing among one block", () => {
     for (const found of [shown({ block: A }), shown()]) {
       if (found.kind === "none") throw new Error(found.hint);
-      expect([found.kind, found.target, found.id, found.words, found.path]).toEqual([
+      expect([found.kind, found.target, found.id, found.words, found.name, found.path]).toEqual([
         "bundle",
         { block: A },
         null,
         BUNDLE,
+        "LayerIt, Clair de lune mm. 1–6 (Pires)",
         [],
       ]);
     }
@@ -96,7 +115,7 @@ describe("what the tab shows", () => {
   });
 });
 
-describe("the rectangles and drawers of the LayerIt recording", () => {
+describe("the rectangles and candidates of the LayerIt recording", () => {
   it("reads cpt_1 as is a, performed by, same as", () => {
     const [isA, performed, same, ...rest] = rectangles("cpt_1");
     expect(rest).toEqual([]);
@@ -127,8 +146,9 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
         null,
         ["http://www.wikidata.org/entity/Q235650", "https://d-nb.info/gnd/124927521"],
         null,
+        [],
       ],
-      ["reconciled", P, "2026-11-18", "https://www.wikidata.org/w/api.php", [], null],
+      ["reconciled", P, "2026-11-18", "https://www.wikidata.org/w/api.php", [], null, P_TRUE],
     ]);
     expect(performed?.addable).toEqual(["musicbrainz", "gnd", "melody"]);
 
@@ -140,21 +160,47 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
         "https://www.youtube.com/watch?v=Ch2mrPm1JnM",
       ],
     ]);
-    expect(lines(same)).toEqual([["manual", P, "2026-11-18", null, [], null]]);
+    expect(lines(same)).toEqual([["manual", P, "2026-11-18", null, [], null, P_TRUE]]);
+    expect(
+      rectangles("cpt_1").flatMap((rectangle) =>
+        rectangle.entries.map((line) => beliefOf(line, DEFAULT_USER)),
+      ),
+    ).toEqual([null, null, null, null, null, null]);
   });
 
-  it("puts cpt_1's one proposal in the drawers", () => {
-    const drawers = drawersOf(frame("cpt_1"), CATALOGUE, DEFAULT_USER);
+  it("says in a sentence what each element is", () => {
+    const sentence = (id: string) => {
+      const [isA] = rectangles(id);
+      if (isA === undefined) throw new Error("no is a");
+      return typeSentence(frame(id), CATALOGUE, isA);
+    };
+    expect(["cpt_1", "clt_6", "dpt_1", "cpt_2"].map(sentence)).toEqual([
+      `${CPT_1_NAME} is a video.`,
+      "Clair de lune, mm. 1–6 (MEI) is a printed or scanned edition.",
+      "ClairDeLune_MariaJoaoPires_untilM6.wav is a recorded performance and a release.",
+      "Nothing states yet what cpt_2 is.",
+    ]);
     expect(
-      drawers.proposed.map((row) => [
+      typeLabels(CATALOGUE, frame("cpt_1").skeleton["@context"], [
+        ["type", "schema:VideoObject"],
+        ["type", "schema:Painting"],
+      ]),
+    ).toEqual(["video", "schema:Painting"]);
+  });
+
+  it("offers cpt_1's one candidate", () => {
+    const found = candidatesOf(frame("cpt_1"), CATALOGUE, DEFAULT_USER);
+    expect(
+      found.offered.map((row) => [
         row.key,
         row.subject,
         row.heading,
         row.label,
+        row.pair,
         row.line.method,
         row.line.who,
         row.line.basis,
-        row.line.status,
+        row.line.beliefs,
       ]),
     ).toEqual([
       [
@@ -162,16 +208,17 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
         ["timelines", 1],
         "is a recording of",
         "Clair de lune",
+        ["wdt:P2550", { id: "wd:Q29117946" }],
         "inferred",
         T,
         ["#clt_6", "#dpt_1"],
-        "proposed",
+        [],
       ],
     ]);
-    expect(drawers.rejected).toEqual([]);
+    expect(found.dismissed).toEqual([]);
   });
 
-  it("reads clt_6 with a literal and a rejected candidate", () => {
+  it("reads clt_6 with a literal, and offers a candidate another actor believes false", () => {
     const list = rectangles("clt_6");
     expect(headings(list)).toEqual(["is a", "dcterms:created", "is a version or edition of"]);
     const [, created, version] = list;
@@ -182,27 +229,34 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
       ["wdt:P629", "wd:Q29117946", "http://www.wikidata.org/entity/Q29117946"],
     ]);
     expect(lines(version)).toEqual([
-      ["manual", P, "2026-11-18", null, [], "broad"],
-      ["reconciled", T, "2026-11-18", "https://www.wikidata.org/w/api.php", [MB_WORK], "broad"],
+      ["manual", P, "2026-11-18", null, [], "broad", P_TRUE],
+      ["reconciled", T, "2026-11-18", "https://www.wikidata.org/w/api.php", [MB_WORK], "broad", []],
     ]);
-    const drawers = drawersOf(frame("clt_6"), CATALOGUE, DEFAULT_USER);
-    expect(drawers.proposed).toEqual([]);
+    const found = candidatesOf(frame("clt_6"), CATALOGUE, DEFAULT_USER);
+    expect(found.dismissed).toEqual([]);
     expect(
-      drawers.rejected.map((row) => [row.heading, row.label, row.line.method, row.line.note]),
+      found.offered.map((row) => [
+        row.heading,
+        row.label,
+        row.line.method,
+        row.line.note,
+        row.line.beliefs.map((held) => [held.actor, held.belief]),
+      ]),
     ).toEqual([
       [
         "is a version or edition of",
         "gnd:1156628156",
         "reconciled",
         "GND 'Clair de lune' is Debussy's song L 32 on Verlaine (voice and piano, 1882), not the piano piece",
+        [[P, "false"]],
       ],
     ]);
   });
 
-  it("reads dpt_1 as is a with a proposal naming an element", () => {
+  it("reads dpt_1 as is a with a candidate naming an element", () => {
     expect(headings(rectangles("dpt_1"))).toEqual(["is a"]);
-    const drawers = drawersOf(frame("dpt_1"), CATALOGUE, DEFAULT_USER);
-    expect(drawers.proposed.map((row) => [row.heading, row.label])).toEqual([
+    const found = candidatesOf(frame("dpt_1"), CATALOGUE, DEFAULT_USER);
+    expect(found.offered.map((row) => [row.heading, row.label])).toEqual([
       [
         "is derived from, is based on",
         "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",

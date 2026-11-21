@@ -12,18 +12,18 @@ import { defaultCatalogue, fontMetrics, isJsonObject } from "@timetoalign/timeto
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
-import { commandOf, dayOf, rejected } from "../src/inspector/metadata/edits.ts";
+import { believed, commandOf, dayOf } from "../src/inspector/metadata/edits.ts";
 import type { Frame } from "../src/inspector/metadata/frame.ts";
-import { drawersOf, framePrefixes, shownOf } from "../src/inspector/metadata/frame.ts";
+import { candidatesOf, framePrefixes, shownOf } from "../src/inspector/metadata/frame.ts";
 import type { Answers } from "../src/inspector/metadata/proposals.ts";
 import {
   answerKey,
   answersTo,
-  confirmedProposal,
   frameIn,
   proposed,
   proposedText,
   questionsOf,
+  statedForName,
   unreconciledOf,
 } from "../src/inspector/metadata/proposals.ts";
 import type { Candidate, Lookup } from "../src/lookup/index.ts";
@@ -91,16 +91,14 @@ function member(value: unknown, path: readonly (string | number)[], name: string
   return isJsonObject(found) ? found[name] : undefined;
 }
 
-/** A proposal entry as TiLiE writes it for `name`. */
+/** A candidate's entry as TiLiE writes it for `name`: no match stated, no belief. */
 const proposal = (property: string, id: string, name: string, extra: object = {}) => ({
   property,
   value: { id },
-  status: "proposed",
   stated_by: [TILIE_AGENT],
   date: "2026-11-20",
   method: "reconciled",
   service: WIKIDATA_API,
-  match: "close",
   note: `found for the name “${name}”`,
   ...extra,
 });
@@ -229,7 +227,7 @@ describe("asking and proposing", () => {
     });
   });
 
-  it("proposes nothing again, nor what was rejected", async () => {
+  it("proposes nothing again, nor what the user believes false", async () => {
     const { answers } = await answersTo(recorded(), questionsOf(found));
     const prefixes = framePrefixes(at, CATALOGUE);
     const again = layerit();
@@ -245,10 +243,12 @@ describe("asking and proposing", () => {
     );
     expect(twice.count).toBe(0);
     expect(commandOf(now, twice.skeleton)).toBeNull();
-    const [row] = drawersOf(now, CATALOGUE, DEFAULT_USER).proposed;
-    if (row === undefined) throw new Error("no proposal");
+    const [row] = candidatesOf(now, CATALOGUE, DEFAULT_USER).offered;
+    if (row === undefined) throw new Error("no candidate");
     expect(
-      again.dispatch(commandOf(now, rejected(now, row, DEFAULT_USER, "2026-11-20"))),
+      again.dispatch(
+        commandOf(now, believed(now, row.subject, row.pair, G, "false", "2026-11-20")),
+      ),
     ).toBeNull();
     const after = frame(again.view, "cpt_2");
     const thrice = proposed(
@@ -304,12 +304,12 @@ describe("asking and proposing", () => {
 describe("what the panel says after proposing", () => {
   const words = (id: string | null) => `timeline '${id}'`;
 
-  it("lists them under Proposed when all are on the element shown", () => {
+  it("lists them under Candidates when all are on the element shown", () => {
     expect(proposedText([{ holder: "cpt_2", count: 2 }], "cpt_2", words)).toBe(
-      "Proposed 2 matches: they are listed under Proposed.",
+      "Proposed 2 matches: they are listed under Candidates.",
     );
     expect(proposedText([{ holder: "cpt_2", count: 1 }], "cpt_2", words)).toBe(
-      "Proposed 1 match: they are listed under Proposed.",
+      "Proposed 1 match: they are listed under Candidates.",
     );
   });
 
@@ -319,15 +319,15 @@ describe("what the panel says after proposing", () => {
       { holder: "clt_6", count: 1 },
     ];
     expect(proposedText(placed, "cpt_1", words)).toBe(
-      "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; each is listed under Proposed of the element it is proposed for.",
+      "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; each is listed under Candidates of the element it is proposed for.",
     );
     expect(proposedText([{ holder: "cpt_2", count: 1 }], null, words)).toBe(
-      "Proposed 1 match: 0 here, 1 on timeline 'cpt_2'; each is listed under Proposed of the element it is proposed for.",
+      "Proposed 1 match: 0 here, 1 on timeline 'cpt_2'; each is listed under Candidates of the element it is proposed for.",
     );
   });
 });
 
-describe("confirming a proposal found for a name", () => {
+describe("stating a candidate found for a name", () => {
   async function withProposals(): Promise<Store> {
     const store = layerit();
     const at = frame(store.view, "cpt_2");
@@ -338,15 +338,20 @@ describe("confirming a proposal found for a name", () => {
     return store;
   }
 
+  /** The candidate of `cpt_2` under `rel:prf`. */
+  function performer(at: Frame) {
+    const row = candidatesOf(at, CATALOGUE, DEFAULT_USER).offered.find(
+      ({ pair }) => pair[0] === "rel:prf",
+    );
+    if (row === undefined) throw new Error("no candidate");
+    return row;
+  }
+
   it("states the thing in place of the name", async () => {
     const store = await withProposals();
     const at = frame(store.view, "cpt_2");
-    const row = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed.find(
-      ({ entry }) => entry.property === "rel:prf",
-    );
-    if (row === undefined) throw new Error("no proposal");
-    const after = confirmedProposal(at, row, DEFAULT_USER, "2026-11-20");
-    if (after === null) throw new Error("not confirmed");
+    const after = statedForName(at, performer(at), G, "2026-11-20");
+    if (after === null) throw new Error("not stated for the name");
     expect(commandOf(at, after)).toEqual({
       type: "set",
       changes: [
@@ -359,7 +364,9 @@ describe("confirming a proposal found for a name", () => {
               "wdt:P2550": [{ label: CLAIR }],
             },
             provenance: [
-              proposal("rel:prf", "wd:Q235650", PIRES, { status: "confirmed", stated_by: [G] }),
+              proposal("rel:prf", "wd:Q235650", PIRES, {
+                beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
+              }),
               proposal("wdt:P2550", "wd:Q29117946", CLAIR),
             ],
           },
@@ -368,17 +375,28 @@ describe("confirming a proposal found for a name", () => {
     });
   });
 
-  it("is no such confirmation for cpt_1's own proposal, nor for a note naming no name", async () => {
+  it("is no such statement for cpt_1's own candidate, nor where two names could be the one", async () => {
     const store = await withProposals();
     const cpt1 = frame(store.view, "cpt_1");
-    const [own] = drawersOf(cpt1, CATALOGUE, DEFAULT_USER).proposed;
-    if (own === undefined) throw new Error("no proposal");
-    expect(confirmedProposal(cpt1, own, DEFAULT_USER, "2026-11-20")).toBeNull();
-    const at = frame(store.view, "cpt_2");
-    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
-    if (row === undefined) throw new Error("no proposal");
-    const renamed = { ...row, entry: { ...row.entry, note: "found for the name “Someone”" } };
-    expect(confirmedProposal(at, renamed, DEFAULT_USER, "2026-11-20")).toBeNull();
+    const [own] = candidatesOf(cpt1, CATALOGUE, DEFAULT_USER).offered;
+    if (own === undefined) throw new Error("no candidate");
+    expect(statedForName(cpt1, own, G, "2026-11-20")).toBeNull();
+    const two = await withProposals();
+    expect(
+      two.dispatch({
+        type: "set",
+        changes: [
+          {
+            target: { block: A, id: "cpt_2" },
+            values: {
+              statements: { ...N, "rel:prf": [{ label: PIRES }, { label: "Clara Wieck" }] },
+            },
+          },
+        ],
+      }),
+    ).toBeNull();
+    const at = frame(two.view, "cpt_2");
+    expect(statedForName(at, performer(at), G, "2026-11-20")).toBeNull();
   });
 
   it("reads the element as it stands, and nothing once it is gone", async () => {
@@ -514,30 +532,32 @@ describe("the tab", () => {
   const commandsAfter = (store: Store, from: number): Command[] =>
     store.journal.slice(from).map((entry) => (entry as CommandEntry).command);
 
-  it("proposes matches, and confirming one states the thing for the name", async () => {
+  it("proposes matches, and believing one true states the thing for the name", async () => {
     const store = layerit();
     show(store);
-    expect(text('[data-testid="metadata-drawer-proposed"] .count')).toBe(
+    expect(text('[data-testid="metadata-candidates"] .count')).toBe(
       "2 names without an identifier here and below",
     );
     const before = store.journal.length;
     one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
     await settle();
     expect(store.journal.length).toBe(before + 1);
-    expect(text('[data-testid="metadata-drawer-proposed"] summary')).toBe("Proposed (2)");
-    expect(informed).toEqual(["Proposed 2 matches: they are listed under Proposed."]);
+    expect(text('[data-testid="metadata-candidates"] summary')).toBe("Candidates (2)");
+    expect(informed).toEqual(["Proposed 2 matches: they are listed under Candidates."]);
     one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
     await settle();
     expect(store.journal.length).toBe(before + 1);
     expect(informed.at(-1)).toBe("No new match was found for the 2 names.");
     const row = [
-      ...document.querySelectorAll<HTMLElement>('[data-testid="metadata-proposed-row"]'),
+      ...document.querySelectorAll<HTMLElement>('[data-testid="metadata-candidate-row"]'),
     ].find((item) => item.textContent?.includes(PIRES));
-    const confirm = [...(row?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
-      (item) => item.textContent?.trim() === "Confirm",
+    row?.querySelector<HTMLButtonElement>("button")?.click();
+    flushSync();
+    const believe = [...(row?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
+      (item) => item.textContent?.trim() === "True",
     );
-    if (confirm === undefined) throw new Error("no Confirm");
-    confirm.click();
+    if (believe === undefined) throw new Error("no True");
+    believe.click();
     await settle();
     expect(store.journal.length).toBe(before + 2);
     const [command] = commandsAfter(store, before + 1);
@@ -546,32 +566,32 @@ describe("the tab", () => {
       "rel:prf": [{ id: "wd:Q235650", label: PIRES }],
       "wdt:P2550": [{ label: CLAIR }],
     });
-    expect(text('[data-testid="metadata-drawer-proposed"] summary')).toBe("Proposed (1)");
-    expect(text('[data-testid="metadata-drawer-proposed"] .count')).toBe(
+    expect(text('[data-testid="metadata-candidates"] summary')).toBe("Candidates (1)");
+    expect(text('[data-testid="metadata-candidates"] .count')).toBe(
       "1 name without an identifier here and below",
     );
   });
 
-  const count = () => text('[data-testid="metadata-drawer-proposed"] .count');
-  const proposedSummary = () => text('[data-testid="metadata-drawer-proposed"] summary');
+  const count = () => text('[data-testid="metadata-candidates"] .count');
+  const proposedSummary = () => text('[data-testid="metadata-candidates"] summary');
   const busy = () => one('[data-testid="metadata-propose"]').getAttribute("aria-busy");
 
   it("proposes the names below the element shown, and says where they went", async () => {
     const store = layerit();
     const selection = show(store, true, "cpt_1");
     expect(count()).toBe("2 names without an identifier here and below");
-    expect(proposedSummary()).toBe("Proposed (1)");
+    expect(proposedSummary()).toBe("Candidates (1)");
     const before = store.journal.length;
     one<HTMLButtonElement>('[data-testid="metadata-propose"]').click();
     await settle();
     expect(store.journal.length).toBe(before + 1);
-    expect(proposedSummary()).toBe("Proposed (1)");
+    expect(proposedSummary()).toBe("Candidates (1)");
     expect(informed).toEqual([
-      "Proposed 2 matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Proposed of the element it is proposed for.",
+      "Proposed 2 matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Candidates of the element it is proposed for.",
     ]);
     selection.value = selectionOf([{ block: A, id: "cpt_2" }]);
     flushSync();
-    expect(proposedSummary()).toBe("Proposed (2)");
+    expect(proposedSummary()).toBe("Candidates (2)");
   });
 
   it("shows the lookup on the element it runs for only", async () => {
@@ -599,7 +619,7 @@ describe("the tab", () => {
     expect([count(), busy()]).toEqual(["Looking them up…", "true"]);
     release();
     await settle();
-    expect(proposedSummary()).toBe("Proposed (2)");
+    expect(proposedSummary()).toBe("Candidates (2)");
     expect([count(), busy()]).toEqual(["2 names without an identifier here and below", "false"]);
   });
 

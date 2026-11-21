@@ -6,10 +6,11 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { exported, field, importLayerIt, openDrawer, showMetadata } from "./metadata.ts";
+import { details, exported, field, importLayerIt, openList, showMetadata } from "./metadata.ts";
 import { arranger, dispatch, framePoint, journalLength, selection } from "./support.ts";
 
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+const TILIE = "https://github.com/TimeToAlign/TimeLineEditor";
 
 /** The block the import added. */
 let block = "";
@@ -125,7 +126,7 @@ test("picking holds the canvas: the pane and the keys select nothing, a key pick
   expect(await journalLength(page)).toBe(before);
 });
 
-test("names without an identifier get proposals, and a confirmed one replaces its name", async ({
+test("names without an identifier get candidates, and one believed true replaces its name", async ({
   page,
 }) => {
   expect(
@@ -140,19 +141,27 @@ test("names without an identifier get proposals, and a confirmed one replaces it
     }),
   ).toBeNull();
   await showMetadata(page, block, "cpt_2");
-  const drawer = await openDrawer(page, "proposed");
-  await expect(drawer.locator(".count")).toHaveText("1 name without an identifier here and below");
+  const list = await openList(page, "candidates");
+  await expect(list.locator(".count")).toHaveText("1 name without an identifier here and below");
   const before = await journalLength(page);
-  await drawer.getByRole("button", { name: "Propose matches for unreconciled names" }).click();
-  const rows = page.getByTestId("metadata-proposed-row");
+  await list.getByRole("button", { name: "Propose matches for unreconciled names" }).click();
+  const rows = page.getByTestId("metadata-candidate-row");
   await expect(rows).toHaveCount(1);
   expect(await journalLength(page)).toBe(before + 1);
-  await expect(page.getByText("Proposed 1 match: they are listed under Proposed.")).toBeVisible();
+  await expect(page.getByText("Proposed 1 match: they are listed under Candidates.")).toBeVisible();
   await expect(page.getByText(/^(Wikidata|GND) could not be searched/u)).toHaveCount(0);
   await expect(rows.locator(".what")).toHaveText("performed by Maria João Pires");
-  await expect(rows.locator(".line")).toHaveText("reconciled · TiLiE · 2026-11-20");
-  await expect(rows.locator(".note")).toHaveText("found for the name “Maria João Pires”");
-  await rows.getByRole("button", { name: "Confirm" }).click();
+  const region = await details(page, "performed by Maria João Pires");
+  await expect(region.locator("dt")).toHaveText(["stated by", "method", "service", "note", "date"]);
+  await expect(region.locator("dd")).toHaveText([
+    "TiLiE",
+    "reconciled",
+    "https://www.wikidata.org/w/api.php",
+    "found for the name “Maria João Pires”",
+    "2026-11-20",
+  ]);
+  await expect(region.getByTestId("metadata-beliefs")).toHaveText("No one has stated a belief.");
+  await region.getByRole("button", { name: "True", exact: true }).click();
   await expect(rows).toHaveCount(0);
   const cpt2 = await exported(page, "cpt_2");
   expect(cpt2.statements).toEqual({
@@ -160,14 +169,13 @@ test("names without an identifier get proposals, and a confirmed one replaces it
   });
   expect(cpt2.provenance).toEqual([
     {
+      beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
       date: "2026-11-20",
-      match: "close",
       method: "reconciled",
       note: "found for the name “Maria João Pires”",
       property: "rel:prf",
       service: "https://www.wikidata.org/w/api.php",
-      stated_by: [G],
-      status: "confirmed",
+      stated_by: [TILIE],
       value: { id: "wd:Q235650" },
     },
   ]);

@@ -531,7 +531,7 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
     case "timestamp": {
       const { block, timestamp } = resolved;
       const target = inBlock(block.id, idAddress(timestamp.id));
-      return { target, name: timestamp.name, nullable: false, manifest: block.manifest };
+      return { target, name: timestamp.name ?? null, nullable: false, manifest: block.manifest };
     }
     case "part":
       return namedBy(resolved.owner);

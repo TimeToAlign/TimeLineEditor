@@ -158,7 +158,7 @@ function describe(resolved: ResolvedAddress): Described | null {
       return { parts: [], kind: "measure map", name, id, titled: false };
     }
     case "timestamp": {
-      const { name, id } = resolved.timestamp;
+      const { name = null, id } = resolved.timestamp;
       return { parts: [], kind: "timestamp", name, id, titled: false };
     }
     case "part": {

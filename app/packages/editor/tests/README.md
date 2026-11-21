@@ -432,12 +432,18 @@ accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 98:17 (after
-   the 61 lines of `@context` and the default timestamps' `graphical`,
-   which sort first), YAML `locked: [false` at 83:5 (the line after the
-   unclosed sequence, after the 51 lines of `@context` and `graphical`),
-   TOML `locked = ` at 16:1 (the line after the missing value; the
-   top-level keys, `[meta]` and the timeline's keys before it,
+   reader's 1-based line and column: JSON `"locked": ,` at 107:17 (after
+   `@context`, the default timestamps' `graphical` and `resources`, which
+   sort first), YAML `locked: [false` at 91:5 (the line after the
+   unclosed sequence, after `@context`, `graphical` and `resources`).
+   Schema 0.2.0's resources, MatchStamps and beliefs moved both by the
+   lines they add before the timeline: `resources: []`, `graphical`'s
+   `matchstamps: []`, each default timestamp's `matchstamp: false`, and the
+   context's belief terms in place of the status terms (five lines more
+   in pretty JSON, four in YAML).
+   TOML `locked = ` at 17:1 (the line after the missing value; the
+   top-level keys, `resources = []` among them, `[meta]` and the
+   timeline's keys before it,
    `graphical`'s tables and then `@context`'s after the timelines). YAML is read by TimeToShare's `parseYaml`, the
    reader Import uses, so the panel refuses what Import refuses:
    `a: &x 1\nb: *x\n` is refused by Import (`invalid_yaml`) and by Apply
@@ -1089,82 +1095,120 @@ which no position solves).
 
 The tab shows and edits the statements of TimeToShare's description
 layer: property–value pairs about the thing a bundle, a timeline or a
-region stands for, each pair optionally annotated in `provenance`. What a
-pair means is the schema package's: its statement functions (`rectangles`,
-`entries`, `verbOf`, `withPair`, `withoutPair`, `withConfirmation`,
-`withRejection`, `instantiate`, `recognize`) and its shipped catalogue,
-read on core's statement skeleton (`skeletonOf`); the editor only chooses
-what to show, in which order and words, and which one `set` an action
-dispatches. So the oracles are the fixture as written, the shipped
-catalogue's labels, and core's store; every heading below is a catalogue
-label, and a verb the catalogue lacks prints the property as written.
+region stands for, each pair optionally carrying a provenance entry: how
+it was made (its paradata: `stated_by`, `method`, `service`, `basis`,
+`match`, `note`, `date`) and who believes it (`beliefs`, one `{actor,
+belief, date}` per actor, the belief one of the strings `"true"`,
+`"unlikely"`, `"false"`). A pair held only in provenance is a
+**candidate**; a candidate an actor believes `"false"` is not offered to
+that actor again. There is no status: nothing in the tab derives one, and
+no text shows one. What a pair means is the schema package's: its statement
+functions (`rectangles`, `entries`, `candidates`, `verbOf`, `withPair`,
+`withoutPair`, `withBelief`, `withCandidate`, `instantiate`, `recognize`)
+and its shipped catalogue, read on core's statement skeleton
+(`skeletonOf`); the editor only chooses what to show, in which order and
+words, and which one `set` an action dispatches. So the oracles are the
+fixture as written, the shipped catalogue's labels and types, and core's
+store; every heading below is a catalogue label, and a verb the catalogue
+lacks prints the property as written. Two rules the tests hold the editor
+to: believing a stated pair `false` records the belief and never removes
+the pair (Remove is its own action), and the person who states a pair
+through the tab is recorded believing it `"true"`, while TiLiE, writing a
+candidate or a tie, holds no belief.
 
 `L` is TimeToShare's `fixtures/0.2.0/statements/layerit_recording.yaml`,
 the one block `A` = `0000000000` of a store (`storeOf`), its roots in
 canonical order `clt_6`, `cpt_1`, `dpt_1` (paths `["timelines", 0]`, `1`,
 `2`), `cpt_2` at `["timelines", 1, "children", 0]`. The user is core's
-default, Gerhardt, who states as `G` =
+default, Gerhardt, who states and believes as `G` =
 `tag:timetoalign.github.io,2026:tilie:user:Gerhardt`; `T` =
 `https://example.org/agents/tilie`, `P` = `https://example.org/people/editor`
-(the fixture's annotators, printed as written).
+(the fixture's annotators, printed as written); `TILIE` =
+`https://github.com/TimeToAlign/TimeLineEditor`, TiLiE's own IRI.
 
 **The frame** (`metadata-frame.test.ts`, pure, on `L`'s view):
 
 1. **What is shown.** `cpt_1` selected: a timeline frame, `target`
    `{block: A, id: "cpt_1"}`, words `timeline 'C.Debussy - Clair de Lune,
-   Maria João Pires live at Jardin Musical'`, path `["timelines", 1]`,
-   key `{"block":"0000000000","id":"cpt_1"}`. The block selected, or
+   Maria João Pires live at Jardin Musical'`, name `C.Debussy - Clair de
+   Lune, Maria João Pires live at Jardin Musical`, path `["timelines",
+   1]`, key `{"block":"0000000000","id":"cpt_1"}`. The block selected, or
    nothing selected with `A` the only block: the bundle, words `bundle
-   'LayerIt, Clair de lune mm. 1–6 (Pires)'`, path `[]`. `group_1`
-   selected: "Group 'recording' has no statements: a bundle, a timeline or
-   a region has. Select its block, a timeline or a region." Two subjects
-   selected: `SELECT_HINT`.
+   'LayerIt, Clair de lune mm. 1–6 (Pires)'`, name `LayerIt, Clair de lune
+   mm. 1–6 (Pires)`, path `[]`. `cpt_2`, which has no name, is named by
+   its ID `cpt_2`. `group_1` selected: "Group 'recording' has no
+   statements: a bundle, a timeline or a region has. Select its block, a
+   timeline or a region." Two subjects selected: `SELECT_HINT`.
 2. **`cpt_1`'s rectangles**, headings `["is a", "performed by", "same
    as"]` (`rectangles`' order: "is a" first, then by first pair, the pairs
-   by property in code-point order):
+   by property in code-point order). Each pair's line is its provenance
+   entry, whatever beliefs it holds, else `null`:
    - "is a", keyed by its first pair `["type","schema:VideoObject"]`, no
      label, rows `type schema:VideoObject` (to `http://schema.org/VideoObject`),
      `type melod:Manifestation` (to
      `https://lod.academy/melod/vocab/ontology#Manifestation`), `wdt:P31
      wd:Q98069877` (to `http://www.wikidata.org/entity/Q98069877`), no
-     annotation each.
+     entry each.
    - "performed by", label "Maria João Pires", rows `rel:prf
      viaf:113931950` (to `http://viaf.org/viaf/113931950`) and `wdt:P175
      wd:Q235650` (to `http://www.wikidata.org/entity/Q235650`): one
      rectangle, the two values sharing the VIAF cluster through the
      Wikidata node's `schema:sameAs`. Its things, first seen first, are
      the VIAF, Wikidata and GND IRIs, recognised as `viaf`, `wikidata`,
-     `gnd`. Annotations: `reconciled · T · 2026-11-18` with basis the
-     Wikidata and GND IRIs, then `reconciled · P · 2026-11-18` with
-     service `https://www.wikidata.org/w/api.php`. `addable` is
-     `[musicbrainz, gnd, melody]`: the verb's vocabularies in catalogue
-     order (those with a pattern of their own, and those whose lookup
-     searches agents where the fallback states it with a thing slot)
-     without Wikidata (`wdt:P175` with a Wikidata value), VIAF and the
-     fallback (`rel:prf`, the fallback's property; the fallback holds no
-     things, the value is VIAF's).
+     `gnd`. Lines: `reconciled · T · 2026-11-18` with basis the Wikidata
+     and GND IRIs and no belief, then `reconciled · P · 2026-11-18` with
+     service `https://www.wikidata.org/w/api.php` and the one belief `P`
+     `"true"` on 2026-11-18. `addable` is `[musicbrainz, gnd, melody]`:
+     the verb's vocabularies in catalogue order (those with a pattern of
+     their own, and those whose lookup searches agents where the fallback
+     states it with a thing slot) without Wikidata (`wdt:P175` with a
+     Wikidata value), VIAF and the fallback (`rel:prf`, the fallback's
+     property; the fallback holds no things, the value is VIAF's).
    - "same as", no label, row `schema:sameAs
      https://www.youtube.com/watch?v=Ch2mrPm1JnM` linking to itself,
-     annotation `manual · P · 2026-11-18`.
-3. **`cpt_1`'s drawers.** Proposed: one row, subject `["timelines", 1]`,
-   heading "is a recording of", label "Clair de lune" (the label `clt_6`'s node gives `wd:Q29117946`), line method
-   `inferred`, who `T`, basis `#clt_6`, `#dpt_1`, status `proposed`, key
-   the canonical text of `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`.
-   Rejected: none.
-4. **`clt_6`**: headings `["is a", "dcterms:created", "is a version or
+     line `manual · P · 2026-11-18`, belief `P` `"true"`.
+   The user's own belief (`beliefOf`) in every line is `null`: `G` holds
+   none.
+3. **What the element is.** The first tile's sentence (`typeSentence`)
+   names the element and the catalogue types its "is a" states, as few as
+   name every pair (`typeLabels`: the types `typesOf` finds, most
+   vocabularies agreeing first, each kept only where it names a pair no
+   earlier one did; a pair no type names follows as written), each with
+   its article: `cpt_1` "C.Debussy - Clair de Lune, Maria João Pires live
+   at Jardin Musical is a video." (`video` names all three pairs: fallback
+   `schema:VideoObject`, MeLODy `melod:Manifestation`, Wikidata
+   `wd:Q98069877`); `clt_6` "Clair de lune, mm. 1–6 (MEI) is a printed or
+   scanned edition." (two vocabularies agree on it and on `score_encoding`;
+   the first in catalogue order names both pairs); `dpt_1`
+   "ClairDeLune_MariaJoaoPires_untilM6.wav is a recorded performance and a
+   release." (each type names one pair, `schema:AudioObject` and
+   `melod:Manifestation`, the first of each in catalogue order); `cpt_2`
+   "Nothing states yet what cpt_2 is.". `typeLabels` of `type
+   schema:VideoObject` and `type schema:Painting` is `["video",
+   "schema:Painting"]`.
+4. **`cpt_1`'s candidates.** Offered: one row, subject `["timelines", 1]`,
+   heading "is a recording of", label "Clair de lune" (the label `clt_6`'s
+   node gives `wd:Q29117946`), pair `["wdt:P2550", {"id":
+   "wd:Q29117946"}]`, line method `inferred`, who `T`, basis `#clt_6`,
+   `#dpt_1`, no belief, key the canonical text of
+   `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`. Believed false
+   by the user: none.
+5. **`clt_6`**: headings `["is a", "dcterms:created", "is a version or
    edition of"]`; `dcterms:created` (no verb) labelled by its literal
-   "2025-12-05", annotated `imported`; "is a version or edition of"
+   "2025-12-05", its line `imported`; "is a version or edition of"
    labelled "Clair de lune", rows `schema:exampleOfWork
    http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96` and
    `wdt:P629 wd:Q29117946` (one thing shared through the node's
-   `schema:sameAs`), its two annotations `manual` by `P` with match
-   `broad` and `reconciled` by `T` with service Wikidata. Rejected: one
-   row, "is a version or edition of" `gnd:1156628156` (no label known),
-   method `reconciled`, its note kept. Proposed: none (the value node's
-   own annotation is confirmed).
-5. **`dpt_1`**: headings `["is a"]`; proposed one row "is derived from, is
-   based on" naming the element `#cpt_1` by its name.
-6. **`cpt_2` and the bundle.** `cpt_2` states nothing: one rectangle, the
+   `schema:sameAs`), its two lines `manual` by `P` with match `broad`
+   (belief `P` `"true"`) and `reconciled` by `T` with service Wikidata.
+   Its candidate "is a version or edition of" `gnd:1156628156` (no label
+   known), method `reconciled`, its note kept, is believed `"false"` by
+   `P`, not by the user: it is offered to `G`, its line holding `P`'s
+   belief. Believed false by the user: none. The value node's own entry is
+   about a pair the node states, so no candidate.
+6. **`dpt_1`**: headings `["is a"]`; one candidate offered, "is derived
+   from, is based on" naming the element `#cpt_1` by its name.
+7. **`cpt_2` and the bundle.** `cpt_2` states nothing: one rectangle, the
    empty "is a", keyed `is_a`, no rows, in words "is a". The bundle: the
    empty "is a", `rdfs:seeAlso` and `schema:about` (`wd:Q29117946`), which
    no verb reads.
@@ -1172,11 +1216,10 @@ default, Gerhardt, who states as `G` =
    as written: `cpt_1`'s read "is a schema:VideoObject", "performed by
    Maria João Pires", "same as
    https://www.youtube.com/watch?v=Ch2mrPm1JnM".
-7. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
-   → its iD; `…:user:Clara%20Wieck` → "Clara Wieck";
-   `https://github.com/TimeToAlign/TimeLineEditor` → "TiLiE"; any other
-   IRI as written.
-8. **Choices.** `systemChoices` of "performed by": Wikidata, MusicBrainz,
+8. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
+   → its iD; `…:user:Clara%20Wieck` → "Clara Wieck"; `TILIE` → "TiLiE";
+   any other IRI as written.
+9. **Choices.** `systemChoices` of "performed by": Wikidata, MusicBrainz,
    GND, "MeLODy / LRMoo", "Other vocabularies", "An element of this
    manifest". `verbChoices` for the types `cpt_1`'s "is a" states begin
    "is a", then the usual verbs of `video` (the type three of its
@@ -1190,115 +1233,142 @@ default, Gerhardt, who states as `G` =
 **The edits** (`metadata-edits.test.ts`, pure, exact commands, the clock
 at `2026-11-20T12:00:00Z`):
 
-1. **Confirming `cpt_1`'s proposal** is one `set` with one change on
+1. **Stating `cpt_1`'s candidate** by `G` is one `set` with one change on
    `{block: A, id: "cpt_1"}`: `statements` as before plus `"wdt:P2550":
-   [{"id": "wd:Q29117946"}]`, `provenance` as before with entry 3 replaced
-   in place by `{basis: ["#clt_6", "#dpt_1"], date: "2026-11-20", method:
-   "inferred", note: <kept>, property: "wdt:P2550", stated_by: [G],
-   status: "confirmed", value: {"id": "wd:Q29117946"}}`.
-2. **Rejecting `dpt_1`'s proposal** changes only `dpt_1`'s `provenance`:
-   its one entry `rejected` by `G` on 2026-11-20, method and note kept; no
-   `statements` member.
-3. **Removing and rejecting a rectangle.** Removing `cpt_1`'s "same as"
-   drops the YouTube pair and its confirmed annotation: `statements`
-   without `schema:sameAs`, `provenance` without entry 0. Rejecting it
-   instead drops the pair and turns entry 0 into `rejected` by `G`.
-4. **Adding.** `added` on `cpt_2` with the pair `wdt:P175 {id:
+   [{"id": "wd:Q29117946"}]`, `provenance` as before with entry 3 kept as
+   made (`stated_by: [T]`, `date: "2026-11-18"`, method, basis and note)
+   and given `beliefs: [{actor: G, belief: "true", date: "2026-11-20"}]`.
+2. **Believing `dpt_1`'s candidate false** changes only `dpt_1`'s
+   `provenance`: its one entry as made plus `beliefs: [{actor: G, belief:
+   "false", date: "2026-11-20"}]`; no `statements` member. The frame over
+   that skeleton offers no candidate and sets that row apart as believed
+   false by the user, its line holding `G`'s belief, `beliefOf` `"false"`.
+3. **Believing a stated pair.** `G` believing `cpt_1`'s "same as" pair
+   `"false"` changes `provenance` alone (the pair stays stated): entry 0's
+   beliefs become `[{actor: P, belief: "true", date: "2026-11-18"},
+   {actor: G, belief: "false", date: "2026-11-20"}]`. Believing it then
+   `"unlikely"` replaces `G`'s belief in place: two beliefs, `G`'s
+   `"unlikely"`.
+4. **Removing a pair.** Removing `cpt_1`'s "same as" pair drops it and
+   its entry: `statements` without `schema:sameAs`, `provenance` without
+   entry 0.
+5. **Adding.** `added` on `cpt_2` with the pair `wdt:P175 {id:
    "wd:Q235650", label: "Maria João Pires"}` and fields `manual` by `G`
-   states it with one confirmed annotation `{date: "2026-11-20", method:
-   "manual", property: "wdt:P175", stated_by: [G], status: "confirmed",
-   value: {"id": "wd:Q235650"}}`; the command changes `cpt_2` alone, both
-   members.
-5. **Tying.** `tied` on the pair `rel:prf {id: "gnd:124927521"}` with the
-   thing `http://www.wikidata.org/entity/Q235650` and the catalogue's
-   prefixes gives `{id: "gnd:124927521", "schema:sameAs": [{id:
-   "wd:Q235650"}]}`; a node naming the thing itself is left alone.
-6. **Nothing changed.** `commandOf` of the frame's own skeleton is
+   states it with one entry `{date: "2026-11-20", method: "manual",
+   property: "wdt:P175", stated_by: [G], value: {"id": "wd:Q235650"},
+   beliefs: [{actor: G, belief: "true", date: "2026-11-20"}]}`; the
+   command changes `cpt_2` alone, both members.
+6. **Tying.** `tied` on the pair `rel:prf {id: "gnd:124927521"}` with the
+   thing `http://www.wikidata.org/entity/Q235650`, the catalogue's
+   prefixes and the day `2026-11-20` gives `{id: "gnd:124927521",
+   "schema:sameAs": [{id: "wd:Q235650"}], provenance: [{basis:
+   ["http://www.wikidata.org/entity/Q235650"], date: "2026-11-20", method:
+   "inferred", note: TIE_NOTE, property: "schema:sameAs", stated_by:
+   [TILIE], value: {id: "wd:Q235650"}}]}`: the tie is never silent, and
+   TiLiE holds no belief in it. A node naming the thing itself is left
+   alone.
+7. **Nothing changed.** `commandOf` of the frame's own skeleton is
    `null`. A TimeToShare refusal reaches the caller as the function's
-   `Error` (removing a pair not stated throws "'schema:sameAs' does not
-   have this value").
+   `Error` (removing from `cpt_2` a pair it does not state throws
+   "'schema:sameAs' does not have this value").
 
 **The panel** (`metadata-panel.test.ts`: the Inspector mounted on a store
 of `L` inside a wrapper that provides the user (Gerhardt; a `UserDialog`
 answering "Change…") and a stub lookup; the Metadata tab chosen; the clock
 fixed at `2026-11-20T12:00:00Z`). The stub resolves `wd:Q235650` to
 "Maria João Pires" with the cross-reference GND `124927521`, that GND
-record to "Pires, Maria João", and searches nothing.
+record to "Pires, Maria João", and searches nothing. A tile's heading is
+its sentence: the first tile's says what the element is (frame item 3),
+every other one's is its verb and its label.
 
-1. **Rectangles and drawers.** `cpt_1` shows "This timeline 'C.Debussy -
-   …'.", the user line "You state as Gerhardt.", a list "Statements" of
-   three groups headed as in frame item 2, the "performed by" one with the
-   label "Maria João Pires", two vocabulary rows (two anchors with
-   `rel="noreferrer"`, `target="_blank"`), the provenance line
-   "reconciled · https://example.org/agents/tilie · 2026-11-18", and a
-   "＋ vocabulary" button; the drawers read "Proposed (1)", "Rejected
-   (0)". The bundle shows "Not stated yet." and
-   "State what it is".
-2. **Confirm and Reject.** Confirm on `cpt_1`'s proposed row adds one
-   journal entry, the "is a recording of" rectangle appears last and
-   takes the focus. Reject on `dpt_1`'s row adds one entry, the drawer
-   reads "Proposed (0)" and "Rejected (1)", the focus on the proposed
-   drawer's summary.
-3. **Remove.** Remove on `cpt_1`'s "performed by" leaves "is a" and "same
-   as", the focus on "same as"; Remove on the last rectangle of a timeline
-   gives the focus to "＋ Add statement".
-4. **Reject.** A stated rectangle offers no list to choose a status from
-   (a key on a focused list could choose one on the way through): it shows
-   "Status: confirmed" as text and the buttons Reject (named "Reject
-   performed by Maria João Pires" on `cpt_1`'s "performed by", the
-   rectangle in words), Details, Remove and "＋ vocabulary". Reject there
-   adds one journal entry, leaves "is a" and "same as" and gives the focus
-   to "same as"; Reject on "same as" then, the last rectangle, leaves "is a"
-   and gives the focus to the Rejected drawer's summary, which reads
-   "Rejected (3)" (the two annotated pairs of "performed by" and the one of
-   "same as"). Each posts, as information, "Rejected “performed by Maria
-   João Pires”: it is listed under Rejected." and "Rejected “same as
-   https://www.youtube.com/watch?v=Ch2mrPm1JnM”: it is listed under
-   Rejected.".
-5. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
+1. **Collapsed tiles.** `cpt_1` shows the user line "You state as
+   Gerhardt.", a list "Statements of timeline 'C.Debussy - …'" of three
+   tiles headed "C.Debussy - Clair de Lune, Maria João Pires live at
+   Jardin Musical is a video.", "performed by Maria João Pires", "same
+   as"; each tile's expand button has `aria-expanded="false"` and its
+   pairs are hidden. No "Status" text and no Reject button anywhere. The
+   candidates read "Candidates (1)" and "Believed false by you (0)", the
+   offered row "is a recording of Clair de lune". The bundle's first tile
+   reads "Nothing states yet what LayerIt, Clair de lune mm. 1–6 (Pires)
+   is." and offers "State what it is".
+2. **Expanded.** One click on "performed by"'s expand button: expanded,
+   its pairs shown, each its own row reading `rel:prf viaf:113931950 ↗`
+   and `wdt:P175 wd:Q235650 ↗` (two anchors with `rel="noreferrer"`,
+   `target="_blank"`), each with a button named "Details of rel:prf
+   viaf:113931950" and "Details of wdt:P175 wd:Q235650", and one
+   "＋ Add vocabulary".
+3. **Details.** Details of `wdt:P175`: the paradata "stated by" `P`,
+   "method" reconciled, "service" Wikidata's API, "note" "Portuguese
+   pianist; the video's title names her", "date" 2026-11-18; the belief
+   "https://example.org/people/editor believes it true (2026-11-18)"; the
+   buttons True, Unlikely, False (none pressed) and Remove. Details of
+   `rel:prf`: "No one has stated a belief.". Details of a pair of "is a":
+   "No provenance entry: the manifest's publisher states it."
+4. **Believing a stated pair.** False in `wdt:P175`'s details: one
+   journal entry whose `set` changes `cpt_1`'s `provenance` alone, entry 1
+   holding `P`'s and `G`'s beliefs; the tiles unchanged (the pair stays
+   stated); False pressed; two beliefs listed. Unlikely then: one more
+   entry, Unlikely pressed and False not, still two beliefs.
+5. **Remove.** Remove in `rel:prf`'s details: the "performed by" tile
+   keeps `wdt:P175`, now after "same as" (tiles follow their first pair in
+   code-point order), and takes the focus. On `dpt_1`, Remove on both pairs
+   of "is a" (the tile expanded again after the first): the empty "is a"
+   is left, keyed `is_a`, and the focus is on "＋ Add statement".
+6. **Candidates.** On `cpt_1`, True in the candidate's details: one
+   journal entry, a fourth tile "is a recording of Clair de lune" that has
+   the focus, "Candidates (0)". On `dpt_1`, False in its candidate's
+   details: one entry, "Candidates (0)", "Believed false by you (1)", the
+   focus on the Candidates summary; Unlikely in the set-apart row's
+   details: one entry, "Candidates (1)", "Believed false by you (0)", the
+   focus on that list's summary.
+7. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
    `https://www.wikidata.org/wiki/Q235650` into Value: Vocabulary reads
-   "Wikidata", the Verb field has the focus, its options begin "is a";
-   "performed by" picked and Add: one journal entry, the change on `cpt_2`
-   holding `"wdt:P175": [{"id": "wd:Q235650", "label": "Maria João
-   Pires"}]` and one annotation `manual` by `G` on 2026-11-20; the new
-   rectangle has the focus. A paste of `https://example.org/x` posts "The
-   address is no identifier the catalogue knows; choose “Other property…”
-   to state it."
-6. **An element.** On `cpt_2`, verb "is derived from, is based on",
+   "Wikidata", the Verb field has the focus; "performed by" picked and
+   Add: one journal entry, the change on `cpt_2` holding `"wdt:P175":
+   [{"id": "wd:Q235650", "label": "Maria João Pires"}]` and one entry
+   `manual` by `G` on 2026-11-20 with `G`'s belief `"true"`; the new tile
+   has the focus. A paste of `https://example.org/x` posts "The address is
+   no identifier the catalogue knows; choose “Other property…” to state
+   it."
+8. **An element.** On `cpt_2`, verb "is derived from, is based on",
    vocabulary "An element of this manifest", the Value options list the
    other timelines (`clt_6`, `cpt_1`, `dpt_1`), not `cpt_2`; `#clt_6`
    picked and Add states `"dcterms:source": [{"id": "#clt_6"}]`.
-7. **Other property.** "Other property…" with `dcterms:subject`, a text
+9. **Other property.** "Other property…" with `dcterms:subject`, a text
    in a language, "Nocturne" in `fr`: Add states `"dcterms:subject":
    [{"@value": "Nocturne", "@language": "fr"}]`; a property `foo` keeps
    Add disabled with "Write the property as a compact IRI with a known
    prefix or in full."
-8. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary": the
-   Verb field is disabled on "performed by", the Vocabulary options are
-   MusicBrainz, GND, "MeLODy / LRMoo"; GND picked, the Value options offer
-   "Pires, Maria João" (Wikidata's cross-reference resolved in the GND);
-   Add states it in the same rectangle as `rel:prf {id:
-   "gnd:124927521", label: "Pires, Maria João", "schema:sameAs": [{id:
-   "wd:Q235650"}]}` with the annotation `reconciled`, service
-   `https://www.wikidata.org/w/api.php`, basis
-   `http://www.wikidata.org/entity/Q235650`, match `exact`. Cancel instead
-   closes the composer and gives the focus back to "＋ vocabulary".
-   With a lookup whose Wikidata entity names no GND record (so nothing is
-   offered) and which searches the GND, finding "Pires, Maria João" for
-   "Pires" after the search's 250 ms: picked and added, the value is tied
-   the same way (the user chose it for the same thing), but its annotation
-   is `manual` by `G` on 2026-11-20 with no `basis`, `service` or `match`:
-   no service reconciled it with the rectangle's thing.
-9. **The user.** "Change…" opens the dialog "Your name"; an empty name
-   shows "A name is required."; "Clara Wieck" with
-   `https://orcid.org/0000-0002-1825-0097` saved reads "You state as Clara
-   Wieck (ORCID iD 0000-0002-1825-0097).", and a confirmation then states
-   `stated_by: ["https://orcid.org/0000-0002-1825-0097"]`.
-10. **Refusals.** A store refusal is posted as a warning (kept until
+10. **＋ Add vocabulary.** On `cpt_1`'s "performed by", expanded, "＋ Add
+    vocabulary": the Verb field is disabled on "performed by", the
+    Vocabulary options are MusicBrainz, GND, "MeLODy / LRMoo"; GND picked,
+    the Value options offer "Pires, Maria João" (Wikidata's
+    cross-reference resolved in the GND); Add states it in the same
+    rectangle (now labelled "Pires, Maria João", the first node label in
+    file order) as `rel:prf {id: "gnd:124927521", label: "Pires, Maria
+    João", "schema:sameAs": [{id: "wd:Q235650"}], provenance: [the tie of
+    edit 6]}` with the entry `reconciled`, service
+    `https://www.wikidata.org/w/api.php`, basis
+    `http://www.wikidata.org/entity/Q235650`, match `exact`, `G`'s belief
+    `"true"`. Cancel instead closes the composer and gives the focus back
+    to "＋ Add vocabulary". With a lookup whose Wikidata entity names no
+    GND record (so nothing is offered) and which searches the GND,
+    finding "Pires, Maria João" for "Pires" after the search's 250 ms:
+    picked and added, the value is tied the same way (the user chose it
+    for the same thing), but its entry is `manual` by `G` on 2026-11-20
+    with no `basis`, `service` or `match`: no service reconciled it with
+    the rectangle's thing.
+11. **The user.** "Change…" opens the dialog "Your name"; an empty name
+    shows "A name is required."; "Clara Wieck" with
+    `https://orcid.org/0000-0002-1825-0097` saved reads "You state as
+    Clara Wieck (ORCID iD 0000-0002-1825-0097).", and stating the
+    candidate then records the belief `"true"` of the actor
+    `https://orcid.org/0000-0002-1825-0097`.
+12. **Refusals.** A store refusal is posted as a warning (kept until
     dismissed) with its message; a throw of the statement functions as the
     warning "The statement could not be changed: …"; neither is posted as
     information, neither journals anything.
-11. **State belongs to the element.** The composer opened on `cpt_2` is
+13. **State belongs to the element.** The composer opened on `cpt_2` is
     hidden on selecting `cpt_1` and not shown again there.
 
 **The user** (`user.test.ts`): a `UserState` under key `K` with nothing
@@ -1315,8 +1385,11 @@ throws.
 ## Proposed matches and picking on the canvas (`metadata-proposals.test.ts`)
 
 A name stated without an identifier is a value node with a `label` and no
-`id`. Bulk proposals look such names up and propose, never state, the best
-match; confirming one states the identified thing in place of the name. What
+`id`. Bulk proposals look such names up and write the best match as
+TiLiE's candidate, never stated; believing it true states the identified
+thing in place of the one name it can be for, found by structure (a name
+under a property of the same IRI on the candidate's subject), never by
+reading the entry's `note`, which is words. What
 proves it is the exact `set` each step builds on the LayerIt store (`L`,
 block `A`, the date fixed at 2026-11-20), with `cpt_2` (`["timelines", 1,
 "children", 0]`, no statements in the fixture) first given by one accepted
@@ -1357,67 +1430,71 @@ read from a recording, never typed from the implementation; `T` is
   João" (below), the failures are `["wikidata"]`.
 - **Proposals.** On `cpt_2`'s frame they become one `set` on `{block: A,
   id: "cpt_2"}` holding `provenance` alone (the statements unchanged): the
-  entries `{property: "rel:prf", value: {id: "wd:Q235650"}, status:
-  "proposed", stated_by: [T], date: "2026-11-20", method: "reconciled",
-  service: "https://www.wikidata.org/w/api.php", match: "close", note:
-  "found for the name “Maria João Pires”"}` and the same for `wdt:P2550`
-  with `wd:Q29117946` and "found for the name “Clair de lune”": Wikidata's
-  candidate is preferred though the GND answered both too, and
-  Wikidata's search says no `match`, so `close`. Both went to `cpt_2`:
-  `placed` is `[{holder: "cpt_2", count: 2}]`. Proposing again proposes
-  nothing (count 0, no command), nor after the first proposal is rejected.
-  With Wikidata unreachable, `rel:prf` "Pires, Maria João" gets the GND's
-  first, `gnd:1057057150` (lobid ranks "Pires, Maria João Marques" first,
-  not the pianist's 124927521: the reason these are proposals), service
-  `https://lobid.org/gnd/search`, `close`. A candidate whose service says it
-  matches (MusicBrainz's `match: true` for
+  candidates `{property: "rel:prf", value: {id: "wd:Q235650"}, stated_by:
+  [T], date: "2026-11-20", method: "reconciled", service:
+  "https://www.wikidata.org/w/api.php", note: "found for the name “Maria
+  João Pires”"}` and the same for `wdt:P2550` with `wd:Q29117946` and
+  "found for the name “Clair de lune”": Wikidata's candidate is preferred
+  though the GND answered both too, and Wikidata's search says nothing of
+  a match, so the entry states no `match`; TiLiE holds no belief, so none
+  is written. Both went to `cpt_2`: `placed` is `[{holder: "cpt_2",
+  count: 2}]`. Proposing again proposes nothing (count 0, no command), nor
+  after the user believes the first candidate false. With Wikidata
+  unreachable, `rel:prf` "Pires, Maria João" gets the GND's first,
+  `gnd:1057057150` (lobid ranks "Pires, Maria João Marques" first, not the
+  pianist's 124927521: the reason these are candidates), service
+  `https://lobid.org/gnd/search`, no `match`. A candidate whose service
+  says it matches (MusicBrainz's `match: true` for
   `http://musicbrainz.org/work/199ec7b6-ce07-34e9-85ca-fcf89fe808c9`
-  "Clair de Lune", given as the only answer) is proposed `exact`, its IRI
-  kept absolute.
+  "Clair de Lune", given as the only answer) is written with `match:
+  "exact"`, its IRI kept absolute.
 - **What the panel says** (`proposedText`, words given by hand). All on
   the element shown (`placed` `[{holder: "cpt_2", count: 2}]`, here
-  `cpt_2`): "Proposed 2 matches: they are listed under Proposed.", one:
-  "Proposed 1 match: they are listed under Proposed.". Some elsewhere
+  `cpt_2`): "Proposed 2 matches: they are listed under Candidates.", one:
+  "Proposed 1 match: they are listed under Candidates.". Some elsewhere
   (`[{holder: "cpt_1", count: 2}, {holder: "clt_6", count: 1}]`, here
   `cpt_1`, the words of an ID `x` "timeline 'x'"): "Proposed 3 matches: 2
-  here, 1 on timeline 'clt_6'; each is listed under Proposed of the element
-  it is proposed for."; none here (`[{holder: "cpt_2", count: 1}]`, here
-  the bundle, `null`): "Proposed 1 match: 0 here, 1 on timeline 'cpt_2';
-  each is listed under Proposed of the element it is proposed for.".
-- **Confirming.** With the two proposals stored, confirming the `rel:prf`
-  row by `G` gives one change on `cpt_2`: `rel:prf` becomes `[{id:
-  "wd:Q235650", label: "Maria João Pires"}]` (the name's node with the
-  thing's `id`: the label-only node is gone), `wdt:P2550` and
-  `dcterms:subject` stay, and its entry is `confirmed`, `stated_by: [G]`,
-  `date: "2026-11-20"`, its method, service, match and note kept.
-  `cpt_1`'s own proposal (no name noted) is not such a proposal
-  (`confirmedProposal` gives `null`), nor is a proposal whose note names
-  no stated name.
+  here, 1 on timeline 'clt_6'; each is listed under Candidates of the
+  element it is proposed for."; none here (`[{holder: "cpt_2", count:
+  1}]`, here the bundle, `null`): "Proposed 1 match: 0 here, 1 on
+  timeline 'cpt_2'; each is listed under Candidates of the element it is
+  proposed for.".
+- **Stating for a name.** With the two candidates stored, `statedForName`
+  of the `rel:prf` row by `G` gives one change on `cpt_2`: `rel:prf`
+  becomes `[{id: "wd:Q235650", label: "Maria João Pires"}]` (the name's
+  node with the thing's `id`: the label-only node is gone), `wdt:P2550`
+  and `dcterms:subject` stay, and its entry is kept as made (`stated_by:
+  [T]`, method, service and note) with `beliefs: [{actor: G, belief:
+  "true", date: "2026-11-20"}]`. `cpt_1`'s own candidate (no name under
+  `wdt:P2550` there) is no such candidate (`null`), nor is the `rel:prf`
+  row where `cpt_2` states two names under `rel:prf` ("Maria João Pires"
+  and "Clara Wieck"): which one it is for, the structure does not say.
 - **The element as it stands.** `frameIn` gives the frame over the
   store's current manifest; after `remove cpt_2`, `null`.
 - **The tab** (the Inspector mounted with a stub lookup whose `reconcile`
   answers Wikidata's candidates above and nothing elsewhere, and a
-  `Picking`): on `cpt_2` with `N` the Proposed drawer offers "Propose
-  matches for unreconciled names" with "2 names without an identifier here
-  and below";
-  pressed, one journal entry, "Proposed (2)" and the information "Proposed
-  2 matches: they are listed under Proposed."; the names stay without an
-  identifier until confirmed, so the offer stays. Pressed again, nothing is
-  journalled and "No new match was found for the 2 names." is posted.
-  Confirm on the `rel:prf` row: one journal entry whose `set` states
-  `cpt_2`'s statements as under Confirming, "Proposed (1)", "1 name
-  without an identifier here and below". On `cpt_1` (its names all lie on
-  `cpt_2` below it; it has one proposal of its own), the count reads "2
-  names without an identifier here and below"; pressed, one journal entry,
-  `cpt_1`'s drawer still "Proposed (1)", and the information "Proposed 2
-  matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Proposed of
-  the element it is proposed for."; `cpt_2` then shows "Proposed (2)".
+  `Picking`): on `cpt_2` with `N` the Candidates list offers "Propose
+  matches for unreconciled names" with "2 names without an identifier
+  here and below"; pressed, one journal entry, "Candidates (2)" and the
+  information "Proposed 2 matches: they are listed under Candidates.";
+  the names stay without an identifier until a candidate is stated, so
+  the offer stays. Pressed again, nothing is journalled and "No new match
+  was found for the 2 names." is posted. True in the `rel:prf` row's
+  details: one journal entry whose `set` states `cpt_2`'s statements as
+  under Stating for a name, "Candidates (1)", "1 name without an
+  identifier here and below". On `cpt_1` (its names all lie on `cpt_2`
+  below it; it has one candidate of its own), the count reads "2 names
+  without an identifier here and below"; pressed, one journal entry,
+  `cpt_1`'s list still "Candidates (1)", and the information "Proposed 2
+  matches: 0 here, 2 on timeline 'cpt_2'; each is listed under Candidates
+  of the element it is proposed for."; `cpt_2` then shows "Candidates
+  (2)".
 - **One lookup, the panel's.** With a stub lookup whose `reconcile` waits
   until the test releases it: pressed on `cpt_2`, its count reads "Looking
   them up…" and the button is `aria-busy="true"`; `cpt_1` selected
   meanwhile shows "2 names without an identifier here and below" and
   `aria-busy="false"`; `cpt_2` selected again reads "Looking them up…";
-  released, the proposals land on `cpt_2` ("Proposed (2)") and its count
+  released, the candidates land on `cpt_2` ("Candidates (2)") and its count
   reads "2 names without an identifier here and below".
 - **Picking an element.** On `cpt_2`, "derived from" in the vocabulary "An
   element of this manifest": "Pick on the canvas" shows (and not for

@@ -1,8 +1,10 @@
 /**
- * The Metadata tab on the LayerIt recording: its rectangles and drawers as
- * imported, confirming and rejecting a proposal, a pasted Wikidata URL
- * stated after its verb, "＋ vocabulary" from the first source's
- * cross-references, the user who states, and the keyboard alone. Every
+ * The Metadata tab on the LayerIt recording: its tiles and candidates as
+ * imported, collapsed to their sentences; stating a candidate and
+ * believing one false; a pasted Wikidata URL stated after its verb,
+ * "＋ Add vocabulary" from the first source's cross-references, the user
+ * who states and believes, the keyboard alone, and a stated pair believed
+ * false by its own button, never by an arrow key, and left stated. Every
  * request to Wikidata, lobid, YouTube or Wikimedia Commons is answered from
  * the editor's recorded lookups, any other aborted. Derivation in
  * `README.md` ("metadata.spec.ts").
@@ -13,17 +15,27 @@ import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  details,
+  expand,
   exported,
   field,
+  headings,
   importLayerIt,
-  openDrawer,
+  openList,
   RECORDED,
   showMetadata as show,
+  tile,
+  tiles,
 } from "./metadata.ts";
 import { chooseItem, journalLength } from "./support.ts";
 
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+const T = "https://example.org/agents/tilie";
+const P = "https://example.org/people/editor";
+const TILIE = "https://github.com/TimeToAlign/TimeLineEditor";
 const ORCID = "https://orcid.org/0000-0002-1825-0097";
+const CPT_1_SENTENCE =
+  "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical is a video.";
 /** The GND's preferred name of Maria João Pires, as lobid's recorded record gives it. */
 const GND_PIRES: string = JSON.parse(
   readFileSync(path.join(RECORDED, "gnd-record-124927521.json"), "utf8"),
@@ -39,11 +51,8 @@ test.beforeEach(async ({ page }) => {
 /** Select the timeline `id` (the bundle for `null`) and show the Metadata tab. */
 const showMetadata = (page: Page, id: string | null) => show(page, block, id);
 
-const rectangles = (page: Page) => page.getByTestId("metadata-rectangle");
-
-const headings = (page: Page) => page.getByTestId("metadata-heading").locator(".verb");
-const rectangle = (page: Page, heading: string): Locator =>
-  rectangles(page).filter({ has: page.locator(".verb", { hasText: new RegExp(`^${heading}$`) }) });
+/** The two candidate lists' summaries. */
+const summaries = (page: Page) => page.locator("details summary");
 
 /**
  * Paste `text` into `locator` as the clipboard would. Firefox ignores the
@@ -66,44 +75,70 @@ async function paste(locator: Locator, text: string): Promise<void> {
   }, text);
 }
 
-test("the LayerIt recording opens with its rectangles and drawers", async ({ page }) => {
+test("the LayerIt recording opens with its tiles collapsed and its candidates", async ({
+  page,
+}) => {
   await expect(page.getByRole("alert")).toHaveCount(0);
   await showMetadata(page, "cpt_1");
-  await expect(headings(page)).toHaveText(["is a", "performed by", "same as"]);
-  const performed = rectangle(page, "performed by");
+  await expect(headings(page)).toHaveText([
+    CPT_1_SENTENCE,
+    "performed by Maria João Pires",
+    "same as",
+  ]);
+  await expect(tiles(page).getByTestId("metadata-vocabulary")).toHaveCount(3);
+  for (const list of await tiles(page).getByTestId("metadata-vocabulary").all()) {
+    await expect(list).toBeHidden();
+  }
+  const performed = tile(page, "performed by");
+  await expand(performed);
   await expect(performed.getByTestId("metadata-label")).toHaveText("Maria João Pires");
-  await expect(performed.getByTestId("metadata-vocabulary").locator("li")).toHaveText([
+  await expect(performed.getByTestId("metadata-vocabulary").locator("> li")).toHaveText([
     "rel:prf viaf:113931950 ↗",
     "wdt:P175 wd:Q235650 ↗",
   ]);
-  for (const heading of ["is a", "performed by", "same as"]) {
-    await expect(rectangle(page, heading).getByTestId("metadata-add-vocabulary")).toHaveCount(1);
+  await expect(
+    performed.getByRole("button", { name: "Details of wdt:P175 wd:Q235650", exact: true }),
+  ).toHaveText("");
+  for (const heading of ["C.Debussy", "performed by", "same as"]) {
+    await expect(tile(page, heading).getByTestId("metadata-add-vocabulary")).toHaveCount(1);
   }
-  await expect(page.locator("details summary")).toHaveText(["Proposed (1)", "Rejected (0)"]);
-  await openDrawer(page, "proposed");
-  const proposed = page.getByTestId("metadata-proposed-row");
-  await expect(proposed.locator(".what")).toHaveText("is a recording of Clair de lune");
-  await expect(proposed.getByRole("button")).toHaveText(["Confirm", "Reject"]);
+  await expect(page.getByText("Status")).toHaveCount(0);
+  await expect(summaries(page)).toHaveText(["Candidates (1)", "Believed false by you (0)"]);
+  await openList(page, "candidates");
+  await expect(page.getByTestId("metadata-candidate-row").locator(".what")).toHaveText(
+    "is a recording of Clair de lune",
+  );
 
   await showMetadata(page, "clt_6");
-  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (1)");
-  await expect(page.getByTestId("metadata-rejected-row")).toContainText("gnd:1156628156");
+  await expect(summaries(page)).toHaveText(["Candidates (1)", "Believed false by you (0)"]);
+  await expect(page.getByTestId("metadata-candidate-row")).toContainText("gnd:1156628156");
+  const believed = await details(page, "is a version or edition of gnd:1156628156");
+  await expect(believed.getByTestId("metadata-beliefs")).toHaveText(
+    `${P} believes it false (2026-11-18)`,
+  );
 
   await showMetadata(page, "dpt_1");
-  await expect(page.locator("details summary").nth(0)).toHaveText("Proposed (1)");
+  await expect(summaries(page).nth(0)).toHaveText("Candidates (1)");
 
   await showMetadata(page, null);
-  await expect(
-    rectangles(page).first().getByRole("button", { name: "State what it is" }),
-  ).toBeVisible();
+  await expect(headings(page).first()).toHaveText(
+    "Nothing states yet what LayerIt, Clair de lune mm. 1–6 (Pires) is.",
+  );
+  await expect(tiles(page).first().getByRole("button", { name: "State what it is" })).toBeVisible();
 });
 
-test("confirming a proposal states the pair and exports it confirmed", async ({ page }) => {
+test("believing a candidate true states it with the belief, kept as made", async ({ page }) => {
   await showMetadata(page, "cpt_1");
   const before = await journalLength(page);
-  await openDrawer(page, "proposed");
-  await page.getByTestId("metadata-proposed-row").getByRole("button", { name: "Confirm" }).click();
-  await expect(headings(page)).toHaveText(["is a", "performed by", "same as", "is a recording of"]);
+  await openList(page, "candidates");
+  const region = await details(page, "is a recording of Clair de lune");
+  await region.getByRole("button", { name: "True", exact: true }).click();
+  await expect(headings(page)).toHaveText([
+    CPT_1_SENTENCE,
+    "performed by Maria João Pires",
+    "same as",
+    "is a recording of",
+  ]);
   expect(await journalLength(page)).toBe(before + 1);
   const cpt1 = await exported(page, "cpt_1");
   expect((cpt1.statements as { [key: string]: unknown })["wdt:P2550"]).toEqual([
@@ -111,34 +146,42 @@ test("confirming a proposal states the pair and exports it confirmed", async ({ 
   ]);
   expect((cpt1.provenance as unknown[])[3]).toEqual({
     basis: ["#clt_6", "#dpt_1"],
-    date: "2026-11-20",
+    beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
+    date: "2026-11-18",
     method: "inferred",
     note: "from the encoding's work and the WAV's source; whether the video holds the whole movement is unchecked",
     property: "wdt:P2550",
-    stated_by: [G],
-    status: "confirmed",
+    stated_by: [T],
     value: { id: "wd:Q29117946" },
   });
   await page.keyboard.press("Control+z");
-  await expect(page.getByTestId("metadata-proposed-row")).toHaveCount(1);
-  await expect(headings(page)).toHaveText(["is a", "performed by", "same as"]);
+  await expect(page.getByTestId("metadata-candidate-row")).toHaveCount(1);
+  await expect(headings(page)).toHaveText([
+    CPT_1_SENTENCE,
+    "performed by Maria João Pires",
+    "same as",
+  ]);
 });
 
-test("rejecting a proposal keeps it as a rejected annotation", async ({ page }) => {
+test("believing a candidate false sets it apart, its entry kept", async ({ page }) => {
   await showMetadata(page, "dpt_1");
-  await openDrawer(page, "proposed");
-  await page.getByTestId("metadata-proposed-row").getByRole("button", { name: "Reject" }).click();
-  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (1)");
+  await openList(page, "candidates");
+  const region = await details(
+    page,
+    "is derived from, is based on C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",
+  );
+  await region.getByRole("button", { name: "False", exact: true }).click();
+  await expect(summaries(page)).toHaveText(["Candidates (0)", "Believed false by you (1)"]);
   const dpt1 = await exported(page, "dpt_1");
   expect((dpt1.statements as { [key: string]: unknown })["dcterms:source"]).toBe(undefined);
   expect(dpt1.provenance).toEqual([
     {
-      date: "2026-11-20",
+      beliefs: [{ actor: G, belief: "false", date: "2026-11-20" }],
+      date: "2026-11-18",
       method: "inferred",
       note: "assumed ripped from the video's sound and cut",
       property: "dcterms:source",
-      stated_by: [G],
-      status: "rejected",
+      stated_by: [P],
       value: { id: "#cpt_1" },
     },
   ]);
@@ -155,8 +198,12 @@ test("a pasted Wikidata URL becomes a statement after choosing its verb", async 
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(headings(page)).toHaveText(["is a", "performed by"]);
-  await expect(rectangle(page, "performed by").getByTestId("metadata-vocabulary")).toHaveText(
+  await expect(headings(page)).toHaveText([
+    "Nothing states yet what cpt_2 is.",
+    "performed by Maria João Pires",
+  ]);
+  await expand(tile(page, "performed by"));
+  await expect(tile(page, "performed by").getByTestId("metadata-vocabulary")).toHaveText(
     "wdt:P175 wd:Q235650 ↗",
   );
   const cpt2 = await exported(page, "cpt_2");
@@ -165,21 +212,22 @@ test("a pasted Wikidata URL becomes a statement after choosing its verb", async 
   });
   expect(cpt2.provenance).toEqual([
     {
+      beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
       date: "2026-11-20",
       method: "manual",
       property: "wdt:P175",
       stated_by: [G],
-      status: "confirmed",
       value: { id: "wd:Q235650" },
     },
   ]);
 });
 
-test("＋ vocabulary proposes the value from the first source's cross-references", async ({
+test("＋ Add vocabulary offers the value from the first source's cross-references", async ({
   page,
 }) => {
   await showMetadata(page, "cpt_1");
-  await rectangle(page, "performed by").getByTestId("metadata-add-vocabulary").click();
+  await expand(tile(page, "performed by"));
+  await tile(page, "performed by").getByTestId("metadata-add-vocabulary").click();
   await field(page, "Vocabulary").fill("GND");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
@@ -196,7 +244,7 @@ test("＋ vocabulary proposes the value from the first source's cross-references
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(
-    rectangle(page, "performed by").getByTestId("metadata-vocabulary").locator("li"),
+    tile(page, "performed by").getByTestId("metadata-vocabulary").locator("> li"),
   ).toHaveText(["rel:prf viaf:113931950 ↗", "rel:prf gnd:124927521 ↗", "wdt:P175 wd:Q235650 ↗"]);
   const cpt1 = await exported(page, "cpt_1");
   expect((cpt1.statements as { [key: string]: unknown })["rel:prf"]).toEqual([
@@ -204,23 +252,34 @@ test("＋ vocabulary proposes the value from the first source's cross-references
     {
       id: "gnd:124927521",
       label: GND_PIRES,
+      provenance: [
+        {
+          basis: ["http://www.wikidata.org/entity/Q235650"],
+          date: "2026-11-20",
+          method: "inferred",
+          note: "written by “＋ Add vocabulary” to keep the value with the thing it was chosen for",
+          property: "schema:sameAs",
+          stated_by: [TILIE],
+          value: { id: "wd:Q235650" },
+        },
+      ],
       "schema:sameAs": [{ id: "wd:Q235650" }],
     },
   ]);
   expect((cpt1.provenance as unknown[]).at(-1)).toEqual({
     basis: ["http://www.wikidata.org/entity/Q235650"],
+    beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
     date: "2026-11-20",
     match: "exact",
     method: "reconciled",
     property: "rel:prf",
     service: "https://www.wikidata.org/w/api.php",
     stated_by: [G],
-    status: "confirmed",
     value: { id: "gnd:124927521" },
   });
 });
 
-test("the user's name and ORCID iD stamp the journal and the statements", async ({ page }) => {
+test("the user's name and ORCID iD stamp the journal and the beliefs", async ({ page }) => {
   await chooseItem(page, "Your name…");
   const dialog = page.getByRole("dialog", { name: "Your name" });
   await dialog.getByLabel("Name", { exact: true }).fill("Clara Wieck");
@@ -230,16 +289,25 @@ test("the user's name and ORCID iD stamp the journal and the statements", async 
   await expect(page.getByTestId("metadata-user")).toContainText(
     "You state as Clara Wieck (ORCID iD 0000-0002-1825-0097).",
   );
-  await rectangle(page, "same as").getByRole("button", { name: "Remove" }).click();
-  await expect(headings(page)).toHaveText(["is a", "performed by"]);
+  await expand(tile(page, "same as"));
+  const same = await details(page, "schema:sameAs https://www.youtube.com/watch?v=Ch2mrPm1JnM");
+  await same.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(headings(page)).toHaveText([CPT_1_SENTENCE, "performed by Maria João Pires"]);
   expect(await page.evaluate(() => window.__tilie.store().journal.at(-1)?.author ?? null)).toBe(
     "Clara Wieck",
   );
-  await openDrawer(page, "proposed");
-  await page.getByTestId("metadata-proposed-row").getByRole("button", { name: "Confirm" }).click();
-  await expect(headings(page)).toHaveText(["is a", "performed by", "is a recording of"]);
+  await openList(page, "candidates");
+  const candidate = await details(page, "is a recording of Clair de lune");
+  await candidate.getByRole("button", { name: "True", exact: true }).click();
+  await expect(headings(page)).toHaveText([
+    CPT_1_SENTENCE,
+    "performed by Maria João Pires",
+    "is a recording of",
+  ]);
   const cpt1 = await exported(page, "cpt_1");
-  expect((cpt1.provenance as { stated_by: unknown }[]).at(-1)?.stated_by).toEqual([ORCID]);
+  expect((cpt1.provenance as { beliefs: unknown }[]).at(-1)?.beliefs).toEqual([
+    { actor: ORCID, belief: "true", date: "2026-11-20" },
+  ]);
   await page.reload();
   await page.waitForFunction(() => window.__tilie !== undefined);
   expect(await page.evaluate(() => localStorage.getItem("tilie.user"))).toBe(
@@ -275,43 +343,48 @@ test("keyboard only", async ({ page }) => {
   }
   await expect(addButton).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(headings(page)).toHaveText(["is a", "performed by"]);
+  await expect(headings(page)).toHaveText([
+    "Nothing states yet what cpt_2 is.",
+    "performed by Maria João Pires",
+  ]);
+  const toggle = tile(page, "performed by").getByTestId("metadata-expand");
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 });
 
-test("a rectangle is rejected by its own button, never by an arrow key", async ({ page }) => {
+test("a stated pair is believed false by its own button, never by an arrow key, and stays", async ({
+  page,
+}) => {
   await showMetadata(page, "cpt_1");
   const before = await journalLength(page);
-  const reject = rectangle(page, "performed by").getByRole("button", {
-    name: "Reject performed by Maria João Pires",
-    exact: true,
-  });
-  await expect(rectangle(page, "performed by").getByTestId("metadata-status")).toHaveText(
-    "Status: confirmed",
-  );
-  await reject.focus();
+  await expand(tile(page, "performed by"));
+  const region = await details(page, "wdt:P175 wd:Q235650");
+  const believeFalse = region.getByRole("button", { name: "False", exact: true });
+  await believeFalse.focus();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowUp");
-  await expect(headings(page)).toHaveText(["is a", "performed by", "same as"]);
   expect(await journalLength(page)).toBe(before);
+  await expect(believeFalse).toHaveAttribute("aria-pressed", "false");
   await page.keyboard.press("Enter");
-  await expect(headings(page)).toHaveText(["is a", "same as"]);
-  await expect(rectangle(page, "same as")).toBeFocused();
-  await expect(
-    page.getByText("Rejected “performed by Maria João Pires”: it is listed under Rejected."),
-  ).toBeVisible();
-  await expect(page.locator("details summary").nth(1)).toHaveText("Rejected (2)");
+  await expect(believeFalse).toHaveAttribute("aria-pressed", "true");
+  await expect(headings(page)).toHaveText([
+    CPT_1_SENTENCE,
+    "performed by Maria João Pires",
+    "same as",
+  ]);
   expect(await journalLength(page)).toBe(before + 1);
   const cpt1 = await exported(page, "cpt_1");
   const statements = cpt1.statements as { [key: string]: unknown };
-  expect([statements["rel:prf"], statements["wdt:P175"]]).toEqual([undefined, undefined]);
-  type Entry = { property: string; status: string; stated_by?: string[]; date?: string };
-  expect(
-    (cpt1.provenance as Entry[])
-      .filter((entry) => entry.status === "rejected")
-      .map((entry) => [entry.property, entry.stated_by, entry.date])
-      .sort(),
-  ).toEqual([
-    ["rel:prf", [G], "2026-11-20"],
-    ["wdt:P175", [G], "2026-11-20"],
+  expect(statements["wdt:P175"]).toEqual([
+    {
+      id: "wd:Q235650",
+      label: "Maria João Pires",
+      "schema:sameAs": [{ id: "viaf:113931950" }, { id: "gnd:124927521" }],
+    },
+  ]);
+  expect((cpt1.provenance as { beliefs?: unknown }[])[1]?.beliefs).toEqual([
+    { actor: P, belief: "true", date: "2026-11-18" },
+    { actor: G, belief: "false", date: "2026-11-20" },
   ]);
 });
