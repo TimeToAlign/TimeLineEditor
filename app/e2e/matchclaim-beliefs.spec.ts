@@ -16,7 +16,7 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Download, Page, Request } from "@playwright/test";
+import type { Download, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { packageDir, SCHEMA_VERSION } from "./schema.ts";
 import { chooseItem, downloaded, select, withoutPickers } from "./support.ts";
@@ -55,22 +55,49 @@ const CLAIM_1 = {
   beliefs: [{ actor: ME, belief: "true", date: "2026-11-20" }],
 };
 
-/** The parameters a request of the provenance or belief route carries. */
-function parametersOf(request: Request): unknown {
-  const body = request.postDataBuffer() ?? Buffer.alloc(0);
-  return JSON.parse(body.subarray(4, 4 + body.readUInt32LE(0)).toString("utf8"));
-}
-
 interface Seen {
   tables: number;
   provenance: unknown[];
   beliefs: unknown[];
 }
 
+/** The page function the parameters of a provenance or belief request are handed to. */
+const REPORT = "__tilieSentParameters";
+
+/**
+ * Report the parameters of every request of the provenance and belief routes
+ * to `seen`, read from the body the page sends, before the request leaves.
+ * The body is a Blob, and WebKit's network inspector, which Playwright reads
+ * a request's post data from, leaves a Blob body out (Chromium and Firefox
+ * hand it over), so the parameters are read in the page.
+ */
+async function reportParameters(page: Page, seen: Seen): Promise<void> {
+  await page.exposeFunction(REPORT, (route: string, parameters: unknown) => {
+    (route === "provenance" ? seen.provenance : seen.beliefs).push(parameters);
+  });
+  await page.addInitScript((report) => {
+    const send = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const route = /(?:^|\/)api\/match-claims\/(provenance|belief)$/u.exec(url)?.[1];
+      if (route !== undefined) {
+        const body = new Uint8Array(await new Response(init?.body ?? null).arrayBuffer());
+        const length = new DataView(body.buffer).getUint32(0, true);
+        const parameters: unknown = JSON.parse(
+          new TextDecoder().decode(body.subarray(4, 4 + length)),
+        );
+        await Reflect.get(window, report)(route, parameters);
+      }
+      return send(input, init);
+    };
+  }, REPORT);
+}
+
 /** Open a fresh page as the user `ME`, every route replayed; the requests are counted. */
 async function openPage(page: Page): Promise<Seen> {
   const seen: Seen = { tables: 0, provenance: [], beliefs: [] };
   await withoutPickers(page);
+  await reportParameters(page, seen);
   await page.addInitScript((orcid) => {
     localStorage.setItem("tilie.user", JSON.stringify({ name: "Ana", orcid }));
   }, ORCID);
@@ -81,16 +108,13 @@ async function openPage(page: Page): Promise<Seen> {
     await route.fulfill({ status: 200, contentType: "application/octet-stream", body });
   });
   await page.route("**/api/match-claims/provenance", async (route) => {
-    const parameters = parametersOf(route.request());
-    seen.provenance.push(parameters);
-    const claims = (parameters as { claims: string[] }).claims;
+    const claims = (seen.provenance.at(-1) as { claims: string[] }).claims;
     await route.fulfill({
       status: 200,
       json: { claims: claims.map((id) => ({ id, provenance: id === "claim_1" ? CLAIM_1 : null })) },
     });
   });
   await page.route("**/api/match-claims/belief", async (route) => {
-    seen.beliefs.push(parametersOf(route.request()));
     await route.fulfill({
       status: 200,
       contentType: "application/vnd.apache.parquet",
