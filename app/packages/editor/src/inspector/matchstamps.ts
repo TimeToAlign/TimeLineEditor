@@ -773,10 +773,3 @@ export function addedMatchStamp(
   const known = new Set((before?.graphical?.matchstamps ?? []).map((item) => item.id));
   return (after?.graphical?.matchstamps ?? []).find((item) => !known.has(item.id)) ?? null;
 }
-
-// --- File names --------------------------------------------------------------
-
-/** The last part of a location: the file name a picker gives for it. */
-export function fileNameOf(url: string): string {
-  return url.split(/[/\\]/).at(-1) ?? url;
-}

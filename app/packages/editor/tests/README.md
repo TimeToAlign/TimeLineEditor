@@ -1145,6 +1145,16 @@ which no position solves).
      "set", changes: [{target: {block: "0000000000", id: "timestamp_11"},
      values: {groupstamp: false}}]}` and shows it not pressed, a second
      press `groupstamp: true`.
+   - *A member's descendant.* On `bundle_mixed` with the child
+     `second-half` "Second half" (4 quarters at offset 4) added to
+     `score`, a member of `group_1` "Performance", by one `add {into:
+     score, child}`, and the timestamp "Bar 4" added at 2 on `second-half`
+     by one `add {into: second-half, timestamp}` (an ordinary timestamp:
+     no `groupstamp` given): selected, it shows GroupStamp not pressed and
+     enabled, described by "A GroupStamp's line crosses every member of
+     'Performance'." (core's `groupsHolding`: a group holds a timeline when
+     it or one of its ancestors is a member, so the group is named
+     although `second-half` itself is listed in no group).
    - *Not offered.* Theme of the example ("Timestamps" holds no group) and
      the match timestamp `timestamp_1` on `clt_1` of the MatchStamp
      "Downbeat" named after the group was added (a member, but a match
@@ -1180,6 +1190,16 @@ which no position solves).
     shown pin equals, part for part, that pin moved to 6 without its named
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
+    The drawer gives the same `knotsOf` to the Matchstamp tab, whose
+    Coordinates read their conversion-map rows with it: the MatchStamp
+    "Bar two" named by one `add {into: {block}, matchstamp: {name: "Bar
+    two", anchors: [[{timeline: "score", coordinate: [6, 1]}, {timeline:
+    "midi", coordinate: 2880}]], match_claims: ["claim_1"]}}` and selected
+    shows the row `cmap_1` of `score` and the row `cmap_3` of `midi` (2880
+    ticks = 6 quarters through its `ppq`) as "waiting for the server"
+    while `knotsOf` answers `pending`, then both "2" once it answers the
+    rows; without `knotsOf` both read "needs a server to expand its
+    measure map".
 11. **The inspector's top stays put.** The editing bar and the tab list lie
     outside the element that scrolls the panels (`.panels`), so they never
     scroll; in the Timestamp and the Matchstamp tab the name header is the
@@ -1337,14 +1357,33 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `0 ♩`; `cpt_1` `0.0`, `0.0 seconds`, `0″`; `dpt_1` `0`, `0 samples`,
    `0 smp`. **After its coordinate row come its timeline's conversion-map
    rows**, as the Timestamp tab lists a timestamp's own timeline (core's
-   `timestampRows` of a pin anchored on that timeline at the coordinate;
-   no ancestor and no other member: each of the MatchStamp's timestamps is
-   its own group): with the LinearMap `rate` "Rate" (seconds → samples,
+   `timestampRows` of a pin anchored on that timeline at the coordinate,
+   its members the timeline's ancestors and no other: each of the
+   MatchStamp's timestamps is its own group, followed by one group per
+   ancestor, parent first, as the Timestamp tab lists them): with the
+   LinearMap `rate` "Rate" (seconds → samples,
    scalar 44100, offset 0) added to `cpt_1` by one `add {into: cpt_1,
    map}`, the potential MatchStamp of `cpt_1` 8.0 shows the groups `cpt_1`
    [coordinate `8.0` s; Rate `352800` smp, disabled, copied `352800`,
    `352800 samples`, `352 800 smp` (8.0 × 44100 written on the samples
-   axis, an int)] and `dpt_1` [coordinate `352800` smp]. The tab has no
+   axis, an int)] and `dpt_1` [coordinate `352800` smp]. **Ancestors of
+   the MatchStamp's timelines are listed exactly as the Timestamp tab
+   lists them** (one component, one row builder): on `bundle_mixed`
+   with the child `second-half` "Second half" (4 quarters at offset 4)
+   added to `score` (12 quarters, maps `cmap_1`, `cmap_2`) by one `add
+   {into: score, child}`, the MatchStamp "Climax" named by one `add {into:
+   {block}, matchstamp: {name: "Climax", anchors: [[{timeline:
+   "second-half", coordinate: [2, 1]}, {timeline: "performance",
+   coordinate: 3.0}]], match_claims: ["claim_1"]}}` shows, without a
+   table, the groups "Second half" [coordinate `2` ♩], "Score"
+   [coordinate `6` ♩: 2 + the offset 4; an ancestor's maps are not
+   listed, as in the Timestamp tab], "Performance" [coordinate `3.0` s;
+   `cmap_3` `132300` smp, 3.0 × 44100], every field disabled; and the
+   groups of its match timestamp on `second-half` (the first two) equal,
+   heading for heading and row for row ([label, text, unit]), what the
+   Timestamp tab shows for that match timestamp's own pin
+   (`namedPinOf`). Before the ancestors were added the "Score" group was
+   missing, which this case fails on. The tab has no
    "Properties" heading: under the name header come the areas Coordinates,
    Lines, MatchClaims and the MatchClaim filter, each a `section` named by
    its heading. While the MatchStamp is potential (unnamed) the name field
@@ -1479,7 +1518,16 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    checking it again `timelines: null`; pressing False adds `false`
    (`["true", "undecided", "unlikely", "false"]`, the states always in
    that order), pressing Undecided then leaves it out (`["true",
-   "unlikely", "false"]`), and each pressed state is `aria-pressed`. Without a server "Load MatchClaims…" is disabled and described
+   "unlikely", "false"]`), and each pressed state is `aria-pressed`.
+   "Load MatchClaims…" is the manual route of the session's tables
+   (`choose`, item 9a): it asks the tables dialog for the MatchClaim table
+   and the Projections table the manifest names (the table manifest, which
+   has no name: `{manifest: "The manifest", tables: [{type: "MatchClaim", url:
+   "match_claims.parquet"}, {type: "Projection", url:
+   "projections.parquet"}]}`), opens no file picker of its own, and posts
+   what the load says: a file chosen ("m.parquet") is loaded ("Loaded the
+   MatchClaims of m.parquet." through `inform`), a cancelled question says
+   nothing. Without a server "Load MatchClaims…" is disabled and described
    by "Matches need a server: MatchClaim tables are read through
    tilie-server."
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
@@ -1553,10 +1601,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - a block already holding a MatchClaim table, a manifest naming no
      MatchClaim table and a session without a server ask nothing and say
      nothing.
-   The session's `loadNamedTables` runs it for every block as the blocks
-   lie on the canvas, from the top, then from the left (blocks at `y` 200,
-   then `y` 0 and `x` 300, then `y` 0 and `x` 0, added in that order, are
-   asked for from the last to the first), and posts the information
+   The session's `loadNamedTables` runs it for every block in the
+   canvas's one order of blocks (the arranger's `blocksInOrder`: by
+   parent, then index, which its own tests prove; three blocks added in
+   the order A, B, C, at `y` 200, then `y` 0 and `x` 300, then `y` 0 and
+   `x` 0, with the indexes `a2`, `a0`, `a1`, are asked for as B, C, A:
+   neither the order they were added in nor where they lie), and posts
+   the information
    through `inform`, the warnings through `warn`. Turning Show matches on,
    by its key or its button, is what calls it (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load MatchClaims…) always asks, for
    the MatchClaim table (with `url` `null` where the manifest names none)
@@ -1691,8 +1742,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     replacing and leaves the table changed; a failed one also warns "The
     MatchClaims were not saved: <the failure>". Load MatchClaims… on a
     changed table asks the table's question below the button first:
-    Cancel opens no picker and keeps the table changed; Discard opens the
-    picker. The editor's own question before New is proved end to end
+    Cancel asks for no table and keeps the table changed; Discard asks
+    the tables dialog. The editor's own question before New is proved end to end
     (`e2e/matchclaim-beliefs.spec.ts`): after the belief, New asks the
     combined question; Cancel keeps the table changed; Save downloads the
     workspace and then the table (the answered bytes unchanged) and opens

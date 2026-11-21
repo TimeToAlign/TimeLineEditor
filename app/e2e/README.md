@@ -437,7 +437,11 @@ Load disabled until a file is chosen, and loads the chosen files with one
 request; a URL entered is fetched once and loaded; Cancel loads nothing
 and adds no message; and "Choose the manifest's folder…" (the directory
 picker stubbed in the page by an in-page folder holding both tables) loads
-both without asking for anything else. Each loaded table's status line in
+both without asking for anything else. "Load MatchClaims…" in the
+Matchstamp tab's MatchClaim filter, on the same imported manifest with
+Show matches off, opens the same dialog with the same two groups and
+loads the chosen MatchClaim table with one request (no file picker of its
+own). Each loaded table's status line in
 the Matchstamp tab reads "match_claims.parquet: <rows> MatchClaims".
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on

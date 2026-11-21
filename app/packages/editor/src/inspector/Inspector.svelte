@@ -13,7 +13,7 @@
  * never scroll, only the panels do, in their own scroll container, where a
  * stamp tab keeps its name header at the top.
  */
-import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
+import type { KnotsOf, LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
@@ -57,6 +57,7 @@ let {
   match = $bindable(null),
   tables = new MatchClaimTables(null),
   indexesOf = () => null,
+  knotsOf,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -79,6 +80,12 @@ let {
   tables?: MatchClaimTables;
   /** The anchor indexes of a block's table (`blockIndexes`); none without tables. */
   indexesOf?: (block: string) => MatchIndexes | null;
+  /**
+   * The expanded MeasureMap rows of a manifest (the canvas's), with which
+   * the Matchstamp tab evaluates its conversion-map rows; without it no
+   * measure view gives a value.
+   */
+  knotsOf?: KnotsOf | undefined;
 } = $props();
 
 const uid = $props.id();
@@ -188,7 +195,15 @@ const hinted = $derived(block === null && !manifest.dirty);
         {:else if item === "timestamp"}
           <TimestampPanel {live} pin={timestamp} onpin={repinned} />
         {:else if item === "matchstamp"}
-          <MatchstampPanel {live} {block} {match} {tables} {indexesOf} onmatch={rematched} />
+          <MatchstampPanel
+            {live}
+            {block}
+            {match}
+            {tables}
+            {indexesOf}
+            {knotsOf}
+            onmatch={rematched}
+          />
         {:else if item === "metadata"}
           <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
         {:else if item === "properties"}

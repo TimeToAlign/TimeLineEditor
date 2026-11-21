@@ -31,6 +31,7 @@ export type {
 } from "./matches.ts";
 export { inScreenOrder, screenOrder, screenPlace } from "./matches.ts";
 export type { LivePlacement } from "./node.ts";
+export { blocksInOrder } from "./project.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";
 export {

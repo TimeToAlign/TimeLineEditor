@@ -1,9 +1,11 @@
 <script lang="ts">
 /**
  * The Matchstamp tab's MatchClaim filter, at the pane's bottom: the block's
- * table (Load MatchClaims…, read through the server; once a belief changed
- * it, Save MatchClaims… saves the new file, never the workspace; Load
- * MatchClaims… over a changed table first asks to save it), its timelines
+ * table (Load MatchClaims…, the tables' manual route: the user chooses the
+ * MatchClaim table and the Projections table the manifest names, read
+ * through the server; once a belief changed it, Save MatchClaims… saves
+ * the new file, never the workspace; Load MatchClaims… over a changed table
+ * first asks to save it), its timelines
  * and the belief filter, one toggle per belief state (true, undecided,
  * unlikely, false; the Timestamp tab's toggles), stored per block in the
  * workspace's settings.
@@ -12,7 +14,6 @@ import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { BeliefState, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
 import { BELIEF_STATES, matchClaimFilterOf } from "@timetoalign/tilie-core";
 import ConfirmDialog from "../../ConfirmDialog.svelte";
-import { MATCH_CLAIM_TABLE, openFiles } from "../../files.ts";
 import type { MatchClaimTables } from "../../matchClaims.svelte.ts";
 import { MATCHES_NEED_A_SERVER, saveFailure, unsavedQuestion } from "../../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../../messages.svelte.ts";
@@ -131,19 +132,20 @@ async function mayReplaceTable(id: string): Promise<boolean> {
   return saveTableOf(id);
 }
 
-/** Let the viewer pick the block's MatchClaim table and read it through the server. */
+/**
+ * Let the viewer choose the tables of the block's manifest (`choose`) and
+ * read them through the server, saying what the load says.
+ */
 async function loadTable(): Promise<void> {
   if (blockId === null || manifest === undefined) return;
   const id = blockId;
   const held = manifest;
   if (!(await mayReplaceTable(id))) return;
+  loading = true;
   try {
-    const [picked] = await openFiles(MATCH_CLAIM_TABLE);
-    if (picked === undefined) return;
-    loading = true;
-    const failure = await tables.load(id, held, picked.file, picked.name);
-    if (failure !== null) warn(failure);
-    else inform(`Loaded the MatchClaims of ${picked.name}.`);
+    const { informed, warned } = await tables.choose(id, held);
+    for (const text of informed) inform(text);
+    for (const text of warned) warn(text);
   } catch (error) {
     warn(`The MatchClaim table could not be loaded: ${messageOf(error)}`);
   } finally {
