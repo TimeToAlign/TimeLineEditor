@@ -444,12 +444,15 @@ def test_the_files_provenance_becomes_every_rows(server: TestClient) -> None:
     assert table.column("provenance").to_pylist() == provenance
 
 
-def test_a_column_the_type_does_not_declare_is_kept(server: TestClient) -> None:
+@pytest.mark.parametrize("column", ["note", "scope"])
+def test_a_column_the_type_does_not_declare_is_kept(
+    server: TestClient, column: str
+) -> None:
     extra = fixture_table()
-    notes = [f"n{row}" for row in range(extra.num_rows)]
-    extra = extra.append_column("note", pa.array(notes))
+    values = [f"bundle_{row % 2 + 1}" for row in range(extra.num_rows)]
+    extra = extra.append_column(column, pa.array(values))
     table = believed(server, body(belief("claim_6", A, "false"), extra))
-    assert table.column("note").to_pylist() == notes
+    assert table.column(column).to_pylist() == values
 
 
 def test_the_answer_is_a_table_the_table_route_reads(server: TestClient) -> None:

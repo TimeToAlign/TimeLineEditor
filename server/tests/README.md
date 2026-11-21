@@ -152,6 +152,8 @@ anchor are zero.
 | --- | --- |
 | the fixture's manifest written as pretty JSON | the same bytes as for the YAML |
 | the fixture's table with one more column, `note` | the same bytes: a column the table type does not declare is kept by the checks and no part of a MatchClaim |
+| the fixture's table with one more column, `scope`, holding `bundle_1` in the even rows and `bundle_2` in the odd ones | the same bytes: a MatchClaim is its ID alone, so a `scope` column is a further column like `note`, kept and never checked |
+| the fixture's table with `claim_2`'s ID written `claim_1` and the same `scope` column, which gives the two rows two scopes | 422 `{"detail": {"path": [], "message": "the ID 'claim_1' is given twice", "problems": [{"code": "duplicate_id", "row": 1, "column": ["id"], "message": "the ID 'claim_1' is given twice"}]}}`: a scope tells no two MatchClaims apart, TimeToShare's check |
 | the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 30, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
 | the fixture's table with A in `claim_1`'s belief written compactly, `orcid:0000-0002-1825-0097`, against the fixture's manifest, whose `@context` declares `orcid` as `https://orcid.org/`, a prefix no statement uses (timetoalign compares actors under every prefix a manifest declares) | the fixture's bytes: actors are answered as timetoalign compares them, expanded under the manifest's `@context`, so the compact and the full spelling are one actor, A |
 | the same table against the fixture's manifest with `orcid` left out of its `@context` | `actors` `[B, A, "orcid:0000-0002-1825-0097"]` and `belief_actors` `2 1 1 1 0 0`: a prefix the context does not declare expands to nothing, and the actor is compared as written |
@@ -235,7 +237,8 @@ A table whose file states the provenance of every row (as above) and B's
 `false` in `claim_3`: the answer's schema metadata no longer holds
 `timetoshare:provenance`, every row holds the file's entry as its own, and
 row 2 holds `[A false 2026-11-21, B false 2026-11-22]`. A column the table
-type does not declare (`note`) is kept with its values. The answer posted
+type does not declare (`note`, and so `scope`, two scopes over the rows)
+is kept with its values. The answer posted
 to `POST /api/match-claims` is accepted, and its beliefs are the
 fixture's but in row 5: A's `false` (`belief_words` `0 1 0 1 0 0`).
 
