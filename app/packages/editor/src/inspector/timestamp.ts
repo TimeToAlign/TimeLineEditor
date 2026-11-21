@@ -404,10 +404,10 @@ export function displayCommand(pin: Pin, word: TimestampDisplay): Command {
 /**
  * Whether the Timestamp tab offers the GroupStamp toggle for `pin`, a
  * timestamp of `manifest`: on a timeline that is a member of a group
- * (core's `isGroupMember`), never for a match timestamp.
+ * (core's `isGroupMember`), a match timestamp's included.
  */
 export function offersGroupstamp(manifest: Manifest, pin: Pin): boolean {
-  return isGroupMember(manifest, pin.timestamp.timeline) && !(pin.named?.matchstamp ?? false);
+  return isGroupMember(manifest, pin.timestamp.timeline);
 }
 
 /**
@@ -429,9 +429,27 @@ export function holdingGroupNames(manifest: Manifest, timeline: string): string[
   return groupsHolding(manifest, timeline).map((group) => group.name ?? group.id);
 }
 
-/** The `set` making the named timestamp `pin` shows a groupstamp, or an ordinary timestamp. */
-export function groupstampCommand(pin: Pin, groupstamp: boolean): Command {
-  return { type: "set", changes: [{ target: named(pin), values: { groupstamp } }] };
+/** The GroupStamp toggle of both stamp tabs: one word. */
+export const GROUPSTAMP_WORDS: readonly { readonly word: "groupstamp"; readonly label: string }[] =
+  [{ word: "groupstamp", label: "GroupStamp" }];
+
+/**
+ * What a GroupStamp in the groups named `groups` (`holdingGroupNames` of
+ * its timeline) crosses, in words, the hint of its toggle in both stamp
+ * tabs: "A GroupStamp's line crosses every member of 'Performance'."
+ */
+export function groupstampHint(groups: readonly string[]): string {
+  return `A GroupStamp's line crosses every member of ${groups.map((name) => `'${name}'`).join(", ")}.`;
+}
+
+/**
+ * The `set` making the named timestamp at `target` a groupstamp, or an
+ * ordinary timestamp: the GroupStamp toggle of both stamp tabs (the
+ * Timestamp tab passes its named timestamp's address, the Matchstamp tab
+ * a match timestamp's).
+ */
+export function groupstampCommand(target: Address, groupstamp: boolean): Command {
+  return { type: "set", changes: [{ target, values: { groupstamp } }] };
 }
 
 /**

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { matchStampSpec } from "../src/commands/matchstamps.ts";
@@ -549,6 +549,37 @@ describe("match timestamps and a new length", () => {
       ts("timestamp_1"),
       match("timestamp_10", "score", [8, 1]),
       { ...ts("timestamp_5"), coordinate: [10, 1] },
+    ]);
+  });
+});
+
+describe("match timestamps on grouped timelines", () => {
+  it("are groupstamps where their timeline lies in a group", () => {
+    const mixed = deepFreeze(viewOf([A, "bundles/bundle_mixed.yaml"]));
+    const before = new Set((timestampsOf(mixed) ?? []).map((item) => item.id));
+    const turn = changed(
+      mixed,
+      name({
+        name: "Turn",
+        anchors: [[c("score", [6, 1]), c("performance", new JsonFloat(3))]],
+        match_claims: ["claim_1"],
+      }),
+    );
+    const added = (timestampsOf(turn) ?? []).filter((item) => !before.has(item.id));
+    expect(added).toEqual([
+      { ...match("timestamp_12", "performance", new JsonFloat(3)), groupstamp: true },
+      { ...match("timestamp_11", "score", [6, 1]), groupstamp: true },
+    ]);
+  });
+
+  it("are ordinary timestamps in a bundle without groups", () => {
+    const named = changed(view, name(BAR_4));
+    const known = new Set(TS.map((item) => item.id));
+    const added = (timestampsOf(named) ?? []).filter((item) => !known.has(item.id));
+    expect(added.map((item) => [item.id, item.groupstamp])).toEqual([
+      ["timestamp_10", false],
+      ["timestamp_11", false],
+      ["timestamp_12", false],
     ]);
   });
 });

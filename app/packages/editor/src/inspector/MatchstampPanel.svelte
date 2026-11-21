@@ -7,10 +7,12 @@
  * in view while the pane scrolls); **Coordinates** (`StampCoordinates`, the
  * Timestamp tab's): a hint while no MatchStamp is shown, else its
  * timestamps in screen order, each with the rows the Timestamp tab shows for
- * a timestamp there (`stampGroups`), shown disabled and copied, or its text
- * in a format;
+ * that timestamp (`stampGroups`, a GroupStamp's group members included),
+ * each timeline marked with how it takes part, the values its MatchClaims
+ * state set apart, shown disabled and copied, or its text in a format;
  * **Lines** (`MatchstampLines`): every dashed line of the MatchStamp in
- * screen order with its display toggles, inactive until it is named;
+ * screen order with its display toggles and, on a grouped timeline, its
+ * GroupStamp toggle, inactive until it is named;
  * **MatchClaims** (`MatchClaimList`); for a
  * named one what differs from the current table, Update and Remove
  * (`MatchstampActions`); the **MatchClaim filter** at the pane's bottom
@@ -141,7 +143,7 @@ const groups = $derived(
         manifest,
         stamp.block,
         drawing,
-        stamp.coordinates,
+        stamp,
         view.settings.granularity,
         knotsOf?.(manifest) ?? "no_server",
       ),

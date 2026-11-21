@@ -1,8 +1,8 @@
 <script lang="ts">
 /**
  * One tile of the Metadata tab: one verb about one thing, collapsed to its
- * sentence (the verb in words and the thing's label, with a thumbnail where
- * the lookup finds one; for the first tile, `sentence`: what the element
+ * sentence (the verb in words and the thing's label, with the thumbnail of
+ * the first of its things the lookup finds an image for; for the first tile, `sentence`: what the element
  * is). One click on the expand button shows its pairs, property and value
  * as the file writes them, IRIs as slugs with the full IRI as their title,
  * each a separate row, each value a link out where it is a web address,
@@ -50,8 +50,9 @@ let expanded = $state(false);
 
 const empty = $derived(rectangle.pairs.length === 0);
 const keys = $derived(rectangle.pairs.map((pair) => canonicalText(pair)));
-const thing = $derived(thumbnails.first(rectangle.things));
-const image = $derived(thing === null ? null : thumbnails.imageOf(thing));
+/** Whether any of its things is looked up, so that a thumbnail may show. */
+const resolvable = $derived(thumbnails.resolvable(rectangle.things));
+const image = $derived(thumbnails.imageOf(rectangle.things));
 </script>
 
 <div
@@ -78,8 +79,8 @@ const image = $derived(thing === null ? null : thumbnails.imageOf(thing));
         <svg class="chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
           <path d="M6 3.5 10.5 8 6 12.5" />
         </svg>
-        {#if thing !== null}
-          <span class="thumbnail" {@attach thumbnails.load(thing)}>
+        {#if resolvable}
+          <span class="thumbnail" {@attach thumbnails.load(rectangle.things)}>
             {#if image !== null}<img src={image} alt="" width="28" height="28" />{/if}
           </span>
         {/if}

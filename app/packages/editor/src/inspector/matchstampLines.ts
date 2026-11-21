@@ -1,14 +1,15 @@
 /**
  * What the Matchstamp tab shows of a MatchStamp's timestamps beside what
  * `matchstamps.ts` gives: their Coordinates exactly as the Timestamp tab
- * shows a timestamp's (the arranger's one spec builder), and the
+ * shows a timestamp's (the arranger's pins), each timeline marked with how
+ * it takes part, and the
  * MatchStamp's **lines**, every dashed line it draws (its timestamps'
  * lines and its anchors' connectors) in the one screen order, each with
  * what its toggles act on. Values, rows and the order are core's and the
  * arranger's; nothing here computes one.
  */
 
-import { inScreenOrder, timelinePin } from "@timetoalign/tilie-arranger";
+import { inScreenOrder, namedPin, timelinePin } from "@timetoalign/tilie-arranger";
 import type {
   Granularity,
   Knots,
@@ -16,59 +17,122 @@ import type {
   NamedMatchStamp,
   NamedTimestamp,
 } from "@timetoalign/tilie-core";
-import { findTimeline, matchStampSpec, prettyText } from "@timetoalign/tilie-core";
+import {
+  ancestorMembers,
+  findTimeline,
+  groupsHolding,
+  isGroupMember,
+  matchStampSpec,
+  prettyText,
+} from "@timetoalign/tilie-core";
 import { toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { ShownStamp, StampAnchor, StampCoordinate } from "./matchstamps.ts";
 import { matchStampsOf } from "./matchstamps.ts";
 import type { TimelineRows } from "./timestamp.ts";
-import { coordinateGroup, timelineRows } from "./timestamp.ts";
+import { coordinateGroup, holdingGroupNames, timelineRows } from "./timestamp.ts";
 
 // --- Coordinates -------------------------------------------------------------
 
 /**
- * The groups of `coordinates` of a MatchStamp of block `block`'s
- * `manifest`, drawn as `drawing`, in the order given, each exactly as the
- * Timestamp tab's Coordinates show a timestamp at that coordinate: the rows
- * (`timelineRows`) of the arranger's `timelinePin`, the cross-section
- * `namedPin` reads a named timestamp with, under `granularity` with
- * `knots`. Per coordinate the group of its timeline (its row "coordinate",
- * then a row per conversion map drawn for it), then one group per ancestor,
- * parent first, then one per timeline of its subtree its line crosses, with
- * the maps drawn for each. A coordinate whose timeline the manifest no
- * longer holds is its text alone. Each group's key is unique among them,
- * two coordinates on one timeline, or on timelines sharing an ancestor,
- * included.
+ * How a timeline of a MatchStamp's Coordinates takes part: `claimed` the
+ * coordinate's own timeline, the value its MatchClaims state; `ancestor` an
+ * ancestor of it; `crossed` a timeline of its subtree its line crosses;
+ * `group` a timeline read through a group its match timestamp is a
+ * GroupStamp of (another member, scaled, its ancestors and the descendants
+ * its line crosses).
+ */
+export type Through = "claimed" | "ancestor" | "crossed" | "group";
+
+/**
+ * A group of the Matchstamp tab's Coordinates: the rows the Timestamp tab
+ * shows for that timeline, with how the timeline takes part and, for
+ * `group`, the names (else IDs) of the groups it is read through.
+ */
+export interface StampGroup extends TimelineRows {
+  readonly through: Through;
+  readonly groups: readonly string[];
+}
+
+/**
+ * The names (else IDs) of the groups of `manifest` holding `timeline`
+ * (core's `groupsHolding`) through which `other` is read: those holding
+ * `other` too, and those one of whose listed members has `other` as an
+ * ancestor (a member's ancestors are read with it).
+ */
+function groupsThrough(manifest: Manifest, timeline: string, other: string): string[] {
+  const holding = new Set(groupsHolding(manifest, other).map((group) => group.id));
+  return groupsHolding(manifest, timeline)
+    .filter(
+      (group) =>
+        holding.has(group.id) ||
+        group.members.some((member) =>
+          ancestorMembers(manifest, member).some((item) => item.timeline === other),
+        ),
+    )
+    .map((group) => group.name ?? group.id);
+}
+
+/**
+ * The groups of the timestamps of `stamp`, a MatchStamp of block `block`'s
+ * `manifest`, drawn as `drawing`, in screen order, each exactly as the
+ * Timestamp tab's Coordinates show that timestamp: the rows
+ * (`timelineRows`, top to bottom) of a named MatchStamp's match timestamp
+ * read through its own pin (the arranger's `namedPin`, which adds the
+ * members of its groups where it is a GroupStamp), of a potential one's
+ * coordinate through the arranger's `timelinePin` (nothing stored, no
+ * group read), under `granularity` with `knots`. Each group says how its
+ * timeline takes part (`Through`). A coordinate whose timeline the
+ * manifest no longer holds is its text alone, `claimed`. Each group's key
+ * is unique among them, two coordinates on one timeline, or on timelines
+ * sharing an ancestor, included.
  */
 export function stampGroups(
   manifest: Manifest,
   block: string,
   drawing: Drawing,
-  coordinates: readonly StampCoordinate[],
+  stamp: ShownStamp,
   granularity: Granularity,
   knots: Knots,
-): TimelineRows[] {
-  return coordinates.flatMap((coordinate, at) => {
-    const position = toRational(coordinate.value);
-    const pin = timelinePin(
-      manifest,
-      block,
-      drawing,
-      coordinate.timeline,
-      position,
-      granularity,
-      knots,
-    );
+): StampGroup[] {
+  const stamped = inScreenOrder(drawing, stampedOf(manifest, stamp), (item) => item.coordinate);
+  return stamped.flatMap(({ coordinate, timestamp }, at) => {
+    const pin =
+      timestamp === null
+        ? timelinePin(
+            manifest,
+            block,
+            drawing,
+            coordinate.timeline,
+            toRational(coordinate.value),
+            granularity,
+            knots,
+          )
+        : namedPin(manifest, block, drawing, timestamp.id, granularity, knots);
     if (pin === null) {
       const key = JSON.stringify([at, coordinate.timeline]);
-      return [
-        coordinateGroup(key, coordinate.timeline, coordinate.timeline, String(coordinate.value)),
-      ];
+      const text = String(coordinate.value);
+      const group = coordinateGroup(key, coordinate.timeline, coordinate.timeline, text);
+      return [{ ...group, through: "claimed" as const, groups: [] }];
     }
-    return timelineRows(pin).map((group) => ({
-      ...group,
-      key: JSON.stringify([at, group.timeline]),
-    }));
+    const own = coordinate.timeline;
+    const ancestors = new Set(ancestorMembers(manifest, own).map((item) => item.timeline));
+    const scaled = new Set(
+      pin.spec.members.filter((item) => item.scale !== undefined).map((item) => item.timeline),
+    );
+    return timelineRows(pin).map((group): StampGroup => {
+      const key = JSON.stringify([at, group.timeline]);
+      const through: Through =
+        group.timeline === own
+          ? "claimed"
+          : scaled.has(group.timeline)
+            ? "group"
+            : ancestors.has(group.timeline)
+              ? "ancestor"
+              : "crossed";
+      const groups = through === "group" ? groupsThrough(manifest, own, group.timeline) : [];
+      return { ...group, key, through, groups };
+    });
   });
 }
 
@@ -77,9 +141,12 @@ export function stampGroups(
 /**
  * A timestamp's line of a MatchStamp: its timeline's name (else its ID)
  * and its coordinate in pretty text, the match timestamp it is (`null` while
- * the MatchStamp is potential: naming stores it), and the other named
+ * the MatchStamp is potential: naming stores it), the other named
  * MatchStamps whose anchors name that match timestamp too, whose drawing a
- * change of its display changes as well.
+ * change of its display changes as well, and whether it is a GroupStamp:
+ * `null` where its timeline lies in no group, else `on` as stored, or for a
+ * potential MatchStamp as naming stores it (a GroupStamp), with the names
+ * of the groups holding its timeline (`holdingGroupNames`).
  */
 export interface TimestampLine {
   readonly kind: "timestamp";
@@ -90,6 +157,7 @@ export interface TimestampLine {
   readonly value: string;
   readonly timestamp: NamedTimestamp | null;
   readonly shared: readonly NamedMatchStamp[];
+  readonly groupstamp: { readonly on: boolean; readonly groups: readonly string[] } | null;
 }
 
 /** An alignment anchor's connector: the anchor, and the names of its two timelines in its order. */
@@ -184,6 +252,12 @@ export function stampLines(manifest: Manifest, stamp: ShownStamp, drawing: Drawi
           timestamp === null
             ? []
             : matchStampsOf(manifest, timestamp.id).filter((item) => item.id !== stamp.id),
+        groupstamp: isGroupMember(manifest, coordinate.timeline)
+          ? {
+              on: timestamp?.groupstamp ?? true,
+              groups: holdingGroupNames(manifest, coordinate.timeline),
+            }
+          : null,
       },
     }),
   );

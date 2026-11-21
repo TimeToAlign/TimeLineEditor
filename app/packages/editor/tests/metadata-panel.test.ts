@@ -22,6 +22,7 @@ const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const PIRES_WD = "http://www.wikidata.org/entity/Q235650";
 const PIRES_GND = "https://d-nb.info/gnd/124927521";
+const PIRES_IMAGE = "https://example.org/pires.jpg";
 const YOUTUBE = "https://www.youtube.com/watch?v=Ch2mrPm1JnM";
 const MB_WORK = "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96";
 const MBID = "mbid:8d331505-4d88-39ae-81c7-bec5da77af96";
@@ -341,6 +342,38 @@ describe("tiles and candidates", () => {
     expect(all<HTMLAnchorElement>("a", same).map((anchor) => [anchor.href, anchor.title])).toEqual([
       [YOUTUBE, YOUTUBE],
     ]);
+  });
+
+  it("shows the image of the first of a tile's things that has one", async () => {
+    const resolved: [string, string][] = [];
+    const lookupWith = (image: string | null): Lookup => ({
+      ...LOOKUP,
+      resolve: async (system, iri) => {
+        resolved.push([system, iri]);
+        return iri === PIRES_WD
+          ? WIKIDATA_PIRES
+          : iri === PIRES_GND
+            ? { ...GND_PIRES, image }
+            : null;
+      },
+    });
+    show(layerit(), [{ block: A, id: "cpt_1" }], userContext(), lookupWith(PIRES_IMAGE));
+    await settle();
+    const thumbnail = one(".thumbnail", rectangle("performed by"));
+    expect(
+      all<HTMLImageElement>("img", thumbnail).map((image) => image.getAttribute("src")),
+    ).toEqual([PIRES_IMAGE]);
+    expect(resolved).toEqual([
+      ["wikidata", "http://www.wikidata.org/entity/Q98069877"],
+      ["wikidata", PIRES_WD],
+      ["gnd", PIRES_GND],
+    ]);
+    for (const app of apps) unmount(app);
+    apps = [];
+    document.body.innerHTML = "";
+    show(layerit(), [{ block: A, id: "cpt_1" }], userContext(), lookupWith(null));
+    await settle();
+    expect(all("img", one(".thumbnail", rectangle("performed by")))).toEqual([]);
   });
 
   it("shows a MusicBrainz work as an MBID, its IRI on hover", () => {

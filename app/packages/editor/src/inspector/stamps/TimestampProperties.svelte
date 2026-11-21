@@ -2,8 +2,8 @@
 /**
  * The Timestamp tab's Properties, a key/value grid: what the timestamp
  * displays (its toggles); the rotation of its wedge, which waits while the
- * wedge is not displayed (its value kept); on a group member (never for a match timestamp)
- * the GroupStamp toggle, whose line then crosses every member of its
+ * wedge is not displayed (its value kept); on a group member (a match
+ * timestamp's included) the GroupStamp toggle, whose line then crosses every member of its
  * groups, shown for an unnamed timestamp as naming would store it; the
  * MatchStamps a match timestamp belongs to; and Delete. While the timestamp
  * is unnamed the area is greyed and its controls are disabled: naming it
@@ -19,9 +19,12 @@ import {
   degreesText,
   displayCommand,
   displayOf,
+  GROUPSTAMP_WORDS,
   groupstampCommand,
+  groupstampHint,
   groupstampOf,
   holdingGroupNames,
+  namedAddress,
   offersGroupstamp,
   removeCommand,
   rotationCommand,
@@ -45,9 +48,6 @@ interface Props {
 let { live, pin, drafts, describedby }: Props = $props();
 
 const uid = $props.id();
-
-/** The toggle of a GroupStamp: one word. */
-const GROUPSTAMP_WORDS = [{ word: "groupstamp", label: "GroupStamp" }] as const;
 
 /** The hint naming a GroupStamp's default rotation. */
 const GROUPSTAMP_TURNS = `A GroupStamp's wedge turns ${degreesText(GROUPSTAMP_ROTATION)}° by default.`;
@@ -76,11 +76,11 @@ const rotationDescribed = $derived(
     .join(" ") || undefined,
 );
 /** What a GroupStamp's line crosses, in words. */
-const crosses = $derived.by(() => {
-  if (manifest === undefined || groupstamp === null) return "";
-  const groups = holdingGroupNames(manifest, pin.timestamp.timeline).map((name) => `'${name}'`);
-  return `A GroupStamp's line crosses every member of ${groups.join(", ")}.`;
-});
+const crosses = $derived(
+  manifest === undefined || groupstamp === null
+    ? ""
+    : groupstampHint(holdingGroupNames(manifest, pin.timestamp.timeline)),
+);
 /** The named MatchStamps whose anchors name the match timestamp shown; `null` for any other timestamp. */
 const matchStamps = $derived.by(() => {
   if (pin.named === null || !pin.named.matchstamp) return null;
@@ -101,8 +101,9 @@ function rotate(value: number | null): void {
 }
 
 function toggleGroupstamp(): void {
-  if (pin.named !== null && groupstamp !== null) {
-    const command = groupstampCommand(pin, !groupstamp);
+  const target = namedAddress(pin);
+  if (target !== null && groupstamp !== null) {
+    const command = groupstampCommand(target, !groupstamp);
     drafts.send("groupstamp", () => live.store.dispatch(command));
   }
 }

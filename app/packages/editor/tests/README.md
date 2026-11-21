@@ -1265,8 +1265,8 @@ which no position solves).
    - *Delete* journals `{type: "remove", targets: [{block: "timestamps",
      id: "timestamp_5"}]}`; the pane then shows the hint and no Properties.
 7a. **GroupStamp.** The toggle is offered exactly where core's
-   `isGroupMember` holds for the timestamp's timeline and the timestamp is
-   no match timestamp; whether it is pressed, and what naming stores, is
+   `isGroupMember` holds for the timestamp's timeline, a match timestamp's
+   included; whether it is pressed, and what naming stores, is
    core's `groupstampByDefault` for an unnamed timestamp (the innermost
    editor open, `null` for none) and the stored `groupstamp` for a named
    one. Specimens: `bundle_mixed`'s `score`, a member of the group
@@ -1296,10 +1296,15 @@ which no position solves).
      'Performance'." (core's `groupsHolding`: a group holds a timeline when
      it or one of its ancestors is a member, so the group is named
      although `second-half` itself is listed in no group).
-   - *Not offered.* Theme of the example ("Timestamps" holds no group) and
-     the match timestamp `timestamp_1` on `clt_1` of the MatchStamp
-     "Downbeat" named after the group was added (a member, but a match
-     timestamp) show no "Group" key and no GroupStamp toggle.
+   - *Not offered.* Theme of the example ("Timestamps" holds no group)
+     shows no "Group" key and no GroupStamp toggle.
+   - *A match timestamp.* The match timestamp `timestamp_1` on `clt_1` of
+     the MatchStamp "Downbeat" named after the group was added (a member,
+     so naming stored it a GroupStamp) shows "Group" with GroupStamp
+     pressed and enabled, described by "A GroupStamp's line crosses every
+     member of 'group_1'." (the group has no name); a press journals
+     exactly `{type: "set", changes: [{target: {block, id:
+     "timestamp_1"}, values: {groupstamp: false}}]}`.
 7b. **The wedge's rotation** (key "Wedge", right after Display). What
    proves it: the value shown is the rotation the drawing gives the
    timestamp's wedge (layout's cascade, read off the block's drawing, not
@@ -1560,7 +1565,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `352800 samples`, `352 800 smp` (8.0 × 44100 written on the samples
    axis, an int)] and `dpt_1` [coordinate `352800` smp]. **Ancestors of
    the MatchStamp's timelines are listed exactly as the Timestamp tab
-   lists them** (one component, one row builder): on `bundle_mixed`
+   lists them** (one component, one row builder). Both cases below are
+   about the timelines of a match timestamp's own subtree and ancestry:
+   their match timestamps lie on members of `group_1` and are therefore
+   GroupStamps when named (item 2b), so each case first turns both
+   GroupStamps off through their toggles in the Lines (two journal
+   entries), and the groups are read as of an ordinary timestamp. On `bundle_mixed`
    with the child `second-half` "Second half" (4 quarters at offset 4)
    added to `score` (12 quarters, maps `cmap_1`, `cmap_2`) by one `add
    {into: score, child}`, the MatchStamp "Climax" named by one `add {into:
@@ -1624,6 +1634,65 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    and exact value), Downbeat's `timestamp_1` line alone says "Also a line
    of MatchStamp 'Other': a change shows there too."; the other lines say
    nothing of the kind.
+2b. **GroupStamps and the coordinates the MatchClaims state.** A new
+   match timestamp on a timeline lying in a group is a GroupStamp (core's;
+   naming closes the editors in the way, so it is the block's scope), and
+   a named MatchStamp's Coordinates read each match timestamp through its
+   own pin, so a GroupStamp lists the other members of its groups exactly
+   as the Timestamp tab does for that timestamp. Every group of the
+   Matchstamp tab's Coordinates says how its timeline takes part: its
+   `tbody` carries `data-through` (`claimed`, `ancestor`, `crossed`,
+   `group`), and a caption row `tr.through` under the heading says it in
+   words: "stated by MatchClaims", "ancestor", "crossed by its line",
+   "through group 'G'". Only the row "coordinate" of a `claimed` group is
+   the value the MatchClaims state: it alone is set apart (`tr.claimed`,
+   bold), its maps' rows and every other group stay plain. The Timestamp
+   tab's groups carry none of this. Each timestamp line of the Lines whose
+   timeline lies in a group carries the Timestamp tab's GroupStamp toggle
+   in `.groupstamp`, described by the same words ("A GroupStamp's line
+   crosses every member of 'G'."); a press journals the match timestamp's
+   `set {groupstamp}` and nothing else. Specimen "Turn": `bundle_mixed` (its
+   `group_1` "Performance" holds `score`, 12 quarters, and `performance`,
+   12.5 seconds with `cmap_3` seconds → samples × 44100), the child
+   "Second half" added to `score` (4 quarters at offset 4, `SECOND_HALF`),
+   `score`'s conversion-maps band hidden (as in item 2), and "Turn" named
+   by one `add` with the anchor [`score` `[6, 1]`, `performance` `3.0`],
+   claim `claim_1`: core writes `timestamp_11` on `score` and
+   `timestamp_12` on `performance`, both `groupstamp: true`.
+   - *Lines*, as [label, display toggles pressed, GroupStamp pressed]:
+     "Score 6 ♩ timestamp_11" [Line] pressed; the anchor "Score –
+     Performance anchor_1" [Line, Name] with no GroupStamp toggle;
+     "Performance 3″ timestamp_12" [Line] pressed; every toggle enabled.
+   - *Coordinates with both GroupStamps on*, the coordinates in screen
+     order (`score` above `performance`), each coordinate's groups top to
+     bottom as core's `timestampRows` lists them, as [heading, through,
+     caption, rows (label, text, disabled, unit)]. The coordinate on
+     `score`, read from `timestamp_11`'s pin: "Second half" crossed [2 ♩,
+     6 − its offset 4; drawn above `score`'s line]; "Score" claimed [6 ♩;
+     no map row, the band is hidden]; "Performance" group "through group
+     'Performance'" [6.25 s = 6 × 12.5/12, the members' drawn ends; `cmap_3`
+     275625 smp = 6.25 × 44100]. The coordinate on `performance`, read
+     from `timestamp_12`'s pin: "Score" group "through group 'Performance'"
+     [72/25 ♩ = 3.0 × 12/12.5; "Second half" is not listed, since 72/25
+     lies before its offset 4, outside its span]; "Performance" claimed
+     [3.0 s; `cmap_3` 132300 smp]. Bold: exactly the "coordinate" rows of
+     "Score" in the first and of "Performance" in the second coordinate.
+   - *The toggle.* Pressing `timestamp_12`'s GroupStamp journals exactly
+     `{type: "set", changes: [{target: {block, id: "timestamp_12"},
+     values: {groupstamp: false}}]}`; its toggle then shows not pressed,
+     and the coordinate on `performance` lists "Performance" claimed alone
+     [3.0 s; `cmap_3` 132300 smp], the first coordinate's groups unchanged.
+   - *Both tabs alike.* The Timestamp tab showing `timestamp_11` lists, heading for
+     heading and row for row ([label, text, unit]), the first coordinate's
+     three groups.
+   - *Potential.* On the same manifest, unnamed, with a table of one
+     MatchClaim `score` 6 – `performance` 3.0 (timelines `performance`
+     float, `score` fraction), the potential MatchStamp shows both
+     timestamp lines' GroupStamp pressed and disabled (naming stores
+     GroupStamps), and its Coordinates read no group: "Second half"
+     crossed, "Score" claimed, then "Performance" claimed [3.0 s; `cmap_3`
+     132300 smp]. Nothing is stored yet, and the potential overlay draws no
+     frame line.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`
@@ -2081,6 +2150,24 @@ default, Gerhardt, who states and believes as `G` =
      (no namespace holds them as a local name) with no IRI.
    The user's own belief (`beliefOf`) in every line is `null`: `G` holds
    none.
+2a. **One thumbnail per tile, from whichever thing has one.** A tile
+   joins values that are one thing, or carry one label (TimeToShare's
+   `rectangles`), so its things may come from several vocabularies of
+   which only some give an image. The tile resolves each of its things the
+   lookup resolves, each IRI once, and shows the image of the first thing,
+   in the tile's thing order, whose answer has one; a tile none of whose
+   answers has an image shows none. With a stub lookup resolving
+   `wikidata` and `gnd` alone, its Wikidata answer without an image and
+   its GND answer with `https://example.org/pires.jpg`: the "performed by"
+   tile (things VIAF, Wikidata, GND) shows exactly one `img`, its `src`
+   that URL, and `resolve` was called exactly with, in this order,
+   `(wikidata, http://www.wikidata.org/entity/Q98069877)` (the "is a"
+   tile's one resolvable thing), `(wikidata,
+   http://www.wikidata.org/entity/Q235650)` and `(gnd,
+   https://d-nb.info/gnd/124927521)` (VIAF is not resolvable), once each.
+   With both images `null` its thumbnail holds no `img`. Before, the tile
+   resolved only its first resolvable thing (Wikidata) and showed no image,
+   which this case fails on.
 3. **What the element is.** The first tile's sentence (`typeSentence`)
    names the element and the catalogue types its "is a" states, as few as
    name every pair (`typeLabels`: the types `typesOf` finds, most

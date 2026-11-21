@@ -662,7 +662,7 @@ describe("groupstamps", () => {
     expect(stampOf(kept, "timestamp_4")?.groupstamp).toBe(false);
   });
 
-  it("are set and unset by set, never off a member nor on a match timestamp", () => {
+  it("are set and unset by set, a match timestamp's too, never off a member", () => {
     const off = changed(grouped, set(at("timestamp_1"), { groupstamp: false }));
     expect(stampOf(off, "timestamp_1")?.groupstamp).toBe(false);
     const on = changed(off, set(at("timestamp_1"), { groupstamp: true }));
@@ -678,10 +678,17 @@ describe("groupstamps", () => {
       "'clt_1' is a member of no group, so no timestamp on it is a groupstamp",
       [target, "groupstamp"],
     ]);
+    const cards = viewOf([A, "bundles/bundle_matchstamp_cards.yaml"]);
+    const matchOn = changed(cards, set(at("timestamp_1"), { groupstamp: true }));
+    expect(stampOf(matchOn, "timestamp_1")).toMatchObject({
+      timeline: "score",
+      matchstamp: true,
+      groupstamp: true,
+    });
     const matches = viewOf([A, "bundles/bundle_matchstamps.yaml"]);
     expect(problemOf(apply(matches, set(at("timestamp_1"), { groupstamp: true })))).toEqual([
       "invalid_value",
-      "a match timestamp is never a groupstamp",
+      "'score' is a member of no group, so no timestamp on it is a groupstamp",
       [target, "groupstamp"],
     ]);
   });

@@ -113,22 +113,20 @@ export function groupstampByDefault(
 /**
  * Whether a timestamp on `timeline` is a groupstamp, as a command gives it:
  * `true` or `false` (`invalid_value` for anything else), `true` only on a
- * group member and never for a match timestamp (`match`), each refused as
- * `invalid_value` at `path`. A groupstamp's line extends across every
- * member of each group having its timeline as a member; their coordinates
- * and lines derive from the group and are never stored.
+ * group member, a match timestamp included, refused as `invalid_value` at
+ * `path` elsewhere. A groupstamp's line extends across every member of
+ * each group having its timeline as a member; their coordinates and lines
+ * derive from the group and are never stored.
  */
 export function readGroupstamp(
   value: unknown,
   manifest: Manifest,
   timeline: string,
-  match: boolean,
   path: readonly PathSegment[],
 ): boolean | CommandError {
   const refused = (message: string) => problem(ErrorCode.invalidValue, message, path);
   if (typeof value !== "boolean") return refused("a groupstamp is true or false");
   if (!value) return false;
-  if (match) return refused("a match timestamp is never a groupstamp");
   if (!isGroupMember(manifest, timeline)) {
     return refused(`'${timeline}' is a member of no group, so no timestamp on it is a groupstamp`);
   }

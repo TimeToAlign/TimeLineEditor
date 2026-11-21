@@ -530,7 +530,7 @@ function addTimestamp(
   const groupstamp =
     object.groupstamp === undefined
       ? false
-      : readGroupstamp(object.groupstamp, manifest, at.timeline.id, false, [...path, "groupstamp"]);
+      : readGroupstamp(object.groupstamp, manifest, at.timeline.id, [...path, "groupstamp"]);
   if (isCommandError(groupstamp)) return groupstamp;
   const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
   const timeline = at.timeline.id;

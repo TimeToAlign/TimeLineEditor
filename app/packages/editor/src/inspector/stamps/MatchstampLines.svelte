@@ -3,8 +3,11 @@
  * The Matchstamp tab's Lines: every dashed line of the MatchStamp shown,
  * in screen order (`stampLines`), timestamp lines and anchor lines as they
  * occur. A timestamp's entry names its timeline, its coordinate and its
- * match timestamp, with the Timestamp tab's display toggles; one shared
- * with other named MatchStamps says that a change shows there too. An
+ * match timestamp, with the Timestamp tab's display toggles and, where its
+ * timeline lies in a group, the Timestamp tab's GroupStamp toggle (pressed
+ * while a potential MatchStamp waits for a name where naming stores a
+ * GroupStamp); one shared with other named MatchStamps says that a change
+ * shows there too. An
  * anchor's entry names its two timelines and its ID, with the toggles Line
  * and Name; an anchor the current table no longer states is marked red.
  * Every toggle waits for the MatchStamp to be named.
@@ -15,7 +18,13 @@ import { DEFAULTS } from "@timetoalign/timetoshare";
 import type { AnchorLine, StampLine, TimestampLine } from "../matchstampLines.ts";
 import type { ShownStamp } from "../matchstamps.ts";
 import { anchorDisplayCommand } from "../matchstamps.ts";
-import { DISPLAY_WORDS, timestampDisplayCommand } from "../timestamp.ts";
+import {
+  DISPLAY_WORDS,
+  GROUPSTAMP_WORDS,
+  groupstampCommand,
+  groupstampHint,
+  timestampDisplayCommand,
+} from "../timestamp.ts";
 import { dispatchMatchStamp } from "./commands.ts";
 import DisplayToggles from "./DisplayToggles.svelte";
 import type { StampDrafts } from "./drafts.svelte.ts";
@@ -61,6 +70,13 @@ function toggleTimestamp(line: TimestampLine, word: TimestampDisplay): void {
   drafts.send(line.key, () => dispatchMatchStamp(live, stamp.block, command));
 }
 
+function toggleGroupstamp(line: TimestampLine): void {
+  const { timestamp, groupstamp } = line;
+  if (timestamp === null || groupstamp === null) return;
+  const command = groupstampCommand({ block: stamp.block, id: timestamp.id }, !groupstamp.on);
+  drafts.send(line.key, () => dispatchMatchStamp(live, stamp.block, command));
+}
+
 /** The names of MatchStamps, quoted, in words. */
 function named(items: readonly { readonly name: string }[]): string {
   return items.map((item) => `'${item.name}'`).join(", ");
@@ -88,6 +104,20 @@ function named(items: readonly { readonly name: string }[]): string {
             {describedby}
             ontoggle={(word) => toggleTimestamp(line, word)}
           />
+          {#if line.groupstamp !== null}
+            {@const hint = `${head}-groupstamp`}
+            <span class="groupstamp">
+              <DisplayToggles
+                words={GROUPSTAMP_WORDS}
+                display={line.groupstamp.on ? ["groupstamp"] : []}
+                disabled={timestamp === null}
+                labelledby={head}
+                describedby={describedby === undefined ? hint : `${hint} ${describedby}`}
+                ontoggle={() => toggleGroupstamp(line)}
+              />
+              <span class="hint" id={hint}>{groupstampHint(line.groupstamp.groups)}</span>
+            </span>
+          {/if}
           {#if line.shared.length > 0}
             <span class="hint shared"
               >Also a line of {line.shared.length === 1 ? "MatchStamp" : "MatchStamps"}
@@ -146,6 +176,19 @@ function named(items: readonly { readonly name: string }[]): string {
 
   .value {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* The GroupStamp toggle on a line of its own, with what the GroupStamp crosses. */
+  .groupstamp {
+    display: inline-flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .groupstamp .hint {
+    font-size: 0.75rem;
   }
 
   .shared,
