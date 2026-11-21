@@ -64,11 +64,9 @@ function sides(
     timeline_a_id: "clt_1",
     event_a_id: null,
     event_a_name: null,
-    event_a_projection: null,
     timeline_b_id: "dpt_1",
     event_b_id: null,
     event_b_name: null,
-    event_b_projection: null,
     certainty,
     is_synchronous: true,
     ...a,
@@ -80,17 +78,13 @@ function sides(
 const EVENTS: Readonly<Record<string, ClaimEvents>> = {
   claim_1: sides(
     "claim_1",
-    {
-      event_a_id: "note_1",
-      event_a_name: "C4",
-      event_a_projection: { projection_of: { timeline_id: "clt_2", event_id: "note_9" } },
-    },
+    { event_a_id: "note_1", event_a_name: "C4" },
     { event_b_id: "onset_1" },
     0.75,
   ),
   claim_2: sides(
     "claim_2",
-    { event_a_id: "note_1", event_a_name: "C4", event_a_projection: { projection_of: null } },
+    { event_a_id: "note_1", event_a_name: "C4" },
     { timeline_b_id: "cpt_1" },
     null,
   ),
@@ -111,7 +105,7 @@ afterEach(() => {
 });
 
 interface Calls {
-  readonly events: [string, Blob, Blob | null, string[]][];
+  readonly events: [string, Blob, string[]][];
   readonly provenance: [string, Blob, string[]][];
   readonly beliefs: [string, Blob, StatedBelief][];
   readonly tables: [string, Blob][];
@@ -141,8 +135,8 @@ function serving(
       calls.beliefs.push([manifest, file, belief]);
       return options.believe === undefined ? ANSWERED : options.believe();
     },
-    matchClaimEvents: async (manifest, file, projections, claims) => {
-      calls.events.push([manifest, file, projections, [...claims]]);
+    matchClaimEvents: async (manifest, file, claims) => {
+      calls.events.push([manifest, file, [...claims]]);
       if (options.events !== undefined) return options.events(claims);
       return claims.flatMap((id) => {
         const found = EVENTS[id];
@@ -397,15 +391,13 @@ describe("events on demand", () => {
     expect(calls.events).toEqual([]);
 
     expand("claim_1");
-    expect(calls.events).toEqual([
-      [saveManifest(tableManifest()), PICKED, null, ["claim_1", "claim_2"]],
-    ]);
+    expect(calls.events).toEqual([[saveManifest(tableManifest()), PICKED, ["claim_1", "claim_2"]]]);
     expect(text(status())).toBe("Reading the events…");
     answer([EVENTS.claim_1, EVENTS.claim_2].filter((item) => item !== undefined));
     await settled();
     expect(text(status())).toBe("");
     expect(eventRows("claim_1")).toEqual([
-      ["clt_1", "note_1 “C4” · a Projection of note_9 on clt_2"],
+      ["clt_1", "note_1 “C4”"],
       ["dpt_1", "onset_1"],
       ["certainty", "0.75"],
     ]);
@@ -418,7 +410,7 @@ describe("events on demand", () => {
     expand("claim_2");
     expect(calls.events.length).toBe(1);
     expect(eventRows("claim_2")).toEqual([
-      ["clt_1", "note_1 “C4” · a Projection of no event"],
+      ["clt_1", "note_1 “C4”"],
       ["cpt_1", "no event"],
     ]);
   });
@@ -701,13 +693,13 @@ describe("an unsaved table", () => {
     expect(openDialog()).toBe(null);
   });
 
-  it("is loaded by Load MatchClaims… as the user chooses the manifest's tables", async () => {
+  it("is loaded by Load MatchClaims… as the user chooses the manifest's MatchClaim table", async () => {
     stubEditor();
     const picker = cancelPicker();
     vi.stubGlobal("showOpenFilePicker", picker);
     const chosen = new File([PICKED], "m.parquet");
     const questions: TableRequest[] = [];
-    const answers = [null, [{ type: "MatchClaim" as const, file: chosen }]];
+    const answers = [null, { file: chosen }];
     const ask: AskTables = async (request) => {
       questions.push(request);
       return answers.shift() ?? null;
@@ -715,13 +707,7 @@ describe("an unsaved table", () => {
     const { server, calls } = serving();
     const tables = tablesOf(server, matchTable(), ask);
     const { informed, warned } = show(storeOf(tableManifest()), null, tables);
-    const asked = {
-      manifest: "The manifest",
-      tables: [
-        { type: "MatchClaim", url: "match_claims.parquet" },
-        { type: "Projection", url: "projections.parquet" },
-      ],
-    };
+    const asked = { manifest: "The manifest", table: { url: "match_claims.parquet" } };
 
     button("Load MatchClaims…")?.click();
     await vi.waitFor(() => expect(questions).toEqual([asked]));

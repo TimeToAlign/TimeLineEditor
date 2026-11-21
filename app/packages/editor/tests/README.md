@@ -341,7 +341,9 @@ path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, the table
 fixture's manifest (`fixtures/tables/<SCHEMA_VERSION>/manifest.yaml`) as
 `tables/manifest`, the one option carrying a source of the files served
-beside it, and every end-to-end workspace as `e2e/<name>`; no label
+beside it, which serves its MatchClaim table alone (reading
+`projections.parquet` from it gives `null`, nothing fetched), and every
+end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
 is 164 manifest fixtures, 16 warning cases, the table fixture and 5
 workspaces, 186 options, from `bare` to
@@ -1568,16 +1570,16 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    events…", and is empty once the answer arrives; a refusal reads
    `eventsFailure`'s words there; without a server the expanded
    MatchClaim says "Matches need a server: …". The answer written in the
-   test: `claim_1` `clt_1` event `note_1` named "C4", a Projection of
-   `note_9` on `clt_2`, ↔ `dpt_1` event `onset_1` without a name and no
-   Projection, certainty 0.75; `claim_2` `clt_1` `note_1` "C4", a
-   Projection of no event, ↔ `cpt_1` no event (the sentinel), no
-   certainty. Shown, each side is one row of a list headed by its
-   timeline's name, else its ID (the fixture's timelines have no name),
-   the ID as the title: `claim_1` `clt_1` "note_1 “C4” · a Projection
-   of note_9 on clt_2", `dpt_1` "onset_1", "certainty 0.75"; `claim_2`
-   `clt_1` "note_1 “C4” · a Projection of no event", `cpt_1` "no event", no
-   certainty row. `claimDetails` of an ID the answer lacks is `null`.
+   test: `claim_1` `clt_1` event `note_1` named "C4" ↔ `dpt_1` event
+   `onset_1` without a name, certainty 0.75; `claim_2` `clt_1` `note_1`
+   "C4" ↔ `cpt_1` no event (the sentinel), no certainty. Shown, each side
+   is one row of a list headed by its timeline's name, else its ID (the
+   fixture's timelines have no name), the ID as the title: `claim_1`
+   `clt_1` "note_1 “C4”", `dpt_1` "onset_1", "certainty 0.75"; `claim_2`
+   `clt_1` "note_1 “C4”", `cpt_1` "no event", no certainty row. A side
+   is its timeline, event and name, nothing more (`claimDetails` gives
+   exactly `{timeline, timelineName, event, name}`). `claimDetails` of an
+   ID the answer lacks is `null`.
 6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
    `cpt_1`, `dpt_1`) checked and, in a group named "Beliefs", four toggle
    buttons True, Undecided, Unlikely, False (the Timestamp tab's display
@@ -1590,10 +1592,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "unlikely", "false"]`), and each pressed state is `aria-pressed`.
    "Load MatchClaims…" is the manual route of the session's tables
    (`choose`, item 9a): it asks the tables dialog for the MatchClaim table
-   and the Projections table the manifest names (the table manifest, which
-   has no name: `{manifest: "The manifest", tables: [{type: "MatchClaim", url:
-   "match_claims.parquet"}, {type: "Projection", url:
-   "projections.parquet"}]}`), opens no file picker of its own, and posts
+   the manifest names, and for nothing else (the table manifest, which has
+   no name and names a Projections table too: `{manifest: "The manifest",
+   table: {url: "match_claims.parquet"}}`), opens no file picker of its own, and posts
    what the load says: a file chosen ("m.parquet") is loaded ("Loaded the
    MatchClaims of m.parquet." through `inform`), a cancelled question says
    nothing. Without a server "Load MatchClaims…" is disabled and described
@@ -1626,9 +1627,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `.parquet`); a table picked with one manifest becomes that block's, its
    request carrying the manifest as its file writes it and the file
    unchanged; with two manifests it goes to the block whose manifest names
-   a resource of its file name; a file named as the manifest's Projections
-   table (`projections.parquet`) becomes the block's Projections table,
-   held as it is and never sent to the table route. A manifest naming a
+   a resource of its file name; every picked Parquet file is a MatchClaim
+   table, so with one manifest a file named as its Projections table
+   (`projections.parquet`) goes to the table route too, and the route's
+   refusal is the warning. A manifest naming a
    table that is not loaded says "<name> names the MatchClaim table
    match_claims.parquet, which is not loaded: Show matches (M) loads it.",
    without a server the same with "Matches need a server: …". A refused
@@ -1637,32 +1639,29 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    drops every table; the workspace file never holds one (its text equals
    the text without the table).
 
-9a. **The tables a manifest names** (`matchclaims-loading.test.ts`, the
+9a. **The table a manifest names** (`matchclaims-loading.test.ts`, the
    server stubbed as above, the user's answer to the dialog stubbed as a
    function recording each question). The table fixture's manifest names
    `match_claims.parquet` (MatchClaim) and `projections.parquet`
-   (Projection), in that order (`namedTables`). Loading them for a block
-   (`loadNamed`, what Show matches asks):
-   - from a source that reaches both (`ManifestSource` answering each
-     location with a `Blob` of its own), both are taken without a question:
-     the table route gets the manifest as its file writes it and exactly
-     the MatchClaim file, the block holds the Projections file under the
-     name `projections.parquet`, and the messages are the information
-     "Loaded the MatchClaims of match_claims.parquet." then "Loaded the
-     Projections of projections.parquet.";
-   - from a source that reaches the MatchClaim table only, the reached one
-     is taken and the user is asked once, for the Projections table alone
-     (`{manifest: "Tables", tables: [{type: "Projection", url:
-     "projections.parquet"}]}`, the manifest named by its name);
-   - without a source both are asked for in one question; choosing a file
-     for the MatchClaim table and the URL `https://example.org/p/projections.parquet`
-     for the Projections table takes the file and fetches the URL (`fetch`
-     stubbed, called once with that URL), the Projections table held under
-     `projections.parquet`; a URL answered 404 warns "The Projections table
-     was not loaded: https://example.org/p/projections.parquet could not be
-     read: 404 Not Found" and loads the rest; text that is no URL
-     (`http://`) warns "The Projections table was not loaded: 'http://' is
-     no URL";
+   (Projection); the table it names is the first resource of type
+   MatchClaim, `match_claims.parquet` (`namedTable`), and a manifest naming
+   none names `null`. Loading it for a block (`loadNamed`, what Show
+   matches asks):
+   - from a source that reaches every file (`ManifestSource` answering
+     each location with a `Blob` of its own and recording each location
+     read), exactly one file is read, `match_claims.parquet`, without a
+     question: the table route gets the manifest as its file writes it and
+     exactly that file, and the messages are exactly `{informed: ["Loaded
+     the MatchClaims of match_claims.parquet."], warned: []}`;
+   - from a source that reaches nothing, the user is asked once, for the
+     MatchClaim table (`{manifest: "Tables", table: {url:
+     "match_claims.parquet"}}`, the manifest named by its name); a file
+     chosen is loaded; the URL `https://example.org/p/m.parquet` is fetched
+     (`fetch` stubbed, called once with that URL) and loaded under
+     `m.parquet`; a URL answered 404 warns "The MatchClaim table was not
+     loaded: https://example.org/p/m.parquet could not be read: 404 Not
+     Found" and loads nothing; text that is no URL (`http://`) warns "The
+     MatchClaim table was not loaded: 'http://' is no URL";
    - cancelled, nothing is loaded, nothing is said, and the table route is
      not called; a source that rejects warns "match_claims.parquet could
      not be read from where the manifest came from: <its message>" and
@@ -1670,6 +1669,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - a block already holding a MatchClaim table, a manifest naming no
      MatchClaim table and a session without a server ask nothing and say
      nothing.
+   **The manifest is never touched**: the table fixture's manifest,
+   imported with its MatchClaim table picked beside it, keeps its
+   `resources` exactly as read (both entries, the Projections one
+   included), and once its table is loaded `saveManifest` of the block's
+   manifest equals, byte for byte, `saveManifest` of the fixture's
+   manifest as import takes it (`importedManifest`, which only adds the
+   default timestamps of a manifest without `graphical`).
    The session's `loadNamedTables` runs it for every block in the
    canvas's one order of blocks (the arranger's `blocksInOrder`: by
    parent, then index, which its own tests prove; three blocks added in
@@ -1679,13 +1685,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the information
    through `inform`, the warnings through `warn`. Turning Show matches on,
    by its key or its button, is what calls it (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load MatchClaims…) always asks, for
-   the MatchClaim table (with `url` `null` where the manifest names none)
-   and the Projections table where the manifest names one, and loads what
-   is chosen the same way; without a server it asks nothing and warns
-   "Matches need a server: …". The Fixture menu's `tables/manifest` entry
-   carries a source reading the files served beside the fixture
-   (`servedSource`): `match_claims.parquet` and `projections.parquet` are
-   served, `other.parquet` is not (`null`).
+   the MatchClaim table (with `url` `null` where the manifest names none),
+   and loads what is chosen the same way; without a server it asks nothing
+   and warns "Matches need a server: …". The Fixture menu's
+   `tables/manifest` entry carries a source reading the files served
+   beside the fixture (`servedSource`): `match_claims.parquet` is served,
+   `projections.parquet` and `other.parquet` are not (`null`).
 
 9d. **The manifest's folder** (`matchclaims-folders.test.ts`, folders as
    in-memory directory handles: names to files and subfolders, the
@@ -1699,14 +1704,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    on the way), and `null` without asking further when the folder's
    permission is `denied` on request (a granted one is read; a `prompt`
    then `granted` asks once). Answered with the folder in the dialog, the
-   block's tables are read from it: both of the table fixture's tables
-   loaded exactly as from files ("Loaded the MatchClaims of
-   match_claims.parquet." then "Loaded the Projections of
-   projections.parquet."), the folder kept by the folder memory under the
-   block, and a folder holding no `projections.parquet` loads the
-   MatchClaim table and warns "The folder pkg holds no projections.parquet.".
-   A block whose folder the memory kept (none located this session) loads
-   both without a question; one whose kept folder may no longer be read
+   block's table is read from it, loaded exactly as from a file ("Loaded
+   the MatchClaims of match_claims.parquet."), the folder kept by the
+   folder memory under the block; a folder holding no
+   `match_claims.parquet` loads nothing and warns "The folder pkg holds no
+   match_claims.parquet.". A block whose folder the memory kept (none
+   located this session) loads its table without a question; one whose kept folder may no longer be read
    (permission `denied`) is asked as before. Import manifest from folder…
    (the session's `importFolder`, the directory picker stubbed) imports
    every manifest directly in the chosen folder `pkg` holding the table
@@ -1715,12 +1718,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    information "Left expected.yaml in pkg: no manifest.", the import's
    usual warning that the named MatchClaim table is not loaded and Show
    matches (M) loads it, the folder kept for the block, and then
-   `loadNamedTables` loads both tables without a question. **A block that
+   `loadNamedTables` loads the MatchClaim table without a question. **A block that
    leaves the workspace has its folder forgotten**: removing that block
    (one `remove` of `{block}`) has the folder memory forget it, once, and
    nothing else; its undo forgets nothing more and, the folder still
-   located for the session, Show matches loads both tables of the block
-   again without a question. Opening a workspace (`replace`) forgets the
+   located for the session, Show matches loads the block's table again
+   without a question. Opening a workspace (`replace`) forgets the
    folder of every block of the open one that the opened one does not
    hold, once: the open workspace itself, read anew, forgets nothing (its
    blocks stay), an empty one forgets the block again. A folder holding no manifest
@@ -1730,38 +1733,33 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `showDirectoryPicker`.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
-   jsdom with `showModal` stubbed). Asked for the two tables of "Tables",
-   it is titled "Load the tables of Tables", shows one group per table
-   ("MatchClaim table match_claims.parquet", "Projections table
-   projections.parquet") with "Choose file…", "No file chosen" and a URL
-   field; Load is disabled until one table has a file or a URL. Entering
-   a URL for the Projections table and choosing a file for the MatchClaim
-   table (the fallback file input answered) resolves `[{type:
-   "MatchClaim", file}, {type: "Projection", url}]` in the tables' order,
-   the URL trimmed; a URL entered after a file replaces it. Cancel and
-   Escape (the dialog's `close`) resolve `null`. A question asked while
-   one is open resolves the open one `null`; a `close` event arriving
-   while the new one is open (the first one's, which a browser fires a
-   task after closing) dismisses nothing: the new question answers as
-   chosen. The dialog is the editor's one dialog shell, the question
-   dialog's too. The URL field is a text
-   field (`inputmode="url"`), so a relative URL (`match_claims.parquet`)
-   is taken as entered. "Choose the manifest's folder…" is offered only
-   where the browser has `showDirectoryPicker` and a table's location is
-   named (not for a question naming only `{type: "MatchClaim", url:
-   null}`); choosing a folder resolves `[{folder}]` at once, cancelling
-   the picker keeps the dialog open.
+   jsdom with `showModal` stubbed). Asked for the MatchClaim table of
+   "Tables", it is titled "Load the tables of Tables" and shows one group,
+   "MatchClaim table match_claims.parquet", with "Choose file…", "No file
+   chosen" and one URL field labelled "URL of the MatchClaim table"; Load
+   is disabled until a file or a URL is given. A chosen file (the fallback
+   file input answered) resolves `{file}`; a URL resolves `{url}`, trimmed;
+   a URL entered after a file replaces it. Cancel and Escape (the
+   dialog's `close`) resolve `null`. A question asked while one is open
+   resolves the open one `null`; a `close` event arriving while the new
+   one is open (the first one's, which a browser fires a task after
+   closing) dismisses nothing: the new question answers as chosen. The
+   dialog is the editor's one dialog shell, the question dialog's too.
+   The URL field is a text field (`inputmode="url"`), so a relative URL
+   (`match_claims.parquet`) is taken as entered. "Choose the manifest's
+   folder…" is offered only where the browser has `showDirectoryPicker`
+   and the table's location is named (not for a question naming `{url:
+   null}`); choosing a folder resolves `{folder}` at once, cancelling the
+   picker keeps the dialog open.
 
 9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
-   manifest, claims)` asks the server's events route once per table,
-   Projections table and list of claims, with the manifest as its file
-   writes it, the held MatchClaim file and the held Projections file
-   (`null` without one): asking the same again returns the same promise;
-   holding a Projections table afterwards asks again, with it; a refused
-   request is let go, so the next call asks again; without a server or a
-   table it is `null`. `eventsFailure` words a refusal "The MatchClaims'
-   events could not be read: <problems>", 501 "…: this server cannot read
-   Projections.".
+   manifest, claims)` asks the server's events route once per table and
+   list of claims, with the manifest as its file writes it and the held
+   MatchClaim file: asking the same again returns the same promise; a
+   refused request is let go, so the next call asks again; without a
+   server or a table it is `null`. `eventsFailure` words a refusal "The
+   MatchClaims' events could not be read: <problems>", 501 "…: this
+   server cannot read MatchClaim tables.".
 
 10. **Provenance on demand** (`matchclaim-beliefs.test.ts`, the server
     stubbed as an object answering the three calls and recording each

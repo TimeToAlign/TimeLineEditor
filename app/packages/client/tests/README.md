@@ -130,29 +130,31 @@ call or the exact result.
    (a succession problem listed).
 
 7. **Events** (`decisions/0032-match-claim-events.md`).
-   `matchClaimEvents(manifest, table, projections, claims)` sends one
-   `POST` to the base URL with `match-claims/events` appended, with
-   `Content-Type: application/octet-stream` and the `Authorization` rule
-   above. Its body is compared byte for byte: the parameters `{"claims":
-   [...]}` behind their length as for the provenance route, then the
-   Projections table's byte length as a little-endian 32-bit integer and
-   its bytes unchanged (for `null` the length 0 and nothing), then exactly
-   the body `matchClaims` sends for the same manifest and file.
+   `matchClaimEvents(manifest, table, claims)` sends one `POST` to the base
+   URL with `match-claims/events` appended, with `Content-Type:
+   application/octet-stream` and the `Authorization` rule above. Its body
+   is compared byte for byte: the parameters `{"claims": [...]}` behind
+   their length (a little-endian 32-bit integer) as for the provenance
+   route, then exactly the body `matchClaims` sends for the same manifest
+   and file, nothing between them.
 
    The answer's oracle is the server's (its tests README, "MatchClaim
    events"): the answer to `claim_1`, `claim_11`, `claim_12` of
    TimeToShare's table fixture, written in the test from that README,
-   resolves to the three MatchClaims compared whole: `claim_1`'s side B
-   the Projection of `clt_1` `note_1`, `claim_11`'s two sides Projections
-   standing for no event (`{projection_of: null}`), `claim_12`'s side B
-   without an event (every member `null` but its timeline) and not
-   synchronous. A 2xx body not of the route's form rejects with code
-   `status` and the message "the events answer is not the events of the
-   MatchClaims asked for": an answer for other IDs or in another order,
-   one MatchClaim too few, a member missing or of an unknown name, an event
-   ID that is neither a string nor `null`, a certainty that is no number,
-   a Projection whose `projection_of` lacks its `event_id`. A refusal
-   (422, `["claims", 1]`) rejects with the server's message and path.
+   resolves to the three MatchClaims compared whole, each of exactly the
+   nine members `id`, the two sides' `timeline_*_id`, `event_*_id`,
+   `event_*_name`, `certainty`, `is_synchronous`: `claim_1` `clt_1`
+   `note_1` "C4" against `dpt_1` `projection_1` without a name,
+   `claim_11` `dpt_1` `projection_6` against `cpt_1` `projection_7`,
+   `claim_12`'s side B without an event (every member `null` but its
+   timeline) and not synchronous. A 2xx body not of the route's form
+   rejects with code `status` and the message "the events answer is not
+   the events of the MatchClaims asked for": an answer for other IDs or in
+   another order, one MatchClaim too few, a member missing or of an
+   unknown name (`is_explicit`, and `event_a_projection`, which the route
+   no longer answers), an event ID that is neither a string nor `null`, a
+   certainty that is no number. A refusal (422, `["claims", 1]`) rejects
+   with the server's message and path.
 
 8. **Files** (`decisions/0033-server-file-access.md`). `fileCalls(transport)`
    gives the three calls of the server's file routes over `connect`'s

@@ -556,13 +556,6 @@ export function claimLines(
   });
 }
 
-/** An event as the tab names it: its timeline's ID and name (else the ID) and the event's ID. */
-export interface EventLine {
-  readonly timeline: string;
-  readonly timelineName: string;
-  readonly event: string;
-}
-
 /** One side of a MatchClaim as the tab shows it expanded. */
 export interface SideLine {
   /** The side's timeline, its ID and its name (else the ID). */
@@ -572,12 +565,6 @@ export interface SideLine {
   readonly event: string | null;
   /** The event's name; `null` for none. */
   readonly name: string | null;
-  /**
-   * Whether the event is a Projection and of what: `null` for an event that
-   * is none (or not known as one, without a Projections table); `{of}`
-   * for a Projection, `of` the event it stands for, `null` for none.
-   */
-  readonly projection: { readonly of: EventLine | null } | null;
 }
 
 /** What the tab shows of a MatchClaim expanded: its two sides and its certainty. */
@@ -604,37 +591,16 @@ export function claimDetails(
 ): ClaimDetails | null {
   const events = read.find((item) => item.id === id);
   if (events === undefined) return null;
-  const side = (
-    timeline: string,
-    event: string | null,
-    name: string | null,
-    projection: ClaimEvents["event_a_projection"],
-  ): SideLine => {
-    const of = projection?.projection_of ?? null;
-    return {
-      timeline,
-      timelineName: timelineNameOf(manifest, timeline),
-      event,
-      name,
-      projection:
-        projection === null
-          ? null
-          : {
-              of:
-                of === null
-                  ? null
-                  : {
-                      timeline: of.timeline_id,
-                      timelineName: timelineNameOf(manifest, of.timeline_id),
-                      event: of.event_id,
-                    },
-            },
-    };
-  };
+  const side = (timeline: string, event: string | null, name: string | null): SideLine => ({
+    timeline,
+    timelineName: timelineNameOf(manifest, timeline),
+    event,
+    name,
+  });
   return {
     sides: [
-      side(events.timeline_a_id, events.event_a_id, events.event_a_name, events.event_a_projection),
-      side(events.timeline_b_id, events.event_b_id, events.event_b_name, events.event_b_projection),
+      side(events.timeline_a_id, events.event_a_id, events.event_a_name),
+      side(events.timeline_b_id, events.event_b_id, events.event_b_name),
     ],
     certainty: events.certainty,
   };

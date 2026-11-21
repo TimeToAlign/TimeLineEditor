@@ -6,13 +6,7 @@ import type { TableChoice, TableRequest } from "../src/matchClaims.svelte.ts";
 import TablesDialog from "../src/TablesDialog.svelte";
 import { stubEditor } from "./dom.ts";
 
-const REQUEST: TableRequest = {
-  manifest: "Tables",
-  tables: [
-    { type: "MatchClaim", url: "match_claims.parquet" },
-    { type: "Projection", url: "projections.parquet" },
-  ],
-};
+const REQUEST: TableRequest = { manifest: "Tables", table: { url: "match_claims.parquet" } };
 
 let dialog: ReturnType<typeof TablesDialog> | undefined;
 
@@ -53,7 +47,7 @@ function type(input: HTMLInputElement, text: string): void {
   flushSync();
 }
 
-function ask(): Promise<readonly TableChoice[] | null> {
+function ask(): Promise<TableChoice | null> {
   if (dialog === undefined) throw new Error("not mounted");
   return dialog.ask(REQUEST);
 }
@@ -67,7 +61,7 @@ function pick(file: File): void {
 }
 
 describe("the tables dialog", () => {
-  it("shows one group per table, Load disabled until a table has a file or a URL", () => {
+  it("shows one group, the MatchClaim table's, Load disabled until it has a file or a URL", () => {
     void ask();
     expect(shown().open).toBe(true);
     expect(shown().querySelector("h2")?.textContent).toBe("Load the tables of Tables");
@@ -75,25 +69,20 @@ describe("the tables dialog", () => {
       groups().map((group) =>
         group.querySelector("legend")?.textContent?.replace(/\s+/g, " ").trim(),
       ),
-    ).toEqual(["MatchClaim table match_claims.parquet", "Projections table projections.parquet"]);
+    ).toEqual(["MatchClaim table match_claims.parquet"]);
     expect(groups().map((group) => group.querySelector(".chosen")?.textContent)).toEqual([
-      "No file chosen",
       "No file chosen",
     ]);
     expect(
       [...shown().querySelectorAll("input")].map((input) => input.getAttribute("aria-label")),
-    ).toEqual(["URL of the MatchClaim table", "URL of the Projections table"]);
+    ).toEqual(["URL of the MatchClaim table"]);
     expect(button("Load").disabled).toBe(true);
   });
 
-  it("resolves a chosen file and a trimmed URL, in the tables' order", async () => {
+  it("resolves a chosen file", async () => {
     const answer = ask();
-    const [claims, projections] = groups();
-    if (claims === undefined || projections === undefined) throw new Error("no groups");
-    const url = projections.querySelector("input");
-    if (url === null) throw new Error("no URL field");
-    type(url, " https://example.org/projections.parquet ");
-    expect(button("Load").disabled).toBe(false);
+    const [claims] = groups();
+    if (claims === undefined) throw new Error("no group");
     const file = new File(["PAR1"], "match_claims.parquet");
     button("Choose file…", claims).click();
     await vi.waitFor(() => expect(document.querySelector("input[type=file]")).not.toBe(null));
@@ -101,12 +90,20 @@ describe("the tables dialog", () => {
     await vi.waitFor(() =>
       expect(claims.querySelector(".chosen")?.textContent).toBe("match_claims.parquet"),
     );
+    expect(button("Load").disabled).toBe(false);
     shown().querySelector("form")?.requestSubmit();
-    expect(await answer).toEqual([
-      { type: "MatchClaim", file },
-      { type: "Projection", url: "https://example.org/projections.parquet" },
-    ]);
+    expect(await answer).toEqual({ file });
     expect(shown().open).toBe(false);
+  });
+
+  it("resolves a trimmed URL", async () => {
+    const answer = ask();
+    const url = groups()[0]?.querySelector("input");
+    if (url === null || url === undefined) throw new Error("no URL field");
+    type(url, " https://example.org/match_claims.parquet ");
+    expect(button("Load").disabled).toBe(false);
+    shown().querySelector("form")?.requestSubmit();
+    expect(await answer).toEqual({ url: "https://example.org/match_claims.parquet" });
   });
 
   it("lets a URL entered after a file replace it", async () => {
@@ -122,7 +119,7 @@ describe("the tables dialog", () => {
     type(url, "https://example.org/m.parquet");
     expect(claims.querySelector(".chosen")?.textContent).toBe("No file chosen");
     shown().querySelector("form")?.requestSubmit();
-    expect(await answer).toEqual([{ type: "MatchClaim", url: "https://example.org/m.parquet" }]);
+    expect(await answer).toEqual({ url: "https://example.org/m.parquet" });
   });
 
   it("resolves null on Cancel and on Escape", async () => {
@@ -146,7 +143,7 @@ describe("the tables dialog", () => {
     if (url === null || url === undefined) throw new Error("no URL field");
     type(url, "match_claims.parquet");
     button("Load").click();
-    expect(await second).toEqual([{ type: "MatchClaim", url: "match_claims.parquet" }]);
+    expect(await second).toEqual({ url: "match_claims.parquet" });
   });
 
   it("takes a relative URL as entered", async () => {
@@ -158,7 +155,7 @@ describe("the tables dialog", () => {
     type(url, "match_claims.parquet");
     expect(shown().querySelector("form")?.checkValidity()).toBe(true);
     shown().querySelector("form")?.requestSubmit();
-    expect(await answer).toEqual([{ type: "MatchClaim", url: "match_claims.parquet" }]);
+    expect(await answer).toEqual({ url: "match_claims.parquet" });
   });
 
   it("offers the manifest's folder only where folders are handed over and a place is named", async () => {
@@ -172,7 +169,7 @@ describe("the tables dialog", () => {
     });
     vi.stubGlobal("showDirectoryPicker", picker);
     if (dialog === undefined) throw new Error("not mounted");
-    const unnamed = dialog.ask({ manifest: "Bare", tables: [{ type: "MatchClaim", url: null }] });
+    const unnamed = dialog.ask({ manifest: "Bare", table: { url: null } });
     flushSync();
     expect(() => button("Choose the manifest's folder…")).toThrow();
     button("Cancel").click();
@@ -186,7 +183,7 @@ describe("the tables dialog", () => {
     expect(shown().open).toBe(true);
     picker.mockImplementation(async () => folder);
     button("Choose the manifest's folder…").click();
-    expect(await answer).toEqual([{ folder }]);
+    expect(await answer).toEqual({ folder });
     expect(shown().open).toBe(false);
   });
 });

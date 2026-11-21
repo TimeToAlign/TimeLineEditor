@@ -395,68 +395,36 @@ describe("a MatchClaim's events", () => {
     timeline_a_id: "clt_1",
     event_a_id: null,
     event_a_name: null,
-    event_a_projection: null,
     timeline_b_id: "dpt_1",
     event_b_id: null,
     event_b_name: null,
-    event_b_projection: null,
     certainty: null,
     is_synchronous: true,
     ...a,
     ...b,
   });
 
-  it("gives both sides, their Projections and the certainty", () => {
+  it("gives both sides and the certainty", () => {
     const manifest = tableManifest();
     const read = [
       events(
         "claim_1",
-        {
-          event_a_id: "note_1",
-          event_a_name: "C4",
-          event_a_projection: { projection_of: { timeline_id: "clt_2", event_id: "note_9" } },
-        },
+        { event_a_id: "note_1", event_a_name: "C4" },
         { event_b_id: "onset_1", certainty: 0.75 },
       ),
-      events(
-        "claim_2",
-        {
-          event_a_id: "note_1",
-          event_a_name: "C4",
-          event_a_projection: { projection_of: null },
-        },
-        { timeline_b_id: "cpt_1" },
-      ),
+      events("claim_2", { event_a_id: "note_1", event_a_name: "C4" }, { timeline_b_id: "cpt_1" }),
     ];
     expect(claimDetails(read, "claim_1", manifest)).toEqual({
       sides: [
-        {
-          timeline: "clt_1",
-          timelineName: "clt_1",
-          event: "note_1",
-          name: "C4",
-          projection: { of: { timeline: "clt_2", timelineName: "clt_2", event: "note_9" } },
-        },
-        {
-          timeline: "dpt_1",
-          timelineName: "dpt_1",
-          event: "onset_1",
-          name: null,
-          projection: null,
-        },
+        { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
+        { timeline: "dpt_1", timelineName: "dpt_1", event: "onset_1", name: null },
       ],
       certainty: 0.75,
     });
     expect(claimDetails(read, "claim_2", manifest)).toEqual({
       sides: [
-        {
-          timeline: "clt_1",
-          timelineName: "clt_1",
-          event: "note_1",
-          name: "C4",
-          projection: { of: null },
-        },
-        { timeline: "cpt_1", timelineName: "cpt_1", event: null, name: null, projection: null },
+        { timeline: "clt_1", timelineName: "clt_1", event: "note_1", name: "C4" },
+        { timeline: "cpt_1", timelineName: "cpt_1", event: null, name: null },
       ],
       certainty: null,
     });

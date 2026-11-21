@@ -2,7 +2,14 @@
 
 import type { ClaimEvents, MatchClaimTable } from "@timetoalign/tilie-client";
 import { ServerError } from "@timetoalign/tilie-client";
-import { DEFAULT_USER, emptyWorkspace, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import {
+  DEFAULT_USER,
+  emptyWorkspace,
+  importedManifest,
+  isLoadError,
+  loadManifest,
+  saveManifest,
+} from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -25,7 +32,7 @@ import {
   eventsFailure,
   loadFailure,
   MatchClaimTables,
-  namedTables,
+  namedTable,
 } from "../src/matchClaims.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { matchTable, TABLE_MANIFEST_TEXT, tableManifest } from "./matches.ts";
@@ -49,7 +56,7 @@ function serving(
   events: (claims: readonly string[]) => Promise<readonly ClaimEvents[]> = async () => [],
 ) {
   const requests: [string, Blob][] = [];
-  const asked: [string, Blob, Blob | null, string[]][] = [];
+  const asked: [string, Blob, string[]][] = [];
   const server: MatchClaimServer = {
     matchClaims: async (manifest, file) => {
       requests.push([manifest, file]);
@@ -61,8 +68,8 @@ function serving(
     believeMatchClaim: async () => {
       throw new Error("loading records no belief");
     },
-    matchClaimEvents: async (manifest, file, projections, claims) => {
-      asked.push([manifest, file, projections, [...claims]]);
+    matchClaimEvents: async (manifest, file, claims) => {
+      asked.push([manifest, file, [...claims]]);
       return events(claims);
     },
   };
@@ -245,40 +252,65 @@ describe("refusals", () => {
   });
 });
 
-describe("a Projections table picked beside its manifest", () => {
-  it("becomes the block's Projections table, never sent to the table route", async () => {
+describe("every Parquet file picked beside a manifest", () => {
+  it("is a MatchClaim table, the one its manifest names for the Projections table too", async () => {
     const { server, requests } = serving();
     const opened = session(server);
     const importing = opened.importManifest(canvas, fontMetrics);
     await vi.waitFor(() => expect(document.querySelector("input[type=file]")).not.toBe(null));
-    const claims = new File([PARQUET], "match_claims.parquet");
     const projections = new File([PARQUET], "projections.parquet");
-    pickFiles([new File([NAMED_MANIFEST], "tables.yaml"), claims, projections]);
+    pickFiles([new File([NAMED_MANIFEST], "tables.yaml"), projections]);
     await importing;
     const [block] = Object.keys(opened.store.view.blocks);
     if (block === undefined) throw new Error("nothing imported");
-    expect(requests.map(([, file]) => file)).toEqual([claims]);
-    expect(opened.tables.projectionsOf(block)).toEqual({
-      name: "projections.parquet",
-      file: projections,
-    });
+    expect(requests.map(([, file]) => file)).toEqual([projections]);
+    expect(opened.tables.of(block)?.name).toBe("projections.parquet");
+  });
+});
+
+describe("the manifest naming the tables", () => {
+  it("keeps every resource it names, unchanged, through import and loading", async () => {
+    const { server } = serving();
+    const opened = session(server);
+    const importing = opened.importManifest(canvas, fontMetrics);
+    await vi.waitFor(() => expect(document.querySelector("input[type=file]")).not.toBe(null));
+    pickFiles([
+      new File([TABLE_MANIFEST_TEXT], "manifest.yaml"),
+      new File([PARQUET], "match_claims.parquet"),
+    ]);
+    await importing;
+    const [block] = Object.values(opened.store.view.blocks);
+    if (block === undefined) throw new Error("nothing imported");
+    expect(opened.tables.of(block.id)?.name).toBe("match_claims.parquet");
+    const read = tableManifest();
+    expect(block.manifest.resources).toEqual(read.resources);
+    expect(block.manifest.resources?.map(({ type, url }) => [type, url])).toEqual([
+      ["MatchClaim", "match_claims.parquet"],
+      ["Projection", "projections.parquet"],
+    ]);
+    expect(saveManifest(block.manifest)).toBe(saveManifest(importedManifest(read)));
   });
 });
 
 const MATCH_CLAIMS = new Blob([PARQUET, "m"]);
 const PROJECTIONS = new Blob([PARQUET, "p"]);
 
-/** A source reaching the files of `files` by location; any other location is not reached. */
-function source(files: Record<string, Blob>): ManifestSource {
-  return { read: async (url) => files[url] ?? null };
+/** A source reaching the files of `files` by location, recording every location read; any other is not reached. */
+function source(files: Record<string, Blob>, read: string[] = []): ManifestSource {
+  return {
+    read: async (url) => {
+      read.push(url);
+      return files[url] ?? null;
+    },
+  };
 }
 
-/** The user's answers: `choices` for every question, each question recorded. */
-function answering(choices: readonly TableChoice[] | null) {
+/** The user's answers: `choice` for every question, each question recorded. */
+function answering(choice: TableChoice | null) {
   const questions: TableRequest[] = [];
   const ask: AskTables = async (request) => {
     questions.push(request);
-    return choices;
+    return choice;
   };
   return { ask, questions };
 }
@@ -290,141 +322,107 @@ function loadNamedManifest() {
   return { ...manifest, name: "Tables" };
 }
 
-describe("the tables a manifest names", () => {
-  it("are the MatchClaim table, then the Projections table", () => {
-    expect(namedTables(tableManifest())).toEqual([
-      { type: "MatchClaim", url: "match_claims.parquet" },
-      { type: "Projection", url: "projections.parquet" },
-    ]);
+describe("the table a manifest names", () => {
+  it("is its first MatchClaim resource, none where it names none", () => {
+    expect(namedTable(tableManifest())).toBe("match_claims.parquet");
+    const bare = loadManifest(fixtureText("bare"));
+    if (isLoadError(bare)) throw new Error("bare is refused");
+    expect(namedTable(bare)).toBe(null);
   });
 
-  it("are taken from a source reaching both, without a question", async () => {
+  it("is the one file read from a source reaching every file, without a question", async () => {
     const { server, requests } = serving();
     const { ask, questions } = answering(null);
     const tables = new MatchClaimTables(server, ask);
+    const read: string[] = [];
     tables.locate(
       "b",
-      source({ "match_claims.parquet": MATCH_CLAIMS, "projections.parquet": PROJECTIONS }),
+      source({ "match_claims.parquet": MATCH_CLAIMS, "projections.parquet": PROJECTIONS }, read),
     );
     expect(await tables.loadNamed("b", NAMED)).toEqual({
-      informed: [
-        "Loaded the MatchClaims of match_claims.parquet.",
-        "Loaded the Projections of projections.parquet.",
-      ],
+      informed: ["Loaded the MatchClaims of match_claims.parquet."],
       warned: [],
     });
+    expect(read).toEqual(["match_claims.parquet"]);
     expect(questions).toEqual([]);
     expect(requests.map(([, file]) => file)).toEqual([MATCH_CLAIMS]);
     expect(requests[0]?.[0]).toContain('"#resource_1"');
     expect(tables.of("b")?.name).toBe("match_claims.parquet");
-    expect(tables.projectionsOf("b")).toEqual({ name: "projections.parquet", file: PROJECTIONS });
   });
 
-  it("ask once for what the source does not reach", async () => {
-    const { server } = serving();
-    const file = new File([PARQUET], "mine.parquet");
-    const { ask, questions } = answering([{ type: "Projection", file }]);
-    const tables = new MatchClaimTables(server, ask);
-    tables.locate("b", source({ "match_claims.parquet": MATCH_CLAIMS }));
-    await tables.loadNamed("b", NAMED);
-    expect(questions).toEqual([
-      { manifest: "Tables", tables: [{ type: "Projection", url: "projections.parquet" }] },
-    ]);
-    expect(tables.of("b")?.file).toBe(MATCH_CLAIMS);
-    expect(tables.projectionsOf("b")).toEqual({ name: "mine.parquet", file });
-  });
-
-  it("ask for both without a source, taking a file and fetching a URL", async () => {
+  it("is asked for once where the source does not reach it, a file taken", async () => {
     const { server, requests } = serving();
-    const file = new File([PARQUET], "match_claims.parquet");
-    const url = "https://example.org/p/projections.parquet";
-    const { ask, questions } = answering([
-      { type: "MatchClaim", file },
-      { type: "Projection", url },
-    ]);
-    const fetched = vi.fn(async (_input: URL) => new Response("served projections"));
-    vi.stubGlobal("fetch", fetched);
+    const file = new File([PARQUET], "mine.parquet");
+    const { ask, questions } = answering({ file });
     const tables = new MatchClaimTables(server, ask);
+    tables.locate("b", source({ "projections.parquet": PROJECTIONS }));
     expect(await tables.loadNamed("b", NAMED)).toEqual({
-      informed: [
-        "Loaded the MatchClaims of match_claims.parquet.",
-        "Loaded the Projections of projections.parquet.",
-      ],
+      informed: ["Loaded the MatchClaims of mine.parquet."],
       warned: [],
     });
-    expect(questions).toEqual([
-      {
-        manifest: "Tables",
-        tables: [
-          { type: "MatchClaim", url: "match_claims.parquet" },
-          { type: "Projection", url: "projections.parquet" },
-        ],
-      },
-    ]);
-    expect(fetched.mock.calls.map(([input]) => String(input))).toEqual([url]);
+    expect(questions).toEqual([{ manifest: "Tables", table: { url: "match_claims.parquet" } }]);
     expect(requests.map(([, sent]) => sent)).toEqual([file]);
-    expect(tables.projectionsOf("b")?.name).toBe("projections.parquet");
-    expect(await tables.projectionsOf("b")?.file.text()).toBe("served projections");
   });
 
-  it("warn for a URL that cannot be read and load the rest", async () => {
-    const { server } = serving();
-    const file = new File([PARQUET], "match_claims.parquet");
-    const url = "https://example.org/p/projections.parquet";
+  it("is fetched from a URL chosen", async () => {
+    const { server, requests } = serving();
+    const url = "https://example.org/p/m.parquet";
+    const fetched = vi.fn(async (_input: URL) => new Response("served claims"));
+    vi.stubGlobal("fetch", fetched);
+    const tables = new MatchClaimTables(server, answering({ url }).ask);
+    expect(await tables.loadNamed("b", NAMED)).toEqual({
+      informed: ["Loaded the MatchClaims of m.parquet."],
+      warned: [],
+    });
+    expect(fetched.mock.calls.map(([input]) => String(input))).toEqual([url]);
+    expect(await requests[0]?.[1].text()).toBe("served claims");
+    expect(tables.of("b")?.name).toBe("m.parquet");
+  });
+
+  it("is not loaded from a URL that cannot be read, saying why", async () => {
+    const { server, requests } = serving();
+    const url = "https://example.org/p/m.parquet";
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("", { status: 404, statusText: "Not Found" })),
     );
-    const tables = new MatchClaimTables(
-      server,
-      answering([
-        { type: "MatchClaim", file },
-        { type: "Projection", url },
-      ]).ask,
-    );
+    const tables = new MatchClaimTables(server, answering({ url }).ask);
     expect(await tables.loadNamed("b", NAMED)).toEqual({
-      informed: ["Loaded the MatchClaims of match_claims.parquet."],
-      warned: [`The Projections table was not loaded: ${url} could not be read: 404 Not Found`],
+      informed: [],
+      warned: [`The MatchClaim table was not loaded: ${url} could not be read: 404 Not Found`],
     });
-    expect(tables.projectionsOf("b")).toBe(null);
+    expect([requests, tables.of("b")]).toEqual([[], null]);
 
-    const again = new MatchClaimTables(
-      server,
-      answering([{ type: "Projection", url: "http://" }]).ask,
-    );
+    const again = new MatchClaimTables(server, answering({ url: "http://" }).ask);
     expect((await again.loadNamed("b", NAMED)).warned).toEqual([
-      "The Projections table was not loaded: 'http://' is no URL",
+      "The MatchClaim table was not loaded: 'http://' is no URL",
     ]);
   });
 
-  it("load nothing and say nothing when the user cancels", async () => {
+  it("is not loaded, and nothing said, when the user cancels", async () => {
     const { server, requests } = serving();
     const tables = new MatchClaimTables(server, answering(null).ask);
     expect(await tables.loadNamed("b", NAMED)).toEqual({ informed: [], warned: [] });
-    expect(requests).toEqual([]);
-    expect([tables.of("b"), tables.projectionsOf("b")]).toEqual([null, null]);
+    expect([requests, tables.of("b")]).toEqual([[], null]);
   });
 
-  it("ask for what a failing source did not give, saying why", async () => {
+  it("is asked for where a failing source did not give it, saying why", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const tables = new MatchClaimTables(server, ask);
     tables.locate("b", {
-      read: async (url) => {
-        if (url === "match_claims.parquet") throw new Error("offline");
-        return PROJECTIONS;
+      read: async () => {
+        throw new Error("offline");
       },
     });
     expect(await tables.loadNamed("b", NAMED)).toEqual({
-      informed: ["Loaded the Projections of projections.parquet."],
+      informed: [],
       warned: ["match_claims.parquet could not be read from where the manifest came from: offline"],
     });
-    expect(questions.map(({ tables: asked }) => asked)).toEqual([
-      [{ type: "MatchClaim", url: "match_claims.parquet" }],
-    ]);
+    expect(questions).toEqual([{ manifest: "Tables", table: { url: "match_claims.parquet" } }]);
   });
 
-  it("ask nothing for a block holding its table, a manifest naming none, or without a server", async () => {
+  it("is asked for by nothing for a block holding its table, a manifest naming none, or without a server", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const held = new MatchClaimTables(server, ask);
@@ -438,7 +436,7 @@ describe("the tables a manifest names", () => {
     expect(questions).toEqual([]);
   });
 
-  it("are asked for by the manual route, a MatchClaim table always", async () => {
+  it("is asked for by the manual route, always", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const tables = new MatchClaimTables(server, ask);
@@ -448,14 +446,8 @@ describe("the tables a manifest names", () => {
     if (isLoadError(bare)) throw new Error("bare is refused");
     await tables.choose("c", bare);
     expect(questions).toEqual([
-      {
-        manifest: "Tables",
-        tables: [
-          { type: "MatchClaim", url: "match_claims.parquet" },
-          { type: "Projection", url: "projections.parquet" },
-        ],
-      },
-      { manifest: "The manifest", tables: [{ type: "MatchClaim", url: null }] },
+      { manifest: "Tables", table: { url: "match_claims.parquet" } },
+      { manifest: "The manifest", table: { url: null } },
     ]);
     expect(await new MatchClaimTables(null, ask).choose("b", NAMED)).toEqual({
       informed: [],
@@ -463,11 +455,11 @@ describe("the tables a manifest names", () => {
     });
   });
 
-  it("are loaded for every block by the session, its messages posted", async () => {
+  it("is loaded for every block by the session, its messages posted", async () => {
     const { server } = serving();
     const warned: string[] = [];
     const informed: string[] = [];
-    const { ask } = answering([{ type: "MatchClaim", file: new File([PARQUET], "m.parquet") }]);
+    const { ask } = answering({ file: new File([PARQUET], "m.parquet") });
     const opened = new WorkspaceSession({
       warn: (text) => warned.push(text),
       inform: (text) => informed.push(text),
@@ -481,7 +473,7 @@ describe("the tables a manifest names", () => {
     expect([informed, warned]).toEqual([["Loaded the MatchClaims of m.parquet."], []]);
   });
 
-  it("are loaded block after block in the canvas's order of blocks, wherever they lie", async () => {
+  it("is loaded block after block in the canvas's order of blocks, wherever they lie", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const opened = new WorkspaceSession({
@@ -505,19 +497,18 @@ describe("the tables a manifest names", () => {
     expect(questions.map(({ manifest }) => manifest)).toEqual(["B", "C", "A"]);
   });
 
-  it("are served beside the Fixture menu's table fixture", async () => {
+  it("is served beside the Fixture menu's table fixture, the Projections table not", async () => {
     const served = {
       "/x/@timetoalign/timetoshare/fixtures/tables/0.2.0/match_claims.parquet": async () =>
         "/assets/m.parquet",
-      "/x/@timetoalign/timetoshare/fixtures/tables/0.2.0/projections.parquet": async () =>
-        "/assets/p.parquet",
     };
     const fetched = vi.fn(async (input: string) => new Response(input));
     vi.stubGlobal("fetch", fetched);
     const read = servedSource(served);
-    expect(await (await read.read("projections.parquet"))?.text()).toBe("/assets/p.parquet");
+    expect(await (await read.read("match_claims.parquet"))?.text()).toBe("/assets/m.parquet");
+    expect(await read.read("projections.parquet")).toBe(null);
     expect(await read.read("other.parquet")).toBe(null);
-    expect(fetched.mock.calls.map(([input]) => input)).toEqual(["/assets/p.parquet"]);
+    expect(fetched.mock.calls.map(([input]) => input)).toEqual(["/assets/m.parquet"]);
   });
 });
 
@@ -527,27 +518,24 @@ describe("events on demand", () => {
     timeline_a_id: "clt_1",
     event_a_id: "note_1",
     event_a_name: "C4",
-    event_a_projection: null,
     timeline_b_id: "dpt_1",
     event_b_id: "projection_1",
     event_b_name: null,
-    event_b_projection: { projection_of: { timeline_id: "clt_1", event_id: "note_1" } },
     certainty: 1,
     is_synchronous: true,
   };
 
-  it("are asked once per table, Projections table and claims", async () => {
+  it("are asked once per table and claims", async () => {
     const { server, asked } = serving(matchTable(), async () => [CLAIM_1]);
     const tables = new MatchClaimTables(server);
     tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
     const first = tables.events("b", NAMED, ["claim_1"]);
     expect(await first).toEqual([CLAIM_1]);
     expect(tables.events("b", NAMED, ["claim_1"])).toBe(first);
-    tables.holdProjections("b", { name: "projections.parquet", file: PROJECTIONS });
-    await tables.events("b", NAMED, ["claim_1"]);
-    expect(asked.map(([, file, projections, claims]) => [file, projections, claims])).toEqual([
-      [MATCH_CLAIMS, null, ["claim_1"]],
-      [MATCH_CLAIMS, PROJECTIONS, ["claim_1"]],
+    await tables.events("b", NAMED, ["claim_2"]);
+    expect(asked.map(([, file, claims]) => [file, claims])).toEqual([
+      [MATCH_CLAIMS, ["claim_1"]],
+      [MATCH_CLAIMS, ["claim_2"]],
     ]);
     expect(asked[0]?.[0]).toContain('"#resource_1"');
     expect(tables.events("c", NAMED, ["claim_1"])).toBe(null);
@@ -573,7 +561,7 @@ describe("events on demand", () => {
     expect(asked.length).toBe(2);
     expect(eventsFailure(refused)).toBe("The MatchClaims' events could not be read: no");
     expect(eventsFailure(new ServerError("status", 501, "501 Not Implemented"))).toBe(
-      "The MatchClaims' events could not be read: this server cannot read Projections.",
+      "The MatchClaims' events could not be read: this server cannot read MatchClaim tables.",
     );
   });
 });
