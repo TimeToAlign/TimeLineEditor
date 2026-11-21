@@ -9,7 +9,8 @@
  * server also reads the provenance of given MatchClaims of the file and
  * records the user's belief in one, answering the new file
  * (`decisions/0031-match-claim-provenance.md`): the block then holds the
- * new file, marked changed until the user saves it.
+ * new file, marked changed until the user saves it. Whatever replaces a
+ * changed table asks first (`unsavedQuestion`).
  */
 
 import type {
@@ -22,6 +23,7 @@ import { ServerError } from "@timetoalign/tilie-client";
 import type { Manifest } from "@timetoalign/tilie-core";
 import { saveManifest } from "@timetoalign/tilie-core";
 import { SvelteMap } from "svelte/reactivity";
+import { MATCH_CLAIM_TABLE, saveFile } from "./files.ts";
 import { messageOf } from "./messages.svelte.ts";
 
 /** What a block's table is read from: its file's name, the server's answer and the file. */
@@ -32,6 +34,12 @@ export interface LoadedTable {
   readonly file: Blob;
   /** Whether `file` holds beliefs the user has not saved yet. */
   readonly changed: boolean;
+}
+
+/** A block's table holding beliefs the user has not saved yet. */
+export interface ChangedTable {
+  readonly block: string;
+  readonly loaded: LoadedTable;
 }
 
 /** What the tables need of a server: the table route and the provenance routes. */
@@ -85,6 +93,34 @@ export function provenanceFailure(error: unknown): string {
   return failure("The provenance could not be read", error, "this server cannot read provenance.");
 }
 
+/** Why a table was not saved, from the failure `error`. */
+export function saveFailure(error: unknown): string {
+  return `The MatchClaims were not saved: ${messageOf(error)}`;
+}
+
+/** `names` in one phrase: "a", "a and b", "a, b and c". */
+function listed(names: readonly string[]): string {
+  return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/**
+ * The one question asked before unsaved work is dropped, naming it: the
+ * workspace's file `workspace` when the workspace has unsaved changes
+ * (`null` when it has none), then the changed MatchClaim tables `tables`
+ * by their file names, in the order they were loaded. At least one of the
+ * two names something.
+ */
+export function unsavedQuestion(workspace: string | null, tables: readonly string[]): string {
+  const article = workspace === null ? "The" : "the";
+  const named =
+    tables.length === 0
+      ? []
+      : [`${article} MatchClaim ${tables.length === 1 ? "table" : "tables"} ${listed(tables)}`];
+  const parts = workspace === null ? named : [workspace, ...named];
+  const verb = parts.length > 1 || tables.length > 1 ? "have" : "has";
+  return `${parts.join(" and ")} ${verb} unsaved changes. Save them?`;
+}
+
 export class MatchClaimTables {
   readonly #tables = new SvelteMap<string, LoadedTable>();
   readonly #server: MatchClaimServer | null;
@@ -116,6 +152,13 @@ export class MatchClaimTables {
   /** The blocks holding a table, in the order their tables were loaded. */
   get blocks(): readonly string[] {
     return [...this.#tables.keys()];
+  }
+
+  /** The tables holding beliefs not saved yet, in the order they were loaded. */
+  get changed(): readonly ChangedTable[] {
+    return [...this.#tables]
+      .filter(([, loaded]) => loaded.changed)
+      .map(([block, loaded]) => ({ block, loaded }));
   }
 
   /** Hold `loaded` as the table of block `block`, replacing any held. */
@@ -200,8 +243,23 @@ export class MatchClaimTables {
     }
   }
 
+  /**
+   * Save block `block`'s changed table, offered under its file's name: the
+   * name it was saved under, after which it is no longer changed (if still
+   * held); `null` when it is not changed or the viewer cancelled. A failure
+   * to write throws.
+   */
+  async save(block: string): Promise<string | null> {
+    const loaded = this.of(block);
+    if (loaded === null || !loaded.changed) return null;
+    const saved = await saveFile(loaded.file, MATCH_CLAIM_TABLE, loaded.name);
+    if (saved === null) return null;
+    this.#saved(block, loaded);
+    return saved.name;
+  }
+
   /** The table `loaded` of block `block` was saved: it is no longer changed, if still held. */
-  saved(block: string, loaded: LoadedTable): void {
+  #saved(block: string, loaded: LoadedTable): void {
     if (this.of(block) !== loaded) return;
     const kept = { ...loaded, changed: false };
     const asked = this.#provenance.get(loaded);

@@ -1,10 +1,15 @@
-/** Provenance on demand and the user's belief in the Matchstamp tab; derived in `README.md` ("MatchClaims and the Matchstamp tab", items 10 and 11). */
+/** Provenance on demand, the user's belief and the unsaved table in the Matchstamp tab; derived in `README.md` ("MatchClaims and the Matchstamp tab", items 10 to 12). */
 
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { ClaimProvenance, MatchClaimTable, StatedBelief } from "@timetoalign/tilie-client";
 import { ServerError } from "@timetoalign/tilie-client";
 import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
-import { coordinateOf, DEFAULT_MATCH_CLAIM_FILTER, saveManifest } from "@timetoalign/tilie-core";
+import {
+  coordinateOf,
+  DEFAULT_MATCH_CLAIM_FILTER,
+  DEFAULT_USER,
+  saveManifest,
+} from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MatchstampPanel from "../src/inspector/MatchstampPanel.svelte";
@@ -13,8 +18,10 @@ import type { HeldMatch } from "../src/inspector/tabs.ts";
 import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { informContext } from "../src/messages.svelte.ts";
+import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
+import { stubEditor } from "./dom.ts";
 import { BELIEFS_BY_ROW, ME, matchTable, OTHER, q, tableManifest } from "./matches.ts";
-import { storeOf } from "./support.ts";
+import { answer, interceptDownloads, openDialog, storeOf, workspaceOf } from "./support.ts";
 
 const A = "0000000000";
 const NAME = "match_claims.parquet";
@@ -44,6 +51,7 @@ afterEach(() => {
   document.body.innerHTML = "";
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 interface Calls {
@@ -378,5 +386,145 @@ describe("a belief", () => {
       "match_claims.parquet: 5 MatchClaims",
     );
     expect(informed).toEqual(["Saved the MatchClaims as match_claims.parquet."]);
+  });
+});
+
+describe("an unsaved table", () => {
+  /** The bytes `ANSWERED` holds, read as the intercepted downloads read them. */
+  const ANSWERED_TEXT = "PAR1\u0002\u0003PAR1";
+  const B = "0000000001";
+
+  /** A session on the table fixture's workspace, saved; block A holds a table, changed by a belief when `changed`. */
+  function sessionOf(changed: boolean, warned: string[] = []): WorkspaceSession {
+    const session = new WorkspaceSession({
+      warn: (said) => void warned.push(said),
+      author: () => DEFAULT_USER.name,
+      matchClaims: serving().server,
+    });
+    expect(session.open(workspaceOf(tableManifest()))).toBe(null);
+    session.tables.hold(A, { name: NAME, table: matchTable(), file: PICKED, changed: false });
+    if (changed)
+      session.tables.hold(A, { name: NAME, table: matchTable(), file: ANSWERED, changed });
+    return session;
+  }
+
+  /** Make the open workspace unsaved: one command. */
+  function edit(session: WorkspaceSession): void {
+    const refusal = session.store.dispatch({
+      type: "set",
+      changes: [{ target: { block: A }, values: { x: 40 } }],
+    });
+    expect(refusal).toBe(null);
+  }
+
+  const cancelPicker = () =>
+    vi.fn(async () => {
+      throw new DOMException("cancelled", "AbortError");
+    });
+
+  it("is named in the one question, beside the workspace", () => {
+    const session = sessionOf(false);
+    expect(session.unsaved()).toBe(null);
+    edit(session);
+    expect(session.unsaved()).toBe("untitled.tle.json has unsaved changes. Save them?");
+
+    const changed = sessionOf(true);
+    expect(changed.unsaved()).toBe(
+      "The MatchClaim table match_claims.parquet has unsaved changes. Save them?",
+    );
+    edit(changed);
+    expect(changed.unsaved()).toBe(
+      "untitled.tle.json and the MatchClaim table match_claims.parquet have unsaved changes. Save them?",
+    );
+
+    const two = sessionOf(false);
+    two.tables.hold(B, { name: "b.parquet", table: matchTable(), file: PICKED, changed: true });
+    two.tables.hold(A, { name: "a.parquet", table: matchTable(), file: PICKED, changed: true });
+    expect(two.unsaved()).toBe(
+      "The MatchClaim tables b.parquet and a.parquet have unsaved changes. Save them?",
+    );
+  });
+
+  it("is saved after the workspace, after which nothing is unsaved", async () => {
+    const downloads = interceptDownloads();
+    const session = sessionOf(true);
+    edit(session);
+    const text = session.text();
+    expect(await session.saveUnsaved()).toBe(true);
+    await vi.waitFor(() => expect(downloads.length).toBe(2));
+    expect(downloads).toEqual([
+      ["untitled.tle.json", text],
+      [NAME, ANSWERED_TEXT],
+    ]);
+    expect([session.unsaved(), session.tables.of(A)?.changed]).toEqual([null, false]);
+  });
+
+  it("is not saved when the workspace's save is cancelled", async () => {
+    const picker = cancelPicker();
+    vi.stubGlobal("showSaveFilePicker", picker);
+    const session = sessionOf(true);
+    edit(session);
+    expect(await session.saveUnsaved()).toBe(false);
+    expect(picker.mock.calls.length).toBe(1);
+    expect([session.dirty, session.tables.of(A)?.changed]).toEqual([true, true]);
+  });
+
+  it("stays changed when its own save is cancelled or fails", async () => {
+    const session = sessionOf(true);
+    vi.stubGlobal("showSaveFilePicker", cancelPicker());
+    expect(await session.saveUnsaved()).toBe(false);
+    expect(session.tables.of(A)?.changed).toBe(true);
+
+    const warned: string[] = [];
+    const failing = sessionOf(true, warned);
+    vi.stubGlobal(
+      "showSaveFilePicker",
+      vi.fn(async () => {
+        throw new Error("the disk is full");
+      }),
+    );
+    expect(await failing.saveUnsaved()).toBe(false);
+    expect([warned, failing.tables.of(A)?.changed]).toEqual([
+      ["The MatchClaims were not saved: the disk is full"],
+      true,
+    ]);
+  });
+
+  it("asks before Load MatchClaims… replaces it", async () => {
+    stubEditor();
+    const picker = cancelPicker();
+    vi.stubGlobal("showOpenFilePicker", picker);
+    const store = storeOf(tableManifest());
+    const tables = tablesOf(serving().server);
+    tables.hold(A, { name: NAME, table: matchTable(), file: ANSWERED, changed: true });
+    show(store, null, tables);
+
+    button("Load MatchClaims…")?.click();
+    await vi.waitFor(() =>
+      expect(openDialog()).toEqual({
+        question: "The MatchClaim table match_claims.parquet has unsaved changes. Save them?",
+        answers: ["Save", "Discard", "Cancel"],
+      }),
+    );
+    expect(document.activeElement?.textContent).toBe("Cancel");
+    answer("Cancel");
+    await settled();
+    expect([picker.mock.calls.length, tables.of(A)?.changed]).toEqual([0, true]);
+
+    button("Load MatchClaims…")?.click();
+    await vi.waitFor(() => expect(openDialog()).not.toBe(null));
+    answer("Discard");
+    await vi.waitFor(() => expect(picker.mock.calls.length).toBe(1));
+    expect(tables.of(A)?.file).toBe(ANSWERED);
+  });
+
+  it("is not asked about when unchanged", async () => {
+    stubEditor();
+    const picker = cancelPicker();
+    vi.stubGlobal("showOpenFilePicker", picker);
+    show(storeOf(tableManifest()), null, tablesOf(serving().server));
+    button("Load MatchClaims…")?.click();
+    await vi.waitFor(() => expect(picker.mock.calls.length).toBe(1));
+    expect(openDialog()).toBe(null);
   });
 });

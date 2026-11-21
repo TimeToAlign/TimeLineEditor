@@ -52,6 +52,8 @@ import {
   MATCHES_NEED_A_SERVER,
   type MatchClaimServer,
   MatchClaimTables,
+  saveFailure,
+  unsavedQuestion,
 } from "./matchClaims.svelte.ts";
 import { messageOf } from "./messages.svelte.ts";
 
@@ -109,7 +111,7 @@ export class WorkspaceSession {
   handle: FileSystemFileHandle | null = null;
   /** Whether the workspace holds changes its file does not. */
   readonly dirty: boolean = $derived(this.live.view !== this.savedView);
-  /** The MatchClaim tables of the open workspace's blocks, held for the session, never saved. */
+  /** The MatchClaim tables of the open workspace's blocks, held for the session, never written to its file. */
   readonly tables: MatchClaimTables;
 
   #selection: Selection = $state.raw(NOTHING_SELECTED);
@@ -231,6 +233,37 @@ export class WorkspaceSession {
     } finally {
       this.#saving = false;
     }
+  }
+
+  /**
+   * The question to ask before the workspace and its MatchClaim tables are
+   * replaced, naming what holds unsaved changes (`unsavedQuestion`): the
+   * workspace, every table a belief changed; `null` when nothing does.
+   */
+  unsaved(): string | null {
+    const tables = this.tables.changed.map(({ loaded }) => loaded.name);
+    if (!this.dirty && tables.length === 0) return null;
+    return unsavedQuestion(this.dirty ? this.fileName : null, tables);
+  }
+
+  /**
+   * Save what `unsaved` names: the workspace first (`save`), then each
+   * changed MatchClaim table, stopping at the first the viewer does not save
+   * (a table that fails to write is reported); whether nothing unsaved is
+   * left, so the workspace may be replaced.
+   */
+  async saveUnsaved(): Promise<boolean> {
+    if (this.dirty) await this.save(false);
+    if (this.dirty) return false;
+    for (const { block } of this.tables.changed) {
+      try {
+        if ((await this.tables.save(block)) === null) return false;
+      } catch (error) {
+        this.#options.warn(saveFailure(error));
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

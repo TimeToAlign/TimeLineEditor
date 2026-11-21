@@ -10,15 +10,16 @@
  * `POST /api/match-claims/provenance` by the fixture's provenance for the
  * MatchClaims asked for; `POST /api/match-claims/belief` by a Parquet file's
  * bytes, which the editor holds, sends back to the table route and saves
- * unchanged.
+ * unchanged. A changed table is then never dropped unasked: New asks to
+ * save it with the workspace, or alone once the workspace is saved.
  */
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Page, Request } from "@playwright/test";
+import type { Download, Page, Request } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, select, withoutPickers } from "./support.ts";
+import { chooseItem, downloaded, select, withoutPickers } from "./support.ts";
 
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
@@ -115,11 +116,8 @@ async function importTable(page: Page): Promise<string> {
   return page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
 }
 
-test("a MatchClaim's provenance is read for it, and the user's belief makes a table to save", async ({
-  page,
-}) => {
-  const seen = await openPage(page);
-  const block = await importTable(page);
+/** Name the MatchStamp "Downbeat" on `claim_1` in block `block` and select it. */
+async function nameDownbeat(page: Page, block: string): Promise<void> {
   const refusal = await page.evaluate(
     (id) =>
       window.__tilie.store().dispatch({
@@ -140,6 +138,32 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   );
   expect(refusal).toBe(null);
   await select(page, [{ block, id: "matchstamp_1" }]);
+}
+
+/** The button answering `label` in the open question. */
+const answerButton = (page: Page, label: string) =>
+  page.getByRole("dialog").getByRole("button", { name: label, exact: true });
+
+/** Import the table, name "Downbeat" and believe `claim_1` false: the table is then changed. */
+async function changeTable(page: Page): Promise<void> {
+  await nameDownbeat(page, await importTable(page));
+  const claim = page.getByTestId("matchstamp-properties").locator("li[data-claim='claim_1']");
+  const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
+  await yours.getByRole("button", { name: "False" }).click();
+  await expect(page.getByTestId("matchclaims-status")).toHaveText(
+    "match_claims.parquet: 15 MatchClaims, changed",
+  );
+}
+
+const blockCount = (page: Page) =>
+  page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length);
+
+test("a MatchClaim's provenance is read for it, and the user's belief makes a table to save", async ({
+  page,
+}) => {
+  const seen = await openPage(page);
+  const block = await importTable(page);
+  await nameDownbeat(page, block);
 
   // The provenance of the MatchStamp's one MatchClaim, and of nothing else.
   const claim = page.getByTestId("matchstamp-properties").locator("li[data-claim='claim_1']");
@@ -183,4 +207,59 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
     "match_claims.parquet: 15 MatchClaims",
   );
   await expect(page.getByRole("button", { name: "Save MatchClaims…" })).toHaveCount(0);
+});
+
+test("New asks to save a changed table with the unsaved workspace, and saves both", async ({
+  page,
+}) => {
+  await openPage(page);
+  await changeTable(page);
+
+  await chooseItem(page, "New workspace");
+  await expect(page.getByRole("dialog")).toHaveText(
+    /untitled\.tle\.json and the MatchClaim table match_claims\.parquet have unsaved changes\. Save them\?/u,
+  );
+  await answerButton(page, "Cancel").click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(await blockCount(page)).toBe(1);
+  await expect(page.getByTestId("matchclaims-status")).toHaveText(
+    "match_claims.parquet: 15 MatchClaims, changed",
+  );
+
+  const workspace = await page.evaluate(() => window.__tilie.text());
+  const downloads: Download[] = [];
+  page.on("download", (download) => downloads.push(download));
+  await chooseItem(page, "New workspace");
+  await answerButton(page, "Save").click();
+  await expect.poll(() => blockCount(page)).toBe(0);
+  expect(downloads.length).toBe(2);
+  const [first, second] = downloads;
+  if (first === undefined || second === undefined) throw new Error("two downloads expected");
+  expect(await downloaded(Promise.resolve(first))).toEqual(["untitled.tle.json", workspace]);
+  expect(second.suggestedFilename()).toBe("match_claims.parquet");
+  expect(readFileSync(await second.path()).equals(BELIEVED)).toBe(true);
+  await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
+});
+
+test("New asks about a changed table alone once the workspace is saved, and Discard drops it", async ({
+  page,
+}) => {
+  await openPage(page);
+  await changeTable(page);
+  const saved = page.waitForEvent("download");
+  await page.keyboard.press("Control+S");
+  await saved;
+  await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
+
+  await chooseItem(page, "New workspace");
+  await expect(page.getByRole("dialog")).toHaveText(
+    /The MatchClaim table match_claims\.parquet has unsaved changes\. Save them\?/u,
+  );
+  await answerButton(page, "Discard").click();
+  await expect.poll(() => blockCount(page)).toBe(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // The table went with the workspace: New asks nothing more.
+  await chooseItem(page, "New workspace");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
