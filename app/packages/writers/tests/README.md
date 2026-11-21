@@ -417,8 +417,13 @@ hand-derived figures, `map_row_siblings`, `map_row_subslots` and
 `map_row_moved` pin the slots that the conversion maps bands of one row
 share (two siblings with maps of two keys in different canonical orders, a
 segment line's own map and its segments' maps of one key, a sibling moved
-to another row), and `label_float_rounding` the rounded label of a float
-end. Every root of a non-corpus fixture carries the named timestamps
+to another row), `label_float_rounding` the rounded label of a float
+end, and `bundle__bundle_matchstamp_cards` the alignment anchors of
+drawing.md §8.7 across cards and within one card: a score shared by two
+groups is drawn in two frames, so the anchor between the performance and
+the score takes the shorter of its two candidate lines, and the anchor
+between the score and its child overlaps, its line horizontal, the tie
+between the two cards' pairs going to the first in descriptor order. Every root of a non-corpus fixture carries the named timestamps
 `origin` and `length` (`origin` alone for an unknown length), each drawing
 its wedge and its coordinate label where the root's start and end were
 marked before: their figures keep every number and address the wedges
@@ -451,7 +456,7 @@ data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
 font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
 `\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
 (261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
-There are 79 cases. Every case stating a spacing, of the block, in a place or in a
+There are 80 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

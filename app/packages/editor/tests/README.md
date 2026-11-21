@@ -301,8 +301,8 @@ path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
 end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
-code-unit order. For the installed package that is 154 manifest fixtures,
-16 warning cases and 5 workspaces, 175 options, from `bare` to
+code-unit order. For the installed package that is 156 manifest fixtures,
+16 warning cases and 5 workspaces, 177 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
