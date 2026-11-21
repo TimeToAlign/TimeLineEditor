@@ -14,7 +14,7 @@ import {
   placeMembersOf,
 } from "../manifest/containers.ts";
 import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
-import { BELIEF_FILTERS, type BeliefFilter } from "../matches/beliefs.ts";
+import { BELIEF_STATES, type BeliefState, DEFAULT_BELIEFS } from "../matches/beliefs.ts";
 import {
   type MemberReader,
   readBoolean,
@@ -51,18 +51,20 @@ export interface Granularity {
 /**
  * Which MatchClaims of a block's MatchClaim table are shown: those between
  * two of the timelines `timelines` lists (every timeline where it is
- * `null`) that pass the belief filter `belief`.
+ * `null`) whose state for the user is one of `beliefs` (the belief
+ * filter, `beliefMask`).
  */
 export interface MatchClaimFilter {
   /** The IDs of the timelines whose MatchClaims are shown, by code point; `null` for every timeline. */
   readonly timelines: readonly string[] | null;
-  readonly belief: BeliefFilter;
+  /** The belief states kept, each once, in the order of `BELIEF_STATES`. */
+  readonly beliefs: readonly BeliefState[];
 }
 
-/** The filter of a block that states none: every timeline, everything the user does not believe false. */
+/** The filter of a block that states none: every timeline, every belief state but `false`. */
 export const DEFAULT_MATCH_CLAIM_FILTER: MatchClaimFilter = {
   timelines: null,
-  belief: "not_false",
+  beliefs: DEFAULT_BELIEFS,
 };
 
 /**
@@ -183,9 +185,30 @@ const MANIFEST_FILE_READERS = {
   serialization: readSerialization,
 };
 
-function readBeliefFilter(value: unknown, path: readonly PathSegment[]): BeliefFilter | Problem {
-  const found = BELIEF_FILTERS.find((word) => word === value);
-  return found ?? problem(ErrorCode.invalidValue, 'expected "not_false" or "true"', path);
+/** A filter's belief states: each once, held in the order of `BELIEF_STATES`. */
+function readFilterBeliefs(
+  value: unknown,
+  path: readonly PathSegment[],
+): readonly BeliefState[] | Problem {
+  if (!Array.isArray(value)) {
+    return problem(ErrorCode.invalidValue, "expected a list of belief states", path);
+  }
+  const seen = new Set<BeliefState>();
+  for (const [index, word] of value.entries()) {
+    const state = BELIEF_STATES.find((item) => item === word);
+    if (state === undefined) {
+      const words = BELIEF_STATES.map((item) => `"${item}"`).join(", ");
+      return problem(ErrorCode.invalidValue, `expected a belief state (${words})`, [
+        ...path,
+        index,
+      ]);
+    }
+    if (seen.has(state)) {
+      return problem(ErrorCode.invalidValue, `'${state}' is listed twice`, [...path, index]);
+    }
+    seen.add(state);
+  }
+  return BELIEF_STATES.filter((state) => seen.has(state));
 }
 
 /** A filter's timelines: `null`, or timeline IDs, each once, held by code point. */
@@ -207,7 +230,7 @@ function readFilterTimelines(
   return [...seen].sort(compareCodePoints);
 }
 
-const MATCH_CLAIM_FILTER_READERS = { timelines: readFilterTimelines, belief: readBeliefFilter };
+const MATCH_CLAIM_FILTER_READERS = { timelines: readFilterTimelines, beliefs: readFilterBeliefs };
 
 /**
  * Entries by block ID (`WorkspaceSettings.manifests`,

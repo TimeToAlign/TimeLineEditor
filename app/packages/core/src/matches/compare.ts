@@ -11,7 +11,7 @@
  * out is one the belief filter does not pass. A caller narrowing what is
  * shown by anything else (the timelines a view holds, say) narrows after
  * the comparison, never through the mask, or a claim would be reported as
- * believed false for another reason.
+ * left out by the belief filter for another reason.
  */
 
 import type { CoordinateValue } from "../number/coordinate.ts";
@@ -73,11 +73,11 @@ export interface MatchStampCheck {
   /** Recorded claims the table does not hold, in the recorded order. */
   readonly claimsMissing: readonly string[];
   /**
-   * Recorded claims the table holds and the mask leaves out: those the belief
-   * filter does not pass, which under a filter passing only what is believed
-   * true includes claims nobody believes either way.
+   * Recorded claims the table holds and the mask leaves out: those whose
+   * state for the believer the belief filter does not keep (believed false
+   * under the default filter; undecided too where it keeps only `true`).
    */
-  readonly claimsBelievedFalse: readonly string[];
+  readonly claimsFilteredOut: readonly string[];
   /** Recorded claims passing the mask that state no anchor of the current potential MatchStamps. */
   readonly claimsElsewhere: readonly string[];
   /** Claims behind the current potential MatchStamps not recorded, in row order. */
@@ -117,12 +117,12 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
   const behind = new Set(currentRows);
   const rowOf = claimRowOf(index.columns);
   const claimsMissing: string[] = [];
-  const claimsBelievedFalse: string[] = [];
+  const claimsFilteredOut: string[] = [];
   const claimsElsewhere: string[] = [];
   for (const id of spec.claims) {
     const row = rowOf.get(id);
     if (row === undefined) claimsMissing.push(id);
-    else if (index.mask !== null && index.mask[row] !== 1) claimsBelievedFalse.push(id);
+    else if (index.mask !== null && index.mask[row] !== 1) claimsFilteredOut.push(id);
     else if (!behind.has(row)) claimsElsewhere.push(id);
   }
   const recorded = new Set(spec.claims);
@@ -134,7 +134,7 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
     anchorsGone.length +
       anchorsNew.length +
       claimsMissing.length +
-      claimsBelievedFalse.length +
+      claimsFilteredOut.length +
       claimsElsewhere.length +
       claimsNew.length >
     0;
@@ -146,7 +146,7 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
     anchorsGone,
     anchorsNew,
     claimsMissing,
-    claimsBelievedFalse,
+    claimsFilteredOut,
     claimsElsewhere,
     claimsNew,
     update: updateOf(index, spec, stated, current),

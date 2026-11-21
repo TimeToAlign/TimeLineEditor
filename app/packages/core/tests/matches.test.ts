@@ -18,10 +18,11 @@ import {
   ANCHOR_BELIEFS,
   actorIri,
   anchorBelief,
-  BELIEF_FILTERS,
+  BELIEF_STATES,
   BELIEFS,
   beliefMask,
   believedBy,
+  DEFAULT_BELIEFS,
 } from "../src/matches/beliefs.ts";
 import type { ClaimTimeline, ClaimValues } from "../src/matches/columns.ts";
 import { matchClaimColumns } from "../src/matches/columns.ts";
@@ -587,7 +588,7 @@ describe("a named MatchStamp against the index", () => {
     anchorsGone: [],
     anchorsNew: [],
     claimsMissing: [],
-    claimsBelievedFalse: [],
+    claimsFilteredOut: [],
     claimsElsewhere: [],
     claimsNew: [],
   };
@@ -632,7 +633,7 @@ describe("a named MatchStamp against the index", () => {
       anchorsGone: [1],
       anchorsNew: [8],
       claimsMissing: ["claim_99"],
-      claimsBelievedFalse: ["claim_10"],
+      claimsFilteredOut: ["claim_10"],
       claimsElsewhere: [],
       claimsNew: ["claim_8"],
     });
@@ -665,7 +666,7 @@ describe("a named MatchStamp against the index", () => {
       anchorsGone: [3],
       anchorsNew: [8],
       claimsMissing: ["claim_17"],
-      claimsBelievedFalse: [],
+      claimsFilteredOut: [],
       claimsElsewhere: [],
       claimsNew: ["claim_8"],
     });
@@ -764,7 +765,7 @@ describe("a named MatchStamp against the index", () => {
       anchorsGone: [0],
       anchorsNew: [],
       claimsMissing: [],
-      claimsBelievedFalse: ["claim_10"],
+      claimsFilteredOut: ["claim_10"],
       claimsElsewhere: [],
       claimsNew: [],
       update: null,
@@ -800,20 +801,30 @@ describe("the belief filter", () => {
     mask === null ? null : Array.from(mask.keys()).filter((row) => mask[row] === 1);
   const every = Array.from({ length: 15 }, (_, row) => row);
 
-  it("numbers the words as TimeToShare does and reads two filters", () => {
+  it("numbers the words as TimeToShare does and reads four states", () => {
     expect(BELIEFS).toEqual(["true", "false", "unlikely"]);
-    expect(BELIEF_FILTERS).toEqual(["not_false", "true"]);
+    expect(BELIEF_STATES).toEqual(["true", "undecided", "unlikely", "false"]);
+    expect(DEFAULT_BELIEFS).toEqual(["true", "undecided", "unlikely"]);
   });
 
   it("gives the rows of the table fixture's cases", () => {
     expect(beliefMask(beliefs, null)).toBeNull();
-    expect(beliefMask(beliefs, null, "true")).toBeNull();
+    expect(beliefMask(beliefs, null, ["true"])).toBeNull();
     expect(rows(beliefMask(beliefs, A))).toEqual(every.filter((row) => row !== 12));
-    expect(rows(beliefMask(beliefs, A, "true"))).toEqual([0, 10]);
-    expect(rows(beliefMask(beliefs, B, "true"))).toEqual([12, 13]);
+    expect(rows(beliefMask(beliefs, A, ["true"]))).toEqual([0, 10]);
+    expect(rows(beliefMask(beliefs, A, ["undecided"]))).toEqual(
+      every.filter((row) => ![0, 5, 10, 12].includes(row)),
+    );
+    expect(rows(beliefMask(beliefs, A, ["unlikely"]))).toEqual([5]);
+    expect(rows(beliefMask(beliefs, A, ["false"]))).toEqual([12]);
+    expect(rows(beliefMask(beliefs, A, ["false", "true"]))).toEqual([0, 10, 12]);
+    expect(rows(beliefMask(beliefs, A, ["true", "false"]))).toEqual([0, 10, 12]);
+    expect(rows(beliefMask(beliefs, A, []))).toEqual([]);
+    expect(beliefMask(beliefs, A, ["false", "unlikely", "undecided", "true"])).toBeNull();
+    expect(rows(beliefMask(beliefs, B, ["true"]))).toEqual([12, 13]);
     expect(rows(beliefMask(beliefs, B))).toEqual(every);
     expect(rows(beliefMask(beliefs, "https://example.org/nobody"))).toEqual(every);
-    expect(rows(beliefMask(beliefs, "https://example.org/nobody", "true"))).toEqual([]);
+    expect(rows(beliefMask(beliefs, "https://example.org/nobody", ["true"]))).toEqual([]);
   });
 
   it("compares actors as the IRIs they stand for under the manifest's context", () => {
@@ -827,12 +838,12 @@ describe("the belief filter", () => {
 
     const written = { ...beliefs, actors: [B, compact] };
     const notTwelve = every.filter((row) => row !== 12);
-    expect(rows(beliefMask(written, A, "not_false", context))).toEqual(notTwelve);
-    expect(rows(beliefMask(written, A, "true", context))).toEqual([0, 10]);
-    expect(rows(beliefMask(written, compact, "not_false", context))).toEqual(notTwelve);
-    expect(rows(beliefMask(written, compact, "true", context))).toEqual([0, 10]);
+    expect(rows(beliefMask(written, A, DEFAULT_BELIEFS, context))).toEqual(notTwelve);
+    expect(rows(beliefMask(written, A, ["true"], context))).toEqual([0, 10]);
+    expect(rows(beliefMask(written, compact, DEFAULT_BELIEFS, context))).toEqual(notTwelve);
+    expect(rows(beliefMask(written, compact, ["true"], context))).toEqual([0, 10]);
     expect(rows(beliefMask(written, A))).toEqual(every);
-    expect(rows(beliefMask(written, A, "true"))).toEqual([]);
+    expect(rows(beliefMask(written, A, ["true"]))).toEqual([]);
 
     const twice = {
       actors: [compact, A],
@@ -840,8 +851,9 @@ describe("the belief filter", () => {
       actor: Uint32Array.from([0, 1]),
       word: Uint8Array.from([BELIEFS.indexOf("false"), BELIEFS.indexOf("true")]),
     };
-    expect(rows(beliefMask(twice, A, "not_false", context))).toEqual([1]);
-    expect(rows(beliefMask(twice, A, "true", context))).toEqual([0]);
+    expect(rows(beliefMask(twice, A, DEFAULT_BELIEFS, context))).toEqual([1]);
+    expect(rows(beliefMask(twice, A, ["true"], context))).toEqual([]);
+    expect(rows(beliefMask(twice, A, ["false"], context))).toEqual([0]);
   });
 
   it("gives the believer's belief per row, the most critical of several", () => {
@@ -877,9 +889,9 @@ describe("the belief filter", () => {
     expect(anchorBelief(ofA, [])).toBe("undecided");
   });
 
-  it("refuses another filter word", () => {
-    expect(() => beliefMask(beliefs, A, "false" as "true")).toThrow(
-      new RangeError("'false' is no belief filter: write 'not_false' or 'true'"),
+  it("refuses a word that is no belief state", () => {
+    expect(() => beliefMask(beliefs, A, ["maybe" as "true"])).toThrow(
+      new RangeError("'maybe' is no belief state: write 'true', 'undecided', 'unlikely', 'false'"),
     );
   });
 });

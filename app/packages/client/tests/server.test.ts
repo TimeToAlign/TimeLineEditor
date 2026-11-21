@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { anchorIndexOf, beliefMask } from "@timetoalign/tilie-core";
+import { anchorIndexOf, beliefMask, DEFAULT_BELIEFS } from "@timetoalign/tilie-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { connect, ServerError } from "../src/index.ts";
 
@@ -365,14 +365,14 @@ describe("matchClaims", () => {
   it("builds the anchor index of the fixture's expected anchors", async () => {
     stubFetch(answering(recording));
     const { columns, beliefs } = await call();
-    // expected.yaml: [believer, filter, unique anchors, potential MatchStamps]
-    for (const [believer, belief, anchors, stamps] of [
-      [null, "not_false", 14, 11],
-      [A, "not_false", 13, 11],
-      [A, "true", 2, 2],
-      [B, "true", 1, 1],
+    // expected.yaml: [believer, belief states kept, unique anchors, potential MatchStamps]
+    for (const [believer, kept, anchors, stamps] of [
+      [null, DEFAULT_BELIEFS, 14, 11],
+      [A, DEFAULT_BELIEFS, 13, 11],
+      [A, ["true"], 2, 2],
+      [B, ["true"], 1, 1],
     ] as const) {
-      const index = anchorIndexOf(columns, beliefMask(beliefs, believer, belief));
+      const index = anchorIndexOf(columns, beliefMask(beliefs, believer, kept));
       expect([index.anchors.count, index.matchStamps.count]).toEqual([anchors, stamps]);
     }
   });

@@ -210,15 +210,16 @@ export {
   matchStampMembers,
   segmentsOf,
 } from "./matches/anchors.ts";
-export type { AnchorBelief, BeliefFilter, ClaimBeliefs } from "./matches/beliefs.ts";
+export type { AnchorBelief, BeliefState, ClaimBeliefs } from "./matches/beliefs.ts";
 export {
   ANCHOR_BELIEFS,
   actorIri,
   anchorBelief,
-  BELIEF_FILTERS,
+  BELIEF_STATES,
   BELIEFS,
   beliefMask,
   believedBy,
+  DEFAULT_BELIEFS,
 } from "./matches/beliefs.ts";
 export type {
   ClaimSide,

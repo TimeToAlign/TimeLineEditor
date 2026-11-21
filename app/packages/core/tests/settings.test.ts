@@ -294,16 +294,19 @@ describe("how each block's manifest is written", () => {
 });
 
 describe("which MatchClaims a block shows", () => {
-  const FILTER = { timelines: ["take_1", "score"], belief: "true" } as const;
-  const HELD = { timelines: ["score", "take_1"], belief: "true" };
+  const FILTER = { timelines: ["take_1", "score"], beliefs: ["false", "true"] } as const;
+  const HELD = { timelines: ["score", "take_1"], beliefs: ["true", "false"] };
 
   it("holds no entry in a new workspace, a block without one showing every MatchClaim not believed false", () => {
     expect(createView().settings.matchClaimFilters).toEqual({});
-    expect(DEFAULT_MATCH_CLAIM_FILTER).toEqual({ timelines: null, belief: "not_false" });
+    expect(DEFAULT_MATCH_CLAIM_FILTER).toEqual({
+      timelines: null,
+      beliefs: ["true", "undecided", "unlikely"],
+    });
     expect(matchClaimFilterOf(createView().settings, A)).toBe(DEFAULT_MATCH_CLAIM_FILTER);
   });
 
-  it("is set block by block outside the journal, each entry whole, its timelines by code point", () => {
+  it("is set block by block outside the journal, each entry whole, its timelines by code point and its states in order", () => {
     const { store } = threeEntries();
     const journal = store.journal;
     expect(store.configure({ matchClaimFilters: { [A]: FILTER } })).toBeNull();
@@ -311,22 +314,37 @@ describe("which MatchClaims a block shows", () => {
     expect(matchClaimFilterOf(store.view.settings, A)).toEqual(HELD);
     expect(matchClaimFilterOf(store.view.settings, B)).toBe(DEFAULT_MATCH_CLAIM_FILTER);
     const entry = store.view.settings.matchClaimFilters[A];
-    const other = { timelines: null, belief: "not_false" } as const;
+    const other = { timelines: null, beliefs: [] } as const;
     expect(store.configure({ matchClaimFilters: { [B]: other } })).toBeNull();
     expect(store.view.settings.matchClaimFilters[A]).toEqual(entry);
     const settings = store.view.settings;
-    const same = { timelines: ["score", "take_1"], belief: "true" } as const;
+    const same = { timelines: ["score", "take_1"], beliefs: ["true", "false"] } as const;
     expect(store.configure({ matchClaimFilters: { [A]: same } })).toBeNull();
     expect(store.view.settings).toBe(settings);
+    expect(matchClaimFilterOf(store.view.settings, B)).toEqual(other);
   });
 
   it.each<[string, unknown, readonly (string | number)[], string, string]>([
     [
-      "a belief filter it does not know",
-      { [A]: { ...FILTER, belief: "maybe" } },
-      ["settings", "matchClaimFilters", A, "belief"],
+      "a belief state it does not know",
+      { [A]: { ...FILTER, beliefs: ["maybe"] } },
+      ["settings", "matchClaimFilters", A, "beliefs", 0],
       "invalid_value",
-      'expected "not_false" or "true"',
+      'expected a belief state ("true", "undecided", "unlikely", "false")',
+    ],
+    [
+      "belief states that are no list",
+      { [A]: { ...FILTER, beliefs: "true" } },
+      ["settings", "matchClaimFilters", A, "beliefs"],
+      "invalid_value",
+      "expected a list of belief states",
+    ],
+    [
+      "a belief state listed twice",
+      { [A]: { ...FILTER, beliefs: ["true", "true"] } },
+      ["settings", "matchClaimFilters", A, "beliefs", 1],
+      "invalid_value",
+      "'true' is listed twice",
     ],
     [
       "timelines that are no list",
@@ -343,11 +361,11 @@ describe("which MatchClaims a block shows", () => {
       "'score' is listed twice",
     ],
     [
-      "an entry without its belief filter",
+      "an entry without its belief states",
       { [A]: { timelines: null } },
-      ["settings", "matchClaimFilters", A, "belief"],
+      ["settings", "matchClaimFilters", A, "beliefs"],
       "missing_member",
-      "missing member belief",
+      "missing member beliefs",
     ],
     [
       "a key that is no block ID",
