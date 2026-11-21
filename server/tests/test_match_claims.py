@@ -322,19 +322,12 @@ def claim(
     row: dict[str, Any] = dict.fromkeys(MATCH_CLAIM_SCHEMA.names)
     row.update(
         id=claim_id,
-        id_minted=False,
         is_synchronous=True,
-        is_explicit=True,
         timeline_a_id=a[0],
         event_a_id=a[1],
         timeline_b_id=b[0],
         event_b_id=b[1],
-        start_anchor={
-            "timeline_a_id": a[0],
-            "coordinate_a": a[2],
-            "timeline_b_id": b[0],
-            "coordinate_b": b[2],
-        },
+        start_anchor={"coordinate_a": a[2], "coordinate_b": b[2]},
     )
     return row
 
