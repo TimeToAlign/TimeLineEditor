@@ -28,9 +28,9 @@ The requirements:
    would multiply the answer of decision 0030; the tab needs that of one
    MatchStamp's MatchClaims at a time.
 3. **The format's own rules**: the belief is recorded by the libraries that
-   define it (timetoalign's `Provenance.with_belief`), the new table is
-   checked by TimeToShare's table checks and succession rule before it
-   leaves the server.
+   define it (timetoalign's `AlignmentBundle.add_match_claim_belief`), the
+   new table is checked by TimeToShare's table checks and succession rule
+   before it leaves the server.
 4. **No new dependency**, as for decision 0030.
 
 ## Considered options
@@ -64,28 +64,35 @@ The table is checked against the manifest as that route checks it.
 ID>, …]}` and answers JSON `{"claims": [{"id", "provenance"}]}`, in the
 order asked, `provenance` the entry the MatchClaim is read with (its row's
 own, else the one the file states for every row) as TimeToShare's
-provenance entry with its absent members left out, or `null`. The editor
-asks for the MatchClaims of the MatchStamp it shows, never for every row.
+provenance entry with its absent members left out, each belief's actor
+the IRI timetoalign compares it as (as the actors of decision 0030's
+answer), or `null`. The editor asks for the MatchClaims of the MatchStamp
+it shows, never for every row.
 
 **`POST /api/match-claims/belief`** takes `{"claim", "actor", "belief",
 "date"}` (the actor an IRI, the belief one of TimeToShare's words, the date
 `YYYY-MM-DD`) and answers 200 `application/vnd.apache.parquet`, the new
-`match_claims.parquet`. The belief is recorded in the MatchClaim's
-provenance by timetoalign's `Provenance.with_belief` (an actor's earlier
-belief replaced in its place, every other actor's left standing; a
-MatchClaim without provenance gets an entry holding the belief alone).
-Where the file states one provenance for every row, every row states it
-as its own in the new file, which no longer does, since one row's differs.
-Every other column and row is kept, columns the table type does not
-declare included. The new table passes TimeToShare's table checks against
+`match_claims.parquet`. The server reads the manifest as timetoalign's
+`AlignmentBundle`, adds the table's MatchClaims to it and records the
+belief by `AlignmentBundle.add_match_claim_belief` (an actor's earlier
+belief replaced in its place, actors compared as IRIs under the
+manifest's `@context`, every other actor's left standing; a MatchClaim
+without provenance gets an entry holding the belief alone; the actor
+stored as the request spells it); it builds no provenance itself. The
+posted table takes the provenance column timetoalign wrote: where the file
+states one provenance for every row, every row states it as its own in
+the new file, which no longer does, since one row's differs. Every other
+column and row is kept, columns the table type does not declare and the
+file's other metadata included. The new table passes TimeToShare's table checks against
 the manifest and `succession_problems` against the posted table before it
 is written; nothing is stored on the server.
 
 **Refusals** answer as decision 0030's: 422 `{"detail": {"path",
 "message", "problems"?}}`, a parameter's at its name (`["claims", 1]`, a
 MatchClaim the table lacks; `["belief"]`, a word that is no belief), a
-table the checks or the succession rule refuse with every problem; 501
-when the installed timetoalign cannot record provenance.
+table the checks or the succession rule refuse with every problem, a
+manifest or a belief timetoalign refuses with its message; 501 when the
+installed timetoalign cannot record provenance.
 
 The editor (`@timetoalign/tilie-client`'s `matchClaimProvenance` and
 `believeMatchClaim`) sends the manifest as its file writes it and the
@@ -111,6 +118,10 @@ file starts and ends with `PAR1`, which the client checks),
 Each request sends the whole table again: the editor holds the user's
 file and the server none, so the price of a stateless server is the
 upload, on the loopback interface, and one check of the table per request.
+Each request also reads the manifest as timetoalign's bundle, so that
+actors compare as the library compares them: measured warm, 4.5 ms for
+TimeToShare's table fixture's manifest and about 200 ms for a manifest
+with many statements, most of it their validation.
 A belief costs two requests (the new file, then its columns). The file the
 editor offers to save is the server's answer byte for byte. The exit cost
 is local: the two routes and the client's two calls.

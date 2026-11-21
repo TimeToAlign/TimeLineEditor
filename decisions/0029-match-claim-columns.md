@@ -23,8 +23,8 @@ The requirements:
    `float` value a double. Two values that round to the same double are
    two coordinates; `-0.0` and `0.0` on a float axis are one.
 2. **No parsing and no object per row**: 250,000 claims become an index
-   within about 100 ms of their arrival, and a hover is answered within
-   1 ms. The browser views the server's arrays without copying them.
+   within 200 ms of their arrival, the check of their columns included,
+   and a hover is answered within 1 ms. The browser views the server's arrays without copying them.
 3. **A float key for order**: drawing and hit-testing need a position on a
    timeline as a double; it orders and searches, never decides equality on
    an exact axis.
@@ -74,7 +74,10 @@ The position of an exact value is what Python's `float(value)` returns
 looked up from a manifest finds its coordinate. Cells of a row without
 that anchor are not read. The index takes, besides the columns, a row mask
 (`Uint8Array`, 1 where the row passes the belief filter), computed by the
-caller from the provenance it holds; the same columns serve every mask.
+caller from the beliefs it holds (`beliefMask`, the believer and every
+actor compared as the IRIs they stand for under the manifest's
+`@context`, as timetoalign compares them); the same columns serve every
+mask.
 The mask is the belief filter's and nothing else: the comparison of a named
 MatchStamp reads a recorded claim the mask leaves out as one the belief
 filter does not pass, so a caller narrowing what is shown by anything else
@@ -93,8 +96,10 @@ lowest terms, an exact value whose position is not the double nearest it,
 which would split one coordinate in two, since exact equality is decided
 only among equal positions); an index checks its columns on its first
 build only, since columns are never changed after they arrive. The check
-builds the map from claim ID to row that refuses a repeated ID, and every
-comparison of a named MatchStamp against these columns reads that map.
+builds the map from claim ID to row that refuses a repeated ID
+(`claimRowOf`, exported), and every comparison of a named MatchStamp
+against these columns, and the editor's list of a MatchStamp's
+MatchClaims, read that map.
 
 The anchor index (`matches/anchors.ts`) sorts the values with a radix sort
 of the positions' bits within each timeline, splits runs of one position by
