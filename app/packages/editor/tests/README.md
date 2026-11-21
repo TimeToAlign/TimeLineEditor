@@ -1265,12 +1265,19 @@ int), no `graphical`), its timelines numbered by ID (`clt_1` 0, `clt_2` 1,
 The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
 `tag:example.org,2026:other`.
 
-1. **The indexes.** Under the default filter (every timeline, everything
-   the user does not believe false) the compared and the shown index are
-   one object, with 4 unique anchors (`claim_3` left out, `claim_4` still
-   stating its anchor) and 3 potential MatchStamps: {`clt_1` 0, `cpt_1`
-   0.0, `dpt_1` 0}, {`clt_1` 4, `dpt_1` 176400}, {`cpt_1` 8.0, `dpt_1`
-   352800}. Under "only what I believe true" 1 anchor (`claim_5`'s). With
+1. **The indexes.** Under the default filter (every timeline, the belief
+   states true, undecided and unlikely: everything the user does not
+   believe false) the compared and the shown index are one object, with 4
+   unique anchors (`claim_3` left out, `claim_4` still stating its anchor)
+   and 3 potential MatchStamps: {`clt_1` 0, `cpt_1` 0.0, `dpt_1` 0},
+   {`clt_1` 4, `dpt_1` 176400}, {`cpt_1` 8.0, `dpt_1` 352800}. Under the
+   states `["true"]` 1 anchor (`claim_5`'s); under `["false"]` 1 anchor
+   (`claim_3`'s, `clt_1` 4 – `dpt_1` 176400); under `["undecided"]` 3
+   anchors (`claim_1`'s, `claim_2`'s, `claim_4`'s); under all four states
+   the 4 anchors of the default (`claim_3` and `claim_4` state one).
+   The indexes carry the user's belief per row (core's `believedBy`, its
+   numbers in `ANCHOR_BELIEFS`, false 0 … true 3): `[2, 2, 0, 2, 3]`, the
+   same array object for every filter. With
    the timelines `[clt_1, dpt_1]` the compared index keeps 4 anchors and
    the shown one has 2 (`claim_1`'s and `claim_4`'s): the timelines narrow
    what is shown, never what a named MatchStamp is compared with. The same
@@ -1367,25 +1374,34 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the comparison marks `anchor_2` not stated (its line red, the words "not
    stated by the table"), and the tab lists exactly "MatchClaims the belief
    filter leaves out: claim_1" and "Anchors gone: anchor_2" (the label
-   holds under both filters: under "Only what I believe true" it also
-   names MatchClaims nobody believes either way, core's
-   `claimsBelievedFalse`); Update is enabled and sends
+   holds under every filter: under the states `["true"]` it also names
+   MatchClaims nobody believes either way, core's `claimsFilteredOut`);
+   Update is enabled and sends
    one `set` of `anchors` [[`clt_1` [0, 1], `cpt_1` 0.0]] and `match_claims`
    `["claim_2"]` (one journal entry, `anchor_1` kept with its display,
    `timestamp_3` gone); Remove deletes the MatchStamp and its three match
    timestamps in one entry, leaving the tab on the hint. Without a table
    nothing is compared: no anchor is marked, no difference listed, no
    Update shown, Remove offered.
-5. **MatchClaims and beliefs.** A MatchClaim's provenance is shown as a
-   Metadata pair's is (one data shape, one reader: `claimEntryLine` gives
-   the `EntryLine`, `paradataRows` its rows, the same words and order as
-   a pair's provenance; "A provenance entry" above).
+5. **MatchClaims and beliefs.** Each MatchClaim is a disclosure button
+   named by its ID, collapsed (`aria-expanded` false, its region
+   `hidden`); pressing it expands that MatchClaim alone, pressing it again
+   collapses it. Expanded it shows, in this order: its events (item 5a),
+   the beliefs with the user's buttons, and a button "Provenance"
+   (accessible name "Provenance of <claim>") that alone opens the
+   provenance: the paradata, as a Metadata pair's is shown (one data
+   shape, one reader: `claimEntryLine` gives the `EntryLine`,
+   `paradataRows` its rows, the same words and order as a pair's
+   provenance; "A provenance entry" above), never the beliefs again.
    Before its entry is read, each MatchClaim lists the beliefs the table
-   states, every actor worded by `whoOf` (`claim_4`: "tag:example.org,2026:other
-   believes it true"; the user's own by the user's name), with no date, no
-   note and no paradata; an entry the table does not state reads "No
-   provenance entry: the table states none for it."; a MatchClaim without
-   beliefs "No one has stated a belief.". The buttons True,
+   states, every actor worded by `whoOf` with the shipped catalogue's and
+   the context's names (`claim_4`: "tag:example.org,2026:other believes it
+   true"; the user's own by the user's name; an actor that is a
+   MusicBrainz IRI by its slug, `https://musicbrainz.org/work/<mbid>` as
+   `mbid:<mbid>`, its title the IRI), with no date, no note and no
+   paradata; an entry the table does not state reads, behind Provenance,
+   "No provenance entry: the table states none for it."; a MatchClaim
+   without beliefs "No one has stated a belief.". The buttons True,
    Unlikely, False, the user's own belief pressed (`claim_5`: True); without
    a server every button is disabled with the title "Matches need a server:
    …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
@@ -1400,12 +1416,34 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    I believe true" keeps 1 anchor (`claim_5`'s). Without the context the
    compact actor is no IRI of the user: no belief of the user, 0 anchors.
    `claimEntryLine` is "A provenance entry", item 4.
+5a. **A MatchClaim's events** (`claimDetails`, and the tab with the
+   server's events route stubbed). Nothing is asked while every MatchClaim
+   is collapsed; expanding the first asks the events of every MatchClaim
+   the table holds of the MatchStamp, once (`["claim_1", "claim_2"]` for
+   the MatchStamp of `clt_1` 0; expanding the second asks nothing more);
+   while pending the MatchClaim's status reads "Reading the events…"; a
+   refusal reads `eventsFailure`'s words; without a server the expanded
+   MatchClaim says "Matches need a server: …". The answer written in the
+   test: `claim_1` `clt_1` event `note_1` named "C4", a Projection of
+   `note_9` on `clt_2`, ↔ `dpt_1` event `onset_1` without a name and no
+   Projection, certainty 0.75; `claim_2` `clt_1` `note_1` "C4", a
+   Projection of no event, ↔ `cpt_1` no event (the sentinel), no
+   certainty. Shown, each side is one row of a list headed by its
+   timeline's name, else its ID (the fixture's timelines have no name),
+   the ID as the title: `claim_1` `clt_1` "note_1 “C4” · a Projection
+   of note_9 on clt_2", `dpt_1` "onset_1", "certainty 0.75"; `claim_2`
+   `clt_1` "note_1 “C4” · a Projection of no event", `cpt_1` "no event", no
+   certainty row. `claimDetails` of an ID the answer lacks is `null`.
 6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
-   `cpt_1`, `dpt_1`) checked and the two belief choices; unchecking
-   `cpt_1` configures `{timelines: ["clt_1", "clt_2", "dpt_1"], belief:
-   "not_false"}` for the block (outside the journal), checking it again
-   `timelines: null`; "Only what I believe true" configures `belief:
-   "true"`. Without a server "Load MatchClaims…" is disabled and described
+   `cpt_1`, `dpt_1`) checked and, in a group named "Beliefs", four toggle
+   buttons True, Undecided, Unlikely, False (the Timestamp tab's display
+   toggles), the first three pressed; unchecking `cpt_1` configures
+   `{timelines: ["clt_1", "clt_2", "dpt_1"], beliefs: ["true",
+   "undecided", "unlikely"]}` for the block (outside the journal),
+   checking it again `timelines: null`; pressing False adds `false`
+   (`["true", "undecided", "unlikely", "false"]`, the states always in
+   that order), pressing Undecided then leaves it out (`["true",
+   "unlikely", "false"]`), and each pressed state is `aria-pressed`. Without a server "Load MatchClaims…" is disabled and described
    by "Matches need a server: MatchClaim tables are read through
    tilie-server."
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
@@ -1419,7 +1457,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    index, named}` with the block's shown index and every named MatchStamp
    compared against its compared index (the cached comparisons, the same
    object); a block listed as holding a table that the view no longer
-   holds, or whose table is gone, gives no entry. Each comparison's
+   holds, or whose table is gone, gives no entry. Each entry carries the
+   indexes' `beliefs` (the same array object), which the canvas colours
+   anchors by. Each comparison's
    `stated` follows its MatchStamp's `alignment_anchors`: with "Downbeat"
    named and the user believing `claim_1` false, `stated` of
    `matchstamp_1` is [an index anchor, `null`] for [`anchor_1`, `anchor_2`],
@@ -1519,8 +1559,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     MatchStamp of `clt_1` 0 asks for the provenance of exactly
     `["claim_1", "claim_2"]` (its MatchClaims, never another row), with
     the manifest as its file writes it and the file the block holds; while
-    the answer is pending each MatchClaim reads "Reading the provenance…";
-    then `claim_1` lists "method imported", "service
+    the answer is pending each MatchClaim's status (one `role="status"`
+    element per MatchClaim, always present, empty when there is nothing to
+    say) reads "Reading the provenance…";
+    then `claim_1` lists, behind its Provenance button, "method imported", "service
     https://example.org/aligner", "date 2026-11-20" in that order (the
     Metadata tab's order and words) and `claim_2` "No provenance
     entry: the table states none for it."; the other actor's belief in

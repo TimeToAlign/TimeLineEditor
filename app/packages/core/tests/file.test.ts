@@ -12,7 +12,7 @@ const JSON_TEXT = { serialization: "json" } as const;
 
 /** How block `A`'s manifest is written in the built workspace. */
 const A_FILE = { minimal: false, styling: false, serialization: "json" } as const;
-const A_FILTER = { timelines: ["melody"], belief: "true" } as const;
+const A_FILTER = { timelines: ["melody"], beliefs: ["true"] } as const;
 
 /** The workspace's `graphical`: one rule. */
 const STYLED = {
@@ -77,7 +77,7 @@ describe("the workspace file", () => {
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       granularity: { denominator: 5, decimals: 3 },
       manifests: { [A]: A_FILE },
-      matchClaimFilters: { [A]: { belief: "true", timelines: ["melody"] } },
+      matchClaimFilters: { [A]: { beliefs: ["true"], timelines: ["melody"] } },
     });
     expect(value.graphical).toEqual(STYLED);
     expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
@@ -353,11 +353,18 @@ describe("the workspace file", () => {
     }
     const filters = read(
       edited((value) => {
-        const entries = { [A]: A_FILTER, [B]: { timelines: null, belief: "maybe" } };
+        const entries = { [A]: A_FILTER, [B]: { timelines: null, beliefs: ["maybe"] } };
         (value.settings as Value).matchClaimFilters = entries;
       }),
     );
     expect(filters.view.settings.matchClaimFilters).toEqual({ [A]: A_FILTER });
+    const former = read(
+      edited((value) => {
+        const entries = { [A]: A_FILTER, [B]: { timelines: null, belief: "not_false" } };
+        (value.settings as Value).matchClaimFilters = entries;
+      }),
+    );
+    expect(former.view.settings.matchClaimFilters).toEqual({ [A]: A_FILTER });
     const strict = readWorkspace(
       edited((value) => {
         const settings = value.settings as Value;

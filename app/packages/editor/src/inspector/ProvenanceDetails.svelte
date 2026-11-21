@@ -8,7 +8,9 @@
  * Without an entry it says why, in the words its host gives. More actions
  * of the host (Remove) follow the belief buttons. An IRI shown as a slug
  * or in words carries the full IRI as its title. `Provenance` opens it
- * behind a Provenance button.
+ * behind a Provenance button. A host showing the beliefs apart from the
+ * paradata (the Matchstamp tab's MatchClaims) shows each part alone
+ * (`paradata`, `beliefs`).
  */
 import type { Belief } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
@@ -25,6 +27,8 @@ let {
   title,
   onbelieve,
   actions,
+  paradata = true,
+  beliefs = true,
 }: {
   /** The entry's line (`lineOf`); `null` where there is no entry. */
   line: EntryLine | null;
@@ -41,6 +45,10 @@ let {
   onbelieve: (belief: Belief) => void;
   /** The host's further actions, after the belief buttons. */
   actions?: Snippet | undefined;
+  /** Whether the paradata (or, without an entry, `missing`) is shown. */
+  paradata?: boolean | undefined;
+  /** Whether the beliefs and the belief buttons are shown. */
+  beliefs?: boolean | undefined;
 } = $props();
 
 /** The beliefs from most to least, as the buttons offer them. */
@@ -57,46 +65,50 @@ const rows = $derived(line === null ? [] : paradataRows(line));
 {#snippet shown(item: ShownIri)}<span title={item.iri ?? undefined}>{item.text}</span>{/snippet}
 
 <div class="provenance">
-  {#if line === null}
-    <p class="muted no-provenance">{missing}</p>
-  {:else if rows.length > 0}
-    <dl class="paradata" data-testid="metadata-paradata">
-      {#each rows as row (row.key)}
-        <dt>{row.label}</dt>
-        <dd>{#each row.items as item, index (index)}{index > 0 ? ", " : ""}{#if row.key === "service"}<code
-                >{@render shown(item)}</code
-              >{:else}{@render shown(item)}{/if}{/each}</dd>
-      {/each}
-    </dl>
+  {#if paradata}
+    {#if line === null}
+      <p class="muted no-provenance">{missing}</p>
+    {:else if rows.length > 0}
+      <dl class="paradata" data-testid="metadata-paradata">
+        {#each rows as row (row.key)}
+          <dt>{row.label}</dt>
+          <dd>{#each row.items as item, index (index)}{index > 0 ? ", " : ""}{#if row.key === "service"}<code
+                  >{@render shown(item)}</code
+                >{:else}{@render shown(item)}{/if}{/each}</dd>
+        {/each}
+      </dl>
+    {/if}
   {/if}
-  {#if line === null || line.beliefs.length === 0}
-    <p class="muted" data-testid="metadata-beliefs">No one has stated a belief.</p>
-  {:else}
-    <ul class="beliefs" data-testid="metadata-beliefs" aria-label="Beliefs">
-      {#each line.beliefs as held (held.actor)}
-        <li>
-          {@render shown({ text: held.who, iri: held.who === held.iri ? null : held.iri })} believes it <strong>{held.belief}</strong>{held.date === null
-            ? ""
-            : ` (${held.date})`}{held.note === null ? "" : `: ${held.note}`}
-        </li>
-      {/each}
-    </ul>
-  {/if}
-  <div class="actions">
-    <div class="belief" role="group" aria-label={label}>
-      <span class="muted">Your belief:</span>
-      {#each ORDER as belief (belief)}
-        <button
-          type="button"
-          aria-pressed={mine === belief}
-          {disabled}
-          {title}
-          onclick={() => onbelieve(belief)}>{WORDS[belief]}</button
-        >
-      {/each}
+  {#if beliefs}
+    {#if line === null || line.beliefs.length === 0}
+      <p class="muted" data-testid="metadata-beliefs">No one has stated a belief.</p>
+    {:else}
+      <ul class="beliefs" data-testid="metadata-beliefs" aria-label="Beliefs">
+        {#each line.beliefs as held (held.actor)}
+          <li>
+            {@render shown({ text: held.who, iri: held.who === held.iri ? null : held.iri })} believes it <strong>{held.belief}</strong>{held.date === null
+              ? ""
+              : ` (${held.date})`}{held.note === null ? "" : `: ${held.note}`}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    <div class="actions">
+      <div class="belief" role="group" aria-label={label}>
+        <span class="muted">Your belief:</span>
+        {#each ORDER as belief (belief)}
+          <button
+            type="button"
+            aria-pressed={mine === belief}
+            {disabled}
+            {title}
+            onclick={() => onbelieve(belief)}>{WORDS[belief]}</button
+          >
+        {/each}
+      </div>
+      {@render actions?.()}
     </div>
-    {@render actions?.()}
-  </div>
+  {/if}
 </div>
 
 <style>

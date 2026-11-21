@@ -14,12 +14,16 @@ import { canonicalText } from "../json.ts";
 export { BELIEFS };
 
 /**
- * The belief filter's words: every MatchClaim the believer does not
- * believe `"false"` (`not_false`), or only those the believer believes
- * `"true"` (`true`).
+ * The four states of the belief filter, in the order the editor offers
+ * them: what the believer holds of a MatchClaim, `undecided` where the
+ * believer holds no belief. The same states as timetoalign's
+ * `BELIEF_STATES`.
  */
-export const BELIEF_FILTERS = ["not_false", "true"] as const;
-export type BeliefFilter = (typeof BELIEF_FILTERS)[number];
+export const BELIEF_STATES = ["true", "undecided", "unlikely", "false"] as const;
+export type BeliefState = (typeof BELIEF_STATES)[number];
+
+/** The states the belief filter keeps by default: every state but `false`. */
+export const DEFAULT_BELIEFS: readonly BeliefState[] = ["true", "undecided", "unlikely"];
 
 /**
  * Every MatchClaim's beliefs: those of `offsets[row]` up to `offsets[row +
@@ -44,44 +48,34 @@ export function actorIri(context: unknown, actor: string): string {
   return expandIri(context, actor) ?? actor;
 }
 
-const TRUE = BELIEFS.indexOf("true");
-const FALSE = BELIEFS.indexOf("false");
-
 /**
- * The belief filter's row mask, which the anchor index takes: `null`
- * (nothing filtered) without a believer; else 0 for every row where the
- * believer believes `"false"` (`"not_false"`), or 1 only for the rows where
- * the believer believes `"true"` (`"true"`). The believer and every actor
- * compare as their IRIs under `context` (`actorIri`); each actor is
- * expanded once, so the cost follows the actors, not the beliefs.
+ * The belief filter's row mask, which the anchor index takes: 1 for every
+ * row whose state for the believer (`believedBy`: the believer's belief,
+ * the most critical of several, `undecided` where the believer holds none)
+ * is one of `kept`. `null` (nothing filtered) without a believer, and when
+ * `kept` holds all four states. The believer and every actor compare as
+ * their IRIs under `context` (`actorIri`).
  *
- * @throws {RangeError} for a filter that is neither.
+ * @throws {RangeError} for a word of `kept` that is no belief state.
  */
 export function beliefMask(
   beliefs: ClaimBeliefs,
   believer: string | null,
-  belief: BeliefFilter = "not_false",
+  kept: readonly BeliefState[] = DEFAULT_BELIEFS,
   context: unknown = null,
 ): Uint8Array | null {
-  if (!BELIEF_FILTERS.includes(belief)) {
-    throw new RangeError(`'${belief}' is no belief filter: write 'not_false' or 'true'`);
+  const unknown = kept.find((state) => !BELIEF_STATES.includes(state));
+  if (unknown !== undefined) {
+    throw new RangeError(
+      `'${unknown}' is no belief state: write ${BELIEF_STATES.map((state) => `'${state}'`).join(", ")}`,
+    );
   }
-  if (believer === null) return null;
-  const { offsets, actor, word } = beliefs;
-  const rows = offsets.length - 1;
-  const believes = belief === "true";
-  const mask = new Uint8Array(rows).fill(believes ? 0 : 1);
-  const wanted = actorIri(context, believer);
-  const named = beliefs.actors.map((name) => actorIri(context, name) === wanted);
-  if (!named.includes(true)) return mask;
-  const decisive = believes ? TRUE : FALSE;
-  for (let row = 0; row < rows; row += 1) {
-    const end = offsets[row + 1] as number;
-    for (let index = offsets[row] as number; index < end; index += 1) {
-      if (named[actor[index] as number] !== true || word[index] !== decisive) continue;
-      mask[row] = believes ? 1 : 0;
-      break;
-    }
+  if (believer === null || BELIEF_STATES.every((state) => kept.includes(state))) return null;
+  const keeps = Uint8Array.from(ANCHOR_BELIEFS, (state) => (kept.includes(state) ? 1 : 0));
+  const believed = believedBy(beliefs, believer, context);
+  const mask = new Uint8Array(believed.length);
+  for (let row = 0; row < believed.length; row += 1) {
+    mask[row] = keeps[believed[row] as number] as number;
   }
   return mask;
 }
@@ -108,8 +102,8 @@ const believedCache = new WeakMap<
  * The believer's belief in every MatchClaim, per row its number in
  * `ANCHOR_BELIEFS`: `undecided` where the believer states none, the most
  * critical where the believer states several (two actors standing for the
- * believer's IRI); actors compare as `beliefMask` compares them
- * (`actorIri` under `context`). The same array for the same beliefs,
+ * believer's IRI); actors compare as their IRIs under `context`
+ * (`actorIri`), as everywhere the editor compares actors. The same array for the same beliefs,
  * believer and context, made again only when one of them changes.
  */
 export function believedBy(

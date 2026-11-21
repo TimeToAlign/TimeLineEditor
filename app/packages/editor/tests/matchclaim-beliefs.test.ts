@@ -1,7 +1,12 @@
-/** Provenance on demand, the user's belief and the unsaved table in the Matchstamp tab; derived in `README.md` ("MatchClaims and the Matchstamp tab", items 10 to 12). */
+/** Events and provenance on demand, the user's belief and the unsaved table in the Matchstamp tab; derived in `README.md` ("MatchClaims and the Matchstamp tab", items 5a, 10 to 12). */
 
 import { liveStore } from "@timetoalign/tilie-arranger";
-import type { ClaimProvenance, MatchClaimTable, StatedBelief } from "@timetoalign/tilie-client";
+import type {
+  ClaimEvents,
+  ClaimProvenance,
+  MatchClaimTable,
+  StatedBelief,
+} from "@timetoalign/tilie-client";
 import { ServerError } from "@timetoalign/tilie-client";
 import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
 import {
@@ -47,6 +52,50 @@ const PROVENANCE: Readonly<Record<string, ClaimProvenance["provenance"]>> = {
   },
 };
 
+/** One side of a MatchClaim's events, as the server answers them. */
+function sides(
+  id: string,
+  a: Partial<ClaimEvents>,
+  b: Partial<ClaimEvents>,
+  certainty: number | null,
+): ClaimEvents {
+  return {
+    id,
+    timeline_a_id: "clt_1",
+    event_a_id: null,
+    event_a_name: null,
+    event_a_projection: null,
+    timeline_b_id: "dpt_1",
+    event_b_id: null,
+    event_b_name: null,
+    event_b_projection: null,
+    certainty,
+    is_synchronous: true,
+    ...a,
+    ...b,
+  };
+}
+
+/** The events the stubbed server holds, by MatchClaim. */
+const EVENTS: Readonly<Record<string, ClaimEvents>> = {
+  claim_1: sides(
+    "claim_1",
+    {
+      event_a_id: "note_1",
+      event_a_name: "C4",
+      event_a_projection: { projection_of: { timeline_id: "clt_2", event_id: "note_9" } },
+    },
+    { event_b_id: "onset_1" },
+    0.75,
+  ),
+  claim_2: sides(
+    "claim_2",
+    { event_a_id: "note_1", event_a_name: "C4", event_a_projection: { projection_of: null } },
+    { timeline_b_id: "cpt_1" },
+    null,
+  ),
+};
+
 /** The table the server answers after the user's `false` in `claim_2`. */
 const believedTable = () => matchTable([[], [[ME, "false"]], ...BELIEFS_BY_ROW.slice(2)]);
 
@@ -62,6 +111,7 @@ afterEach(() => {
 });
 
 interface Calls {
+  readonly events: [string, Blob, Blob | null, string[]][];
   readonly provenance: [string, Blob, string[]][];
   readonly beliefs: [string, Blob, StatedBelief][];
   readonly tables: [string, Blob][];
@@ -72,10 +122,11 @@ function serving(
   options: {
     provenance?: (claims: readonly string[]) => Promise<readonly ClaimProvenance[]>;
     believe?: () => Promise<Blob>;
+    events?: (claims: readonly string[]) => Promise<readonly ClaimEvents[]>;
     table?: MatchClaimTable;
   } = {},
 ) {
-  const calls: Calls = { provenance: [], beliefs: [], tables: [] };
+  const calls: Calls = { events: [], provenance: [], beliefs: [], tables: [] };
   const server: MatchClaimServer = {
     matchClaims: async (manifest, file) => {
       calls.tables.push([manifest, file]);
@@ -90,8 +141,13 @@ function serving(
       calls.beliefs.push([manifest, file, belief]);
       return options.believe === undefined ? ANSWERED : options.believe();
     },
-    matchClaimEvents: async () => {
-      throw new Error("beliefs ask no events");
+    matchClaimEvents: async (manifest, file, projections, claims) => {
+      calls.events.push([manifest, file, projections, [...claims]]);
+      if (options.events !== undefined) return options.events(claims);
+      return claims.flatMap((id) => {
+        const found = EVENTS[id];
+        return found === undefined ? [] : [found];
+      });
     },
   };
   return { server, calls };
@@ -160,7 +216,30 @@ function claimItem(id: string): Element {
 const text = (element: Element | null | undefined) =>
   element?.textContent?.replace(/\s+/g, " ").trim() ?? null;
 
+/** Open the provenance of MatchClaim `id` behind its Provenance button, unless it is open. */
+function openProvenance(id: string): void {
+  const toggle = claimItem(id).querySelector<HTMLButtonElement>(
+    `button[aria-label='Provenance of ${id}']`,
+  );
+  if (toggle === null) throw new Error(`no Provenance button for ${id}`);
+  if (toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+  flushSync();
+}
+
+/** Expand MatchClaim `id` by its disclosure button. */
+function expand(id: string): void {
+  claimItem(id).querySelector<HTMLButtonElement>("button[aria-expanded]")?.click();
+  flushSync();
+}
+
+/** The rows of MatchClaim `id`'s events, each its heading and its text. */
+function eventRows(id: string): string[][] {
+  const terms = [...claimItem(id).querySelectorAll("[data-testid=matchclaim-events] dt")];
+  return terms.map((term) => [text(term) ?? "", text(term.nextElementSibling) ?? ""]);
+}
+
 function paradata(id: string): string[][] {
+  openProvenance(id);
   const terms = [...claimItem(id).querySelectorAll(".paradata dt")];
   return terms.map((term) => [text(term) ?? "", text(term.nextElementSibling) ?? ""]);
 }
@@ -219,6 +298,7 @@ describe("provenance on demand", () => {
       ["date", "2026-11-20"],
     ]);
     expect(paradata("claim_2")).toEqual([]);
+    expect(claimItem("claim_1").querySelectorAll(".paradata").length).toBe(1);
     expect(text(claimItem("claim_2").querySelector(".no-provenance"))).toBe(
       "No provenance entry: the table states none for it.",
     );
@@ -273,6 +353,64 @@ describe("provenance on demand", () => {
     expect(document.querySelectorAll(".paradata, .no-provenance").length).toBe(0);
     const statuses = [...document.querySelectorAll("[role=status]")].map((item) => text(item));
     expect(statuses).not.toContain("Reading the provenance…");
+  });
+});
+
+describe("events on demand", () => {
+  it("asks once a MatchClaim is expanded, for every MatchClaim held, and shows both sides", async () => {
+    const store = storeOf(tableManifest());
+    let answer: (read: readonly ClaimEvents[]) => void = () => undefined;
+    const { server, calls } = serving({
+      events: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    });
+    show(store, potential(shownOf(matchTable()), "clt_1", q(0)), tablesOf(server));
+    await settled();
+    expect(calls.events).toEqual([]);
+
+    expand("claim_1");
+    expect(calls.events).toEqual([
+      [saveManifest(tableManifest()), PICKED, null, ["claim_1", "claim_2"]],
+    ]);
+    expect(text(claimItem("claim_1").querySelector("[role=status]"))).toBe("Reading the events…");
+    answer([EVENTS.claim_1, EVENTS.claim_2].filter((item) => item !== undefined));
+    await settled();
+    expect(text(claimItem("claim_1").querySelector("[role=status]"))).toBe("");
+    expect(eventRows("claim_1")).toEqual([
+      ["clt_1", "note_1 “C4” · a Projection of note_9 on clt_2"],
+      ["dpt_1", "onset_1"],
+      ["certainty", "0.75"],
+    ]);
+    expect(
+      [...claimItem("claim_1").querySelectorAll("[data-testid=matchclaim-events] dt")].map((term) =>
+        term.getAttribute("title"),
+      ),
+    ).toEqual(["clt_1", "dpt_1", null]);
+
+    expand("claim_2");
+    expect(calls.events.length).toBe(1);
+    expect(eventRows("claim_2")).toEqual([
+      ["clt_1", "note_1 “C4” · a Projection of no event"],
+      ["cpt_1", "no event"],
+    ]);
+  });
+
+  it("says why the events were not read", async () => {
+    const store = storeOf(tableManifest());
+    const { server } = serving({
+      events: async () => {
+        throw new ServerError("status", 500, "500 Internal Server Error");
+      },
+    });
+    show(store, potential(shownOf(matchTable()), "clt_1", q(0)), tablesOf(server));
+    expand("claim_1");
+    await settled();
+    expect(text(claimItem("claim_1").querySelector("[role=status] .problem"))).toBe(
+      "The MatchClaims' events could not be read: 500 Internal Server Error",
+    );
+    expect(eventRows("claim_1")).toEqual([]);
   });
 });
 

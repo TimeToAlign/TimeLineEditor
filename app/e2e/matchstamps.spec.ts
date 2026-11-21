@@ -94,7 +94,10 @@ test("a manifest imported with its MatchClaim table loads it through the server"
     .poll(() =>
       page.evaluate((id) => window.__tilie.store().view.settings.matchClaimFilters[id], block),
     )
-    .toEqual({ timelines: ["clt_1", "clt_2", "dpt_1"], belief: "not_false" });
+    .toEqual({
+      timelines: ["clt_1", "clt_2", "dpt_1"],
+      beliefs: ["true", "undecided", "unlikely"],
+    });
   expect(await page.evaluate(() => window.__tilie.store().journal.length)).toBe(journal);
 });
 

@@ -2642,27 +2642,32 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    "minimal"]`; a key that is no block ID, `"A"` → `invalid_block_id` at
    `["settings", "manifests", "A"]`.
 8. **Which MatchClaims a block shows** (`matchClaimFilters`, by block ID,
-   each entry `{timelines, belief}` whole; the MatchClaim table itself is
+   each entry `{timelines, beliefs}` whole; the MatchClaim table itself is
    never a setting). A new workspace holds `{}`, and
    `matchClaimFilterOf(settings, A)` for a block without an entry is
-   `DEFAULT_MATCH_CLAIM_FILTER`, `{timelines: null, belief: "not_false"}`
-   (every timeline; everything the user does not believe false).
-   `configure({matchClaimFilters: {[A]: {timelines: ["take_1", "score"],
-   belief: "true"}}})` returns `null`, journals nothing, and
-   `matchClaimFilterOf` then gives `{timelines: ["score", "take_1"],
-   belief: "true"}` for `A` (the timelines held by code point) and still
-   the default for `B`; a second `configure` naming only `B` keeps `A`'s
-   entry as it was, and one giving `A`'s timelines as `["score",
-   "take_1"]` keeps the settings the same object (no change). Refused,
-   leaving the settings as they were: `belief` `"maybe"` →
-   `invalid_value` `expected "not_false" or "true"` at `["settings",
-   "matchClaimFilters", A, "belief"]`; `timelines` `"score"` →
-   `invalid_value` `expected null or a list of timeline IDs` at
-   `[…, A, "timelines"]`; `timelines` `["score", "score"]` →
-   `invalid_value` `'score' is listed twice` at `[…, A, "timelines", 1]`;
-   an entry without `belief` → `missing_member` at `[…, A, "belief"]`; a
-   key `"A"` → `invalid_block_id` at `["settings", "matchClaimFilters",
-   "A"]`.
+   `DEFAULT_MATCH_CLAIM_FILTER`, `{timelines: null, beliefs: ["true",
+   "undecided", "unlikely"]}` (every timeline; every belief state but
+   false). `configure({matchClaimFilters: {[A]: {timelines: ["take_1",
+   "score"], beliefs: ["false", "true"]}}})` returns `null`, journals
+   nothing, and `matchClaimFilterOf` then gives `{timelines: ["score",
+   "take_1"], beliefs: ["true", "false"]}` for `A` (the timelines held by
+   code point, the states in the order of `BELIEF_STATES`) and still the
+   default for `B`; a second `configure` naming only `B` keeps `A`'s entry
+   as it was, and one giving `A`'s timelines as `["score", "take_1"]` and
+   its states as `["true", "false"]` keeps the settings the same object
+   (no change); `beliefs` `[]` is accepted (no state kept). Refused,
+   leaving the settings as they were: `beliefs` `["maybe"]` →
+   `invalid_value` `expected a belief state ("true", "undecided",
+   "unlikely", "false")` at `["settings", "matchClaimFilters", A,
+   "beliefs", 0]`; `beliefs` `"true"` → `invalid_value` `expected a list of
+   belief states` at `[…, A, "beliefs"]`; `beliefs` `["true", "true"]` →
+   `invalid_value` `'true' is listed twice` at `[…, A, "beliefs", 1]`;
+   `timelines` `"score"` → `invalid_value` `expected null or a list of
+   timeline IDs` at `[…, A, "timelines"]`; `timelines` `["score",
+   "score"]` → `invalid_value` `'score' is listed twice` at `[…, A,
+   "timelines", 1]`; an entry without `beliefs` → `missing_member` at
+   `[…, A, "beliefs"]`; a key `"A"` → `invalid_block_id` at `["settings",
+   "matchClaimFilters", "A"]`.
 
 ## Editor sessions (`sessions.test.ts`)
 
@@ -3311,14 +3316,14 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `graphical` set to one rule, the grid configured to `{size: 16,
    snap: false}`, the granularity's denominator to 5 and the manifest file
    of block `A` to `{minimal: false, styling: false, serialization:
-   "json"}`, its MatchClaim filter to `{timelines: ["melody"], belief:
-   "true"}`) is written; the text read back deep-equals the workspace, and writing it
+   "json"}`, its MatchClaim filter to `{timelines: ["melody"], beliefs:
+   ["true"]}`) is written; the text read back deep-equals the workspace, and writing it
    again gives the same bytes. Its members are exactly `blocks`,
    `graphical`, `journal`, `meta`, `name`, `sessions`, `settings`;
    `settings`' members are exactly `blockDefaults`, `granularity`, `grid`,
    `manifests`, `matchClaimFilters`, the granularity exactly `{denominator: 5, decimals: 3}`,
    `manifests` exactly `{[A]: {minimal: false, serialization: "json",
-   styling: false}}`, `matchClaimFilters` exactly `{[A]: {belief: "true",
+   styling: false}}`, `matchClaimFilters` exactly `{[A]: {beliefs: ["true"],
    timelines: ["melody"]}}`;
    `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
    `untitled`; `sessions` is `{}`.
@@ -3370,8 +3375,10 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    **The MatchClaim filters likewise**: the text with
    `settings.matchClaimFilters` removed (a file written before the editor
    kept them), or replaced by `[]`, reads with `matchClaimFilters` exactly
-   `{}`; `{[A]: <A's entry>, [B]: {timelines: null, belief: "maybe"}}`
-   reads with exactly `{[A]: <A's entry>}`.
+   `{}`; `{[A]: <A's entry>, [B]: {timelines: null, beliefs: ["maybe"]}}`
+   reads with exactly `{[A]: <A's entry>}`, and so does an entry written
+   in the filter's former shape, `{timelines: null, belief: "not_false"}`
+   (left out, so the block takes the default filter).
    The reader is lenient on these three members only: a `grid.size` of 0 in
    the same file is still `non_positive_number` at `["settings", "grid",
    "size"]`.
@@ -4306,26 +4313,32 @@ compared for equality on an exact axis.
     maps and a breadth-first search gives the coordinates, anchors with
     their rows, and connected sets, which the index must equal.
 
-**The belief filter** (`beliefs.ts`, timetoalign's `belief_mask`):
-`beliefMask(beliefs, believer, belief, context)` is `null` (nothing filtered)
-without a believer, else 1 for every row the believer does not believe
-`"false"` (`"not_false"`, the default) or, for `"true"`, only for the rows
-the believer believes `"true"`; a belief's word is its number in
-TimeToShare's `BELIEFS` (`true` 0, `false` 1, `unlikely` 2), which core
-re-exports. The case is the beliefs of TimeToShare's table fixture
+**The belief filter** (`beliefs.ts`, timetoalign's `belief_mask`): four
+states, `BELIEF_STATES` `["true", "undecided", "unlikely", "false"]`, the
+state of a row for a believer being the believer's belief in it, the most
+critical of several (`believedBy` below), `undecided` where the believer
+holds none. `beliefMask(beliefs, believer, kept, context)` is 1 for every
+row whose state is one of `kept`, which by default is `DEFAULT_BELIEFS`,
+every state but `false`; it is `null` (nothing filtered) without a
+believer and for a `kept` holding all four states; a belief's word is its
+number in TimeToShare's `BELIEFS` (`true` 0, `false` 1, `unlikely` 2),
+which core re-exports. The case is the beliefs of TimeToShare's table fixture
 `tables/0.2.0` as the client decodes them from the server's recorded
 answer (the client's tests README pins those arrays): 15 rows, actors
 `[B, A]` (B `…0001-5109-3700`, A `…0002-1825-0097`), offsets `[0, 1, 1,
 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6]`, actor numbers `[1, 1, 1, 1, 0,
 0]`, words `[0, 2, 0, 1, 0, 0]`: A believes row 0 true, row 5 unlikely,
-row 10 true, row 12 false; B rows 12 and 13 true. So, by the rule and as
-`expected.yaml` lists them: A not false every row but 12; A true rows 0
-and 10; B true rows 12 and 13; B not false every row; an actor holding no
-belief not false every row, true none. Any other filter word throws the
-`RangeError` "'false' is no belief filter: write 'not_false' or 'true'"
-(for `false`), as `believed_rows` refuses it. `BELIEF_FILTERS` is
-`["not_false", "true"]`, the words the workspace's MatchClaim filter
-reads too.
+row 10 true, row 12 false; B rows 12 and 13 true. So, by the rule: A by
+default every row but 12; A `["true"]` rows 0 and 10; A `["undecided"]`
+every row but 0, 5, 10 and 12; A `["unlikely"]` row 5; A `["false"]` row
+12; A `["false", "true"]` (any order) rows 0, 10 and 12; A `[]` no row;
+A with all four states `null`; B `["true"]` rows 12 and 13; B by default
+every row; an actor holding no belief every row by default, none for
+`["true"]`. A word that is no state throws the `RangeError` "'maybe' is no
+belief state: write 'true', 'undecided', 'unlikely', 'false'" (for
+`maybe`), as timetoalign's `check_belief_filter` refuses it.
+`DEFAULT_BELIEFS` is `["true", "undecided", "unlikely"]`, the workspace's
+MatchClaim filter's default.
 
 Actors compare as the IRIs they stand for under the manifest's `@context`
 (`actorIri(context, actor)`: TimeToShare's `expandIri`, else the actor as
@@ -4339,10 +4352,11 @@ text as written), so A holds no belief: not false every row, true none.
 `actorIri` itself: under that context the compact actor is
 `https://orcid.org/0000-0002-1825-0097`; an absolute IRI, a `tag:` IRI and
 a text without a colon (`someone`) are themselves. A believer named by
-two actors of one IRI has every belief counted, as in the library's mask:
-two rows, row 0 believed false by A compact and true by A absolute, row 1
-without beliefs, give under the context row 1 alone for "not false" (a
-belief false of the believer holds the row out) and row 0 alone for "true".
+two actors of one IRI has every belief counted and the row takes the most
+critical: two rows, row 0 believed false by A compact and true by A
+absolute, row 1 without beliefs, give under the context row 1 alone by
+default, no row for `["true"]` and row 0 alone for `["false"]` (row 0's
+state is `false`).
 
 **The colour of an anchor** (`beliefs.ts`): an alignment anchor of a shown
 MatchStamp is drawn by the editor user's belief in the MatchClaims stating
@@ -4398,8 +4412,8 @@ An alignment anchor is stated when the index holds an anchor of its two
 coordinates. The current potential MatchStamps are those holding any of
 its coordinates. The differences: anchors gone (named, not stated),
 anchors new (in the current MatchStamps, not named), claims missing
-(recorded, not in the table), claims believed false (recorded, in the
-table, masked), claims elsewhere (recorded, passing the mask, behind none
+(recorded, not in the table), claims filtered out (recorded, in the
+table, masked: the belief filter does not keep their state), claims elsewhere (recorded, passing the mask, behind none
 of the current MatchStamps), claims new (behind the current MatchStamps,
 not recorded). Out of date exactly when one of the six is not empty. The
 Update result is the current potential MatchStamp holding the stated
@@ -4420,7 +4434,7 @@ read from. On the case's index:
 2. (`clt_1` 4, `dpt_1` 176400, name) and (`clt_1` 5, `dpt_1` 220500),
    claims `claim_7`, `claim_10`, `claim_99`: stated 7 and none, by rows
    `[6]` and `[]`; anchors
-   gone [1], new [8]; `claim_99` missing, `claim_10` believed false,
+   gone [1], new [8]; `claim_99` missing, `claim_10` filtered out,
    `claim_8` new; Update {7, 17, 21}, anchors 7, 8, claims `claim_7`,
    `claim_8`, the name on 7.
 3. A MatchStamp now split in two: (`clt_1` 4, `dpt_1` 176400), (`clt_1` 3,
@@ -4433,7 +4447,7 @@ read from. On the case's index:
 4. (`clt_1` 1/2, `dpt_1` 22050) and (`clt_1` 4, `dpt_1` 176400), no name:
    Update the larger, {7, 17, 21}.
 5. (`clt_1` 5, `dpt_1` 220500, name), claim `claim_10`: nothing stated,
-   no current MatchStamp, gone [0], `claim_10` believed false, no Update.
+   no current MatchStamp, gone [0], `claim_10` filtered out, no Update.
 6. (`clt_1` 1/2, `dpt_1` 44100): both coordinates exist, the anchor does
    not; the current MatchStamps are {2, 12} and {3, 13}: new [2, 3],
    claims `claim_1`, `claim_2` new, no Update.

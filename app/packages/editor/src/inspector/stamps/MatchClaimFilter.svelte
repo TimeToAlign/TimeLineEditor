@@ -4,16 +4,19 @@
  * table (Load MatchClaims…, read through the server; once a belief changed
  * it, Save MatchClaims… saves the new file, never the workspace; Load
  * MatchClaims… over a changed table first asks to save it), its timelines
- * and the belief filter, stored per block in the workspace's settings.
+ * and the belief filter, one toggle per belief state (true, undecided,
+ * unlikely, false; the Timestamp tab's toggles), stored per block in the
+ * workspace's settings.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
-import type { BeliefFilter, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
-import { matchClaimFilterOf } from "@timetoalign/tilie-core";
+import type { BeliefState, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
+import { BELIEF_STATES, matchClaimFilterOf } from "@timetoalign/tilie-core";
 import ConfirmDialog from "../../ConfirmDialog.svelte";
 import { MATCH_CLAIM_TABLE, openFiles } from "../../files.ts";
 import type { MatchClaimTables } from "../../matchClaims.svelte.ts";
 import { MATCHES_NEED_A_SERVER, saveFailure, unsavedQuestion } from "../../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../../messages.svelte.ts";
+import DisplayToggles from "./DisplayToggles.svelte";
 
 interface Props {
   /** The open workspace's store, read as Svelte state. */
@@ -32,11 +35,14 @@ const uid = $props.id();
 const inform = informOf();
 const warn = warnOf();
 
-/** The belief filter's choices. */
-const BELIEF_CHOICES: readonly { readonly value: BeliefFilter; readonly label: string }[] = [
-  { value: "not_false", label: "Everything I do not believe false" },
-  { value: "true", label: "Only what I believe true" },
-];
+/** The belief filter's toggles, one per state, in the order of `BELIEF_STATES`. */
+const LABELS: Readonly<Record<BeliefState, string>> = {
+  true: "True",
+  undecided: "Undecided",
+  unlikely: "Unlikely",
+  false: "False",
+};
+const BELIEF_TOGGLES = BELIEF_STATES.map((word) => ({ word, label: LABELS[word] }));
 
 const loaded = $derived(blockId === null ? null : tables.of(blockId));
 const filter = $derived(blockId === null ? null : matchClaimFilterOf(live.view.settings, blockId));
@@ -51,7 +57,10 @@ function timelinesOf(manifest: Manifest): TimelineManifest[] {
 const timelines = $derived(manifest === undefined ? [] : timelinesOf(manifest));
 
 /** Store `change` in the block's filter; a refusal is shown in the message bar. */
-function configure(change: { timelines?: readonly string[] | null; belief?: BeliefFilter }): void {
+function configure(change: {
+  timelines?: readonly string[] | null;
+  beliefs?: readonly BeliefState[];
+}): void {
   if (blockId === null || filter === null) return;
   const next = { ...filter, ...change };
   const refusal = live.store.configure({ matchClaimFilters: { [blockId]: next } });
@@ -71,6 +80,14 @@ function toggleTimeline(timeline: string): void {
     ? current.filter((item) => item !== timeline)
     : [...current, timeline];
   configure({ timelines: all.every((item) => next.includes(item)) ? null : [...next].sort() });
+}
+
+/** Keep or leave out the MatchClaims whose state for the user is `state`; the states held in their order. */
+function toggleBelief(state: BeliefState): void {
+  const current = filter?.beliefs ?? [];
+  configure({
+    beliefs: BELIEF_STATES.filter((item) => (item === state) !== current.includes(item)),
+  });
 }
 
 let loading = $state(false);
@@ -176,21 +193,16 @@ async function loadTable(): Promise<void> {
         </label>
       {/each}
     </fieldset>
-    <fieldset>
-      <legend>Beliefs</legend>
-      {#each BELIEF_CHOICES as choice (choice.value)}
-        <label class="choice">
-          <input
-            type="radio"
-            name="{uid}-belief"
-            value={choice.value}
-            checked={filter.belief === choice.value}
-            onchange={() => configure({ belief: choice.value })}
-          />
-          {choice.label}
-        </label>
-      {/each}
-    </fieldset>
+    <div class="beliefs">
+      <span class="legend" id="{uid}-beliefs">Beliefs</span>
+      <DisplayToggles
+        words={BELIEF_TOGGLES}
+        display={filter.beliefs}
+        disabled={false}
+        labelledby="{uid}-beliefs"
+        ontoggle={toggleBelief}
+      />
+    </div>
   {/if}
   <ConfirmDialog bind:this={confirm} />
 </section>
@@ -224,9 +236,17 @@ async function loadTable(): Promise<void> {
     border: none;
   }
 
-  legend {
+  legend,
+  .legend {
     padding: 0;
     color: #595959;
+  }
+
+  .beliefs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.2rem 0 0;
   }
 
   .choice {
