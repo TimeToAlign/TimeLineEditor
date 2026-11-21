@@ -46,7 +46,7 @@
  *   moves the pin there (`tempo` `2.0`), nothing journalled; while it is
  *   unnamed its Display toggles and Delete are disabled. The name `Four`
  *   then adds `{name: "Four", coordinate: [4, 1]}` into `melody`, the
- *   toggles and Delete are enabled (Wedge, Name, Cross-section pressed),
+ *   toggles and Delete are enabled (Wedge, Name, Line pressed),
  *   and the named timestamp is drawn as an element, no longer as marks.
  * - The settings line (the drawer, closed on load, opened): denominator 4
  *   makes 2.46 quarters `2 1/2 ♩` (divisors 1, 2 and 4 miss by 0.46,
@@ -217,7 +217,7 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
   const display = shown.getByRole("group", { name: "Display", exact: true });
   const toggle = (label: string) => display.getByRole("button", { name: label, exact: true });
   const remove = shown.getByRole("button", { name: "Delete", exact: true });
-  await expect(toggle("Cross-section")).toBeDisabled();
+  await expect(toggle("Line")).toBeDisabled();
   await expect(remove).toBeDisabled();
   await own.fill("4");
   await own.press("Enter");
@@ -240,13 +240,29 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
     ["Name", "true"],
     ["ID", "false"],
     ["Coordinate", "false"],
-    ["Cross-section", "true"],
+    ["Line", "true"],
   ] as const) {
     await expect(toggle(label)).toBeEnabled();
     await expect(toggle(label)).toHaveAttribute("aria-pressed", pressed);
   }
   await expect(marks(page, "pin")).toHaveCount(0);
   await expect(part(page, SMALL.map, { id: TIMESTAMP.id })).toHaveCount(1);
+
+  // The inspector's top stays put: only the panels scroll, the name header sticking under the tabs.
+  const header = shown.getByTestId("timestamp-name");
+  await expect(header).toHaveCSS("position", "sticky");
+  await expect(header).toHaveCSS("top", "0px");
+  await expect(header.getByText("Name", { exact: true })).toHaveCSS("font-weight", "700");
+  const scroller = shown.locator("xpath=..");
+  await expect(scroller).toHaveClass(/\bpanels\b/);
+  expect(
+    await scroller.evaluate((element) =>
+      element.contains(document.querySelector('[role="tablist"]')),
+    ),
+  ).toBe(false);
+  await scroller.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+  await expect(tabs(page)).toBeInViewport();
+  await expect(name).toBeInViewport();
 });
 
 test("Coordinate granularity sets the granularity outside the journal", async ({ page }) => {

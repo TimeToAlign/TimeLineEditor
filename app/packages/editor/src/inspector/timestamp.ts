@@ -16,6 +16,7 @@ import type {
   AxisValue,
   Command,
   Expressed,
+  ExpressedNumber,
   Json,
   NamedTimestamp,
   Pin,
@@ -76,6 +77,8 @@ export interface ValueRow {
 
 /** The rows of one timeline the timestamp crosses: its coordinate's, then its maps'. */
 export interface TimelineRows {
+  /** Unique among the groups of one timestamp or MatchStamp. */
+  readonly key: string;
   readonly timeline: string;
   /** The timeline's name, else its ID. */
   readonly name: string;
@@ -148,12 +151,34 @@ export function timelineRows(pin: Pin): TimelineRows[] {
   for (const item of timestampRows(pin)) {
     const last = groups.at(-1);
     if (item.row.map === null || last === undefined || last.timeline !== item.timeline) {
-      groups.push({ timeline: item.timeline, name: item.label, rows: rowsOf(item) });
+      groups.push({
+        key: item.timeline,
+        timeline: item.timeline,
+        name: item.label,
+        rows: rowsOf(item),
+      });
     } else {
       groups[groups.length - 1] = { ...last, rows: [...last.rows, ...rowsOf(item)] };
     }
   }
   return groups;
+}
+
+/**
+ * The group of one coordinate on its own timeline, as a MatchStamp's
+ * timestamp is shown: one row "coordinate" (`value` a number in its unit and
+ * number type, else a text), copied as a timestamp's is, never edited.
+ * `key` is unique among the groups shown together, and so are the row keys
+ * derived from it.
+ */
+export function coordinateGroup(
+  key: string,
+  timeline: string,
+  name: string,
+  value: ExpressedNumber | string,
+): TimelineRows {
+  const row: Row = { timeline, map: null };
+  return { key, timeline, name, rows: valueRows(key, row, COORDINATE, value, false) };
 }
 
 /** `value` with every object member whose value is null left out, at any depth; array items stay. */
@@ -283,7 +308,7 @@ export const DISPLAY_LABELS: { readonly [word in TimestampDisplay]: string } = {
   name: "Name",
   id: "ID",
   coordinate: "Coordinate",
-  cross_section: "Cross-section",
+  cross_section: "Line",
 };
 
 /** The words of `display`, each with its toggle's label, in the canonical order. */

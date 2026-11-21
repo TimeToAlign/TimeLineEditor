@@ -9,7 +9,9 @@
  * keeping them while the inspector is not shown passes in, with the tab
  * chosen, the pinned timestamp and the MatchStamp shown. The Metadata and
  * Matchstamp tabs take the user from the editor's context, the Metadata
- * tab the lookup too.
+ * tab the lookup too. The top stays put: the editing bar and the tab list
+ * never scroll, only the panels do, in their own scroll container, where a
+ * stamp tab keeps its name header at the top.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
@@ -163,47 +165,50 @@ const hinted = $derived(block === null && !manifest.dirty);
     {/each}
   </div>
 
-  {#each TABS as item (item)}
-    <div
-      class="panel"
-      role="tabpanel"
-      id="{uid}-panel-{item}"
-      aria-labelledby="{uid}-tab-{item}"
-      hidden={tab !== item}
-    >
-      {#if tab !== item}
-        <!-- A hidden panel renders nothing. -->
-      {:else if item === "level"}
-        <!-- A console field: the level's word, then the name of what it shows. -->
-        <p class="title-line" data-testid="level-title">
-          <span class="word">{title.word}</span>
-          <span class="name">{title.name}</span>
-        </p>
-      {:else if item === "journal"}
-        <JournalPanel rows={journalRows(live, view)} />
-      {:else if item === "timestamp"}
-        <TimestampPanel {live} pin={timestamp} onpin={repinned} />
-      {:else if item === "matchstamp"}
-        <MatchstampPanel {live} {block} {match} {tables} {indexesOf} onmatch={rematched} />
-      {:else if item === "metadata"}
-        <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
-      {:else if item === "properties"}
-        <PropertiesPanel
-          {view}
-          store={live.store}
-          {block}
-          {subjects}
-          editing={innermost ?? null}
-          {placement}
-          {drafts}
-        />
-      {:else if hinted}
-        <p class="hint">Select a block to inspect its manifest.</p>
-      {:else}
-        <ManifestTextPanel {manifest} {block} {view} store={live.store} />
-      {/if}
-    </div>
-  {/each}
+  <!-- The panels scroll here, below the tab list. -->
+  <div class="panels">
+    {#each TABS as item (item)}
+      <div
+        class="panel"
+        role="tabpanel"
+        id="{uid}-panel-{item}"
+        aria-labelledby="{uid}-tab-{item}"
+        hidden={tab !== item}
+      >
+        {#if tab !== item}
+          <!-- A hidden panel renders nothing. -->
+        {:else if item === "level"}
+          <!-- A console field: the level's word, then the name of what it shows. -->
+          <p class="title-line" data-testid="level-title">
+            <span class="word">{title.word}</span>
+            <span class="name">{title.name}</span>
+          </p>
+        {:else if item === "journal"}
+          <JournalPanel rows={journalRows(live, view)} />
+        {:else if item === "timestamp"}
+          <TimestampPanel {live} pin={timestamp} onpin={repinned} />
+        {:else if item === "matchstamp"}
+          <MatchstampPanel {live} {block} {match} {tables} {indexesOf} onmatch={rematched} />
+        {:else if item === "metadata"}
+          <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
+        {:else if item === "properties"}
+          <PropertiesPanel
+            {view}
+            store={live.store}
+            {block}
+            {subjects}
+            editing={innermost ?? null}
+            {placement}
+            {drafts}
+          />
+        {:else if hinted}
+          <p class="hint">Select a block to inspect its manifest.</p>
+        {:else}
+          <ManifestTextPanel {manifest} {block} {view} store={live.store} />
+        {/if}
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>
@@ -258,19 +263,36 @@ const hinted = $derived(block === null && !manifest.dirty);
     color: #595959;
   }
 
-  /* Body and shown panel fill the drawer's height, so a panel can keep a line at its bottom. */
+  /*
+   * Body and shown panel fill the drawer's height, so a panel can keep a
+   * line at its bottom; the body never grows past it, so that only the
+   * panels scroll and the tab list above them stays.
+   */
   .inspector-body {
     display: flex;
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.5rem;
-    padding: 0 0.75rem 0.75rem;
+    min-height: 0;
+    padding: 0 0 0.75rem;
     font-size: 0.85rem;
   }
 
   .tabs {
     display: flex;
+    flex: none;
+    margin: 0 0.75rem;
     border-bottom: 1px solid #b0b0b0;
+  }
+
+  /* The scroll container of the panels, padded inside so that a focus ring is never cut. */
+  .panels {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 0.75rem;
+    overflow: auto;
   }
 
   .tabs button {

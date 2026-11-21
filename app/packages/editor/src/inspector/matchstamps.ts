@@ -43,14 +43,11 @@ import {
   coordinateDict,
   coordinateOf,
   coordinateValue,
-  copyValue,
   findTimeline,
   matchClaimFilterOf,
   matchStampAnchors,
   matchStampMembers,
   matchStampSpec,
-  prettyText,
-  prettyUnit,
   statedBy,
 } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
@@ -64,6 +61,8 @@ import type { BeliefLine } from "./metadata/frame.ts";
 import { whoOf } from "./metadata/frame.ts";
 import type { Result } from "./problems.ts";
 import type { HeldMatch } from "./tabs.ts";
+import type { TimelineRows } from "./timestamp.ts";
+import { coordinateGroup } from "./timestamp.ts";
 
 // --- The indexes -------------------------------------------------------------
 
@@ -430,49 +429,33 @@ export function matchStampsOf(manifest: Manifest, timestamp: string): readonly N
 
 // --- Coordinates -------------------------------------------------------------
 
-/** A timestamp of a MatchStamp as the Coordinates area lists it. */
-export interface CoordinateRow {
-  /** Unique among the rows of one MatchStamp. */
-  readonly key: string;
-  readonly timeline: string;
-  /** The timeline's name, else its ID. */
-  readonly name: string;
-  /** The exact value (`copyValue`). */
-  readonly text: string;
-  /** The pretty unit; `null` where the timeline is no longer in the manifest. */
-  readonly unit: string | null;
-  /** The pretty text (`prettyText`), `null` where it is the exact text. */
-  readonly pretty: string | null;
-}
-
-/** The rows of `coordinates` of a MatchStamp of `manifest`, in the order given. */
-export function coordinateRows(
+/**
+ * The groups of `coordinates` of a MatchStamp of `manifest`, in the order
+ * given, as the Timestamp tab's Coordinates show a timestamp's
+ * (`coordinateGroup`): each its timeline's name, else its ID, and one row
+ * "coordinate", the exact value in the timeline's unit and number type (its
+ * text alone where the timeline is no longer in the manifest).
+ */
+export function stampRows(
   manifest: Manifest,
   coordinates: readonly StampCoordinate[],
-): CoordinateRow[] {
+): TimelineRows[] {
   return coordinates.map((coordinate, at) => {
-    const timeline = findTimeline(manifest, coordinate.timeline);
     const key = JSON.stringify([at, coordinate.timeline]);
+    const timeline = findTimeline(manifest, coordinate.timeline);
     if (timeline === undefined) {
-      return {
+      return coordinateGroup(
         key,
-        timeline: coordinate.timeline,
-        name: coordinate.timeline,
-        text: String(coordinate.value),
-        unit: null,
-        pretty: null,
-      };
+        coordinate.timeline,
+        coordinate.timeline,
+        String(coordinate.value),
+      );
     }
-    const text = copyValue(coordinate.value, timeline.number_type);
-    const pretty = prettyText(coordinate.value, timeline.number_type, timeline.unit);
-    return {
-      key,
-      timeline: timeline.id,
-      name: timeline.name ?? timeline.id,
-      text,
-      unit: prettyUnit(timeline.unit),
-      pretty: pretty === text ? null : pretty,
-    };
+    return coordinateGroup(key, timeline.id, timeline.name ?? timeline.id, {
+      unit: timeline.unit,
+      numberType: timeline.number_type,
+      value: coordinate.value,
+    });
   });
 }
 
@@ -564,8 +547,11 @@ export interface Difference {
 
 /** A coordinate as a difference names it: the timeline's name and the exact value. */
 function coordinateText(manifest: Manifest, coordinate: StampCoordinate): string {
-  const [row] = coordinateRows(manifest, [coordinate]);
-  return row === undefined ? coordinate.timeline : `${row.name} ${row.text}`;
+  const [group] = stampRows(manifest, [coordinate]);
+  const row = group?.rows[0];
+  return group === undefined || row === undefined
+    ? coordinate.timeline
+    : `${group.name} ${row.text}`;
 }
 
 /**

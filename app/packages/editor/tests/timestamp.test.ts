@@ -269,7 +269,10 @@ function hint(): string | null | undefined {
 /** The Properties area, or `null` without one. */
 const properties = () => panel().querySelector<HTMLElement>('[data-testid="timestamp-properties"]');
 
-const nameField = () => find<HTMLInputElement>('input[type="text"]', area("Properties"));
+/** The name header, or `null` without one. */
+const nameHeader = () => panel().querySelector<HTMLElement>('[data-testid="timestamp-name"]');
+
+const nameField = () => find<HTMLInputElement>('input[type="text"]', nameHeader() ?? panel());
 
 /** The display toggles as [label, pressed, disabled]. */
 function toggles(): unknown[] {
@@ -451,9 +454,10 @@ describe("pinning, in the drawer", () => {
     inspector.clickedAt(document.body);
     expect([selected(), inspector.shownPin()]).toEqual(["Journal", null]);
     click("Timestamp");
-    expect([hint(), groups(), properties(), areas()]).toEqual([
+    expect([hint(), groups(), nameHeader(), properties(), areas()]).toEqual([
       HINT,
       [],
+      null,
       null,
       ["Coordinates", "Coordinate granularity"],
     ]);
@@ -873,8 +877,30 @@ describe("the format switch", () => {
   });
 });
 
+describe("the inspector's top", () => {
+  it("keeps the editing bar and the tab list out of the panels' scroll container, the name header first", () => {
+    const store = mixed();
+    expect(store.open({ block: A })).toBeNull();
+    const inspector = drawer(store, true);
+    click("Timestamp");
+    inspector.pinTimestamp(unnamed(store));
+    const scroller = panel().parentElement;
+    const outside = (selector: string) => {
+      const found = document.querySelector(selector);
+      return found !== null && scroller?.contains(found) === false;
+    };
+    expect([
+      scroller?.classList.contains("panels"),
+      outside('[role="tablist"]'),
+      outside('[role="group"][aria-label="Editing"]'),
+      panel().querySelector("section")?.getAttribute("data-testid"),
+      nameHeader()?.querySelector("label")?.textContent,
+    ]).toEqual([true, true, true, "timestamp-name", "Name"]);
+  });
+});
+
 describe("properties", () => {
-  const ALL = ["Wedge", "Name", "ID", "Coordinate", "Cross-section"];
+  const ALL = ["Wedge", "Name", "ID", "Coordinate", "Line"];
   /** The toggles as `toggles` lists them, `pressed` the labels pressed. */
   const pressed = (on: readonly string[], disabled = false) =>
     ALL.map((label) => [label, String(on.includes(label)), disabled]);
@@ -898,7 +924,7 @@ describe("properties", () => {
       false,
       "Type a name to keep it",
       UNNAMED,
-      pressed(["Wedge", "Name", "Cross-section"], true),
+      pressed(["Wedge", "Name", "Line"], true),
       true,
       UNNAMED,
       true,
@@ -925,14 +951,7 @@ describe("properties", () => {
       deleteButton()?.disabled,
       inspector.shownPin()?.named?.id,
       properties()?.classList.contains("unnamed"),
-    ]).toEqual([
-      "Upbeat",
-      false,
-      pressed(["Wedge", "Name", "Cross-section"]),
-      false,
-      "timestamp_11",
-      false,
-    ]);
+    ]).toEqual(["Upbeat", false, pressed(["Wedge", "Name", "Line"]), false, "timestamp_11", false]);
   });
 
   it("renames a named timestamp, keeps a name and journals nothing for an unchanged one", () => {
@@ -966,7 +985,7 @@ describe("properties", () => {
       return toggles();
     };
     expect([shown(THEME), shown(CLIMAX), shown(SILENT)]).toEqual([
-      pressed(["Wedge", "Name", "Cross-section"]),
+      pressed(["Wedge", "Name", "Line"]),
       pressed(ALL),
       pressed([]),
     ]);
@@ -981,7 +1000,7 @@ describe("properties", () => {
     [THEME, "ID", ["wedge", "name", "id", "cross_section"]],
     [THEME, "Wedge", ["name", "cross_section"]],
     [SILENT, "Coordinate", ["coordinate"]],
-    [CLIMAX, "Cross-section", ["wedge", "name", "id", "coordinate"]],
+    [CLIMAX, "Line", ["wedge", "name", "id", "coordinate"]],
   ] as const)("toggles on %j the word %s: one set of its display", (address, label, display) => {
     const store = example();
     const inspector = drawer(store, true, T);

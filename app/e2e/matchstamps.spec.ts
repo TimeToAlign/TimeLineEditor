@@ -5,7 +5,8 @@
  * server's answer for exactly this manifest and table), the Matchstamp tab
  * showing the loaded table and its filter, a named MatchStamp shown when it
  * is selected and removed in one journal entry (the selection losing it,
- * the tab shown before it is shown again), and a manifest naming a table
+ * the tab shown before it is shown again; its coordinates disabled fields
+ * with their Copy buttons), and a manifest naming a table
  * that is not loaded saying so.
  */
 
@@ -125,12 +126,26 @@ test("a named MatchStamp is shown when selected and removed in one entry", async
     "aria-selected",
     "true",
   );
-  const properties = page.getByTestId("matchstamp-properties");
-  await expect(properties.getByRole("textbox", { name: "Name" })).toHaveValue("Downbeat");
-  await expect(properties.locator("li[data-claim='claim_1'] code")).toHaveText("claim_1");
+  await expect(
+    page.getByTestId("matchstamp-name").getByRole("textbox", { name: "Name" }),
+  ).toHaveValue("Downbeat");
+  const coordinates = page.getByRole("region", { name: "Coordinates", exact: true });
+  for (const timeline of ["clt_1", "dpt_1"]) {
+    const field = coordinates.getByLabel(`coordinate of ${timeline}`, { exact: true });
+    await expect(field).toHaveValue("0");
+    await expect(field).toBeDisabled();
+    await expect(
+      coordinates.getByRole("button", {
+        name: `Copy the value of coordinate of ${timeline}`,
+        exact: true,
+      }),
+    ).toBeEnabled();
+  }
+  const claims = page.getByRole("region", { name: "MatchClaims", exact: true });
+  await expect(claims.locator("li[data-claim='claim_1'] code")).toHaveText("claim_1");
 
   const journal = await page.evaluate(() => window.__tilie.store().journal.length);
-  await properties.getByRole("button", { name: "Remove", exact: true }).click();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
   await expect
     .poll(() =>
       page.evaluate(

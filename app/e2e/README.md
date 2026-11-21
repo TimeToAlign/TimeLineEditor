@@ -928,8 +928,8 @@ with `tempo`'s row highlighted (`data-hovered`); 30 below the line
 nothing is within 8 pixels: no flag and no marks; on `phrase` at
 263.53662109375 `2 ♩` with the row `Ticks 960 ticks` and no `tempo` row.
 C toggles the flag. A click on a line pins the reading: the Timestamp tab
-is selected and shows the pinned timestamp's Properties
-(`timestamp-properties`), the pinned wedge and line stay when the pointer
+is selected and shows the pinned timestamp's name header
+(`timestamp-name`) and Properties (`timestamp-properties`), the pinned wedge and line stay when the pointer
 leaves, and the journal keeps its length; a click on the empty pane
 clears the pin and its marks and selects Properties, the tab shown
 before. In the Timestamp pane the values are exact:
@@ -939,10 +939,14 @@ Delete are disabled. `4` typed as "coordinate of Melody" moves the pin
 there (`Tempo of Melody` `2.0`), nothing journalled; the name `Four` and
 Enter then journal exactly `{type: "add", into: {block: "map0000000", id:
 "melody"}, timestamp: {name: "Four", coordinate: [4, 1]}}`, Delete and
-the toggles are enabled (Wedge, Name and Cross-section pressed, ID and
+the toggles are enabled (Wedge, Name and Line pressed, ID and
 Coordinate not), the pinned marks are gone and the named timestamp
 `timestamp_3` (after `melody`'s default `origin` and `length`) is drawn as
-an element. With the drawer, closed on load, opened and the Timestamp
+an element. The inspector's top stays put: the name header is
+`position: sticky` at `top: 0px` inside the panels' scroll container,
+its label "Name" has `font-weight` 700, and the tab list is not inside
+that scroll container; scrolled to its end, the tab list and the name
+field are still in the viewport. With the drawer, closed on load, opened and the Timestamp
 tab chosen, the pane's Coordinate granularity
 shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
@@ -976,8 +980,10 @@ its text has no `claim_1`. Unchecking `cpt_1` stores the block's filter
 `settings.matchClaimFilters` and journals nothing. A MatchStamp named
 through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
 `dpt_1` 0], `match_claims` `["claim_1"]`, no refusal) and then selected
-(`{block, id: "matchstamp_1"}`) selects the Matchstamp tab, whose
-Properties show the name "Downbeat" and the MatchClaim `claim_1`; Remove
+(`{block, id: "matchstamp_1"}`) selects the Matchstamp tab, whose name
+header shows "Downbeat", whose Coordinates show "coordinate of clt_1"
+and "coordinate of dpt_1" as disabled fields holding `0` and `0`, each
+with its "Copy the value" button, and whose MatchClaims list `claim_1`; Remove
 empties `graphical.matchstamps` in exactly one journal entry, and the
 selection losing the MatchStamp lets it go, so the tab shown before it,
 Properties, is selected again. The manifest imported without its table

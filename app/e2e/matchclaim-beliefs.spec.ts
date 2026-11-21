@@ -164,6 +164,9 @@ async function nameDownbeat(page: Page, block: string): Promise<void> {
   await select(page, [{ block, id: "matchstamp_1" }]);
 }
 
+/** The Matchstamp tab's MatchClaims. */
+const claims = (page: Page) => page.getByRole("region", { name: "MatchClaims", exact: true });
+
 /** The button answering `label` in the open question. */
 const answerButton = (page: Page, label: string) =>
   page.getByRole("dialog").getByRole("button", { name: label, exact: true });
@@ -171,7 +174,7 @@ const answerButton = (page: Page, label: string) =>
 /** Import the table, name "Downbeat" and believe `claim_1` false: the table is then changed. */
 async function changeTable(page: Page): Promise<void> {
   await nameDownbeat(page, await importTable(page));
-  const claim = page.getByTestId("matchstamp-properties").locator("li[data-claim='claim_1']");
+  const claim = claims(page).locator("li[data-claim='claim_1']");
   const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
   await yours.getByRole("button", { name: "False" }).click();
   await expect(page.getByTestId("matchclaims-status")).toHaveText(
@@ -190,7 +193,7 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   await nameDownbeat(page, block);
 
   // The provenance of the MatchStamp's one MatchClaim, and of nothing else, as the Metadata tab words it.
-  const claim = page.getByTestId("matchstamp-properties").locator("li[data-claim='claim_1']");
+  const claim = claims(page).locator("li[data-claim='claim_1']");
   await expect(claim.getByRole("term")).toHaveText(["stated by", "method", "date"]);
   await expect(claim.getByRole("definition")).toHaveText(["Ana", "manual", "2026-11-20"]);
   await expect(claim.getByRole("list", { name: "Beliefs" })).toHaveText(

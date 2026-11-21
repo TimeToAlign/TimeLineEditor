@@ -6,7 +6,7 @@ import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
 import { coordinateOf, DEFAULT_MATCH_CLAIM_FILTER } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import MatchstampPanel from "../src/inspector/MatchstampPanel.svelte";
 import { matchIndexes } from "../src/inspector/matchstamps.ts";
 import TimestampPanel from "../src/inspector/TimestampPanel.svelte";
@@ -179,6 +179,97 @@ describe("naming", () => {
     nameDownbeat(bundle);
     expect(bundle.editing.map((open) => open.kind)).toEqual(["bundle"]);
     expect(bundle.view.blocks[A]?.manifest.graphical?.matchstamps?.length).toBe(1);
+  });
+});
+
+describe("Coordinates", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("are the Timestamp tab's fields, disabled, with its three Copy columns", async () => {
+    const written: string[] = [];
+    vi.stubGlobal("navigator", {
+      clipboard: {
+        writeText: async (text: string) => {
+          written.push(text);
+        },
+      },
+    });
+    const store = storeOf(tableManifest());
+    const table = matchTable();
+    show(store, potential(indexesUnder(table).shown, "clt_1", q(0)), tablesWith(table));
+    const area = document.querySelector("section.coordinates");
+    expect(
+      [...(area?.querySelectorAll("thead th.copy") ?? [])].map((item) => item.textContent),
+    ).toEqual(["value", "value + unit", "pretty"]);
+    const groups = [...(area?.querySelectorAll("tbody") ?? [])].map((body) => [
+      body.querySelector('th[scope="colgroup"]')?.textContent,
+      [...body.querySelectorAll("tr[data-row]")].map((row) => {
+        const input = row.querySelector("input");
+        return [
+          row.querySelector('th[scope="row"]')?.textContent,
+          input?.value,
+          input?.disabled,
+          input?.getAttribute("aria-label"),
+          row.querySelector(".unit")?.textContent,
+          [...row.querySelectorAll("td.copy button")].map((item) => item.getAttribute("title")),
+        ];
+      }),
+    ]);
+    const COPIES = [
+      "Copy the value",
+      "Copy the value with its unit written out",
+      "Copy the value with symbols",
+    ];
+    expect(groups).toEqual([
+      ["clt_1", [["coordinate", "0", true, "coordinate of clt_1", "♩", COPIES]]],
+      ["cpt_1", [["coordinate", "0.0", true, "coordinate of cpt_1", "s", COPIES]]],
+      ["dpt_1", [["coordinate", "0", true, "coordinate of dpt_1", "smp", COPIES]]],
+    ]);
+    for (const button of area?.querySelectorAll<HTMLButtonElement>("td.copy button") ?? []) {
+      button.click();
+    }
+    await vi.waitFor(() => expect(written).toHaveLength(9));
+    expect(written).toEqual([
+      "0",
+      "0 quarters",
+      "0 ♩",
+      "0.0",
+      "0.0 seconds",
+      "0″",
+      "0",
+      "0 samples",
+      "0 smp",
+    ]);
+  });
+});
+
+describe("the pane", () => {
+  it("opens with the name header, has no Properties heading and waits for a name", () => {
+    const store = storeOf(tableManifest());
+    const table = matchTable();
+    show(store, potential(indexesUnder(table).shown, "clt_1", q(0)), tablesWith(table));
+    const pane = document.querySelector("section")?.parentElement;
+    const described = (nameField().getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent)
+      .filter((text) => text !== "");
+    expect([
+      pane?.querySelector("section")?.getAttribute("data-testid"),
+      pane?.querySelector("section label")?.textContent,
+      [...(pane?.querySelectorAll(":scope > section > h3") ?? [])].map((item) => item.textContent),
+      described,
+      [...document.querySelectorAll<HTMLButtonElement>("section.anchors .toggle")].map(
+        (item) => item.disabled,
+      ),
+    ]).toEqual([
+      "matchstamp-name",
+      "Name",
+      ["Coordinates", "Alignment anchors", "MatchClaims", "MatchClaim filter"],
+      ["Naming the MatchStamp stores it; then its anchors' display can be set."],
+      [true, true, true, true],
+    ]);
   });
 });
 

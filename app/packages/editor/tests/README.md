@@ -889,11 +889,15 @@ changes, 2 undone)"), and nothing of the expansion reaches the store.
 
 ## The Timestamp tab (`timestamp.test.ts`)
 
-The Timestamp tab is always present and holds three areas, one below the
-other, each a `section` named by its heading: **Coordinates** (a bordered
-panel), **Properties** (a key/value grid, present only while a timestamp is
-shown) and **Coordinate granularity** (the workspace's two settings on one
-line at the pane's bottom). A timestamp's rows, values, copy texts, the
+The Timestamp tab is always present. While a timestamp is shown its
+first area is the **name header** (`data-testid="timestamp-name"`, no
+heading: the field "Name", its label bold), and below it three areas, one
+below the other, each a `section` named by its heading: **Coordinates** (a
+bordered panel), **Properties** (a key/value grid, present only while a
+timestamp is shown) and **Coordinate granularity** (the workspace's two
+settings on one line at the pane's bottom). Each area is a component of its
+own under `src/inspector/stamps/`; the name header and the Coordinates are
+the Matchstamp tab's too (one component each). A timestamp's rows, values, copy texts, the
 missing-value texts, whether a row can be edited, the position an edited
 value gives (`parseAxisValue`, `positionFor`, `pinAt`) and its JSON
 (`timestampJson`) are core's; a named timestamp's pin is the arranger's
@@ -944,7 +948,8 @@ which no position solves).
    inspector) clears it and shows Journal, and choosing Timestamp then
    shows the hint "Turn on Show coordinates (C) and click a timeline to pin
    a timestamp. With Show coordinates off, click a timestamp to edit it."
-   in the Coordinates area, no Properties area and no table. With
+   in the Coordinates area, no name header, no Properties area and no
+   table. With
    Properties chosen and the drawer closed, a pin opens it on Timestamp;
    choosing Manifest clears the pin. An unnamed pin is dropped, Timestamp
    staying selected with the hint, when its block's manifest changes, when
@@ -1038,17 +1043,21 @@ which no position solves).
    The Manifest tab's TOML (`nulls.ts`, `toml.ts`) is untouched: its tests
    in `inspector-text.test.ts` and `inspector-codecs.test.ts` stay as they
    are.
-7. **Properties.** A two-column grid of keys and controls: "Name" (a text
-   field labelled by it), "Display" (a group of five toggle buttons Wedge,
-   Name, ID, Coordinate, Cross-section, in that order, each `aria-pressed`
-   by whether its word is in the timestamp's `display`), and Delete.
+7. **The name header and Properties.** The name header holds "Name" (a
+   text field labelled by it); Properties is a two-column grid of keys and
+   controls: "Display" (a group of five toggle buttons Wedge, Name, ID,
+   Coordinate, Line, in that order, each `aria-pressed` by whether its word
+   is in the timestamp's `display`; Line is the word `cross_section`, whose
+   stored key is unchanged), and Delete.
    - *Unnamed.* The name field is empty and enabled, with the placeholder
      "Type a name to keep it" (hidden by the panel's style while the field
-     has focus) and still described by the hint below; the toggles show the
-     default (Wedge, Name, Cross-section pressed) and, with Delete, are
-     disabled and greyed, each described by the hint "Naming the timestamp
-     stores it; then its display can be set and it can be deleted."; a
-     click on them journals nothing. Typing "Upbeat" and Enter on the
+     has focus) and described by the hint under it in the name header; the
+     toggles show the default (Wedge, Name, Line pressed) and, with Delete,
+     are disabled and the Properties area greyed (class `unnamed`), each
+     described by the hint "Naming the timestamp stores it; then its
+     display can be set and it can be deleted."; a click on them journals
+     nothing. The Coordinates stay editable and copyable: an unnamed pin is
+     moved by them before it is named. Typing "Upbeat" and Enter on the
      unnamed pin at 16/5 journals exactly `{type: "add", into: {block:
      "0000000000", id: "score"}, timestamp: {name: "Upbeat", coordinate:
      [16, 5]}}`; the pane then shows the named `timestamp_11` (the
@@ -1061,11 +1070,11 @@ which no position solves).
      Enter journals nothing, shows "Theme" again and, at the field, "A
      named timestamp keeps a name; Delete removes it."; leaving the field
      unchanged journals nothing.
-   - *Display.* Pressed: Theme Wedge, Name, Cross-section; Climax all five;
+   - *Display.* Pressed: Theme Wedge, Name, Line; Climax all five;
      Silent none. A toggle sends one `set` of `display` on the timestamp,
      the words in canonical order: ID on Theme `["wedge", "name", "id",
      "cross_section"]`, Wedge on Theme `["name", "cross_section"]`,
-     Coordinate on Silent `["coordinate"]`, Cross-section on Climax
+     Coordinate on Silent `["coordinate"]`, Line on Climax
      `["wedge", "name", "id", "coordinate"]`; each shows pressed as stored
      afterwards. The toggles are buttons, reached with Tab and pressed with
      Enter or Space.
@@ -1102,6 +1111,14 @@ which no position solves).
     shown pin equals, part for part, that pin moved to 6 without its named
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
+11. **The inspector's top stays put.** The editing bar and the tab list lie
+    outside the element that scrolls the panels (`.panels`), so they never
+    scroll; in the Timestamp and the Matchstamp tab the name header is the
+    first element of the pane, before Coordinates. That it stays visible
+    while the pane scrolls (`position: sticky`, `top: 0`) and that its
+    label is bold (`font-weight` 700) is a matter of computed style, which
+    jsdom does not compute: the end-to-end spec `coordinates.spec.ts`
+    proves it in the browser (e2e README, "Show coordinates").
 
 ## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`, `matchclaim-beliefs.test.ts`)
 
@@ -1147,6 +1164,20 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    [`clt_1` 0, `dpt_1` 0] (each anchor upper coordinate first, the anchors
    by their first, then their second coordinate), its MatchClaims
    `claim_1`, `claim_2`.
+   **Its Coordinates are the Timestamp tab's** (one component): one
+   `tbody` per timestamp in that order, headed by its timeline's name, its
+   one row "coordinate" a text field holding the exact value (`clt_1` `0`,
+   `cpt_1` `0.0`, `dpt_1` `0`) with the pretty unit (`♩`, `s`, `smp`),
+   **disabled** (a MatchStamp's coordinates are not edited), and the three
+   Copy columns `value`, `value + unit`, `pretty` with the Timestamp tab's
+   buttons and texts, copied in that order: `clt_1` `0`, `0 quarters`,
+   `0 ♩`; `cpt_1` `0.0`, `0.0 seconds`, `0″`; `dpt_1` `0`, `0 samples`,
+   `0 smp`. The tab has no "Properties" heading: under the name header
+   come the areas Coordinates, Alignment anchors, MatchClaims and the
+   MatchClaim filter, each a `section` named by its heading. While the
+   MatchStamp is potential (unnamed) the name field is described by "Naming
+   the MatchStamp stores it; then its anchors' display can be set." and
+   every anchor toggle is disabled.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`
