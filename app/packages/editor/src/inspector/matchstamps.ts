@@ -45,6 +45,7 @@ import {
   coordinateValue,
   copyValue,
   findTimeline,
+  matchClaimFilterOf,
   matchStampAnchors,
   matchStampMembers,
   matchStampSpec,
@@ -136,6 +137,25 @@ export function matchIndexes(
     anchorIndexOf(table.columns, timelineMask(table, timelines, mask())),
   );
   return { compared, shown };
+}
+
+/**
+ * The indexes of block `block` of `view` holding the table `table` (`null`
+ * for none) under the block's MatchClaim filter, for the believer
+ * `believer` and under the block's manifest's `@context` (`matchIndexes`):
+ * what the editor gives the canvas, the drawer and the Matchstamp tab, one
+ * function for all three; `null` without a table or without the block.
+ */
+export function blockIndexes(
+  view: View,
+  block: string,
+  table: MatchClaimTable | null,
+  believer: string,
+): MatchIndexes | null {
+  const manifest = view.blocks[block]?.manifest;
+  if (table === null || manifest === undefined) return null;
+  const filter = matchClaimFilterOf(view.settings, block);
+  return matchIndexes(table, filter, believer, manifest["@context"]);
 }
 
 const comparisonCache = new WeakMap<Manifest, WeakMap<AnchorIndex, readonly NamedComparison[]>>();

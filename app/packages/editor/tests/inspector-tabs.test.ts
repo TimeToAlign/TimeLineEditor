@@ -13,7 +13,7 @@ import type { Tab } from "../src/inspector/tabs.ts";
 import { initialPick, nextTab, TABS, tabLabel, toggled } from "../src/inspector/tabs.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { informing, providing } from "./support.ts";
+import { informing, noMatchClaims, providing } from "./support.ts";
 
 const { A } = MIXED;
 /** The address of block `A`. */
@@ -513,6 +513,7 @@ describe("in the drawer", () => {
         selection: selectionOf([BLOCK]),
         placement: null,
         storageKey: null,
+        ...noMatchClaims(),
       },
     });
     app = shown;

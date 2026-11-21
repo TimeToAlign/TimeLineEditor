@@ -2526,7 +2526,9 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
 - **Without a table.** With `matches` empty and the mode on, the status
   `No MatchClaim table loaded.` is shown (the canvas knows only that no
   table is loaded, never why) and
-  nothing is drawn; with the mode off, no status.
+  nothing is drawn; with the mode off, no status. With `matchesStatus`
+  given (the editor's "Matches need a server: MatchClaim tables are read
+  through tilie-server."), that text instead.
 - **The overlay.** With T, one `<svg>` for block A whose `width`,
   `height` and `viewBox` equal the node's own and whose left and top are
   the node's position; its one potential path has `d` exactly as in
@@ -2539,6 +2541,16 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   anchors a0, a1, a3 (a4 not drawn); the flag lists `Score`, `Take 1`,
   `Take 2`, `other` with the values `6 ♩`, `176 400 smp`, `264 600 smp`,
   `297 675 smp`, `0.5`, its pole at the node's left + 361.0927734375.
+- **Hover cost.** A move from (364.0927734375, 40.20703125) to
+  (363.0927734375, 41.20703125), both on MatchStamp 0, calls
+  `stampOverlay`, `matchFlag` and `pathOf` 0 times; a move on to
+  (264.0927734375, 40.20703125), MatchStamp 1, calls them 1, 1 and 2 times
+  (the potential path's lookup and the hovered path), and the potential
+  path element stays the same.
+- **Device ratio.** At one device pixel per CSS pixel the point 3, 3 off
+  MatchStamp 0's line hovers it (4.24 ≤ 8); once the window's ratio is 2
+  and the canvas's resolution query reports the change, it does not
+  (4.24 > 4), and the canvas watches `(resolution: 2dppx)`.
 - **Pin.** A click there calls `onmatchstamppin({block: A, matchStamp:
   0})`; a click at (461.0927734375, 70), on nothing, calls it with
   `null`. Given `pinnedMatchStamp` `{block: A, matchStamp: 0}`, the

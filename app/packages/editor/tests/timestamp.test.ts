@@ -41,7 +41,7 @@ import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
 import { timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
-import { informing, storeOf } from "./support.ts";
+import { informing, noMatchClaims, storeOf } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -193,6 +193,7 @@ function drawer(store: Store, open: boolean, block: string = A, knotsOf?: KnotsO
       selection: selectionOf([{ block }]),
       placement: null,
       storageKey: null,
+      ...noMatchClaims(),
       ...(knotsOf === undefined ? {} : { knotsOf }),
     },
   });

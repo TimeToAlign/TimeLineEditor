@@ -8,6 +8,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import type { ClaimTimeline, Manifest } from "@timetoalign/tilie-core";
 import {
@@ -21,6 +22,9 @@ import {
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Belief } from "@timetoalign/timetoshare";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import type { MatchIndexes } from "../src/inspector/matchstamps.ts";
+import { blockIndexes } from "../src/inspector/matchstamps.ts";
+import type { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 
 export const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -44,6 +48,14 @@ export function tableManifest(): Manifest {
 /** The editor's default user, as the belief filter's believer. */
 export const ME = statedBy(DEFAULT_USER);
 export const OTHER = "tag:example.org,2026:other";
+
+/** The editor's `indexesOf` over `tables` for the user `ME`, reading the view of `live` as the editor reads its own. */
+export function indexesOver(
+  live: LiveStore,
+  tables: MatchClaimTables,
+): (block: string) => MatchIndexes | null {
+  return (block) => blockIndexes(live.view, block, tables.of(block)?.table ?? null, ME);
+}
 
 /** The timelines of the table, numbered by ID. */
 export const TIMELINES: readonly ClaimTimeline[] = [

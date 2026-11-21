@@ -32,7 +32,13 @@ import type { TextOptions } from "../src/inspector/manifestText.ts";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
-import { fileText, informing, providing, storeOf as storeOfFixtures } from "./support.ts";
+import {
+  fileText,
+  informing,
+  noMatchClaims,
+  providing,
+  storeOf as storeOfFixtures,
+} from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -949,6 +955,7 @@ describe("the inspector in its drawer", () => {
         selection: selectionOf(selection),
         placement: null,
         storageKey: null,
+        ...noMatchClaims(),
       },
     });
     flushSync();
