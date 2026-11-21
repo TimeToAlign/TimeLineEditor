@@ -1575,6 +1575,14 @@ address in block A, written below by its element address:
   whichever is first: from (120, 80) to (40, 30) the bounds `{x: 40, y:
   30, width: 80, height: 50}`; a horizontal one from (40, 64.5) to (300,
   64.5) `{x: 40, y: 64.5, width: 260, height: 0}`.
+- A wedge spans the rectangle of its tip and its base's two corners, as it
+  is turned: tip (10, 5) and corners `(dx −3, y 18)`, `(dx 3, y 18)` give
+  `{x: 7, y: 5, width: 6, height: 13}`; turned 90, corners `(13, 8)` and
+  `(13, 2)`, `{x: 10, y: 2, width: 13, height: 6}`; with both corners up
+  and to the left, `(dx −11.3136, y 5 + (−2.8284))` and `(dx −7.071, y 5 +
+  (−7.071))`, `{x: 10 + (−11.3136), y: 5 + (−7.071), width: 10 − (10 +
+  (−11.3136)), height: 5 − (5 + (−7.071))}` in doubles, the tip the
+  rectangle's right and bottom.
 
 ## The segment's Delete menu (`gap-menu.test.ts`)
 

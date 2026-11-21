@@ -177,20 +177,17 @@ function boundsOfPoints(points: readonly Point[]): Bounds {
 
 /**
  * A wedge's three points (sections 6.6 and 7.2): its tip `(X, yt)`, then
- * the corners of its base `(X − b / 2, yb)` and `(X + b / 2, yb)`, `b` the
- * width of its base.
+ * the corners of its base `(X + dx, y)` in their order.
  */
 export function wedgePoints({
   x,
   yt,
-  yb,
-  base,
-}: Pick<MarkerElement, "x" | "yt" | "yb" | "base">): readonly [Point, Point, Point] {
-  const half = base / 2;
+  corners: [first, second],
+}: Pick<MarkerElement, "x" | "yt" | "corners">): readonly [Point, Point, Point] {
   return [
     [x, yt],
-    [x - half, yb],
-    [x + half, yb],
+    [x + first.dx, first.y],
+    [x + second.dx, second.y],
   ];
 }
 

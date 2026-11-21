@@ -151,23 +151,47 @@ describe("descriptors", () => {
       style: style({ fill: "#000000", stroke: "#FF0000" }),
       x: 10,
       yt: 5,
-      yb: 18,
-      base: 6,
+      corners: [
+        { dx: -3, y: 18 },
+        { dx: 3, y: 18 },
+      ],
     });
     expect(svgBody(drawing)).toEqual([
       '<polygon data-id="w" points="10,5 7,18 13,18" fill="#000000"/>',
     ]);
   });
 
-  it("takes a wedge's base, a map's spacing and a card's shadow offset from the element", () => {
+  it("writes a turned wedge's tip, then its corners in their order", () => {
+    const drawing = synthetic({
+      type: "wedge",
+      address: at("w"),
+      style: style({ fill: "#000000" }),
+      x: 10,
+      yt: 5,
+      corners: [
+        { dx: 13, y: 8 },
+        { dx: 13, y: 2 },
+      ],
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<polygon data-id="w" points="10,5 23,8 23,2" fill="#000000"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[fill=ts000000] (10,25) -- (23,22) -- (23,28) -- cycle;",
+    ]);
+  });
+
+  it("takes a wedge's corners, a map's spacing and a card's shadow offset from the element", () => {
     const wedge = synthetic({
       type: "wedge",
       address: at("w"),
       style: style({ fill: "#000000" }),
       x: 10,
       yt: 5,
-      yb: 18,
-      base: 12,
+      corners: [
+        { dx: -6, y: 18 },
+        { dx: 6, y: 18 },
+      ],
     });
     expect(svgBody(wedge)).toEqual([
       '<polygon data-id="w" points="10,5 4,18 16,18" fill="#000000"/>',

@@ -410,10 +410,13 @@ describe("shadow", () => {
 });
 
 describe("inheritance", () => {
-  it("gives every element the initial values without layers", () => {
+  it("gives every element the initial values without layers, a wedge its rotation 0", () => {
     const drawing = draw(load("with_region"), DEFAULT_PLACEMENT, [], metrics);
-    for (const item of drawing.elements)
-      expect(item.style, addressKey(item.address)).toEqual(INITIAL_STYLE);
+    expect(drawing.elements.filter((item) => item.type === "wedge")).toHaveLength(2);
+    for (const item of drawing.elements) {
+      const initial = item.type === "wedge" ? { ...INITIAL_STYLE, rotation: 0 } : INITIAL_STYLE;
+      expect(item.style, addressKey(item.address)).toEqual(initial);
+    }
   });
 
   it("inherits fill from the block, never opacity or rx", () => {
@@ -556,5 +559,44 @@ describe("the elements core enumerates", () => {
       expect([...new Set(types)], address).toEqual([...new Set(keys)]);
       expect(drawings.size, address).toBeLessThanOrEqual(keys.length);
     }
+  });
+});
+
+describe("rotation", () => {
+  /** The `rotation` of every wedge of `groups/group_groupstamp` by its address's ID. */
+  const rotations = (extra: Graphical[] = []) =>
+    Object.fromEntries(
+      drawFixture("groups/group_groupstamp", extra)
+        .elements.filter((item) => item.type === "wedge")
+        .map((item) => [item.address.id, item.style.rotation]),
+    );
+  const wedges = (rotation: number): Graphical[] => [
+    { rules: [{ select: { element: "wedge" }, set: { rotation } }] },
+  ];
+
+  it("turns a groupstamp's wedge −45 and every other wedge 0 where no rule sets it", () => {
+    expect(rotations()).toEqual({
+      timestamp_1: -45,
+      timestamp_2: 0,
+      timestamp_3: 0,
+      timestamp_4: 0,
+      timestamp_5: 0,
+    });
+  });
+
+  it("takes a rule's value on every wedge, 0 included", () => {
+    expect(new Set(Object.values(rotations(wedges(0))))).toEqual(new Set([0]));
+    expect(new Set(Object.values(rotations(wedges(30))))).toEqual(new Set([30]));
+  });
+
+  it("is never inherited from the band holding a wedge", () => {
+    const band: Graphical[] = [
+      {
+        rules: [
+          { select: { addresses: [{ id: "score", facet: "markers" }] }, set: { rotation: 30 } },
+        ],
+      },
+    ];
+    expect(rotations(band)).toEqual(rotations());
   });
 });

@@ -157,13 +157,25 @@ export interface AnchorElement extends Addressed {
   readonly y2: number;
 }
 
+/**
+ * A corner of a wedge's base: `dx` across from its tip's abscissa, a length,
+ * and `y` its ordinate.
+ */
+export interface WedgeCorner {
+  readonly dx: number;
+  readonly y: number;
+}
+
+/**
+ * A wedge (section 6.6, Wedges): its tip at `(x, yt)` and the two corners of
+ * its base, in the order section 6.6 gives them, turned by its style's
+ * `rotation` about the tip.
+ */
 export interface MarkerElement extends Addressed {
   readonly type: "wedge";
   readonly x: number;
   readonly yt: number;
-  readonly yb: number;
-  /** The width of the wedge's base, centred on `x`. */
-  readonly base: number;
+  readonly corners: readonly [WedgeCorner, WedgeCorner];
 }
 
 export interface TextElement extends Addressed {

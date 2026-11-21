@@ -255,6 +255,7 @@ export function plainDeclaration(
     "font-size": fontSize,
     rx,
     "max-width": maxWidth,
+    rotation,
     ...rest
   } = declaration;
   // The whole declaration in its key order, typed by its members that are no number:
@@ -267,6 +268,7 @@ export function plainDeclaration(
     ["font-size", fontSize],
     ["rx", rx],
     ["max-width", maxWidth],
+    ["rotation", rotation],
   ] as const;
   for (const [member, value] of numbers) {
     if (value === undefined) continue;

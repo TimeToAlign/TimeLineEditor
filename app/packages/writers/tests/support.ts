@@ -115,8 +115,10 @@ export function bare(): Drawing {
       style: BLACK,
       x: x0,
       yt: 23.90234375,
-      yb: 36.90234375,
-      base: 6,
+      corners: [
+        { dx: -3, y: 36.90234375 },
+        { dx: 3, y: 36.90234375 },
+      ],
     },
     {
       type: "wedge",
@@ -124,8 +126,10 @@ export function bare(): Drawing {
       style: BLACK,
       x: xe,
       yt: 23.90234375,
-      yb: 36.90234375,
-      base: 6,
+      corners: [
+        { dx: -3, y: 36.90234375 },
+        { dx: 3, y: 36.90234375 },
+      ],
     },
     {
       type: "name",
@@ -254,7 +258,17 @@ export function everything(): Drawing {
       y1: 56,
       y2: 34,
     },
-    { type: "wedge", address: at("c", "start"), style: BLACK, x: 52, yt: 57.5, yb: 70.5, base: 6 },
+    {
+      type: "wedge",
+      address: at("c", "start"),
+      style: BLACK,
+      x: 52,
+      yt: 57.5,
+      corners: [
+        { dx: -3, y: 70.5 },
+        { dx: 3, y: 70.5 },
+      ],
+    },
     {
       type: "label",
       address: at("c", "start", "label"),

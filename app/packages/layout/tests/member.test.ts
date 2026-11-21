@@ -11,7 +11,7 @@ import {
   type Placement,
   type RectElement,
 } from "../src/index.ts";
-import { at, build, drawFixture, element, metrics } from "./support.ts";
+import { at, build, drawFixture, element, metrics, unturned } from "./support.ts";
 
 /** The member drawing's elements in descriptor order: no block, no card, no styles. */
 function member(drawing: Drawing): unknown[] {
@@ -94,8 +94,8 @@ describe("styled__score", () => {
     },
     { ...root, address: at("score"), xs: x0, xe, y: y.root },
     { ...child, address: at("b"), xs: 298.080078125, xe, y: y.b },
-    { type: "wedge", address: at("timestamp_1"), x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
-    { type: "wedge", address: at("timestamp_2"), x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
+    { type: "wedge", address: at("timestamp_1"), x: x0, yt: y.tipW, corners: unturned(y.baseW) },
+    { type: "wedge", address: at("timestamp_2"), x: xe, yt: y.tipW, corners: unturned(y.baseW) },
     name(at("b", "name"), y.bName, "b"),
     name(at("score", "name"), y.scoreName, "Styled score"),
     { ...label(at("timestamp_1", "coordinate"), x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
@@ -207,8 +207,8 @@ describe("nested at length 800 and card spacing 8", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 62 },
       { ...child, address: at("clt_3"), xs: 249.91552734375, xe: 649.91552734375, y: 43.5 },
       { ...child, address: at("clt_2"), xs: 324.91552734375, xe: 424.91552734375, y: 25 },
-      { type: "wedge", address: at("timestamp_1"), x: x0, yt: 63.5, yb: 76.5, base: 6 },
-      { type: "wedge", address: at("timestamp_2"), x: xe, yt: 63.5, yb: 76.5, base: 6 },
+      { type: "wedge", address: at("timestamp_1"), x: x0, yt: 63.5, corners: unturned(76.5) },
+      { type: "wedge", address: at("timestamp_2"), x: xe, yt: 63.5, corners: unturned(76.5) },
       name(at("clt_2", "name"), 28.80810546875, "clt_2"),
       name(at("clt_3", "name"), 47.30810546875, "clt_3"),
       name(at("clt_1", "name"), 65.80810546875, "clt_1"),

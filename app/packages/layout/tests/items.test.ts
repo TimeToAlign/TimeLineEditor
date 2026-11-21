@@ -10,7 +10,17 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { at, boxesOf, drawFixture, edit, element, itemsOf, metrics, target } from "./support.ts";
+import {
+  at,
+  boxesOf,
+  drawFixture,
+  edit,
+  element,
+  itemsOf,
+  metrics,
+  target,
+  unturned,
+} from "./support.ts";
 
 const placedAt = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
 const ungrouped = (places: Placement["places"]) =>
@@ -136,8 +146,7 @@ describe("the scale of an item", () => {
       type: "wedge",
       x: 91.154296875,
       yt: 39.8046875,
-      yb: 65.8046875,
-      base: 12,
+      corners: unturned(65.8046875, 6),
     });
     const root = element(drawing, at("bare"));
     expect(root).toMatchObject({ xs: 91.154296875, xe: 891.154296875 });

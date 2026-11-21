@@ -3,7 +3,7 @@
 import type { Address, ElementAddress } from "@timetoalign/tilie-core";
 import { addressKey, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
-import { TextMeasure } from "@timetoalign/tilie-layout";
+import { TextMeasure, wedgePoints } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf } from "./boxes.ts";
 import { affordancesOf } from "./coordinates.ts";
@@ -30,8 +30,9 @@ function spanning(xs: readonly number[], ys: readonly number[]): Rect {
  * background its whole drawing, a frame's or a card's rectangle itself, a
  * line from its start to its end on its ordinate, a map likewise on its
  * centre, a region between its edges and ordinates, a jump around its
- * curve's points and its arrowhead, a flow marker, boundary, cross-section
- * line or wedge on its abscissa between its ordinates, an alignment
+ * curve's points and its arrowhead, a flow marker, boundary or cross-section
+ * line on its abscissa between its ordinates, a wedge around its tip and the
+ * corners of its base, as it is turned, an alignment
  * anchor's line between its two end points), and a text over its
  * measured width (from its anchor, or centred on it) from its baseline less
  * the font's ascent to its baseline plus the descent. Stroke widths and
@@ -63,8 +64,13 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
     case "boundary":
     case "cross_section":
       return spanning([element.x], [element.y1, element.y2]);
-    case "wedge":
-      return spanning([element.x], [element.yt, element.yb]);
+    case "wedge": {
+      const points = wedgePoints(element);
+      return spanning(
+        points.map(([x]) => x),
+        points.map(([, y]) => y),
+      );
+    }
     case "alignment_anchor":
       return spanning([element.x1, element.x2], [element.y1, element.y2]);
     case "name":

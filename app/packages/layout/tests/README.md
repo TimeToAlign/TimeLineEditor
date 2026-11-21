@@ -128,7 +128,16 @@ another timeline; an address drawn twice matches `inside` by each drawing's
 own holders. Inheritance is a column of the property table: stroke,
 stroke-width, stroke-dasharray, fill and font-size inherit (a root's stroke
 reaches its grandchild, a region's font size its label), never `shadow`,
-`opacity` or `rx`. A map is drawn in the domain and modality it
+`opacity`, `rx` or `rotation`. `rotation` is set by a rule alone: a wedge
+no rule turns reads it as its initial value, 0, but −45 on a groupstamp's
+wedge (section 2.5), and carries that number in its style; every other
+element keeps it unset (`null`). So, without layers, every element of
+`with_region` has the initial values but its wedges, whose `rotation` is
+0; in `groups/group_groupstamp`, the groupstamp `timestamp_1`'s wedge has
+−45 and every other wedge 0; an extra layer's rule `{element: wedge}`
+setting 0 gives `timestamp_1`'s wedge 0, one setting 30 gives every wedge
+30; a rule setting 30 on `score`'s markers band (`{id: score, facet:
+markers}`) turns none of the wedges it holds. A map is drawn in the domain and modality it
 converts to (`conversion_maps__maps_quarters`: the top-level LinearMap
 `lmap_5` to seconds physical and continuous, the FloatingMeasureMap
 `tmap_1` logical and continuous; `conversion_maps__maps_seconds`: the
@@ -778,7 +787,9 @@ validated, or built through commands. Label widths at size 9: `Downbeat`
 `Entry` `5449 → 23.94580078125`, `timestamp_3` `13374 → 58.7724609375`,
 `1 ♩` 12.83203125, `Mid` `3636 → 15.978515625`, `Late` `4459 →
 19.59521484375`. A wedge's base is 6, so its extent is `[L × u − 3, L × u +
-3]`. The numbers of `timestamps` are those of the drawing fixture's
+3]` unturned; turned by `r`, from `L × u` plus the smallest to `L × u` plus
+the largest of 0 and its corners' offsets across (section 6.4): `[L × u,
+L × u + 13]` at 90, `[L × u − 13, L × u]` at −90. The numbers of `timestamps` are those of the drawing fixture's
 derivation in TimeToShare's `fixtures/0.2.0/drawings/README.md`.
 
 **`timestamps`, by hand.** Root `clt_1`, quarters, length 8, unlocked, no
@@ -888,6 +899,13 @@ and `c` (`[50, 150]`) in row 2, so `b` takes row 3, whose inner half is
 `max(7, 1.5 + 13) = 14.5` (`b`'s markers band, no label): `l3 = ((7 + 7) +
 (7 + 7)) + (7 + 14.5) = 49.5`, the band `49.5 + 7 = 56.5` wide from 7, the
 root's line at `8 + (8 + 56.5) = 72.5` and `b`'s at `72.5 − 49.5 = 23`.
+With a rule turning that wedge 90 (`{addresses: [{id: timestamp_1}]}`), its
+extent is `[150, 163]`, within `b`'s own `[150, 400]`, so `b` takes row 1
+again, whose inner half is now `max(7, 1.5 + 13) = 14.5`: `l1 = 7 + 14.5 =
+21.5`, `l2 = (7 + 14.5) + (7 + 7) = 35.5`, the band `35.5 + 7 = 42.5` wide
+from 7, the root's line at `8 + (8 + 42.5) = 58.5` and `b`'s at `58.5 −
+21.5 = 37`; turned −90, its extent `[137, 150]` conflicts with `a` and `c`
+as before, so the lines lie at 72.5 and 23.
 
 **Segments without a line.** `segment_line` with `timestamp_1` at 2 on the
 segment `b1` (at 0 in `b`, at 8 in `form`, so at 10 on `form`'s axis): its
@@ -953,7 +971,62 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   21 = 16` to 37; the root's (children band from 7 to 35) from 16 to 51,
   its wedge `[[200, 52.5], [197, 65.5], [203, 65.5]]` below, uncrossed;
 - an ancestor line (`group_child_member`'s `piece`) and a key naming no
-  line have neither.
+  line have neither;
+- in `nested`, an extra layer's rule `{element: wedge, within: clt_3}`
+  setting `rotation` 90 turns `clt_3`'s mark at 200 about its tip (section
+  6.6 at `s = 1`, `k = 0`: both corners 13 across, `3` and `−3` beyond
+  the tip): `[[200, 38.5], [213, 37 + (1.5 + 3)], [213, 37 + (1.5 − 3)]]`
+  `= [[200, 38.5], [213, 41.5], [213, 35.5]]`; the root's stays unturned;
+  a rule `{element: wedge, addresses: [{id: clt_3}]}` setting 90 turns
+  neither mark, since a rule naming addresses never styles an unnamed
+  mark.
+
+## Wedge rotation (`rotation.test.ts`)
+
+A wedge's `rotation` `r` turns it about its tip (section 6.6). The sine
+`s` and cosine `k` of `r` degrees are each rounded to four decimal places,
+ties to even, and read as doubles; the corners of the base lie at the
+offsets across `13 × s − 3 × k` and `13 × s + 3 × k` and the distances
+beyond the tip `13 × k + 3 × s` and `13 × k − 3 × s`, each added to the
+tip's distance from the line before it becomes an ordinate, outwards on
+the band's side. What proves it:
+
+1. **The table.** The sines of 0 to 90 degrees, rounded, equal a reference
+   computed to 60 digits (Machin's π and the sine's series) and rounded
+   half to even: `0, 0.0175, 0.0349, …, 0.7071, …, 0.9998, 1` (all 91 in
+   the test). No sine of a whole degree from 0 to 90 lies within 1e-9 of a
+   halfway point between two four-place decimals (the closest lies 1.05e-6
+   away), measured on `Math.sin`: the rounding breaks no tie, so engines
+   whose sines differ in the last places round alike.
+2. **All 361 angles.** For every whole `r` from −180 to 180, `s` and `k`
+   are the reference's `S` by quadrant: `s = ±S(|r|)`, `k = S(90 − |r|)`
+   up to 90; `s = ±S(180 − |r|)`, `k = −S(|r| − 90)` beyond; the sign of
+   `s` that of `r`; neither is −0; −180 and 180 give the same `s` and `k`,
+   so the same wedge. A rotation that is no whole number from −180 to 180
+   (181, −181, 45.5, NaN) is refused with a `RangeError`.
+3. **The seven stops**, their corners `(dx, out)`: 0 `(−3, 13)`, `(3,
+   13)`; 90 `(13, 3)`, `(13, −3)`; −90 `(−13, −3)`, `(−13, 3)`; 180 `(3,
+   −13)`, `(−3, −13)`, and −180 the same; ±45 and ±135 by the formula over
+   `s = ±0.7071`, `k = ±0.7071`, written out in the test. The span across,
+   `[min(0, dx1, dx2), max(0, dx1, dx2)]`: `[−3, 3]` at 0, `[0, 13]` at 90,
+   `[−13, 0]` at −90.
+4. **Both sides, in a drawing.** TimeToShare's `timestamp_wedge_rotation`:
+   root `melody` (markers band below its line), its child `phrase`
+   (markers band above its line, by its band order); `timestamp_1` to
+   `timestamp_6` on `melody` turned −135, −45, 0, 45, 135 and 180 by
+   addressed rules, `timestamp_7` and `timestamp_8` on `phrase` −45 and 45
+   by addressed rules, `timestamp_9` on `phrase` 90 by the rule `{element:
+   wedge, within: phrase}` alone, the `origin` and `length` wedges turned
+   by no rule. Each wedge lies at its timestamp's abscissa `X` as its
+   line's axis record lists it (`AxisTimestamp.x`), its tip `w / 2 = 1.5`
+   from its line's ordinate `y` (both bands start at `c = 0`: `y + 1.5`
+   below, `y − 1.5` above), each corner at `X + dx` and `y + (1.5 + out)`
+   below, `y − (1.5 + out)` above, `(dx, out)` the rotation's, each
+   ordinate summed in item coordinates (`y` less the `y` of `melody`'s
+   card, 8) and drawn the card's `y` plus it (section 8.6); its style
+   carries the rotation; the `origin` and `length` wedges have 0. So a −45
+   wedge's base lies left of and below its tip on `melody`, left of and
+   above it on `phrase`.
 
 ## Groupstamps (`groupstamps.test.ts`)
 
@@ -979,7 +1052,8 @@ wedge or a label. What proves it: positions derived from the other records
 of the same drawing (the member lines' abscissas, the member cards' box
 records `{kind: card, key: {item: group_1, member: T}}` and their `y` and
 `y + height`, the primary's extent, its label's baseline less `a(9)`, the
-wedge's base `yb` plus the label gap 2), never from the element itself; the
+base ordinate of the line's unturned mark (`AxisMarker.wedge`) plus the
+label gap 2), never from the element itself; the
 element's absence whenever the timestamp is no groupstamp, its line is not
 listed or its line is hidden; and the order of elements. With `a(9) =
 8.35400390625` and `h(9) = 10.4765625` every number here is dyadic, so the
@@ -1005,7 +1079,7 @@ the upper and lower borders of `T`'s card in `group_1`'s frame.
    middle of `score`'s line (4 of 8: `xStart + (xEnd − xStart) / 2`), which
    is the middle of `performance`'s too (2.0 of 4.0); the first from
    `top(score)` to the label's top `b − a(9)` (`b` the label's baseline;
-   equal to the wedge's base `yb + 2`), the second from that top plus
+   equal to the unturned mark's base plus 2), the second from that top plus
    `h(9)` to `bottom(performance)` (`score` above, `top(score) <
    score`'s line ordinate, `bottom(performance) >` `performance`'s); style
    stroke `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
@@ -1031,6 +1105,20 @@ the upper and lower borders of `T`'s card in `group_1`'s frame.
    line from `top(score)` to `bottom(performance)`, in the style of a
    cross-section line of `score` that no named timestamp holds; on a line
    in no frame (`nested`), none.
+6. **Its wedge is turned −45** where no rule sets its `rotation` (section
+   2.5): `timestamp_1`'s wedge has its tip where the unturned mark of
+   `score`'s line at its abscissa has it, and its corners at the offsets
+   across `13 × −0.7071 − 3 × 0.7071` and `13 × −0.7071 + 3 × 0.7071`
+   and the distances `1.5 + (13 × 0.7071 + 3 × −0.7071)` and `1.5 + (13 ×
+   0.7071 − 3 × −0.7071)` below `score`'s line (`c = 0`, `w = 3`; each
+   ordinate summed in item coordinates, the line's less the top of
+   `score`'s card, and drawn that top plus it), its style's `rotation` −45; both corners lie left of the tip, so the group
+   line, at the tip's abscissa, meets the wedge at its tip alone. Its label
+   lies where it lay unturned (case 1). An extra layer's rule `{element:
+   wedge}` setting 0 draws it unturned, its corners at `X ∓ 3` and `1.5 +
+   13` below the line; `set timestamp_1 {groupstamp: false}` draws it
+   unturned too; the `origin` and `length` wedges are unturned in every
+   case.
 
 ## Alignment anchors (`anchors.test.ts`)
 

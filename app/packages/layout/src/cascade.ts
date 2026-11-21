@@ -44,6 +44,11 @@ export interface Style {
   readonly display: "inline" | "none";
   readonly content: string;
   readonly "max-width": number | "none";
+  /**
+   * The degrees a wedge is turned about its tip (section 6.6); `null` where no rule sets it,
+   * which the wedge reads as its initial value: −45 on a groupstamp's wedge, 0 on any other.
+   */
+  readonly rotation: number | null;
 }
 
 export const INITIAL_STYLE: Style = {
@@ -58,6 +63,7 @@ export const INITIAL_STYLE: Style = {
   display: "inline",
   content: "none",
   "max-width": "none",
+  rotation: null,
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
@@ -65,12 +71,12 @@ type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
 /**
  * One style property: whether an element without a value of its own takes
  * its holder's (section 2.5), else the initial value; and how a declaration
- * sets it. A parent's `Style` is a declaration of every property, so the
+ * sets it. A parent's `Style` holds every property, so the
  * same setter copies an inherited value.
  */
 interface StyleProperty {
   readonly inherits: boolean;
-  readonly set: (values: StyleValues, declaration: Declaration) => void;
+  readonly set: (values: StyleValues, declaration: Declaration | Style) => void;
 }
 
 /** Every style property, the one table of what the cascade sets and what it inherits. */
@@ -141,6 +147,12 @@ const STYLE_PROPERTIES = {
     inherits: false,
     set: (values, declaration) => {
       if (declaration["max-width"] !== undefined) values["max-width"] = declaration["max-width"];
+    },
+  },
+  rotation: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.rotation !== undefined) values.rotation = declaration.rotation;
     },
   },
 } satisfies Record<keyof Style, StyleProperty>;
