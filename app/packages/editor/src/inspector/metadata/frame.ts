@@ -396,13 +396,16 @@ function addableOf(
   return choices.map((choice) => choice.id).filter((system) => !used(system));
 }
 
-/** The rectangles of the subject at `path` of `skeleton`. */
-function rectanglesAt(
-  skeleton: Skeleton,
-  path: readonly PathSegment[],
+/**
+ * The rectangles of the frame's element: TimeToShare's `rectangles`, "is a"
+ * always first (empty, keyed `is_a`, where nothing states it).
+ */
+export function rectanglesOf(
+  frame: Frame,
   catalogue: Catalogue,
   user: User,
-): RectangleView[] {
+): readonly RectangleView[] {
+  const { skeleton, path } = frame;
   const context = contextOf(skeleton);
   const confirmed = entriesAt(skeleton, path, "confirmed");
   return rectangles(catalogue, skeleton, path).map((rectangle) => {
@@ -430,18 +433,6 @@ function rectanglesAt(
       pairs,
     };
   });
-}
-
-/**
- * The rectangles of the frame's element: TimeToShare's `rectangles`, "is a"
- * always first (empty, keyed `is_a`, where nothing states it).
- */
-export function rectanglesOf(
-  frame: Frame,
-  catalogue: Catalogue,
-  user: User,
-): readonly RectangleView[] {
-  return rectanglesAt(frame.skeleton, frame.path, catalogue, user);
 }
 
 /** The value at `path` in `value`. */

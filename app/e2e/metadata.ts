@@ -69,7 +69,7 @@ export async function showMetadata(page: Page, block: string, id: string | null)
   await tab(page, "Metadata").click();
 }
 
-/** The drawer `name` ("proposed", "rejected", "higher"), opened. */
+/** The drawer `name` ("proposed" or "rejected"), opened. */
 export async function openDrawer(page: Page, name: string): Promise<Locator> {
   const drawer = page.getByTestId(`metadata-drawer-${name}`);
   if ((await drawer.getAttribute("open")) === null) await drawer.locator("summary").click();
