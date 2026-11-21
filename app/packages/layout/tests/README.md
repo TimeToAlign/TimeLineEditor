@@ -136,10 +136,15 @@ LinearMap `cmap_1` to samples physical and discrete), a map converting to
 no time axis (the ConstantMap `cmap_8`) taking its timeline's stroke, with
 its type as class (`ConstantMap` matches `cmap_8` alone). For every manifest fixture, every
 drawn element's address and type, the block's `{}` included, are among the
-element keys core enumerates, and no address is drawn as more elements than
-core enumerates for it, but a groupstamp's line: core enumerates it once per
-drawing of its timeline, and the frames of its groups draw it again, in
-pieces (counted under "Groupstamps").
+element keys core enumerates, and no address is drawn more often than core
+enumerates it. A drawing is one element, but for the pieces a groupstamp's
+line is drawn in across a frame: they lie in no card (outside every card's
+range of elements), and those inside one frame's box are one drawing of
+that frame, which core enumerates once (held by the frame) beside the
+timestamp's own line in its card; the pieces themselves are counted under
+"Groupstamps". Without core's frame keys `groups/group_groupstamp` fails:
+`timestamp_1`'s line is drawn twice (its own line, `score` having a
+conversion maps band, and `group_1`'s pieces).
 
 ## Hand-derived drawings (`examples.test.ts`)
 

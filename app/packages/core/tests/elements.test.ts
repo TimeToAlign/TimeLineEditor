@@ -10,6 +10,7 @@ import {
   timelineClass,
   unitDomain,
 } from "../src/manifest/elements.ts";
+import type { Manifest } from "../src/manifest/types.ts";
 import { allFixtures, fileText, load, loadText, manifestValue } from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";
@@ -200,6 +201,74 @@ describe("the elements of a manifest", () => {
     expect(
       matches({ within: "score" }).filter((address) => address.id?.startsWith("anchor_")),
     ).toEqual([]);
+  });
+
+  describe("the line of a groupstamp", () => {
+    const LINE = id("timestamp_1", "line");
+    const line = (timeline: string, inside: string[]) => ({
+      type: "cross_section",
+      address: LINE,
+      timeline,
+      domain: "logical",
+      modality: "continuous",
+      class: CLT,
+      facet: null,
+      inside,
+    });
+    const atLine = (keys: readonly ElementKey[]) =>
+      keys.filter((key) => addressKey(key.address) === addressKey(LINE));
+    const PRIMARY = ["block", "frame", "timeline"];
+    const FRAME = ["block", "frame"];
+
+    it("is listed again for every frame drawing it, held by the frame, after the members", () => {
+      const cases = [
+        ["groups/group_groupstamp.yaml", [line("score", PRIMARY), line("score", FRAME)]],
+        [
+          "groups/group_groupstamp_child_member.yaml",
+          [
+            line("second-half", ["block", "frame", "timeline", "band", "child"]),
+            line("second-half", FRAME),
+          ],
+        ],
+        [
+          "bundles/bundle_groupstamp_shared_member.yaml",
+          [line("t", PRIMARY), line("t", PRIMARY), line("t", FRAME), line("t", FRAME)],
+        ],
+      ] as const;
+      for (const [name, expected] of cases) {
+        const keys = manifestElements(load(name));
+        expect([name, atLine(keys)]).toEqual([name, expected]);
+        const frames = expected.filter((key) => key.inside.length === 2).length;
+        expect([name, keys.slice(-frames)]).toEqual([name, expected.slice(-frames)]);
+      }
+    });
+
+    it("is not listed again where the timestamp is no groupstamp or lists no line", () => {
+      const manifest = load("groups/group_groupstamp.yaml");
+      const edited = (change: object): Manifest => ({
+        ...manifest,
+        graphical: {
+          ...manifest.graphical,
+          timestamps: (manifest.graphical?.timestamps ?? []).map((timestamp) =>
+            timestamp.id === "timestamp_1" ? { ...timestamp, ...change } : timestamp,
+          ),
+        },
+      });
+      expect(atLine(manifestElements(edited({ groupstamp: false })))).toEqual([
+        line("score", PRIMARY),
+      ]);
+      expect(atLine(manifestElements(edited({ display: ["wedge", "name"] })))).toEqual([]);
+    });
+
+    it("is matched inside the frame at both of its keys", () => {
+      const manifest = load("groups/group_groupstamp.yaml");
+      const matches = matcher(manifestElements(manifest), timelineAncestry(manifest));
+      expect(
+        matches({ element: "cross_section", inside: "frame" }).filter(
+          (address) => addressKey(address) === addressKey(LINE),
+        ),
+      ).toEqual([LINE, LINE]);
+    });
   });
 });
 

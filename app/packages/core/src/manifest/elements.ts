@@ -22,6 +22,7 @@ import {
 } from "./address.ts";
 import type { MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
+import { findTimeline } from "./tree.ts";
 import type {
   ChildTimeline,
   ConversionMap,
@@ -389,7 +390,14 @@ function memberElements(
  * 2.1 and 8.1): the block; the title of a named manifest (one with an `id`
  * or a `name`), addressed `{part: ["name"]}`; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
- * frame; then, after every item, the alignment anchors of the named
+ * frame; then, after every item, the lines of the groupstamps across their
+ * groups' frames (section 6.6), so that every drawn line has an address:
+ * timestamp by timestamp in the order of `graphical.timestamps`, for each
+ * groupstamp whose `display` lists `cross_section`, one `cross_section` at
+ * its line's address `{id: X, part: ["line"]}` per frame holding a card that
+ * draws its timeline (the member itself or a descendant of it), held by that
+ * frame and belonging to the timestamp's timeline, in the order of the
+ * frames; then the alignment anchors of the named
  * MatchStamps (section 8.7), MatchStamp by MatchStamp and each one's
  * anchors in the order of its `alignment_anchors`: each anchor's line `{id:
  * A}`, which the block holds, and, when its `display` lists `name`, the
@@ -406,13 +414,27 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     keys.push(unownedKey("name", TITLE_ADDRESS, BLOCK_KEY));
   }
   const { frames, ungrouped } = memberDrawings(ordered);
-  for (const frame of frames) {
-    const address = idAddress(frame.group.id);
-    const group = unownedKey("frame", address, BLOCK_KEY);
-    keys.push(group, unownedKey("name", partAddress(address, "name"), group));
-    for (const member of frame.members) memberElements(ordered, member, group, keys);
-  }
+  const drawnFrames = frames.map(({ group, members }) => {
+    const address = idAddress(group.id);
+    const frame = unownedKey("frame", address, BLOCK_KEY);
+    keys.push(frame, unownedKey("name", partAddress(address, "name"), frame));
+    for (const member of members) memberElements(ordered, member, frame, keys);
+    return { frame, members };
+  });
   for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
+  const ancestry = timelineAncestry(ordered);
+  for (const timestamp of ordered.graphical?.timestamps ?? []) {
+    if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;
+    const timeline = findTimeline(ordered, timestamp.timeline);
+    if (timeline === undefined) continue;
+    const lineage = ancestry.get(timeline.id) ?? [];
+    const address = partAddress(idAddress(timestamp.id), "line");
+    for (const { frame, members } of drawnFrames) {
+      if (members.some((member) => lineage.includes(member.timeline.id))) {
+        keys.push(elementKey("cross_section", address, timeline, frame));
+      }
+    }
+  }
   for (const matchstamp of ordered.graphical?.matchstamps ?? []) {
     for (const anchor of matchstamp.alignment_anchors) {
       const address = idAddress(anchor.id);

@@ -685,6 +685,28 @@ check of who holds what.
    the label inherits. `{element: "alignment_anchor"}` matches `{id:
    "anchor_1"}` then `{id: "anchor_2"}`, `{inside: "alignment_anchor"}` the
    label alone, `{within: "score"}` neither.
+10. **Groupstamp lines across their frames** (drawing.md section 6.6):
+    every drawn line has an address, so a groupstamp's line is listed
+    again for each frame that draws it, after every member drawing and
+    before the alignment anchors, as `{type: "cross_section", address:
+    {id: X, part: ["line"]}, timeline: T, class: T's, inside: ["block",
+    "frame"]}` (held by the frame, belonging to the timestamp's timeline
+    `T`). The keys at the line's address are written out whole, in order:
+    `groups/group_groupstamp.yaml` (`timestamp_1` on the member `score`,
+    quarters): the primary held by `score`'s line (`["block", "frame",
+    "timeline"]`), then `group_1`'s; `groups/group_groupstamp_child_member.yaml`
+    (`timestamp_1` on `second-half`, a child of the member `score`): the
+    primary held by the child (`["block", "frame", "timeline", "band",
+    "child"]`), then `group_1`'s, of `second-half`; and
+    `bundles/bundle_groupstamp_shared_member.yaml` (`timestamp_1` on `t`,
+    a member of `g1` and `g2`): the primary in `g1`'s card and in `g2`'s
+    (each `["block", "frame", "timeline"]`), then `g1`'s and `g2`'s lines.
+    In each, the group lines are the keys just before the first
+    alignment anchor's (none there), that is the last ones. With
+    `display` not listing `cross_section` (`["wedge", "name"]`), or with
+    `groupstamp: false`, no key at the address remains. `{element:
+    "cross_section", inside: "frame"}` matches both keys of
+    `group_groupstamp`'s `timestamp_1`.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
