@@ -5,13 +5,16 @@
  * switch and its timestamps, in Editor one group per timestamp in screen
  * order (its timeline, the exact value with its unit, read only), else its
  * text in JSON, YAML or TOML with one Copy. **Properties**: the name (naming
- * a potential MatchStamp stores it), each alignment anchor with its `line`
- * and `name` toggles (an anchor the current table no longer states marked
- * red), the MatchClaims behind it, each with its provenance (how it was
- * made, read through the server for these MatchClaims only), every actor's
- * belief and the user's own (true, unlikely, false: recorded through the
- * server, which answers the new table), what differs from the current
- * table when a named MatchStamp is out of date, and Update and Remove.
+ * a potential MatchStamp stores the whole MatchStamp the table states,
+ * saying so where the timelines filter hides some of its anchors), each
+ * alignment anchor with its `line` and `name` toggles (an anchor the
+ * current table no longer states marked red), the MatchClaims behind it,
+ * each with its provenance as the Metadata tab shows a pair's
+ * (`ProvenanceDetails`: how it was made, read through the server for these
+ * MatchClaims only, every actor's belief and the user's own: true,
+ * unlikely, false, recorded through the server, which answers the new
+ * table), what differs from the current table when a named MatchStamp is
+ * out of date, and Update and Remove.
  * **MatchClaim filter**, at the pane's bottom: the block's table (Load
  * MatchClaims…, read through the server; once a belief changed it, Save
  * MatchClaims… saves the new file, never the workspace; Load MatchClaims…
@@ -22,7 +25,6 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import { drawingOf } from "@timetoalign/tilie-arranger";
-import type { BeliefWord } from "@timetoalign/tilie-client";
 import type {
   AnchorDisplay,
   BeliefFilter,
@@ -32,6 +34,7 @@ import type {
   TimelineManifest,
 } from "@timetoalign/tilie-core";
 import { matchClaimFilterOf } from "@timetoalign/tilie-core";
+import type { Belief } from "@timetoalign/timetoshare";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import ConfirmDialog from "../ConfirmDialog.svelte";
 import { MATCH_CLAIM_TABLE, openFiles } from "../files.ts";
@@ -43,19 +46,19 @@ import {
   unsavedQuestion,
 } from "../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../messages.svelte.ts";
-import { beliefRows, beliefText, entryOf, followedMatch, paradataRows } from "./claimProvenance.ts";
+import { userOf } from "../user.svelte.ts";
+import { claimEntryLine, entryOf, followedMatch } from "./claimProvenance.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "./formats.svelte.ts";
-import type { ShownStamp } from "./matchstamps.ts";
+import type { ClaimLine, MatchIndexes, ShownStamp } from "./matchstamps.ts";
 import {
   addedMatchStamp,
   anchorDisplayCommand,
   claimLines,
   coordinateRows,
   differencesOf,
-  linesOf,
-  matchIndexes,
+  hiddenAnchorsNote,
   nameCommand,
   namedComparisons,
   namedStamp,
@@ -63,9 +66,11 @@ import {
   removeCommand,
   renameCommand,
   stampText,
+  stampToName,
   updateCommand,
 } from "./matchstamps.ts";
 import { dayOf } from "./metadata/edits.ts";
+import ProvenanceDetails from "./ProvenanceDetails.svelte";
 import type { HeldMatch } from "./tabs.ts";
 
 interface Props {
@@ -77,15 +82,21 @@ interface Props {
   match: HeldMatch | null;
   /** The MatchClaim tables of the workspace's blocks. */
   tables: MatchClaimTables;
-  /** The IRI of the editor's user: the believer of the belief filter. */
-  believer: string;
+  /**
+   * The anchor indexes of a block's table under its MatchClaim filter and
+   * the user's beliefs (`blockIndexes`), the canvas's and the drawer's
+   * too; `null` while the block holds no table.
+   */
+  indexesOf: (block: string) => MatchIndexes | null;
   /** The MatchStamp shown is now `next`: a potential one named, or `null` once removed. */
   onmatch: (next: HeldMatch | null) => void;
 }
 
-let { live, block, match, tables, believer, onmatch }: Props = $props();
+let { live, block, match, tables, indexesOf, onmatch }: Props = $props();
 
 const uid = $props.id();
+/** The editor's one user: the believer, whose beliefs the buttons record. */
+const user = userOf();
 const inform = informOf();
 const warn = warnOf();
 
@@ -97,13 +108,6 @@ const EMPTY_NAME = "A named MatchStamp keeps a name; Remove deletes it.";
 const NO_PROVENANCE = "No provenance entry: the table states none for it.";
 const NO_UPDATE =
   "None of its anchors is stated by the current table, so there is nothing to update from.";
-
-/** The words of the belief buttons, in the order shown. */
-const BELIEF_BUTTONS: readonly { readonly belief: BeliefWord; readonly label: string }[] = [
-  { belief: "true", label: "True" },
-  { belief: "unlikely", label: "Unlikely" },
-  { belief: "false", label: "False" },
-];
 
 /** The toggles of an anchor's display. */
 const ANCHOR_TOGGLES: readonly { readonly word: AnchorDisplay; readonly label: string }[] = [
@@ -129,13 +133,13 @@ const view = $derived(live.view);
 const blockId = $derived(match?.block ?? block?.id ?? null);
 const shownBlock = $derived(blockId === null ? undefined : view.blocks[blockId]);
 const manifest: Manifest | undefined = $derived(shownBlock?.manifest);
+/** The manifest's `@context`, under which an actor stands for an IRI. */
+const context: unknown = $derived(manifest?.["@context"]);
 const loaded = $derived(blockId === null ? null : tables.of(blockId));
 const filter = $derived(blockId === null ? null : matchClaimFilterOf(view.settings, blockId));
-const indexes = $derived(
-  loaded === null || filter === null ? null : matchIndexes(loaded.table, filter, believer),
-);
-const lines = $derived(
-  shownBlock === undefined ? [] : linesOf(drawingOf(shownBlock, view.graphical, fontMetrics)),
+const indexes = $derived(blockId === null ? null : indexesOf(blockId));
+const drawing = $derived(
+  shownBlock === undefined ? null : drawingOf(shownBlock, view.graphical, fontMetrics),
 );
 /** The named MatchStamp shown, as its manifest holds it. */
 const named = $derived.by(() => {
@@ -151,17 +155,30 @@ const comparison = $derived.by(() => {
   );
 });
 const stamp: ShownStamp | null = $derived.by(() => {
-  if (match === null || manifest === undefined) return null;
+  if (match === null || manifest === undefined || drawing === null) return null;
   if (match.kind === "potential") {
-    return potentialStamp(match.block, match.index, match.matchStamp, lines);
+    return potentialStamp(match.block, match.index, match.matchStamp, drawing);
   }
-  return named === null ? null : namedStamp(match.block, manifest, named, comparison, lines);
+  return named === null ? null : namedStamp(match.block, manifest, named, comparison, drawing);
 });
+/**
+ * What naming the potential MatchStamp shown stores: the whole MatchStamp
+ * the table states under the belief filter (`stampToName`), which a
+ * timelines filter only shows a part of; `null` for a named one.
+ */
+const naming: ShownStamp | null = $derived.by(() => {
+  if (stamp === null || stamp.id !== null || drawing === null) return null;
+  return indexes === null ? stamp : stampToName(stamp, indexes, drawing);
+});
+/** Why naming stores more anchors than are shown; `null` when it stores what is shown. */
+const hidden = $derived(
+  stamp === null || naming === null ? null : hiddenAnchorsNote(stamp, naming),
+);
 const rows = $derived(
   stamp === null || manifest === undefined ? [] : coordinateRows(manifest, stamp.coordinates),
 );
 const claims = $derived(
-  stamp === null ? [] : claimLines(loaded?.table ?? null, stamp.claims, believer),
+  stamp === null ? [] : claimLines(loaded?.table ?? null, stamp.claims, user.state.user, context),
 );
 /** The provenance of the MatchClaims the table holds, read through the server; `null` without a server or table. */
 const provenance = $derived.by(() => {
@@ -224,12 +241,12 @@ function commitName(): void {
   const name = nameDraft;
   if (stamp === null || name === null) return;
   if (stamp.id === null) {
-    if (name === "") {
+    if (name === "" || naming === null) {
       typed = { owner: match, name: null, problems: {} };
       return;
     }
     const before = live.store.view.blocks[stamp.block]?.manifest;
-    if (!send("name", stamp.block, nameCommand(stamp, name))) return;
+    if (!send("name", stamp.block, nameCommand(naming, name))) return;
     const added = addedMatchStamp(before, live.store.view.blocks[stamp.block]?.manifest);
     if (added !== null) onmatch({ kind: "named", block: stamp.block, id: added.id });
   } else if (name === "") {
@@ -256,11 +273,12 @@ function toggle(anchor: string, display: readonly AnchorDisplay[], word: AnchorD
 }
 
 function update(): void {
-  if (stamp === null || stamp.id === null || comparison?.update == null || indexes === null) return;
+  if (stamp === null || stamp.id === null || comparison?.update == null) return;
+  if (indexes === null || drawing === null) return;
   send(
     "update",
     stamp.block,
-    updateCommand(stamp.block, stamp.id, comparison.update, indexes.compared, lines),
+    updateCommand(stamp.block, stamp.id, comparison.update, indexes.compared, drawing),
   );
 }
 
@@ -280,7 +298,7 @@ let believing = $state(false);
  * follows the MatchStamp into it. The user's own belief again records
  * nothing.
  */
-async function believe(claim: string, belief: BeliefWord, mine: BeliefWord | null): Promise<void> {
+async function believe(claim: string, belief: Belief, mine: Belief | null): Promise<void> {
   if (stamp === null || match === null || manifest === undefined || believing) return;
   if (mine === belief) return;
   const shown = stamp;
@@ -289,7 +307,7 @@ async function believe(claim: string, belief: BeliefWord, mine: BeliefWord | nul
   try {
     const failure = await tables.believe(shown.block, manifest, {
       claim,
-      actor: believer,
+      actor: user.state.statedBy,
       belief,
       date: dayOf(new Date()),
     });
@@ -297,11 +315,7 @@ async function believe(claim: string, belief: BeliefWord, mine: BeliefWord | nul
       warn(failure);
       return;
     }
-    const replaced = tables.of(shown.block);
-    const next =
-      replaced === null || filter === null
-        ? null
-        : followedMatch(held, shown, matchIndexes(replaced.table, filter, believer).shown);
+    const next = followedMatch(held, shown, indexesOf(shown.block)?.shown ?? null);
     if (next !== held) onmatch(next);
     inform(`Recorded your belief ${belief} in ${claim}; Save MatchClaims… keeps it.`);
   } finally {
@@ -441,19 +455,18 @@ async function loadTable(): Promise<void> {
 }
 </script>
 
-{#snippet beliefList(
-  lines: Parameters<typeof beliefRows>[0],
-  entry: Parameters<typeof beliefRows>[1],
-)}
-  <ul class="beliefs" aria-label="Beliefs">
-    {#each beliefRows(lines, entry) as line (line.actor)}
-      <li class="belief">
-        {beliefText(line)}
-      </li>
-    {:else}
-      <li class="hint">nobody states a belief</li>
-    {/each}
-  </ul>
+{#snippet details(claim: ClaimLine, entry: Parameters<typeof claimEntryLine>[1])}
+  <div class="provenance">
+    <ProvenanceDetails
+      line={claimEntryLine(claim, entry, user.state.user, context)}
+      missing={NO_PROVENANCE}
+      mine={claim.mine}
+      label="Your belief in {claim.id}"
+      disabled={!tables.connected || believing}
+      title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
+      onbelieve={(belief) => believe(claim.id, belief, claim.mine)}
+    />
+  </div>
 {/snippet}
 
 {#snippet copyIcon()}
@@ -536,7 +549,9 @@ async function loadTable(): Promise<void> {
             placeholder={unnamed ? NAME_PLACEHOLDER : undefined}
             value={nameDraft ?? stamp.name ?? ""}
             aria-invalid={problems.name !== undefined}
-            aria-describedby={unnamed ? `${uid}-name-problem ${uid}-unnamed` : `${uid}-name-problem`}
+            aria-describedby={unnamed
+              ? `${uid}-name-problem ${uid}-unnamed${hidden === null ? "" : ` ${uid}-hidden`}`
+              : `${uid}-name-problem`}
             oninput={(event) =>
               (typed = { owner: match, name: event.currentTarget.value, problems: {} })}
             onkeydown={onNameKey}
@@ -547,6 +562,9 @@ async function loadTable(): Promise<void> {
       </div>
       {#if unnamed}
         <p class="hint" id="{uid}-unnamed">{UNNAMED}</p>
+        {#if hidden !== null}
+          <p class="hint" id="{uid}-hidden" data-testid="matchstamp-hidden-anchors">{hidden}</p>
+        {/if}
       {/if}
 
       <h4 id="{uid}-anchors">Alignment anchors</h4>
@@ -589,47 +607,18 @@ async function loadTable(): Promise<void> {
             <code>{claim.id}</code>
             {#if !claim.held}
               <span class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</span>
+            {:else if provenance === null}
+              {@render details(claim, undefined)}
             {:else}
-              <span class="toggles" role="group" aria-label="Your belief in {claim.id}">
-                {#each BELIEF_BUTTONS as button (button.belief)}
-                  <button
-                    type="button"
-                    class="toggle"
-                    aria-pressed={claim.mine === button.belief}
-                    disabled={!tables.connected || believing}
-                    title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
-                    onclick={() => believe(claim.id, button.belief, claim.mine)}
-                    >{button.label}</button
-                  >
-                {/each}
-              </span>
-              {#if provenance === null}
-                {@render beliefList(claim.beliefs, undefined)}
-              {:else}
-                {#await provenance}
-                  {@render beliefList(claim.beliefs, undefined)}
-                  <span class="hint" role="status">Reading the provenance…</span>
-                {:then read}
-                  {@const entry = entryOf(read, claim.id)}
-                  {@render beliefList(claim.beliefs, entry)}
-                  {#if entry === null}
-                    <span class="hint no-provenance">{NO_PROVENANCE}</span>
-                  {:else if entry !== undefined}
-                    {@const rows = paradataRows(entry)}
-                    {#if rows.length > 0}
-                      <dl class="paradata" aria-label="How {claim.id} was made">
-                        {#each rows as row (row.label)}
-                          <dt>{row.label}</dt>
-                          <dd>{row.text}</dd>
-                        {/each}
-                      </dl>
-                    {/if}
-                  {/if}
-                {:catch error}
-                  {@render beliefList(claim.beliefs, undefined)}
-                  <span class="problem" role="status">{provenanceFailure(error)}</span>
-                {/await}
-              {/if}
+              {#await provenance}
+                <span class="hint" role="status">Reading the provenance…</span>
+                {@render details(claim, undefined)}
+              {:then read}
+                {@render details(claim, entryOf(read, claim.id))}
+              {:catch error}
+                <span class="problem" role="status">{provenanceFailure(error)}</span>
+                {@render details(claim, undefined)}
+              {/await}
             {/if}
           </li>
         {/each}
@@ -919,26 +908,13 @@ async function loadTable(): Promise<void> {
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
   }
 
-  .beliefs {
+  /* A MatchClaim's provenance, under its ID: the Metadata tab's details. */
+  .provenance {
     flex-basis: 100%;
-    gap: 0.1rem;
-    color: #595959;
+    padding: 0.35rem 0.5rem;
+    border-left: 3px solid #c9d8ea;
+    background: #f7f9fc;
     font-size: 0.75rem;
-  }
-
-  .paradata {
-    display: grid;
-    flex-basis: 100%;
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 0.1rem 0.75rem;
-    margin: 0;
-    color: #595959;
-    font-size: 0.75rem;
-  }
-
-  .paradata dd {
-    margin: 0;
-    overflow-wrap: anywhere;
   }
 
   .toggles {

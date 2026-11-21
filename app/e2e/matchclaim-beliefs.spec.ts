@@ -165,12 +165,13 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
   const block = await importTable(page);
   await nameDownbeat(page, block);
 
-  // The provenance of the MatchStamp's one MatchClaim, and of nothing else.
+  // The provenance of the MatchStamp's one MatchClaim, and of nothing else, as the Metadata tab words it.
   const claim = page.getByTestId("matchstamp-properties").locator("li[data-claim='claim_1']");
-  const made = claim.getByRole("definition");
-  await expect(made).toHaveText([ME, "2026-11-20", "manual"]);
-  await expect(claim.getByRole("term")).toHaveText(["Stated by", "Date", "Method"]);
-  await expect(claim.getByRole("list", { name: "Beliefs" })).toHaveText(`${ME}: true, 2026-11-20`);
+  await expect(claim.getByRole("term")).toHaveText(["stated by", "method", "date"]);
+  await expect(claim.getByRole("definition")).toHaveText(["Ana", "manual", "2026-11-20"]);
+  await expect(claim.getByRole("list", { name: "Beliefs" })).toHaveText(
+    "Ana believes it true (2026-11-20)",
+  );
   expect(seen.provenance).toEqual([{ claims: ["claim_1"] }]);
   const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
   await expect(yours.getByRole("button", { name: "True" })).toHaveAttribute("aria-pressed", "true");
@@ -189,9 +190,9 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
     "aria-pressed",
     "true",
   );
-  // The index is rebuilt with the block's filter: the named MatchStamp now rests on a claim believed false.
+  // The index is rebuilt with the block's filter: the named MatchStamp now rests on a MatchClaim it leaves out.
   await expect(page.getByTestId("matchstamp-differences")).toContainText(
-    "MatchClaims believed false",
+    "MatchClaims the belief filter leaves out",
   );
   expect(await page.evaluate(() => window.__tilie.store().journal.length)).toBe(journal);
   // Nothing of the table enters the workspace file.

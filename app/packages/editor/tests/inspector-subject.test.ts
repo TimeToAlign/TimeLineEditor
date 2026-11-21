@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import { inspectedSubject } from "../src/inspector/words.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, storeOf as fixtureStore, informing } from "./support.ts";
+import { blockId, storeOf as fixtureStore, informing, noMatchClaims } from "./support.ts";
 
 /** The end-to-end workspaces, the generator's output. */
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
@@ -265,6 +265,7 @@ describe("the subject beside the inspector's heading", () => {
         },
         placement: null,
         storageKey: null,
+        ...noMatchClaims(),
       },
     });
     flushSync();

@@ -13,8 +13,8 @@ import TimestampPanel from "../src/inspector/TimestampPanel.svelte";
 import type { HeldMatch } from "../src/inspector/tabs.ts";
 import { namedPinOf } from "../src/inspector/timestamp.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
-import { BELIEFS_BY_ROW, ME, matchTable, q, tableManifest } from "./matches.ts";
-import { informing, storeOf } from "./support.ts";
+import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, q, tableManifest } from "./matches.ts";
+import { informing, providing, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const NO_SERVER = "Matches need a server: MatchClaim tables are read through tilie-server.";
@@ -43,21 +43,28 @@ function show(
   tables: MatchClaimTables,
   reported: (HeldMatch | null)[] = [],
 ): void {
-  mounted = mount(MatchstampPanel, {
+  const live = liveStore(store);
+  mounted = mount(providing(MatchstampPanel), {
     target: document.body,
     context: informing(),
     props: {
-      live: liveStore(store),
+      live,
       block: store.view.blocks[A] ?? null,
       match,
       tables,
-      believer: ME,
+      indexesOf: indexesOver(live, tables),
       onmatch: (next: HeldMatch | null) => {
         reported.push(next);
       },
     },
   });
   flushSync();
+}
+
+/** Unmount the tab mounted last. */
+function unmountTab(): void {
+  if (mounted !== null) unmount(mounted);
+  mounted = null;
 }
 
 function potential(
@@ -97,8 +104,12 @@ function button(label: string): HTMLButtonElement {
 }
 
 /** Name the potential MatchStamp of `clt_1` 0 "Downbeat" through the tab. */
+/** The indexes of `table` under `filter` for the user, under the table manifest's context. */
+const indexesUnder = (table: MatchClaimTable, filter = DEFAULT_MATCH_CLAIM_FILTER) =>
+  matchIndexes(table, filter, ME, tableManifest()["@context"]);
+
 function nameDownbeat(store: Store, table: MatchClaimTable = matchTable()): (HeldMatch | null)[] {
-  const { shown } = matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME);
+  const { shown } = indexesUnder(table);
   const reported: (HeldMatch | null)[] = [];
   show(store, potential(shown, "clt_1", q(0)), tablesWith(table), reported);
   name("Downbeat");
@@ -114,6 +125,45 @@ describe("naming", () => {
     expect(store.view.blocks[A]?.manifest.graphical?.matchstamps?.map((m) => m.name)).toEqual([
       "Downbeat",
     ]);
+    expect(document.querySelector("[data-testid=matchstamp-hidden-anchors]")).toBe(null);
+  });
+
+  it("stores the whole MatchStamp under a timelines filter, saying so first", () => {
+    const store = storeOf(tableManifest());
+    const filter = { timelines: ["clt_1", "dpt_1"], belief: "not_false" } as const;
+    expect(store.configure({ matchClaimFilters: { [A]: filter } })).toBe(null);
+    const table = matchTable();
+    const { shown } = indexesUnder(table, filter);
+    const reported: (HeldMatch | null)[] = [];
+    show(store, potential(shown, "clt_1", q(0)), tablesWith(table), reported);
+    expect(
+      [...document.querySelectorAll("li[data-claim]")].map((item) =>
+        item.getAttribute("data-claim"),
+      ),
+    ).toEqual(["claim_1"]);
+    const note = document.querySelector("[data-testid=matchstamp-hidden-anchors]");
+    expect(note?.textContent).toBe(
+      "Naming also stores 1 anchor on timelines the MatchClaim filter hides.",
+    );
+    expect(nameField().getAttribute("aria-describedby")?.split(" ")).toContain(note?.id);
+
+    const before = store.journal.length;
+    name("Downbeat");
+    expect(store.journal.length).toBe(before + 1);
+    expect(reported).toEqual([{ kind: "named", block: A, id: "matchstamp_1" }]);
+    const [stored] = store.view.blocks[A]?.manifest.graphical?.matchstamps ?? [];
+    expect(
+      stored?.alignment_anchors.map((anchor) => [anchor.id, anchor.timestamps, anchor.display]),
+    ).toEqual([
+      ["anchor_1", ["timestamp_1", "timestamp_2"], ["line", "name"]],
+      ["anchor_2", ["timestamp_1", "timestamp_3"], ["line"]],
+    ]);
+    expect(stored?.match_claims).toEqual(["claim_1", "claim_2"]);
+
+    unmountTab();
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(table));
+    expect(document.querySelector("[data-testid=matchstamp-differences]")).toBe(null);
+    expect([...document.querySelectorAll("li.gone")]).toEqual([]);
   });
 
   it("closes a timeline editor first, and keeps a bundle editor of the block", () => {
@@ -122,8 +172,7 @@ describe("naming", () => {
     nameDownbeat(timeline);
     expect(timeline.editing.length).toBe(0);
     expect(timeline.view.blocks[A]?.manifest.graphical?.matchstamps?.length).toBe(1);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = null;
+    unmountTab();
 
     const bundle = storeOf(tableManifest());
     expect(bundle.open({ block: A })).toBe(null);
@@ -138,8 +187,7 @@ describe("a named MatchStamp", () => {
   function named(): Store {
     const store = storeOf(tableManifest());
     nameDownbeat(store);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = null;
+    unmountTab();
     return store;
   }
   const DOWNBEAT: HeldMatch = { kind: "named", block: A, id: "matchstamp_1" };
@@ -158,7 +206,7 @@ describe("a named MatchStamp", () => {
     expect(anchors[1]?.querySelector(".gone-word")?.textContent).toBe("not stated by the table");
     const differences = document.querySelector("[data-testid=matchstamp-differences] dl");
     expect([...(differences?.children ?? [])].map((item) => item.textContent)).toEqual([
-      "MatchClaims believed false",
+      "MatchClaims the belief filter leaves out",
       "claim_1",
       "Anchors gone",
       "anchor_2",
@@ -212,17 +260,26 @@ describe("MatchClaims and beliefs", () => {
   it("lists the beliefs and the user's own, every belief button disabled without a server", () => {
     const store = storeOf(tableManifest());
     const table = matchTable();
-    const { shown } = matchIndexes(table, DEFAULT_MATCH_CLAIM_FILTER, ME);
+    const { shown } = indexesUnder(table);
+    const beliefs = (claim: string) =>
+      document
+        .querySelector(`li[data-claim='${claim}'] [data-testid=metadata-beliefs]`)
+        ?.textContent?.replace(/\s+/g, " ")
+        .trim();
+
+    show(store, potential(shown, "clt_1", q(0)), tablesWith(table));
+    expect([beliefs("claim_1"), beliefs("claim_2")]).toEqual([
+      "No one has stated a belief.",
+      "No one has stated a belief.",
+    ]);
+    unmountTab();
 
     show(store, potential(shown, "clt_1", q(4)), tablesWith(table));
-    const other = document.querySelector("li[data-claim='claim_4']");
-    expect(other?.querySelector(".beliefs")?.textContent?.trim()).toBe(
-      "tag:example.org,2026:other: true",
-    );
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = null;
+    expect(beliefs("claim_4")).toBe("tag:example.org,2026:other believes it true");
+    unmountTab();
 
     show(store, potential(shown, "cpt_1", 8), tablesWith(table));
+    expect(beliefs("claim_5")).toBe("Gerhardt believes it true");
     const mine = document.querySelector("li[data-claim='claim_5']");
     const buttons = [...(mine?.querySelectorAll("button") ?? [])];
     expect(
@@ -308,8 +365,7 @@ describe("the Timestamp tab", () => {
   it("lists the MatchStamps a match timestamp belongs to, and none for an ordinary one", () => {
     const store = storeOf(tableManifest());
     nameDownbeat(store);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = null;
+    unmountTab();
     expect(
       store.dispatch({
         type: "add",

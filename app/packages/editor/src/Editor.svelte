@@ -37,9 +37,10 @@ import {
   withMatchClaimTable,
 } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
-import { matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
+import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
+import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
@@ -391,8 +392,15 @@ const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
 
 // --- Matches ------------------------------------------------------------------
 
-/** The anchor indexes of block `block`'s table under its filter; `null` without one. */
-const indexesOf = (block: string) => drawer?.indexesOf(block) ?? null;
+/**
+ * The anchor indexes of block `block`'s table under its MatchClaim filter,
+ * for the user and under the block's manifest's context; `null` without a
+ * table. The canvas, the drawer and the Matchstamp tab read this one.
+ */
+const indexesOf = (block: string) =>
+  blockIndexes(session.live.view, block, session.tables.of(block)?.table ?? null, user.statedBy);
+/** What the canvas says while Show matches has nothing to draw: why, without a server. */
+const matchesStatus = $derived(session.tables.connected ? undefined : MATCHES_NEED_A_SERVER);
 
 /**
  * What the canvas's match overlay draws: for every block holding a
@@ -560,6 +568,7 @@ if (withTestHook) {
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
         picking={picking.active ? picking.take : null}
         {matches}
+        {matchesStatus}
         {pinnedMatchStamp}
         onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
       />
@@ -573,7 +582,7 @@ if (withTestHook) {
       storageKey={storage?.inspectorKey ?? null}
       knotsOf={(manifest) => canvas?.knotsOf(manifest)}
       tables={session.tables}
-      believer={user.statedBy}
+      {indexesOf}
     />
   </main>
 

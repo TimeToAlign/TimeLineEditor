@@ -312,7 +312,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 170 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 172 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -1227,8 +1227,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
    remembers the tab before, letting it go shows that tab again; a named
    MatchStamp is named by its own address and by an anchor's, by nothing
-   else; a potential one is let go once its block's index is another
-   object, a named one once its address names nothing.
+   else; a potential one is shown only while its block's index is the
+   object it was read from, a named one only while its address names it
+   (`matchOutlived`, which the drawer derives what it shows from).
 8. **The overlay** the canvas is given, in the arranger's types: without
    a table `matches` is empty; with the block's table, one entry `{block,
    index, named}` with the block's shown index and every named MatchStamp

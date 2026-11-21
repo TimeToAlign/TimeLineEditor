@@ -20,8 +20,10 @@ import { flushSync } from "svelte";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
+import type { MatchIndexes } from "../src/inspector/matchstamps.ts";
 import type { Lookup } from "../src/lookup/index.ts";
 import { NO_LOOKUP, provideLookup } from "../src/lookup/index.ts";
+import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import { ProfilesState, provideProfiles } from "../src/profiles/profiles.svelte.ts";
 import type { TestHook } from "../src/testHook.ts";
@@ -229,6 +231,17 @@ export function informing(informed: string[] = []): ReturnType<typeof informCont
   return informContext((text) => {
     informed.push(text);
   });
+}
+
+/**
+ * The MatchClaim props of the inspector drawer for an editor without a
+ * server: no table held, so no block has indexes.
+ */
+export function noMatchClaims(): {
+  tables: MatchClaimTables;
+  indexesOf: (block: string) => MatchIndexes | null;
+} {
+  return { tables: new MatchClaimTables(null), indexesOf: () => null };
 }
 
 /** The editor's user context over `state` (the default user, kept nowhere), whose question does nothing. */

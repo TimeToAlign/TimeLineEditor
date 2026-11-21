@@ -20,8 +20,15 @@ import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
-import { BELIEFS_BY_ROW, ME, matchTable, OTHER, q, tableManifest } from "./matches.ts";
-import { answer, interceptDownloads, openDialog, storeOf, workspaceOf } from "./support.ts";
+import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, OTHER, q, tableManifest } from "./matches.ts";
+import {
+  answer,
+  interceptDownloads,
+  openDialog,
+  providing,
+  storeOf,
+  workspaceOf,
+} from "./support.ts";
 
 const A = "0000000000";
 const NAME = "match_claims.parquet";
@@ -113,18 +120,19 @@ function show(store: Store, match: HeldMatch | null, tables: MatchClaimTables) {
   const reported: (HeldMatch | null)[] = [];
   const informed: string[] = [];
   const warned: string[] = [];
-  mounted = mount(MatchstampPanel, {
+  const live = liveStore(store);
+  mounted = mount(providing(MatchstampPanel), {
     target: document.body,
     context: informContext(
       (said) => void informed.push(said),
       (said) => void warned.push(said),
     ),
     props: {
-      live: liveStore(store),
+      live,
       block: store.view.blocks[A] ?? null,
       match,
       tables,
-      believer: ME,
+      indexesOf: indexesOver(live, tables),
       onmatch: (next: HeldMatch | null) => {
         reported.push(next);
       },
@@ -203,9 +211,9 @@ describe("provenance on demand", () => {
     ]);
     await settled();
     expect(paradata("claim_1")).toEqual([
-      ["Date", "2026-11-20"],
-      ["Method", "imported"],
-      ["Service", SERVICE],
+      ["method", "imported"],
+      ["service", SERVICE],
+      ["date", "2026-11-20"],
     ]);
     expect(paradata("claim_2")).toEqual([]);
     expect(text(claimItem("claim_2").querySelector(".no-provenance"))).toBe(
@@ -220,7 +228,7 @@ describe("provenance on demand", () => {
     await settled();
     expect(calls.provenance.map(([, , claims]) => claims)).toEqual([["claim_4"]]);
     expect(text(claimItem("claim_4").querySelector(".beliefs"))).toBe(
-      "tag:example.org,2026:other: true, 2026-11-21 “seen in the score”",
+      "tag:example.org,2026:other believes it true (2026-11-21): seen in the score",
     );
   });
 
@@ -246,9 +254,9 @@ describe("provenance on demand", () => {
     show(store, match, tables);
     await settled();
     expect(paradata("claim_1")).toEqual([
-      ["Date", "2026-11-20"],
-      ["Method", "imported"],
-      ["Service", SERVICE],
+      ["method", "imported"],
+      ["service", SERVICE],
+      ["date", "2026-11-20"],
     ]);
     remount();
     show(store, match, tables);

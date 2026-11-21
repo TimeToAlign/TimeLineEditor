@@ -7,13 +7,13 @@
  * rendered; what the Properties and Manifest tabs hold between visits
  * (typed text, a chosen format) lives in their state objects, which a host
  * keeping them while the inspector is not shown passes in, with the tab
- * chosen, the pinned timestamp and the MatchStamp shown. The Metadata tab
- * takes the user and the lookup from the editor's context.
+ * chosen, the pinned timestamp and the MatchStamp shown. The Metadata and
+ * Matchstamp tabs take the user from the editor's context, the Metadata
+ * tab the lookup too.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Pin } from "@timetoalign/tilie-core";
-import { DEFAULT_USER, statedBy } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
@@ -25,6 +25,7 @@ import ManifestTextPanel from "./ManifestTextPanel.svelte";
 import MatchstampPanel from "./MatchstampPanel.svelte";
 import MetadataPanel from "./MetadataPanel.svelte";
 import { ManifestText } from "./manifestText.svelte.ts";
+import type { MatchIndexes } from "./matchstamps.ts";
 import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
@@ -53,7 +54,7 @@ let {
   timestamp = null,
   match = $bindable(null),
   tables = new MatchClaimTables(null),
-  believer = statedBy(DEFAULT_USER),
+  indexesOf = () => null,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -74,8 +75,8 @@ let {
   match?: ShownMatch | null;
   /** The MatchClaim tables of the workspace's blocks; none read without a server. */
   tables?: MatchClaimTables;
-  /** The IRI of the editor's user, the believer of the MatchClaim filter. */
-  believer?: string;
+  /** The anchor indexes of a block's table (`blockIndexes`); none without tables. */
+  indexesOf?: (block: string) => MatchIndexes | null;
 } = $props();
 
 const uid = $props.id();
@@ -183,7 +184,7 @@ const hinted = $derived(block === null && !manifest.dirty);
       {:else if item === "timestamp"}
         <TimestampPanel {live} pin={timestamp} onpin={repinned} />
       {:else if item === "matchstamp"}
-        <MatchstampPanel {live} {block} {match} {tables} {believer} onmatch={rematched} />
+        <MatchstampPanel {live} {block} {match} {tables} {indexesOf} onmatch={rematched} />
       {:else if item === "metadata"}
         <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
       {:else if item === "properties"}

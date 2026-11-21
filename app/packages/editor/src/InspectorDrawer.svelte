@@ -14,9 +14,11 @@
  * after every change, and dropped once the timestamp is gone. A potential
  * MatchStamp pinned on the canvas, or exactly one named MatchStamp (or one
  * of its anchors) selected, is shown in the Matchstamp tab, opening the
- * drawer; a potential one is dropped once its block's anchor index is
- * another (its table, its filter or the user changed), a named one once it
- * is gone.
+ * drawer; a potential one is shown while its block's anchor index is the
+ * one it was read from (no longer once its table, its filter or the user
+ * changed), a named one while it exists. The editor gives the drawer the
+ * MatchClaim tables and the one function reading their indexes, which the
+ * canvas reads too.
  */
 import type {
   KnotsOf,
@@ -26,13 +28,11 @@ import type {
   Selection,
 } from "@timetoalign/tilie-arranger";
 import type { Address, Pin } from "@timetoalign/tilie-core";
-import { DEFAULT_USER, matchClaimFilterOf, statedBy } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import Inspector from "./inspector/Inspector.svelte";
 import { ManifestText } from "./inspector/manifestText.svelte.ts";
 import type { MatchIndexes } from "./inspector/matchstamps.ts";
-import { matchIndexes } from "./inspector/matchstamps.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
 import type { HeldMatch, Picked, ShownMatch, ShownPin } from "./inspector/tabs.ts";
 import {
@@ -48,7 +48,7 @@ import {
 } from "./inspector/tabs.ts";
 import { namedAddress, namedPinOf } from "./inspector/timestamp.ts";
 import { inspectedSubject } from "./inspector/words.ts";
-import { MatchClaimTables } from "./matchClaims.svelte.ts";
+import type { MatchClaimTables } from "./matchClaims.svelte.ts";
 
 interface Props {
   live: LiveStore;
@@ -64,20 +64,17 @@ interface Props {
    */
   knotsOf?: KnotsOf | undefined;
   /** The MatchClaim tables of the workspace's blocks; none read without a server. */
-  tables?: MatchClaimTables;
-  /** The IRI of the editor's user, the believer of the MatchClaim filter. */
-  believer?: string;
+  tables: MatchClaimTables;
+  /**
+   * The anchor indexes of block `block`'s table under its MatchClaim filter
+   * and the user's beliefs (`blockIndexes`): the one the overlay draws and
+   * the Matchstamp tab reads a potential MatchStamp from (`shown`), and the
+   * one named MatchStamps are compared with; `null` while no table is loaded.
+   */
+  indexesOf: (block: string) => MatchIndexes | null;
 }
 
-let {
-  live,
-  selection,
-  placement,
-  storageKey,
-  knotsOf,
-  tables = new MatchClaimTables(null),
-  believer = statedBy(DEFAULT_USER),
-}: Props = $props();
+let { live, selection, placement, storageKey, knotsOf, tables, indexesOf }: Props = $props();
 
 const id = $props.id();
 
@@ -103,7 +100,15 @@ const manifest = new ManifestText();
 const drafts = new PropertyDrafts();
 let picked: Picked = $state.raw(untrack(() => initialPick(live.editing.length, live.openings)));
 let pin = $state.raw<ShownPin | null>(null);
-let match = $state.raw<ShownMatch | null>(null);
+/** The MatchStamp last shown, with the tab shown before it; `null` for none. */
+let heldMatch = $state.raw<ShownMatch | null>(null);
+/** The MatchStamp the Matchstamp tab shows: the one held, while it holds in the view and the indexes. */
+const match: ShownMatch | null = $derived(
+  heldMatch !== null &&
+    matchOutlived(heldMatch, live.view, indexesOf(heldMatch.block)?.shown ?? null)
+    ? null
+    : heldMatch,
+);
 let inspector: ReturnType<typeof Inspector> | undefined = $state();
 
 /**
@@ -146,27 +151,15 @@ export function setOpen(next: boolean): void {
 export function pinTimestamp(next: Pin | null): void {
   const held = next === null ? null : heldOf(live.view, next);
   if (held !== null && !open) setOpen(true);
-  if (held !== null) match = null;
+  if (held !== null) heldMatch = null;
   ({ picked, pin } = pinned({ picked, pin }, held));
-}
-
-/**
- * The anchor indexes of block `block`'s table under its MatchClaim filter
- * and the user's beliefs (`matchIndexes`): the one the overlay draws and the
- * Matchstamp tab reads a potential MatchStamp from (`shown`), and the one
- * named MatchStamps are compared with; `null` while no table is loaded.
- */
-export function indexesOf(block: string): MatchIndexes | null {
-  const loaded = tables.of(block);
-  if (loaded === null) return null;
-  return matchIndexes(loaded.table, matchClaimFilterOf(live.view.settings, block), believer);
 }
 
 /** Show `next` in the Matchstamp tab, opening the drawer and selecting the tab, or let it go (`null`). */
 function showMatch(next: HeldMatch | null): void {
   if (next !== null && !open) setOpen(true);
   if (next !== null) pin = null;
-  ({ picked, match } = matchPinned({ picked, match }, next));
+  ({ picked, match: heldMatch } = matchPinned({ picked, match }, next));
 }
 
 /**
@@ -211,12 +204,6 @@ export function selected(addresses: readonly Address[]): void {
 // A pin is dropped, the tab kept, once it no longer holds: its values were read from another manifest or granularity.
 $effect(() => {
   if (pin !== null && outlived(pin, live.view)) pin = null;
-});
-
-// A MatchStamp is let go, the tab kept, once it no longer holds.
-$effect(() => {
-  if (match !== null && matchOutlived(match, live.view, indexesOf(match.block)?.shown ?? null))
-    match = null;
 });
 
 /** A click in the editor outside the canvas at `target`: clears the pin unless it lies in the tab list or the shown panel. */
@@ -288,9 +275,9 @@ async function show(next: boolean): Promise<void> {
       bind:picked
       bind:pin
       {timestamp}
-      bind:match
+      bind:match={() => match, (next) => (heldMatch = next)}
       {tables}
-      {believer}
+      {indexesOf}
     />
   {/if}
 </aside>
