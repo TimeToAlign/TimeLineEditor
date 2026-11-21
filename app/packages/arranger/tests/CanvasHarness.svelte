@@ -5,7 +5,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
 import { liveStore } from "../src/liveStore.svelte.ts";
-import type { MatchOverlayInput } from "../src/matches.ts";
+import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
 import type { ResizeMode } from "../src/resize.ts";
 import { NOTHING_SELECTED, type Selection } from "../src/selection.ts";
 
@@ -15,7 +15,7 @@ let {
   oncoordinatepin = () => {},
   measureMaps,
   picking = null,
-  matches: initialMatches = null,
+  matches: initialMatches = [],
   onmatchstamppin = () => {},
 }: {
   store: Store;
@@ -23,8 +23,8 @@ let {
   oncoordinatepin?: (pin: Pin | null) => void;
   measureMaps?: (manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">;
   picking?: ((address: Address) => void) | null;
-  matches?: MatchOverlayInput | null;
-  onmatchstamppin?: (set: number | null) => void;
+  matches?: readonly MatchOverlayInput[];
+  onmatchstamppin?: (pin: MatchStampPin | null) => void;
 } = $props();
 
 const live = $derived(liveStore(store));
@@ -36,8 +36,8 @@ let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let pinned: Pin | null = $state.raw(null);
 // The initial table only: a case replaces it through `showMatches`.
 // svelte-ignore state_referenced_locally
-let matches: MatchOverlayInput | null = $state.raw(initialMatches);
-let pinnedMatchStamp: number | null = $state(null);
+let matches: readonly MatchOverlayInput[] = $state.raw(initialMatches);
+let pinnedMatchStamp: MatchStampPin | null = $state.raw(null);
 
 /** The selection and the viewport as the canvas has them now. */
 export function current(): { selection: Selection; viewport: Viewport } {
@@ -70,13 +70,13 @@ export function read() {
   return knotsRead;
 }
 
-/** Give the canvas `next` as its table and named MatchStamps, as the editor does. */
-export function showMatches(next: MatchOverlayInput | null): void {
+/** Give the canvas `next` as its blocks' tables and named MatchStamps, as the editor does. */
+export function showMatches(next: readonly MatchOverlayInput[]): void {
   matches = next;
 }
 
 /** Give the canvas `next` as its pinned potential MatchStamp, as the editor does. */
-export function pinMatchStamp(next: number | null): void {
+export function pinMatchStamp(next: MatchStampPin | null): void {
   pinnedMatchStamp = next;
 }
 

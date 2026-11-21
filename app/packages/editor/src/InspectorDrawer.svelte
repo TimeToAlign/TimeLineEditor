@@ -18,7 +18,13 @@
  * another (its table, its filter or the user changed), a named one once it
  * is gone.
  */
-import type { KnotsOf, LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
+import type {
+  KnotsOf,
+  LivePlacement,
+  LiveStore,
+  MatchStampPin,
+  Selection,
+} from "@timetoalign/tilie-arranger";
 import type { Address, Pin } from "@timetoalign/tilie-core";
 import { DEFAULT_USER, matchClaimFilterOf, statedBy } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
@@ -164,16 +170,17 @@ function showMatch(next: HeldMatch | null): void {
 }
 
 /**
- * Pin the potential MatchStamp `matchStamp` of block `block`'s shown index
- * (`indexesOf`) in the Matchstamp tab, or let a pinned one go (`null`).
+ * Pin the potential MatchStamp `pin` (its block and its number in that
+ * block's shown index, `indexesOf`) in the Matchstamp tab, or let a pinned
+ * one go (`null`).
  */
-export function pinMatchStamp(block: string, matchStamp: number | null): void {
-  const index = indexesOf(block)?.shown ?? null;
-  if (matchStamp === null || index === null) {
+export function pinMatchStamp(pin: MatchStampPin | null): void {
+  const index = pin === null ? null : (indexesOf(pin.block)?.shown ?? null);
+  if (pin === null || index === null) {
     if (match?.kind === "potential") showMatch(null);
     return;
   }
-  showMatch({ kind: "potential", block, index, matchStamp });
+  showMatch({ kind: "potential", block: pin.block, index, matchStamp: pin.matchStamp });
 }
 
 /** The MatchStamp the Matchstamp tab shows; `null` for none. */

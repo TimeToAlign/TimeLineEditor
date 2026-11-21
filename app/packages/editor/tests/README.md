@@ -1183,10 +1183,19 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    MatchStamp is named by its own address and by an anchor's, by nothing
    else; a potential one is let go once its block's index is another
    object, a named one once its address names nothing.
-8. **The overlay** the canvas is given: without a table `matches` is
-   `null`; with one, `{block, index, named}` with the shown index and every
-   named MatchStamp compared against the compared index, the pinned number
-   only for a potential MatchStamp of that block read from that index.
+8. **The overlay** the canvas is given, in the arranger's types: without
+   a table `matches` is empty; with the block's table, one entry `{block,
+   index, named}` with the block's shown index and every named MatchStamp
+   compared against its compared index (the cached comparisons, the same
+   object); a block listed as holding a table that the view no longer
+   holds, or whose table is gone, gives no entry. Each comparison's
+   `stated` follows its MatchStamp's `alignment_anchors`: with "Downbeat"
+   named and the user believing `claim_1` false, `stated` of
+   `matchstamp_1` is [an index anchor, `null`] for [`anchor_1`, `anchor_2`],
+   the order the canvas reads to draw `anchor_2` red. The pinned
+   MatchStamp is `{block, matchStamp}` only for a potential MatchStamp
+   read from its block's shown index as it is now; read from another
+   index, a named one, or none, it is `null`.
 9. **Loading** (`matchclaims-loading.test.ts`, the server stubbed as an
    object with `matchClaims`): the pickers offer the MatchClaim table
    beside a manifest or a workspace (`application/vnd.apache.parquet`

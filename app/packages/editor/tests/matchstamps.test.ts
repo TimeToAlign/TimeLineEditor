@@ -11,10 +11,11 @@ import {
   differencesOf,
   linesOf,
   matchIndexes,
-  matchOverlay,
+  matchInputs,
   nameCommand,
   namedComparisons,
   namedStamp,
+  pinnedMatchStampOf,
   potentialStamp,
   removeCommand,
   updateCommand,
@@ -233,29 +234,42 @@ describe("the tab rule of MatchStamps", () => {
 });
 
 describe("the overlay", () => {
-  it("gives the shown index, the named comparisons and the pinned number of that index", () => {
+  it("gives every block with a table its shown index and its named comparisons", () => {
     const { store, lines } = setup();
     nameDownbeat(store, lines);
-    const onpin = () => undefined;
-    expect(matchOverlay(store.view, A, null, null, onpin)).toEqual({
-      matches: null,
-      pinnedMatchStamp: null,
-      onmatchstamppin: onpin,
-    });
+    const table = matchTable([[[ME, "false"]], ...BELIEFS_BY_ROW.slice(1)]);
+    const indexes = matchIndexes(table, { timelines: ["clt_1", "dpt_1"], belief: "not_false" }, ME);
+    const indexesOf = (block: string) => (block === A ? indexes : null);
+    expect(matchInputs(store.view, [], indexesOf)).toEqual([]);
+    const manifest = store.view.blocks[A]?.manifest;
+    if (manifest === undefined) throw new Error("no manifest");
+    const [input, ...others] = matchInputs(store.view, [A, "zzzzzzzzzz"], indexesOf);
+    expect(others).toEqual([]);
+    expect(input?.block).toBe(A);
+    expect(input?.index).toBe(indexes.shown);
+    expect(input?.named).toBe(namedComparisons(manifest, indexes.compared));
+    expect(matchInputs(store.view, [A], () => null)).toEqual([]);
+    // `stated` in the order of the MatchStamp's `alignment_anchors`: anchor_1 stated, anchor_2 not.
+    const anchors = manifest.graphical?.matchstamps?.[0]?.alignment_anchors ?? [];
+    const [named] = input?.named ?? [];
+    expect(anchors.map((anchor) => anchor.id)).toEqual(["anchor_1", "anchor_2"]);
+    expect(named?.comparison.stated.map((anchor) => anchor === null)).toEqual([false, true]);
+  });
+
+  it("pins a potential MatchStamp with its block, read from that block's shown index", () => {
     const indexes = matchIndexes(
       matchTable(),
       { timelines: ["clt_1", "dpt_1"], belief: "not_false" },
       ME,
     );
+    const indexesOf = (block: string) => (block === A ? indexes : null);
     const pinned: HeldMatch = { kind: "potential", block: A, index: indexes.shown, matchStamp: 1 };
-    const overlay = matchOverlay(store.view, A, indexes, pinned, onpin);
-    expect(overlay.matches?.block).toBe(A);
-    expect(overlay.matches?.index).toBe(indexes.shown);
-    const manifest = store.view.blocks[A]?.manifest;
-    if (manifest === undefined) throw new Error("no manifest");
-    expect(overlay.matches?.named).toBe(namedComparisons(manifest, indexes.compared));
-    expect(overlay.pinnedMatchStamp).toBe(1);
-    const elsewhere: HeldMatch = { ...pinned, index: indexes.compared };
-    expect(matchOverlay(store.view, A, indexes, elsewhere, onpin).pinnedMatchStamp).toBe(null);
+    expect(pinnedMatchStampOf(pinned, indexesOf)).toEqual({ block: A, matchStamp: 1 });
+    expect(pinnedMatchStampOf({ ...pinned, index: indexes.compared }, indexesOf)).toBe(null);
+    expect(pinnedMatchStampOf(pinned, () => null)).toBe(null);
+    expect(pinnedMatchStampOf({ kind: "named", block: A, id: "matchstamp_1" }, indexesOf)).toBe(
+      null,
+    );
+    expect(pinnedMatchStampOf(null, indexesOf)).toBe(null);
   });
 });

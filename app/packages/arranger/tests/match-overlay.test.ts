@@ -12,19 +12,19 @@ import { idAddress, inBlock } from "@timetoalign/tilie-core";
 import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
-import type { MatchOverlayInput } from "../src/matches.ts";
+import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
 import { NO_MATCHES } from "../src/matches.ts";
 import type { Selection } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 import { NAMED, T } from "./matchTables.ts";
-import { A, blockIn, metrics, storeOf, viewOf } from "./support.ts";
+import { A, B, blockIn, metrics, storeOf, viewOf } from "./support.ts";
 
 interface Mounted {
   current(): { selection: Selection };
-  showMatches(next: MatchOverlayInput | null): void;
-  pinMatchStamp(next: number | null): void;
+  showMatches(next: readonly MatchOverlayInput[]): void;
+  pinMatchStamp(next: MatchStampPin | null): void;
   showAt(next: { x: number; y: number; zoom: number }): void;
 }
 
@@ -32,15 +32,27 @@ interface Mounted {
 const NODE = { x: 40, y: 80 };
 const SCORE_Y = 43.20703125;
 const AT_300 = 361.0927734375;
-const WITH_T: MatchOverlayInput = { index: T, named: NAMED };
+const WITH_T: readonly MatchOverlayInput[] = [{ block: A, index: T, named: NAMED }];
+/** Block B: the same manifest 250 below block A. */
+const B_BELOW = 250;
+const WITH_T_TWICE: readonly MatchOverlayInput[] = [
+  ...WITH_T,
+  { block: B, index: T, named: NAMED },
+];
 
-const matchView = (): View =>
-  viewOf({ id: A, fixture: "bundles/bundle_matchstamps", x: 40, y: 80 });
+const MATCHES = "bundles/bundle_matchstamps";
+const matchView = (twice: boolean): View =>
+  twice
+    ? viewOf(
+        { id: A, fixture: MATCHES, x: 40, y: 80 },
+        { id: B, fixture: MATCHES, x: 40, y: 80 + B_BELOW },
+      )
+    : viewOf({ id: A, fixture: MATCHES, x: 40, y: 80 });
 
 let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
 let store: Store;
-let pins: (number | null)[];
+let pins: (MatchStampPin | null)[];
 let resize: ReturnType<typeof stubCanvasGlobals>["resize"];
 
 beforeEach(() => {
@@ -56,15 +68,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function show(matches: MatchOverlayInput | null): Promise<void> {
-  store = storeOf(matchView());
+async function show(matches: readonly MatchOverlayInput[], twice = false): Promise<void> {
+  store = storeOf(matchView(twice));
   const instance = mount(Harness, {
     target: document.body,
     props: {
       store,
       metrics,
       matches,
-      onmatchstamppin: (set: number | null) => pins.push(set),
+      onmatchstamppin: (pin: MatchStampPin | null) => pins.push(pin),
     },
   });
   mounted = instance;
@@ -90,6 +102,8 @@ function one(selector: string, root: ParentNode = document): Element {
 
 /** The client point of block A's drawing point `(x, y)` (jsdom puts the canvas at 0, 0). */
 const client = (x: number, y: number) => ({ clientX: NODE.x + x, clientY: NODE.y + y });
+/** The client point of block B's drawing point `(x, y)`. */
+const clientB = (x: number, y: number) => client(x, y + B_BELOW);
 
 function pointerOn(target: EventTarget, type: string, at: { clientX: number; clientY: number }) {
   target.dispatchEvent(
@@ -133,8 +147,8 @@ async function key(name: string): Promise<void> {
 const pressed = (testid: string) => one(`[data-testid="${testid}"]`).getAttribute("aria-pressed");
 
 /** The overlay's path of `kind`, `null` where none is drawn. */
-const path = (kind: string) =>
-  document.querySelector(`[data-matches="${A}"] path[data-match="${kind}"]`);
+const path = (kind: string, block = A) =>
+  document.querySelector(`[data-matches="${block}"] path[data-match="${kind}"]`);
 
 /** The lines, then the connectors, of `README.md`'s MatchStamp 0, as the writers write them. */
 const STAMP_0 = [
@@ -170,7 +184,7 @@ describe("the mode", () => {
   });
 
   it("says that matches need a server and a table while it has none", async () => {
-    await show(null);
+    await show([]);
     expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
     await key("m");
     expect(one('[data-testid="matches-state"]').textContent).toBe(NO_MATCHES);
@@ -252,9 +266,9 @@ describe("hovering and pinning", () => {
     await key("m");
     await clickAt(client(AT_300 + 3, SCORE_Y - 3));
     await clickAt(client(461.0927734375, 70));
-    expect(pins).toEqual([0, null]);
+    expect(pins).toEqual([{ block: A, matchStamp: 0 }, null]);
 
-    harness.pinMatchStamp(0);
+    harness.pinMatchStamp({ block: A, matchStamp: 0 });
     await settle();
     expect(["d", "stroke"].map((name) => path("pinned")?.getAttribute(name))).toEqual([
       STAMP_0,
@@ -263,7 +277,7 @@ describe("hovering and pinning", () => {
     await hoverAt(client(AT_300 + 3, SCORE_Y - 3));
     expect(path("hovered")).toBeNull();
 
-    harness.pinMatchStamp(1);
+    harness.pinMatchStamp({ block: A, matchStamp: 1 });
     await settle();
     expect(path("pinned")?.getAttribute("d")).toBe(STAMP_1);
   });
@@ -281,7 +295,7 @@ describe("the named MatchStamps", () => {
     expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#E51400"]);
     await key("m");
     expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#E51400"]);
-    harness.showMatches(null);
+    harness.showMatches([]);
     await settle();
     expect([strokeOf("anchor_1"), strokeOf("anchor_2")]).toEqual(["#1BA1E2", "#1BA1E2"]);
   });
@@ -339,5 +353,35 @@ describe("the named MatchStamps", () => {
         element.getAttribute("data-part"),
       ),
     ).toEqual([null, "name"]);
+  });
+});
+
+describe("one table per block", () => {
+  /** The stroke of the drawn line of the alignment anchor `id` in block `block`'s node. */
+  const strokeIn = (block: string, id: string) =>
+    one(
+      `.svelte-flow__node[data-id="${block}"] svg line[data-id="${id}"]:not([data-part])`,
+    ).getAttribute("stroke");
+  const overlays = () =>
+    [...document.querySelectorAll("[data-matches]")].map((svg) => svg.getAttribute("data-matches"));
+
+  it("draws a block's table over that block alone, its anchors red there alone", async () => {
+    await show(WITH_T, true);
+    await key("m");
+    expect(overlays()).toEqual([A]);
+    expect([strokeIn(A, "anchor_2"), strokeIn(B, "anchor_2")]).toEqual(["#E51400", "#1BA1E2"]);
+    await clickAt(clientB(AT_300 + 3, SCORE_Y - 3));
+    expect(pins).toEqual([null]);
+  });
+
+  it("pins a MatchStamp with its block and draws it pinned in that block alone", async () => {
+    await show(WITH_T_TWICE, true);
+    await key("m");
+    expect(overlays()).toEqual([A, B]);
+    await clickAt(clientB(AT_300 + 3, SCORE_Y - 3));
+    expect(pins).toEqual([{ block: B, matchStamp: 0 }]);
+    harness.pinMatchStamp({ block: B, matchStamp: 0 });
+    await settle();
+    expect([path("pinned", A), path("pinned", B)?.getAttribute("d")]).toEqual([null, STAMP_0]);
   });
 });

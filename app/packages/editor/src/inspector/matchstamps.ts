@@ -10,6 +10,11 @@
  * nothing here computes an anchor or a potential MatchStamp.
  */
 
+import type {
+  MatchOverlayInput,
+  MatchStampPin,
+  NamedComparison,
+} from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import type {
   AnchorDisplay,
@@ -120,15 +125,14 @@ export function matchIndexes(
   return { compared, shown };
 }
 
-/** A named MatchStamp compared with the current table: its ID and core's comparison. */
-export interface NamedComparison {
-  readonly id: string;
-  readonly comparison: MatchStampCheck;
-}
-
 const comparisonCache = new WeakMap<Manifest, WeakMap<AnchorIndex, readonly NamedComparison[]>>();
 
-/** Every named MatchStamp of `manifest` compared with `index` (`checkMatchStamp`), in the manifest's order. */
+/**
+ * Every named MatchStamp of `manifest` compared with `index`
+ * (`checkMatchStamp`), in the manifest's order; each comparison's `stated`
+ * follows its MatchStamp's `alignment_anchors` (`matchStampSpec` lists them
+ * in that order), which is how the canvas finds the anchors to draw red.
+ */
 export function namedComparisons(
   manifest: Manifest,
   index: AnchorIndex,
@@ -151,56 +155,39 @@ export function namedComparisons(
 // --- The overlay -------------------------------------------------------------
 
 /**
- * What the arranger's canvas draws as the match overlay (its `matches`
- * prop): the block, the anchor index of its potential MatchStamps (the
- * shown index) and its named MatchStamps compared with the current table
- * (against the compared index, so an anchor of a named MatchStamp on a
- * timeline the filter leaves out still counts as stated).
+ * The canvas's `matches`: for every block of `blocks` (those holding a
+ * table) that `view` still holds and whose table `indexesOf` gives, the
+ * anchor index of its potential MatchStamps (the shown index) and its named
+ * MatchStamps compared with its table (against the compared index, so an
+ * anchor of a named MatchStamp on a timeline the filter leaves out still
+ * counts as stated); in the order of `blocks`.
  */
-export interface MatchOverlayInput {
-  readonly block: string;
-  readonly index: AnchorIndex;
-  readonly named: readonly NamedComparison[];
-}
-
-/** The canvas's props of the match overlay. */
-export interface MatchOverlay {
-  readonly matches: MatchOverlayInput | null;
-  /** The potential MatchStamp of `matches.index` the Matchstamp tab shows, drawn blue; `null` for none. */
-  readonly pinnedMatchStamp: number | null;
-  /** A click on a potential MatchStamp of the overlay (its number), or elsewhere (`null`). */
-  readonly onmatchstamppin: (set: number | null) => void;
+export function matchInputs(
+  view: View,
+  blocks: readonly string[],
+  indexesOf: (block: string) => MatchIndexes | null,
+): readonly MatchOverlayInput[] {
+  return blocks.flatMap((block) => {
+    const manifest = view.blocks[block]?.manifest;
+    const indexes = manifest === undefined ? null : indexesOf(block);
+    if (manifest === undefined || indexes === null) return [];
+    return [{ block, index: indexes.shown, named: namedComparisons(manifest, indexes.compared) }];
+  });
 }
 
 /**
- * The overlay of block `block` of `view`, from its table's indexes
- * (`null`: no block or no table, so no overlay), with the potential
- * MatchStamp `shown` pinned where it was read from the shown index.
+ * The canvas's `pinnedMatchStamp`: the potential MatchStamp the Matchstamp
+ * tab shows (`shown`), with its block, where it was read from that block's
+ * shown index as it is now (`indexesOf`); `null` for anything else.
  */
-export function matchOverlay(
-  view: View,
-  block: string | null,
-  indexes: MatchIndexes | null,
+export function pinnedMatchStampOf(
   shown: HeldMatch | null,
-  onmatchstamppin: (set: number | null) => void,
-): MatchOverlay {
-  const manifest = block === null ? undefined : view.blocks[block]?.manifest;
-  if (block === null || indexes === null || manifest === undefined) {
-    return { matches: null, pinnedMatchStamp: null, onmatchstamppin };
-  }
-  const pinned =
-    shown?.kind === "potential" && shown.block === block && shown.index === indexes.shown
-      ? shown.matchStamp
-      : null;
-  return {
-    matches: {
-      block,
-      index: indexes.shown,
-      named: namedComparisons(manifest, indexes.compared),
-    },
-    pinnedMatchStamp: pinned,
-    onmatchstamppin,
-  };
+  indexesOf: (block: string) => MatchIndexes | null,
+): MatchStampPin | null {
+  if (shown?.kind !== "potential") return null;
+  return indexesOf(shown.block)?.shown === shown.index
+    ? { block: shown.block, matchStamp: shown.matchStamp }
+    : null;
 }
 
 // --- Screen order ------------------------------------------------------------
