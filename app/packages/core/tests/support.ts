@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { DumpsOptions } from "@timetoalign/timetoshare";
+import type { DumpsOptions, NumberType } from "@timetoalign/timetoshare";
 import { dumps, loads, SCHEMA_VERSION, withBareIds, withFileIds } from "@timetoalign/timetoshare";
 import { apply } from "../src/commands/apply.ts";
 import type { Command } from "../src/commands/types.ts";
@@ -91,6 +91,23 @@ export type NonFinite = keyof typeof NON_FINITE;
 function isNonFinite(value: unknown): value is NonFinite {
   return typeof value === "string" && Object.hasOwn(NON_FINITE, value);
 }
+
+/**
+ * A row of the schema package's acceptance table of own-axis values
+ * (`fixtures/acceptances/<version>/numbers.yaml`): a value under a number
+ * type, and what every reader reads, or that every reader refuses it.
+ */
+export interface NumberAcceptance {
+  readonly number_type: NumberType;
+  readonly value: unknown;
+  readonly read?: unknown;
+  readonly refused?: "representation";
+}
+
+/** Every row of the acceptance table of own-axis values, in its order. */
+export const numberAcceptances: readonly NumberAcceptance[] = loads(
+  readFileSync(path.join(fixturesDir, "acceptances", SCHEMA_VERSION, "numbers.yaml"), "utf8"),
+) as NumberAcceptance[];
 
 /** Every shared rejection case of the installed schema version, its value rendered as text. */
 export const rejections: readonly Rejection[] = (() => {

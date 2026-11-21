@@ -9,7 +9,7 @@
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
-import { JsonFloat } from "@timetoalign/timetoshare";
+import { JsonFloat, jsonInteger as statedInteger } from "@timetoalign/timetoshare";
 import type { PathSegment } from "../json.ts";
 import { showJson } from "../json.ts";
 import type { AxisValue } from "../manifest/types.ts";
@@ -82,7 +82,8 @@ function float(value: unknown): number | undefined {
  * `int` value reads a JSON integer, or an integral JSON number as that
  * integer; a `float` value reads a JSON number, or an integer as the float it
  * equals exactly; a `fraction` value reads only a pair of integers with a
- * positive denominator.
+ * positive denominator, each member any JSON integer or integral JSON number
+ * (TimeToShare's `jsonInteger`), in any terms.
  *
  * @throws {CoordinateError} at `path`.
  */
@@ -103,9 +104,11 @@ export function readAxisValue(
     if (data.length !== 2) {
       throw new CoordinateError(`invalid JSON Fraction ${shown}: expected two items`, path);
     }
-    const numerator = integer(data[0]);
-    const denominator = integer(data[1]);
-    if (numerator === undefined || denominator === undefined) {
+    // A member is any JSON integer, an integral float included (`[1, 8.0]` is 1/8), as
+    // TimeToShare reads it: the number type fixes the form, the spelling within it is free.
+    const numerator = statedInteger(data[0]);
+    const denominator = statedInteger(data[1]);
+    if (numerator === null || denominator === null) {
       throw new CoordinateError(
         `invalid JSON Fraction ${shown}: components must be integers`,
         path,

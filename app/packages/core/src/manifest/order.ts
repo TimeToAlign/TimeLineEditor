@@ -2,7 +2,9 @@
  * The orders a manifest's `graphical.order` states (`docs/drawing.md` in
  * TimeToShare, sections 6.4 and 8.1): a group's display order, which stacks
  * its members' cards in its frame, and a timeline's band order, which stacks
- * its own line (`line`) and the bands of its five facets, top to bottom.
+ * its own line (`line`) and the bands of its five facets, top to bottom; a
+ * stated band order may leave facets out, which then keep their places from
+ * the order the timeline would follow without it.
  */
 
 import type { Facet } from "@timetoalign/timetoshare";
@@ -47,11 +49,34 @@ export const DEFAULT_BAND_ORDER: readonly BandOrderEntry[] = [
 ];
 
 /**
+ * `stated`, an entry of `graphical.order` listing `line` and any of the five
+ * facets, completed against `inherited`, the order the timeline follows
+ * without an entry (TimeToShare's README, "Groups and the `graphical`
+ * block"): the stated entries keep their order; every facet `stated` leaves
+ * out keeps the side of `line` it has in `inherited` and lies beyond the
+ * stated entries on that side, in `inherited`'s sequence, so the omitted
+ * facets above the line come before the stated entries and the omitted
+ * facets below it after them. A stated order listing every facet is
+ * returned as it is.
+ */
+function completedBandOrder(
+  stated: readonly string[],
+  inherited: readonly string[],
+): readonly string[] {
+  const omitted = inherited.filter((entry) => !stated.includes(entry));
+  if (omitted.length === 0) return stated;
+  const line = inherited.indexOf(LINE);
+  const above = omitted.filter((entry) => inherited.indexOf(entry) < line);
+  const below = omitted.filter((entry) => inherited.indexOf(entry) > line);
+  return [...above, ...stated, ...below];
+}
+
+/**
  * The band order the timeline `timelineId` follows without an entry of its
  * own in `graphical.order`: a root the default band order, every other
- * timeline its parent's band order. A member that is a child timeline
- * follows its parent so too. An ID no timeline carries gets the default
- * band order, as a root would.
+ * timeline its parent's band order (`bandOrderOf`), completed. A member that
+ * is a child timeline follows its parent so too. An ID no timeline carries
+ * gets the default band order, as a root would.
  */
 export function inheritedBandOrder(manifest: Manifest, timelineId: string): readonly string[] {
   const at = locateTimeline(manifest, timelineId);
@@ -61,16 +86,25 @@ export function inheritedBandOrder(manifest: Manifest, timelineId: string): read
 /** `inheritedBandOrder` of a located timeline, folded down its `parent` chain. */
 function inheritedAt(manifest: Manifest, at: Located): readonly string[] {
   const { parent } = at;
-  if (parent === undefined) return DEFAULT_BAND_ORDER;
-  return ownOrder(manifest, parent.timeline.id) ?? inheritedAt(manifest, parent);
+  return parent === undefined ? DEFAULT_BAND_ORDER : orderAt(manifest, parent);
+}
+
+/** `bandOrderOf` of a located timeline. */
+function orderAt(manifest: Manifest, at: Located): readonly string[] {
+  const inherited = inheritedAt(manifest, at);
+  const own = ownOrder(manifest, at.timeline.id);
+  return own === undefined ? inherited : completedBandOrder(own, inherited);
 }
 
 /**
- * The band order the timeline `timelineId` is drawn with: its own entry in
- * `graphical.order`, else the order it inherits (`inheritedBandOrder`).
+ * The band order the timeline `timelineId` is drawn with, `line` and all
+ * five facets: its own entry in `graphical.order` completed against the
+ * order it inherits (`inheritedBandOrder`), else that order. An ID no
+ * timeline carries gets the default band order.
  */
 export function bandOrderOf(manifest: Manifest, timelineId: string): readonly string[] {
-  return ownOrder(manifest, timelineId) ?? inheritedBandOrder(manifest, timelineId);
+  const at = locateTimeline(manifest, timelineId);
+  return at === undefined ? DEFAULT_BAND_ORDER : orderAt(manifest, at);
 }
 
 /**
@@ -89,9 +123,9 @@ export function bandOrderOf(manifest: Manifest, timelineId: string): readonly st
  *    manifest`;
  * 4. the first entry that is neither `line` nor a facet: `'<entry>' is not
  *    'line' or a facet, in the band order of '<id>'`;
- * 5. the first of `line` and the facets, in the default band order's order,
- *    that the value lacks: `'<entry>' is missing from the band order of
- *    '<id>'`.
+ * 5. a value without `line`: `'line' is missing from the band order of
+ *    '<id>'`. A facet the value leaves out is no problem: it takes its place
+ *    from the order the timeline follows without an entry (`bandOrderOf`).
  */
 export function bandOrderProblem(
   manifest: Manifest,
@@ -115,7 +149,6 @@ export function bandOrderProblem(
   if (stranger !== undefined) {
     return `'${stranger}' is not 'line' or a facet, in the band order of ${id}`;
   }
-  const missing = expected.find((entry) => !entries.includes(entry));
-  if (missing !== undefined) return `'${missing}' is missing from the band order of ${id}`;
+  if (!entries.includes(LINE)) return `'${LINE}' is missing from the band order of ${id}`;
   return null;
 }

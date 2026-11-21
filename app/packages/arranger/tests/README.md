@@ -1474,6 +1474,18 @@ has, so core refuses it exactly with `{code: "invalid_value", message:
 "the command changes nothing", path: [addressKey({block: A, id:
 "phrase"}), "order"]}`, and no move gives that command.
 
+**A stated subset.** A band order may list `line` and only some facets;
+core completes it (an omitted facet keeps its side of the line, beyond the
+stated ones), and a move reads and writes the completed order. On
+`map_band_order_subset` (`melody` states `[markers, line]`, which core
+completes to `[children, conversion_maps, markers, line, regions,
+flow_control]`), stepping `melody`'s markers band down in `melody`'s
+editor passes the line and gives `D`, the default a root inherits, so the
+command is `set order: null` on `{block: A, id: "melody"}`; the store
+accepts it and `melody` then has no entry. Stepping it up gives `[children,
+markers, conversion_maps, line, regions, flow_control]`, written whole and
+accepted.
+
 **On layout's drawing of `styled__score`** the offered bands of `score`
 are children 2, markers 1, conversion maps −1, regions −2, flow control
 −3, holding 1, 4, 1, 1, 1 elements (the markers band the wedges and

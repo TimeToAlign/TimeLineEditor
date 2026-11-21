@@ -267,7 +267,6 @@ describe("the generator reaches the refusal catalogue", () => {
         "non_positive_number",
         "not_an_item",
         "not_removable",
-        "number_type_not_allowed",
         "region_end_before_start",
         "schema_violation",
         "segment_end_fixed",

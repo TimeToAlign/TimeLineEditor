@@ -24,8 +24,17 @@ import {
   toFloat,
   toRational,
 } from "../src/number/real.ts";
+import type { NumberAcceptance } from "./support.ts";
+import { numberAcceptances } from "./support.ts";
 
 const parts = (value: Rational) => [value.numerator, value.denominator];
+
+/** An axis of each number type, a unit admitting it. */
+const AXES = {
+  int: { unit: "ticks", number_type: "int" },
+  float: { unit: "seconds", number_type: "float" },
+  fraction: { unit: "quarters", number_type: "fraction" },
+} as const;
 
 describe("Rational", () => {
   it("normalizes every constructor result", () => {
@@ -152,6 +161,35 @@ describe("bare values mirror number_from_json and number_to_json", () => {
     expect(() => read("quarters", "fraction", [1n, -2n])).toThrow(CoordinateError);
     expect(() => read("quarters", "fraction", [1n, 2n, 3n])).toThrow(CoordinateError);
     expect(() => read("quarters", "fraction", [0.5, 1n])).toThrow(CoordinateError);
+  });
+
+  it("reads a Fraction's members as any JSON integer, an integral float included", () => {
+    expect((readAxisValue([1, new JsonFloat(8)], "fraction") as Rational).toFraction()).toEqual([
+      1n,
+      8n,
+    ]);
+    expect(() => readAxisValue([1, new JsonFloat(8.5)], "fraction")).toThrow(
+      new CoordinateError("invalid JSON Fraction [1,8.5]: components must be integers", []),
+    );
+  });
+
+  it("reads every row of TimeToShare's acceptance table as the row says", () => {
+    const outcome = (row: NumberAcceptance) => {
+      try {
+        return { read: toAxisValue(axisCoordinate(row.value, AXES[row.number_type])) };
+      } catch (error) {
+        if (error instanceof CoordinateError && error.code === "invalid_coordinate") {
+          return { refused: "representation" };
+        }
+        throw error;
+      }
+    };
+    expect(numberAcceptances.length).toBe(14);
+    expect(numberAcceptances.map(outcome)).toEqual(
+      numberAcceptances.map((row) =>
+        row.refused === undefined ? { read: row.read } : { refused: row.refused },
+      ),
+    );
   });
 
   it("bounds every integer to int64", () => {

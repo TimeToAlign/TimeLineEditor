@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { addressKey } from "../src/manifest/address.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
+import { bandOrderOf } from "../src/manifest/order.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
@@ -220,6 +221,21 @@ describe("places, display orders and band orders, accepted", () => {
     expect(orderOf(view)).toEqual({ ...DISPLAY, annotations: D });
   });
 
+  it.each([
+    [
+      ["line", "children", "conversion_maps", "markers", "flow_control"],
+      ["line", "children", "conversion_maps", "markers", "flow_control", "regions"],
+    ],
+    [
+      ["line", "conversion_maps", "regions", "flow_control"],
+      ["children", "line", "conversion_maps", "regions", "flow_control", "markers"],
+    ],
+  ])("stores the subset %j as stated, drawn as its completion", (stated, drawn) => {
+    const view = after(mixed(), set("excerpt", { order: stated }));
+    expect(orderOf(view)).toEqual({ ...DISPLAY, excerpt: stated });
+    expect(bandOrderOf(block(view, ID).manifest, "excerpt")).toEqual(drawn);
+  });
+
   it("writes a display order and a band order in one set", () => {
     const view = after(mixed(), {
       type: "set",
@@ -432,9 +448,7 @@ describe("places, display orders and band orders, refused", () => {
       E.map((entry) => (entry === "flow_control" ? "flow" : entry)),
       "'flow' is not 'line' or a facet, in the band order of 'excerpt'",
     ],
-    [without(E, "regions"), "'regions' is missing from the band order of 'excerpt'"],
     [without(E, "line"), "'line' is missing from the band order of 'excerpt'"],
-    [without(E, "markers", "children"), "'children' is missing from the band order of 'excerpt'"],
     [
       E.map((entry) => (entry === "regions" ? "excerpt/regions_1" : entry)),
       "'excerpt/regions_1' is not 'line' or a facet, in the band order of 'excerpt'",

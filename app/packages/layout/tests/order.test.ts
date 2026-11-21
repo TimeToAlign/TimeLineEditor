@@ -193,6 +193,20 @@ describe("a child's band order", () => {
   });
 });
 
+describe("a band order listing a subset of the facets", () => {
+  it("draws what its completed order draws", () => {
+    const subset = drawn(load("map_band_order_subset"));
+    const completed = edit(
+      "map",
+      set("melody", {
+        order: bandOrder(["children", "conversion_maps", "markers"], ["regions", "flow_control"]),
+      }),
+    );
+    expect(subset.elements).toEqual(drawn(completed).elements);
+    expect(subset.elements).not.toEqual(drawn(load("map")).elements);
+  });
+});
+
 describe("a child's flow marker", () => {
   const shown: Graphical = {
     rules: [
