@@ -31,7 +31,7 @@ have, the schema is changed first.
   (the manifest, every timeline and every region state what they stand
   for in property–value pairs with their provenance, under an inline
   JSON-LD `@context`), `resources` (the files that come with it, such as
-  its MatchClaim table and its Projections table), and `graphical`, the
+  its MatchClaim table), and `graphical`, the
   styling of its own drawing with the display orders of its groups, the
   band orders of its timelines, its named timestamps (groupstamps among
   them) and its named MatchStamps. A manifest knows nothing about a canvas.
@@ -73,6 +73,17 @@ nothing of its own; it is the unit that holds and orders what its timeline
 has of its facet, placed by the timeline's band order in
 `graphical.order`. Manifest content and addresses take the semantic words,
 the drawing's containers the graphical ones.
+
+One card stands apart: a root that contains a group member may be drawn
+whole as an **ancestor card** behind the frame of that member's group
+(TimeToShare's drawing specification, section 8.8; hidden unless a style
+rule displays it). It is a card held by the block with no place (its key
+`{item: G, member: R}`, core's holding `"ancestor"`), no bands and no
+`places` entry; layout records it only when displayed, the arranger tells it
+apart with `isAncestorCard` and raises it over the frames while a timeline
+editor is open on its root or on a timeline of it that no group holds
+(`raisedEntries`), and the inspector's "Card behind
+its groups" checkbox shows or hides it.
 
 The code treats the four kinds through one model:
 
