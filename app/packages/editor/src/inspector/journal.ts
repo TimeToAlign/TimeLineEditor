@@ -69,6 +69,7 @@ const ADD_WORDS: { readonly [kind in AddKind]: string } = {
   region: "region",
   flow_control: "flow-control element",
   timestamp: "timestamp",
+  matchstamp: "MatchStamp",
 };
 
 /** The string member `member` of an added value; `null` for a value without one. */
