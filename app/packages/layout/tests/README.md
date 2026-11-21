@@ -967,21 +967,26 @@ derive from the group and are never stored. The block draws, after every
 item and before the alignment anchors, for each groupstamp listing
 `cross_section` and each line drawn in a card of a frame that holds it,
 vertical `cross_section` elements at the timestamp's line address `{id: X,
-part: ["line"]}` and its abscissa there, spanning the cross-section
-segments of every member line of the frame (the line of each member card's
-own timeline; each its cross-section extent, else the point on its line),
-less the timestamp's own cross-section line where that has a length, and
-less the lines its stack of labels lies on (from the first line's start to
-the last line's end, each `h(s)` high), so that the line passes behind its
-labels as behind an opaque background; in the timestamp's line style (its
-own line's, at the frame's scale), without a wedge or a label. What proves
-it: positions derived from the other records of the same drawing (the
-member lines' abscissas and ordinates, the primary's extent, its label's
-baseline less `a(9)`, the wedge's base `yb` plus the label gap 2), never
-from the element itself; the element's absence whenever the timestamp is
-no groupstamp, its line is not listed or its line is hidden; and the order
-of elements. With `a(9) = 8.35400390625` and `h(9) = 10.4765625` every
-number here is dyadic, so the sums are exact.
+part: ["line"]}` and its abscissa there, spanning the frame's member cards
+from the upper border of the topmost to the lower border of the bottommost
+(the cards drawing each member card's own timeline's line; their boxes as
+drawn in that frame), less the timestamp's own cross-section line where
+that has a length, and less the lines its stack of labels lies on (from the
+first line's start to the last line's end, each `h(s)` high), so that the
+line passes behind its labels as behind an opaque background; in the
+timestamp's line style (its own line's, at the frame's scale), without a
+wedge or a label. What proves it: positions derived from the other records
+of the same drawing (the member lines' abscissas, the member cards' box
+records `{kind: card, key: {item: group_1, member: T}}` and their `y` and
+`y + height`, the primary's extent, its label's baseline less `a(9)`, the
+wedge's base `yb` plus the label gap 2), never from the element itself; the
+element's absence whenever the timestamp is no groupstamp, its line is not
+listed or its line is hidden; and the order of elements. With `a(9) =
+8.35400390625` and `h(9) = 10.4765625` every number here is dyadic, so the
+sums are exact. A span read off the member lines instead of the cards (the
+former rule: from the topmost line or cross-section extent to the
+bottommost) fails cases 1, 2, 3 and 5, since each member card's border lies a
+padding beyond its line.
 
 The manifest is TimeToShare's `groups/group_groupstamp.yaml` with every
 conversion map removed (`remove`), so that neither member draws a
@@ -989,7 +994,8 @@ cross-section extent until a case adds one: `group_1` ("Performance",
 display order `score`, `performance`), `score` quarters 8, `performance`
 seconds 4.0, the groupstamp `timestamp_1` "Bar 2" at 4 on `score`
 (`display` wedge, name, cross-section line); the four `origin` and
-`length` timestamps are no groupstamps.
+`length` timestamps are no groupstamps. Below, `top(T)` and `bottom(T)` are
+the upper and lower borders of `T`'s card in `group_1`'s frame.
 
 1. **Neither member draws a cross-section extent** (no children band, no
    conversion maps band): `timestamp_1`'s own line is not drawn (section
@@ -998,31 +1004,31 @@ seconds 4.0, the groupstamp `timestamp_1` "Bar 2" at 4 on `score`
    timestamp_1, part: [line]}`, the last two of the drawing, at `x` the
    middle of `score`'s line (4 of 8: `xStart + (xEnd − xStart) / 2`), which
    is the middle of `performance`'s too (2.0 of 4.0); the first from
-   `score`'s line ordinate to the label's top `b − a(9)` (`b` the label's
-   baseline; equal to the wedge's base `yb + 2`), the second from that top
-   plus `h(9)` to `performance`'s line ordinate (`score` above); style
+   `top(score)` to the label's top `b − a(9)` (`b` the label's baseline;
+   equal to the wedge's base `yb + 2`), the second from that top plus
+   `h(9)` to `bottom(performance)` (`score` above, `top(score) <
+   score`'s line ordinate, `bottom(performance) >` `performance`'s); style
    stroke `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
 2. **The primary draws its own line**: with a LinearMap `tempo` added to
    `score`, `score`'s cross-section extent `[y1, y2]` (its marker's) is
    drawn by `timestamp_1`'s own line, the first element at its address; the
-   group's are the next, from `y2` down to `performance`'s line ordinate,
-   less the label's lines where they lie below `y2`, at the same `x`, with
-   the same style.
+   group's are the next, from `top(score)` to `y1`, then from `y2` down to
+   `bottom(performance)`, less the label's lines where they lie below `y2`,
+   at the same `x`, with the same style.
 3. **A member's descendant**: with a child `motif` (quarters, offset 2,
    length 4) added to `score` and a groupstamp `timestamp_6` "Motif" at 1
    on it (`display` wedge, name, cross-section line), its group line lies at
-   the abscissa of 1 on `motif`'s line (`score`'s abscissa of 3), from the
-   top of `score`'s cross-section extent (its line, its children band) to
-   `motif`'s label's top, then from that label's bottom to `performance`'s
-   line ordinate: `motif` draws no extent of its own, and no line runs
-   through its label.
+   the abscissa of 1 on `motif`'s line (`score`'s abscissa of 3), from
+   `top(score)` to `motif`'s label's top, then from that label's bottom to
+   `bottom(performance)`: `motif` draws no extent of its own, and no line
+   runs through its label.
 4. **None**: `set timestamp_1 {groupstamp: false}`, `{display: ["wedge",
    "name"]}`, or a rule `{addresses: [{id: timestamp_1, part: [line]}]}`
    setting `display: "none"` each leave no element at the address.
 5. **At any abscissa** (`groupCrossSections`, what the canvas marks for a
    position read across the group): at the abscissa of `timestamp_1` on
    `score`'s line key, the same pieces as case 1 less the label cut, so one
-   line from `score`'s line to `performance`'s, in the style of a
+   line from `top(score)` to `bottom(performance)`, in the style of a
    cross-section line of `score` that no named timestamp holds; on a line
    in no frame (`nested`), none.
 

@@ -160,7 +160,12 @@ export function groupCrossSections(drawing: Drawing, lineKey: string, x: number)
   if (marked === null) return [];
   const { extent, style } = marked.marker.crossSection;
   const cuts = extent === null ? [] : [[extent.y1, extent.y2] as const];
-  return groupSpans(drawing.axes, marked.axis, cuts).map(([y1, y2]) => ({ x, y1, y2, style }));
+  return groupSpans(drawing.axes, drawing.boxes, marked.axis, cuts).map(([y1, y2]) => ({
+    x,
+    y1,
+    y2,
+    style,
+  }));
 }
 
 /**

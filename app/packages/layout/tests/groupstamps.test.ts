@@ -4,7 +4,7 @@
  */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import { idAddress, partAddress, sameAddress } from "@timetoalign/tilie-core";
+import { idAddress, partAddress, sameAddress, samePlaceKey } from "@timetoalign/tilie-core";
 import type { Rule } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
@@ -44,6 +44,8 @@ function plain(...commands: object[]): Manifest {
   return edit(FIXTURE, ...removed, ...commands);
 }
 const LINE = partAddress(idAddress("timestamp_1"), "line");
+/** The default cross-section style. */
+const STYLE = { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" };
 
 function drawn(manifest = plain(), rules: readonly Rule[] = []): Drawing {
   const layer = { rules: [...rules] };
@@ -64,6 +66,16 @@ function axisOf(drawing: Drawing, id: string): DrawnAxis {
   return found;
 }
 
+/** The upper and lower borders of the card of the member `member` in `group_1`'s frame. */
+function card(drawing: Drawing, member: string): { readonly top: number; readonly bottom: number } {
+  const key = { item: "group_1", member };
+  const found = drawing.boxes.find(
+    (box) => box.kind === "card" && box.key !== null && samePlaceKey(box.key, key),
+  );
+  if (found === undefined) throw new Error(`no card of ${member} in group_1's frame`);
+  return { top: found.y, bottom: found.y + found.height };
+}
+
 /** The label `{id, part: [name]}` of the timestamp `id`, a text element. */
 function nameLabel(drawing: Drawing, id: string): TextElement {
   const found = drawing.elements.find((item) => sameAddress(item.address, at(id, "name")));
@@ -80,7 +92,7 @@ function labelLine(label: TextElement): readonly [number, number] {
 const measure = new TextMeasure(metrics);
 
 describe("a groupstamp's line", () => {
-  it("spans the members of its frame where its own line is not drawn, behind its label", () => {
+  it("spans the member cards of its frame where its own line is not drawn, behind its label", () => {
     const drawing = drawn();
     const score = axisOf(drawing, "score");
     const performance = axisOf(drawing, "performance");
@@ -93,13 +105,17 @@ describe("a groupstamp's line", () => {
     expect(score.line).toBeLessThan(performance.line);
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
     expect(top).toBe((score.marker?.wedge.yb ?? 0) + 2);
-    const style = { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" };
+    const first = card(drawing, "score");
+    const last = card(drawing, "performance");
+    expect(first.top).toBeLessThan(score.line);
+    expect(last.bottom).toBeGreaterThan(performance.line);
+    const style = STYLE;
     const [above, below, ...others] = lines(drawing);
     expect(others).toEqual([]);
     expect(above).toMatchObject({
       type: "cross_section",
       x: middle,
-      y1: score.line,
+      y1: first.top,
       y2: top,
       style,
     });
@@ -107,13 +123,13 @@ describe("a groupstamp's line", () => {
       type: "cross_section",
       x: middle,
       y1: bottom,
-      y2: performance.line,
+      y2: last.bottom,
       style,
     });
     expect(drawing.elements.slice(-2)).toEqual([above, below]);
   });
 
-  it("continues the timestamp's own line to the other members", () => {
+  it("continues the timestamp's own line to the borders of the member cards", () => {
     const drawing = drawn(plain(linearMap("score", "tempo")));
     const score = axisOf(drawing, "score");
     const performance = axisOf(drawing, "performance");
@@ -121,19 +137,25 @@ describe("a groupstamp's line", () => {
     if (extent === null || extent === undefined) throw new Error("score crosses its maps band");
     const middle = score.xStart + (score.xEnd - score.xStart) / 2;
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
-    const pieces: [number, number][] =
-      top >= extent.y2
+    const first = card(drawing, "score");
+    const last = card(drawing, "performance");
+    expect(first.top).toBeLessThan(extent.y1);
+    expect(last.bottom).toBeGreaterThan(performance.line);
+    const pieces: [number, number][] = [
+      [first.top, extent.y1],
+      ...((top >= extent.y2
         ? [
             [extent.y2, top],
-            [bottom, performance.line],
+            [bottom, last.bottom],
           ]
-        : [[Math.max(extent.y2, bottom), performance.line]];
+        : [[Math.max(extent.y2, bottom), last.bottom]]) satisfies [number, number][]),
+    ];
     const [own, ...group] = lines(drawing);
     expect(own).toMatchObject({ type: "cross_section", x: middle, y1: extent.y1, y2: extent.y2 });
     expect(group).toEqual(pieces.map(([y1, y2]) => ({ ...own, y1, y2 })));
   });
 
-  it("is drawn for a member's descendant, from the frame's top to its other members", () => {
+  it("is drawn for a member's descendant, from the top member card to the bottom one", () => {
     const motif: object = {
       type: "add",
       into: target("motif"),
@@ -149,11 +171,15 @@ describe("a groupstamp's line", () => {
     const x = score.xStart + (3 / 8) * (score.xEnd - score.xStart);
     expect(line.xStart + (1 / 4) * (line.xEnd - line.xStart)).toBe(x);
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_6"));
+    const first = card(drawing, "score");
+    const last = card(drawing, "performance");
+    expect(first.top).toBeLessThan(extent.y1);
+    expect(last.bottom).toBeGreaterThan(performance.line);
     const stamp = partAddress(idAddress("timestamp_6"), "line");
     const pieces = drawing.elements.filter((item) => sameAddress(item.address, stamp));
     expect(pieces).toMatchObject([
-      { type: "cross_section", x, y1: extent.y1, y2: top },
-      { type: "cross_section", x, y1: bottom, y2: performance.line },
+      { type: "cross_section", address: stamp, style: STYLE, x, y1: first.top, y2: top },
+      { type: "cross_section", address: stamp, style: STYLE, x, y1: bottom, y2: last.bottom },
     ]);
   });
 
@@ -170,14 +196,18 @@ describe("a groupstamp's line", () => {
 });
 
 describe("the lines a position read across its group draws", () => {
-  it("span the frame holding the line, less its own extent", () => {
+  it("span the member cards of the frame holding the line, less its own extent", () => {
     const drawing = drawn();
     const score = axisOf(drawing, "score");
-    const performance = axisOf(drawing, "performance");
     const key = [...lineAxes(drawing)].find(([, axis]) => axis.timeline === "score")?.[0] ?? "";
     const middle = score.xStart + (score.xEnd - score.xStart) / 2;
     expect(groupCrossSections(drawing, key, middle)).toEqual([
-      { x: middle, y1: score.line, y2: performance.line, style: score.marker?.crossSection.style },
+      {
+        x: middle,
+        y1: card(drawing, "score").top,
+        y2: card(drawing, "performance").bottom,
+        style: score.marker?.crossSection.style,
+      },
     ]);
   });
 

@@ -331,7 +331,7 @@ describe("a pinned timestamp read across its group", () => {
     if (score === undefined) throw new Error("no line of score");
     await hoverAt(client(x, score.y));
     const expected = expectedGroupLines(key, x);
-    expect(expected).toHaveLength(1);
+    expect(expected).toHaveLength(2);
     expect(groupLines("hover")).toEqual(expected);
   });
 
@@ -358,7 +358,7 @@ describe("a pinned timestamp read across its group", () => {
       "stroke-dasharray": line.style["stroke-dasharray"],
       opacity: null,
     }));
-    expect(expected).toHaveLength(1);
+    expect(expected).toHaveLength(2);
     expect(groupLines()).toEqual(expected);
 
     harness.pin(pinOnScore({ target: inBlock(A, idAddress("score")), kind: "timeline" }).pin);

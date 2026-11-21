@@ -27,11 +27,14 @@ export interface BlockContent {
   /** The block's margin `Vb`, again below its lowest item. */
   readonly margin: number;
   /**
-   * The elements drawn after every item (section 8.7), from the drawn lines in the block's
-   * coordinates: the groupstamps' lines across their groups' frames, then the alignment anchors
-   * and their labels, none of which take room.
+   * The elements drawn after every item (section 8.7), from the drawn lines and boxes in the
+   * block's coordinates: the groupstamps' lines across their groups' frames, then the alignment
+   * anchors and their labels, none of which take room.
    */
-  readonly after: (axes: readonly DrawnAxis[]) => readonly DrawnElement[];
+  readonly after: (
+    axes: readonly DrawnAxis[],
+    boxes: readonly DrawnBox[],
+  ) => readonly DrawnElement[];
 }
 
 /**
@@ -41,7 +44,7 @@ export interface BlockContent {
  * from `Xl` to `Xr` and from `Yt` to `Yb` in place coordinates, the block's
  * margin below its lowest item (a block without items has none), and its size
  * is at least the requested one. The elements `block.after` gives from the
- * lines in the block follow every item's. The block's own record comes first,
+ * lines and boxes in the block follow every item's. The block's own record comes first,
  * its range every element.
  */
 export function emitDrawing(
@@ -101,7 +104,8 @@ export function emitDrawing(
   const H = placement.height === null ? Hb : Math.max(Hb, placement.height);
   const inBlock = elements.map((element) => placedAt(element, Ox, Oy));
   const blockAxes = axes.map((axis) => placedAxis(axis, Ox, Oy));
-  inBlock.push(...block.after(blockAxes));
+  const blockBoxes = boxes.map((record) => placedBox(record, Ox, Oy));
+  inBlock.push(...block.after(blockAxes, blockBoxes));
   inBlock.unshift({
     type: "block",
     address: BUNDLE_ADDRESS,
@@ -126,7 +130,7 @@ export function emitDrawing(
     width: W,
     height: H,
     origin: { x: Ox, y: Oy },
-    boxes: [own, ...boxes.map((record) => placedBox(record, Ox, Oy))],
+    boxes: [own, ...blockBoxes],
     axes: blockAxes,
     elements: inBlock,
     unmapped: [...measure.unmapped].sort((left, right) => left - right),
