@@ -92,3 +92,30 @@ export const NAMED: readonly NamedComparison[] = [
     }),
   },
 ];
+
+/**
+ * The user's beliefs B in T's MatchClaims, per row as core's `believedBy`
+ * numbers them (false 0, unlikely 1, undecided 2, true 3): `claim_1` true,
+ * `claim_2` unlikely, `claim_3` true, `claim_4` false, `claim_5`
+ * undecided, `claim_6` true, `claim_7` undecided.
+ */
+export const BELIEVED: Uint8Array = Uint8Array.from([3, 1, 3, 0, 2, 3, 2]);
+
+/** `matchstamp_1` compared with D, which has no take_1 88200: out of date. */
+export const NAMED_IN_D: readonly NamedComparison[] = [
+  {
+    id: "matchstamp_1",
+    comparison: checkMatchStamp(D, {
+      anchors: [
+        {
+          coordinates: [
+            { timeline: "score", value: q(4) },
+            { timeline: "take_1", value: 88200n },
+          ],
+          carriesName: true,
+        },
+      ],
+      claims: ["claim_1", "claim_2"],
+    }),
+  },
+];

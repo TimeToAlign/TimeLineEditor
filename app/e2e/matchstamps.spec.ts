@@ -6,8 +6,9 @@
  * showing the loaded table and its filter, a named MatchStamp shown when it
  * is selected and removed in one journal entry (the selection losing it,
  * the tab shown before it is shown again; its coordinates disabled fields
- * with their Copy buttons), and a manifest naming a table
- * that is not loaded saying so.
+ * with their Copy buttons), a click on the line of one of its match
+ * timestamps selecting it and showing it in the tab, and a manifest naming
+ * a table that is not loaded saying so.
  */
 
 import { readFileSync } from "node:fs";
@@ -15,7 +16,7 @@ import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, select, tabs, withoutPickers } from "./support.ts";
+import { chooseItem, select, selection, tabs, withoutPickers } from "./support.ts";
 
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
@@ -162,11 +163,65 @@ test("a named MatchStamp is shown when selected and removed in one entry", async
   );
 });
 
+test("a click on a match timestamp's line selects its MatchStamp in the Matchstamp tab", async ({
+  page,
+}) => {
+  await openPage(page);
+  const block = await importFiles(page, [
+    { name: "manifest.yaml", buffer: MANIFEST },
+    { name: "match_claims.parquet", buffer: PARQUET },
+  ]);
+  const refusal = await page.evaluate(
+    (id) =>
+      window.__tilie.store().dispatch({
+        type: "add",
+        into: { block: id },
+        matchstamp: {
+          name: "Downbeat",
+          anchors: [
+            [
+              { timeline: "clt_1", coordinate: [0, 1] },
+              { timeline: "dpt_1", coordinate: 0 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+      }),
+    block,
+  );
+  expect(refusal).toBe(null);
+  // The match timestamp naming wrote on clt_1, whose children band gives its line a length; drawn
+  // with its line only.
+  const timestamp = await page.evaluate(
+    (id) =>
+      window.__tilie
+        .store()
+        .view.blocks[id]?.manifest.graphical?.timestamps?.filter(
+          (each) => each.matchstamp && each.timeline === "clt_1",
+        )
+        .map((each) => ({ id: each.id, display: each.display })),
+    block,
+  );
+  expect(timestamp?.map(({ display }) => display)).toEqual([["cross_section"]]);
+  const line = page.locator(
+    `[data-testid="block"] svg line[data-id="${timestamp?.[0]?.id}"][data-part="line"]`,
+  );
+  await line.dispatchEvent("click");
+  await expect.poll(() => selection(page)).toEqual([{ block, id: "matchstamp_1" }]);
+  await expect(tabs(page).getByRole("tab", { name: "Matchstamp", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(
+    page.getByTestId("matchstamp-properties").getByRole("textbox", { name: "Name" }),
+  ).toHaveValue("Downbeat");
+});
+
 test("a manifest naming a table that is not loaded says so", async ({ page }) => {
   const seen = await openPage(page);
   await importFiles(page, [{ name: "manifest.yaml", buffer: MANIFEST }]);
   await expect(page.getByTestId("message").locator("p")).toHaveText(
-    "The manifest names the MatchClaim table match_claims.parquet, which is not loaded: Load MatchClaims… in the Matchstamp tab reads it.",
+    "The manifest names the MatchClaim table match_claims.parquet, which is not loaded: Show matches (M) loads it.",
   );
   expect(seen.requests).toBe(0);
 });

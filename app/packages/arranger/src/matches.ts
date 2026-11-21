@@ -1,7 +1,9 @@
 /**
  * Show matches: the potential MatchStamps of the MatchClaim table drawn over
  * a block, what the pointer hovers among them, the flag of one, and the
- * named MatchStamps' alignment anchors the table no longer states.
+ * colours of the alignment anchors and match timestamps of the MatchStamps
+ * shown: by the editor user's belief in the MatchClaims stating each anchor,
+ * and all red for a named MatchStamp out of date.
  *
  * Every coordinate of the table's anchor index (core's `anchorIndexOf`) is
  * drawn where a named timestamp at it would draw its cross-section line, on
@@ -16,6 +18,7 @@
  */
 
 import type {
+  AnchorBelief,
   AnchorIndex,
   Manifest,
   MatchStampCheck,
@@ -23,6 +26,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  anchorBelief,
   coordinateNear,
   coordinatesWithin,
   coordinateValue,
@@ -30,6 +34,7 @@ import {
   idAddress,
   matchStampAnchors,
   matchStampMembers,
+  partAddress,
   placeKeyText,
   prettyText,
 } from "@timetoalign/tilie-core";
@@ -55,13 +60,17 @@ export interface NamedComparison {
 /**
  * What "Show matches" draws in one block: the anchor index of the MatchClaim
  * table loaded for block `block` (its potential MatchStamps, under the
- * block's MatchClaim filter) and the block's named MatchStamps compared with
- * the table.
+ * block's MatchClaim filter), the block's named MatchStamps compared with
+ * the table, and the editor user's belief in each MatchClaim of the table
+ * (per row, core's `believedBy`), which the anchors of the MatchStamps shown
+ * are drawn by; without `beliefs` (a host without a user) every MatchClaim
+ * is undecided.
  */
 export interface MatchOverlayInput {
   readonly block: string;
   readonly index: AnchorIndex;
   readonly named: readonly NamedComparison[];
+  readonly beliefs?: Uint8Array;
 }
 
 /**
@@ -86,8 +95,31 @@ export const POTENTIAL_OPACITY = 0.7;
 export const HOVERED_STROKE = "#6E6E6E";
 /** The pinned MatchStamp's: the blue of a cross-section line (TimeToShare's `docs/drawing.md`, section 6.6). */
 export const PINNED_STROKE = "#1BA1E2";
-/** A named MatchStamp's alignment anchor the table no longer states, whatever its style. */
-export const STALE_STROKE = "#E51400";
+/**
+ * An alignment anchor of a shown MatchStamp (the pinned one, a named one)
+ * by the editor user's belief in the MatchClaims stating it (core's
+ * `anchorBelief`): undecided the cross-section blue, true green, unlikely
+ * dark orange, false red, whatever the anchor's style. The green and the
+ * orange lie between the blue and the red in luminance, each at least 3:1
+ * against the white of a card and the canvas's dark `#1A1D23`.
+ */
+export const UNDECIDED_STROKE = PINNED_STROKE;
+export const TRUE_STROKE = "#339933";
+export const UNLIKELY_STROKE = "#E07000";
+export const FALSE_STROKE = "#E51400";
+export const BELIEF_STROKES: Readonly<Record<AnchorBelief, string>> = {
+  false: FALSE_STROKE,
+  unlikely: UNLIKELY_STROKE,
+  undecided: UNDECIDED_STROKE,
+  true: TRUE_STROKE,
+};
+/**
+ * A named MatchStamp out of date (core's `checkMatchStamp`): its anchors'
+ * lines, its match timestamps' lines and its name label, whatever their
+ * style; the label begins with `OUT_OF_DATE_MARK`.
+ */
+export const OUT_OF_DATE_STROKE = FALSE_STROKE;
+export const OUT_OF_DATE_MARK = "! ";
 export const MATCH_STROKE_WIDTH = 1;
 export const MATCH_DASH = "3 3";
 
@@ -596,25 +628,134 @@ export function matchFlag(
   });
 }
 
+/** A part of a MatchStamp shown in one colour: its connectors by belief, with the lines in blue. */
+export interface BeliefOverlay {
+  /** The belief its connectors are drawn by; `undecided` holds the cross-section lines too. */
+  readonly belief: AnchorBelief;
+  readonly stroke: string;
+  readonly overlay: MatchOverlay;
+}
+
+/** The order the colours of a MatchStamp are drawn in, the most critical last, on top. */
+const DRAWN_BELIEFS: readonly AnchorBelief[] = ["true", "undecided", "unlikely", "false"];
+
+const pinnedByOverlay = new WeakMap<
+  MatchOverlay,
+  { readonly beliefs: Uint8Array | undefined; readonly parts: readonly BeliefOverlay[] }
+>();
+
 /**
- * The address keys of the alignment anchors of `manifest`'s named
- * MatchStamps that the table no longer states (`named`, a comparison per
- * MatchStamp by ID: an anchor whose entry of `stated` is `null`), which the
- * block draws red.
+ * The pinned MatchStamp `overlay` (`stampOverlay` of `index`) by colour: its
+ * cross-section lines in the cross-section blue, each connector by the
+ * belief in the MatchClaims stating its anchor (`anchorBelief` over
+ * `beliefs`, every one undecided without them); a part per colour that has
+ * anything, true first and false last. Once per overlay and beliefs.
  */
-export function staleAnchors(
+export function pinnedOverlays(
+  index: AnchorIndex,
+  overlay: MatchOverlay,
+  beliefs: Uint8Array | undefined,
+): readonly BeliefOverlay[] {
+  const known = pinnedByOverlay.get(overlay);
+  if (known !== undefined && known.beliefs === beliefs) return known.parts;
+  const { claimOffsets, claimRows } = index.anchors;
+  const byBelief = new Map<AnchorBelief, OverlayConnector[]>();
+  for (const connector of overlay.connectors) {
+    const { anchor } = connector;
+    const belief =
+      beliefs === undefined
+        ? "undecided"
+        : anchorBelief(
+            beliefs,
+            claimRows.subarray(claimOffsets[anchor] as number, claimOffsets[anchor + 1] as number),
+          );
+    byBelief.set(belief, [...(byBelief.get(belief) ?? []), connector]);
+  }
+  const parts = DRAWN_BELIEFS.flatMap((belief): BeliefOverlay[] => {
+    const lines = belief === "undecided" ? overlay.lines : [];
+    const connectors = byBelief.get(belief) ?? [];
+    if (lines.length === 0 && connectors.length === 0) return [];
+    return [{ belief, stroke: BELIEF_STROKES[belief], overlay: { lines, connectors } }];
+  });
+  pinnedByOverlay.set(overlay, { beliefs, parts });
+  return parts;
+}
+
+/** How a drawn part of a named MatchStamp is painted over its style. */
+export interface Paint {
+  /** What it sets: a line's stroke, a label's fill. */
+  readonly attribute: "stroke" | "fill";
+  readonly colour: string;
+  /** Whether its text begins with `OUT_OF_DATE_MARK`. */
+  readonly marked: boolean;
+}
+
+/** The paint of a block's named MatchStamps' drawn parts, by the key of each part's address. */
+export type MatchPaint = ReadonlyMap<string, Paint>;
+
+/** No paint: a block without a table. */
+export const NO_PAINT: MatchPaint = new Map();
+
+const paintByNamed = new WeakMap<
+  readonly NamedComparison[],
+  {
+    readonly manifest: Manifest;
+    readonly beliefs: Uint8Array | undefined;
+    readonly paint: MatchPaint;
+  }
+>();
+
+/**
+ * How the named MatchStamps of `manifest` are painted, `named` each one
+ * compared with the table by ID: one out of date all red
+ * (`OUT_OF_DATE_STROKE`), its alignment anchors' lines, its match
+ * timestamps' lines and its name labels, which take `OUT_OF_DATE_MARK`;
+ * of any other, each anchor's line by the belief in the MatchClaims stating
+ * it (`statedBy`, `anchorBelief` over `beliefs`, undecided without them).
+ * A match timestamp of an out-of-date MatchStamp is red whatever another
+ * MatchStamp holding it is. Keyed by the address key of each part: an
+ * anchor's line `{id: A}`, its label `{id: A, part: ["name"]}`, a match
+ * timestamp's line `{id: T, part: ["line"]}`. Once per comparisons,
+ * manifest and beliefs.
+ */
+export function namedPaint(
   manifest: Manifest,
   named: readonly NamedComparison[],
-): ReadonlySet<string> {
-  const stale = new Set<string>();
+  beliefs: Uint8Array | undefined,
+): MatchPaint {
+  const known = paintByNamed.get(named);
+  if (known?.manifest === manifest && known.beliefs === beliefs) return known.paint;
+  const paint = new Map<string, Paint>();
   const stamps = manifest.graphical?.matchstamps ?? [];
+  const red: Paint = { attribute: "stroke", colour: OUT_OF_DATE_STROKE, marked: false };
   for (const { id, comparison } of named) {
     const stamp = stamps.find((each) => each.id === id);
-    stamp?.alignment_anchors.forEach((anchor, at) => {
-      if (comparison.stated[at] === null) stale.add(addressKey(idAddress(anchor.id)));
+    if (stamp === undefined) continue;
+    stamp.alignment_anchors.forEach((anchor, at) => {
+      const address = idAddress(anchor.id);
+      if (comparison.outOfDate) {
+        paint.set(addressKey(address), red);
+        paint.set(addressKey(partAddress(address, "name")), {
+          attribute: "fill",
+          colour: OUT_OF_DATE_STROKE,
+          marked: true,
+        });
+        for (const timestamp of anchor.timestamps) {
+          paint.set(addressKey(partAddress(idAddress(timestamp), "line")), red);
+        }
+        return;
+      }
+      const rows = comparison.statedBy[at] ?? new Uint32Array(0);
+      const belief = beliefs === undefined ? "undecided" : anchorBelief(beliefs, rows);
+      paint.set(addressKey(address), {
+        attribute: "stroke",
+        colour: BELIEF_STROKES[belief],
+        marked: false,
+      });
     });
   }
-  return stale;
+  paintByNamed.set(named, { manifest, beliefs, paint });
+  return paint;
 }
 
 /** What the overlay draws in one block's node: the potential MatchStamps, the hovered and the pinned one. */
@@ -627,7 +768,8 @@ export interface MatchLayer {
   readonly scale: number;
   readonly potential: MatchOverlay;
   readonly hovered: MatchOverlay | null;
-  readonly pinned: MatchOverlay | null;
+  /** The pinned MatchStamp by colour (`pinnedOverlays`); empty for none. */
+  readonly pinned: readonly BeliefOverlay[];
 }
 
 const pathByOverlay = new WeakMap<MatchOverlay, string>();

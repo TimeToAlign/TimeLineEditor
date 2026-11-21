@@ -204,8 +204,16 @@ export {
   matchStampMembers,
   segmentsOf,
 } from "./matches/anchors.ts";
-export type { BeliefFilter, ClaimBeliefs } from "./matches/beliefs.ts";
-export { actorIri, BELIEF_FILTERS, BELIEFS, beliefMask } from "./matches/beliefs.ts";
+export type { AnchorBelief, BeliefFilter, ClaimBeliefs } from "./matches/beliefs.ts";
+export {
+  ANCHOR_BELIEFS,
+  actorIri,
+  anchorBelief,
+  BELIEF_FILTERS,
+  BELIEFS,
+  beliefMask,
+  believedBy,
+} from "./matches/beliefs.ts";
 export type {
   ClaimSide,
   ClaimTimeline,

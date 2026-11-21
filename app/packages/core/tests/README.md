@@ -4260,6 +4260,26 @@ two rows, row 0 believed false by A compact and true by A absolute, row 1
 without beliefs, give under the context row 1 alone for "not false" (a
 belief false of the believer holds the row out) and row 0 alone for "true".
 
+**The colour of an anchor** (`beliefs.ts`): an alignment anchor of a shown
+MatchStamp is drawn by the editor user's belief in the MatchClaims stating
+it. `believedBy(beliefs, believer, context)` gives per row the believer's
+belief as its number in `ANCHOR_BELIEFS`, the beliefs ordered by how
+critical they are: `["false", "unlikely", "undecided", "true"]`;
+`undecided` where the believer states none, the most critical where the
+believer (two actors of one IRI) states several; actors compare as
+`beliefMask` compares them. `anchorBelief(believed, rows)` is the most
+critical belief among the rows stating an anchor, `undecided` for none.
+On the fixture's beliefs above: for A, row 0 `true`, row 5 `unlikely`,
+row 10 `true`, row 12 `false`, every other row `undecided` (numbers `[3,
+2, 2, 2, 2, 1, 2, 2, 2, 2, 3, 2, 0, 2, 2]`); for B rows 12 and 13 `true`,
+every other `undecided`; for an actor holding no belief every row
+`undecided`; A written compact under `{orcid: "https://orcid.org/"}` as
+A absolute; the two-actor case (row 0 false by A compact, true by A
+absolute) row 0 `false`, row 1 `undecided`. For A, the rows `[0, 10]`
+give `true`, `[0, 5]` `unlikely`, `[0, 5, 12]` `false`, `[1, 2]`
+`undecided`, `[]` `undecided`. The same beliefs object, believer and
+context give the same array object.
+
 **Spans that overlap and run backwards.** Matched spans and segments are
 checked on a second case of their own, between `clt_1` (fraction) and
 `dpt_1` (int), every `dpt_1` value ten times its `clt_1` value so both
@@ -4302,16 +4322,20 @@ Update result is the current potential MatchStamp holding the stated
 anchor that carries the name, else the largest of the current ones, whether
 or not it holds a stated anchor (most coordinates, then most stated
 anchors, then the first stated anchor in the named order, then the lowest
-number), none when no anchor is stated. On the case's index:
+number), none when no anchor is stated. Per named anchor the comparison gives the
+rows of the MatchClaims stating it (`statedBy`, those passing the mask,
+ascending), empty where it is not stated, which the anchor's colour is
+read from. On the case's index:
 
 1. Anchors (`clt_1` 3, `dpt_1` 132300) and (`dpt_1` 132300, `cpt_1` 3.0,
    name), claims `claim_4`, `claim_5`, `claim_6`: stated as anchors 6 and
    11, up to date, every difference empty; Update the MatchStamp {6, 16,
    20} with anchors 6, 11, claims `claim_4`, `claim_5`, `claim_6`, the
    name on anchor 11. Recording `claim_1` and `claim_9` besides: out of
-   date, both claims elsewhere.
+   date, both claims elsewhere. Stated by rows `[3, 4]` and `[5]`.
 2. (`clt_1` 4, `dpt_1` 176400, name) and (`clt_1` 5, `dpt_1` 220500),
-   claims `claim_7`, `claim_10`, `claim_99`: stated 7 and none; anchors
+   claims `claim_7`, `claim_10`, `claim_99`: stated 7 and none, by rows
+   `[6]` and `[]`; anchors
    gone [1], new [8]; `claim_99` missing, `claim_10` believed false,
    `claim_8` new; Update {7, 17, 21}, anchors 7, 8, claims `claim_7`,
    `claim_8`, the name on 7.

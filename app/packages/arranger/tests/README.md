@@ -1873,12 +1873,16 @@ arranger owns, and what is proven here, is where each coordinate is put
 (the lines holding its timeline, at the abscissa of its position), which
 coordinates are drawn for a view (at most one per device pixel column of
 a card, only what is in view), which connectors are drawn, what the
-pointer hovers, the flag's groups and order, and which named anchors are
-drawn red. What would be wrong: a coordinate on the wrong line or
-abscissa, a connector unlike the named one between the same two
-timestamps, more than one line in a column, a cost that grows with the
-table instead of the view, a hit on the wrong MatchStamp, a flag in table
-order instead of screen order, a red anchor that is stated.
+pointer hovers, the flag's groups and order, and the colours of the
+MatchStamps shown: each anchor of the pinned and of every named one by the
+user's belief in the MatchClaims stating it, a named one out of date all
+red. What would be wrong: a coordinate on the wrong line or abscissa, a
+connector unlike the named one between the same two timestamps, more than
+one line in a column, a cost that grows with the table instead of the
+view, a hit on the wrong MatchStamp, a flag in table order instead of
+screen order, an anchor in the colour of a belief its MatchClaims do not
+hold or of one less critical than theirs, a named MatchStamp out of date
+drawn anywhere but red, or one up to date drawn red.
 
 **The block.** Block A holds `bundles/bundle_matchstamps` at (40, 80),
 scale 1, its node at (40, 80). Its three ungrouped roots are drawn in
@@ -2034,11 +2038,51 @@ block does not draw last. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1`
 number type, no unit); the table's order (take_2 first) is not the
 screen's. MatchStamp 1: `Score` [`4 ♩`], `Take 1` [`88 200 smp`].
 
-**Stale anchors** (`staleAnchors`). The named MatchStamps compared with T
-by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`, score 4 ↔ take_1
-88200, claims `claim_1`, `claim_2`) is stated by a2; `matchstamp_2`
-(`anchor_2`, score 4 ↔ take_2 99225, `claim_3`) is not: the red set is
-exactly `{anchor_2}`'s address key.
+**Colours by belief.** The user's beliefs B in T's MatchClaims, per row
+as core's `believedBy` gives them (its numbers: false 0, unlikely 1,
+undecided 2, true 3): `claim_1` true, `claim_2` unlikely, `claim_3` true,
+`claim_4` false, `claim_5` undecided, `claim_6` true, `claim_7` undecided.
+An anchor takes the most critical belief among the MatchClaims stating it
+(core's `anchorBelief`): a0 (`claim_5`) undecided, a1 (`claim_4`) false,
+a2 (`claim_1`, `claim_2`) unlikely, a3 (`claim_3`) true. The colours:
+undecided `#1BA1E2`, true `#339933`, unlikely `#E07000`, false `#E51400`.
+
+**The pinned MatchStamp by colour** (`pinnedOverlays`). Its overlay
+(`stampOverlay`) split into one part per colour that has anything, true
+first, then undecided, unlikely, false, so the most critical lies on top;
+the cross-section lines go with undecided, in the cross-section blue. With
+B, MatchStamp 0: true a3 (`M361.0928 43.207L361.0928 100.5859`), undecided
+its lines c0, c2, c4, c5 and a0, false a1; MatchStamp 1: undecided its
+lines c1, c3, unlikely a2. Without beliefs every connector is undecided:
+one part, the whole overlay. The same overlay and beliefs give the same
+parts again.
+
+**Named MatchStamps painted** (`namedPaint`). The named MatchStamps
+compared with T by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`,
+score 4 ↔ take_1 88200, claims `claim_1`, `claim_2`) is stated by a2 and
+up to date; `matchstamp_2` (`anchor_2`, score 4 ↔ take_2 99225, `claim_3`)
+is not stated, so out of date. The paint, by address key: `anchor_1`'s
+line stroked by a2's belief (with B unlikely `#E07000`, without beliefs
+undecided `#1BA1E2`); `matchstamp_2` all red `#E51400`: `anchor_2`'s line
+(stroke), its name label (fill, marked `! `), the lines of `timestamp_1`
+and `timestamp_3` (stroke); nothing else, so `timestamp_2`'s line keeps its
+style. `timestamp_1` is also `matchstamp_1`'s and is red all the same.
+`matchstamp_1` compared with D instead is out of date (D has no take_1
+88200): `anchor_1`'s line, its label (marked) and the lines of
+`timestamp_1` and `timestamp_2` red.
+
+**What a press on a match timestamp's line selects** (`ownerOf`,
+`holdingMatchStamp`). Its MatchStamp: of those whose anchors join it, the
+first in the manifest's order whose anchor joining it shows the name, else
+the first. `timestamp_1` is joined by `anchor_1` (`display` [line, name],
+`matchstamp_1`) and `anchor_2` ([line], `matchstamp_2`): `matchstamp_1`,
+the name's, though both hold it; with `anchor_1` showing no name, the
+first, `matchstamp_1` again; with the MatchStamps in the other order and
+`anchor_1` still showing the name, `matchstamp_1`, now the second.
+`timestamp_3`'s line: `matchstamp_2`. Any other part of a match timestamp
+(`timestamp_3`'s name label), and a part of an ordinary timestamp, is
+owned and selected as the timestamp; an anchor's line and label as its
+MatchStamp.
 
 **The path.** `pathOf` writes the lines, then the connectors, each a
 subpath, numbers as the writers write them (four decimals, as the
@@ -2557,10 +2601,28 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   pinned path (`stroke="#1BA1E2"`) is MatchStamp 0's, and hovering it
   draws no hovered path; given `{block: A, matchStamp: 1}`, MatchStamp
   1's (c1, c3, a2).
-- **Red anchors.** With T and the comparisons of "Stale anchors", the
-  drawn line of `anchor_2` has `stroke="#E51400"` and that of `anchor_1`
-  keeps `#1BA1E2`, with the mode on or off; with `matches` empty both
-  keep `#1BA1E2`.
+- **The pinned MatchStamp by belief.** With T and the beliefs B, the
+  pinned MatchStamp 0 draws three pinned paths, in this order: `true`
+  (`#339933`, a3), `undecided` (`#1BA1E2`, its lines and a0), `false`
+  (`#E51400`, a1), each `d` as in "The pinned MatchStamp by colour".
+- **Named MatchStamps painted.** Each of score, take_1 and take_2 is
+  given a child spanning it (`add child`), so every card draws a children
+  band and a timestamp's line has a length and is drawn. With T and the
+  comparisons of "Named MatchStamps painted", without beliefs: the drawn line of `anchor_1` has
+  `stroke="#1BA1E2"`, that of `anchor_2` `#E51400`, the lines of
+  `timestamp_1` and `timestamp_3` `#E51400`, that of `timestamp_2` its
+  style's `#1BA1E2`, with the mode on or off; with B, `anchor_1` turns
+  `#E07000`; with `matches` empty everything keeps `#1BA1E2`. With
+  `matchstamp_1` compared with D, its name label reads `! Bar 2, downbeat
+  (take 1)` with `fill="#E51400"`, and `anchor_1` and the lines of
+  `timestamp_1` and `timestamp_2` are `#E51400`.
+- **A match timestamp's line selects its MatchStamp.** With the children
+  above and the mode off
+  (and "Show coordinates" off), a click on `timestamp_1`'s line selects
+  `{block: A, id: "matchstamp_1"}`, and then `anchor_1`'s line and label
+  and the lines of `timestamp_1` and `timestamp_2` show the selection; on
+  `timestamp_3`'s line `matchstamp_2`; on `timestamp_3`'s name label the
+  timestamp `{block: A, id: "timestamp_3"}`, which its line shows too.
 - **One table per block.** Block B holds the same manifest at (40, 330),
   so every drawing point of B lies 250 below A's. With `matches` holding
   T for A alone, the mode on: one overlay `<svg>`, A's; B's `anchor_2`

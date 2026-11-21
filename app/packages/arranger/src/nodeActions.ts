@@ -5,6 +5,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
 import type { LevelRules } from "./containers.ts";
 import type { GestureSlot } from "./gesture.ts";
+import type { MatchPaint } from "./matches.ts";
 
 /**
  * What a block is drawn with while a gesture is under way, before anything
@@ -47,10 +48,12 @@ export interface NodeActions {
    */
   matches(): boolean;
   /**
-   * The address keys of block `block`'s alignment anchors the loaded
-   * MatchClaim table no longer states, drawn red; none without a table.
+   * How block `block`'s named MatchStamps are painted over their style while
+   * a MatchClaim table is loaded for it (`namedPaint`): each anchor's line by
+   * the belief in the MatchClaims stating it, one out of date all red;
+   * nothing without a table.
    */
-  staleAnchors(block: BlockId): ReadonlySet<string>;
+  matchPaint(block: BlockId): MatchPaint;
   /** The gesture in progress on this canvas, which Escape ends. */
   readonly gestures: GestureSlot;
 }

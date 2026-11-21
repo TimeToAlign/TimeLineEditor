@@ -1,11 +1,12 @@
 /**
  * Show matches: where the potential MatchStamps of a table are drawn in a
- * block, what a view draws of them, what the pointer hovers, the flag and
- * the named anchors drawn red. Derived in `README.md` ("Show matches").
+ * block, what a view draws of them, what the pointer hovers, the flag, the
+ * colours of the pinned and the named MatchStamps, and what a press on a
+ * match timestamp's line selects. Derived in `README.md` ("Show matches").
  */
 
 import type { AnchorIndex, Manifest } from "@timetoalign/tilie-core";
-import { addressKey, idAddress, inBlock, placeKeyText } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, inBlock, partAddress, placeKeyText } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
@@ -18,14 +19,16 @@ import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
+  namedPaint,
   overlayOf,
   pathOf,
+  pinnedOverlays,
   screenOrder,
   screenPlace,
-  staleAnchors,
   stampOverlay,
 } from "../src/matches.ts";
-import { D, NAMED, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
+import { holdingMatchStamp, ownerOf } from "../src/selectionRules.ts";
+import { BELIEVED, D, NAMED, NAMED_IN_D, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
 import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
 
 const view = viewOf({ id: A, fixture: "bundles/bundle_matchstamps", x: 40, y: 80 });
@@ -383,10 +386,138 @@ describe("the flag", () => {
   });
 });
 
-describe("stale anchors", () => {
-  it("are the named anchors the table does not state", () => {
-    const named = NAMED;
-    expect(named.map(({ comparison }) => comparison.stated)).toEqual([[2], [null]]);
-    expect([...staleAnchors(manifest, named)]).toEqual([addressKey(idAddress("anchor_2"))]);
+describe("the pinned MatchStamp by colour", () => {
+  const parts = (stamp: number, beliefs: Uint8Array | undefined) =>
+    pinnedOverlays(T, stampOverlay(T, linesOf(T), stamp), beliefs).map(
+      ({ belief, stroke, overlay }) => [belief, stroke, shape(overlay)],
+    );
+
+  it("draws each connector by the belief in its MatchClaims, the lines blue", () => {
+    expect(parts(0, BELIEVED)).toEqual([
+      ["true", "#339933", { lines: [], connectors: [[3, AT_300, SCORE_Y, AT_300, TAKE_1_Y]] }],
+      [
+        "undecided",
+        "#1BA1E2",
+        {
+          lines: [
+            [0, AT_300, TAKE_2_Y, TAKE_2_Y],
+            [2, AT_300, SCORE_Y, SCORE_Y],
+            [4, AT_200, TAKE_1_Y, TAKE_1_Y],
+            [5, AT_300, TAKE_1_Y, TAKE_1_Y],
+          ],
+          connectors: [[0, AT_300, TAKE_2_Y, AT_200, TAKE_1_Y]],
+        },
+      ],
+      ["false", "#E51400", { lines: [], connectors: [[1, AT_300, TAKE_2_Y, AT_300, TAKE_1_Y]] }],
+    ]);
+    expect(parts(1, BELIEVED)).toEqual([
+      [
+        "undecided",
+        "#1BA1E2",
+        {
+          lines: [
+            [1, AT_200, SCORE_Y, SCORE_Y],
+            [3, AT_100, TAKE_1_Y, TAKE_1_Y],
+          ],
+          connectors: [],
+        },
+      ],
+      ["unlikely", "#E07000", { lines: [], connectors: [[2, AT_200, SCORE_Y, AT_100, TAKE_1_Y]] }],
+    ]);
+  });
+
+  it("draws every connector undecided without beliefs, once per overlay and beliefs", () => {
+    const overlay = stampOverlay(T, linesOf(T), 0);
+    const whole = pinnedOverlays(T, overlay, undefined);
+    expect(whole.map(({ belief, overlay: part }) => [belief, part])).toEqual([
+      ["undecided", overlay],
+    ]);
+    expect(pinnedOverlays(T, overlay, undefined)).toBe(whole);
+    const byBelief = pinnedOverlays(T, overlay, BELIEVED);
+    expect(pinnedOverlays(T, overlay, BELIEVED)).toBe(byBelief);
+  });
+});
+
+describe("named MatchStamps painted", () => {
+  const key = (id: string, part?: "line" | "name") =>
+    addressKey(part === undefined ? idAddress(id) : partAddress(idAddress(id), part));
+  const stroke = (colour: string) => ({ attribute: "stroke", colour, marked: false });
+  const RED = stroke("#E51400");
+
+  it("draws an anchor by its belief and a MatchStamp out of date all red", () => {
+    expect(NAMED.map(({ comparison }) => comparison.stated)).toEqual([[2], [null]]);
+    expect(NAMED.map(({ comparison }) => comparison.outOfDate)).toEqual([false, true]);
+    const outOfDate = [
+      [key("anchor_2"), RED],
+      [key("anchor_2", "name"), { attribute: "fill", colour: "#E51400", marked: true }],
+      [key("timestamp_1", "line"), RED],
+      [key("timestamp_3", "line"), RED],
+    ];
+    expect([...namedPaint(manifest, NAMED, undefined)]).toEqual([
+      [key("anchor_1"), stroke("#1BA1E2")],
+      ...outOfDate,
+    ]);
+    const painted = namedPaint(manifest, NAMED, BELIEVED);
+    expect([...painted]).toEqual([[key("anchor_1"), stroke("#E07000")], ...outOfDate]);
+    expect(namedPaint(manifest, NAMED, BELIEVED)).toBe(painted);
+  });
+
+  it("marks the name label of one out of date", () => {
+    expect([...namedPaint(manifest, NAMED_IN_D, undefined)]).toEqual([
+      [key("anchor_1"), RED],
+      [key("anchor_1", "name"), { attribute: "fill", colour: "#E51400", marked: true }],
+      [key("timestamp_1", "line"), RED],
+      [key("timestamp_2", "line"), RED],
+    ]);
+  });
+});
+
+describe("what a press on a match timestamp's line selects", () => {
+  const line = (id: string) => partAddress(idAddress(id), "line");
+  const stamps = manifest.graphical?.matchstamps ?? [];
+  const [first, second] = stamps;
+  if (first === undefined || second === undefined) throw new Error("two named MatchStamps");
+  const withStamps = (matchstamps: typeof stamps): Manifest => ({
+    ...manifest,
+    graphical: { ...manifest.graphical, matchstamps },
+  });
+  const [anchor] = first.alignment_anchors;
+  const unnamed = {
+    ...first,
+    alignment_anchors: [{ ...anchor, display: ["line"] }] as const,
+  };
+
+  it("selects the MatchStamp whose anchor shows the name, else the first", () => {
+    expect(holdingMatchStamp(manifest, "timestamp_1")).toBe("matchstamp_1");
+    expect(holdingMatchStamp(manifest, "timestamp_3")).toBe("matchstamp_2");
+    expect(holdingMatchStamp(manifest, "timestamp_4")).toBeUndefined();
+    expect(holdingMatchStamp(withStamps([unnamed, second]), "timestamp_1")).toBe("matchstamp_1");
+    expect(holdingMatchStamp(withStamps([second, first]), "timestamp_1")).toBe("matchstamp_1");
+    expect(holdingMatchStamp(withStamps([second, unnamed]), "timestamp_1")).toBe("matchstamp_2");
+  });
+
+  it("owns the line as the timestamp and selects the MatchStamp with it", () => {
+    expect(ownerOf(manifest, line("timestamp_1"))).toEqual({
+      address: idAddress("timestamp_1"),
+      kind: "timestamp",
+      match: true,
+      selects: idAddress("matchstamp_1"),
+    });
+    expect(ownerOf(manifest, line("timestamp_3"))?.selects).toEqual(idAddress("matchstamp_2"));
+    expect(ownerOf(manifest, partAddress(idAddress("timestamp_3"), "name"))?.selects).toEqual(
+      idAddress("timestamp_3"),
+    );
+    expect(ownerOf(manifest, partAddress(idAddress("timestamp_4"), "coordinate"))).toEqual({
+      address: idAddress("timestamp_4"),
+      kind: "timestamp",
+      match: false,
+      selects: idAddress("timestamp_4"),
+    });
+    expect(ownerOf(manifest, partAddress(idAddress("anchor_1"), "name"))).toEqual({
+      address: idAddress("matchstamp_1"),
+      kind: "matchstamp",
+      match: true,
+      selects: idAddress("matchstamp_1"),
+    });
   });
 });
