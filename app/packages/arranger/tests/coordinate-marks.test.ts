@@ -302,13 +302,46 @@ describe("a pinned timestamp read across its group", () => {
     return { pin: reading.pin, key, x };
   }
 
-  /** The group lines the pinned marks draw, as attributes. */
-  const groupLines = () =>
+  /** The group lines the marks of `kind` draw, as attributes. */
+  const groupLines = (kind: "hover" | "pin" = "pin") =>
     [
       ...document.querySelectorAll(
-        '.tilie-coordinate-marks[data-mark="pin"] [data-testid="coordinate-group-line"]',
+        `.tilie-coordinate-marks[data-mark="${kind}"] [data-testid="coordinate-group-line"]`,
       ),
     ].map((element) => attributes(element, LINE));
+
+  /** The attributes of layout's group lines at the abscissa `x` of the line keyed `key`. */
+  const expectedGroupLines = (key: string, x: number) =>
+    groupCrossSections(shown().drawing, key, x).map((line) => ({
+      x1: attributeText(line.x),
+      y1: attributeText(line.y1),
+      x2: attributeText(line.x),
+      y2: attributeText(line.y2),
+      stroke: line.style.stroke,
+      "stroke-width": attributeText(line.style["stroke-width"]),
+      "stroke-dasharray": line.style["stroke-dasharray"],
+      opacity: null,
+    }));
+
+  it("is marked across the frame holding its line while it is hovered", async () => {
+    await show(viewOf({ id: A, fixture: "groups/group_groupstamp", x: 40, y: 80 }));
+    await toggleCoordinates();
+    const { key, x } = pinOnScore(null);
+    const score = axesOf(shown().drawing).get(key);
+    if (score === undefined) throw new Error("no line of score");
+    await hoverAt(client(x, score.y));
+    const expected = expectedGroupLines(key, x);
+    expect(expected).toHaveLength(1);
+    expect(groupLines("hover")).toEqual(expected);
+  });
+
+  it("is not marked across the frame while hovered on a block without groups", async () => {
+    await show(mapView());
+    await toggleCoordinates();
+    await hoverAt(client(AT_4, MELODY_Y));
+    expect(marks("hover")).not.toBeNull();
+    expect(groupLines("hover")).toEqual([]);
+  });
 
   it("is marked across the frame holding its line, as layout's group lines", async () => {
     await show(viewOf({ id: A, fixture: "groups/group_groupstamp", x: 40, y: 80 }));

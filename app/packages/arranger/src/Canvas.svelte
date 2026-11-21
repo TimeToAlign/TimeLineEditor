@@ -24,6 +24,7 @@ import {
   pinnedPlace,
   placeText,
   readingAt,
+  readsGroup,
 } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
@@ -599,7 +600,8 @@ function shownNode(id: string) {
 
 /**
  * The marks drawn: the pinned unnamed timestamp's (`pinnedPlace`), then
- * the hovered position's on the hovered line.
+ * the hovered position's on the hovered line, across the group's frame where
+ * the reading holds the group (`readsGroup`), as a groupstamp's line is drawn.
  */
 const marks: readonly PlacedMarks[] = $derived.by(() => {
   const found: PlacedMarks[] = [];
@@ -619,8 +621,8 @@ const marks: readonly PlacedMarks[] = $derived.by(() => {
     mark("pin", pin.spec.block, (drawing) => pinnedPlace(drawing, pin, pinnedLine));
   }
   if (reading !== null) {
-    const { hit, at } = reading;
-    mark("hover", reading.block, () => ({ key: hit.key, x: at.x }));
+    const { hit, at, pin } = reading;
+    mark("hover", reading.block, () => ({ key: hit.key, x: at.x, group: readsGroup(pin) }));
   }
   return found;
 });
