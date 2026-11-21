@@ -13,13 +13,24 @@ import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
-import { NO_MATCHES } from "../src/matches.ts";
+import { matchFlag, NO_MATCHES, pathOf, stampOverlay } from "../src/matches.ts";
 import type { Selection } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 import { NAMED, T } from "./matchTables.ts";
 import { A, B, blockIn, metrics, storeOf, viewOf } from "./support.ts";
+
+// The canvas's calls of what a hover costs are counted; each still does what it does.
+vi.mock("../src/matches.ts", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../src/matches.ts")>();
+  return {
+    ...original,
+    matchFlag: vi.fn(original.matchFlag),
+    pathOf: vi.fn(original.pathOf),
+    stampOverlay: vi.fn(original.stampOverlay),
+  };
+});
 
 interface Mounted {
   current(): { selection: Selection };
@@ -68,7 +79,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function show(matches: readonly MatchOverlayInput[], twice = false): Promise<void> {
+async function show(
+  matches: readonly MatchOverlayInput[],
+  twice = false,
+  matchesStatus?: string,
+): Promise<void> {
   store = storeOf(matchView(twice));
   const instance = mount(Harness, {
     target: document.body,
@@ -77,6 +92,7 @@ async function show(matches: readonly MatchOverlayInput[], twice = false): Promi
       metrics,
       matches,
       onmatchstamppin: (pin: MatchStampPin | null) => pins.push(pin),
+      matchesStatus,
     },
   });
   mounted = instance;
@@ -183,16 +199,25 @@ describe("the mode", () => {
     expect(pins).toEqual([null, null]);
   });
 
-  it("says that matches need a server and a table while it has none", async () => {
+  it("says that no MatchClaim table is loaded while it has none", async () => {
     await show([]);
     expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
     await key("m");
     expect(one('[data-testid="matches-state"]').textContent).toBe(NO_MATCHES);
-    expect(NO_MATCHES).toBe("Matches need the server and a loaded MatchClaim table.");
+    expect(NO_MATCHES).toBe("No MatchClaim table loaded.");
     expect(document.querySelector("[data-matches]")).toBeNull();
     harness.showMatches(WITH_T);
     await settle();
     expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
+  });
+
+  it("says what its host gives instead while it has no table", async () => {
+    const status = "Matches need a server: MatchClaim tables are read through tilie-server.";
+    await show([], false, status);
+    expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
+    await key("m");
+    expect(one('[data-testid="matches-state"]').textContent).toBe(status);
+    expect(document.querySelector("[data-matches]")).toBeNull();
   });
 });
 
@@ -280,6 +305,57 @@ describe("hovering and pinning", () => {
     harness.pinMatchStamp({ block: A, matchStamp: 1 });
     await settle();
     expect(path("pinned")?.getAttribute("d")).toBe(STAMP_1);
+  });
+
+  it("makes nothing again while the pointer moves on one MatchStamp", async () => {
+    await show(WITH_T);
+    await key("m");
+    await hoverAt(client(AT_300 + 3, SCORE_Y - 3));
+    const potential = path("potential");
+    const calls = [vi.mocked(stampOverlay), vi.mocked(matchFlag), vi.mocked(pathOf)];
+    const counts = () => calls.map((spy) => spy.mock.calls.length);
+    for (const spy of calls) spy.mockClear();
+
+    await hoverAt(client(AT_300 + 2, SCORE_Y - 2));
+    expect(counts()).toEqual([0, 0, 0]);
+    expect(path("hovered")?.getAttribute("d")).toBe(STAMP_0);
+
+    await hoverAt(client(261.0927734375 + 3, SCORE_Y - 3));
+    expect(counts()).toEqual([1, 1, 2]);
+    expect(vi.mocked(stampOverlay).mock.calls[0]?.[2]).toBe(1);
+    expect(path("hovered")?.getAttribute("d")).toBe(STAMP_1);
+    expect(path("potential")).toBe(potential);
+  });
+
+  it("reads the hover tolerance in the device pixels of the screen the window is on", async () => {
+    const watched: string[] = [];
+    const changes = new Map<string, EventListener>();
+    vi.stubGlobal(
+      "matchMedia",
+      (media: string): Partial<MediaQueryList> => ({
+        matches: media === "(prefers-reduced-motion: reduce)",
+        media,
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
+          if (!media.startsWith("(resolution") || typeof listener !== "function") return;
+          watched.push(`${type} ${media}`);
+          changes.set(media, listener);
+        },
+        removeEventListener() {},
+        addListener() {},
+        removeListener() {},
+      }),
+    );
+    await show(WITH_T);
+    await key("m");
+    await hoverAt(client(AT_300 + 3, SCORE_Y - 3));
+    expect(path("hovered")?.getAttribute("d")).toBe(STAMP_0);
+    expect(watched).toEqual(["change (resolution: 1dppx)"]);
+
+    vi.stubGlobal("devicePixelRatio", 2);
+    changes.get("(resolution: 1dppx)")?.(new Event("change"));
+    await settle();
+    expect(path("hovered")).toBeNull();
+    expect(watched).toEqual(["change (resolution: 1dppx)", "change (resolution: 2dppx)"]);
   });
 });
 

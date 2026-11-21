@@ -7,7 +7,7 @@ import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
 import "@xyflow/svelte/dist/style.css";
 import "./canvas.css";
 import { untrack } from "svelte";
-import { MediaQuery } from "svelte/reactivity";
+import { createSubscriber, MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
 import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
@@ -128,6 +128,11 @@ interface Props {
    * turned off.
    */
   onmatchstamppin?: (pin: MatchStampPin | null) => void;
+  /**
+   * What "Show matches" says while `matches` is empty: why its host has no
+   * table to give (no server, say); `NO_MATCHES` when not given.
+   */
+  matchesStatus?: string | undefined;
 }
 
 let {
@@ -147,6 +152,7 @@ let {
   matches = NO_TABLES,
   pinnedMatchStamp = null,
   onmatchstamppin,
+  matchesStatus = NO_MATCHES,
 }: Props = $props();
 
 /**
@@ -216,6 +222,33 @@ let moving = $state(false);
 /** The gesture in progress inside a drawing or on a resize handle, which Escape ends. */
 const gestures = new GestureSlot((next) => (moving = next));
 const reducedMotion = new MediaQuery("(prefers-reduced-motion: reduce)");
+
+/**
+ * The device pixels per CSS pixel, read again when the window moves to a
+ * screen of another ratio: a media query on the ratio read last, as
+ * `svelte/reactivity/window`'s `devicePixelRatio` watches it. That one asks
+ * `matchMedia` as its module is imported, before a test's DOM has one, so
+ * the canvas makes its own when it mounts.
+ */
+const deviceRatio: () => number = (() => {
+  const ratio = () => window.devicePixelRatio || 1;
+  const subscribe = createSubscriber((update) => {
+    let stop = () => {};
+    const watch = () => {
+      stop = listen(window.matchMedia(`(resolution: ${ratio()}dppx)`), "change", () => {
+        stop();
+        watch();
+        update();
+      });
+    };
+    watch();
+    return () => stop();
+  });
+  return () => {
+    subscribe();
+    return ratio();
+  };
+})();
 
 const nodes = new CanvasNodes(() => ({ view, selection, metrics, editing }));
 
@@ -442,7 +475,7 @@ function readingOf(point: Point) {
     { x: (point.x - x) / zoom, y: (point.y - y) / zoom },
     {
       zoom,
-      ratio: typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+      ratio: deviceRatio(),
       granularity: granularity ?? view.settings.granularity,
       knotsOf,
     },
@@ -584,11 +617,6 @@ const matchInputs: ReadonlyMap<string, MatchOverlayInput> = $derived(
   new Map(matches.map((input) => [input.block, input])),
 );
 
-/** The device pixels per CSS pixel. */
-function deviceRatio(): number {
-  return typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
-}
-
 /** The canvas as seen, for what "Show matches" draws. */
 const screen: Screen = $derived({
   x: viewport.x,
@@ -660,12 +688,41 @@ function matchHitOf(point: Point): { readonly block: string; readonly hit: Match
   return found === null ? null : { block: found.block, hit: found.hit };
 }
 
+/**
+ * The hovered potential MatchStamp and its block, apart from where the
+ * pointer is on it: what depends on these alone is made again only when
+ * another MatchStamp is hovered, never on every pointer frame.
+ */
+const hoveredBlock: string | null = $derived(matchHover?.block ?? null);
+const hoveredStamp: number | null = $derived(matchHover?.hit.stamp ?? null);
+
+/**
+ * The overlays of the hovered and the pinned MatchStamp, per block that has
+ * either; the hovered one not where it is pinned.
+ */
+const stampLayers: ReadonlyMap<string, Pick<MatchLayer, "hovered" | "pinned">> = $derived.by(
+  () =>
+    new Map(
+      matchBlocks.flatMap(({ node, index, lines }) => {
+        const block = node.data.block.id;
+        const hovered = hoveredBlock === block ? hoveredStamp : null;
+        const pinned = pinnedMatchStamp?.block === block ? pinnedMatchStamp.matchStamp : null;
+        if (hovered === null && pinned === null) return [];
+        const layer = {
+          hovered:
+            hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
+          pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
+        };
+        return [[block, layer] as const];
+      }),
+    ),
+);
+
 /** What the overlay draws: per block the potential MatchStamps, the hovered and the pinned one. */
 const matchLayers: readonly MatchLayer[] = $derived.by(() =>
-  matchBlocks.map(({ node, index, lines, placed, overlay }) => {
+  matchBlocks.map(({ node, placed, overlay }) => {
     const block = node.data.block.id;
-    const hovered = matchHover?.block === block ? matchHover.hit.stamp : null;
-    const pinned = pinnedMatchStamp?.block === block ? pinnedMatchStamp.matchStamp : null;
+    const stamps = stampLayers.get(block);
     return {
       block,
       width: node.data.drawing.width,
@@ -673,33 +730,38 @@ const matchLayers: readonly MatchLayer[] = $derived.by(() =>
       origin: placed.origin,
       scale: placed.scale,
       potential: overlay,
-      hovered: hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
-      pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
+      hovered: stamps?.hovered ?? null,
+      pinned: stamps?.pinned ?? null,
     };
   }),
 );
 
-/** The hovered MatchStamp's flag: its groups and its place in canvas pixels. */
+/** The hovered MatchStamp's flag groups, made again only when another MatchStamp is hovered. */
+const matchFlagGroups = $derived.by(() => {
+  if (hoveredBlock === null || hoveredStamp === null) return null;
+  const shown = matchBlocks.find(({ node }) => node.data.block.id === hoveredBlock);
+  if (shown === undefined) return null;
+  const { node, index, lines } = shown;
+  const decimals = (granularity ?? view.settings.granularity).decimals;
+  return matchFlag(index, node.data.block.manifest, lines, hoveredStamp, decimals);
+});
+
+/** The hovered MatchStamp's flag: its groups and its place in canvas pixels, which follows the pointer. */
 const matchFlagShown = $derived.by(() => {
   const hovered = matchHover;
-  if (hovered === null) return null;
+  const groups = matchFlagGroups;
+  if (hovered === null || groups === null) return null;
   const shown = matchBlocks.find(({ node }) => node.data.block.id === hovered.block);
   if (shown === undefined) return null;
-  const { node, index, lines, placed } = shown;
+  const { placed } = shown;
   const { x, y, zoom } = viewport;
   const screenOf = (dx: number, dy: number) => ({
     x: x + (placed.origin.x + dx * placed.scale) * zoom,
     y: y + (placed.origin.y + dy * placed.scale) * zoom,
   });
-  const { at, stamp } = hovered.hit;
+  const { at } = hovered.hit;
   const foot = screenOf(at.x, at.y);
-  const decimals = (granularity ?? view.settings.granularity).decimals;
-  return {
-    groups: matchFlag(index, node.data.block.manifest, lines, stamp, decimals),
-    x: foot.x,
-    y: foot.y,
-    top: screenOf(at.x, at.top).y,
-  };
+  return { groups, x: foot.x, y: foot.y, top: screenOf(at.x, at.top).y };
 });
 
 /**
@@ -985,7 +1047,7 @@ function onkeydowncapture(event: KeyboardEvent) {
     />
   {/if}
   {#if showMatches && matches.length === 0}
-    <p class="tilie-matches-state" data-testid="matches-state" role="status">{NO_MATCHES}</p>
+    <p class="tilie-matches-state" data-testid="matches-state" role="status">{matchesStatus}</p>
   {/if}
   <p class="tilie-hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
   <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>

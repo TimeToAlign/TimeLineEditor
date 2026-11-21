@@ -17,6 +17,7 @@ let {
   picking = null,
   matches: initialMatches = [],
   onmatchstamppin = () => {},
+  matchesStatus,
 }: {
   store: Store;
   metrics: FontMetrics;
@@ -25,6 +26,7 @@ let {
   picking?: ((address: Address) => void) | null;
   matches?: readonly MatchOverlayInput[];
   onmatchstamppin?: (pin: MatchStampPin | null) => void;
+  matchesStatus?: string | undefined;
 } = $props();
 
 const live = $derived(liveStore(store));
@@ -102,5 +104,6 @@ export function pin(next: Pin | null): void {
     {matches}
     {pinnedMatchStamp}
     {onmatchstamppin}
+    {matchesStatus}
   />
 </div>
