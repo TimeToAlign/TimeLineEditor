@@ -437,6 +437,49 @@ describe("updating a named MatchStamp", () => {
       path: [key(at("anchor_1")), "display"],
     });
   });
+
+  it("deletes a match timestamp's name by null, which undo gives back", () => {
+    const store = storeOf(view);
+    const before = store.view;
+    const entries = store.journal.length;
+    expect(store.dispatch(set(at("timestamp_3"), { name: null }))).toBeNull();
+    expect(store.journal).toHaveLength(entries + 1);
+    const graphical = fixture.graphical;
+    expect(block(store.view).manifest).toStrictEqual({
+      ...fixture,
+      graphical: {
+        ...graphical,
+        timestamps: TS.map((item) =>
+          item.id === "timestamp_3"
+            ? {
+                id: "timestamp_3",
+                timeline: "take_2",
+                coordinate: 99225,
+                display: ["name", "cross_section"],
+                matchstamp: true,
+              }
+            : item,
+        ),
+      },
+    });
+    store.undo();
+    expect(store.view).toBe(before);
+    expect(block(store.view).manifest).toStrictEqual(fixture);
+    expect(ts("timestamp_3").name).toBe("Take 2, bar 2");
+  });
+
+  it("refuses null for an unnamed match timestamp and for an ordinary timestamp", () => {
+    expect(refused(apply(view, set(at("timestamp_1"), { name: null })))).toEqual({
+      code: "invalid_value",
+      message: "the command changes nothing",
+      path: [key(at("timestamp_1")), "name"],
+    });
+    expect(refused(apply(view, set(at("timestamp_4"), { name: null })))).toEqual({
+      code: "invalid_value",
+      message: "a name is a non-empty string",
+      path: [key(at("timestamp_4")), "name"],
+    });
+  });
 });
 
 describe("removing named MatchStamps", () => {

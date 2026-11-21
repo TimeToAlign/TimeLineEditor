@@ -907,15 +907,18 @@ function timestampChange(
 }
 
 const TIMESTAMP_SET: Setters<TimestampTarget> = {
-  /** The timestamp's name, which its label shows: a non-empty string. */
+  /**
+   * The timestamp's name, which its label shows: a non-empty string; `null`
+   * deletes the name of a match timestamp, the one kind a name is optional
+   * for, and is refused for an ordinary timestamp like any other non-name.
+   */
   name: (view, target, value, path, changes) => {
-    const name = readName(value, path);
-    if (isCommandError(name)) return name;
     const { timestamp } = target;
-    return timestampChange(view, target, path, changes, timestamp.name, name, {
-      ...timestamp,
-      name,
-    });
+    const name = value === null && timestamp.matchstamp ? null : readName(value, path);
+    if (isCommandError(name)) return name;
+    const { name: _, ...unnamed } = timestamp;
+    const next = name === null ? unnamed : { ...timestamp, name };
+    return timestampChange(view, target, path, changes, timestamp.name ?? null, name, next);
   },
   /** Where the timestamp lies on its timeline's own axis (`readTimestampCoordinate`). */
   coordinate: (view, target, value, path, changes) => {
