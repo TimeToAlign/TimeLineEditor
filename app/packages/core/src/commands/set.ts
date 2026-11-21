@@ -941,18 +941,12 @@ const TIMESTAMP_SET: Setters<TimestampTarget> = {
     });
   } /**
    * Whether the timestamp is a groupstamp (`readGroupstamp`): `true` only on
-   * a group member and never for a match timestamp; its line then extends
+   * a group member, a match timestamp included; its line then extends
    * across every member of each group having its timeline as a member.
    */,
   groupstamp: (view, target, value, path, changes) => {
     const { block, timestamp } = target;
-    const groupstamp = readGroupstamp(
-      value,
-      block.manifest,
-      timestamp.timeline,
-      timestamp.matchstamp,
-      path,
-    );
+    const groupstamp = readGroupstamp(value, block.manifest, timestamp.timeline, path);
     if (isCommandError(groupstamp)) return groupstamp;
     return timestampChange(view, target, path, changes, timestamp.groupstamp, groupstamp, {
       ...timestamp,

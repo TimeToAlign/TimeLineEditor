@@ -8,12 +8,16 @@
  * unit written out, the pretty text), else its text in JSON, YAML or TOML
  * with one Copy. With `edit` a value field commits on Enter or leaving it;
  * without, every field is disabled and greyed. A copy is confirmed in the
- * message bar; a refusal shows at its field.
+ * message bar; a refusal shows at its field. A group that says how its
+ * timeline takes part (`through`, the Matchstamp tab's) carries a caption
+ * under its heading; the coordinate its MatchClaims state (`claimed`) is
+ * set apart: its row bold and its group marked by a bar on the left.
  */
 import { informOf } from "../../messages.svelte.ts";
 import FormatSwitch from "../FormatSwitch.svelte";
 import type { Format, Text } from "../formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "../formats.svelte.ts";
+import type { StampGroup, Through } from "../matchstampLines.ts";
 import type { Result } from "../problems.ts";
 import type { Copies, TimelineRows, ValueRow } from "../timestamp.ts";
 import type { StampDrafts } from "./drafts.svelte.ts";
@@ -27,8 +31,11 @@ export interface CoordinateEdit {
 interface Props {
   /** Which tab's Coordinates: their hint's test ID is `<kind>-hint`, their words the tab's. */
   kind: "timestamp" | "matchstamp";
-  /** The groups of the stamp shown; `null` while none is, the hint shown instead. */
-  groups: readonly TimelineRows[] | null;
+  /**
+   * The groups of the stamp shown; `null` while none is, the hint shown
+   * instead. A MatchStamp's say how each timeline takes part.
+   */
+  groups: readonly (TimelineRows | StampGroup)[] | null;
   /** What to do to show a stamp. */
   hint: string;
   /** The stamp as text in `format` (its codec loaded); `null` while none is shown. */
@@ -43,6 +50,20 @@ const uid = $props.id();
 const inform = informOf();
 
 const READ_ONLY = "This value cannot be solved for a position, so it cannot be edited.";
+
+/** How a group's timeline takes part, in words, under its heading; `null` for a plain group. */
+function captionOf(group: TimelineRows | StampGroup): string | null {
+  if (!("through" in group)) return null;
+  const words: { readonly [through in Through]: string } = {
+    claimed: "stated by MatchClaims",
+    ancestor: "ancestor",
+    crossed: "crossed by its line",
+    group: `through ${group.groups.length === 1 ? "group" : "groups"} ${group.groups
+      .map((name) => `'${name}'`)
+      .join(", ")}`,
+  };
+  return words[group.through];
+}
 
 /** The words of each tab: what its format switch is called, and its stamp in a text's label. */
 const WORDS = {
@@ -157,15 +178,23 @@ async function copy(copied: string, what: string): Promise<void> {
           </tr>
         </thead>
         {#each groups as group, g (group.key)}
-          <tbody data-timeline={group.timeline}>
+          {@const through = "through" in group ? group.through : undefined}
+          {@const caption = captionOf(group)}
+          <tbody data-timeline={group.timeline} data-through={through}>
             <tr>
               <th colspan={2 + COPY_COLUMNS.length} scope="colgroup">{group.name}</th>
             </tr>
+            {#if caption !== null}
+              <tr class="through">
+                <td colspan={2 + COPY_COLUMNS.length}>{caption}</td>
+              </tr>
+            {/if}
             {#each group.rows as row, r (row.key)}
               {@const locked = edit !== undefined && row.numberType !== null && !row.editable}
               {@const problem = `${uid}-${g}-${r}-problem`}
               {@const named = `${row.label} of ${group.name}`}
-              <tr data-row={row.key}>
+              {@const claimed = through === "claimed" && row.row.map === null}
+              <tr data-row={row.key} class={{ claimed }}>
                 <th scope="row">{row.label}</th>
                 <td class="value" title={locked ? READ_ONLY : undefined}>
                   {#if row.numberType === null}
@@ -276,6 +305,27 @@ async function copy(copied: string, what: string): Promise<void> {
 
   .value {
     padding-left: 0.5rem;
+  }
+
+  /* How the timeline takes part: a muted caption under its heading. */
+  tr.through td {
+    padding: 0 0 0.15rem;
+    border-top: none;
+    color: #595959;
+    font-size: 0.7rem;
+    font-style: italic;
+  }
+
+  /* The coordinate the MatchClaims state: its group barred on the left, its row bold. */
+  tbody[data-through="claimed"] > tr > :first-child {
+    padding-left: 0.4rem;
+    border-left: 3px solid #1a1a1a;
+  }
+
+  tr.claimed th[scope="row"],
+  tr.claimed .value input {
+    color: #1a1a1a;
+    font-weight: 600;
   }
 
   .value input {

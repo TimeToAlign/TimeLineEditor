@@ -3,7 +3,12 @@
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
 import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
-import { coordinateOf, DEFAULT_BELIEFS, DEFAULT_MATCH_CLAIM_FILTER } from "@timetoalign/tilie-core";
+import {
+  coordinateOf,
+  DEFAULT_BELIEFS,
+  DEFAULT_MATCH_CLAIM_FILTER,
+  matchClaimColumns,
+} from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -138,6 +143,16 @@ function shownGroups(): unknown[] {
       }),
     ],
   );
+}
+
+/** Press the GroupStamp toggle in the Lines entry of the match timestamp `id`. */
+function pressGroupstamp(id: string): void {
+  const toggle = document.querySelector<HTMLButtonElement>(
+    `section.lines li[data-timestamp='${id}'] .groupstamp .toggle`,
+  );
+  if (toggle === null) throw new Error(`no GroupStamp toggle on ${id}`);
+  toggle.click();
+  flushSync();
 }
 
 /** Shown read-only in the Matchstamp tab, editable in the Timestamp tab: groups compared without that. */
@@ -380,6 +395,10 @@ describe("Coordinates", () => {
       }),
     ).toBe(null);
     show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    const before = store.journal.length;
+    pressGroupstamp("timestamp_11");
+    pressGroupstamp("timestamp_12");
+    expect(store.journal.length).toBe(before + 2);
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
       ["Second half", [["coordinate", "2", true, "♩"]]],
@@ -427,6 +446,8 @@ describe("Coordinates", () => {
       }),
     ).toBe(null);
     show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    pressGroupstamp("timestamp_11");
+    pressGroupstamp("timestamp_12");
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
       ["Second half", [["coordinate", "2", true, "♩"]]],
@@ -550,6 +571,206 @@ describe("Lines", () => {
       null,
       null,
       null,
+    ]);
+  });
+});
+
+describe("GroupStamps", () => {
+  /** `bundle_mixed` with "Second half" under `score` and `score`'s conversion-maps band hidden. */
+  function mixedStore(): Store {
+    const store = storeOf("bundles/bundle_mixed");
+    expect(store.dispatch(SECOND_HALF)).toBe(null);
+    expect(
+      store.dispatch({
+        type: "style",
+        select: { addresses: [{ id: "score", facet: "conversion_maps" }] },
+        set: { display: "none" },
+        blocks: [A],
+      }),
+    ).toBe(null);
+    return store;
+  }
+
+  /** "Turn" named on `store` and shown. */
+  function showTurn(store: Store): void {
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Turn",
+          anchors: [
+            [
+              { timeline: "score", coordinate: [6, 1] },
+              { timeline: "performance", coordinate: 3.0 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+      }),
+    ).toBe(null);
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+  }
+
+  /**
+   * The lines as [kind, label, display toggles pressed, GroupStamp pressed
+   * (`null` without the toggle), every toggle disabled].
+   */
+  function lineStates(): unknown[] {
+    return [...document.querySelectorAll("section.lines li")].map((item) => {
+      const display = [...item.querySelectorAll<HTMLButtonElement>(".toggle")].filter(
+        (toggle) => toggle.closest(".groupstamp") === null,
+      );
+      const groupstamp = item.querySelector<HTMLButtonElement>(".groupstamp .toggle");
+      return [
+        item.getAttribute("data-line"),
+        item.querySelector(".line-name")?.textContent?.replace(/\s+/g, " ").trim(),
+        display.filter((t) => t.getAttribute("aria-pressed") === "true").map((t) => t.textContent),
+        groupstamp === null ? null : groupstamp.getAttribute("aria-pressed") === "true",
+        [...item.querySelectorAll<HTMLButtonElement>(".toggle")].every((t) => t.disabled),
+      ];
+    });
+  }
+
+  /** The Coordinates as [heading, data-through, caption, rows as [label, text, disabled, unit]]. */
+  function throughGroups(): unknown[] {
+    const bodies = document.querySelector("section.coordinates")?.querySelectorAll("tbody") ?? [];
+    return [...bodies].map((body, at) => [
+      body.querySelector('th[scope="colgroup"]')?.textContent,
+      body.getAttribute("data-through"),
+      body.querySelector("tr.through")?.textContent,
+      (shownGroups()[at] as [string, unknown[]])[1],
+    ]);
+  }
+
+  /** The rows set apart as the coordinates the MatchClaims state, as [group index, label]. */
+  function claimedRows(): unknown[] {
+    const bodies = document.querySelector("section.coordinates")?.querySelectorAll("tbody") ?? [];
+    return [...bodies].flatMap((body, at) =>
+      [...body.querySelectorAll("tr.claimed")].map((row) => [
+        at,
+        row.querySelector('th[scope="row"]')?.textContent,
+      ]),
+    );
+  }
+
+  const SCORE_GROUPS = [
+    ["Second half", "crossed", "crossed by its line", [["coordinate", "2", true, "♩"]]],
+    ["Score", "claimed", "stated by MatchClaims", [["coordinate", "6", true, "♩"]]],
+    [
+      "Performance",
+      "group",
+      "through group 'Performance'",
+      [
+        ["coordinate", "6.25", true, "s"],
+        ["cmap_3", "275625", true, "smp"],
+      ],
+    ],
+  ];
+  const PERFORMANCE_CLAIMED = [
+    "Performance",
+    "claimed",
+    "stated by MatchClaims",
+    [
+      ["coordinate", "3.0", true, "s"],
+      ["cmap_3", "132300", true, "smp"],
+    ],
+  ];
+
+  it("are a named MatchStamp's match timestamps on grouped timelines, by default", () => {
+    const store = mixedStore();
+    showTurn(store);
+    expect(lineStates()).toEqual([
+      ["timestamp", "Score 6 ♩ timestamp_11", ["Line"], true, false],
+      ["anchor", "Score – Performance anchor_1", ["Line", "Name"], null, false],
+      ["timestamp", "Performance 3″ timestamp_12", ["Line"], true, false],
+    ]);
+    expect(
+      [...document.querySelectorAll("section.lines .groupstamp .hint")].map(
+        (item) => item.textContent,
+      ),
+    ).toEqual([
+      "A GroupStamp's line crosses every member of 'Performance'.",
+      "A GroupStamp's line crosses every member of 'Performance'.",
+    ]);
+  });
+
+  it("list the group members, the coordinates the MatchClaims state set apart", () => {
+    const store = mixedStore();
+    showTurn(store);
+    expect(throughGroups()).toEqual([
+      ...SCORE_GROUPS,
+      ["Score", "group", "through group 'Performance'", [["coordinate", "72/25", true, "♩"]]],
+      PERFORMANCE_CLAIMED,
+    ]);
+    expect(claimedRows()).toEqual([
+      [1, "coordinate"],
+      [4, "coordinate"],
+    ]);
+  });
+
+  it("are turned off by the toggle, in one entry", () => {
+    const store = mixedStore();
+    showTurn(store);
+    const before = store.journal.length;
+    pressGroupstamp("timestamp_12");
+    expect(store.journal.length).toBe(before + 1);
+    expect(store.journal.at(-1)).toMatchObject({
+      command: {
+        type: "set",
+        changes: [{ target: { block: A, id: "timestamp_12" }, values: { groupstamp: false } }],
+      },
+    });
+    expect(lineStates()[2]).toEqual([
+      "timestamp",
+      "Performance 3″ timestamp_12",
+      ["Line"],
+      false,
+      false,
+    ]);
+    expect(throughGroups()).toEqual([...SCORE_GROUPS, PERFORMANCE_CLAIMED]);
+    expect(claimedRows()).toEqual([
+      [1, "coordinate"],
+      [3, "coordinate"],
+    ]);
+    unmountTab();
+    expect(timestampTabGroups(store, "score")).toEqual(
+      withoutDisabled(SCORE_GROUPS.map(([heading, , , rows]) => [heading, rows])),
+    );
+    expect(document.querySelector("section.coordinates tbody[data-through]")).toBe(null);
+    expect(document.querySelector("section.coordinates tr.through")).toBe(null);
+  });
+
+  it("wait for a name on a potential MatchStamp, which reads no group", () => {
+    const store = mixedStore();
+    const table: MatchClaimTable = {
+      columns: matchClaimColumns(
+        [
+          { id: "performance", numberType: "float" },
+          { id: "score", numberType: "fraction" },
+        ],
+        [{ id: "claim_1", timelines: [1, 0], start: [q(6), 3] }],
+      ),
+      beliefs: {
+        actors: [],
+        offsets: Uint32Array.from([0, 0]),
+        actor: Uint32Array.from([]),
+        word: Uint8Array.from([]),
+      },
+    };
+    const tables = tablesWith(table);
+    const shown = indexesOver(liveStore(store), tables)(A)?.shown;
+    if (shown === undefined) throw new Error("the block holds the table");
+    show(store, potential(shown, "score", q(6)), tables);
+    expect(lineStates()).toEqual([
+      ["timestamp", "Score 6 ♩", ["Line"], true, true],
+      ["anchor", "Score – Performance", [], null, true],
+      ["timestamp", "Performance 3″", ["Line"], true, true],
+    ]);
+    expect(throughGroups()).toEqual([
+      ["Second half", "crossed", "crossed by its line", [["coordinate", "2", true, "♩"]]],
+      ["Score", "claimed", "stated by MatchClaims", [["coordinate", "6", true, "♩"]]],
+      PERFORMANCE_CLAIMED,
     ]);
   });
 });
@@ -882,7 +1103,7 @@ describe("the Timestamp tab", () => {
     expect(listed(store, "timestamp_4")).toBe(null);
   });
 
-  it("offers no GroupStamp for a match timestamp on a group member", () => {
+  it("offers the GroupStamp on a match timestamp of a group member", () => {
     const store = storeOf(tableManifest());
     expect(
       store.dispatch({
@@ -900,9 +1121,22 @@ describe("the Timestamp tab", () => {
       props: { live: liveStore(store), pin, onpin: () => undefined },
     });
     flushSync();
+    const field = document.querySelector("[data-testid=timestamp-groupstamp]");
+    const toggle = field?.querySelector<HTMLButtonElement>(".toggle");
+    const hint = field?.querySelector(".hint")?.textContent;
     expect([
       pin?.named?.matchstamp,
-      document.querySelector("[data-testid=timestamp-groupstamp]"),
-    ]).toEqual([true, null]);
+      toggle?.getAttribute("aria-pressed"),
+      toggle?.disabled,
+      hint,
+    ]).toEqual([true, "true", false, "A GroupStamp's line crosses every member of 'group_1'."]);
+    toggle?.click();
+    flushSync();
+    expect(store.journal.at(-1)).toMatchObject({
+      command: {
+        type: "set",
+        changes: [{ target: { block: A, id: "timestamp_1" }, values: { groupstamp: false } }],
+      },
+    });
   });
 });

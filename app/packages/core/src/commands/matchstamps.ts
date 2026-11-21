@@ -34,7 +34,7 @@ import { axisCoordinate, axisValueOf } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import { readObject, unknownMember } from "../values.ts";
 import { ANCHOR_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
-import { readTimestampCoordinate } from "./timestamps.ts";
+import { isGroupMember, readTimestampCoordinate } from "./timestamps.ts";
 
 /** A coordinate of an anchor as a command gives it: the timeline it lies on and its value there. */
 export interface AnchorCoordinate {
@@ -159,9 +159,11 @@ function withName(display: readonly AnchorDisplay[]): AnchorDisplay[] {
  * The match timestamps the given anchors lie on, and the manifest's named
  * timestamps with the new ones appended: each coordinate's match timestamp
  * is the one the manifest holds there, else a new one with the next free
- * `timestamp_N` of `taken` (to which it is added), without a name and with
- * the default `display` of a match timestamp. A named timestamp that is no
- * match timestamp is never taken for one.
+ * `timestamp_N` of `taken` (to which it is added), without a name, with
+ * the default `display` of a match timestamp and a groupstamp exactly where
+ * its timeline lies in a group (`isGroupMember`). A named timestamp that is
+ * no match timestamp is never taken for one; one taken keeps its own
+ * `groupstamp`.
  */
 function placedTimestamps(
   manifest: Manifest,
@@ -187,7 +189,7 @@ function placedTimestamps(
       coordinate: given.coordinate,
       display,
       matchstamp: true,
-      groupstamp: false,
+      groupstamp: isGroupMember(manifest, timeline.id),
     });
     return id;
   };

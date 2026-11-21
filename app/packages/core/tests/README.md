@@ -2203,10 +2203,14 @@ complete form).
     `{groupstamp: true}` gives it back; `timestamp_1 {groupstamp: true}`
     as stored is "the command changes nothing"; on `timestamp_1` of
     `timestamps.yaml` `{groupstamp: true}` is refused as in item 20 at
-    `[timestamp_1, "groupstamp"]`; on the match timestamp `timestamp_1`
-    of `bundles/bundle_matchstamps.yaml` `{groupstamp:
-    true}` is "a match timestamp is never a groupstamp" (that refusal
-    comes before the membership's).
+    `[timestamp_1, "groupstamp"]`. A match timestamp is a timestamp like
+    any other here: on the match timestamp `timestamp_1` of
+    `bundles/bundle_matchstamp_cards.yaml` (on `score`, a member of both
+    groups) `{groupstamp: true}` is stored, `matchstamp` kept `true`; on
+    the match timestamp `timestamp_1` of `bundles/bundle_matchstamps.yaml`
+    (on `score`, a bundle without groups) it is refused as in item 20:
+    "'score' is a member of no group, so no timestamp on it is a
+    groupstamp".
 22. Ending the membership: removing `group_1` leaves `timestamp_1` an
     ordinary timestamp (`groupstamp: false`, every other member as it
     was), accepted by the schema check; undo gives `true` back.
@@ -2257,7 +2261,8 @@ written `x`, `TS` is the fixture's timestamps in canonical order, `M1` and
 `M2` its two MatchStamps, a coordinate `{timeline, coordinate}` is written
 `timeline@value`, and a new match timestamp `match(id, timeline, value)`
 is `{id, timeline, coordinate: value, display: ["cross_section"],
-matchstamp: true}`.
+matchstamp: true, groupstamp: false}` (no timeline of the fixture lies in
+a group).
 
 **Reading.** The fixture holds `M2`'s anchor with its default `display`
 `["line"]` stated, `resources` `[]`; `matchstamp_1` resolves to kind
@@ -2403,6 +2408,20 @@ lower coordinate first, an integral float a `JsonFloat`). For `M1`,
 `matchStampSpec` gives `{anchors: [{coordinates: [score 4, take_1
 88200n], carriesName: true}], claims: ["claim_1", "claim_2"]}`, the score
 value an exact `Rational` 4.
+
+**A match timestamp on a grouped timeline is a GroupStamp** (20): a new
+match timestamp is a groupstamp exactly where its timeline lies in a
+group, as any timestamp made above a timeline editor; naming closes the
+editors in the way first, so no editor scope applies. On block `A` holding
+`bundles/bundle_mixed.yaml` (`group_1` "Performance" holds `score` and
+`performance`), naming `{name: "Turn", anchors: [[score@[6, 1],
+performance@3.0]], match_claims: ["claim_1"]}` adds exactly, in
+canonical order, `match("timestamp_12", "performance", 3.0)` and
+`match("timestamp_11", "score", [6, 1])`, each with `groupstamp: true`;
+naming "Bar 4" (item 1) in `bundle_matchstamps.yaml`, which has no
+groups, adds `timestamp_10`, `timestamp_11`, `timestamp_12`, each with
+`groupstamp: false`. A match timestamp a MatchStamp reuses keeps its own
+`groupstamp` (the Update and reuse cases above, all `false`).
 
 ## Statements (`statements.test.ts`)
 
