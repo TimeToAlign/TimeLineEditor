@@ -1,11 +1,14 @@
 /** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
 import type { Block } from "@timetoalign/tilie-core";
+import { groupsHolding, indexOf } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
+import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
 
 interface Memo {
   readonly graphical: Graphical;
@@ -121,4 +124,41 @@ export function nodePosition(
     x: block.x - drawing.origin.x * block.scale,
     y: block.y - drawing.origin.y * block.scale,
   };
+}
+
+/**
+ * `entries`, the drawn descriptors of block `block` in drawing order, with
+ * the ancestor cards of a root raised over every frame while one of its
+ * timelines lying in no group is edited: when `editing`, the innermost open
+ * editor, is a timeline editor in this block on a timeline `T` that is no
+ * group member and lies in no member (core's `groupsHolding` is empty), the
+ * entries every displayed ancestor card of `T`'s root draws (its rectangle
+ * and its drawing, the record's range) follow every other entry, each group
+ * in its own order. Anything else, and a timeline whose root has no
+ * displayed ancestor card, keeps `entries` as they are (the same array).
+ * The drawing itself is never changed: only the order the block shows it in.
+ */
+export function raisedEntries<E extends { readonly descriptor: Descriptor }>(
+  entries: readonly E[],
+  block: Pick<Block, "id" | "manifest">,
+  drawing: Drawing,
+  editing: Editing | null,
+): readonly E[] {
+  if (editing === null || editing.kind !== "timeline") return entries;
+  const { block: id, element } = addressParts(editing.target);
+  const timeline = element?.id;
+  if (id !== block.id || timeline === undefined) return entries;
+  const { manifest } = block;
+  const ancestry = indexOf(manifest).ancestry;
+  const root = ancestry.get(timeline)?.[0];
+  if (root === undefined || groupsHolding(manifest, timeline, ancestry).length > 0) return entries;
+  const ranges = drawing.boxes
+    .filter((box) => box.ancestor !== undefined && box.address.id === root)
+    .map((box) => box.range);
+  if (ranges.length === 0) return entries;
+  const raised = (entry: E) => {
+    const at = entry.descriptor.source.element;
+    return ranges.some(({ start, end }) => start <= at && at < end);
+  };
+  return [...entries.filter((entry) => !raised(entry)), ...entries.filter(raised)];
 }

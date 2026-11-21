@@ -84,6 +84,17 @@ export const DEFAULT_LAYER: Graphical = {
         shadow: "#B8BEC8",
       },
     },
+    {
+      select: { element: "ancestor_card" },
+      set: {
+        fill: "#FFFFFF",
+        stroke: "#C4C9D1",
+        "stroke-width": 0.75,
+        rx: 5,
+        shadow: "#B8BEC8",
+        display: "none",
+      },
+    },
     { select: { inside: "ancestor" }, set: { opacity: 0.35 } },
     { select: { element: "label" }, set: { fill: "#000000", "font-size": 9 } },
     {

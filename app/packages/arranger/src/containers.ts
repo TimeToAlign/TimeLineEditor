@@ -23,7 +23,7 @@ import {
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import { blockBox, boxOf, isHeld, isItem, workedBox } from "./boxes.ts";
+import { blockBox, boxOf, isAncestorCard, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import type { ResizeMode } from "./resize.ts";
@@ -157,7 +157,7 @@ const ITEM: Resizing["writes"] = { scale: "item", box: "item", length: "item", s
  * card scales its group and stretches it along time, and sizes and
  * stretches vertically only its own card. A band never resizes.
  */
-const RESIZING: { readonly [kind in ContainerKind | "held"]: Resizing } = {
+const RESIZING: { readonly [kind in ContainerKind | "held" | "ancestor"]: Resizing } = {
   block: {
     levels: { arranger: "inside", bundle: "edited" },
     writes: { scale: "block", box: "block", length: "block", spacing: "block" },
@@ -169,11 +169,15 @@ const RESIZING: { readonly [kind in ContainerKind | "held"]: Resizing } = {
     writes: { scale: "item", box: "own", length: "item", spacing: "own" },
   },
   band: { levels: {}, writes: ITEM },
+  ancestor: { levels: {}, writes: ITEM },
 };
 
-/** How `box` resizes: by its kind, and for a card by whether a frame holds it. */
+/**
+ * How `box` resizes: by its kind, and for a card by whether a frame holds it; an ancestor card,
+ * like a band, never.
+ */
 export function resizingOf(box: DrawnBox): Resizing {
-  return RESIZING[isHeld(box) ? "held" : box.kind];
+  return RESIZING[isHeld(box) ? "held" : isAncestorCard(box) ? "ancestor" : box.kind];
 }
 
 /**
@@ -227,10 +231,11 @@ export interface PlaceField {
  * since every editor adapts the block's own box. A position is the block's or an
  * item's: the block's is edited at every level, an item's in an editor
  * whose level moves what it places (`LEVELS`, the bundle editor); a card a
- * frame holds has none, its frame placing it. A band has no place: none.
+ * frame holds has none, its frame placing it. A band and an ancestor card
+ * have no place: none.
  */
 export function fieldsOf(box: DrawnBox, level: Level): readonly PlaceField[] {
-  if (box.kind === "band") return [];
+  if (box.kind === "band" || isAncestorCard(box)) return [];
   const { levels, writes } = resizingOf(box);
   const resizes = levels[level] !== undefined;
   const block = box.kind === "block";

@@ -207,7 +207,9 @@ writes no address attribute, and its descriptor's source carries `{}`.
   `stroke-dasharray="2 1" opacity="0.5"` and the shadow with
   `fill="#B8BEC8" opacity="0.5"`: the shadow carries no stroke attribute,
   and `opacity` is written on every descriptor whose element's opacity is
-  not 1.
+  not 1. An ancestor card (`ancestor_card`, section 8.8) at the same place
+  with the same style is written exactly as the card: the same two rects in
+  SVG and the same two paths in TikZ, its source's type `ancestor_card`.
 
 **Line ends** (`timeline`, `child` and `ancestor` alike), `xs 10`, `xe 50`,
 `y 20`, width 2, stroke and fill `#00CC00`, dash `3 3`, address `{id: c}`. The
@@ -407,9 +409,13 @@ card spacing, a frame's spacing (the gap between its member cards) and a
 member's card spacing (their member cards' places under their group's
 entry's `cards`, `{group_1: {scale: 1.25, cards: {performance: {width: 650,
 height: 120}}}}` and `{group_1: {cards: {score: {spacing: 8}}}}`, as
-drawing.md §8.6 nests them); and drawings with one application layer
+drawing.md §8.6 nests them); drawings with one application layer
 showing a band the defaults hide, each selecting the band by `{addresses:
-[{id: T, facet: F}]}` or `{element: band, facet: F}`.
+[{id: T, facet: F}]}` or `{element: band, facet: F}`; and
+`group_parent_both`, `group_parent_right` and `group_parents_mixed` with
+the layer `{element: ancestor_card}` `display: inline`, which shows the
+ancestor cards the defaults hide (`group__<file>__ancestor-cards`; the
+layout's README derives their geometry). 87 fixtures in all.
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards

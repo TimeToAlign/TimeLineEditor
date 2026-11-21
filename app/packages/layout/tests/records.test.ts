@@ -11,6 +11,7 @@ import {
   type ContainerRef,
   containersOf,
   type Facet,
+  holdingOf,
   type Manifest,
   type PlaceKey,
   placeKeyText,
@@ -102,7 +103,10 @@ describe("the records and core's listing of the containers", () => {
     for (const name of manifestNames()) {
       const manifest = loadFile(name);
       const { block, all } = containersOf(manifest);
-      const expected = [block, ...all].filter((ref) => ref.kind !== "band");
+      // The default layer hides every ancestor card, and a hidden one is not recorded.
+      const expected = [block, ...all].filter(
+        (ref) => ref.kind !== "band" && holdingOf(ref) !== "ancestor",
+      );
       for (const extra of [[], [hidden]]) {
         const records = drawn(manifest, extra).boxes.filter((record) => record.kind !== "band");
         expect(records.map(identity), name).toEqual(expected.map(listed));

@@ -899,6 +899,48 @@ editor, `u`'s card has its own on the arranger. Enter on `{block: A, id: "t", pa
 displayed), the one in `g2` on the arranger, in the bundle editor and in
 `g2`'s editor, and nothing in `g1`'s.
 
+## Ancestor cards (`ancestor-cards.test.ts`, `keys.test.ts`)
+
+An ancestor card (drawing.md §8.8) is a card the block holds behind a
+frame: the root of a member that is a child timeline, drawn whole. It has
+no place, so nothing on the canvas moves, resizes, nudges or reorders it;
+it is hit, selected and opened as a card. The views are
+`groups/group_parent_both` (the root `piece` behind `group_1`, aligned to
+`middle`) and `groups/group_parents_mixed` (`sonata`, `session`, `page`
+behind `group_1`), each with the workspace's `graphical` showing every
+ancestor card (`{element: ancestor_card}` `display: inline`); layout's
+README derives the geometry the points below are taken from.
+
+1. **A record, no item.** `piece`'s card is recorded once, `ancestor
+   {group: group_1, member: middle}`; `isAncestorCard` holds for it and
+   for no other record; `isItem`, `isCard` and `isHeld` do not, so it is
+   no key of `keyedBox`. It never resizes (`resizes` false at every level)
+   and has no place fields (`fieldsOf` empty at every level).
+2. **Hit as a card.** A press on its rectangle at `(20, 40)`, left of the
+   frame (which starts at 156.6318359375), hits kind `card` at `{block: A,
+   id: piece, part: [card]}` with its record as `box` and `within`; its
+   shadow hits the same; a press there selects that address on the
+   arranger. At `(300, 40)`, where the frame lies over it, `within` is
+   `middle`'s card, never the ancestor card.
+3. **Opens its root.** A double-click on that hit opens `{block: A, id:
+   piece}` on the arranger (`editorTargetOf`); `workedBox` gives its record
+   for `{id: piece, part: [card]}`, while a member's card address keeps its
+   own card.
+4. **Raised while its root's timeline lying in no group is edited**
+   (`raisedEntries`). With the descriptors in drawing order: on the
+   arranger, in the editor of the member `middle` and in that of the group,
+   the same array; in the timeline editor of `piece`, the descriptors of
+   the ancestor card's range (elements 1 to 9) follow every other
+   descriptor, each part in its own order. In `group_parents_mixed` the
+   editor of `session` raises `session`'s card alone, that of the member
+   `take` nothing. Without the layer (every ancestor card hidden) the
+   editor of `piece` raises nothing.
+5. **Delete leaves it alone** (`keys.test.ts`, the view `bundle_mixed`,
+   `recording`'s ancestor card behind `group_2`): Delete with `{block: A,
+   id: recording, part: [card]}` selected sends nothing, refuses nothing
+   and keeps the selection; with `dlt_1` selected beside it, it removes
+   `dlt_1` alone.
+
 ## Picking an element (`picking.test.ts`)
 
 While a panel asks the canvas to pick an element (the Canvas's `picking`),

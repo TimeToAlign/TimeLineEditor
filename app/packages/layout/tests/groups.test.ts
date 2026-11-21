@@ -1,10 +1,20 @@
-import { type ElementAddress, TITLE_ADDRESS } from "@timetoalign/tilie-core";
+import { type ElementAddress, sameAddress, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PLACEMENT, draw } from "../src/index.ts";
+import { DEFAULT_PLACEMENT, type Drawing, draw } from "../src/index.ts";
 import { at, element, loadFile, metrics } from "./support.ts";
 
 const only = (select: object, set: object): Graphical[] => [{ rules: [{ select, set }] }];
+/**
+ * The last drawing of `address`: without the default layer `piece`'s ancestor card is drawn
+ * before the frame, so a line drawn there too has its frame's drawing last.
+ */
+const framed = (drawing: Drawing, address: ElementAddress) =>
+  element(
+    drawing,
+    address,
+    drawing.elements.filter((item) => sameAddress(item.address, address)).length - 1,
+  );
 
 describe("the tree of a manifest of one group", () => {
   const manifest = loadFile("groups/group_child_member");
@@ -25,7 +35,7 @@ describe("the tree of a manifest of one group", () => {
       at("piece"),
       at("piece", "name"),
     ]) {
-      expect(element(drawing, address).style, JSON.stringify(address)).toMatchObject({
+      expect(framed(drawing, address).style, JSON.stringify(address)).toMatchObject({
         stroke: "#123456",
         "font-size": 13,
       });
@@ -39,7 +49,8 @@ describe("the tree of a manifest of one group", () => {
       only({ addresses: [at("second-half")] }, { stroke: "#654321" }),
       metrics,
     );
-    expect(element(drawing, at("piece")).style.stroke).toBe("#654321");
+    expect(framed(drawing, at("piece")).style.stroke).toBe("#654321");
+    expect(element(drawing, at("piece")).style.stroke).toBe("none");
     expect(element(drawing, at("recording")).style.stroke).toBe("none");
     // The card is the line's sibling under the frame, not its holder.
     expect(element(drawing, at("second-half", "card")).style.stroke).toBe("none");

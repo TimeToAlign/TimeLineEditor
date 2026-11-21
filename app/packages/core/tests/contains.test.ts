@@ -42,9 +42,17 @@ const bands = (timeline: string, maps: readonly string[], stamps: readonly strin
 const EXCERPT = ["timestamp_3", "timestamp_4"];
 const PAGE = ["timestamp_5", "timestamp_6"];
 
+/** `excerpt` drawn as a child of `recording` in the ancestor card behind `group_2`. */
+const EXCERPT_ROW = [
+  id("excerpt"),
+  id("excerpt", "name"),
+  ...bands("excerpt", ["cmap_6"], EXCERPT),
+];
+
 describe("contains", () => {
   it("holds a group's frame, title and what its members hold, never their ancestors", () => {
     expect(containedBy("group_2")).toEqual([
+      ...EXCERPT_ROW,
       id("group_2"),
       id("group_2", "name"),
       id("page", "card"),
@@ -63,6 +71,16 @@ describe("contains", () => {
 
   it("holds in a root everything of its descendants, its ancestor line included", () => {
     expect(containedBy("recording")).toEqual([
+      id("recording", "card"),
+      id("recording"),
+      id("recording", "name"),
+      band("recording", "children"),
+      ...EXCERPT_ROW,
+      band("recording", "conversion_maps"),
+      id("cmap_5"),
+      band("recording", "markers"),
+      band("recording", "regions"),
+      band("recording", "flow_control"),
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
@@ -75,6 +93,7 @@ describe("contains", () => {
 
   it("leaves an ancestor line and the ancestor's own map outside a child", () => {
     expect(containedBy("excerpt")).toEqual([
+      ...EXCERPT_ROW,
       id("excerpt", "card"),
       ...marks("excerpt"),
       id("excerpt"),

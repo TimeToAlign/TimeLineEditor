@@ -18,6 +18,7 @@ import {
   ITEM_PLACE_MEMBERS,
   isMember,
   placeAt,
+  placedCards,
   placedContainer,
   withPlaceAt,
 } from "../manifest/containers.ts";
@@ -443,7 +444,7 @@ function placedOf(target: KeyedTarget, path: readonly PathSegment[]): ContainerR
     return frame;
   }
   const { id } = target.at.timeline;
-  const [card, ...others] = containers.cards.get(id) ?? [];
+  const [card, ...others] = placedCards(target.block.manifest, id);
   if (card === undefined) {
     return problem(ErrorCode.notAnItem, `'${id}' is not drawn in a card of its own`, path);
   }

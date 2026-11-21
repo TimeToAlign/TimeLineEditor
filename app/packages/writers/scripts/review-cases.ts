@@ -5,11 +5,14 @@
  * and 8), two bundles with items at stated places, a bundle with a scaled
  * card, one with a scaled frame whose member's card requests a size, one
  * with a block spacing and a card spacing of their own, a frame with a
- * spacing of its own, a member's card with a spacing of its own, and
+ * spacing of its own, a member's card with a spacing of its own,
  * three manifests with bands the defaults hide shown by an application
  * layer: a child's regions band, every regions band, and a child's flow
- * control band. Each is also a drawing fixture of the schema package
- * (`fixtures/<version>/drawings/`).
+ * control band, and three manifests whose ancestor cards, which the
+ * defaults hide, an application layer shows: a root reaching past its
+ * member on both sides, one reaching past it to the right, and three roots
+ * of three axes behind one frame. Each is also a drawing fixture of the
+ * schema package (`fixtures/<version>/drawings/`).
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -186,6 +189,15 @@ export function reviewCases(): ReviewCase[] {
     1,
     shown({ addresses: [{ id: "verse", facet: "flow_control" }] }),
   );
+  for (const stem of ["group_parent_both", "group_parent_right", "group_parents_mixed"]) {
+    add(
+      `group__${stem}__ancestor-cards`,
+      `groups/${stem}`,
+      DEFAULT_PLACEMENT,
+      1,
+      shown({ element: "ancestor_card" }),
+    );
+  }
   return cases;
 }
 

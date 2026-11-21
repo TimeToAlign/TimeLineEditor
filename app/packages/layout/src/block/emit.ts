@@ -6,12 +6,13 @@
  */
 
 import { BUNDLE_ADDRESS } from "@timetoalign/tilie-core";
-import type { DrawnAxis, DrawnBox, ElementRange } from "../boxes.ts";
+import { type DrawnAxis, type DrawnBox, type ElementRange, identityOf } from "../boxes.ts";
 import { placedAt, placedAxis, placedBox } from "../canvas.ts";
 import type { Style } from "../cascade.ts";
 import { K, P } from "../constants.ts";
 import type { Drawing, DrawnElement, Placement } from "../elements.ts";
 import type { TextMeasure } from "../metrics.ts";
+import type { LaidAncestorCard } from "./ancestors.ts";
 import { type LaidItem, titleElement } from "./items.ts";
 import type { Title } from "./places.ts";
 
@@ -26,6 +27,8 @@ export interface BlockContent {
   readonly Pt: number;
   /** The block's margin `Vb`, again below its lowest item. */
   readonly margin: number;
+  /** The displayed ancestor cards (section 8.8), drawn before every item. */
+  readonly ancestors: readonly LaidAncestorCard[];
   /**
    * The elements drawn after every item (section 8.7), from the drawn lines and boxes in the
    * block's coordinates: the groupstamps' lines across their groups' frames, then the alignment
@@ -43,9 +46,12 @@ export interface BlockContent {
  * them, so the place origin lies at `(Ox, Oy)` in the block; its content runs
  * from `Xl` to `Xr` and from `Yt` to `Yb` in place coordinates, the block's
  * margin below its lowest item (a block without items has none), and its size
- * is at least the requested one. The elements `block.after` gives from the
- * lines and boxes in the block follow every item's. The block's own record comes first,
- * its range every element.
+ * is at least the requested one. The displayed ancestor cards, each drawn at
+ * its frame's place and scale after the title and before every item, take no
+ * room but grow the block as an item does, their shadows included. The
+ * elements `block.after` gives from the lines and boxes in the block follow
+ * every item's. The block's own record comes first, then the ancestor
+ * cards', then the items'; the block's range is every element.
  */
 export function emitDrawing(
   laid: readonly LaidItem[],
@@ -53,8 +59,18 @@ export function emitDrawing(
   placement: Placement,
   measure: TextMeasure,
 ): Drawing {
-  const xs = laid.map(({ item }) => item.x);
-  const ys = laid.map(({ item }) => item.y);
+  const placed = (card: LaidAncestorCard) => {
+    const { x, y, scale } = card.item;
+    return { left: x + scale * card.x, top: y + scale * card.y };
+  };
+  const xs = [
+    ...laid.map(({ item }) => item.x),
+    ...block.ancestors.map((card) => placed(card).left),
+  ];
+  const ys = [
+    ...laid.map(({ item }) => item.y),
+    ...block.ancestors.map((card) => placed(card).top),
+  ];
   const Xl = laid.length === 0 ? 0 : Math.min(0, Math.min(...xs) - P);
   const Yt = laid.length === 0 ? 0 : Math.min(0, Math.min(...ys) - block.Pt);
   const Ox = 0 - Xl;
@@ -76,6 +92,25 @@ export function emitDrawing(
     elements.push(title);
     rights.push(left + measure.width(title.text, size));
     titleBottom = top + measure.lineHeight(size);
+  }
+  for (const card of block.ancestors) {
+    const { x, y, scale } = card.item;
+    const start = 1 + elements.length;
+    for (const element of card.elements) elements.push(placedAt(element, x, y, scale));
+    const { left, top } = placed(card);
+    boxes.push({
+      ...identityOf(card.ref),
+      x: left,
+      y: top,
+      width: scale * card.width,
+      height: scale * card.height,
+      range: { start, end: 1 + elements.length },
+      displayed: true,
+      contentCount: card.contentCount,
+      ancestor: { group: card.group, member: card.member },
+    });
+    for (const right of card.rights) rights.push(x + scale * right);
+    for (const bottom of card.bottoms) bottoms.push(y + scale * bottom);
   }
   for (const { item, ...local } of laid) {
     const { x, y, scale } = item;

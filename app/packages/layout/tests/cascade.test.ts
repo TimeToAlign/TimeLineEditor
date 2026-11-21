@@ -377,7 +377,12 @@ describe("one address drawn twice", () => {
           .filter((item) => sameAddress(item.address, wanted))
           .map((item) => [item.style.stroke, item.style.opacity]);
       expect(pairs(address)).toEqual([["#111111", 0.5]]);
-      expect(pairs(own)).toEqual([["none", 1]]);
+      // Without the default layer `piece`'s ancestor card is drawn, the member's own timestamp
+      // first on its row there, inside `piece`'s line but in no ancestor line.
+      expect(pairs(own)).toEqual([
+        ["#111111", 1],
+        ["none", 1],
+      ]);
     },
   );
 });
@@ -527,7 +532,10 @@ describe("the elements core enumerates", () => {
       const own = addressKey(key.address);
       listed.set(own, [...(listed.get(own) ?? []), key.type]);
     }
-    const drawing = drawFixture(name);
+    // Every ancestor card shown, so that its drawing is checked with the rest.
+    const drawing = drawFixture(name, [
+      { rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }] },
+    ]);
     const cards = drawing.boxes.filter((box) => box.kind === "card");
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
     // One drawing of an address: an element, but the pieces a groupstamp's line is drawn in

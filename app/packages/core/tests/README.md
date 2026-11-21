@@ -870,7 +870,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    "group_1"}`) and its title `{id: "group_1", part: ["name"]}`, a timeline
    drawn in a card (the root member `score`, its one card keyed `{item:
    "group_1", member: "score"}`, and the child member `excerpt`) and one
-   drawn in none (`recording`, no card), the cards of a member `{id:
+   drawn in no card of its own (`recording`, whose one card is its ancestor
+   card keyed `{item: "group_2", member: "recording"}`, which `{id:
+   "recording", part: ["card"]}` resolves to), the cards of a member `{id:
    "score", part: ["card"]}` and of an ungrouped root `{id: "annotations",
    part: ["card"]}` (keyed `{item: "annotations"}`), a band `{id: "score",
    facet: "regions"}` with the card holding it, an entry of each list by its
@@ -889,9 +891,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    `<address> names nothing`, the address worded from its members (item
    15; each case's words are written out in the test): an unknown block or ID, an ID composed from
    two (`score/cmap_1`), a band of a timeline drawn in no card (`{id:
-   "recording", facet: "regions"}`), a facet of a group or a map, the cards
-   of a timeline drawn in no card (`{id: "recording", part: ["card"]}`), a
-   group's card, a part an owner does not have (a card's label, a frame's
+   "recording", facet: "regions"}`; an ancestor card holds no band), a facet
+   of a group or a map, a group's card, a part an owner does not have (a card's label, a frame's
    label, the title's label `{part: ["name", "label"]}`, a label without an
    owner `{part: ["label"]}`, a start's end, a region's start), the title
    of an unnamed manifest (`{block: B, part: ["name"]}` on `map.yaml`'s
@@ -913,8 +914,10 @@ string form is `addressKey`, and nothing splits or composes an ID.
    2`, `https:`, `intro`, the URI with an empty fragment) name nothing.
 7. **Every drawn element resolves to its kind.** For every manifest
    fixture, every address the enumeration gives but the block's resolves
-   with `resolveElement`, and to the kind its element type says (a card the
-   cards, a band a band, a frame a frame, a map, region, flow marker or jump
+   with `resolveElement`, and to the kind its element type says (a card or
+   an ancestor card the cards, a band a band, except a band of a timeline
+   drawn in no card but an ancestor card, which has no container and
+   resolves to nothing, a frame a frame, a map, region, flow marker or jump
    origin an entry, a label, wedge or boundary a part, the title the title,
    an alignment anchor's line its anchor, every other line a timeline;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
@@ -932,18 +935,21 @@ string form is `addressKey`, and nothing splits or composes an ID.
    bundle level, styled as `block`, with no place; the frame at the group
    level, styled as `frame`, stating a whole place on the block; the card at
    the timeline level, styled as `card`, stating a whole place on the block
-   and its size, spacing and margin in a frame; the band at the facet level, styled
-   as `band`, with no place.
+   and its size, spacing and margin in a frame, and nothing as an ancestor
+   card; the band at the facet level, styled as `band`, with no place.
 9. **The containers of `bundle_mixed.yaml`** in drawing order, each with
-   its holder: frames by group ID, each followed by its members' cards in
+   its holder: first the ancestor card of `recording` (the root of the
+   member `excerpt`) keyed `{item: "group_2", member: "recording"}` on the
+   block, then frames by group ID, each followed by its members' cards in
    display order, then the ungrouped roots' cards on the block;
-   `recording` has no card and so no bands. A frame is addressed `{id: G}`
+   `recording` has no card of its own and so no bands. A frame is addressed `{id: G}`
    and keyed `{item: G}`, a member's card addressed `{id: T, part:
    ["card"]}` and keyed `{item: G, member: T}`, an ungrouped root's card
    keyed `{item: T}`; `byKey` holds exactly the seven frames and cards
-   under their `placeKeyText` (`["group_1"]`, `["group_1","score"]`, …,
-   `["annotations"]`), `frames` the two groups, `cards` the five carded
-   timelines. A card is followed by its timeline's five bands, addressed
+   that have a place under their `placeKeyText` (`["group_1"]`,
+   `["group_1","score"]`, …, `["annotations"]`), never the ancestor card,
+   `ancestorCards` that one card, `frames` the two groups, `cards` the six
+   timelines with a card, `recording` first. A card is followed by its timeline's five bands, addressed
    `{id: T, facet}`, held by it and keyed by nothing. The block's container
    is exactly `{kind: "block", key: null, address: {}, holder: null,
    timeline: null, facet: null}`.
@@ -961,12 +967,13 @@ string form is `addressKey`, and nothing splits or composes an ID.
     card nothing; `t` is a group member.
 11. **A child's bands lie in the card of its nearest ancestor drawn in
     one**: on `bundles/bundle_shared_parent.yaml`, where the root `score`
-    holds two members and is drawn in no card, the bands of segments lie in
-    their member's card, `score` has none, and the count of containers is
-    derived by hand (two frames, five cards, fifteen timelines' bands).
+    holds two members and is drawn in no card of its own, the bands of
+    segments lie in their member's card, `score` has none, and the count of
+    containers is derived by hand (two ancestor cards of `score`, one behind
+    each frame, two frames, five cards, fifteen timelines' bands).
 12. **Place members by holding**: a frame and a block-held card state a
-    whole place, a frame-held card only its size, spacing and margin, a band and
-    the block nothing; a place is cut to what its container may state (kept
+    whole place, a frame-held card only its size, spacing and margin, an
+    ancestor card (holding `ancestor`), a band and the block nothing; a place is cut to what its container may state (kept
     whole, cut, or dropped when nothing is left); a group member is a
     timeline whose card a frame holds.
 13. **Places.** A block's `places` holds a frame's and an ungrouped root's
@@ -994,8 +1001,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
     gives `score`'s card for `{item: "group_1", member: "score"}`, and
     `placedElement` gives `group_1`, `score` and `annotations` for the keys
     of the frame, a member's card and an ungrouped root's card, and nothing
-    for `{item: "score"}` (a member's bare ID), `{item: "recording"}` and
-    `{item: "group_2", member: "score"}`.
+    for `{item: "score"}` (a member's bare ID), `{item: "recording"}`,
+    `{item: "group_2", member: "score"}` and the ancestor card's key
+    `{item: "group_2", member: "recording"}`, which names no place.
 14. **Memoised by identity**: the listing and the index of a manifest are
     the same objects when asked twice; the index maps every timeline to
     itself and every entry to the timeline holding it (`region_1` to
@@ -1034,6 +1042,21 @@ string form is `addressKey`, and nothing splits or composes an ID.
     does not hold `{block: "0000000009"}` "block '0000000009'" and
     `{block: "0000000009", id: "score", part: ["end", "label"]}` "the label
     of the end of 'score' in block '0000000009'".
+16. **Ancestor cards** (drawing.md §8.8): a root that contains a group
+    member has one card behind the frame of each group having a member
+    below it, held by the block, holding `ancestor`, keyed `{item: G,
+    member: R}`, addressed `{id: R, part: ["card"]}` and listed before every
+    frame, with no band and no place (`placeMembersOf` gives nothing). On
+    `groups/group_parents_mixed.yaml` (one group `group_1`, display order
+    `exposition`, `take`, `system`, `audio`) `memberDrawings` gives three,
+    in display order: `sonata` aligned to `exposition`, `session` to `take`,
+    `page` to `system` (`audio` is a root member and has none); on
+    `bundle_shared_parent.yaml`, `score` behind `group_1` aligned to
+    `exposition` and behind `group_2` aligned to `recapitulation`. `placedCards`
+    leaves them out: `set {place: {x: 1}}` on `recording` of
+    `bundle_mixed.yaml` stays `not_an_item` "'recording' is not drawn in a
+    card of its own" at `[{block, id: "recording"}, "place"]`, as before the
+    root had an ancestor card (`places.test.ts`).
 
 ## Commands (`commands.test.ts`)
 
@@ -1428,7 +1451,15 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    'quarters'`: the path counts the roots of a manifest with a group.
 3. **Elements of a group manifest.** The enumeration of
    `group_child_member.yaml` is written out whole, every member of every
-   key, and compared exactly. Its order: the block; the frame `{id:
+   key, and compared exactly. Its order: the block; the ancestor card of
+   `piece`, the root of the member `second-half` (drawing.md §8.8): its
+   `ancestor_card` `{id: "piece", part: ["card"]}` (`[block]`), then
+   `piece`'s member drawing as an ungrouped root's, held by the block: its
+   line `timeline` `{id: "piece"}` (`[block]`), its name, its children band
+   holding `second-half` as a `child` row with its name and five bands
+   (`[block, timeline, band]` for the row, `[…, band, child]` for its
+   bands), the markers band of the row holding `timestamp_3` and
+   `timestamp_4`, then `piece`'s four other bands; then the frame `{id:
    "group_1"}` (type `frame`, chain `[block]`) and its title `{id:
    "group_1", part: ["name"]}` (`[block, frame]`), both belonging to no
    timeline, so timeline, domain, modality, class and facet are null; then
@@ -1453,17 +1484,22 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    their labels lie on the ancestor line alone. `{within: "piece"}` matches
    exactly the card of `second-half`, the `piece` ancestor, its name, the
    four mark keys on it and every element of the line `second-half`, its
-   timestamps' included (eighteen keys); `{element: "frame"}` only the
-   frame; `{element: "card"}` exactly the cards of `second-half` and
-   `recording`; `{inside: "ancestor"}` exactly the name of `piece` and the
+   timestamps' included (eighteen keys), after every key of the ancestor
+   card's nineteen (thirty-seven keys in all);
+   `{element: "frame"}` only the frame; `{element: "card"}` exactly the
+   cards of `second-half` and `recording`, `{element: "ancestor_card"}`
+   exactly the card of `piece`; `{inside: "ancestor"}` exactly the name of `piece` and the
    four mark keys on the ancestor line; `{element: "wedge", inside:
    "ancestor"}` the two marks; `{element: "name", inside: "ancestor"}` only
-   the name of `piece`; `{inside: "frame"}` every key but the block and the
-   frame.
+   the name of `piece`; `{inside: "frame"}` every key after the frame and
+   its title's holder, the frame itself excepted.
 4. **Elements of a named manifest with two groups.** The addresses of
    `bundle_mixed.yaml`'s enumeration are written out whole: the block `{}`;
    the title `{part: ["name"]}` (whether the manifest is named, as here, or
-   has an id); per frame in group order the frame, its title and its
+   has an id); the ancestor card of `recording` behind `group_2` (its card,
+   then `recording`'s line, name and five bands, the children band holding
+   `excerpt` as a child row with its name and bands, the conversion maps
+   band holding `cmap_5`); per frame in group order the frame, its title and its
    members' cards in display order (`group_1`: `score`, `performance`;
    `group_2`: `page`, `excerpt`), each card followed by the member's
    ancestor lines (for `excerpt`, `{id: "recording"}`, its name and the
@@ -1477,14 +1513,17 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    ["label"]}`); then the ungrouped root `annotations` with its card, name
    and five bands, the regions band holding `region_1`, its label,
    `region_2`, its label. Nothing of `recording`'s own is drawn on an
-   ancestor line (its map `cmap_5` is not, drawing.md §8.3). A line's
+   ancestor line (its map `cmap_5` is drawn only in the ancestor card,
+   drawing.md §8.3); the first key at `{id: "recording"}` is the ancestor
+   card's `timeline`, the second the ancestor line. A line's
    elements come in the order of "Elements and selectors" 1. The title, the
    card of `annotations` and the line `annotations` are held by the block
    alone (chain `[block]`), the line's name by the block and the line
    (`[block, timeline]`). `memberDrawings` gives the frames `group_1`
    (`score`, `performance`) and `group_2` (`page`, `excerpt`, the latter
-   with the one ancestor `recording`, offset its offset there) and the
-   ungrouped roots `["annotations"]`.
+   with the one ancestor `recording`, offset its offset there), the
+   ungrouped roots `["annotations"]` and the one ancestor card, `recording`
+   behind `group_2` aligned to `excerpt`.
 5. **Addresses, one root and several.** In a block of `map.yaml`:
    `manifestIds` is exactly `melody`, `phrase`, `tempo`, `ticks` and the
    root's two timestamps `timestamp_1`, `timestamp_2`; `set`

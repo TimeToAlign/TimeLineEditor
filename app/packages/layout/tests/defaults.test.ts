@@ -125,7 +125,9 @@ describe("the default layer's bands", () => {
   });
 
   it("show every band of a member drawing's root, a member that is a child included", () => {
-    expect(hidden("groups/group_child_member")).toEqual([]);
+    // `second-half` is also a child row in `piece`'s ancestor card, where the bands of a child
+    // are hidden as anywhere else; its own card shows every band.
+    expect(hidden("groups/group_child_member")).toEqual(two("second-half"));
     expect(hidden("bare")).toEqual([]);
   });
 });

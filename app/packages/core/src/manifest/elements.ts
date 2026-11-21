@@ -300,7 +300,8 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
 
 /**
  * The elements of one member drawing (section 8.1) held by `holder`, the
- * block or a group's frame: its card; its ancestor lines, each with its name
+ * block or a group's frame: its card, of type `card` (an `ancestor_card` for
+ * a root drawn behind a frame, section 8.8); its ancestor lines, each with its name
  * and its marks of the member's start and end, each mark with its label;
  * then per timeline in pre-order its line and name, or for a segment its
  * node (its line and no name when it is a segment line), then its five
@@ -322,9 +323,10 @@ function memberElements(
   member: MemberDrawing,
   holder: ElementKey,
   keys: ElementKey[],
+  card: "card" | "ancestor_card" = "card",
 ): void {
   const root = member.timeline;
-  keys.push(elementKey("card", cardAddress(root.id), root, holder));
+  keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", idAddress(timeline.id), timeline, line);
@@ -406,7 +408,10 @@ function memberElements(
 /**
  * Every element of a manifest's drawing, in the order of its tree (sections
  * 2.1 and 8.1): the block; the title of a named manifest (one with an `id`
- * or a `name`), addressed `{part: ["name"]}`; each group's frame, its title
+ * or a `name`), addressed `{part: ["name"]}`; the ancestor cards behind the
+ * frames (section 8.8), each an `ancestor_card` at `{id: R, part: ["card"]}`
+ * followed by the member drawing of its root `R`, all held by the block,
+ * whether a rule displays them or not; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
  * frame; then, after every item, the lines of the groupstamps across their
  * groups' frames (section 6.6), so that every drawn line has an address:
@@ -431,7 +436,10 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   if (isNamed(ordered)) {
     keys.push(unownedKey("name", TITLE_ADDRESS, BLOCK_KEY));
   }
-  const { frames, ungrouped } = memberDrawings(ordered);
+  const { frames, ungrouped, ancestorCards } = memberDrawings(ordered);
+  for (const { root } of ancestorCards) {
+    memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card");
+  }
   const drawnFrames = frames.map(({ group, members }) => {
     const address = idAddress(group.id);
     const frame = unownedKey("frame", address, BLOCK_KEY);

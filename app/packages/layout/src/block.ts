@@ -11,6 +11,7 @@ import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/til
 import { BLOCK_KEY } from "@timetoalign/tilie-core/drawing";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { anchorElements } from "./anchors.ts";
+import { ancestorCards } from "./block/ancestors.ts";
 import { emitDrawing } from "./block/emit.ts";
 import { columnsOf, horizontalOf } from "./block/horizontal.ts";
 import { drawItem, layoutItem } from "./block/items.ts";
@@ -28,7 +29,8 @@ import type { Context, Holder } from "./traversal.ts";
  * and its ungrouped roots as cards, each item at its place (section 8.6).
  * The items are placed and their member drawings laid out; the block's one
  * horizontal layout is found over every member drawing; each item is laid
- * out by it; the block is grown around them; the lines its groupstamps
+ * out by it; the displayed ancestor cards are laid out behind their frames
+ * (section 8.8); the block is grown around them all; the lines its groupstamps
  * draw across the members of their groups' frames, then the alignment
  * anchors of its named MatchStamps are drawn last, over everything (section
  * 8.7).
@@ -70,9 +72,15 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
+  const ancestors = ancestorCards(context, block, items, drawings, horizontal, measure);
   const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
     ...groupstampElements(manifest, axes, boxes),
     ...anchorElements(manifest, axes, cascade, block.style, measure),
   ];
-  return emitDrawing(laid, { style: block.style, title, Pt, margin, after }, placement, measure);
+  return emitDrawing(
+    laid,
+    { style: block.style, title, Pt, margin, ancestors, after },
+    placement,
+    measure,
+  );
 }

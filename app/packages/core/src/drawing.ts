@@ -20,5 +20,5 @@ export {
   timelineAncestry,
   unownedKey,
 } from "./manifest/elements.ts";
-export type { Ancestor, MemberDrawing } from "./manifest/files.ts";
+export type { Ancestor, AncestorCard, MemberDrawing } from "./manifest/files.ts";
 export { memberDrawings } from "./manifest/files.ts";

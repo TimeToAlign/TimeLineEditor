@@ -93,19 +93,37 @@ export interface GroupFrame {
   readonly members: readonly MemberDrawing[];
 }
 
+/**
+ * The ancestor card of a root behind a group's frame (section 8.8): the root
+ * of a member that is a child timeline, drawn whole and aligned to that
+ * member.
+ */
+export interface AncestorCard {
+  readonly group: Group;
+  /** The member it is aligned to: the first in display order below the root. */
+  readonly member: MemberDrawing;
+  /** The root, drawn as a root: it has no ancestors. */
+  readonly root: MemberDrawing;
+}
+
 /** What the drawing of a manifest draws as roots (section 8.1). */
 export interface MemberDrawings {
   /** The frames, in canonical order of their groups. */
   readonly frames: readonly GroupFrame[];
   /** The roots drawn without a frame (no group names them and they contain no member), by id. */
   readonly ungrouped: readonly MemberDrawing[];
+  /**
+   * The ancestor cards, frame by frame in the order of `frames`, then by their members' display
+   * order: one per root of a member that is a child timeline, aligned to its first such member.
+   */
+  readonly ancestorCards: readonly AncestorCard[];
 }
 
 /**
  * The member drawings of a manifest in canonical order: every group's
  * members in their display order (`displayOrder`), each with its ancestors,
- * then the ungrouped roots. A member id no timeline carries, which the
- * schema refuses, is passed over.
+ * then the ungrouped roots, and the ancestor cards behind the frames. A
+ * member id no timeline carries, which the schema refuses, is passed over.
  */
 export function memberDrawings(manifest: Manifest): MemberDrawings {
   const roots = [...manifest.timelines].sort((a, b) => compareCodePoints(a.id, b.id));
@@ -130,5 +148,14 @@ export function memberDrawings(manifest: Manifest): MemberDrawings {
   const holdsMember = (timeline: TimelineManifest): boolean =>
     members.has(timeline.id) || timeline.children.some(holdsMember);
   const ungrouped = roots.filter((root) => !holdsMember(root)).flatMap((root) => drawn(root.id));
-  return { frames, ungrouped };
+  const ancestorCards = frames.flatMap(({ group, members: drawings }) => {
+    const roots = new Set<string>();
+    return drawings.flatMap((member): AncestorCard[] => {
+      const id = member.ancestors[0]?.timeline.id;
+      if (id === undefined || roots.has(id)) return [];
+      roots.add(id);
+      return drawn(id).map((root) => ({ group, member, root }));
+    });
+  });
+  return { frames, ungrouped, ancestorCards };
 }

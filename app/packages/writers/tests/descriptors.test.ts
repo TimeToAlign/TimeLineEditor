@@ -121,6 +121,26 @@ describe("descriptors", () => {
     expect(svgBody(card({ shadow: "none" }))).toEqual([own]);
   });
 
+  it("writes an ancestor card as a card", () => {
+    const drawn = card();
+    const ancestor = {
+      ...drawn,
+      elements: drawn.elements.map((item) =>
+        item.type === "card" ? { ...item, type: "ancestor_card" as const } : item,
+      ),
+    };
+    expect(svgBody(ancestor)).toEqual(svgBody(drawn));
+    expect(tikzBody(ancestor)).toEqual(tikzBody(drawn));
+    expect(
+      toDescriptors(ancestor)
+        .filter((item) => item.source.type !== "block")
+        .map((item) => [item.source.type, item.source.role]),
+    ).toEqual([
+      ["ancestor_card", "shadow"],
+      ["ancestor_card", "primary"],
+    ]);
+  });
+
   it("writes a card's dash and opacity, and the opacity on its shadow", () => {
     expect(svgBody(card({ "stroke-dasharray": "2 1", opacity: 0.5 }))).toEqual([
       '<rect data-id="m" data-part="card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8" opacity="0.5"/>',
@@ -764,7 +784,7 @@ function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] 
 /**
  * Every descriptor names the element it was written from: the elements in
  * order, each once at least, its type and address, `shadow` the role of a
- * card's shadow alone.
+ * card's or an ancestor card's shadow alone.
  */
 function sourcesFollowElements(drawing: Drawing): void {
   const descriptors = toDescriptors(drawing);
@@ -773,7 +793,9 @@ function sourcesFollowElements(drawing: Drawing): void {
   expect([...new Set(order)]).toEqual([...drawing.elements.keys()]);
   drawing.elements.forEach((element, index) => {
     const own = descriptors.filter((each) => each.source.element === index);
-    const shadowed = element.type === "card" && element.style.shadow !== "none";
+    const shadowed =
+      (element.type === "card" || element.type === "ancestor_card") &&
+      element.style.shadow !== "none";
     expect(own.map(({ source }) => [source.type, source.address, source.role])).toEqual(
       own.map((_, at) => [
         element.type,

@@ -291,7 +291,8 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
       // The background: its template, then `opacity`, and no address attribute.
       return [writer.rect(0, 0, element.width, element.height, filled)];
     case "frame":
-    case "card": {
+    case "card":
+    case "ancestor_card": {
       const { x, y, width, height, shadowOffset } = element;
       const own = writer.rect(x, y, width, height, [...filled, ...stroked]);
       const shadow = element.style.shadow;

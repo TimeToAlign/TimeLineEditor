@@ -519,8 +519,10 @@ describe("the cascade on each drawing of an address", () => {
     );
     expect(styleOf(drawing, at("second-half", "start"))).toEqual(["#112233"]);
     expect(styleOf(drawing, at("second-half", "end", "label"))).toEqual(["#112233"]);
-    expect(styleOf(drawing, at("timestamp_3"))).toEqual(["none"]);
-    expect(styleOf(drawing, at("piece", "name"))).toEqual(["#112233"]);
+    // Without the default layer `piece`'s ancestor card is drawn: `timestamp_3` lies there first,
+    // on the row of `second-half` inside `piece`'s own line, then on the member's line.
+    expect(styleOf(drawing, at("timestamp_3"))).toEqual(["#112233", "none"]);
+    expect(styleOf(drawing, at("piece", "name"))).toEqual(["#112233", "#112233"]);
   });
 
   it("matches inside: ancestor on the marks and never on the member's own wedges", () => {
