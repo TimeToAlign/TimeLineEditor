@@ -4222,8 +4222,8 @@ compared for equality on an exact axis.
     maps and a breadth-first search gives the coordinates, anchors with
     their rows, and connected sets, which the index must equal.
 
-**The belief filter** (`beliefs.ts`, TimeToShare's `believed_rows`):
-`beliefMask(beliefs, believer, belief)` is `null` (nothing filtered)
+**The belief filter** (`beliefs.ts`, timetoalign's `belief_mask`):
+`beliefMask(beliefs, believer, belief, context)` is `null` (nothing filtered)
 without a believer, else 1 for every row the believer does not believe
 `"false"` (`"not_false"`, the default) or, for `"true"`, only for the rows
 the believer believes `"true"`; a belief's word is its number in
@@ -4242,6 +4242,23 @@ belief not false every row, true none. Any other filter word throws the
 (for `false`), as `believed_rows` refuses it. `BELIEF_FILTERS` is
 `["not_false", "true"]`, the words the workspace's MatchClaim filter
 reads too.
+
+Actors compare as the IRIs they stand for under the manifest's `@context`
+(`actorIri(context, actor)`: TimeToShare's `expandIri`, else the actor as
+written), the believer and every actor alike, as the library compares them.
+The case is the fixture's beliefs with A written compact, `orcid:0000-0002-1825-0097`,
+under the context `{orcid: "https://orcid.org/"}`: the believer A written
+absolute gives the rows above (not false every row but 12, true rows 0
+and 10), and so does A written compact; without the context the compact
+actor is no IRI of A (`actorIri(null, "orcid:0000-0002-1825-0097")` is the
+text as written), so A holds no belief: not false every row, true none.
+`actorIri` itself: under that context the compact actor is
+`https://orcid.org/0000-0002-1825-0097`; an absolute IRI, a `tag:` IRI and
+a text without a colon (`someone`) are themselves. A believer named by
+two actors of one IRI has every belief counted, as in the library's mask:
+two rows, row 0 believed false by A compact and true by A absolute, row 1
+without beliefs, give under the context row 1 alone for "not false" (a
+belief false of the believer holds the row out) and row 0 alone for "true".
 
 **Spans that overlap and run backwards.** Matched spans and segments are
 checked on a second case of their own, between `clt_1` (fraction) and

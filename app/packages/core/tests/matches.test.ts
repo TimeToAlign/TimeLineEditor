@@ -14,7 +14,7 @@ import {
   matchStampMembers,
   segmentsOf,
 } from "../src/matches/anchors.ts";
-import { BELIEF_FILTERS, BELIEFS, beliefMask } from "../src/matches/beliefs.ts";
+import { actorIri, BELIEF_FILTERS, BELIEFS, beliefMask } from "../src/matches/beliefs.ts";
 import type { ClaimTimeline, ClaimValues } from "../src/matches/columns.ts";
 import { matchClaimColumns } from "../src/matches/columns.ts";
 import type { NamedAnchor, NamedMatchStampSpec } from "../src/matches/compare.ts";
@@ -804,6 +804,34 @@ describe("the belief filter", () => {
     expect(rows(beliefMask(beliefs, B))).toEqual(every);
     expect(rows(beliefMask(beliefs, "https://example.org/nobody"))).toEqual(every);
     expect(rows(beliefMask(beliefs, "https://example.org/nobody", "true"))).toEqual([]);
+  });
+
+  it("compares actors as the IRIs they stand for under the manifest's context", () => {
+    const context = { orcid: "https://orcid.org/" };
+    const compact = "orcid:0000-0002-1825-0097";
+    expect(actorIri(context, compact)).toBe(A);
+    expect(actorIri(null, compact)).toBe(compact);
+    expect(actorIri(context, A)).toBe(A);
+    expect(actorIri(context, "tag:example.org,2026:other")).toBe("tag:example.org,2026:other");
+    expect(actorIri(context, "someone")).toBe("someone");
+
+    const written = { ...beliefs, actors: [B, compact] };
+    const notTwelve = every.filter((row) => row !== 12);
+    expect(rows(beliefMask(written, A, "not_false", context))).toEqual(notTwelve);
+    expect(rows(beliefMask(written, A, "true", context))).toEqual([0, 10]);
+    expect(rows(beliefMask(written, compact, "not_false", context))).toEqual(notTwelve);
+    expect(rows(beliefMask(written, compact, "true", context))).toEqual([0, 10]);
+    expect(rows(beliefMask(written, A))).toEqual(every);
+    expect(rows(beliefMask(written, A, "true"))).toEqual([]);
+
+    const twice = {
+      actors: [compact, A],
+      offsets: Uint32Array.from([0, 2, 2]),
+      actor: Uint32Array.from([0, 1]),
+      word: Uint8Array.from([BELIEFS.indexOf("false"), BELIEFS.indexOf("true")]),
+    };
+    expect(rows(beliefMask(twice, A, "not_false", context))).toEqual([1]);
+    expect(rows(beliefMask(twice, A, "true", context))).toEqual([0]);
   });
 
   it("refuses another filter word", () => {

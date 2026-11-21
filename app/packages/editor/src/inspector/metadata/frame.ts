@@ -21,6 +21,7 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import {
+  actorIri,
   addressKey,
   addressWords,
   canonicalText,
@@ -173,18 +174,39 @@ export interface VocabularyRow {
   readonly href: string | null;
 }
 
-/** One actor's belief in a pair, as the panel prints it. */
+/** One actor's belief in a pair or a MatchClaim, as a provenance entry's details print it. */
 export interface BeliefLine {
   /** The actor's IRI, as written. */
   readonly actor: string;
-  /** The actor in words (`whoOf`). */
+  /** The IRI the actor stands for under the manifest's context (`actorIri`), which actors are compared by. */
+  readonly iri: string;
+  /** The actor in words (`whoOf` of `iri`). */
   readonly who: string;
   readonly belief: Belief;
   readonly date: string | null;
   readonly note: string | null;
 }
 
-/** A pair's provenance entry as the panel prints it: how it was made (paradata), and who believes it. */
+/**
+ * A provenance entry as `lineOf` reads it: a statement's, as the manifest
+ * holds it, or a MatchClaim's, as the server answers it; the members of
+ * TimeToShare's provenance record, any of them missing or malformed.
+ */
+export interface ProvenanceEntry {
+  readonly stated_by?: unknown;
+  readonly date?: unknown;
+  readonly method?: unknown;
+  readonly service?: unknown;
+  readonly basis?: unknown;
+  readonly match?: unknown;
+  readonly note?: unknown;
+  readonly beliefs?: unknown;
+}
+
+/**
+ * A provenance entry as its details print it, in the Metadata tab and in
+ * the Matchstamp tab alike: how it was made (paradata), and who believes it.
+ */
 export interface EntryLine {
   readonly method: string | null;
   readonly who: string | null;
@@ -270,8 +292,13 @@ const text = (value: unknown): string | null => (typeof value === "string" ? val
 const isBelief = (value: unknown): value is Belief =>
   (BELIEFS as readonly unknown[]).includes(value);
 
-/** The line a provenance entry prints: its paradata, and its beliefs in their order. */
-export function lineOf(entry: JsonObject, user: User): EntryLine {
+/**
+ * The line a provenance entry prints: its paradata, and its beliefs in
+ * their order, every actor and every IRI of `stated_by` read as the IRI it
+ * stands for under `context` (the manifest's `@context`, `actorIri`) and
+ * worded by `whoOf`.
+ */
+export function lineOf(entry: ProvenanceEntry, user: User, context: unknown): EntryLine {
   const list = (value: unknown): string[] =>
     Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
   const by = list(entry.stated_by);
@@ -281,7 +308,8 @@ export function lineOf(entry: JsonObject, user: User): EntryLine {
         ? [
             {
               actor: held.actor,
-              who: whoOf(held.actor, user),
+              iri: actorIri(context, held.actor),
+              who: whoOf(actorIri(context, held.actor), user),
               belief: held.belief,
               date: text(held.date),
               note: text(held.note),
@@ -291,7 +319,7 @@ export function lineOf(entry: JsonObject, user: User): EntryLine {
   );
   return {
     method: text(entry.method),
-    who: by.length === 0 ? null : by.map((iri) => whoOf(iri, user)).join(", "),
+    who: by.length === 0 ? null : by.map((iri) => whoOf(actorIri(context, iri), user)).join(", "),
     date: text(entry.date),
     service: text(entry.service),
     basis: list(entry.basis),
@@ -301,10 +329,46 @@ export function lineOf(entry: JsonObject, user: User): EntryLine {
   };
 }
 
-/** The user's own belief among a line's beliefs, actors compared as the user's IRI; `null` for none. */
+/**
+ * The user's own belief among a line's beliefs, each actor compared by the
+ * IRI it stands for (`BeliefLine.iri`) with the user's IRI (`statedBy`, an
+ * absolute IRI, which every context expands to itself); `null` for none.
+ */
 export function beliefOf(line: EntryLine | null, user: User): Belief | null {
   const actor = statedBy(user);
-  return line?.beliefs.find((held) => held.actor === actor)?.belief ?? null;
+  return line?.beliefs.find((held) => held.iri === actor)?.belief ?? null;
+}
+
+/** One line of a provenance entry's paradata: which member, its label, and its text. */
+export interface ParadataRow {
+  readonly key: "who" | "method" | "service" | "basis" | "match" | "note" | "date";
+  readonly label: string;
+  readonly text: string;
+}
+
+/** The paradata of an entry line, in the order shown, with their labels. */
+const PARADATA: readonly (readonly [ParadataRow["key"], string])[] = [
+  ["who", "stated by"],
+  ["method", "method"],
+  ["service", "service"],
+  ["basis", "basis"],
+  ["match", "match"],
+  ["note", "note"],
+  ["date", "date"],
+];
+
+/**
+ * How a pair or a MatchClaim was made, as its details list it: one row per
+ * paradata member the entry states, in the order who stated it, method,
+ * service, basis (joined by ", "), match, note, date. The one paradata
+ * reader of both tabs.
+ */
+export function paradataRows(line: EntryLine): ParadataRow[] {
+  return PARADATA.flatMap(([key, label]): ParadataRow[] => {
+    const value = line[key];
+    if (typeof value === "string") return [{ key, label, text: value }];
+    return Array.isArray(value) && value.length > 0 ? [{ key, label, text: value.join(", ") }] : [];
+  });
 }
 
 /** Whether `value` is a value object, a literal with `@value`. */
@@ -471,7 +535,7 @@ export function rectanglesOf(
         const entry = annotated.find((candidate) =>
           samePair(context, entryPair(context, candidate), pair),
         );
-        return entry === undefined ? null : lineOf(entry, user);
+        return entry === undefined ? null : lineOf(entry, user, context);
       }),
       addable: addableOf(catalogue, context, verb, rectangle.inverse, pairs),
       pairs,
@@ -577,7 +641,7 @@ function rowsOf(
       heading: verb === null ? property : verbLabel(catalogue, verb[0], verb[1]),
       label: valueWords(context, value, labels, names),
       pair,
-      line: lineOf(entry, user),
+      line: lineOf(entry, user, context),
     };
   });
 }
