@@ -225,7 +225,11 @@ importers:
         specifier: 4.7.6
         version: 4.7.6(picomatch@4.0.7)(svelte@5.57.1)(typescript@6.0.3)
 
-  packages/client: {}
+  packages/client:
+    dependencies:
+      '@timetoalign/tilie-core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/core:
     dependencies:

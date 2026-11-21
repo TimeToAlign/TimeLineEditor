@@ -46,6 +46,60 @@ call or the exact result.
    maps". A row is checked member by member, so an answer the client
    accepts holds exact integers only.
 
+5. **MatchClaims.** `matchClaims(manifest, table)` takes a manifest's
+   text and the picked `match_claims.parquet` (a `Blob`) and sends one
+   `POST` to the base URL with `match-claims` appended, with
+   `Content-Type: application/octet-stream` and the `Authorization` rule
+   above. Its body is the request of `decisions/0030-match-claims-answer.md`,
+   compared byte for byte: the manifest's UTF-8 length as a little-endian
+   32-bit integer (a manifest with a non-ASCII character counts bytes, not
+   characters), the manifest's bytes, then the file's bytes unchanged.
+
+   The oracle of the answer is TimeToShare's table fixture `tables/0.2.0`,
+   fifteen MatchClaims read off by hand (the server's tests README,
+   "MatchClaims", has the table): `data/match-claims.answer.bin` is the
+   server's answer to it, written by the server's
+   `scripts/record_match_claims.py`, whose own test proves the recording
+   is the route's answer. Decoded, it resolves to `rows` 15, the claim IDs
+   `claim_1` to `claim_15`, the timelines `clt_1` (fraction), `clt_2`
+   (fraction), `cpt_1` (float), `dpt_1` (int), and every array compared
+   whole with the values written in the test: the timeline numbers, the
+   presence flags, each value column's positions, numerators and
+   denominators (`15/2` on `clt_1` as 7.5, 15n, 2n; `5.25` seconds on
+   `cpt_1` as 5.25, 0n, 0n), and the beliefs (actors
+   `…0001-5109-3700`, `…0002-1825-0097`; offsets, actor and word numbers
+   per belief). The arrays are views into the answer's one buffer, never
+   copies: each one's `buffer` is the same object. The decoded columns
+   are what core's anchor index takes: `anchorIndexOf` builds from them
+   (it checks them against decision 0029 first) and gives the fixture's
+   `expected.yaml` count of unique anchors (14 with nothing filtered).
+
+   **The belief filter.** `beliefMask(beliefs, believer, belief)` is the
+   row mask of TimeToShare's belief filter: `null` (nothing filtered)
+   without a believer; for a believer, 1 for every row the believer does
+   not believe `"false"` (`"not_false"`, the default) or only for the rows
+   the believer believes `"true"` (`"true"`). On the fixture: `…0002-1825-0097`
+   not false is every row but 12 (`claim_13`, believed false); true, rows
+   0 and 10; `…0001-5109-3700` true, rows 12 and 13; an actor holding no
+   belief not false is every row, true none. These are the rows of
+   `expected.yaml`'s cases for the same believer and filter. Any other
+   filter word throws a `RangeError` naming it, as TimeToShare's
+   `believed_rows` refuses it.
+
+   **Refusals.** An answer outside 2xx rejects with code `status` and its
+   status; a 422 whose body is `{"detail": {"path", "message",
+   problems?}}` rejects with the server's message and that detail as the
+   error's `refusal` (the check's problems listed), so the editor can say
+   what is wrong with the table. A 2xx answer that is not of decision
+   0030's layout rejects with code `status` and the message "the
+   match-claims answer is not of the tilie-match-claims layout": fewer
+   than four bytes, a header length beyond the answer, a header that is no
+   JSON object, another `format` or `version` (2), other belief words, an
+   array missing, out of bounds, at an offset that is not a multiple of
+   eight, or of another length than its name requires (`a.timeline` of 14
+   entries for 15 rows), claim IDs that are not `rows` lines, and a belief
+   naming no actor of the header.
+
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or
 rendering code) is enforced by `.dependency-cruiser.cjs` and proven by

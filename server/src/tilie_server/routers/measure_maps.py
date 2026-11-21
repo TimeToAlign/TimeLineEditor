@@ -10,23 +10,22 @@ reads, with every ID written ``#id``. The answer is the editor's own
 interface and no manifest file: it names each map by its bare ID, the one
 the editor matches a measure view's ``measure_map`` against.
 
-The expansion and timetoshare's reader are imported when a request needs
-them, so a server whose installed timetoalign or timetoshare lacks them
-still starts and answers every other route; this route then answers 501.
-timetoshare is no direct requirement of the server: timetoalign requires
-it, and the reader is used only together with timetoalign's expansion.
+The expansion and timetoshare's reader (:mod:`tilie_server.manifests`) are
+imported when a request needs them, so a server whose installed timetoalign
+or timetoshare lacks them still starts and answers every other route; this
+route then answers 501.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from fractions import Fraction
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import version
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from tilie_server.manifests import Refusal, read_manifest
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -54,18 +53,6 @@ QUARTER_MEMBERS = frozenset(
 """The members holding a position or a length in quarters."""
 
 
-class Refusal(Exception):
-    """A request the route cannot answer, with the path of what it refuses."""
-
-    def __init__(
-        self, path: list[str | int], message: str, status_code: int = 422
-    ) -> None:
-        super().__init__(message)
-        self.path = path
-        self.message = message
-        self.status_code = status_code
-
-
 def measure_map_class() -> Any:
     """Return timetoalign's ``MeasureMap``, which holds the expansion.
 
@@ -81,52 +68,6 @@ def measure_map_class() -> Any:
         )
         raise Refusal([], message, status_code=501) from error
     return MeasureMap
-
-
-def manifest_reader() -> tuple[Callable[[str], Any], Callable[[Any], Any]]:
-    """Return timetoshare's ``loads`` and ``with_bare_ids``.
-
-    Raises:
-        Refusal: 501, if timetoshare is missing or lacks them.
-    """
-    try:
-        from timetoshare import loads, with_bare_ids
-    except ImportError as error:
-        try:
-            installed = version("timetoshare")
-        except PackageNotFoundError:
-            message = "timetoshare is not installed, so manifest files cannot be read"
-        else:
-            message = (
-                f"the installed timetoshare {installed} cannot read manifest files"
-            )
-        raise Refusal([], message, status_code=501) from error
-    return loads, with_bare_ids
-
-
-def read_manifest(body: bytes) -> Any:
-    """Read a posted manifest file in any serialization, its IDs made bare.
-
-    Raises:
-        Refusal: 501 as :func:`manifest_reader`; 422 if the body is no UTF-8
-            text, neither serialization reads it, it is no object, or an ID
-            is not written in the file form (at timetoshare's path).
-    """
-    loads, with_bare_ids = manifest_reader()
-    try:
-        text = body.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise Refusal([], "the body is not UTF-8 text") from error
-    try:
-        manifest = loads(text)
-    except ValueError as error:
-        raise Refusal([], f"the body is neither JSON nor YAML: {error}") from error
-    if not isinstance(manifest, dict):
-        raise Refusal([], "the body is not an object")
-    try:
-        return with_bare_ids(manifest)
-    except ValueError as error:
-        raise Refusal(list(getattr(error, "path", ())), str(error)) from error
 
 
 def fraction_pair(value: Fraction | int | None) -> list[int] | None:
@@ -190,11 +131,8 @@ async def measure_maps(request: Request) -> JSONResponse:
     """
     try:
         measure_map = measure_map_class()
-        manifest = read_manifest(await request.body())
+        _, manifest = read_manifest(await request.body())
         answer = {"measure_maps": expanded_measure_maps(manifest, measure_map)}
     except Refusal as refusal:
-        return JSONResponse(
-            {"detail": {"path": refusal.path, "message": refusal.message}},
-            status_code=refusal.status_code,
-        )
+        return refusal.response()
     return JSONResponse(answer)

@@ -97,6 +97,86 @@ files"}}`, the version being the installed package's; when no timetoshare
 is installed at all, the message is `timetoshare is not installed, so
 manifest files cannot be read`.
 
+## MatchClaims
+
+`POST /api/match-claims` takes a manifest file's text together with the
+package's `match_claims.parquet` (the request's bytes: the manifest's
+length as a little-endian 32-bit integer, the manifest, the Parquet file;
+`decisions/0030-match-claims-answer.md`) and answers the columns of
+decision 0029 and every row's beliefs as aligned little-endian arrays
+behind a JSON header (decision 0030). What proves the route is the table
+read off by hand: the TimeToShare fixture `tables/0.2.0`
+(`timetoshare.tables.fixture_path`, never copied) has fifteen MatchClaims,
+few enough to write every array out from its rows, so the expected arrays
+are the fixture's coordinates in the encoding of decision 0029, written in
+the test, never the route's output. The tests decode the answer with
+their own reader of decision 0030's layout, so the layout is proved as
+well: the first four bytes are the header's length; the header is compact
+JSON; the arrays start at the first multiple of eight after it, each
+array's offset from there is the previous one's plus its byte length
+rounded up to eight (the first 0), in the order of decision 0030's table,
+and every byte between the header and an array or between two arrays is
+zero.
+
+**The fixture.** Posted with its `manifest.yaml` as it is (canonical YAML,
+`#` IDs), the answer is 200 `application/octet-stream`, and its header,
+without `arrays`, is exactly `{"format": "tilie-match-claims", "version":
+1, "rows": 15, "timelines": [clt_1 fraction, clt_2 fraction, cpt_1 float,
+dpt_1 int], "actors": ["https://orcid.org/0000-0001-5109-3700",
+"https://orcid.org/0000-0002-1825-0097"], "beliefs": ["true", "false",
+"unlikely"]}` (`clt_2` is a child of `clt_1`, found at its depth; the
+number types are the units' defaults the manifest leaves unstated). The
+arrays, row by row (`claim_1` to `claim_15`):
+
+| Array | Values |
+| --- | --- |
+| `claim_ids` | `claim_1` … `claim_15` joined by a line feed |
+| `a.timeline` | 0 0 0 3 0 3 0 0 0 0 3 0 0 0 1 |
+| `b.timeline` | 3 3 3 0 3 2 2 2 2 2 2 3 3 2 3 |
+| `start_present` | 1 everywhere but rows 11 (`claim_12`, a NOMATCH) and 13 (`claim_14`, conceptual) |
+| `end_present` | 1 in rows 1 (`claim_2`) and 8 (`claim_9`), the interval claims |
+| `a.start` | 0/1, 1, 3, 132300, 4, 176400, 5, 5, 6, 15/2, 441000, –, 10, –, 1 |
+| `b.start` | 0, 44100, 132300, 3, 176400, 4.0, 5.0, 5.25, 6.0, 7.5, 10.0, –, 441000, –, 396900 |
+| `a.end` | row 1: 2; row 8: 8 |
+| `b.end` | row 1: 88200; row 8: 8.0 |
+| `belief_offsets` | 0 1 1 1 1 1 2 2 2 2 2 3 3 5 6 6 |
+| `belief_actors` | 1 1 1 1 0 0 |
+| `belief_words` | 0 2 0 1 0 0 (row 0 true, row 5 unlikely, row 10 true, row 12 false and true, row 13 true) |
+
+A value on a quarters (`fraction`) or samples (`int`) axis is its integer
+or lowest terms with the double nearest it as `position`; one on the
+seconds (`float`) axis is its double over `0/0`; the cells of a missing
+anchor are zero.
+
+| Request | Answer |
+| --- | --- |
+| the fixture's manifest written as pretty JSON | the same bytes as for the YAML |
+| the fixture's table with one more column, `note` | the same bytes: a column the table type does not declare is kept by the checks and no part of a MatchClaim |
+| the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 30, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
+| a table built in the test on a samples, a quarters and a seconds timeline: 2^53 + 1 samples, the stated `[2, 4]` quarters, `[2^62 + 1, 3]` quarters and −0.0 seconds | numerator 9007199254740993 with position 2^53 (the double nearest it, ties to even); `1/2` with 0.5; the pair unchanged (already in lowest terms) with Python's `float` of the fraction, the correctly rounded quotient; 0.0 with its sign bit clear |
+| the fixture against its manifest without the child `clt_2` | 422 `{"detail": {"path": [], "message": "the manifest has no timeline 'clt_2'", "problems": [{"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"], "message": "the manifest has no timeline 'clt_2'"}]}}`: TimeToShare's check, every problem, as its own `match_claim_problems` lists them |
+| the fixture's table without its `certainty` column | 422, `problems` `[{"code": "schema_violation", "row": null, "column": ["certainty"], "message": "the table has no column 'certainty'"}]` |
+| two bytes | 422 `{"detail": {"path": [], "message": "the body does not start with the manifest's length"}}` |
+| a prefix stating 100 bytes before 10 | 422 message `the body states a manifest of 100 bytes and holds 10` |
+| a manifest that is no UTF-8 (`0xff`) | 422 message `the manifest is not UTF-8 text` |
+| a manifest whose first timeline's ID is bare (`clt_1`) | 422 `{"detail": {"path": ["timelines", 0, "id"], "message": "'clt_1' is not written as an ID: it does not start with '#'"}}`, timetoshare's |
+| table bytes that are no Parquet file (`not parquet`, or none) | 422 message `the MatchClaim table is no Parquet file` |
+| without the bearer token | 401 `{"detail": "missing or invalid token"}` |
+
+**A timetoshare or timetoalign that cannot.** With `timetoshare.tables`
+made unimportable, the app built anew answers `GET /api/health` 200 and
+the route 501 `{"detail": {"path": [], "message": "the installed
+timetoshare <version> cannot check MatchClaim tables"}}`; with
+`timetoalign.alignment.claims` made unimportable, 501 `the installed
+timetoalign <version> cannot read MatchClaim tables`; both whatever the
+body, each version the installed package's.
+
+**The recording.** `scripts/record_match_claims.py <file>` writes the
+answer to the fixture, which the client package's tests decode; the
+script calls the route's own function, so the recording is this answer
+byte for byte, proved by a test that runs the script into a temporary
+directory and compares the file with the route's answer.
+
 ## MusicBrainz lookup
 
 `/api/reconcile/musicbrainz` is a Reconciliation Service API 0.2 endpoint
