@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 import pytest
 import timetoshare.tables as tables
 from fastapi.testclient import TestClient
-from timetoshare import dumps, loads, with_context
+from timetoshare import FORMAT_CONTEXT, dumps, loads
 from timetoshare.tables import fixture_path
 
 from tilie_server.app import create_app
@@ -267,13 +267,11 @@ COMPACT_A = "orcid:0000-0002-1825-0097"
 def orcid_manifest() -> bytes:
     """The fixture's manifest with an ``@context`` declaring ``orcid``.
 
-    A statement uses the prefix: timetoalign keeps the prefixes a manifest's
-    statements use.
+    No statement uses the prefix: it is declared for the actors of the
+    MatchClaim table alone.
     """
     manifest = loads(fixture_manifest().decode())
-    manifest["@context"] = {"orcid": "https://orcid.org/"}
-    manifest["statements"] = {"dcterms:creator": [{"id": COMPACT_A}]}
-    manifest = with_context(manifest, {"dcterms": "http://purl.org/dc/terms/"})
+    manifest["@context"] = {**FORMAT_CONTEXT, "orcid": "https://orcid.org/"}
     return dumps(manifest).encode()
 
 
