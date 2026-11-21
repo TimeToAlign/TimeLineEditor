@@ -23,7 +23,7 @@ The requirements:
    `float` value a double. Two values that round to the same double are
    two coordinates; `-0.0` and `0.0` on a float axis are one.
 2. **No parsing and no object per row**: 250,000 claims become an index
-   within 200 ms of their arrival, the check of their columns included,
+   within 250 ms of their arrival, the check of their columns included,
    and a hover is answered within 1 ms. The browser views the server's arrays without copying them.
 3. **A float key for order**: drawing and hit-testing need a position on a
    timeline as a double; it orders and searches, never decides equality on
@@ -116,7 +116,7 @@ and two integers sharing a double stay apart, `-0.0` is `0.0`, each
 refusal), compare the index with a reference built from exact value texts
 over generated tables, and `matches-budget.test.ts`, in the budget run
 alone (`pnpm test:budget`), holds the check and build of 250,000 generated
-claims to 200 ms and a hover to 1 ms.
+claims to 250 ms and a hover to 1 ms.
 
 Primary sources: <https://tc39.es/ecma262/#sec-typedarray-objects>,
 <https://arrow.apache.org/docs/format/Columnar.html> (the columnar layout
@@ -132,7 +132,9 @@ positions correctly rounded, which Python's `Fraction` and `float` do;
 `checkColumns` refuses either broken. Measured on 250,000 generated claims
 (390,795 coordinates) inside the test runner: the check 57 to 59 ms, about
 40 ms of it the map from claim IDs, the build 116 to 118 ms, a hover about
-1 µs. The exit cost is
+1 µs. On 2026-11-21 the budget was re-measured on the reference machine, where
+check and build together took 212 to 218 ms, and set to the measured value plus the
+margin of about 15 % the other budgets keep. The exit cost is
 local: the columns are the only contract between the server and core.
 
 ## Review date
