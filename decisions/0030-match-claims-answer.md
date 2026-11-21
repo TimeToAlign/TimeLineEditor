@@ -69,7 +69,10 @@ arrays}`: `format` is `"tilie-match-claims"`, `version` is `1`; `rows` the
 number of MatchClaims; `timelines` `[{id, number_type}]`, every timeline a
 row names, by bare ID sorted by code point, each with its axis's number
 type as the manifest states it; `actors` every actor holding a belief,
-sorted by code point; `beliefs` the belief words in TimeToShare's order,
+each the IRI timetoalign compares it as (expanded under the manifest's
+`@context`, every prefix it declares; timetoalign's `belief_context` and
+`actor_iri`), so a compact and an absolute spelling of one actor are one
+entry, sorted by code point; `beliefs` the belief words in TimeToShare's order,
 `["true", "false", "unlikely"]`; `arrays` maps each array's name to
 `[offset, length]`, its offset from `base` (a multiple of 8) and its
 number of entries. Padding after an array is zero bytes.
@@ -92,8 +95,9 @@ The arrays are listed in the order above; a client reads them by name.
 
 **Refusals** answer JSON, as the server's other routes: 422
 `{"detail": {"path", "message"}}` for a body that cannot be split, a
-manifest that cannot be read (`path` timetoshare's) or bytes that are no
-Parquet file; a table TimeToShare's checks refuse adds `problems`, every
+manifest that cannot be read (`path` timetoshare's) or that timetoalign
+refuses to read as a bundle (its message), or bytes that are no Parquet
+file; a table TimeToShare's checks refuse adds `problems`, every
 problem the checks find as `{code, row, column, message}`, `message` being
 the first one's; 501 for a server whose timetoshare cannot check tables or
 read manifests, or whose timetoalign cannot read the table.
@@ -105,7 +109,8 @@ bounds, misaligned or of another length than their name requires; it
 views every array where it lies, decodes the claim IDs with one
 `TextDecoder` call and one split, and refuses to run on a big-endian
 platform. The row mask is computed from the beliefs on the client
-(`beliefMask`), so the same answer serves every believer and filter.
+(`beliefMask`, the believer expanded under the same `@context` as the
+actors), so the same answer serves every believer and filter.
 
 ## Maintenance and dependencies
 

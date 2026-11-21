@@ -108,7 +108,18 @@ machine: inside the parallel suite a median reached 273 ms for opening while
 the same code takes 175 ms alone, and even the minimum exceeded the limit
 when other work loaded the machine. The budget test therefore runs on its
 own: the default `pnpm test` excludes it, and `pnpm test:budget` runs it
-alone, without file parallelism.
+with the other budgets in one run, one file at a time; each limit is
+checked softly, so every figure beyond its limit is reported.
+
+On 2026-11-21 the opening budget was raised to 300 ms, saving and a command
+unchanged. Schema 0.2.0's manifests gained resources, named MatchStamps,
+provenance beliefs and a JSON-LD context of 35 terms, which every manifest
+of the budget's workspace carries and every validation reads: opening the
+same workspace went from about 235 ms to about 260 ms, with TiLiE's own
+code measured unchanged between the two schema versions. The limit is that
+figure with the margin of about 15 % the MatchClaim anchor index's budget
+keeps (decision 0029); a limit is raised only where the cost is inherent,
+never to hide an accidental one.
 
 Opening and verifying the 300-block workspace with 1,000 entries,
 `readWorkspace` followed by `createStore`, measured 497 to 501 ms on
