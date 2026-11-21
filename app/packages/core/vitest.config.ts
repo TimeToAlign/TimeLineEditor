@@ -6,6 +6,6 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     // The budgets time the code and run on their own: `pnpm test:budget`.
-    exclude: ["tests/budget.test.ts"],
+    exclude: ["tests/budget.test.ts", "tests/matches-budget.test.ts"],
   },
 });

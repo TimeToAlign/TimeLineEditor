@@ -178,6 +178,44 @@ export type {
   MeasureRecord,
   QuarterPair,
 } from "./maps/values.ts";
+export type {
+  AnchorIndex,
+  Anchors,
+  Coordinates,
+  MatchedSpans,
+  Neighbours,
+  PotentialMatchStamps,
+  Segments,
+} from "./matches/anchors.ts";
+export {
+  anchorIndexOf,
+  anchorOf,
+  claimRowsOf,
+  coordinateNear,
+  coordinateOf,
+  coordinatesWithin,
+  coordinateValue,
+  matchStampAnchors,
+  matchStampMembers,
+  segmentsOf,
+} from "./matches/anchors.ts";
+export type {
+  ClaimSide,
+  ClaimTimeline,
+  ClaimValues,
+  MatchClaimColumns,
+  ValueCell,
+  ValueColumn,
+} from "./matches/columns.ts";
+export { checkColumns, matchClaimColumns, valueCell } from "./matches/columns.ts";
+export type {
+  MatchStampCheck,
+  MatchStampUpdate,
+  NamedAnchor,
+  NamedCoordinate,
+  NamedMatchStampSpec,
+} from "./matches/compare.ts";
+export { checkMatchStamp } from "./matches/compare.ts";
 export type { Coordinate } from "./number/coordinate.ts";
 export type { CoordinateDict } from "./number/display.ts";
 export {

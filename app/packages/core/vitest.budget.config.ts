@@ -6,7 +6,7 @@ export default defineConfig({
     name: "budget",
     root: import.meta.dirname,
     environment: "node",
-    include: ["tests/budget.test.ts"],
+    include: ["tests/budget.test.ts", "tests/matches-budget.test.ts"],
     fileParallelism: false,
   },
 });
