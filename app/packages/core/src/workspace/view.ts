@@ -15,6 +15,7 @@ import {
 } from "../manifest/containers.ts";
 import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
 import {
+  type MemberReader,
   readBoolean,
   readExact,
   readFinite,
@@ -47,9 +48,35 @@ export interface Granularity {
 }
 
 /**
+ * The belief filter of the MatchClaims, for the editor's one user: every
+ * MatchClaim the user does not believe `false` (`not_false`), or only those
+ * the user believes `true` (`true`).
+ */
+export const BELIEF_FILTERS = ["not_false", "true"] as const;
+export type BeliefFilter = (typeof BELIEF_FILTERS)[number];
+
+/**
+ * Which MatchClaims of a block's MatchClaim table are shown: those between
+ * two of the timelines `timelines` lists (every timeline where it is
+ * `null`) that pass the belief filter `belief`.
+ */
+export interface MatchClaimFilter {
+  /** The IDs of the timelines whose MatchClaims are shown, by code point; `null` for every timeline. */
+  readonly timelines: readonly string[] | null;
+  readonly belief: BeliefFilter;
+}
+
+/** The filter of a block that states none: every timeline, everything the user does not believe false. */
+export const DEFAULT_MATCH_CLAIM_FILTER: MatchClaimFilter = {
+  timelines: null,
+  belief: "not_false",
+};
+
+/**
  * How the editor is used on this workspace: the canvas's snapping grid, the
- * placement of new blocks, the granularity of positions on timelines and
- * how each block's manifest is written to a file. No command changes a
+ * placement of new blocks, the granularity of positions on timelines, how
+ * each block's manifest is written to a file and which of its MatchClaims
+ * are shown. The MatchClaim table itself is never held. No command changes a
  * setting, so the journal neither records nor undoes them
  * (`Store.configure`).
  */
@@ -63,6 +90,13 @@ export interface WorkspaceSettings {
    * outlives its block, which the journal may bring back.
    */
   readonly manifests: { readonly [block: BlockId]: FileForm };
+  /**
+   * The MatchClaim filter of a block, by block ID; a block without an entry
+   * as `DEFAULT_MATCH_CLAIM_FILTER` (`matchClaimFilterOf`). An entry
+   * outlives its block, and its timelines may name timelines its manifest
+   * no longer holds.
+   */
+  readonly matchClaimFilters: { readonly [block: BlockId]: MatchClaimFilter };
 }
 
 export interface View {
@@ -91,11 +125,17 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
   granularity: DEFAULT_GRANULARITY,
   manifests: {},
+  matchClaimFilters: {},
 };
 
 /** How the manifest of block `block` is written to a file: its entry in `settings`, else `NEW_MANIFEST_FILE`. */
 export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): FileForm {
   return settings.manifests[block] ?? NEW_MANIFEST_FILE;
+}
+
+/** Which MatchClaims of block `block` are shown: its entry in `settings`, else `DEFAULT_MATCH_CLAIM_FILTER`. */
+export function matchClaimFilterOf(settings: WorkspaceSettings, block: BlockId): MatchClaimFilter {
+  return settings.matchClaimFilters[block] ?? DEFAULT_MATCH_CLAIM_FILTER;
 }
 
 /** An empty workspace with the given settings, named `untitled`. */
@@ -150,14 +190,42 @@ const MANIFEST_FILE_READERS = {
   serialization: readSerialization,
 };
 
-/**
- * The manifest files by block ID (`WorkspaceSettings.manifests`), every
- * entry read exactly. With `lenient`, a value that is no object reads as
- * none and each entry that does not read is left out, without a problem.
- */
-function readManifestFiles(
+function readBeliefFilter(value: unknown, path: readonly PathSegment[]): BeliefFilter | Problem {
+  const found = BELIEF_FILTERS.find((word) => word === value);
+  return found ?? problem(ErrorCode.invalidValue, 'expected "not_false" or "true"', path);
+}
+
+/** A filter's timelines: `null`, or timeline IDs, each once, held by code point. */
+function readFilterTimelines(
   value: unknown,
   path: readonly PathSegment[],
+): readonly string[] | null | Problem {
+  if (value === null) return null;
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    return problem(ErrorCode.invalidValue, "expected null or a list of timeline IDs", path);
+  }
+  const seen = new Set<string>();
+  for (const [index, id] of value.entries()) {
+    if (seen.has(id)) {
+      return problem(ErrorCode.invalidValue, `'${id}' is listed twice`, [...path, index]);
+    }
+    seen.add(id);
+  }
+  return [...seen].sort(compareCodePoints);
+}
+
+const MATCH_CLAIM_FILTER_READERS = { timelines: readFilterTimelines, belief: readBeliefFilter };
+
+/**
+ * Entries by block ID (`WorkspaceSettings.manifests`,
+ * `WorkspaceSettings.matchClaimFilters`), every entry read exactly by
+ * `readers`. With `lenient`, a value that is no object reads as none and
+ * each entry that does not read is left out, without a problem.
+ */
+function readByBlock(
+  value: unknown,
+  path: readonly PathSegment[],
+  readers: { readonly [member: string]: MemberReader },
   problems: Problem[],
   lenient: boolean,
 ): { [block: BlockId]: unknown } | undefined {
@@ -175,7 +243,7 @@ function readManifestFiles(
       complete = false;
       continue;
     }
-    const read = readExact(entry, at, MANIFEST_FILE_READERS, found);
+    const read = readExact(entry, at, readers, found);
     if (read === undefined) complete = false;
     else result[block] = read;
   }
@@ -187,8 +255,8 @@ function readManifestFiles(
  * problems go to `problems` and the result is `undefined` when there are any.
  * With `lenient`, as a workspace file is read, a `granularity` that does not
  * read as one (missing, or of another shape) is read as `DEFAULT_GRANULARITY`,
- * a `manifests` that is missing or no object as none and each of its entries
- * that does not read is left out, without a problem: settings lie outside the
+ * a `manifests` or `matchClaimFilters` that is missing or no object as none
+ * and each of its entries that does not read is left out, without a problem: settings lie outside the
  * journal, so nothing a replay needs is lost. Every other member is read
  * strictly either way.
  */
@@ -203,12 +271,15 @@ export function readSettings(
     return readExact(item, at, GRANULARITY_READERS, []) ?? DEFAULT_GRANULARITY;
   };
   const manifests = (item: unknown, at: readonly PathSegment[]) =>
-    readManifestFiles(item, at, problems, lenient);
+    readByBlock(item, at, MANIFEST_FILE_READERS, problems, lenient);
+  const matchClaimFilters = (item: unknown, at: readonly PathSegment[]) =>
+    readByBlock(item, at, MATCH_CLAIM_FILTER_READERS, problems, lenient);
   const stated =
     lenient && isJsonObject(value)
       ? {
           granularity: DEFAULT_SETTINGS.granularity,
           manifests: DEFAULT_SETTINGS.manifests,
+          matchClaimFilters: DEFAULT_SETTINGS.matchClaimFilters,
           ...value,
         }
       : value;
@@ -220,6 +291,7 @@ export function readSettings(
       blockDefaults: (defaults, at) => readExact(defaults, at, PLACEMENT_READERS, problems),
       granularity,
       manifests,
+      matchClaimFilters,
     },
     problems,
   );

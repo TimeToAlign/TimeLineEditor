@@ -6,7 +6,11 @@
  * card of one (a rule left with no `addresses` goes), and every
  * rule whose `within` names a removed timeline. Removing a named
  * timestamp removes it and the rules' `addresses` entries naming it
- * or its parts alike. Removing a group removes the group only: its
+ * or its parts alike. Removing a named MatchStamp removes it, its alignment
+ * anchors and the match timestamps no MatchStamp left names; a MatchStamp
+ * goes with every match timestamp one of its anchors names, so a removed
+ * timeline or match timestamp takes it along. A resource keeps naming the
+ * timelines left. Removing a group removes the group only: its
  * members stay where they are. A group left without members stays. Removing
  * a measure map removes it only; a measure view still naming it leaves the
  * manifest dangling, which the schema check refuses. A removed element's
@@ -25,11 +29,14 @@ function entryIds(timeline: TimelineManifest): string[] {
 
 /**
  * The IDs that removing the elements with the IDs `elements` (timelines,
- * groups, measure maps, maps, regions, flow-control elements and named
- * timestamps) removes: the elements themselves, every timeline below a
- * removed one, every map, region and flow-control element those timelines
- * hold and every named timestamp lying on one of them. An ID naming nothing
- * removes nothing.
+ * groups, measure maps, maps, regions, flow-control elements, named
+ * timestamps and named MatchStamps) removes: the elements themselves, every
+ * timeline below a removed one, every map, region and flow-control element
+ * those timelines hold, every named timestamp lying on one of them, every
+ * named MatchStamp an anchor of which names a removed timestamp, with its
+ * anchors, and every match timestamp no MatchStamp left names (so a
+ * manifest whose MatchStamps changed drops the match timestamps left over,
+ * `elements` empty). An ID naming nothing removes nothing.
  */
 export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<string> {
   const asked = new Set(elements);
@@ -45,8 +52,20 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   for (const root of manifest.timelines) visit(root, false);
   for (const group of manifest.groups) if (asked.has(group.id)) removed.add(group.id);
   for (const map of manifest.measure_maps) if (asked.has(map.id)) removed.add(map.id);
-  for (const { id, timeline } of manifest.graphical?.timestamps ?? []) {
+  const timestamps = manifest.graphical?.timestamps ?? [];
+  for (const { id, timeline } of timestamps) {
     if (asked.has(id) || removed.has(timeline)) removed.add(id);
+  }
+  const named = new Set<string>();
+  for (const { id, alignment_anchors: anchors } of manifest.graphical?.matchstamps ?? []) {
+    const ends = new Set(anchors.flatMap((anchor) => anchor.timestamps));
+    if (asked.has(id) || [...ends].some((end) => removed.has(end))) {
+      removed.add(id);
+      for (const anchor of anchors) removed.add(anchor.id);
+    } else for (const end of ends) named.add(end);
+  }
+  for (const { id, matchstamp } of timestamps) {
+    if (matchstamp && !named.has(id)) removed.add(id);
   }
   return removed;
 }
@@ -70,6 +89,11 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
       .filter((group) => !removed.has(group.id))
       .map((group) => ({ ...group, members: group.members.filter((id) => !removed.has(id)) })),
     measure_maps: manifest.measure_maps.filter((map) => !removed.has(map.id)),
+    resources: manifest.resources.map((resource) =>
+      resource.timelines.some((id) => removed.has(id))
+        ? { ...resource, timelines: resource.timelines.filter((id) => !removed.has(id)) }
+        : resource,
+    ),
   };
   const result = withoutReferencesTo(pruned, removed);
   const { graphical } = manifest;
@@ -86,6 +110,9 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
   }
   if (graphical.timestamps !== undefined) {
     changed.timestamps = graphical.timestamps.filter(kept);
+  }
+  if (graphical.matchstamps !== undefined) {
+    changed.matchstamps = graphical.matchstamps.filter(kept);
   }
   if (graphical.rules !== undefined) {
     changed.rules = graphical.rules.flatMap((rule) => {

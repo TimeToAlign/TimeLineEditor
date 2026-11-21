@@ -137,19 +137,23 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
     claimsBelievedFalse,
     claimsElsewhere,
     claimsNew,
-    update: updateOf(index, spec, stated),
+    update: updateOf(index, spec, stated, current),
   };
 }
 
 /**
- * The potential MatchStamp holding the stated anchor that carries the name,
- * else the largest holding a stated anchor: most coordinates, then most
- * stated anchors, then the one whose first stated anchor comes first.
+ * The current potential MatchStamp an Update rewrites a named one from,
+ * `null` when none of its anchors is stated: the one holding the stated
+ * anchor that carries the name, else the largest of the current ones (those
+ * holding any of its coordinates), whether or not it holds a stated anchor:
+ * most coordinates, then most stated anchors, then the one whose first
+ * stated anchor comes first, then the lowest number.
  */
 function updateOf(
   index: AnchorIndex,
   spec: NamedMatchStampSpec,
   stated: readonly (number | null)[],
+  current: readonly number[],
 ): MatchStampUpdate | null {
   const stampOfAnchor = (anchor: number) =>
     index.matchStamps.of[index.anchors.low[anchor] as number] as number;
@@ -160,30 +164,34 @@ function updateOf(
       nameAnchor = found;
     }
   }
-  let chosen: number | null = null;
+  let chosen: number;
   if (nameAnchor !== null) {
     chosen = stampOfAnchor(nameAnchor);
   } else {
+    // The candidates in order of their first stated anchor, then the others ascending: a later
+    // one replaces the chosen one only when it is larger.
     const held = new Map<number, number>();
     for (const anchor of stated) {
       if (anchor === null) continue;
       const m = stampOfAnchor(anchor);
       held.set(m, (held.get(m) ?? 0) + 1);
     }
+    if (held.size === 0) return null;
+    const candidates = [...held.keys(), ...current.filter((m) => !held.has(m))];
     let best = -1;
-    for (const [m, count] of held) {
+    for (const m of candidates) {
       if (best < 0) {
         best = m;
         continue;
       }
       const size = matchStampMembers(index, m).length;
       const bestSize = matchStampMembers(index, best).length;
-      const bestCount = held.get(best) as number;
+      const count = held.get(m) ?? 0;
+      const bestCount = held.get(best) ?? 0;
       if (size > bestSize || (size === bestSize && count > bestCount)) best = m;
     }
-    chosen = best < 0 ? null : best;
+    chosen = best;
   }
-  if (chosen === null) return null;
   const anchors = matchStampAnchors(index, chosen);
   return {
     matchStamp: chosen,

@@ -13,6 +13,7 @@
 import type {
   CompleteConversionMap,
   CompleteFlowControlElement,
+  CompleteGraphical,
   CompleteGroup,
   CompleteManifest,
   CompleteMeasureMap,
@@ -54,8 +55,8 @@ export type Region = ReadonlyView<CompleteRegion>;
 export type Statements = NonNullable<TimelineManifest["statements"]>;
 
 /**
- * One annotation of an element's pairs: who stated a pair, when, how, on
- * what basis, and its status (`confirmed`, `proposed`, `rejected`).
+ * One annotation of an element's pairs: who stated a pair, when, how and on
+ * what basis, and who believes it (`beliefs`).
  */
 export type ProvenanceEntry = NonNullable<TimelineManifest["provenance"]>[number];
 
@@ -92,27 +93,47 @@ export type ChildTimeline = TimelineManifest & { readonly offset: AxisValue };
 export type Group = ReadonlyView<CompleteGroup>;
 
 /**
- * A named timestamp of a manifest, `{id, timeline, coordinate, name,
- * display}`: its coordinate a bare value on the own axis of the timeline it
- * names, as the reader returns it (an integral float on a float axis a
- * `JsonFloat`, an integer beyond 2^53 a `bigint`), like every other own-axis
- * value; its `display` always stated, in the schema package's canonical
- * order (`TIMESTAMP_DISPLAY`).
+ * A named timestamp of a manifest, `{id, timeline, coordinate, name?,
+ * display, matchstamp}`: its coordinate a bare value on the own axis of the
+ * timeline it names, as the reader returns it (an integral float on a float
+ * axis a `JsonFloat`, an integer beyond 2^53 a `bigint`), like every other
+ * own-axis value; its `display` always stated, in the schema package's
+ * canonical order (`TIMESTAMP_DISPLAY`). A match timestamp (`matchstamp:
+ * true`) is one of the named MatchStamps' and may have no name.
  */
 export type NamedTimestamp = ReadonlyView<CompleteTimestamp>;
+
+/**
+ * A named MatchStamp, `{id, name, alignment_anchors, match_claims}`: its
+ * alignment anchors, each joining two match timestamps, and the IDs of the
+ * MatchClaims behind it when it was named or last updated.
+ */
+export type NamedMatchStamp = ReadonlyView<CompleteGraphical["matchstamps"][number]>;
+
+/**
+ * An alignment anchor of a named MatchStamp, `{id, timestamps, display}`:
+ * the IDs of its two match timestamps and what of it is drawn, always
+ * stated, in the schema package's canonical order (`ANCHOR_DISPLAY`).
+ */
+export type AlignmentAnchor = NamedMatchStamp["alignment_anchors"][number];
+
+/** A word of an alignment anchor's `display`: `line` or `name`. */
+export type AnchorDisplay = AlignmentAnchor["display"][number];
 
 /** A word of a named timestamp's `display`: a part of it that is drawn. */
 export type TimestampDisplay = NamedTimestamp["display"][number];
 
 /**
- * A manifest's styling, its display and band orders and its named
- * timestamps, owned by the manifest, never by a canvas. The numbers of its
- * declarations are plain doubles: the schema boundary (`normalizeManifest`)
- * reads a declaration's integral float as the double it equals; a named
- * timestamp's coordinate is an own-axis value and stays as read.
+ * A manifest's styling, its display and band orders, its named timestamps
+ * and its named MatchStamps, owned by the manifest, never by a canvas. The
+ * numbers of its declarations are plain doubles: the schema boundary
+ * (`normalizeManifest`) reads a declaration's integral float as the double
+ * it equals; a named timestamp's coordinate is an own-axis value and stays
+ * as read.
  */
-export type ManifestGraphical = Omit<Graphical, "timestamps"> & {
+export type ManifestGraphical = Omit<Graphical, "timestamps" | "matchstamps"> & {
   timestamps?: readonly NamedTimestamp[];
+  matchstamps?: readonly NamedMatchStamp[];
 };
 
 /**

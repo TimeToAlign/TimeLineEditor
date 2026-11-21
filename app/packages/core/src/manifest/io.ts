@@ -303,16 +303,16 @@ export function plainSelector(select: Lossless<Selector>): Selector {
   return { ...kept, addresses: [first, ...more] };
 }
 
-/** A graphical block without its named timestamps, which hold no declaration. */
-export type Styling = Omit<Graphical, "timestamps">;
+/** A graphical block without its named timestamps and MatchStamps, which hold no declaration. */
+export type Styling = Omit<Graphical, "timestamps" | "matchstamps">;
 
 /**
  * The styling of a graphical block read losslessly, its declarations as the
  * drawing reads them: every declaration's numbers doubles
  * (`plainDeclaration`), in the named styles and in the rules; the
  * orders kept as they are, and every key of every object where it was. The
- * named timestamps, whose coordinates are own-axis values, are left to the
- * caller.
+ * named timestamps, whose coordinates are own-axis values, and the named
+ * MatchStamps are left to the caller.
  */
 export function plainGraphical(graphical: Lossless<Styling>): Styling | Problem {
   const { styles, rules, ...rest } = graphical;
@@ -370,10 +370,13 @@ export function completed(value: LosslessManifest): Manifest | LoadError {
   const problems = checkOrdered(manifest);
   if (problems.length > 0) return refuse(...problems);
   if (graphical === undefined) return manifest;
-  const { timestamps, ...styling } = graphical;
+  // The whole block is read as its styling, so that every key keeps its place; the named
+  // timestamps and MatchStamps, which `plainGraphical` passes over, are put back in theirs.
+  const { timestamps, matchstamps } = graphical;
+  const styling: Lossless<Styling> = graphical;
   const plain = plainGraphical(styling);
   if ("code" in plain) return refuse(plain);
-  return { ...manifest, graphical: { ...plain, timestamps } };
+  return { ...manifest, graphical: { ...plain, timestamps, matchstamps } };
 }
 
 /**
@@ -410,13 +413,11 @@ function normalized(checked: LosslessManifest): Manifest | LoadError {
   if (isLoadError(manifest) || manifest.graphical === undefined) return manifest;
   // completeStyles issues the one warning naming every missing style. It clones what it is
   // given structurally, which would turn a coordinate's `JsonFloat` into a plain object, so
-  // the named timestamps, which name no style, stay out of it.
-  const { timestamps, ...styled } = manifest.graphical;
-  const { timestamps: _, ...styling } = completeStyles(styled).graphical;
-  return {
-    ...manifest,
-    graphical: timestamps === undefined ? styling : { ...styling, timestamps },
-  };
+  // the named timestamps and MatchStamps, which name no style, stay out of it; spread over the
+  // block, the styling keeps every key in its place.
+  const { timestamps: _, matchstamps: __, ...styled } = manifest.graphical;
+  const { timestamps: ___, matchstamps: ____, ...styling } = completeStyles(styled).graphical;
+  return { ...manifest, graphical: { ...manifest.graphical, ...styling } };
 }
 
 /**

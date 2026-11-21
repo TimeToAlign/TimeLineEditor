@@ -1,16 +1,17 @@
 /**
  * `add`: what each kind of target takes (`ADDABLE`) and how each thing is
  * put in. A block goes into the workspace; a root timeline, a group or a
- * measure map into a block's manifest; a child, map, region, flow-control
- * element or named timestamp into a timeline. The value carries its ID: a
- * block's taken by no block of the workspace, any other's by no element of
- * the manifest; a named timestamp alone is given the next free ID.
+ * measure map into a block's manifest, and a named MatchStamp too; a child,
+ * map, region, flow-control element or named timestamp into a timeline. The
+ * value carries its ID: a block's taken by no block of the workspace, any
+ * other's by no element of the manifest; a named timestamp and a named
+ * MatchStamp alone are given the next free ID.
  * Whatever has a default may be left out, `settle` writing it out. A
  * problem of the value lies at `[<address key of into>, <kind>, …]`, one of
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
  */
 
-import { DEFAULTS, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { DEFAULTS, SCHEMA_VERSION, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
@@ -34,16 +35,18 @@ import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
-import { nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import { MATCHSTAMP_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View } from "../workspace/view.ts";
 import { placeProblems } from "../workspace/view.ts";
+import { namedMatchStamp, readAnchors, readMatchClaims } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   emptyChanges,
   record,
   withBlock,
   withEntryAdded,
+  withMatchStamps,
   withTimeline,
   withTimestamps,
 } from "./mutations.ts";
@@ -51,11 +54,7 @@ import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
-import {
-  readTimestampCoordinate,
-  readTimestampDisplay,
-  withDefaultTimestamps,
-} from "./timestamps.ts";
+import { readDisplay, readTimestampCoordinate, withDefaultTimestamps } from "./timestamps.ts";
 import { placeChild } from "./topology.ts";
 import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
@@ -65,7 +64,7 @@ const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS, "timestamp"]
 /** What `add` puts into each kind of target. */
 export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   workspace: ["block"],
-  block: ["timeline", "group", "measure_map"],
+  block: ["timeline", "group", "measure_map", "matchstamp"],
   group: [],
   measure_map: [],
   root: INTO_TIMELINE,
@@ -74,6 +73,8 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   region: [],
   flow_control: [],
   timestamp: [],
+  matchstamp: [],
+  anchor: [],
 };
 
 const BLOCK_VALUE = ["id", "manifest", "places", ...BLOCK_PROPERTIES];
@@ -484,7 +485,7 @@ const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display"];
  * name and coordinate required (`invalid_value`), nothing else
  * (`unknown_property`); the name non-empty, the coordinate on the
  * timeline's own axis within it (`readTimestampCoordinate`), the display
- * read by `readTimestampDisplay`, the schema's default where it is left
+ * read by `readDisplay` over `TIMESTAMP_DISPLAY`, the schema's default where it is left
  * out. It is given the smallest free `timestamp_N` of the manifest and
  * written into its `graphical` object's `timestamps`, which `settle` puts
  * in canonical order.
@@ -516,14 +517,60 @@ function addTimestamp(
   const display =
     object.display === undefined
       ? [...DEFAULTS.timestamp.display]
-      : readTimestampDisplay(object.display, [...path, "display"]);
+      : readDisplay(object.display, TIMESTAMP_DISPLAY, [...path, "display"]);
   if (isCommandError(display)) return display;
   const { manifest } = block;
   const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
-  const timestamp = { id, timeline: at.timeline.id, coordinate, name, display };
+  const timestamp = { id, timeline: at.timeline.id, coordinate, name, display, matchstamp: false };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
+}
+
+/** The members a named MatchStamp `add` is given: all required, its IDs minted. */
+const MATCHSTAMP_VALUE = ["name", "anchors", "match_claims"];
+
+/**
+ * Name a potential MatchStamp in a block's manifest: `{name, anchors,
+ * match_claims}`, every member required (`invalid_value`), nothing else
+ * (`unknown_property`); the name non-empty, the anchors pairs of
+ * coordinates in screen order (`readAnchors`), the claims a list of
+ * MatchClaim IDs (`readMatchClaims`). It is given the smallest free
+ * `matchstamp_N`, its anchors and new match timestamps theirs
+ * (`namedMatchStamp`), and appended to the manifest's named MatchStamps.
+ */
+function addMatchStamp(
+  view: View,
+  target: BlockTarget,
+  value: unknown,
+  changes: ChangeSet,
+): View | CommandError {
+  const path = [addressKey(target.address), "matchstamp"];
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const extra = unknownMember(object, MATCHSTAMP_VALUE, path, ErrorCode.unknownProperty);
+  if (extra !== undefined) return extra;
+  for (const member of MATCHSTAMP_VALUE) {
+    if (!Object.hasOwn(object, member)) {
+      return problem(ErrorCode.invalidValue, `a new MatchStamp needs ${member}`, [...path, member]);
+    }
+  }
+  const name = readName(object.name, [...path, "name"]);
+  if (isCommandError(name)) return name;
+  const { block } = target;
+  const { manifest } = block;
+  const anchors = readAnchors(object.anchors, manifest, [...path, "anchors"]);
+  if (isCommandError(anchors)) return anchors;
+  const claims = readMatchClaims(object.match_claims, [...path, "match_claims"]);
+  if (isCommandError(claims)) return claims;
+  const taken = manifestIds(manifest);
+  const id = nextId(MATCHSTAMP_PREFIX, taken);
+  taken.add(id);
+  const named = namedMatchStamp(manifest, taken, id, name, anchors, claims);
+  const matchstamps = [...(manifest.graphical?.matchstamps ?? []), named.matchstamp];
+  record(changes, path, block.id, true);
+  const next = withMatchStamps(manifest, named.timestamps, matchstamps);
+  return withBlock(view, { ...block, manifest: next });
 }
 
 function isEntryKind(kind: AddKind): kind is EntryKind {
@@ -544,6 +591,7 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
       case "block":
         if (kind === "group") return addGroup(view, target, value, changes);
         if (kind === "measure_map") return addMeasureMap(view, target, value, changes);
+        if (kind === "matchstamp") return addMatchStamp(view, target, value, changes);
         return addTimeline(view, target, value, changes);
       case "root":
       case "child":

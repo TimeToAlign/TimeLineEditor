@@ -18,6 +18,7 @@ export const ADD_KINDS = [
   "region",
   "flow_control",
   "timestamp",
+  "matchstamp",
 ] as const;
 export type AddKind = (typeof ADD_KINDS)[number];
 
@@ -28,7 +29,11 @@ export type AddKind = (typeof ADD_KINDS)[number];
  * is the thing as its container stores it, carrying its own id; a root
  * timeline comes with its default timestamps, `origin` and `length`. A
  * `timestamp` into a timeline is `{name, coordinate, display?}`: its ID is
- * minted (`timestamp_N`) and its timeline is the one it is added into.
+ * minted (`timestamp_N`) and its timeline is the one it is added into. A
+ * `matchstamp` into a block names a potential MatchStamp: `{name, anchors,
+ * match_claims}`, its anchors pairs of `{timeline, coordinate}` in screen
+ * order; its ID, its anchors' and those of the match timestamps it needs
+ * are minted (`matchstamp_N`, `anchor_N`, `timestamp_N`).
  */
 export type AddCommand = {
   readonly type: "add";

@@ -6,10 +6,11 @@
  * recognised without comparing views.
  */
 
+import { ANCHOR_DISPLAY, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
-import { isJsonObject } from "../json.ts";
+import { compareCodePoints, isJsonObject } from "../json.ts";
 import { addressKey } from "../manifest/address.ts";
 import type { CardPlace, ContainerRef, ItemPlace } from "../manifest/containers.ts";
 import {
@@ -25,9 +26,12 @@ import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
+import { withoutElements } from "../manifest/remove.ts";
 import type {
+  AlignmentAnchor,
   AxisValue,
   Manifest,
+  NamedMatchStamp,
   NamedTimestamp,
   ProvenanceEntry,
   Region,
@@ -49,9 +53,11 @@ import {
   unknownMember,
 } from "../values.ts";
 import type { Address } from "../workspace/address.ts";
+import { manifestIds } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
+import { readAnchors, readMatchClaims, rewrittenMatchStamp } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   entryAt,
@@ -63,14 +69,17 @@ import {
   withEntryAt,
   withEntryMember,
   withKey,
+  withMatchStamps,
   withTimeline,
   withTimestamps,
 } from "./mutations.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type {
+  AnchorTarget,
   BlockTarget,
   EntryTarget,
   GroupTarget,
+  MatchStampTarget,
   MeasureMapTarget,
   Target,
   TargetKind,
@@ -80,7 +89,7 @@ import type {
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
-import { readTimestampCoordinate, readTimestampDisplay } from "./timestamps.ts";
+import { readDisplay, readTimestampCoordinate } from "./timestamps.ts";
 import { lengthProblem, moveTimeline, placeChild, setGroups } from "./topology.ts";
 
 /**
@@ -918,14 +927,102 @@ const TIMESTAMP_SET: Setters<TimestampTarget> = {
       coordinate,
     });
   },
-  /** What of the timestamp is drawn (`readTimestampDisplay`): stored in canonical order. */
+  /** What of the timestamp is drawn (`readDisplay` over `TIMESTAMP_DISPLAY`): stored in canonical order. */
   display: (view, target, value, path, changes) => {
-    const display = readTimestampDisplay(value, path);
+    const display = readDisplay(value, TIMESTAMP_DISPLAY, path);
     if (isCommandError(display)) return display;
     const { timestamp } = target;
     return timestampChange(view, target, path, changes, timestamp.display, display, {
       ...timestamp,
       display,
+    });
+  },
+};
+
+// ---------------------------------------------------------------- named MatchStamps
+
+/**
+ * The view with the named MatchStamp at `index` of `block`'s manifest
+ * replaced by `next`, its named timestamps by `timestamps` where given, and
+ * the match timestamps no MatchStamp names any more removed
+ * (`withoutElements`).
+ */
+function withMatchStampAt(
+  view: View,
+  block: Block,
+  index: number,
+  next: NamedMatchStamp,
+  timestamps?: readonly NamedTimestamp[],
+): View {
+  const { manifest } = block;
+  const matchstamps = (manifest.graphical?.matchstamps ?? []).map((item, at) =>
+    at === index ? next : item,
+  );
+  const kept = timestamps ?? manifest.graphical?.timestamps ?? [];
+  const placed = withoutElements(withMatchStamps(manifest, kept, matchstamps), []);
+  return withBlock(view, { ...block, manifest: placed });
+}
+
+/** A MatchStamp's anchors by ID, for comparing them whatever their order. */
+const anchorsById = (anchors: readonly AlignmentAnchor[]): AlignmentAnchor[] =>
+  [...anchors].sort((left, right) => compareCodePoints(left.id, right.id));
+
+const MATCHSTAMP_SET: Setters<MatchStampTarget> = {
+  /** The MatchStamp's name, which its anchors showing `name` draw: a non-empty string. */
+  name: (view, target, value, path, changes) => {
+    const name = readName(value, path);
+    if (isCommandError(name)) return name;
+    const { block, index, matchstamp } = target;
+    if (sameJson(matchstamp.name, name)) return view;
+    recordValue(changes, path, block.id, true, matchstamp.name, name);
+    return withMatchStampAt(view, block, index, { ...matchstamp, name });
+  },
+  /**
+   * Its alignment anchors, rewritten from pairs of coordinates in screen
+   * order (`readAnchors`, `rewrittenMatchStamp`): what an Update gives from
+   * the current potential MatchStamp. The match timestamps the new anchors
+   * need are created or reused; those no MatchStamp names any more go. The
+   * same anchors in any order change nothing.
+   */
+  anchors: (view, target, value, path, changes) => {
+    const { block, index, matchstamp } = target;
+    const { manifest } = block;
+    const anchors = readAnchors(value, manifest, path);
+    if (isCommandError(anchors)) return anchors;
+    const taken = manifestIds(manifest);
+    const rewritten = rewrittenMatchStamp(manifest, taken, matchstamp, anchors);
+    const before = anchorsById(matchstamp.alignment_anchors);
+    if (sameJson(before, anchorsById(rewritten.matchstamp.alignment_anchors))) return view;
+    record(changes, path, block.id, true);
+    return withMatchStampAt(view, block, index, rewritten.matchstamp, rewritten.timestamps);
+  },
+  /** The IDs of the MatchClaims behind it (`readMatchClaims`), in the order given. */
+  match_claims: (view, target, value, path, changes) => {
+    const claims = readMatchClaims(value, path);
+    if (isCommandError(claims)) return claims;
+    const { block, index, matchstamp } = target;
+    if (sameJson(matchstamp.match_claims, claims)) return view;
+    recordValue(changes, path, block.id, true, matchstamp.match_claims, claims);
+    return withMatchStampAt(view, block, index, { ...matchstamp, match_claims: claims });
+  },
+};
+
+const ANCHOR_SET: Setters<AnchorTarget> = {
+  /** What of the anchor is drawn (`readDisplay` over `ANCHOR_DISPLAY`): stored in canonical order. */
+  display: (view, target, value, path, changes) => {
+    const display = readDisplay(value, ANCHOR_DISPLAY, path);
+    if (isCommandError(display)) return display;
+    const { block, index, matchstamp, position, anchor } = target;
+    if (sameJson(anchor.display, display)) return view;
+    recordValue(changes, path, block.id, true, anchor.display, display);
+    const anchors = matchstamp.alignment_anchors.map((item, at) =>
+      at === position ? { ...anchor, display } : item,
+    );
+    const [first, ...more] = anchors;
+    if (first === undefined) throw new Error("a MatchStamp holds its anchor");
+    return withMatchStampAt(view, block, index, {
+      ...matchstamp,
+      alignment_anchors: [first, ...more],
     });
   },
 };
@@ -942,6 +1039,8 @@ export const SETTABLE: { readonly [kind in TargetKind]: Setters<TargetOfKind[kin
   child: CHILD_SET,
   ...ENTRY_SET,
   timestamp: TIMESTAMP_SET,
+  matchstamp: MATCHSTAMP_SET,
+  anchor: ANCHOR_SET,
 };
 
 /** The setter of `property` for `target`, bound to it. */
@@ -975,6 +1074,10 @@ function setterOf(
       return bind(SETTABLE[target.kind][property], target);
     case "timestamp":
       return bind(SETTABLE.timestamp[property], target);
+    case "matchstamp":
+      return bind(SETTABLE.matchstamp[property], target);
+    case "anchor":
+      return bind(SETTABLE.anchor[property], target);
     default:
       return bind(SETTABLE[target.kind][property], target);
   }

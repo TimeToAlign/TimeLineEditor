@@ -78,6 +78,7 @@ const CODA: NamedTimestamp = {
   coordinate: [15, 2],
   name: "Coda",
   display: ["wedge", "name", "cross_section"],
+  matchstamp: false,
 };
 
 /** The refusals of a display, by value: the message each gives. */
@@ -178,12 +179,26 @@ describe("add a named timestamp", () => {
       T1,
       T2,
       T3,
-      { id: "timestamp_4", timeline: "clt_2", coordinate: [4, 1], name: "Exit", display: DEFAULT },
+      {
+        id: "timestamp_4",
+        timeline: "clt_2",
+        coordinate: [4, 1],
+        name: "Exit",
+        display: DEFAULT,
+        matchstamp: false,
+      },
     ]);
     const without = changed(view, remove(at("timestamp_1")));
     const again = changed(without, add("clt_1", { name: "Start", coordinate: [1, 1] }));
     expect(timestampsOf(again)).toEqual([
-      { id: "timestamp_1", timeline: "clt_1", coordinate: [1, 1], name: "Start", display: DEFAULT },
+      {
+        id: "timestamp_1",
+        timeline: "clt_1",
+        coordinate: [1, 1],
+        name: "Start",
+        display: DEFAULT,
+        matchstamp: false,
+      },
       T2,
       T3,
     ]);
@@ -200,8 +215,16 @@ describe("add a named timestamp", () => {
       rules: [],
       styles: {},
       timestamps: [
-        { id: "timestamp_1", timeline: "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT },
+        {
+          id: "timestamp_1",
+          timeline: "bare",
+          coordinate: [5, 2],
+          name: "Mid",
+          display: DEFAULT,
+          matchstamp: false,
+        },
       ],
+      matchstamps: [],
     });
   });
 
@@ -370,6 +393,7 @@ const mark = (id: string, timeline: string, name: string, coordinate: unknown) =
   coordinate,
   name,
   display: MARK,
+  matchstamp: false,
 });
 
 describe("the default timestamps", () => {
@@ -440,6 +464,7 @@ describe("the default timestamps", () => {
         mark("timestamp_1", "bare", "origin", [0, 1]),
         mark("timestamp_2", "bare", "length", [8, 1]),
       ],
+      matchstamps: [],
     });
     expect(importedManifest(withoutGraphical("nested.yaml")).graphical?.timestamps).toEqual([
       mark("timestamp_1", "clt_1", "origin", [0, 1]),
@@ -493,6 +518,7 @@ describe("a new length and the named timestamps", () => {
     coordinate: [8, 1],
     name: "End",
     display: DEFAULT,
+    matchstamp: false,
   };
 
   it("moves a timestamp at the end with the end", () => {

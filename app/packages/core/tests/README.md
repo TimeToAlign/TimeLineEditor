@@ -2,9 +2,10 @@
 
 `core` holds exact coordinates, one TimeToShare manifest of TimeToShare's
 `SCHEMA_VERSION` (`{timetoshare, timelines, "@context"?, id?, name?,
-meta?, groups?, measure_maps?, statements?, provenance?, graphical?}`: root
-timelines, optionally named, optionally grouped, optionally described by
-property–value statements), the
+meta?, groups?, measure_maps?, resources?, statements?, provenance?,
+graphical?}`: root timelines, optionally named, optionally grouped,
+optionally described by property–value statements, naming the files beside
+it, its `graphical` holding named timestamps and named MatchStamps), the
 elements a selector can match, the immutable workspace view of blocks, the
 four commands `add`, `set`, `remove` and `style` over addresses, the store
 with its command journal and editor sessions, and the workspace file. This
@@ -736,7 +737,8 @@ name `untitled`, the workspace's `graphical` `{}` (its default rules,
 the cascade's layer between the built-in defaults and each manifest's own)
 and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
 {scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null},
-granularity: {denominator: 2520, decimals: 3}, manifests: {}}`, the drawing
+granularity: {denominator: 2520, decimals: 3}, manifests: {},
+matchClaimFilters: {}}`, the drawing
 specification's placement defaults plus the block's scale (the block's
 `spacing` 8 is the gap between its items, its `margin` 0 the empty space
 above its first item and below its last, drawing.md §8.4, §8.6) and the
@@ -2132,11 +2134,170 @@ the same result):
 19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
     (with `timestamp_3`) and every case of item 18 are accepted.
 
+## Named MatchStamps (`matchstamps.test.ts`)
+
+A named MatchStamp is `{id, name, alignment_anchors, match_claims}` in its
+manifest's `graphical.matchstamps`, each alignment anchor `{id, timestamps,
+display}` naming two **match timestamps** (named timestamps with
+`matchstamp: true`, at most one per coordinate, a name optional, `display`
+by default `["cross_section"]`). Every ID is one of the manifest's. What
+must hold: the four commands reach MatchStamps like any other element,
+never through a command of their own; naming one writes the match
+timestamps it needs, reusing the one a coordinate already has, and turns
+`name` on for the middle anchor in the screen order the command gives;
+an Update rewrites its anchors, timestamps and claims and keeps what did
+not change; removing one takes along exactly the match timestamps no
+MatchStamp left names; each is one journal entry that one undo takes back;
+and every rule of the manifest's MatchStamps is the schema package's
+refusal, never core's own. Every case starts from block `A` holding
+`bundles/bundle_matchstamps.yaml` (TimeToShare's fixture): roots `score`
+(quarters, fraction, 8), `take_1` (samples, 352800) and `take_2` (samples,
+396900); the match timestamps `timestamp_1` (`score` 4), `timestamp_2`
+(`take_1` 88200) and `timestamp_3` (`take_2` 99225, "Take 2, bar 2",
+`["name", "cross_section"]`); the roots' `origin` and `length`
+timestamps `timestamp_4` … `timestamp_9`; `matchstamp_1` "Bar 2,
+downbeat (take 1)" with `anchor_1` (`timestamp_1`, `timestamp_2`, `["line",
+"name"]`) and the claims `claim_1`, `claim_2`; `matchstamp_2` "Bar 2,
+downbeat (take 2)" with `anchor_2` (`timestamp_1`, `timestamp_3`,
+`["line"]`) and the claim `claim_3`. Below, `{block: A, id: "x"}` is
+written `x`, `TS` is the fixture's timestamps in canonical order, `M1` and
+`M2` its two MatchStamps, a coordinate `{timeline, coordinate}` is written
+`timeline@value`, and a new match timestamp `match(id, timeline, value)`
+is `{id, timeline, coordinate: value, display: ["cross_section"],
+matchstamp: true}`.
+
+**Reading.** The fixture holds `M2`'s anchor with its default `display`
+`["line"]` stated, `resources` `[]`; `matchstamp_1` resolves to kind
+`matchstamp` (index 0, `M1`) and `anchor_2` to kind `anchor` (index 1,
+position 0, `M2`'s anchor); their words are `MatchStamp 'Bar 2, downbeat
+(take 1)'` and `alignment anchor 'anchor_2'`, and a match timestamp
+without a name is worded by its ID (`timestamp 'timestamp_1'`). A part
+of a MatchStamp names nothing (`unknown_target`). `manifestIds` holds
+`matchstamp_1`, `matchstamp_2`, `anchor_1` and `anchor_2`; of
+TimeToShare's table fixture `tables/<version>/manifest.yaml` it holds
+`resource_1` and `resource_2`, which resolve to nothing.
+
+**Naming** (`add {into: A, matchstamp: {name, anchors, match_claims}}`):
+
+1. `name` "Bar 4", anchors `[score@[6, 1], take_1@176400]`, `[take_1@176400,
+   take_2@198450]`, claims `claim_7`, `claim_8`: one journal entry; the
+   timestamps are `TS` with `match("timestamp_10", "score", [6, 1])`,
+   `match("timestamp_11", "take_1", 176400)`, `match("timestamp_12",
+   "take_2", 198450)` in canonical order (each after the fixture's match
+   timestamp of its timeline); the MatchStamps `M1`, `M2` and
+   `{id: "matchstamp_3", name: "Bar 4", alignment_anchors: [{id:
+   "anchor_3", timestamps: ["timestamp_10", "timestamp_11"], display:
+   ["line", "name"]}, {id: "anchor_4", timestamps: ["timestamp_11",
+   "timestamp_12"], display: ["line"]}], match_claims: ["claim_7",
+   "claim_8"]}`: the middle of two anchors in screen order is the first.
+   One undo gives back the view before it.
+2. **Reuse.** Anchors `[score@[8, 2], take_2@99225]`: no new timestamp
+   (the timestamps are `TS`), the anchor `anchor_3` names `timestamp_1`
+   and `timestamp_3`; the value `[8, 2]` is 4 on `score`'s axis. Anchors
+   `[score@[0, 1], take_1@0]`, where only the ordinary `origin` timestamps
+   lie, give two new match timestamps, `timestamp_10` and `timestamp_11`,
+   beside them.
+3. **The middle in screen order.** Three anchors `[score@[6, 1],
+   take_1@176400]`, `[take_1@176400, take_2@198450]`, `[score@[6, 1],
+   take_2@198450]`: the second (`anchor_4`) alone shows the name; with a
+   fourth `[score@[6, 1], take_1@200000]` too, the second still.
+4. **Refusals of the value**, at `[A, "matchstamp", …]` (the address key
+   of `A` first): a member `colour` → `unknown_property` at `["colour"]`;
+   no `name`, `anchors` or `match_claims` → `invalid_value` `a new
+   MatchStamp needs <member>` at that member; `name` `""` → `invalid_value`
+   `a name is a non-empty string` at `["name"]`; `anchors` `[]` →
+   `invalid_value` `anchors is a non-empty list of anchors` at
+   `["anchors"]`; an anchor of one coordinate → `an anchor is a pair of
+   coordinates` at `["anchors", 0]`; a coordinate naming `nope` → `'nope'
+   names no timeline of this manifest` at `["anchors", 0, 1, "timeline"]`;
+   one without `coordinate` → `a coordinate needs coordinate` at
+   `["anchors", 0, 0, "coordinate"]`; `score@[9, 1]` → `invalid_value`
+   `the coordinate lies after the end of timeline 'score'` at `["anchors",
+   0, 0, "coordinate"]`; `score@6` (a bare number on a fraction axis) →
+   `invalid_coordinate` there; the second anchor the first reversed →
+   `the anchor is given twice` at `["anchors", 1]`; `match_claims` `["",
+   "claim_1"]` → `match_claims is a list of MatchClaim IDs` at
+   `["match_claims"]`. Into a timeline: `wrong_target_kind` `nothing of
+   kind matchstamp goes into root` at `[score, "matchstamp"]`.
+5. **The schema package's refusals**, `schema_violation` with its message
+   at `[A, "manifest", …]`: an anchor `[take_1@0, take_1@88200]` →
+   `the timestamps of 'anchor_3' both lie on the timeline 'take_1'` at
+   `["graphical", "matchstamps", 2, "alignment_anchors", 0, "timestamps",
+   1]`; anchors `[score@[6, 1], take_1@176400]`, `[score@[7, 1],
+   take_2@198450]` → `the alignment anchors of 'matchstamp_3' are not one
+   connected set` at `["graphical", "matchstamps", 2,
+   "alignment_anchors"]`; claims `claim_1`, `claim_1` → the schema's
+   refusal of a repeated item at `["graphical", "matchstamps", 2,
+   "match_claims"]`.
+
+**Update and the other properties** (`set` on `matchstamp_N`; `anchors`
+takes pairs in screen order as naming does, `match_claims` a list):
+
+6. `matchstamp_1` given anchors `[take_1@88200, score@[4, 1]]` (anchor_1
+   reversed), `[take_1@88200, take_2@99225]` and claims `claim_1`,
+   `claim_2`, `claim_4` in one `set`: one journal entry; `anchor_1` kept
+   as it was (its order of timestamps, `["line", "name"]`), `anchor_3`
+   `["timestamp_2", "timestamp_3"]` with `["line"]`; the timestamps are
+   `TS`; the claims as given. Undo gives back the view before it.
+7. **An anchor gone takes the name along**: `matchstamp_1` given anchors
+   `[score@[4, 1], take_2@99225]`: its one anchor is `anchor_3`
+   (`timestamp_1`, `timestamp_3`, `["line", "name"]`), `timestamp_2`,
+   which no MatchStamp names any more, is gone; `M2` is unchanged.
+8. **A new coordinate**: `matchstamp_2` given anchors `[score@[4, 1],
+   take_2@110250]`: `timestamp_3` goes (its name with it), and
+   `match("timestamp_10", "take_2", 110250)` comes; the one anchor
+   `anchor_3` shows `["line"]` only, as `anchor_2` did not show the name.
+9. **No change**: `matchstamp_1` given its own anchor reversed,
+   `[take_1@88200, score@[8, 2]]`, is `invalid_value` `the command
+   changes nothing` at `[matchstamp_1, "anchors"]`; its own claims at
+   `[matchstamp_1, "match_claims"]`.
+10. `name` "Downbeat" is stored; `""` is `invalid_value` `a name is a
+    non-empty string` at `[matchstamp_1, "name"]`. `id` is
+    `id_not_settable`; `colour` `unknown_property` `matchstamp has no
+    property colour`; `display` `wrong_target_kind` `display is a property
+    of timestamp, anchor, not of matchstamp`.
+11. **An anchor's `display`** (`set` on `anchor_N`): `["name", "line"]` on
+    `anchor_2` is stored `["line", "name"]`; `[]` is stored; `["flag"]` is
+    `invalid_value` `'flag' is no display word` at `[anchor_2,
+    "display"]`; `anchor_1`'s own words reordered change nothing.
+
+**Removing** (`remove`):
+
+12. `matchstamp_1`: the MatchStamps are `M2`; the timestamps `TS` without
+    `timestamp_2` (`timestamp_1` stays: `M2` names it). A rule addressing
+    `anchor_1` goes with it. One journal entry; undo gives the fixture's
+    manifest back.
+13. Both MatchStamps: none is left, and neither are `timestamp_1`,
+    `timestamp_2`, `timestamp_3`; the six `origin` and `length` timestamps
+    stay.
+14. **With what they name**: removing the timeline `take_1` removes
+    `matchstamp_1` (its anchor named `timestamp_2`) and `anchor_1`, keeps
+    `M2` and `timestamp_1`; removing `timestamp_3` removes `matchstamp_2`
+    and keeps `M1`.
+15. An anchor alone, `anchor_1`, is `not_removable` `an alignment anchor
+    goes with its MatchStamp` at `[anchor_1]`.
+16. **Resources follow**: of the table fixture's manifest, removing the
+    child `clt_2` leaves `resource_1` naming `clt_1`, `dpt_1`, `cpt_1` in
+    its order, and `resource_2` as it was.
+
+**A length leaves match timestamps where they are** (17): after naming
+`[score@[8, 1], take_1@352800]` (`timestamp_10`, `timestamp_11`, at both
+ends), `set` of `score`'s length to `[10, 1]` moves the `length`
+timestamp `timestamp_5` to 10 and leaves `timestamp_10` at 8.
+
+**From the table to a command and back** (18): over the index of the
+matches case (in `matches.test.ts`, which builds it), `anchorValues(index, [6, 11])` is
+`[[clt_1@[3, 1], dpt_1@132300], [dpt_1@132300, cpt_1@3.0]]` (each anchor's
+lower coordinate first, an integral float a `JsonFloat`). For `M1`,
+`matchStampSpec` gives `{anchors: [{coordinates: [score 4, take_1
+88200n], carriesName: true}], claims: ["claim_1", "claim_2"]}`, the score
+value an exact `Rational` 4.
+
 ## Statements (`statements.test.ts`)
 
 TimeToShare puts `statements` (property–value pairs about the thing an
 element stands for) and `provenance` (the annotations of those pairs, and
-the proposed and rejected pairs, which are never stated) on the manifest,
+the candidates, pairs annotated but not stated, with who believes each) on the manifest,
 on every timeline at any depth and on every region; a manifest file
 carrying either holds the JSON-LD `@context` that names the format's terms
 and the prefixes its statements use. Core holds no term of the format: of a
@@ -2157,15 +2318,15 @@ removal leaves, the reading of statements given with an added timeline
 where they will lie, the guard's view of what an element outside an editor
 states, the warnings, and the user's identity as `stated_by` names it.
 Building and changing a pair is the schema package's (`withPair`,
-`withProposal`, …); these tests give whole members as values.
+`withCandidate`, `withBelief`, …); these tests give whole members as values.
 
 `L` is the schema package's fixture `statements/layerit_recording.yaml`
 (read from the installed package's `fixtures/<version>/statements/`), added
 as block `0000000000`. Its roots in canonical order are `clt_6`, `cpt_1`,
 `dpt_1` (indices 0, 1, 2); `cpt_2` is `cpt_1`'s child (`["timelines", 1,
 "children", 0]`); `group_1` has the members `cpt_2` and `dpt_1`. `cpt_1`'s
-provenance entry 3 is the proposed pair `wdt:P2550` `wd:Q29117946` with
-`basis: ["#clt_6", "#dpt_1"]`; `dpt_1`'s one entry is the proposed pair
+provenance entry 3 is the candidate `wdt:P2550` `wd:Q29117946` with
+`basis: ["#clt_6", "#dpt_1"]`, believed by nobody; `dpt_1`'s one entry is the candidate
 `dcterms:source` `{id: "#cpt_1"}`. `P` below is `["0000000000",
 "manifest"]`, `K(x)` the address key of `{block: "0000000000", id: x}`.
 `C` is the `@context` of `L`'s file, read from its text: the format's terms
@@ -2211,12 +2372,14 @@ the block's manifest.
   `"bf": "http://id.loc.gov/ontologies/bibframe/"` added; `set` of its
   `statements` to `null`: still no `@context`, `F` is `C` again, and the
   region has no `statements` member.
-- **(g) A proposed pair is never stated.** `cpt_1`'s statements with
-  `"wdt:P2550": [{id: "wd:Q29117946"}]` added, its provenance untouched, are
-  refused "the pair is stated; a proposed pair is never stated" at `[...P,
-  "timelines", 1, "provenance", 3]`. Both members in one change, entry 3
-  given `status: "confirmed"`, `stated_by: ["https://orcid.org/0000-0002-1825-0097"]`
-  and `date: "2026-11-20"`, are accepted, and so stored.
+- **(g) A candidate stated, one belief per actor.** `cpt_1`'s provenance
+  with entry 3 (a candidate: its pair is not stated) given the beliefs
+  `{actor: "https://orcid.org/0000-0002-1825-0097", belief: "true", date:
+  "2026-11-20"}` and the same actor's `"false"` is refused "'<the ORCID
+  iD>' already holds belief 0 of this entry; an actor holds one belief" at
+  `[...P, "timelines", 1, "provenance", 3, "beliefs", 1, "actor"]`. Both
+  members in one change, the candidate's pair stated and entry 3 given the
+  one belief `"true"`, are accepted, and so stored.
 - **(h) Shapes core reads.** `statements: []` on `cpt_2` is `invalid_value`
   "statements is an object of property–value pairs, or null" at `[K(cpt_2),
   "statements"]`; `provenance: {}` is `invalid_value` "provenance is a list
@@ -2316,14 +2479,15 @@ time `clock().toISOString()`. The tests inject a clock from
 
 ## Workspace settings (`settings.test.ts`)
 
-The settings (`grid`, `blockDefaults`, `granularity`, `manifests`) say how
-the editor is used, not what the workspace holds, so they live outside the
-journal: `store.configure(change)` changes them, where `change` names any
-of the four members. The first three are merged member by member: `change`
-names any of their own members (`{blockDefaults: {length: 600}}` keeps the
-other placement defaults, `{granularity: {decimals: 6}}` keeps the
-denominator). `manifests` is merged block by block, each entry it names
-replacing that block's entry whole (item 7). The proof is that the journal and the undo history
+The settings (`grid`, `blockDefaults`, `granularity`, `manifests`,
+`matchClaimFilters`) say how the editor is used, not what the workspace
+holds, so they live outside the journal: `store.configure(change)` changes
+them, where `change` names any of the five members. The first three are
+merged member by member: `change` names any of their own members
+(`{blockDefaults: {length: 600}}` keeps the other placement defaults,
+`{granularity: {decimals: 6}}` keeps the denominator). `manifests` and
+`matchClaimFilters` are merged block by block, each entry a change names
+replacing that block's entry whole (items 7 and 8). The proof is that the journal and the undo history
 cannot see them, and that nothing the journal replays depends on them. The
 store under test holds three journalled commands (the `add` of block `A`
 holding `bare.yaml`, two moves of `A`) and an injected clock.
@@ -2391,6 +2555,28 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    `minimal` `"yes"` → `invalid_value` at `["settings", "manifests", A,
    "minimal"]`; a key that is no block ID, `"A"` → `invalid_block_id` at
    `["settings", "manifests", "A"]`.
+8. **Which MatchClaims a block shows** (`matchClaimFilters`, by block ID,
+   each entry `{timelines, belief}` whole; the MatchClaim table itself is
+   never a setting). A new workspace holds `{}`, and
+   `matchClaimFilterOf(settings, A)` for a block without an entry is
+   `DEFAULT_MATCH_CLAIM_FILTER`, `{timelines: null, belief: "not_false"}`
+   (every timeline; everything the user does not believe false).
+   `configure({matchClaimFilters: {[A]: {timelines: ["take_1", "score"],
+   belief: "true"}}})` returns `null`, journals nothing, and
+   `matchClaimFilterOf` then gives `{timelines: ["score", "take_1"],
+   belief: "true"}` for `A` (the timelines held by code point) and still
+   the default for `B`; a second `configure` naming only `B` keeps `A`'s
+   entry as it was, and one giving `A`'s timelines as `["score",
+   "take_1"]` keeps the settings the same object (no change). Refused,
+   leaving the settings as they were: `belief` `"maybe"` →
+   `invalid_value` `expected "not_false" or "true"` at `["settings",
+   "matchClaimFilters", A, "belief"]`; `timelines` `"score"` →
+   `invalid_value` `expected null or a list of timeline IDs` at
+   `[…, A, "timelines"]`; `timelines` `["score", "score"]` →
+   `invalid_value` `'score' is listed twice` at `[…, A, "timelines", 1]`;
+   an entry without `belief` → `missing_member` at `[…, A, "belief"]`; a
+   key `"A"` → `invalid_block_id` at `["settings", "matchClaimFilters",
+   "A"]`.
 
 ## Editor sessions (`sessions.test.ts`)
 
@@ -3039,13 +3225,15 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `graphical` set to one rule, the grid configured to `{size: 16,
    snap: false}`, the granularity's denominator to 5 and the manifest file
    of block `A` to `{minimal: false, styling: false, serialization:
-   "json"}`) is written; the text read back deep-equals the workspace, and writing it
+   "json"}`, its MatchClaim filter to `{timelines: ["melody"], belief:
+   "true"}`) is written; the text read back deep-equals the workspace, and writing it
    again gives the same bytes. Its members are exactly `blocks`,
    `graphical`, `journal`, `meta`, `name`, `sessions`, `settings`;
    `settings`' members are exactly `blockDefaults`, `granularity`, `grid`,
-   `manifests`, the granularity exactly `{denominator: 5, decimals: 3}`,
+   `manifests`, `matchClaimFilters`, the granularity exactly `{denominator: 5, decimals: 3}`,
    `manifests` exactly `{[A]: {minimal: false, serialization: "json",
-   styling: false}}`;
+   styling: false}}`, `matchClaimFilters` exactly `{[A]: {belief: "true",
+   timelines: ["melody"]}}`;
    `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
    `untitled`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
@@ -3077,7 +3265,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `["journal", 0, "command", "into"]`; an entry command of type `move` →
    `invalid_command` at `["journal", 0, "command", "type"]`.
 4. **A granularity of another shape reads as the default.** One of the two
-   lenient members (`granularity`, `manifests`): settings lie outside the
+   lenient members (`granularity`, `manifests`, `matchClaimFilters`): settings lie outside the
    journal, so a granularity the reader cannot read loses nothing a replay
    needs. The round trip's text
    with `settings.granularity` removed, replaced by the shape an earlier
@@ -3093,7 +3281,12 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    without a problem, with `manifests` exactly `{}`. Only the entries that
    do not read are left out: `{[A]: <A's entry>, [B]: {minimal: "yes"},
    "A": <A's entry>}` reads with `manifests` exactly `{[A]: <A's entry>}`.
-   The reader is lenient on these two members only: a `grid.size` of 0 in
+   **The MatchClaim filters likewise**: the text with
+   `settings.matchClaimFilters` removed (a file written before the editor
+   kept them), or replaced by `[]`, reads with `matchClaimFilters` exactly
+   `{}`; `{[A]: <A's entry>, [B]: {timelines: null, belief: "maybe"}}`
+   reads with exactly `{[A]: <A's entry>}`.
+   The reader is lenient on these three members only: a `grid.size` of 0 in
    the same file is still `non_positive_number` at `["settings", "grid",
    "size"]`.
 5. **Version 4.** A version-4 file (the round trip's text with `version:
@@ -4035,9 +4228,10 @@ table, masked), claims elsewhere (recorded, passing the mask, behind none
 of the current MatchStamps), claims new (behind the current MatchStamps,
 not recorded). Out of date exactly when one of the six is not empty. The
 Update result is the current potential MatchStamp holding the stated
-anchor that carries the name, else the largest holding a stated anchor
-(most coordinates, then most stated anchors, then the first stated anchor
-in the named order), none when no anchor is stated. On the case's index:
+anchor that carries the name, else the largest of the current ones, whether
+or not it holds a stated anchor (most coordinates, then most stated
+anchors, then the first stated anchor in the named order, then the lowest
+number), none when no anchor is stated. On the case's index:
 
 1. Anchors (`clt_1` 3, `dpt_1` 132300) and (`dpt_1` 132300, `cpt_1` 3.0,
    name), claims `claim_4`, `claim_5`, `claim_6`: stated as anchors 6 and
@@ -4071,6 +4265,14 @@ in the named order), none when no anchor is stated. On the case's index:
    `claim_2`. Named the other way round: Update {2, 12}, anchors 2, claims
    `claim_1` (row 10, stating the same anchor, is masked). Neither follows
    the lower number.
+8. The largest current MatchStamp, though it holds no stated anchor:
+   (`clt_1` 1/2, `dpt_1` 22050) and (`dpt_1` 176400, `cpt_1` 3.0, name)
+   state anchor 2 and none; the current MatchStamps are {2, 12}, {6, 16,
+   20} and {7, 17, 21}. The name's anchor is not stated; {6, 16, 20} and
+   {7, 17, 21} have three coordinates each and no stated anchor, more than
+   {2, 12}, which holds the one stated anchor, so Update takes the lower
+   number of the two, {6, 16, 20}, anchors 6, 11, claims `claim_4`,
+   `claim_5`, `claim_6`, no name anchor.
 
 ## Budgets (`budget.test.ts`, `matches-budget.test.ts`)
 

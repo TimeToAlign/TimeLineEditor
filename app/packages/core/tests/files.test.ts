@@ -547,6 +547,7 @@ describe("commands in blocks of several roots", () => {
         { select: { element: "ancestor" }, set: { opacity: 0.5 } },
       ],
       timestamps: load(STYLED).graphical?.timestamps,
+      matchstamps: [],
     });
   });
 

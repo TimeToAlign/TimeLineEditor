@@ -69,13 +69,15 @@ export interface Workspace {
 
 /**
  * A change of the settings: any of their members, each given in part; the
- * manifest files block by block, each block's entry whole.
+ * manifest files and the MatchClaim filters block by block, each block's
+ * entry whole.
  */
 export interface SettingsChange {
   readonly grid?: Partial<WorkspaceSettings["grid"]>;
   readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
   readonly granularity?: Partial<Granularity>;
   readonly manifests?: WorkspaceSettings["manifests"];
+  readonly matchClaimFilters?: WorkspaceSettings["matchClaimFilters"];
 }
 
 export interface StoreOptions {
@@ -509,6 +511,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         blockDefaults: { ...settings.blockDefaults, ...change.blockDefaults },
         granularity: { ...settings.granularity, ...change.granularity },
         manifests: { ...settings.manifests, ...change.manifests },
+        matchClaimFilters: { ...settings.matchClaimFilters, ...change.matchClaimFilters },
       };
       const problems: Problem[] = [];
       const read = readSettings(merged, ["settings"], problems);
@@ -524,6 +527,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         blockDefaults: kept("blockDefaults"),
         granularity: kept("granularity"),
         manifests: kept("manifests"),
+        matchClaimFilters: kept("matchClaimFilters"),
       };
       configured = new WeakMap();
       notify();

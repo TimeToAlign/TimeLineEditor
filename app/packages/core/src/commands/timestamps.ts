@@ -6,7 +6,7 @@
  * `graphical` object. Once made they are like any other named timestamp.
  */
 
-import { canonicalOrder, complete, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
+import { canonicalOrder, complete } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -62,26 +62,27 @@ export function readTimestampCoordinate(
 }
 
 /**
- * A named timestamp's `display` given to a command, as stored: a list of
- * display words, each at most once, in any order, stored in the canonical
- * order of the schema package's `TIMESTAMP_DISPLAY`. Anything else is
- * `invalid_value` at `path`.
+ * A `display` given to a command, as stored: a list of the display words
+ * `words` (a named timestamp's `TIMESTAMP_DISPLAY`, an alignment anchor's
+ * `ANCHOR_DISPLAY`), each at most once, in any order, stored in the
+ * canonical order of `words`. Anything else is `invalid_value` at `path`.
  */
-export function readTimestampDisplay(
+export function readDisplay<W extends string>(
   value: unknown,
+  words: readonly W[],
   path: readonly PathSegment[],
-): TimestampDisplay[] | CommandError {
+): W[] | CommandError {
   const refused = (message: string) => problem(ErrorCode.invalidValue, message, path);
   if (!Array.isArray(value)) return refused("a display is a list of display words");
-  const given = new Set<TimestampDisplay>();
+  const given = new Set<W>();
   for (const item of value) {
     if (typeof item !== "string") return refused("a display is a list of display words");
-    const word = TIMESTAMP_DISPLAY.find((known) => known === item);
+    const word = words.find((known) => known === item);
     if (word === undefined) return refused(`'${item}' is no display word`);
     if (given.has(word)) return refused(`'${word}' is given twice`);
     given.add(word);
   }
-  return TIMESTAMP_DISPLAY.filter((word) => given.has(word));
+  return words.filter((word) => given.has(word));
 }
 
 /** What the timestamps a new root is given show: a wedge and the coordinate. */
@@ -102,7 +103,8 @@ export function withDefaultTimestamps(manifest: Manifest, timeline: TimelineMani
   const added = places.map(([name, coordinate]): NamedTimestamp => {
     const id = nextId(TIMESTAMP_PREFIX, taken);
     taken.add(id);
-    return { id, timeline: timeline.id, coordinate, name, display: [...DEFAULT_TIMESTAMP_DISPLAY] };
+    const display = [...DEFAULT_TIMESTAMP_DISPLAY];
+    return { id, timeline: timeline.id, coordinate, name, display, matchstamp: false };
   });
   return withTimestamps(manifest, [...(manifest.graphical?.timestamps ?? []), ...added]);
 }

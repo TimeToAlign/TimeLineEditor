@@ -193,23 +193,23 @@ describe("setting statements", () => {
     expect(region !== undefined && "statements" in region).toBe(false);
   });
 
-  it("(g) refuses a proposed pair stated, and states it confirmed", () => {
+  it("(g) states a candidate, and refuses an actor holding two beliefs", () => {
     const { statements, provenance } = own("cpt_1");
     if (statements === undefined || provenance === undefined) throw new Error("cpt_1 states");
     const pair = { ...statements, "wdt:P2550": [{ id: "wd:Q29117946" }] };
-    expect(refusedWith(viewOfL(), set(at("cpt_1"), { statements: pair }))).toEqual({
+    const believed = (beliefs: object[]) =>
+      provenance.map((entry, index) => (index === 3 ? { ...entry, beliefs } : entry));
+    const belief = { actor: ORCID, belief: "true", date: "2026-11-20" };
+    const twice = believed([belief, { ...belief, belief: "false" }]);
+    expect(refusedWith(viewOfL(), set(at("cpt_1"), { provenance: twice }))).toEqual({
       code: "schema_violation",
-      message: "the pair is stated; a proposed pair is never stated",
-      path: [...P, "timelines", 1, "provenance", 3],
+      message: `'${ORCID}' already holds belief 0 of this entry; an actor holds one belief`,
+      path: [...P, "timelines", 1, "provenance", 3, "beliefs", 1, "actor"],
     });
-    const confirmed = provenance.map((entry, index) =>
-      index === 3
-        ? { ...entry, status: "confirmed", stated_by: [ORCID], date: "2026-11-20" }
-        : entry,
-    );
-    const view = changed(viewOfL(), set(at("cpt_1"), { statements: pair, provenance: confirmed }));
+    const once = believed([belief]);
+    const view = changed(viewOfL(), set(at("cpt_1"), { statements: pair, provenance: once }));
     expect(timelineOf(view, "cpt_1").statements).toEqual(pair);
-    expect(timelineOf(view, "cpt_1").provenance).toEqual(confirmed);
+    expect(timelineOf(view, "cpt_1").provenance).toEqual(once);
   });
 
   it("(h) reads an object of pairs and a list of annotations, or null", () => {
