@@ -5,22 +5,28 @@
  */
 
 import type { AnchorIndex, Manifest } from "@timetoalign/tilie-core";
-import { addressKey, idAddress, placeKeyText } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, inBlock, placeKeyText } from "@timetoalign/tilie-core";
+import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
+import { lineAxes } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
-import type { MatchLines, MatchOverlay, Screen } from "../src/matches.ts";
+import type { MatchLines, MatchOverlay, Screen, ScreenCoordinate } from "../src/matches.ts";
 import {
+  inScreenOrder,
   matchFlag,
   matchHitAt,
   matchLinesOf,
   overlayOf,
   pathOf,
+  screenOrder,
+  screenPlace,
   staleAnchors,
   stampOverlay,
 } from "../src/matches.ts";
 import { D, NAMED, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
-import { A, blockIn, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
 
 const view = viewOf({ id: A, fixture: "bundles/bundle_matchstamps", x: 40, y: 80 });
 const manifest: Manifest = blockIn(view, A).manifest;
@@ -277,6 +283,81 @@ describe("the hovered and the pinned MatchStamp", () => {
       ],
     });
     expect(shape(stampOverlay(T, linesOf(T), 7))).toEqual({ lines: [], connectors: [] });
+  });
+});
+
+describe("screen order", () => {
+  /** `bundle_shared_member` with `g1`'s frame at (0, 100) and `g2`'s at (400, 0). */
+  const shared = changed(viewOf({ id: A, fixture: "bundles/bundle_shared_member" }), {
+    type: "set",
+    changes: [
+      { target: inBlock(A, idAddress("g1")), values: { place: { x: 0, y: 100 } } },
+      { target: inBlock(A, idAddress("g2")), values: { place: { x: 400, y: 0 } } },
+    ],
+  });
+  const twice = drawingOf(blockIn(shared, A), shared.graphical, metrics);
+  const T_TOP = 68.01171875;
+  const V_Y = 125.390625;
+  const U_Y = 225.390625;
+  const G1_X = 102.29150390625;
+  const G2_X = 502.29150390625;
+  const at = (timeline: string, value: CoordinateValue): ScreenCoordinate => ({ timeline, value });
+  const t4 = at("t", 4n);
+  const t6 = at("t", 6n);
+  const v400 = at("v", 400n);
+  const u2 = at("u", 2);
+  const beyond = at("t", Rational.of([17, 2]));
+  const nowhere = at("w", 1n);
+
+  it("places a coordinate at its topmost, then leftmost drawn place", () => {
+    const lines = [...lineAxes(twice).values()].filter(({ timeline }) => timeline === "t");
+    expect(lines.map(({ y, xStart }) => [y, xStart])).toEqual([
+      [T_TOP + 100, G1_X],
+      [T_TOP, G2_X],
+    ]);
+    expect(screenPlace(twice, t4)).toEqual({ x: G2_X + 200, y: T_TOP });
+    expect(screenPlace(twice, t6)).toEqual({ x: G2_X + 300, y: T_TOP });
+    expect(screenPlace(twice, at("t", 8n))).toEqual({ x: G2_X + 400, y: T_TOP });
+    expect(screenPlace(twice, v400)).toEqual({ x: G2_X + 200, y: V_Y });
+    expect(screenPlace(twice, u2)).toEqual({ x: G1_X + 200, y: U_Y });
+    expect(screenPlace(twice, beyond)).toBeNull();
+    expect(screenPlace(twice, at("t", Rational.of([-1, 1])))).toBeNull();
+    expect(screenPlace(twice, nowhere)).toBeNull();
+  });
+
+  it("orders top to bottom, then left to right, what is not drawn last", () => {
+    expect(inScreenOrder(twice, [u2, t6, v400, t4], (item) => item)).toEqual([t4, t6, v400, u2]);
+    expect(inScreenOrder(twice, [beyond, u2, nowhere], (item) => item)).toEqual([
+      u2,
+      beyond,
+      nowhere,
+    ]);
+    const exact = at("t", Rational.of([4, 1]));
+    const [first, second] = inScreenOrder(twice, [t4, exact], (item) => item);
+    expect([first === t4, second === exact]).toEqual([true, true]);
+    const [again, last] = inScreenOrder(twice, [exact, t4], (item) => item);
+    expect([again === exact, last === t4]).toEqual([true, true]);
+    const place = { x: 0, y: 0 };
+    expect([
+      screenOrder(place, null) < 0,
+      screenOrder(null, place) > 0,
+      screenOrder(null, null),
+    ]).toEqual([true, true, 0]);
+  });
+
+  it("places a segment on its segment line within the segment's span", () => {
+    const pages = viewOf({ id: A, fixture: "segment_pages" });
+    const drawn = drawingOf(blockIn(pages, A), pages.graphical, metrics);
+    const line = lineAxes(drawn).values().next().value;
+    expect([line?.timeline, line?.y, line?.xStart, line?.xEnd]).toEqual([
+      "pages",
+      36.4765625,
+      56.85498046875,
+      456.85498046875,
+    ]);
+    expect(screenPlace(drawn, at("page_2", 0n))).toEqual({ x: 156.85498046875, y: 36.4765625 });
+    expect(screenPlace(drawn, at("page_2", 1754n))).toEqual({ x: 256.85498046875, y: 36.4765625 });
+    expect(screenPlace(drawn, at("page_2", 1755n))).toBeNull();
   });
 });
 

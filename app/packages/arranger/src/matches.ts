@@ -33,10 +33,12 @@ import {
   placeKeyText,
   prettyText,
 } from "@timetoalign/tilie-core";
-import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
+import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
+import { Rational, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { CrossSectionSegment, Drawing } from "@timetoalign/tilie-layout";
-import { anchorLine, crossSectionSegment, lineAxes } from "@timetoalign/tilie-layout";
+import { abscissaOf, anchorLine, crossSectionSegment, lineAxes } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
+import type { Holding } from "./coordinates.ts";
 import { holdings } from "./coordinates.ts";
 import type { Point } from "./gesture.ts";
 
@@ -72,6 +74,8 @@ export interface MatchStampPin {
   readonly matchStamp: number;
 }
 
+const ZERO = Rational.fromParts(0n, 1n);
+
 /** No block with a table: what the canvas draws from by default. */
 export const NO_TABLES: readonly MatchOverlayInput[] = [];
 
@@ -87,8 +91,12 @@ export const STALE_STROKE = "#E51400";
 export const MATCH_STROKE_WIDTH = 1;
 export const MATCH_DASH = "3 3";
 
-/** What "Show matches" says while it has no table to show. */
-export const NO_MATCHES = "Matches need the server and a loaded MatchClaim table.";
+/**
+ * What "Show matches" says while it has no table to show, where its host
+ * says nothing more: the canvas knows only that no table is loaded, never
+ * why.
+ */
+export const NO_MATCHES = "No MatchClaim table loaded.";
 
 /**
  * A line of a drawing holding a timeline of the index, as floats: where its
@@ -144,6 +152,8 @@ function perUnit(line: MatchLine): number {
 
 /** The lines of a drawing for one index, all of them and by the index's timeline number. */
 export interface MatchLines {
+  /** The drawing they were read from. */
+  readonly drawing: Drawing;
   readonly all: readonly MatchLine[];
   readonly byTimeline: ReadonlyMap<number, readonly MatchLine[]>;
 }
@@ -195,7 +205,7 @@ export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
   for (const line of found) {
     byTimeline.set(line.timeline, [...(byTimeline.get(line.timeline) ?? []), line]);
   }
-  const lines = { all: found, byTimeline };
+  const lines = { drawing, all: found, byTimeline };
   linesByDrawing.set(drawing, { index, lines });
   return lines;
 }
@@ -469,33 +479,91 @@ export interface MatchFlagGroup {
   readonly rows: readonly MatchFlagRow[];
 }
 
-/** Where a coordinate shows first on the screen: the topmost, then leftmost of its places; `null` where it is not drawn. */
-function placeOf(index: AnchorIndex, lines: MatchLines, coordinate: number): Point | null {
-  const position = index.coordinates.position[coordinate] as number;
+/** A coordinate as screen order reads it: a timeline's ID and a value on that timeline's own axis. */
+export interface ScreenCoordinate {
+  readonly timeline: string;
+  readonly value: CoordinateValue;
+}
+
+const holdingsByDrawing = new WeakMap<Drawing, Map<string, readonly Holding[]>>();
+
+/** The lines of `drawing` holding `timeline` (`holdings`), once per drawing and timeline. */
+function heldOn(drawing: Drawing, timeline: string): readonly Holding[] {
+  let byTimeline = holdingsByDrawing.get(drawing);
+  if (byTimeline === undefined) {
+    byTimeline = new Map();
+    holdingsByDrawing.set(drawing, byTimeline);
+  }
+  let held = byTimeline.get(timeline);
+  if (held === undefined) {
+    held = holdings(drawing, timeline);
+    byTimeline.set(timeline, held);
+  }
+  return held;
+}
+
+/**
+ * Where `coordinate` shows first in `drawing`, in block-local canvas units:
+ * of every line holding its timeline (`holdings`, where "Show matches" and
+ * a named timestamp put it) whose drawn part holds its value, exactly as
+ * `matchLinesOf` bounds a line (from 0, up to a segment's length, within
+ * `start` to `start + drawnLength` on the line's axis), the topmost
+ * place, then the leftmost; its abscissa is
+ * layout's `abscissaOf` of the value on the line's axis. `null` where the
+ * block draws it on no line.
+ */
+export function screenPlace(drawing: Drawing, coordinate: ScreenCoordinate): Point | null {
+  const value = toRational(coordinate.value);
   let best: Point | null = null;
-  for (const line of lines.byTimeline.get(index.coordinates.timeline[coordinate] as number) ?? []) {
-    if (position < line.from || position > line.to) continue;
-    const x = abscissa(line, position);
-    if (best === null || line.y < best.y || (line.y === best.y && x < best.x))
-      best = { x, y: line.y };
+  for (const { axis, offset, length } of heldOn(drawing, coordinate.timeline)) {
+    if (value.compare(ZERO) < 0 || (length !== null && value.compare(length) > 0)) continue;
+    const onLine = value.add(offset);
+    const start = toRational(axis.start);
+    if (onLine.compare(start) < 0) continue;
+    if (onLine.compare(start.add(toRational(axis.drawnLength))) > 0) continue;
+    const x = abscissaOf(axis, onLine);
+    if (best === null || axis.y < best.y || (axis.y === best.y && x < best.x)) {
+      best = { x, y: axis.y };
+    }
   }
   return best;
 }
 
-/** Screen order: top to bottom, then left to right; what is not drawn last. */
-function screenOrder(left: Point | null, right: Point | null): number {
+/**
+ * Screen order of two places (`screenPlace`): top to bottom, then left to
+ * right; a place not drawn (`null`) after every drawn one. Negative where
+ * `left` comes first, positive where `right` does, 0 for one place.
+ */
+export function screenOrder(left: Point | null, right: Point | null): number {
   if (left === null || right === null) return left === null ? (right === null ? 0 : 1) : -1;
   return left.y - right.y || left.x - right.x;
+}
+
+/**
+ * `items` in screen order (`screenOrder` of each one's `screenPlace` in
+ * `drawing`, `coordinateOf` giving its coordinate); items at one place, or
+ * none drawn, keep their given order. The one screen order of the flag of
+ * a potential MatchStamp and of the coordinates and alignment anchors of a
+ * MatchStamp wherever it is listed or named.
+ */
+export function inScreenOrder<T>(
+  drawing: Drawing,
+  items: readonly T[],
+  coordinateOf: (item: T) => ScreenCoordinate,
+): T[] {
+  return items
+    .map((item) => ({ item, place: screenPlace(drawing, coordinateOf(item)) }))
+    .sort((left, right) => screenOrder(left.place, right.place))
+    .map(({ item }) => item);
 }
 
 /**
  * The flag of the potential MatchStamp `stamp`: one group per timeline,
  * named as `manifest` names it (its ID where it holds none), each of its
  * coordinates a row written as core's `prettyText` with `decimals` places,
- * in the timeline's unit; groups and rows in screen order (`placeOf`: top
- * to bottom, then left to right, by where each coordinate shows first, a
- * group by its first row), what the block does not draw last, in the
- * index's order.
+ * in the timeline's unit; groups and rows in screen order (`inScreenOrder`
+ * over the drawing `lines` were read from, a group by its first row), what
+ * the block does not draw last, in the index's order.
  */
 export function matchFlag(
   index: AnchorIndex,
@@ -504,15 +572,12 @@ export function matchFlag(
   stamp: number,
   decimals: number,
 ): MatchFlagGroup[] {
-  const members = Array.from(matchStampMembers(index, stamp), (coordinate) => ({
-    coordinate,
-    place: placeOf(index, lines, coordinate),
+  const members = inScreenOrder(lines.drawing, [...matchStampMembers(index, stamp)], (c) => ({
+    timeline: index.columns.timelines[index.coordinates.timeline[c] as number]?.id ?? "",
+    value: coordinateValue(index, c),
   }));
-  members.sort(
-    (left, right) => screenOrder(left.place, right.place) || left.coordinate - right.coordinate,
-  );
   const groups = new Map<number, MatchFlagRow[]>();
-  for (const { coordinate } of members) {
+  for (const coordinate of members) {
     const timeline = index.coordinates.timeline[coordinate] as number;
     const claimed = index.columns.timelines[timeline];
     const found: TimelineManifest | undefined =
@@ -565,18 +630,34 @@ export interface MatchLayer {
   readonly pinned: MatchOverlay | null;
 }
 
+const pathByOverlay = new WeakMap<MatchOverlay, string>();
+
 /**
  * The path data of an overlay, one subpath per line (`M x y1 V y2`) and per
  * connector (`M x1 y1 L x2 y2`), numbers written as the writers write them;
- * a dash pattern starts again on every subpath.
+ * a dash pattern starts again on every subpath. Written once per overlay
+ * object: an overlay never changes, so a layer redrawn around the same
+ * overlay (the potential MatchStamps while the pointer moves) costs a
+ * lookup.
  */
 export function pathOf(overlay: MatchOverlay): string {
-  const lines = overlay.lines.map(
-    ({ x, y1, y2 }) => `M${attributeText(x)} ${attributeText(y1)}V${attributeText(y2)}`,
-  );
+  const known = pathByOverlay.get(overlay);
+  if (known !== undefined) return known;
+  const texts = new Map<number, string>();
+  /** `value` as the writers write it, each number once: a line's ordinates repeat on every coordinate. */
+  const text = (value: number) => {
+    let written = texts.get(value);
+    if (written === undefined) {
+      written = attributeText(value);
+      texts.set(value, written);
+    }
+    return written;
+  };
+  const lines = overlay.lines.map(({ x, y1, y2 }) => `M${text(x)} ${text(y1)}V${text(y2)}`);
   const connectors = overlay.connectors.map(
-    ({ x1, y1, x2, y2 }) =>
-      `M${attributeText(x1)} ${attributeText(y1)}L${attributeText(x2)} ${attributeText(y2)}`,
+    ({ x1, y1, x2, y2 }) => `M${text(x1)} ${text(y1)}L${text(x2)} ${text(y2)}`,
   );
-  return [...lines, ...connectors].join("");
+  const path = [...lines, ...connectors].join("");
+  pathByOverlay.set(overlay, path);
+  return path;
 }

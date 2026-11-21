@@ -1973,15 +1973,66 @@ foot and top the line's ordinate (c2: x 361.0927734375, y and top
 46.20703125)). On D, the pointer at (61.5927734375, 43.20703125), on
 k = 2's place, hovers k = 2 (coordinate 2), which is not drawn.
 
+**Screen order** (`screenPlace`, `screenOrder`, `inScreenOrder`). The one
+screen order of a MatchStamp's coordinates, which the flag here and the
+editor's Matchstamp tab and naming read: a coordinate (a timeline's ID and
+an exact value on its own axis) shows first at the topmost, then leftmost
+of its places on the lines holding its timeline (the lines "Show matches"
+draws it on: its own lines, else the segment line holding it), a place
+counted only where the line's drawn part holds the value exactly (from 0,
+up to a segment's length, within the line's drawn span, both ends
+included), its abscissa layout's `abscissaOf`; coordinates top to bottom,
+then left to right, those the block draws nowhere last; equal places, and
+the undrawn, keep their given order. What would be wrong: the first line in
+drawing order taken for a timeline drawn in several cards (so the flag and
+the tab disagree), a place beyond a line's or a segment's span, an unstable
+order.
+
+Block A holds `bundles/bundle_shared_member` at (0, 0): `t` ("Score",
+quarters, fraction, 8) is a member of both groups, so it is drawn in a card
+of `g1`'s frame (with `u`, seconds, float, 4) and in one of `g2`'s (with
+`v`, pixels, int, 800). At the default places (layout's record) `g1`'s
+frame lies at (0, 0), its `t` line on y 68.01171875 and `u`'s on
+125.390625, each from x 102.29150390625 to 502.29150390625 (400 units: 50 a
+quarter, 100 a second, one per 2 pixels). `set place` moves `g1`'s frame to
+(0, 100) and `g2`'s to (400, 0), each frame's lines shifted by its place:
+`g1`'s `t` on y 168.01171875, `u` on 225.390625, from x 102.29150390625;
+`g2`'s `t` on y 68.01171875, `v` on 125.390625, from x 502.29150390625.
+`g1`'s `t` line is drawn first and lies left; `g2`'s lies on top.
+
+| Coordinate | Place |
+|---|---|
+| `t` 4 | (702.29150390625, 68.01171875): `g2`'s line, the topmost, not `g1`'s (302.29150390625, 168.01171875) |
+| `t` 6 | (802.29150390625, 68.01171875) |
+| `t` 8 | (902.29150390625, 68.01171875): the end is drawn |
+| `v` 400 | (702.29150390625, 125.390625) |
+| `u` 2.0 | (302.29150390625, 225.390625) |
+| `t` 17/2, `t` −1 | none: beyond the drawn span, before 0 |
+| `w` 1 | none: no line holds `w` |
+
+So [`u` 2.0, `t` 6, `v` 400, `t` 4] in screen order is [`t` 4, `t` 6, `v`
+400, `u` 2.0] (by the first line in drawing order it would be [`v` 400,
+`t` 4, `t` 6, `u` 2.0]); [`t` 17/2, `u` 2.0, `w` 1] is [`u` 2.0, `t` 17/2,
+`w` 1]; `t` 4 written as the integer 4 and as the fraction 4/1 lie at one
+place and keep their given order either way. `screenOrder` puts a place
+before none and none after a place, two nones level (0).
+
+On `segment_pages` at (0, 0) the segment line `pages` (pixels, int, 7016)
+lies on y 36.4765625 from x 56.85498046875 to 456.85498046875 (layout's
+record, 7016 pixels over 400 units), its segments `page_1` … `page_4` of
+1754 pixels at the offsets 0, 1754, 3508, 5262, none drawn on a line of
+its own: `page_2` 0 is at (156.85498046875, 36.4765625) (1754 / 7016 × 400
+= 100 right of the start), `page_2` 1754 at (256.85498046875, 36.4765625),
+its end; `page_2` 1755 is beyond the segment: none.
+
 **The flag** (`matchFlag`, 3 decimals). One group per timeline, named as
 the manifest names it, each coordinate a row in core's `prettyText` with
-the timeline's unit; groups and rows in screen order, top to bottom then
-left to right, by where each coordinate shows first; what the block does
-not draw last. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1` [`176 400
-smp`, `264 600 smp`] (176400 at 261.09… left of 264600 at 361.09…),
-`Take 2` [`297 675 smp`], `other` [`0.5`] (no line, the table's number
-type, no unit); the table's order (take_2 first) is not the screen's.
-MatchStamp 1: `Score` [`4 ♩`], `Take 1` [`88 200 smp`].
+the timeline's unit; groups and rows in screen order (above); what the
+block does not draw last. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1`
+[`176 400 smp`, `264 600 smp`] (176400 at 261.09… left of 264600 at
+361.09…), `Take 2` [`297 675 smp`], `other` [`0.5`] (no line, the table's
+number type, no unit); the table's order (take_2 first) is not the
+screen's. MatchStamp 1: `Score` [`4 ♩`], `Take 1` [`88 200 smp`].
 
 **Stale anchors** (`staleAnchors`). The named MatchStamps compared with T
 by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`, score 4 ↔ take_1
@@ -1993,7 +2044,9 @@ exactly `{anchor_2}`'s address key.
 subpath, numbers as the writers write them (four decimals, as the
 drawing's own elements are written): for T at zoom 1 `M261.0928
 43.207V43.207` and so on, then `M261.0928 43.207L161.0928 100.5859` and
-so on, in the order above.
+so on, in the order above. A path is written once per overlay object (an
+overlay never changes), so the same overlay gives the same string again
+without writing it; each number is written once per path.
 
 **Budget** (`matches-budget.test.ts`, run alone by `pnpm test:budget` in
 `app/`, after core's budgets, through `vitest.budget.config.ts`; excluded
@@ -2001,11 +2054,18 @@ from the default run). 250,000 claims made as core's anchor-index budget makes t
 (the same generator, seed and shares: 70 % instants, 25 % intervals, 5 %
 NOMATCH), their steps spread over the three lines' spans (score in steps
 of 1/25001 quarter, take_1 and take_2 in whole samples), so all of them
-lie in view with the whole block at zoom 1 on a canvas 1000 × 600: the
-overlay of a view is drawn within 16 ms (one frame) at zoom 1 and at zoom
-4, and a hover is answered within 1 ms; the shortest of five runs after a
-warm-up. The lines of a drawing (`matchLinesOf`) are built once per
-drawing and table and are not timed.
+lie in view with the whole block at zoom 1 on a canvas 1000 × 600, two
+device pixels per CSS pixel (twice the columns of one): the overlay of a
+view is found within 16 ms (one frame) at zoom 1 and at zoom 4; a hover is
+answered within 1 ms, the whole of what the canvas does for one: the hit
+(`matchHitAt` among the connectors drawn at zoom 1, tolerance 8 device
+pixels, 4 canvas units), the potential MatchStamps' path again (a lookup,
+written once per overlay), the hovered MatchStamp's overlay
+(`stampOverlay`) and path, and its flag (`matchFlag`); the shortest of
+five runs after a warm-up. The path of a view's overlay, written anew for
+each new overlay, is measured and printed, not bounded (the writers'
+exact number text decides its cost). The lines of a drawing
+(`matchLinesOf`) are built once per drawing and table and are not timed.
 
 ## Package (`name.test.ts`)
 
@@ -2020,7 +2080,9 @@ and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
 (the MeasureKnots source is the canvas's own), and the types
 `MatchOverlayInput` and `NamedComparison` the canvas's `matches` takes;
 and the type `MatchStampPin` its `pinnedMatchStamp` and
-`onmatchstamppin` take; tests import everything else from its modules.
+`onmatchstamppin` take; the one screen order of a MatchStamp's
+coordinates, `screenPlace`, `screenOrder`, `inScreenOrder` and the type
+`ScreenCoordinate`; tests import everything else from its modules.
 `pnpm typecheck` type-checks
 `src` and `tests` strictly, and the workspace's dependency rules keep it
 on `writers`, `layout`, `core`, `svelte` and `@xyflow/svelte`.
@@ -2462,7 +2524,8 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   coordinates" off and turning "Show coordinates" on turns it off: one at
   a time. Turning it off calls `onmatchstamppin` with `null`.
 - **Without a table.** With `matches` empty and the mode on, the status
-  `Matches need the server and a loaded MatchClaim table.` is shown and
+  `No MatchClaim table loaded.` is shown (the canvas knows only that no
+  table is loaded, never why) and
   nothing is drawn; with the mode off, no status.
 - **The overlay.** With T, one `<svg>` for block A whose `width`,
   `height` and `viewBox` equal the node's own and whose left and top are

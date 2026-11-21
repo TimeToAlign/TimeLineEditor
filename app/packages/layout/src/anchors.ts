@@ -112,7 +112,6 @@ export function anchorElements(
       if (!shown(labelStyle)) continue;
       const size = labelStyle["font-size"];
       const text = cleanText(matchstamp.name);
-      measure.width(text, size);
       const ym = (y1 + y2) / 2;
       labels.push({
         type: "label",
