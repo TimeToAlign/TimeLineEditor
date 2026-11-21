@@ -2534,7 +2534,14 @@ display: wedge, name label, cross-section line).
   zoom as the drawing does. With `timestamp_3` added, the hovered marks
   equal its drawn wedge's and cross-section line's attributes, the
   strongest form of "the geometry a named timestamp gets". With Show
-  coordinates off nothing is marked and no flag is shown.
+  coordinates off nothing is marked and no flag is shown. A hovered
+  position read across its group (`readsGroup` of the reading's pin) is
+  marked across the group's frame as a groupstamp's line is drawn: in
+  `groups/group_groupstamp`, the pointer on `score`'s line at its middle
+  draws, beside the wedge and line, exactly the one line layout's
+  `groupCrossSections` gives there (`coordinate-group-line`, its
+  attributes those), from `score`'s line to `performance`'s; on `melody`
+  of a block without groups, none.
 - **The flag on the canvas.** The flag's place is `flagPlace` (above) of
   the reading turned into canvas pixels: the node's position plus the
   drawing point, times the zoom, plus the view's offset. Hovering

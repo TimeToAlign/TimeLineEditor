@@ -6,6 +6,7 @@ import {
   Cascade,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
+  type DrawnElement,
   draw,
   type ElementKey,
   INITIAL_STYLE,
@@ -523,22 +524,37 @@ describe("the elements core enumerates", () => {
       const own = addressKey(key.address);
       listed.set(own, [...(listed.get(own) ?? []), key.type]);
     }
-    const drawn = new Map<string, string[]>();
-    for (const item of drawFixture(name).elements) {
+    const drawing = drawFixture(name);
+    const cards = drawing.boxes.filter((box) => box.kind === "card");
+    const frames = drawing.boxes.filter((box) => box.kind === "frame");
+    // One drawing of an address: an element, but the pieces a groupstamp's line is drawn in
+    // across a frame, outside every card, which are one drawing of that frame.
+    const drawingOf = (item: DrawnElement, index: number): string => {
+      const inCard = cards.some(({ range }) => range.start <= index && index < range.end);
+      const frame =
+        item.type !== "cross_section" || inCard
+          ? undefined
+          : frames.find(
+              (box) =>
+                box.x <= item.x &&
+                item.x <= box.x + box.width &&
+                box.y <= item.y1 &&
+                item.y2 <= box.y + box.height,
+            );
+      return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
+    };
+    const drawn = new Map<string, { types: string[]; drawings: Set<string> }>();
+    drawing.elements.forEach((item, index) => {
       const own = addressKey(item.address);
-      drawn.set(own, [...(drawn.get(own) ?? []), item.type]);
-    }
-    // A groupstamp's line is also drawn in pieces across the frames of its groups
-    // (groupstamps.test.ts counts those pieces).
-    const grouped = new Set(
-      (loadFile(name).graphical?.timestamps ?? []).flatMap((timestamp) =>
-        timestamp.groupstamp ? [addressKey(at(timestamp.id, "line"))] : [],
-      ),
-    );
-    for (const [address, types] of drawn) {
+      const entry = drawn.get(own) ?? { types: [], drawings: new Set<string>() };
+      entry.types.push(item.type);
+      entry.drawings.add(drawingOf(item, index));
+      drawn.set(own, entry);
+    });
+    for (const [address, { types, drawings }] of drawn) {
       const keys = listed.get(address) ?? [];
       expect([...new Set(types)], address).toEqual([...new Set(keys)]);
-      if (!grouped.has(address)) expect(types.length, address).toBeLessThanOrEqual(keys.length);
+      expect(drawings.size, address).toBeLessThanOrEqual(keys.length);
     }
   });
 });
