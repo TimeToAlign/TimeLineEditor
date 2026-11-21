@@ -467,6 +467,7 @@ describe("the inspector's tabs", () => {
       ["BUTTON", "Manifest", "tabpanel", true, null],
       ["BUTTON", "Journal", "tabpanel", true, null],
       ["BUTTON", "Timestamp", "tabpanel", true, null],
+      ["BUTTON", "Matchstamp", "tabpanel", true, null],
     ]);
     expect(state()).toEqual(PROPERTIES);
     expect(document.querySelector('form[aria-label="Block properties"]')?.parentElement).toBe(
@@ -504,7 +505,8 @@ describe("the inspector's tabs", () => {
       ["ArrowLeft", PROPERTIES, "Properties"],
       ["Home", NEITHER, "Arranger"],
       ["ArrowRight", PROPERTIES, "Properties"],
-      ["End", NEITHER, "Timestamp"],
+      ["End", NEITHER, "Matchstamp"],
+      ["ArrowLeft", NEITHER, "Timestamp"],
       ["ArrowLeft", NEITHER, "Journal"],
       ["ArrowLeft", MANIFEST, "Manifest"],
       ["ArrowLeft", NEITHER, "Metadata"],
