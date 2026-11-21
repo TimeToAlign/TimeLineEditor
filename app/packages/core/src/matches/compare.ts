@@ -6,6 +6,12 @@
  * holding any coordinate of the named one. The named MatchStamp is out of
  * date when an anchor is not stated, or when the current potential
  * MatchStamps have other anchors or other claims than it records.
+ *
+ * The index's mask is the belief filter's and nothing else: a row it leaves
+ * out is one the belief filter does not pass. A caller narrowing what is
+ * shown by anything else (the timelines a view holds, say) narrows after
+ * the comparison, never through the mask, or a claim would be reported as
+ * believed false for another reason.
  */
 
 import type { CoordinateValue } from "../number/coordinate.ts";
@@ -17,6 +23,7 @@ import {
   matchStampAnchors,
   matchStampMembers,
 } from "./anchors.ts";
+import { claimRowOf } from "./columns.ts";
 
 /** A coordinate as a named MatchStamp gives it: a timeline ID and a value in its number type. */
 export interface NamedCoordinate {
@@ -60,7 +67,11 @@ export interface MatchStampCheck {
   readonly anchorsNew: readonly number[];
   /** Recorded claims the table does not hold, in the recorded order. */
   readonly claimsMissing: readonly string[];
-  /** Recorded claims the table holds and the mask leaves out. */
+  /**
+   * Recorded claims the table holds and the mask leaves out: those the belief
+   * filter does not pass, which under a filter passing only what is believed
+   * true includes claims nobody believes either way.
+   */
   readonly claimsBelievedFalse: readonly string[];
   /** Recorded claims passing the mask that state no anchor of the current potential MatchStamps. */
   readonly claimsElsewhere: readonly string[];
@@ -68,22 +79,6 @@ export interface MatchStampCheck {
   readonly claimsNew: readonly string[];
   /** What Update rewrites it from; `null` when no anchor is stated. */
   readonly update: MatchStampUpdate | null;
-}
-
-const claimRows = new WeakMap<AnchorIndex, ReadonlyMap<string, number>>();
-
-/** Each claim ID of the table to its row (the first, should an ID repeat), built once per index. */
-function claimRowOf(index: AnchorIndex): ReadonlyMap<string, number> {
-  let rows = claimRows.get(index);
-  if (rows === undefined) {
-    const built = new Map<string, number>();
-    index.columns.claimIds.forEach((id, row) => {
-      if (!built.has(id)) built.set(id, row);
-    });
-    rows = built;
-    claimRows.set(index, rows);
-  }
-  return rows;
 }
 
 /** Compare a named MatchStamp with the index. */
@@ -109,7 +104,7 @@ export function checkMatchStamp(index: AnchorIndex, spec: NamedMatchStampSpec): 
   const ids = index.columns.claimIds;
   const currentRows = claimRowsOf(index, currentAnchors);
   const behind = new Set(currentRows);
-  const rowOf = claimRowOf(index);
+  const rowOf = claimRowOf(index.columns);
   const claimsMissing: string[] = [];
   const claimsBelievedFalse: string[] = [];
   const claimsElsewhere: string[] = [];

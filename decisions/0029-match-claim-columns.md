@@ -75,17 +75,26 @@ looked up from a manifest finds its coordinate. Cells of a row without
 that anchor are not read. The index takes, besides the columns, a row mask
 (`Uint8Array`, 1 where the row passes the belief filter), computed by the
 caller from the provenance it holds; the same columns serve every mask.
+The mask is the belief filter's and nothing else: the comparison of a named
+MatchStamp reads a recorded claim the mask leaves out as one the belief
+filter does not pass, so a caller narrowing what is shown by anything else
+(the timelines a view holds, say) narrows after the index and the
+comparison, never through the mask.
 
 Every array is a little-endian typed array, so the server can send them
 as raw bytes, each aligned to eight bytes, behind a small header, and the
 browser views them where they lie. The byte layout of that answer belongs
 to the server and its client; this record fixes the arrays and their
 encoding. `checkColumns` refuses columns that break the encoding (a length
-other than `rows`, a timeline index out of range, an end anchor without a
-start anchor, a non-finite position, an `int` denominator other than 1, a
-`fraction` denominator below 1 or not in lowest terms); an index checks its
-columns on its first build only, since columns are never changed after
-they arrive.
+other than `rows`, a claim ID given to two rows, a timeline index out of
+range, an end anchor without a start anchor, a non-finite position, an
+`int` denominator other than 1, a `fraction` denominator below 1 or not in
+lowest terms, an exact value whose position is not the double nearest it,
+which would split one coordinate in two, since exact equality is decided
+only among equal positions); an index checks its columns on its first
+build only, since columns are never changed after they arrive. The check
+builds the map from claim ID to row that refuses a repeated ID, and every
+comparison of a named MatchStamp against these columns reads that map.
 
 The anchor index (`matches/anchors.ts`) sorts the values with a radix sort
 of the positions' bits within each timeline, splits runs of one position by
@@ -100,8 +109,9 @@ No dependency enters: typed arrays, `BigInt64Array` among them, and their
 `app/packages/core/tests/matches.test.ts` pin the encoding (two fractions
 and two integers sharing a double stay apart, `-0.0` is `0.0`, each
 refusal), compare the index with a reference built from exact value texts
-over generated tables, and `matches-budget.test.ts` prints the build and
-hover times of 250,000 generated claims.
+over generated tables, and `matches-budget.test.ts`, in the budget run
+alone (`pnpm test:budget`), holds the check and build of 250,000 generated
+claims to 200 ms and a hover to 1 ms.
 
 Primary sources: <https://tc39.es/ecma262/#sec-typedarray-objects>,
 <https://arrow.apache.org/docs/format/Columnar.html> (the columnar layout
@@ -113,10 +123,11 @@ the server reads with pyarrow), <https://docs.python.org/3/library/fractions.htm
 The index never builds a number from a string or a BigInt per comparison,
 and an exact value is read back from its columns only when it is shown or
 written to a manifest. A server must write fractions in lowest terms and
-positions correctly rounded; both hold for Python's `Fraction` and
-`float`. Measured on 250,000 generated claims (390,795 coordinates): the
-check about 16 ms, the build about 100 ms in a fresh Node process and 113
-to 124 ms inside the test runner, a hover about 1 µs. The exit cost is
+positions correctly rounded, which Python's `Fraction` and `float` do;
+`checkColumns` refuses either broken. Measured on 250,000 generated claims
+(390,795 coordinates) inside the test runner: the check 57 to 59 ms, about
+40 ms of it the map from claim IDs, the build 116 to 118 ms, a hover about
+1 µs. The exit cost is
 local: the columns are the only contract between the server and core.
 
 ## Review date

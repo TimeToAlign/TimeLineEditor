@@ -40,7 +40,8 @@ export function roundHalfEven(numerator: bigint, denominator: bigint): bigint {
   return numerator < 0n ? -quotient : quotient;
 }
 
-function gcd(left: bigint, right: bigint): bigint {
+/** The greatest common divisor of two integers, never negative; 0 for two zeros. */
+export function gcd(left: bigint, right: bigint): bigint {
   let a = left < 0n ? -left : left;
   let b = right < 0n ? -right : right;
   while (b !== 0n) [a, b] = [b, a % b];

@@ -273,6 +273,16 @@ describe("refusals", () => {
     );
   });
 
+  it("refuses a claim ID given to two rows", () => {
+    const repeated = matchClaimColumns(TIMELINES, [
+      ...CASE.slice(0, 2),
+      { ...(CASE[0] as ClaimValues) },
+    ]);
+    expect(() => anchorIndexOf(repeated)).toThrow(
+      new RangeError("row 2: the claim ID 'claim_1' names row 0 already"),
+    );
+  });
+
   it("refuses a timeline number beyond the timelines", () => {
     const given = columns();
     given.b.timeline[1] = 3;
@@ -319,6 +329,104 @@ describe("refusals", () => {
     expect(() => anchorIndexOf(infinite)).toThrow(
       new RangeError("row 2: b.start on 'dpt_1': the position Infinity"),
     );
+  });
+
+  it("refuses an exact value whose position is not the double nearest it", () => {
+    const half = columns();
+    half.a.start.position[0] = 0.75;
+    expect(() => anchorIndexOf(half)).toThrow(
+      new RangeError("row 0: a.start on 'clt_1': the position 0.75 of 1/2, whose double is 0.5"),
+    );
+    const large = matchClaimColumns(TIMELINES, CASE);
+    expect(large.b.start.position[14]).toBe(9007199254740992);
+    large.b.start.position[14] = 9007199254740994;
+    expect(() => anchorIndexOf(large)).toThrow(
+      new RangeError(
+        "row 14: b.start on 'dpt_1': the position 9007199254740994 of 9007199254740993, " +
+          "whose double is 9007199254740992",
+      ),
+    );
+    const third = matchClaimColumns(TIMELINES, CASE);
+    const above = 0.3333333333333333 + 2 ** -54;
+    expect(above).toBe(0.33333333333333337);
+    third.a.start.position[11] = above;
+    expect(() => anchorIndexOf(third)).toThrow(
+      new RangeError(
+        "row 11: a.start on 'clt_1': the position 0.33333333333333337 of 1/3, " +
+          "whose double is 0.3333333333333333",
+      ),
+    );
+  });
+});
+
+describe("spans that overlap and run backwards", () => {
+  const index = anchorIndexOf(
+    matchClaimColumns(TIMELINES, [
+      { id: "claim_1", timelines: [CLT, DPT], start: [q(0), 0n], end: [q(4), 40n] },
+      { id: "claim_2", timelines: [DPT, CLT], start: [20n, q(2)], end: [60n, q(6)] },
+      { id: "claim_3", timelines: [CLT, DPT], start: [q(5), 50n] },
+      { id: "claim_4", timelines: [CLT, DPT], start: [q(9), 90n], end: [q(7), 70n] },
+      { id: "claim_5", timelines: [CLT, DPT], start: [q(8), 80n] },
+    ]),
+  );
+  const steps = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  it("holds the coordinates and anchors of both timelines alike", () => {
+    expect(index.coordinates.count).toBe(16);
+    expect(Array.from(index.coordinates.byTimeline)).toEqual([0, 8, 16, 16]);
+    expect(Array.from({ length: 16 }, (_, c) => coordinateValue(index, c))).toEqual([
+      ...[0, 2, 4, 5, 6, 7, 8, 9].map((n) => q(n)),
+      ...[0n, 20n, 40n, 50n, 60n, 70n, 80n, 90n],
+    ]);
+    const { anchors } = index;
+    expect(anchors.count).toBe(8);
+    expect(Array.from(anchors.low)).toEqual(steps);
+    expect(Array.from(anchors.high)).toEqual(steps.map((k) => k + 8));
+    expect(lists(anchors.claimOffsets, anchors.claimRows)).toEqual([
+      [0],
+      [1],
+      [0],
+      [2],
+      [1],
+      [3],
+      [4],
+      [3],
+    ]);
+    expect(Array.from(anchors.startOf)).toEqual([0, 1, 3, 7, 6]);
+    expect(Array.from(anchors.endOf)).toEqual([2, 4, -1, 5, -1]);
+  });
+
+  it("joins each coordinate to its partner", () => {
+    const { neighbours, matchStamps } = index;
+    expect(lists(neighbours.offsets, neighbours.coordinates)).toEqual([
+      ...steps.map((k) => [k + 8]),
+      ...steps.map((k) => [k]),
+    ]);
+    expect(lists(neighbours.offsets, neighbours.anchors)).toEqual([
+      ...steps.map((k) => [k]),
+      ...steps.map((k) => [k]),
+    ]);
+    expect(matchStamps.count).toBe(8);
+    expect(lists(matchStamps.offsets, matchStamps.members)).toEqual(steps.map((k) => [k, k + 8]));
+  });
+
+  it("bounds a span per interval claim, whichever end comes first", () => {
+    const { spans } = index;
+    expect(spans.count).toBe(3);
+    expect(Array.from(spans.rows)).toEqual([0, 1, 3]);
+    expect(Array.from(spans.start)).toEqual([0, 1, 7]);
+    expect(Array.from(spans.end)).toEqual([2, 4, 5]);
+  });
+
+  it("covers every gap under a span once, and no gap under none", () => {
+    for (const [first, second] of [
+      [CLT, DPT],
+      [DPT, CLT],
+    ] as const) {
+      const segments = segmentsOf(index, first, second);
+      expect(Array.from(segments.anchors)).toEqual(steps);
+      expect(Array.from(segments.covered)).toEqual([1, 1, 1, 1, 0, 1, 1]);
+    }
   });
 });
 
@@ -571,6 +679,29 @@ describe("a named MatchStamp against the index", () => {
     expect(check.stated).toEqual([2, 7]);
     expect(check.update?.matchStamp).toBe(7);
     expect(check.update?.nameAnchor).toBeNull();
+  });
+
+  it("updates from the first stated anchor between MatchStamps of one size and count", () => {
+    const one = anchor(at("clt_1", q(1)), at("dpt_1", 44100n));
+    const half = anchor(at("clt_1", q(1, 2)), at("dpt_1", 22050n));
+    const forward = checkMatchStamp(index, spec([one, half], []));
+    expect(forward.stated).toEqual([3, 2]);
+    expect(forward.update).toEqual({
+      matchStamp: 3,
+      coordinates: Uint32Array.from([3, 13]),
+      anchors: Uint32Array.from([3]),
+      claims: ["claim_2"],
+      nameAnchor: null,
+    });
+    const backward = checkMatchStamp(index, spec([half, one], []));
+    expect(backward.stated).toEqual([2, 3]);
+    expect(backward.update).toEqual({
+      matchStamp: 2,
+      coordinates: Uint32Array.from([2, 12]),
+      anchors: Uint32Array.from([2]),
+      claims: ["claim_1"],
+      nameAnchor: null,
+    });
   });
 
   it("offers no Update when no anchor is stated", () => {

@@ -70,7 +70,9 @@ function fastest(run: () => void): number {
 }
 
 describe("the anchor index of 250,000 claims", () => {
-  it("is built and hovered well within ten times its targets", { timeout: 60_000 }, () => {
+  it("is checked and built within 200 ms, a hover answered within 1 ms", {
+    timeout: 60_000,
+  }, () => {
     const columns = matchClaimColumns(TIMELINES, generated());
     const random = generator(7);
     const mask = Uint8Array.from({ length: CLAIMS }, () => (random() < 0.98 ? 1 : 0));
@@ -95,14 +97,14 @@ describe("the anchor index of 250,000 claims", () => {
           found += matchStampMembers(index, stamp).length + matchStampAnchors(index, stamp).length;
         }
       }) / hovers;
-    console.log(
+    console.info(
       `anchor index of ${CLAIMS} claims: ${index.coordinates.count} coordinates, ` +
         `${index.anchors.count} anchors, ${index.matchStamps.count} potential MatchStamps, ` +
         `${index.spans.count} matched spans; check ${check.toFixed(1)} ms + build ` +
         `${build.toFixed(1)} ms = ${arrival.toFixed(1)} ms, ` +
         `hover ${(hover * 1000).toFixed(2)} µs (${found} items read)`,
     );
-    expect(arrival, `the check and build took ${arrival} ms`).toBeLessThanOrEqual(1000);
-    expect(hover, `a hover took ${hover} ms`).toBeLessThanOrEqual(10);
+    expect(arrival, `the check and build took ${arrival} ms`).toBeLessThanOrEqual(200);
+    expect(hover, `a hover took ${hover} ms`).toBeLessThanOrEqual(1);
   });
 });

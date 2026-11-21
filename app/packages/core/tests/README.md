@@ -3900,7 +3900,7 @@ the parity table's manifest with its MeasureMap's expanded rows
      {unit: "ticks", number_type: "int", value: 480}}` (1·480), with no
      key `b2`: the anchor is never repeated in `mapping`.
 
-## MatchClaims, anchors and potential MatchStamps (`matches.test.ts`, `matches-budget.test.ts`)
+## MatchClaims, anchors and potential MatchStamps (`matches.test.ts`)
 
 The MatchClaim table reaches core as typed columns (the repository's
 `decisions/0029-match-claim-columns.md` states the encoding): per row a
@@ -3978,15 +3978,50 @@ compared for equality on an exact axis.
    potential MatchStamps, anchor (2, 12) stated by rows 0 and 10.
 9. **Float axes**: −0.0 and 0.0 on `cpt_1` are one coordinate.
 10. **Refusals** (`RangeError`, exact message): a column whose length is
-    not the row count; a timeline number beyond the list; an end anchor
-    without a start anchor; on an int axis a denominator other than 1; on
-    a fraction axis a denominator below 1 or a fraction not in lowest
-    terms; a position that is not finite; a mask of another length.
+    not the row count; a claim ID given to a second row (`claim_1` in rows
+    0 and 2: "row 2: the claim ID 'claim_1' names row 0 already"); a
+    timeline number beyond the list; an end anchor without a start anchor;
+    on an int axis a denominator other than 1; on a fraction axis a
+    denominator below 1 or a fraction not in lowest terms; a position that
+    is not finite; on an exact axis a position other than the double
+    nearest the value, ties to even, since equality is decided only among
+    equal positions and a wrong one would split a coordinate: 1/2 with the
+    position 0.75 (the double is 0.5), 2^53 + 1 with the position 2^53 + 2
+    (halfway between 2^53 and 2^53 + 2, the even one is 2^53), and 1/3 with
+    the position of 1/3 plus one unit in the last place (0.33333333333333337;
+    the double is 0.3333333333333333); a mask of another length.
 11. **The oracle.** fast-check builds columns over small value domains
     (so values, anchors and sets collide often), with random masks; a
     reference written in the test with string keys of exact values, plain
     maps and a breadth-first search gives the coordinates, anchors with
     their rows, and connected sets, which the index must equal.
+
+**Spans that overlap and run backwards.** Matched spans and segments are
+checked on a second case of their own, between `clt_1` (fraction) and
+`dpt_1` (int), every `dpt_1` value ten times its `clt_1` value so both
+timelines order the anchors alike. Rows: `claim_1` `clt_1` 0 → 4 ↔ `dpt_1`
+0 → 40 (interval); `claim_2` `dpt_1` 20 → 60 ↔ `clt_1` 2 → 6 (interval,
+sides swapped, overlapping `claim_1`'s span); `claim_3` 5 ↔ 50 (instant);
+`claim_4` 9 → 7 ↔ 90 → 70 (interval whose end precedes its start);
+`claim_5` 8 ↔ 80 (instant). By the rules:
+
+1. **Coordinates**: 16, `clt_1` 0, 2, 4, 5, 6, 7, 8, 9 (0–7), `dpt_1` 0,
+   20, 40, 50, 60, 70, 80, 90 (8–15).
+2. **Anchors**: 8, anchor k = (k, k + 8), so the anchors follow `clt_1`'s
+   values 0, 2, 4, 5, 6, 7, 8, 9; their rows `[0], [1], [0], [2], [1],
+   [3], [4], [3]`; start anchors per row `[0, 1, 3, 7, 6]`, end anchors
+   `[2, 4, −1, 5, −1]`.
+3. **Neighbours**: coordinate k is joined to k + 8 by anchor k, and k + 8
+   to k.
+4. **Potential MatchStamps**: 8, {k, k + 8}.
+5. **Matched spans**: 3, rows 0, 1, 3, from anchors 0, 1, 7 to anchors 2,
+   4, 5.
+6. **Segments** of `clt_1` and `dpt_1`: anchors 0 to 7 in order, 7 gaps:
+   `claim_1` covers the gaps from 0 to 4 (gaps 0, 1), `claim_2` those from
+   2 to 6 (gaps 1, 2, 3; gap 1 covered twice is covered once), `claim_4`
+   those from 7 to 9 (gaps 5, 6), whichever end comes first; the gap from 6
+   to 7 (gap 4) lies under no span: covered `[1, 1, 1, 1, 0, 1, 1]`. Of
+   `dpt_1` and `clt_1` the same anchors and the same gaps.
 
 **A named MatchStamp against the index.** The input is a named
 MatchStamp's alignment anchors (each two coordinates given by timeline ID
@@ -4029,19 +4064,15 @@ in the named order), none when no anchor is stated. On the case's index:
 6. (`clt_1` 1/2, `dpt_1` 44100): both coordinates exist, the anchor does
    not; the current MatchStamps are {2, 12} and {3, 13}: new [2, 3],
    claims `claim_1`, `claim_2` new, no Update.
+7. The third key: (`clt_1` 1, `dpt_1` 44100) and (`clt_1` 1/2, `dpt_1`
+   22050), no name, state anchors 3 and 2 of MatchStamps {3, 13} and {2,
+   12}, two coordinates and one stated anchor each, so the first stated
+   anchor in the named order decides: Update {3, 13}, anchors 3, claims
+   `claim_2`. Named the other way round: Update {2, 12}, anchors 2, claims
+   `claim_1` (row 10, stating the same anchor, is masked). Neither follows
+   the lower number.
 
-**Measurements** (`matches-budget.test.ts`, run with the default suite):
-a generator writes 250,000 claims over three timelines (instants,
-intervals, NOMATCH rows; values from small grids so coordinates are
-shared). The target: the columns' check (once per table) and the index's
-build within 100 ms of the columns' arrival, a hover (the hit test, the
-potential MatchStamp's members and anchors) answered within 1 ms. The
-check, the build and the mean of 1,000 hovers are printed, each the
-minimum of 5 runs after one warm-up; since this file shares the machine
-with the suite, it asserts only ten times the target (1 s, 10 ms), which
-no healthy run reaches.
-
-## Budgets (`budget.test.ts`)
+## Budgets (`budget.test.ts`, `matches-budget.test.ts`)
 
 The budgets time the code, so they do not run with the default suite, whose
 files run in parallel: `pnpm test` excludes this file and `pnpm
@@ -4068,6 +4099,18 @@ LinearMap) at exact positions spread over its whole domain take at most 50
 ms after compiling it once. The interval is found by a binary search over
 the breaks, so the cost grows with the logarithm of the breaks, not their
 number.
+
+The MatchClaim table's anchor index (`matches-budget.test.ts`) is built
+when a table arrives and read on every hover: a generator writes 250,000
+claims over three timelines (instants, intervals, NOMATCH rows; values from
+small grids so coordinates are shared). The columns' check (once per
+table; it builds the map from claim ID to row that refuses a repeated ID
+and that every comparison of a named MatchStamp reads) and the index's
+build take at most 200 ms together, and a hover (the hit test, the
+potential MatchStamp's members and anchors), the mean of 1,000, at most 1
+ms. Measured: the check 57 to 59 ms (the map from IDs about 40 ms of it),
+the build 116 to 118 ms, a hover about 1 µs, over three runs; the figures
+are printed.
 
 ## External gates
 

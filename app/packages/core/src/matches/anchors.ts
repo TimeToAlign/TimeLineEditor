@@ -14,10 +14,17 @@
  */
 
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { Rational } from "../number/rational.ts";
-import { toFloat } from "../number/real.ts";
+import { toFloat, toRational } from "../number/real.ts";
 import type { MatchClaimColumns } from "./columns.ts";
-import { checkColumns, HIGH_WORD, LOW_WORD, valueAt, valueColumns, wordsOf } from "./columns.ts";
+import {
+  checkColumns,
+  exactAt,
+  HIGH_WORD,
+  LOW_WORD,
+  valueAt,
+  valueColumns,
+  wordsOf,
+} from "./columns.ts";
 import { pairOrder, sortValues } from "./sort.ts";
 
 /** One entry per unique (timeline, exact value), ordered by timeline, position, exact value. */
@@ -88,15 +95,6 @@ export interface AnchorIndex {
 
 /** Columns already checked. */
 const checked = new WeakSet<MatchClaimColumns>();
-
-/** Exact order of two values of one exact axis, by cross-multiplication. */
-function compareExact(
-  left: { numerator: bigint; denominator: bigint },
-  right: { numerator: bigint; denominator: bigint },
-): number {
-  const difference = left.numerator * right.denominator - right.numerator * left.denominator;
-  return difference < 0n ? -1 : difference > 0n ? 1 : 0;
-}
 
 /**
  * Build the anchor index of `columns` under `mask` (1: the row passes the
@@ -197,14 +195,6 @@ export function anchorIndexOf(
       ld[2 * leftRow + HIGH_WORD] === rd[2 * rightRow + HIGH_WORD]
     );
   };
-  const exactOf = (source: number) => {
-    const cell = cells[source % 4];
-    const row = Math.floor(source / 4);
-    return {
-      numerator: cell?.numerator[row] as bigint,
-      denominator: cell?.denominator[row] as bigint,
-    };
-  };
 
   // Coordinates: runs of one timeline and position, split by exact value.
   const coordinateOfValue = new Uint32Array(values);
@@ -249,7 +239,9 @@ export function anchorIndexOf(
       coordinateCount += 1;
     } else {
       const run = Array.from(order.subarray(i, j)).sort((left, right) =>
-        compareExact(exactOf(valueSource[left] as number), exactOf(valueSource[right] as number)),
+        exactAt(columns, valueSource[left] as number).compare(
+          exactAt(columns, valueSource[right] as number),
+        ),
       );
       let previous = -1;
       for (const item of run) {
@@ -467,26 +459,14 @@ export function coordinateOf(index: AnchorIndex, timeline: string, value: Coordi
   if (number === undefined) return -1;
   const float = index.columns.timelines[number]?.numberType === "float";
   if (float !== (typeof value === "number")) return -1;
-  const exact =
-    typeof value === "number"
-      ? null
-      : typeof value === "bigint"
-        ? Rational.fromParts(value, 1n)
-        : value;
+  const exact = typeof value === "number" ? null : toRational(value);
   const position = exact === null ? (value as number) + 0 : toFloat(exact) + 0;
   const { byTimeline, position: positions, source } = index.coordinates;
   const end = byTimeline[number + 1] as number;
   for (let c = lowerBound(index, number, position); c < end; c += 1) {
     if (positions[c] !== position) break;
     if (exact === null) return c;
-    const at = source[c] as number;
-    const cell = valueColumns(index.columns)[at % 4];
-    const row = Math.floor(at / 4);
-    const found = {
-      numerator: cell?.numerator[row] as bigint,
-      denominator: cell?.denominator[row] as bigint,
-    };
-    if (compareExact(found, exact) === 0) return c;
+    if (exactAt(index.columns, source[c] as number).equals(exact)) return c;
   }
   return -1;
 }

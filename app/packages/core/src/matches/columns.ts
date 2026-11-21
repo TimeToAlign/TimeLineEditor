@@ -8,15 +8,15 @@
  * denominator` in lowest terms with a positive denominator, a `float` value
  * its `position` itself (numerator and denominator 0). The position of an
  * exact value is the double nearest to it, ties to even (Python's
- * `float(value)`); it orders and hit-tests, and equality on an exact axis
- * never reads it. The repository's `decisions/0029-match-claim-columns.md`
+ * `float(value)`), and `checkColumns` refuses any other; it orders and
+ * hit-tests, and equality on an exact axis never reads it. The repository's `decisions/0029-match-claim-columns.md`
  * records the encoding.
  */
 
 import type { NumberType } from "@timetoalign/timetoshare";
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { Rational } from "../number/rational.ts";
-import { toFloat } from "../number/real.ts";
+import { gcd, Rational } from "../number/rational.ts";
+import { toFloat, toRational } from "../number/real.ts";
 
 /** A timeline the table holds values for: its ID and the number type of its axis. */
 export interface ClaimTimeline {
@@ -66,7 +66,7 @@ export interface ValueCell {
 /** A coordinate value as its three cells: a float as itself, an exact value as its lowest terms. */
 export function valueCell(value: CoordinateValue): ValueCell {
   if (typeof value === "number") return { position: value + 0, numerator: 0n, denominator: 0n };
-  const exact = typeof value === "bigint" ? Rational.fromParts(value, 1n) : value;
+  const exact = toRational(value);
   return {
     position: toFloat(exact) + 0,
     numerator: exact.numerator,
@@ -154,17 +154,60 @@ export function timelineAt(columns: MatchClaimColumns, row: number, column: numb
   return ((column & 1) === 0 ? columns.a.timeline[row] : columns.b.timeline[row]) as number;
 }
 
+/** The exact value of a column's row on an `int` or `fraction` axis. */
+function exactIn(column: ValueColumn, row: number): Rational {
+  return Rational.fromParts(column.numerator[row] as bigint, column.denominator[row] as bigint);
+}
+
+/** The exact value `row * 4 + column` holds on an `int` or `fraction` axis. */
+export function exactAt(columns: MatchClaimColumns, source: number): Rational {
+  return exactIn(valueColumns(columns)[source & 3] as ValueColumn, source >>> 2);
+}
+
 /** The value `row * 4 + column` holds, in its timeline's number type. */
 export function valueAt(columns: MatchClaimColumns, source: number): CoordinateValue {
-  const row = Math.floor(source / 4);
-  const column = source % 4;
-  const cells = valueColumns(columns)[column] as ValueColumn;
+  const row = source >>> 2;
+  const column = source & 3;
   const numberType = (columns.timelines[timelineAt(columns, row, column)] as ClaimTimeline)
     .numberType;
+  const cells = valueColumns(columns)[column] as ValueColumn;
   if (numberType === "float") return cells.position[row] as number;
-  const numerator = cells.numerator[row] as bigint;
-  if (numberType === "int") return numerator;
-  return Rational.fromParts(numerator, cells.denominator[row] as bigint);
+  const exact = exactIn(cells, row);
+  return numberType === "int" ? exact.numerator : exact;
+}
+
+const claimRows = new WeakMap<MatchClaimColumns, ReadonlyMap<string, number>>();
+
+/**
+ * Each claim ID of the columns to its row.
+ *
+ * @throws {RangeError} for an ID given to two rows.
+ */
+function claimRowsBuilt(columns: MatchClaimColumns): ReadonlyMap<string, number> {
+  const { claimIds } = columns;
+  const rows = new Map<string, number>();
+  for (let row = 0; row < claimIds.length; row += 1) rows.set(claimIds[row] as string, row);
+  if (rows.size !== claimIds.length) {
+    // An ID repeats: find the first repetition, for the message.
+    const first = new Map<string, number>();
+    claimIds.forEach((id, row) => {
+      const earlier = first.get(id);
+      if (earlier !== undefined) {
+        throw new RangeError(`row ${row}: the claim ID '${id}' names row ${earlier} already`);
+      }
+      first.set(id, row);
+    });
+  }
+  claimRows.set(columns, rows);
+  return rows;
+}
+
+/**
+ * Each claim ID of the columns to its row, built once per columns (by
+ * `checkColumns`, or on the first call).
+ */
+export function claimRowOf(columns: MatchClaimColumns): ReadonlyMap<string, number> {
+  return claimRows.get(columns) ?? claimRowsBuilt(columns);
 }
 
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
@@ -181,17 +224,6 @@ function gcdNumber(left: number, right: number): number {
   let a = left;
   let b = right;
   while (b !== 0) {
-    const rest = a % b;
-    a = b;
-    b = rest;
-  }
-  return a;
-}
-
-function gcdBig(left: bigint, right: bigint): bigint {
-  let a = left < 0n ? -left : left;
-  let b = right;
-  while (b !== 0n) {
     const rest = a % b;
     a = b;
     b = rest;
@@ -221,7 +253,29 @@ function lowestTerms(
     const n = numeratorHigh * TWO_32 + ((numeratorWords[2 * row + LOW_WORD] as number) >>> 0);
     return gcdNumber(Math.abs(n), denominatorHigh * TWO_32 + denominatorLow) === 1;
   }
-  return gcdBig(numerator[row] as bigint, denominator[row] as bigint) === 1n;
+  return gcd(numerator[row] as bigint, denominator[row] as bigint) === 1n;
+}
+
+/**
+ * The double nearest to an exact value (ties to even), as Python's
+ * `float(value)`: an IEEE division of numerator by denominator when both are
+ * doubles exactly (below 2^52 in magnitude), which is correctly rounded,
+ * else `toFloat` of the value.
+ */
+function nearestDouble(
+  numeratorWords: Int32Array,
+  denominatorWords: Int32Array,
+  row: number,
+  column: ValueColumn,
+): number {
+  const numeratorHigh = numeratorWords[2 * row + HIGH_WORD] as number;
+  const denominatorHigh = denominatorWords[2 * row + HIGH_WORD] as number;
+  if (denominatorHigh < SAFE_HIGH && numeratorHigh < SAFE_HIGH && numeratorHigh >= -SAFE_HIGH) {
+    const n = numeratorHigh * TWO_32 + ((numeratorWords[2 * row + LOW_WORD] as number) >>> 0);
+    const d = denominatorHigh * TWO_32 + ((denominatorWords[2 * row + LOW_WORD] as number) >>> 0);
+    return n / d;
+  }
+  return toFloat(exactIn(column, row));
 }
 
 const COLUMN_NAMES = ["a.start", "b.start", "a.end", "b.end"];
@@ -236,10 +290,11 @@ const KIND: Readonly<Record<NumberType, number>> = { int: INT, fraction: FRACTIO
  * mask does not; columns are never changed after they arrive.
  *
  * @throws {RangeError} for a column whose length is not the row count, a
- * timeline number beyond the timelines, an end anchor without a start
- * anchor, a position that is not finite, a denominator other than 1 on an
- * int axis, a denominator below 1 or a fraction not in lowest terms on a
- * fraction axis.
+ * claim ID given to two rows, a timeline number beyond the timelines, an
+ * end anchor without a start anchor, a position that is not finite, a
+ * denominator other than 1 on an int axis, a denominator below 1 or a
+ * fraction not in lowest terms on a fraction axis, or an exact value whose
+ * position is not the double nearest to it.
  */
 export function checkColumns(columns: MatchClaimColumns): void {
   const { rows, timelines } = columns;
@@ -263,6 +318,7 @@ export function checkColumns(columns: MatchClaimColumns): void {
       throw new RangeError(`${name} has ${values.length} entries for ${rows} rows`);
     }
   }
+  claimRowsBuilt(columns);
   for (const side of ["a", "b"] as const) {
     const numbers = columns[side].timeline;
     for (let row = 0; row < rows; row += 1) {
@@ -310,6 +366,13 @@ export function checkColumns(columns: MatchClaimColumns): void {
         ) {
           refuse(row, `${column.numerator[row]}/${column.denominator[row]} is not in lowest terms`);
         }
+      }
+      const nearest = nearestDouble(numeratorWords, denominatorWords, row, column);
+      if (position !== nearest) {
+        refuse(
+          row,
+          `the position ${position} of ${exactIn(column, row)}, whose double is ${nearest}`,
+        );
       }
     }
   });
