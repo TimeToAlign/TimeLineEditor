@@ -5,6 +5,7 @@ import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createAutosave,
+  forgetFolder,
   KEPT_FOLDERS,
   recoverWorkspace,
   rememberedFolder,
@@ -86,6 +87,10 @@ describe("the folders of blocks' manifests", () => {
     await rememberFolder("000000000a", folder);
     expect(await rememberedFolder("000000000a")).toEqual(folder);
     expect(await rememberedFolder("000000000b")).toBe(null);
+    await rememberFolder("000000000b", folder);
+    await forgetFolder("000000000a");
+    expect(await rememberedFolder("000000000a")).toBe(null);
+    expect(await rememberedFolder("000000000b")).toEqual(folder);
   });
 
   it("keep nothing and fail nothing where IndexedDB cannot keep them", async () => {
@@ -97,5 +102,6 @@ describe("the folders of blocks' manifests", () => {
     expect(await KEPT_FOLDERS.recall("000000000a")).toBe(null);
     vi.stubGlobal("indexedDB", undefined);
     expect(await KEPT_FOLDERS.recall("000000000a")).toBe(null);
+    await expect(KEPT_FOLDERS.forget("000000000a")).resolves.toBeUndefined();
   });
 });

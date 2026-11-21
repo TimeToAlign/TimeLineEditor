@@ -122,6 +122,52 @@ const SECOND_HALF = {
   },
 } as const;
 
+/** The groups of the Coordinates shown, each [heading, rows as [label, text, disabled, unit]]. */
+function shownGroups(): unknown[] {
+  return [...(document.querySelector("section.coordinates")?.querySelectorAll("tbody") ?? [])].map(
+    (body) => [
+      body.querySelector('th[scope="colgroup"]')?.textContent,
+      [...body.querySelectorAll("tr[data-row]")].map((row) => {
+        const input = row.querySelector("input");
+        return [
+          row.querySelector('th[scope="row"]')?.textContent,
+          input?.value,
+          input?.disabled,
+          row.querySelector(".unit")?.textContent,
+        ];
+      }),
+    ],
+  );
+}
+
+/** Shown read-only in the Matchstamp tab, editable in the Timestamp tab: groups compared without that. */
+function withoutDisabled(groups: unknown[]): unknown[] {
+  return (groups as [string, unknown[][]][]).map(([heading, rows]) => [
+    heading,
+    rows.map(([label, text, , unit]) => [label, text, unit]),
+  ]);
+}
+
+/**
+ * The groups the Timestamp tab shows for the match timestamp on `timeline`
+ * of block A (its own pin, `namedPinOf`), without the disabled flags; the
+ * tab is mounted and left for `afterEach` to unmount.
+ */
+function timestampTabGroups(store: Store, timeline: string): unknown[] {
+  const own = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
+    (item) => item.matchstamp && item.timeline === timeline,
+  );
+  if (own === undefined) throw new Error("the match timestamp is stored");
+  const pin = namedPinOf(store.view, { block: A, id: own.id }, fontMetrics);
+  mounted = mount(TimestampPanel, {
+    target: document.body,
+    context: informing(),
+    props: { live: liveStore(store), pin, onpin: () => undefined },
+  });
+  flushSync();
+  return withoutDisabled(shownGroups());
+}
+
 function nameDownbeat(store: Store, table: MatchClaimTable = matchTable()): (HeldMatch | null)[] {
   const { shown } = indexesUnder(table);
   const reported: (HeldMatch | null)[] = [];
@@ -333,22 +379,6 @@ describe("Coordinates", () => {
         },
       }),
     ).toBe(null);
-    /** The groups of the Coordinates shown, each [heading, rows as [label, text, disabled, unit]]. */
-    const shownGroups = () =>
-      [...(document.querySelector("section.coordinates")?.querySelectorAll("tbody") ?? [])].map(
-        (body) => [
-          body.querySelector('th[scope="colgroup"]')?.textContent,
-          [...body.querySelectorAll("tr[data-row]")].map((row) => {
-            const input = row.querySelector("input");
-            return [
-              row.querySelector('th[scope="row"]')?.textContent,
-              input?.value,
-              input?.disabled,
-              row.querySelector(".unit")?.textContent,
-            ];
-          }),
-        ],
-      );
     show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
@@ -364,24 +394,53 @@ describe("Coordinates", () => {
     ]);
     unmountTab();
 
-    const ownTimestamp = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
-      (item) => item.matchstamp && item.timeline === "second-half",
+    expect(timestampTabGroups(store, "second-half")).toEqual(
+      withoutDisabled(matchstamp.slice(0, 2)),
     );
-    if (ownTimestamp === undefined) throw new Error("the match timestamp is stored");
-    const pin = namedPinOf(store.view, { block: A, id: ownTimestamp.id }, fontMetrics);
-    mounted = mount(TimestampPanel, {
-      target: document.body,
-      context: informing(),
-      props: { live: liveStore(store), pin, onpin: () => undefined },
-    });
-    flushSync();
-    // Shown read-only in the Matchstamp tab, editable in the Timestamp tab: compared without that.
-    const withoutDisabled = (groups: unknown[]) =>
-      (groups as [string, unknown[][]][]).map(([heading, rows]) => [
-        heading,
-        rows.map(([label, text, , unit]) => [label, text, unit]),
-      ]);
-    expect(withoutDisabled(shownGroups())).toEqual(withoutDisabled(matchstamp.slice(0, 2)));
+  });
+
+  it("list the crossed descendants and only the drawn maps, exactly as the Timestamp tab does", () => {
+    const store = storeOf("bundles/bundle_mixed");
+    expect(store.dispatch(SECOND_HALF)).toBe(null);
+    expect(
+      store.dispatch({
+        type: "style",
+        select: { addresses: [{ id: "score", facet: "conversion_maps" }] },
+        set: { display: "none" },
+        blocks: [A],
+      }),
+    ).toBe(null);
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Turn",
+          anchors: [
+            [
+              { timeline: "score", coordinate: [6, 1] },
+              { timeline: "performance", coordinate: 3.0 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+      }),
+    ).toBe(null);
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    const matchstamp = shownGroups();
+    expect(matchstamp).toEqual([
+      ["Score", [["coordinate", "6", true, "♩"]]],
+      ["Second half", [["coordinate", "2", true, "♩"]]],
+      [
+        "Performance",
+        [
+          ["coordinate", "3.0", true, "s"],
+          ["cmap_3", "132300", true, "smp"],
+        ],
+      ],
+    ]);
+    unmountTab();
+    expect(timestampTabGroups(store, "score")).toEqual(withoutDisabled(matchstamp.slice(0, 2)));
   });
 });
 
@@ -681,7 +740,7 @@ describe("MatchClaims and beliefs", () => {
     ]);
     const open = region("claim_1");
     expect(open?.querySelector("p.hint")?.textContent).toBe(NO_SERVER);
-    expect(open?.querySelector("[role=status]")?.textContent).toBe("");
+    expect(document.querySelector("section.claims > p[role=status]")?.textContent).toBe("");
     // The provenance opens behind its own button: the paradata alone, never the beliefs again.
     const provenance = item("claim_1").querySelector<HTMLButtonElement>(
       "button[aria-label='Provenance of claim_1']",

@@ -134,6 +134,21 @@ describe("the tables dialog", () => {
     expect(await escaped).toBe(null);
   });
 
+  it("dismisses a question asked over it, and a late close event dismisses nothing", async () => {
+    const first = ask();
+    const second = ask();
+    expect(await first).toBe(null);
+    // The close event of the first question, which a browser fires a task later.
+    shown().dispatchEvent(new Event("close"));
+    expect(shown().open).toBe(true);
+    const [claims] = groups();
+    const url = claims?.querySelector("input");
+    if (url === null || url === undefined) throw new Error("no URL field");
+    type(url, "match_claims.parquet");
+    button("Load").click();
+    expect(await second).toEqual([{ type: "MatchClaim", url: "match_claims.parquet" }]);
+  });
+
   it("takes a relative URL as entered", async () => {
     const answer = ask();
     const [claims] = groups();

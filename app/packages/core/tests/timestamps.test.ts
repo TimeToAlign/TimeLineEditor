@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { apply, applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
 import {
-  groupsHolding,
   groupstampByDefault,
   importedManifest,
   isGroupMember,
@@ -11,6 +10,7 @@ import {
 import { isCommandError } from "../src/errors.ts";
 import { addressKey } from "../src/manifest/address.ts";
 import { contains } from "../src/manifest/contains.ts";
+import { groupsHolding } from "../src/manifest/elements.ts";
 import type { Manifest, ManifestGraphical, NamedTimestamp } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";

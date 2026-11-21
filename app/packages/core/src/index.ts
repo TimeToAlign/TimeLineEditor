@@ -20,7 +20,6 @@ export type { AnchorValue } from "./commands/matchstamps.ts";
 export { anchorValues, matchStampSpec } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
 export {
-  groupsHolding,
   groupstampByDefault,
   importedManifest,
   isGroupMember,
@@ -90,6 +89,7 @@ export {
   withPlaceAt,
 } from "./manifest/containers.ts";
 export { contains } from "./manifest/contains.ts";
+export { groupsHolding } from "./manifest/elements.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";

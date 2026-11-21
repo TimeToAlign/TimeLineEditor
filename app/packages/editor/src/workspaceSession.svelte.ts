@@ -132,6 +132,8 @@ export class WorkspaceSession {
   #selection: Selection = $state.raw(NOTHING_SELECTED);
   /** The open store's count of openings when the session last followed it: a larger count is an editor opened. */
   #openings = this.store.openings;
+  /** The open store's blocks when the session last followed it: a block missing since has left. */
+  #blocks = this.store.view.blocks;
   #listeners = new Set<() => void>();
   #unsubscribe: () => void;
   #saving = false;
@@ -200,6 +202,7 @@ export class WorkspaceSession {
     this.tables.clear();
     this.store = next;
     this.#openings = next.openings;
+    this.#blocks = next.view.blocks;
     this.savedView = saved ? next.view : null;
     this.fileName = name;
     this.handle = handle;
@@ -334,11 +337,12 @@ export class WorkspaceSession {
     try {
       const folder = await chooseFolder();
       if (folder === null) return;
-      const manifests: Opened[] = [];
+      const manifests: { readonly name: string; readonly text: string }[] = [];
       const left: string[] = [];
       for (const opened of await manifestFiles(folder)) {
-        if (isLoadError(readManifestFile(await opened.file.text()))) left.push(opened.name);
-        else manifests.push(opened);
+        const text = await opened.file.text();
+        if (isLoadError(readManifestFile(text))) left.push(opened.name);
+        else manifests.push({ name: opened.name, text });
       }
       if (manifests.length === 0) {
         this.#options.warn(
@@ -350,8 +354,8 @@ export class WorkspaceSession {
         this.#options.inform?.(`Left ${left.join(", ")} in ${folder.name}: no manifest.`);
       }
       const blocks: string[] = [];
-      for (const opened of manifests) {
-        const block = this.#add(opened.name, await opened.file.text(), canvas, metrics);
+      for (const { name, text } of manifests) {
+        const block = this.#add(name, text, canvas, metrics);
         if (block === null) continue;
         this.tables.inFolder(block, folder);
         blocks.push(block);
@@ -560,13 +564,21 @@ export class WorkspaceSession {
 
   /**
    * The open store changed (a command, an undo or a redo, an editor opened
-   * or closed): an editor that opened selects its edited element
-   * (`editedSelection`), every other change keeps of the selection what the
-   * view keeps under the innermost open editor (`existing`); then tell the
-   * listeners.
+   * or closed): a block that left the workspace has its manifest's folder
+   * forgotten (`MatchClaimTables.left`); an editor that opened selects its
+   * edited element (`editedSelection`), every other change keeps of the
+   * selection what the view keeps under the innermost open editor
+   * (`existing`); then tell the listeners.
    */
   #changed(): void {
     const { store } = this;
+    const { blocks } = store.view;
+    if (blocks !== this.#blocks) {
+      for (const block of Object.keys(this.#blocks)) {
+        if (!Object.hasOwn(blocks, block)) this.tables.left(block);
+      }
+      this.#blocks = blocks;
+    }
     const innermost = store.editing.at(-1) ?? null;
     const opened = store.openings !== this.#openings;
     this.#openings = store.openings;

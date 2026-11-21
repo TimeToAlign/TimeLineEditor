@@ -200,14 +200,22 @@ export async function rememberFolder(
   await inStore(FOLDERS, block, "readwrite", (store) => store.put(folder, block));
 }
 
+/** Keep no folder of block `block`'s manifest any more. */
+export async function forgetFolder(block: string): Promise<void> {
+  await inStore(FOLDERS, block, "readwrite", (store) => store.delete(block));
+}
+
 /**
  * The folders of blocks' manifests kept in this browser, as the MatchClaim
  * tables use them: kept where the browser can (a failure, a handle it
- * cannot store, keeps nothing), none recalled where it cannot.
+ * cannot store, keeps nothing), none recalled where it cannot, and
+ * forgotten once their block leaves the workspace (a failure forgets
+ * nothing).
  */
 export const KEPT_FOLDERS: FolderMemory = {
   recall: (block) => rememberedFolder(block).catch(() => null),
   remember: (block, folder) => rememberFolder(block, folder).catch(() => undefined),
+  forget: (block) => forgetFolder(block).catch(() => undefined),
 };
 
 /** Run one request in its own transaction of `kept` and resolve once the transaction completes. */

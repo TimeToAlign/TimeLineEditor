@@ -148,6 +148,21 @@ test("a named MatchStamp is shown when selected and removed in one entry", async
   }
   const claims = page.getByRole("region", { name: "MatchClaims", exact: true });
   await expect(claims.locator("li[data-claim='claim_1'] code")).toHaveText("claim_1");
+  // The live regions are there while empty, in the accessibility tree, taking no room.
+  for (const region of [
+    claims.getByRole("status"),
+    page.getByTestId("matchstamp-name").getByRole("status"),
+  ]) {
+    await expect(region).toHaveCount(1);
+    await expect(region).toHaveText("");
+    expect(
+      await region.evaluate((element) => {
+        const { display, position } = getComputedStyle(element);
+        const { width, height } = element.getBoundingClientRect();
+        return { display, position, width, height };
+      }),
+    ).toEqual({ display: "block", position: "absolute", width: 1, height: 1 });
+  }
 
   const journal = await page.evaluate(() => window.__tilie.store().journal.length);
   await page.getByRole("button", { name: "Remove", exact: true }).click();

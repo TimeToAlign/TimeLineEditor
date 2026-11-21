@@ -1829,6 +1829,16 @@ member's descendant: with a child `motif` (offset 2, 4 quarters) added to
 `score` at −2 (its ancestor), then `performance` at −2, scale 1/2, and the
 parts `motif` 1, `score` 3, `performance` the float 1.5.
 
+**A position's pin on a timeline** (`timelinePin`, the Matchstamp tab's
+coordinates) is read with the one spec a named timestamp's pin is read
+with, unnamed: with `timestamp_3` at 4 on `melody` in `map`, the pin of
+`melody` at 4 equals `namedPin`'s for `timestamp_3` but for `named`,
+which is `null`; with `melody`'s line hidden as above, its spec is the
+own-axis one above (anchor with `[tempo]`, no members). It never reads a
+group: in `groups/group_groupstamp` the pin of `score` at 4 holds
+`score` 4 alone, where the groupstamp `timestamp_1` there holds
+`performance` too. A timeline the manifest does not hold gives `null`.
+
 **The affordance of a named timestamp that draws nothing**
 (`affordancesOf`): a named timestamp whose `display` is emptied (`set
 {display: []}`), unless it is a match timestamp, gets one affordance on every line holding its timeline
@@ -2167,7 +2177,7 @@ surface is `Canvas`, `liveStore`, `addCommand`, the selection helpers
 `isTextInput` and `within`, `drawingOf`, `styleLayers`, `placeChange`
 and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
 `keyedBox`, `isItem`, `isHeld`, `fieldsOf`, `levelOf` and `shownValues`,
-`placeEdit`, the timestamp pane's `namedPin` and the type `KnotsOf`
+`placeEdit`, the stamp tabs' `namedPin` and `timelinePin` and the type `KnotsOf`
 (the MeasureKnots source is the canvas's own), and the types
 `MatchOverlayInput` and `NamedComparison` the canvas's `matches` takes;
 and the type `MatchStampPin` its `pinnedMatchStamp` and

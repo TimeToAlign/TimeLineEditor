@@ -11,6 +11,7 @@ import { canonicalOrder, complete } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
+import { groupsHolding } from "../manifest/elements.ts";
 import { lengthOf, readOnAxis } from "../manifest/invariants.ts";
 import type {
   AxisValue,
@@ -87,22 +88,9 @@ export function readDisplay<W extends string>(
   return words.filter((word) => given.has(word));
 }
 
-/**
- * The groups of `manifest` having the timeline `timeline` as a member, in
- * the order of `groups`: those whose `members` list it or one of its
- * ancestors, since a member's descendants are drawn inside the member's
- * card in the group's frame. An ancestor of a listed member is in none of
- * them; a timeline the manifest does not hold is in none.
- */
-export function groupsHolding(manifest: Manifest, timeline: string): Manifest["groups"] {
-  const lineage = indexOf(manifest).ancestry.get(timeline);
-  if (lineage === undefined) return [];
-  return manifest.groups.filter((group) => lineage.some((id) => group.members.includes(id)));
-}
-
 /** Whether the timeline `timeline` of `manifest` is a member of some group (`groupsHolding`). */
 export function isGroupMember(manifest: Manifest, timeline: string): boolean {
-  return groupsHolding(manifest, timeline).length > 0;
+  return groupsHolding(manifest, timeline, indexOf(manifest).ancestry).length > 0;
 }
 
 /**

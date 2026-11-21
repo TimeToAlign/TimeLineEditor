@@ -76,7 +76,7 @@ function named(items: readonly { readonly name: string }[]): string {
         {@const { timestamp } = line}
         <li class="timestamp" data-line="timestamp" data-timestamp={timestamp?.id}>
           <span class="line-name" id={head}
-            >{line.name} <span class="value">{line.value}</span>{#if timestamp !== null}{" "}<code
+            >{line.name} <span class="value">{line.value}</span> {#if timestamp !== null}<code
                 class="stamp-code">{timestamp.id}</code
               >{/if}</span
           >
@@ -101,7 +101,7 @@ function named(items: readonly { readonly name: string }[]): string {
         {@const gone = anchor.stated === false}
         <li class={["anchor", { gone }]} data-line="anchor" data-anchor={anchor.id}>
           <span class="line-name" id={head}
-            >{line.names[0]} – {line.names[1]}{#if anchor.id !== null}{" "}<code
+            >{line.names[0]} – {line.names[1]} {#if anchor.id !== null}<code
                 class="stamp-code">{anchor.id}</code
               >{/if}</span
           >
@@ -152,10 +152,6 @@ function named(items: readonly { readonly name: string }[]): string {
   .problem {
     flex-basis: 100%;
     font-size: 0.75rem;
-  }
-
-  .problem:empty {
-    display: none;
   }
 
   /* An anchor the current table no longer states: the drawing's red. */

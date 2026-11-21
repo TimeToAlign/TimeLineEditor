@@ -1017,7 +1017,12 @@ through the hook (`add` of "Downbeat", one anchor [`clt_1` [0, 1],
 (`{block, id: "matchstamp_1"}`) selects the Matchstamp tab, whose name
 header shows "Downbeat", whose Coordinates show "coordinate of clt_1"
 and "coordinate of dpt_1" as disabled fields holding `0` and `0`, each
-with its "Copy the value" button, and whose MatchClaims list `claim_1`; Remove
+with its "Copy the value" button, and whose MatchClaims list `claim_1`;
+its live regions, the MatchClaims' status line and the name's refusal
+line, are present while empty: each one `status` role in the
+accessibility tree (a `display: none` element is not), empty, laid out
+as a 1 × 1 px box out of the flow (`display: block`, `position:
+absolute`); Remove
 empties `graphical.matchstamps` in exactly one journal entry, and the
 selection losing the MatchStamp lets it go, so the tab shown before it,
 Properties, is selected again. Named the same way, its match timestamp
