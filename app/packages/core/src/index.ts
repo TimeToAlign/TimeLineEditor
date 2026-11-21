@@ -19,7 +19,11 @@ export { apply } from "./commands/apply.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";
 export { anchorValues, matchStampSpec } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
-export { importedManifest } from "./commands/timestamps.ts";
+export {
+  groupstampByDefault,
+  importedManifest,
+  isGroupMember,
+} from "./commands/timestamps.ts";
 export type {
   AddCommand,
   AddKind,
@@ -165,10 +169,12 @@ export type {
   TimestampRow,
 } from "./maps/timestamp.ts";
 export {
+  ancestorMembers,
   measureText,
   pinAt,
   positionFor,
   snapOnRow,
+  timelineAxisOf,
   timestampAt,
   timestampJson,
   timestampRows,

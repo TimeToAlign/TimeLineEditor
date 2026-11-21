@@ -65,7 +65,8 @@ const MARKS: readonly Word[] = ["wedge", "coordinate"];
 
 /**
  * The fixture `name` with its named timestamps replaced by `timestamps`, none
- * a match timestamp (`matchstamp: false`, the complete form), and `rules`
+ * a match timestamp nor a groupstamp (`matchstamp: false`, `groupstamp:
+ * false`, the complete form), and `rules`
  * appended to its own, in canonical order and validated.
  */
 function stamped(
@@ -80,7 +81,11 @@ function stamped(
     graphical: {
       ...graphical,
       rules: [...(graphical.rules ?? []), ...rules],
-      timestamps: timestamps.map((timestamp) => ({ ...timestamp, matchstamp: false })),
+      timestamps: timestamps.map((timestamp) => ({
+        ...timestamp,
+        matchstamp: false,
+        groupstamp: false,
+      })),
     },
   });
   validate(withFileIds(result));

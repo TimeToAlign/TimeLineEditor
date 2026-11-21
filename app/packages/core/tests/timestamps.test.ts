@@ -2,7 +2,11 @@ import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply, applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
-import { importedManifest } from "../src/commands/timestamps.ts";
+import {
+  groupstampByDefault,
+  importedManifest,
+  isGroupMember,
+} from "../src/commands/timestamps.ts";
 import { isCommandError } from "../src/errors.ts";
 import { addressKey } from "../src/manifest/address.ts";
 import { contains } from "../src/manifest/contains.ts";
@@ -10,6 +14,7 @@ import type { Manifest, ManifestGraphical, NamedTimestamp } from "../src/manifes
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
 import { sideEffect } from "../src/workspace/guard.ts";
+import type { EditorKind } from "../src/workspace/sessions.ts";
 import type { View } from "../src/workspace/view.ts";
 import {
   A,
@@ -79,6 +84,7 @@ const CODA: NamedTimestamp = {
   name: "Coda",
   display: ["wedge", "name", "cross_section"],
   matchstamp: false,
+  groupstamp: false,
 };
 
 /** The refusals of a display, by value: the message each gives. */
@@ -186,6 +192,7 @@ describe("add a named timestamp", () => {
         name: "Exit",
         display: DEFAULT,
         matchstamp: false,
+        groupstamp: false,
       },
     ]);
     const without = changed(view, remove(at("timestamp_1")));
@@ -198,6 +205,7 @@ describe("add a named timestamp", () => {
         name: "Start",
         display: DEFAULT,
         matchstamp: false,
+        groupstamp: false,
       },
       T2,
       T3,
@@ -222,6 +230,7 @@ describe("add a named timestamp", () => {
           name: "Mid",
           display: DEFAULT,
           matchstamp: false,
+          groupstamp: false,
         },
       ],
       matchstamps: [],
@@ -394,6 +403,7 @@ const mark = (id: string, timeline: string, name: string, coordinate: unknown) =
   name,
   display: MARK,
   matchstamp: false,
+  groupstamp: false,
 });
 
 describe("the default timestamps", () => {
@@ -519,6 +529,7 @@ describe("a new length and the named timestamps", () => {
     name: "End",
     display: DEFAULT,
     matchstamp: false,
+    groupstamp: false,
   };
 
   it("moves a timestamp at the end with the end", () => {
@@ -612,5 +623,90 @@ describe("the guard and the named timestamps", () => {
       ...outOfChild.map(([command]) => command),
     ];
     for (const command of commands) expect(guarded("clt_1", command)).toBeNull();
+  });
+});
+
+describe("groupstamps", () => {
+  const GROUPED = "groups/group_groupstamp.yaml";
+  const grouped = deepFreeze(viewOf([A, GROUPED]));
+  const stampOf = (of: View, id: string) =>
+    block(of).manifest.graphical?.timestamps?.find((item) => item.id === id);
+  const problemOf = (result: unknown) => {
+    if (!isCommandError(result)) throw new Error("expected a refusal");
+    return [result.code, result.message, result.path];
+  };
+
+  it("are stored by add where a group has the timeline as a member", () => {
+    const cue = { name: "Cue", coordinate: 1.0 };
+    const added = changed(grouped, add("performance", { ...cue, groupstamp: true }));
+    expect(stampOf(added, "timestamp_6")).toMatchObject({
+      timeline: "performance",
+      groupstamp: true,
+    });
+    const plain = changed(grouped, add("performance", cue));
+    expect(stampOf(plain, "timestamp_6")?.groupstamp).toBe(false);
+    const path = (into: string) => [key(at(into)), "timestamp", "groupstamp"];
+    expect(problemOf(apply(grouped, add("performance", { ...cue, groupstamp: "yes" })))).toEqual([
+      "invalid_value",
+      "a groupstamp is true or false",
+      path("performance"),
+    ]);
+    const exit = { name: "Exit", coordinate: [1, 1] };
+    expect(problemOf(apply(view, add("clt_1", { ...exit, groupstamp: true })))).toEqual([
+      "invalid_value",
+      "'clt_1' is a member of no group, so no timestamp on it is a groupstamp",
+      path("clt_1"),
+    ]);
+    const kept = changed(view, add("clt_1", { ...exit, groupstamp: false }));
+    expect(stampOf(kept, "timestamp_4")?.groupstamp).toBe(false);
+  });
+
+  it("are set and unset by set, never off a member nor on a match timestamp", () => {
+    const off = changed(grouped, set(at("timestamp_1"), { groupstamp: false }));
+    expect(stampOf(off, "timestamp_1")?.groupstamp).toBe(false);
+    const on = changed(off, set(at("timestamp_1"), { groupstamp: true }));
+    expect(stampOf(on, "timestamp_1")?.groupstamp).toBe(true);
+    const target = key(at("timestamp_1"));
+    expect(problemOf(apply(grouped, set(at("timestamp_1"), { groupstamp: true })))).toEqual([
+      "invalid_value",
+      "the command changes nothing",
+      [target, "groupstamp"],
+    ]);
+    expect(problemOf(apply(view, set(at("timestamp_1"), { groupstamp: true })))).toEqual([
+      "invalid_value",
+      "'clt_1' is a member of no group, so no timestamp on it is a groupstamp",
+      [target, "groupstamp"],
+    ]);
+    const matches = viewOf([A, "bundles/bundle_matchstamps.yaml"]);
+    expect(problemOf(apply(matches, set(at("timestamp_1"), { groupstamp: true })))).toEqual([
+      "invalid_value",
+      "a match timestamp is never a groupstamp",
+      [target, "groupstamp"],
+    ]);
+  });
+
+  it("become ordinary timestamps when their timeline leaves every group", () => {
+    const store = storeOf(grouped);
+    const before = block(store.view).manifest.graphical?.timestamps ?? [];
+    expect(store.dispatch(remove(at("group_1")))).toBeNull();
+    expect(block(store.view).manifest.groups).toEqual([]);
+    expect(block(store.view).manifest.graphical?.timestamps).toEqual(
+      before.map((item) => (item.id === "timestamp_1" ? { ...item, groupstamp: false } : item)),
+    );
+    store.undo();
+    expect(stampOf(store.view, "timestamp_1")?.groupstamp).toBe(true);
+  });
+
+  it("are made by default above a timeline editor on a group's member", () => {
+    const manifest = load(GROUPED);
+    expect(
+      [null, "bundle", "group", "timeline"].map((editor) =>
+        groupstampByDefault(manifest, "score", editor as EditorKind | null),
+      ),
+    ).toEqual([true, true, true, false]);
+    expect(groupstampByDefault(load(FIXTURE), "clt_1", null)).toBe(false);
+    expect(
+      ["score", "performance", "clt_1", "nope"].map((id) => isGroupMember(manifest, id)),
+    ).toEqual([true, true, false, false]);
   });
 });

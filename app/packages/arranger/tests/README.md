@@ -1679,23 +1679,32 @@ record), so the zone runs from 33 to 47.5. At the abscissa
 | 47.515625 | nothing | 2.015625 below it |
 
 **The cross-section.** The spec of a hovered line names its timeline as
-the anchor with the maps drawn at the line for it, then as members every
-timeline the cross-section line crosses: the lines `crossedLines` lists
-after the line itself, and the segments of every crossed line (its own
-included), each once, in traversal order (pre-order, children by offset).
-Each member's offset is its start on the anchor's axis, summed exactly
-down the manifest's tree from the anchor; each carries its name (its ID
-without one), unit, number type, length and the maps drawn for it at any
-crossed line, in drawing order, as the manifest holds them. An ancestor
-is never a member: a timestamp holds what its line crosses.
+the anchor with the maps drawn at the line for it, then as members the
+anchor's ancestors, parent first, each at minus the offsets summed up to
+it and without maps (core's `ancestorMembers`: a parent's coordinate is
+its child's plus the child's offset), then every timeline the
+cross-section line crosses: the lines `crossedLines` lists after the line
+itself, and the segments of every crossed line (its own included), each
+once, in traversal order (pre-order, children by offset). Each crossed
+member's offset is its start on the anchor's axis, summed exactly down the
+manifest's tree from the anchor; each carries its name (its ID without
+one), unit, number type, length and the maps drawn for it at any crossed
+line, in drawing order, as the manifest holds them. The ancestors come
+from the manifest, never the drawing, so a child drawn in a card of its
+own as a group's member holds them as one drawn in its parent's card.
 
 - **From a root, with its children and their maps.** `map`'s `melody`:
   the anchor `melody` ("Melody", quarters, fraction, 8, `[tempo]`), one
   member `phrase` ("Phrase", 4, `[ticks]`) at offset 2 (its start 100
   canvas units right of `melody`'s at 50 a quarter, and its manifest
   offset).
-- **From a child, without its ancestors.** `phrase`'s line: the anchor
-  `phrase` with `[ticks]`, no members; `melody` is not one.
+- **From a child, with its ancestors.** `phrase`'s line: the anchor
+  `phrase` with `[ticks]`, then `melody` at −2 (8 long), no maps; read at
+  `melody`'s 4 (`MELODY_START` + 200 on `melody`'s line) the parts are
+  `melody` 4, `phrase` 2 as before. A child that is a group's member, in
+  its own card: `bundle_mixed`'s `excerpt` (at 44100 in `recording`, 88200
+  long) hovered at the middle of its line on the line reads `excerpt`
+  44100 (an int axis steps by 1) and `recording` 88200.
 - **Segment lines and segments, each once.** `segment_line` with `b2_ticks`
   (`map`'s `ticks` under another ID) added to `b`'s segment `b2`: `form`'s
   line crosses the lines of `a`, `b` and `c`, which are also `form`'s
@@ -1707,8 +1716,8 @@ is never a member: a timestamp holds what its line crosses.
   302.294921875, 12 quarters over 150) `b2_ticks` is drawn at 30.9765625
   from 227.294921875 with `b2` as its owner; hovered, it is the row
   `{timeline: "b2", map: "b2_ticks"}`, the line the row `{timeline: "b",
-  map: null}`. `b`'s spec: anchor `b` without maps, members `b1` 0 (6)
-  and `b2` 6 (6, `[b2_ticks]`).
+  map: null}`. `b`'s spec: anchor `b` without maps, members its segment
+  line `form` −8 (32), then `b1` 0 (6) and `b2` 6 (6, `[b2_ticks]`).
 
 **The position: snapping on the hovered row.** The position is core's
 `snapOnRow` of the hovered row with `p` the pointer's coordinate on the
@@ -1739,15 +1748,17 @@ for the right row, `p` and `h`.
   (9.53 − 6)·480 = 1694.4 with `hv` = 0.08·480/2 = 19.2; ticks are int, so
   `2·hv` = 38.4 admits multiples of 10: 1690 lies 4.4 away, inverted
   1690/480 = 169/48 on `b2`, plus its offset 6: **457/48**. The timestamp
-  there holds `b` at 457/48 then `b2` at 169/48 with `b2_ticks` the int
-  1690 on ticks; `b1` (0 to 6) is not crossed.
+  there holds `b` at 457/48, its ancestor `Form` at 457/48 + 8 = 841/48,
+  then `b2` at 169/48 with `b2_ticks` the int 1690 on ticks; `b1` (0 to
+  6) is not crossed.
 - **Other number types, through the line's own row**: `maps_seconds`
   (`maps:seconds`, 2 seconds, float, over 400) at `xStart` + 123.75, `p`
   0.61875, `h` 0.0025: 1 and 0.6 miss, 0.62 lies 0.00125 away: **31/50**,
   read as the float 0.62; with decimals 1 the fallback **3/5**, read 0.6.
   `discrete_physical`'s `dpt_1` (44100 samples over 400) at `xStart` +
-  123.75, `p` 13643.4375, `h` 55.125: `2h` = 110.25 admits multiples of
-  100: 13600 is 43.4375 away: **13600**, read as the int 13600.
+  123.75, `p` 13643.4375, `h` 55.125: an int axis steps by 1 whatever a
+  device pixel spans (core's rule), the nearest integer: **13643**, read
+  as the int 13643.
 - **Held to the line's span.** `map`'s `melody` at 4 canvas units past its
   end reads 8, at 4 before its start 0.
 
@@ -1770,12 +1781,14 @@ holds `origin` and `length` as `timestamp_1` and `timestamp_2`) at 4 on
 core's `timestampAt(spec, 4)`: `melody` 4, `phrase` 2. A timestamp of a
 segment without a line of its own is read on its segment line's line
 anchored on the segment (`crossSectionSpec` with the segment as the
-anchor): its members are the timelines of the segment's own subtree that
-line crosses, never the segment line nor a sibling segment.
-`segment_line` with `b2_ticks` and a timestamp at 1 on `b2` (no children)
-reads the spec anchor `b2` ("b2", quarters, fraction, 6, `[b2_ticks]`, the
-map drawn at `b`'s line for it), no members, and the timestamp `b2` at 1
-with `b2_ticks` 480 (1·480); `b` and `b1` are no part of it. The same
+anchor): its members are its ancestors (its segment line among them),
+then the timelines of the segment's own subtree that line crosses, never
+a sibling segment. `segment_line` with `b2_ticks` and a timestamp at 1 on
+`b2` (no children) reads the spec anchor `b2` ("b2", quarters, fraction,
+6, `[b2_ticks]`, the map drawn at `b`'s line for it), members `b` ("B",
+12) at −6 and `form` ("Form", 32) at −14, both without maps, and the
+timestamp `b2` at 1 with `b2_ticks` 480 (1·480), `b` 7, `form` 15; `b1`
+is no part of it. The same
 holds on a line of unknown length: `unknown_length`'s `origin`
 (`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
@@ -1785,11 +1798,19 @@ maps), no members, `late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
 and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID
-the manifest does not hold gives `null`.
+the manifest does not hold gives `null`. A groupstamp's pin holds the
+whole GroupStamp: every other member of each group whose frame draws its
+timeline, after its own members, at offset 0 with the scale of its drawn
+length over the timeline's (the members of a frame start and end
+together). In `groups/group_groupstamp` the groupstamp `timestamp_1` at 4
+on `score` (8 quarters) gives the member `performance` (4.0 seconds) at
+offset 0, scale 1/2, and the parts `score` 4, `performance` the float 2.0;
+`timestamp_3` (`length`, no groupstamp) on `performance` holds
+`performance` alone.
 
 **The affordance of a named timestamp that draws nothing**
 (`affordancesOf`): a named timestamp whose `display` is emptied (`set
-{display: []}`) gets one affordance on every line holding its timeline
+{display: []}`), unless it is a match timestamp, gets one affordance on every line holding its timeline
 (its own, else its segment line's at the segment's offset), whatever that
 line's length: the timestamp's address `{id}`, the line's key, and the
 three points of the wedge layout would draw there (`wedgeAt` at the
@@ -1799,7 +1820,11 @@ abscissa of its coordinate on the line's drawn scale, layout's
 affordance's geometry is computed: the block node draws those points,
 the marquee takes their bounds and the projection's `inside` its address,
 none of them calling `wedgeAt` again; for one drawing it is the same
-list, object for object. A timestamp displaying anything has none.
+list, object for object. A timestamp displaying anything has none, and
+so has a match timestamp displaying nothing, which leaves no placeholder:
+in `bundle_matchstamps`, the match timestamp `timestamp_1` with its
+`display` emptied gives none; with the ordinary `timestamp_4` emptied too,
+the one affordance is `timestamp_4`'s.
 `unknown_length` with `origin` emptied (a new root of unknown length,
 which gets an `origin` by default): one affordance, `timestamp_1` on
 `score`'s line, its points `wedgeAt` at 53.798828125 (0 / 14). `map` with
@@ -1817,7 +1842,8 @@ flag's alone; a value without a unit is its number alone, a measure its
 name and the word `measure`); a missing value says why in core's
 words. The hovered row is highlighted, the coordinate of the hovered
 line's timeline or the hovered map. Values: `b`'s spec at 457/48, read on
-`b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`) and `b2`
+`b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`), its ancestor
+`Form` (`17 25/48 ♩`) and `b2`
 (`coordinate` `3 25/48 ♩`, then `Ticks` `1 690 ticks`, the hovered row: an int is
 grouped by threes);
 `bundle_mixed`'s `score` at 16/5 shows `cmap_2`, a float of seconds, as
@@ -2524,7 +2550,12 @@ display: wedge, name label, cross-section line).
   `timestamp_3`'s wedge, name label or line selects exactly `{block: A,
   id: "timestamp_3"}`, and all three then show the selection (in drawing
   order, the wedge, the name label, the line); a selected name label part
-  alone shows it on the label only.
+  alone shows it on the label only. A groupstamp's line across the other
+  members of its group is the timestamp's line too: in
+  `groups/group_groupstamp` (neither member draws a cross-section extent,
+  so the one line at `timestamp_1`'s address is the group's), a click on
+  it selects exactly `{block: A, id: "timestamp_1"}`, the primary
+  timestamp.
 - **A timestamp that draws nothing.** In `timestamps` (`clt_1`, 8
   quarters over 400 from 49.91552734375) with `display` `[]` set on
   `timestamp_2` ("Climax", at 6 on `clt_1`) the drawing draws no element

@@ -17,6 +17,7 @@ import type {
   Timestamp,
 } from "../src/maps/timestamp.ts";
 import {
+  ancestorMembers,
   measureText,
   missingValueText,
   pinAt,
@@ -187,6 +188,69 @@ describe("the cross-section", () => {
     ]);
   });
 
+  it("holds the anchor's ancestors, parent first, each crossed wherever the anchor is", () => {
+    const ancestors = ancestorMembers(SEGMENTS, "b2");
+    expect(ancestors).toEqual([
+      {
+        timeline: "b",
+        name: "B",
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(12),
+        maps: [],
+        offset: q(-6),
+      },
+      {
+        timeline: "form",
+        name: "Form",
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(32),
+        maps: [],
+        offset: q(-14),
+      },
+    ]);
+    expect(ancestorMembers(SEGMENTS, "form")).toEqual([]);
+    expect(ancestorMembers(SEGMENTS, "nope")).toEqual([]);
+    const b2 = { ...specOf(SEGMENTS, "b2"), members: ancestors };
+    expect(positions(timestampAt(b2, q(1)))).toEqual([
+      ["b2", q(1)],
+      ["b", q(7)],
+      ["form", q(15)],
+    ]);
+    const excerpt = { ...specOf(MIXED, "excerpt"), members: ancestorMembers(MIXED, "excerpt") };
+    expect(
+      excerpt.members.map(({ timeline, offset, length }) => [timeline, offset, length]),
+    ).toEqual([["recording", q(-44100), q(441000)]]);
+    expect(positions(timestampAt(excerpt, q(44100)))).toEqual([
+      ["excerpt", 44100n],
+      ["recording", 88200n],
+    ]);
+  });
+
+  it("reads a group's member by its scale, the group's members starting and ending together", () => {
+    const grouped = load("groups/group_groupstamp.yaml");
+    const performance = findTimeline(grouped, "performance");
+    if (performance === undefined) throw new Error("the group has performance");
+    const member = { ...axisOf(performance), offset: q(0), scale: q(1, 2) };
+    const spec = { ...specOf(grouped, "score", []), members: [member] };
+    expect(positions(timestampAt(spec, q(4)))).toEqual([
+      ["score", q(4)],
+      ["performance", 2.0],
+    ]);
+    expect(positions(timestampAt(spec, q(8)))).toEqual([
+      ["score", q(8)],
+      ["performance", 4.0],
+    ]);
+    const pin = pinOf(spec, q(4));
+    expect(positionFor(pin, row("performance"), q(3))).toEqual(q(6));
+    const outside = positionFor(pin, row("performance"), q(5));
+    expect(isCommandError(outside) && outside.message).toBe(
+      "5 lies outside 'performance' (0 to 4)",
+    );
+    expect(snapOnRow(spec, row("performance"), 3.13, 0.004)).toEqual(q(313, 100));
+  });
+
   it("crosses contiguous members both at their boundary, in the order given", () => {
     const form = specOf(SEGMENTS, "form");
     expect(form.members.map((member) => [member.timeline, member.offset])).toEqual([
@@ -319,8 +383,14 @@ describe("the rows of a timestamp", () => {
 describe("snapping on a row", () => {
   it("snaps a coordinate on the timeline's own axis", () => {
     expect(snapOnRow(SCORE, row("score"), 3.13, 0.004)).toEqual(q(47, 15));
-    expect(snapOnRow(RECORDING, row("excerpt"), 100012.3, 3000)).toEqual(q(100100));
-    expect(snapOnRow(RECORDING, row("recording"), 100012.3, 3000)).toEqual(q(100000));
+  });
+
+  it("steps by 1 on a timeline of an int axis, on its coordinate and on its maps", () => {
+    expect(snapOnRow(RECORDING, row("excerpt"), 100012.3, 3000)).toEqual(q(100012));
+    expect(snapOnRow(RECORDING, row("recording"), 100012.3, 3000)).toEqual(q(100012));
+    expect(snapOnRow(RECORDING, row("excerpt", "cmap_6"), 100000.4, 100)).toEqual(q(100000));
+    const tenths = { ...RECORDING, granularity: { denominator: 2520, decimals: 1 } };
+    expect(snapOnRow(tenths, row("excerpt", "cmap_6"), 100000.4, 100)).toEqual(q(100000));
   });
 
   it("snaps a map's value under its target's cap and inverts it exactly", () => {
@@ -333,7 +403,6 @@ describe("snapping on a row", () => {
       { unit: "seconds", numberType: "float", value: 1.6 },
     ]);
     expect(snapOnRow(SCORE, row("score", "cmap_1"), 3.13, 0.004)).toEqual(q(751, 240));
-    expect(snapOnRow(RECORDING, row("excerpt", "cmap_6"), 100000, 100)).toEqual(q(100019));
   });
 
   it("holds the position to the member's span", () => {
@@ -410,6 +479,17 @@ describe("a pin", () => {
     expect(refusal(pinOf(RECORDING, q(200000)), row("excerpt"), q(1))).toEqual(
       outside("the timestamp shows no 'excerpt'"),
     );
+  });
+
+  it("holds an ancestor's edited value to the anchor's span", () => {
+    const b2 = pinOf({ ...specOf(SEGMENTS, "b2"), members: ancestorMembers(SEGMENTS, "b2") }, q(1));
+    expect(positionFor(b2, row("form"), q(16))).toEqual(q(2));
+    const refused = (value: Rational) => {
+      const result = positionFor(b2, row("form"), value);
+      return isCommandError(result) ? [result.code, result.message, result.path] : result;
+    };
+    expect(refused(q(40))).toEqual(["invalid_value", "40 lies outside 'form' (0 to 32)", []]);
+    expect(refused(q(25))).toEqual(["invalid_value", "11 lies outside 'b2' (0 to 6)", []]);
   });
 });
 

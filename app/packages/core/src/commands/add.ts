@@ -54,7 +54,12 @@ import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
-import { readDisplay, readTimestampCoordinate, withDefaultTimestamps } from "./timestamps.ts";
+import {
+  readDisplay,
+  readGroupstamp,
+  readTimestampCoordinate,
+  withDefaultTimestamps,
+} from "./timestamps.ts";
 import { placeChild } from "./topology.ts";
 import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
@@ -478,15 +483,17 @@ function addElement(
 const TIMESTAMP_REQUIRED = ["name", "coordinate"];
 
 /** Every member a named timestamp `add` is given may have. */
-const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display"];
+const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display", "groupstamp"];
 
 /**
- * Add a named timestamp into a timeline: `{name, coordinate, display?}`,
- * name and coordinate required (`invalid_value`), nothing else
- * (`unknown_property`); the name non-empty, the coordinate on the
+ * Add a named timestamp into a timeline: `{name, coordinate, display?,
+ * groupstamp?}`, name and coordinate required (`invalid_value`), nothing
+ * else (`unknown_property`); the name non-empty, the coordinate on the
  * timeline's own axis within it (`readTimestampCoordinate`), the display
  * read by `readDisplay` over `TIMESTAMP_DISPLAY`, the schema's default where it is left
- * out. It is given the smallest free `timestamp_N` of the manifest and
+ * out, `groupstamp` read by `readGroupstamp` (`true` only on a group
+ * member), `false` where it is left out (the editor gives
+ * `groupstampByDefault`). It is given the smallest free `timestamp_N` of the manifest and
  * written into its `graphical` object's `timestamps`, which `settle` puts
  * in canonical order.
  */
@@ -520,8 +527,14 @@ function addTimestamp(
       : readDisplay(object.display, TIMESTAMP_DISPLAY, [...path, "display"]);
   if (isCommandError(display)) return display;
   const { manifest } = block;
+  const groupstamp =
+    object.groupstamp === undefined
+      ? false
+      : readGroupstamp(object.groupstamp, manifest, at.timeline.id, false, [...path, "groupstamp"]);
+  if (isCommandError(groupstamp)) return groupstamp;
   const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
-  const timestamp = { id, timeline: at.timeline.id, coordinate, name, display, matchstamp: false };
+  const timeline = at.timeline.id;
+  const timestamp = { id, timeline, coordinate, name, display, matchstamp: false, groupstamp };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });

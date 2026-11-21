@@ -28,7 +28,8 @@ export interface BlockContent {
   readonly margin: number;
   /**
    * The elements drawn after every item (section 8.7), from the drawn lines in the block's
-   * coordinates: the alignment anchors and their labels, which take no room.
+   * coordinates: the groupstamps' lines across their groups' frames, then the alignment anchors
+   * and their labels, none of which take room.
    */
   readonly after: (axes: readonly DrawnAxis[]) => readonly DrawnElement[];
 }
