@@ -147,13 +147,15 @@ describe("writeFile", () => {
 
   it("puts a string as its UTF-8 bytes and reads the file written", async () => {
     const { calls, requests, fetched } = transport(() =>
-      Response.json({ path: "sub/new.yaml", size: 6 }),
+      Response.json({ path: "sub/new.tle.json", size: 6 }),
     );
-    expect(await calls.writeFile("sub/new.yaml", "y: ä\n")).toEqual({
-      path: "sub/new.yaml",
+    expect(await calls.writeFile("sub/new.tle.json", "y: ä\n")).toEqual({
+      path: "sub/new.tle.json",
       size: 6,
     });
-    expect(requests).toEqual([["files?path=sub%2Fnew.yaml", { ...WRITE, body: "y: ä\n" }, true]]);
+    expect(requests).toEqual([
+      ["files?path=sub%2Fnew.tle.json", { ...WRITE, body: "y: ä\n" }, true],
+    ]);
     const sent = new Request("http://127.0.0.1/", fetched.mock.calls[0]?.[1]);
     expect(Array.from(new Uint8Array(await sent.arrayBuffer()))).toEqual([
       121, 58, 32, 195, 164, 10,
@@ -161,28 +163,28 @@ describe("writeFile", () => {
   });
 
   it("puts a Blob unchanged", async () => {
-    const { calls, requests } = transport(() => Response.json({ path: "t.parquet", size: 3 }));
+    const { calls, requests } = transport(() => Response.json({ path: "t.tle.json", size: 3 }));
     const blob = new Blob([Uint8Array.of(0, 255, 7)]);
-    expect(await calls.writeFile("t.parquet", blob)).toEqual({ path: "t.parquet", size: 3 });
-    expect(requests).toEqual([["files?path=t.parquet", { ...WRITE, body: blob }, true]]);
+    expect(await calls.writeFile("t.tle.json", blob)).toEqual({ path: "t.tle.json", size: 3 });
+    expect(requests).toEqual([["files?path=t.tle.json", { ...WRITE, body: blob }, true]]);
   });
 
   it("rejects with the server's refusal of a foreign kind", async () => {
-    const message = "TimeLineEditor writes only workspace, manifest and table files";
+    const message = "TimeLineEditor writes only workspace files";
     const { calls } = transport(refusal(403, message));
     const error = await rejection(calls.writeFile("sub/c.txt", "x"), Refused);
     expect([error.status, error.message]).toEqual([403, message]);
   });
 
   for (const [what, body] of [
-    ["another path", { path: "sub/other.yaml", size: 6 }],
-    ["a negative size", { path: "sub/new.yaml", size: -1 }],
-    ["a fractional size", { path: "sub/new.yaml", size: 1.5 }],
-    ["a size that is a string", { path: "sub/new.yaml", size: "6" }],
+    ["another path", { path: "sub/other.tle.json", size: 6 }],
+    ["a negative size", { path: "sub/new.tle.json", size: -1 }],
+    ["a fractional size", { path: "sub/new.tle.json", size: 1.5 }],
+    ["a size that is a string", { path: "sub/new.tle.json", size: "6" }],
   ] as const) {
     it(`rejects an answer with ${what}`, async () => {
       const { calls } = transport(() => Response.json(body));
-      const error = await rejection(calls.writeFile("sub/new.yaml", "y: ä\n"), Malformed);
+      const error = await rejection(calls.writeFile("sub/new.tle.json", "y: ä\n"), Malformed);
       expect([error.status, error.message]).toEqual([200, MALFORMED_WRITTEN]);
     });
   }

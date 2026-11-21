@@ -126,7 +126,7 @@ export interface FileHost {
 const OPENED_KINDS: readonly FileKind[] = [WORKSPACE_FILE, MANIFEST_FILE];
 
 /** Said once, after the first save that downloaded the workspace. */
-export const SAVED_AS_DOWNLOAD =
+const SAVED_AS_DOWNLOAD =
   "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.";
 
 export interface SessionOptions {

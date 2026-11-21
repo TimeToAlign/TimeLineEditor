@@ -175,14 +175,20 @@ call or the exact result.
      resolves to exactly that listing.
    - `readFile("a.yaml")` asks `files?path=a.yaml` and resolves to a `Blob`
      holding exactly the answer's bytes (`x: 1\n`).
-   - `writeFile("sub/new.yaml", "y: ä\n")` asks `files?path=sub%2Fnew.yaml`
-     with method `PUT`, the transport's headers and `Content-Type:
-     application/octet-stream`, and the string as its body, sent as UTF-8
+   - `writeFile("sub/new.tle.json", "y: ä\n")` asks
+     `files?path=sub%2Fnew.tle.json` with method `PUT`, the transport's
+     headers and `Content-Type: application/octet-stream`, and the string
+     as its body, sent as UTF-8
      (six bytes); a `Blob` is sent unchanged. The answer `{"path":
-     "sub/new.yaml", "size": 6}` resolves to exactly that.
+     "sub/new.tle.json", "size": 6}` resolves to exactly that. The calls
+     check no kind: the server reads only workspace, manifest and table
+     files and writes only workspace files (`.tle.json`), which is why the
+     cases name those.
    - Every call passes `explained` true, so a refusal (400 `path outside the
-     root`, 403 for a foreign kind, 404 `no such file`) reaches the caller
-     with the server's message, and an answer outside 2xx is never read.
+     root`, 403 `hidden files are not served`, 403 for a foreign kind, here
+     "TimeLineEditor writes only workspace files", 404 `no such file`)
+     reaches the caller with the server's message, and an answer outside
+     2xx is never read.
    - A 2xx answer not of the route's form rejects with the transport's error
      for its status and the message "the folder answer is not a listing of
      the folder asked for" (another `path` than the one asked, an entry of
