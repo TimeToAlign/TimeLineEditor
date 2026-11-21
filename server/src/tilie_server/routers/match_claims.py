@@ -117,8 +117,9 @@ def checked_table(
 
     The checks run on the file's table against the manifest; timetoalign
     then reads the columns the table type declares (a table may hold others,
-    which are no part of a MatchClaim) and gives back its own table of the
-    same rows.
+    which are no part of a MatchClaim) in the package form, each coordinate
+    cell's number written once as its ``number_type`` says, and gives back
+    the same rows in that form.
 
     Raises:
         Refusal: 422 with every problem the checks find, or with
@@ -137,10 +138,12 @@ def checked_table(
         ]
         raise Refusal([], problems[0].message, problems=listed)
     try:
-        field = field_class.from_table(table.select(list(tables.MATCH_CLAIM_COLUMNS)))
+        field = field_class.from_package_table(
+            table.select(list(tables.MATCH_CLAIM_COLUMNS))
+        )
     except ValueError as error:
         raise Refusal([], str(error)) from error
-    return field.table
+    return field.package_table
 
 
 def answer_bytes(header: dict[str, Any], arrays: list[tuple[str, bytes, int]]) -> bytes:
