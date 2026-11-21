@@ -31,7 +31,14 @@ import FileDialog from "./FileDialog.svelte";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
 import type { Opened } from "./files.ts";
-import { isMatchClaimTable, isWorkspaceFile, OPENABLE_FILE, openFiles, UNTITLED } from "./files.ts";
+import {
+  baseName,
+  isMatchClaimTable,
+  isWorkspaceFile,
+  OPENABLE_FILE,
+  openFiles,
+  UNTITLED,
+} from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
@@ -304,7 +311,7 @@ async function openFromFile(): Promise<void> {
 async function openOnServer(host: FileHost): Promise<void> {
   const path = await session.chooseOpened(host);
   if (path === null) return;
-  const name = path.slice(path.lastIndexOf("/") + 1);
+  const name = baseName(path);
   if (isWorkspaceFile(name)) {
     if (!(await mayReplace())) return;
     const refusal = await session.openPath(host, path);

@@ -197,15 +197,22 @@ const FILE_FORM_READERS = {
 };
 
 /**
- * A manifest file's location: a non-empty POSIX path, relative (no leading
- * `/`, no scheme or drive such as `file:` or `C:`, no backslash).
+ * Whether `location` is a relative POSIX path, the one form a file's location
+ * takes: non-empty, no leading `/`, no scheme or drive such as `file:` or
+ * `C:` (a URL is no location), no backslash.
  */
+export function isRelativeLocation(location: string): boolean {
+  return (
+    location !== "" &&
+    !location.startsWith("/") &&
+    !location.includes("\\") &&
+    !/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(location)
+  );
+}
+
+/** A manifest file's location (`isRelativeLocation`). */
 function readLocation(value: unknown, path: readonly PathSegment[]): string | Problem {
-  return typeof value === "string" &&
-    value !== "" &&
-    !value.startsWith("/") &&
-    !value.includes("\\") &&
-    !/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(value)
+  return typeof value === "string" && isRelativeLocation(value)
     ? value
     : problem(ErrorCode.invalidValue, "expected a relative POSIX path", path);
 }

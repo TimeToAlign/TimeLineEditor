@@ -23,6 +23,7 @@ import {
   groupsHolding,
   isGroupMember,
   matchStampSpec,
+  namedAsGroupstamp,
   prettyText,
 } from "@timetoalign/tilie-core";
 import { toRational } from "@timetoalign/tilie-core/numbers";
@@ -80,8 +81,10 @@ function groupsThrough(manifest: Manifest, timeline: string, other: string): str
  * (`timelineRows`, top to bottom) of a named MatchStamp's match timestamp
  * read through its own pin (the arranger's `namedPin`, which adds the
  * members of its groups where it is a GroupStamp), of a potential one's
- * coordinate through the arranger's `timelinePin` (nothing stored, no
- * group read), under `granularity` with `knots`. Each group says how its
+ * coordinate through the arranger's `timelinePin`, nothing stored, read as
+ * a GroupStamp exactly where naming stores one (core's
+ * `namedAsGroupstamp`), so that the Coordinates show before naming what
+ * they show after it, under `granularity` with `knots`. Each group says how its
  * timeline takes part (`Through`). A coordinate whose timeline the
  * manifest no longer holds is its text alone, `claimed`. Each group's key
  * is unique among them, two coordinates on one timeline, or on timelines
@@ -107,6 +110,7 @@ export function stampGroups(
             toRational(coordinate.value),
             granularity,
             knots,
+            namedAsGroupstamp(manifest, coordinate.timeline, coordinate.value),
           )
         : namedPin(manifest, block, drawing, timestamp.id, granularity, knots);
     if (pin === null) {
@@ -145,8 +149,9 @@ export function stampGroups(
  * MatchStamps whose anchors name that match timestamp too, whose drawing a
  * change of its display changes as well, and whether it is a GroupStamp:
  * `null` where its timeline lies in no group, else `on` as stored, or for a
- * potential MatchStamp as naming stores it (a GroupStamp), with the names
- * of the groups holding its timeline (`holdingGroupNames`).
+ * potential MatchStamp as naming stores it (core's `namedAsGroupstamp`: the
+ * match timestamp lying there keeps its own, a new one is a GroupStamp),
+ * with the names of the groups holding its timeline (`holdingGroupNames`).
  */
 export interface TimestampLine {
   readonly kind: "timestamp";
@@ -254,7 +259,9 @@ export function stampLines(manifest: Manifest, stamp: ShownStamp, drawing: Drawi
             : matchStampsOf(manifest, timestamp.id).filter((item) => item.id !== stamp.id),
         groupstamp: isGroupMember(manifest, coordinate.timeline)
           ? {
-              on: timestamp?.groupstamp ?? true,
+              on:
+                timestamp?.groupstamp ??
+                namedAsGroupstamp(manifest, coordinate.timeline, coordinate.value),
               groups: holdingGroupNames(manifest, coordinate.timeline),
             }
           : null,

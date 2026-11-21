@@ -132,7 +132,9 @@ describe("Delete inside an editor", () => {
       dispatched: [{ type: "remove", targets: [dlt] }],
       selection: NOTHING_SELECTED,
     });
-    expect(findTimeline(blockIn(store.view, A).manifest, "recording")).toBeDefined();
+    const alone = storeIn(null);
+    deleteIn(alone, dlt);
+    expect(blockIn(store.view, A).manifest).toEqual(blockIn(alone.view, A).manifest);
   });
 
   it("removes the block on the arranger", () => {

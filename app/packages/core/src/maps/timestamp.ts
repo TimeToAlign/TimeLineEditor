@@ -27,7 +27,7 @@ import type { Roots } from "../manifest/tree.ts";
 import { locateTimeline } from "../manifest/tree.ts";
 import type { ConversionMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { axisCoordinate, jsonFloat, jsonInteger, toAxisValue } from "../number/coordinate.ts";
+import { axisCoordinate, axisValueOf, toAxisValue } from "../number/coordinate.ts";
 import { coordinateDict } from "../number/display.ts";
 import { clampValue, nearest, snapValue } from "../number/grid.ts";
 import { Rational } from "../number/rational.ts";
@@ -683,14 +683,6 @@ export function timestampRows(pin: Pin): TimestampRow[] {
   });
 }
 
-/** A number without a unit as a manifest writes a bare value: an integer, a float, a Fraction pair. */
-function bareValue(value: CoordinateValue): Json {
-  if (value instanceof Rational) {
-    return [jsonInteger(value.numerator), jsonInteger(value.denominator)];
-  }
-  return typeof value === "bigint" ? jsonInteger(value) : jsonFloat(value);
-}
-
 /**
  * A row's value as JSON: a number with a unit its coordinate dict, one
  * without `{number_type, value}`, a label as it is, a measure its record,
@@ -705,7 +697,7 @@ function valueJson(value: Expressed | null): Json {
     return outputs;
   }
   return value.unit === null
-    ? { number_type: value.numberType, value: bareValue(value.value) }
+    ? { number_type: value.numberType, value: axisValueOf(value.value) }
     : { ...coordinateDict(value.value, value.unit, value.numberType) };
 }
 

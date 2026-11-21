@@ -640,8 +640,13 @@ describe("groupstamps", () => {
   it("are stored by add where a group has the timeline as a member", () => {
     const cue = { name: "Cue", coordinate: 1.0 };
     const added = changed(grouped, add("performance", { ...cue, groupstamp: true }));
-    expect(stampOf(added, "timestamp_6")).toMatchObject({
+    expect(stampOf(added, "timestamp_6")).toEqual({
+      id: "timestamp_6",
       timeline: "performance",
+      coordinate: new JsonFloat(1),
+      name: "Cue",
+      display: ["wedge", "name", "cross_section"],
+      matchstamp: false,
       groupstamp: true,
     });
     const plain = changed(grouped, add("performance", cue));
@@ -680,11 +685,12 @@ describe("groupstamps", () => {
     ]);
     const cards = viewOf([A, "bundles/bundle_matchstamp_cards.yaml"]);
     const matchOn = changed(cards, set(at("timestamp_1"), { groupstamp: true }));
-    expect(stampOf(matchOn, "timestamp_1")).toMatchObject({
-      timeline: "score",
-      matchstamp: true,
+    expect(stampOf(cards, "timestamp_1")?.groupstamp).toBe(false);
+    expect(stampOf(matchOn, "timestamp_1")).toEqual({
+      ...stampOf(cards, "timestamp_1"),
       groupstamp: true,
     });
+    expect(stampOf(matchOn, "timestamp_1")?.matchstamp).toBe(true);
     const matches = viewOf([A, "bundles/bundle_matchstamps.yaml"]);
     expect(problemOf(apply(matches, set(at("timestamp_1"), { groupstamp: true })))).toEqual([
       "invalid_value",
@@ -732,7 +738,15 @@ describe("groupstamps", () => {
       nested,
       add("motif", { name: "Motif", coordinate: [1, 1], groupstamp: true }),
     );
-    expect(stampOf(added, "timestamp_6")).toMatchObject({ timeline: "motif", groupstamp: true });
+    expect(stampOf(added, "timestamp_6")).toEqual({
+      id: "timestamp_6",
+      timeline: "motif",
+      coordinate: [1, 1],
+      name: "Motif",
+      display: ["wedge", "name", "cross_section"],
+      matchstamp: false,
+      groupstamp: true,
+    });
     const child = load("groups/group_child_member.yaml");
     expect(["second-half", "recording", "piece"].map((id) => isGroupMember(child, id))).toEqual([
       true,

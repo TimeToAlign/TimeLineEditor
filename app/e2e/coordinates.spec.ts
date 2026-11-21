@@ -109,7 +109,12 @@ async function hover(page: Page, x: number, y: number): Promise<void> {
 }
 
 const flag = (page: Page) => page.getByTestId("coordinate-flag");
-const coordinate = (page: Page) => flag(page).getByTestId("coordinate").first();
+/**
+ * The coordinate row of `timeline`'s part of the flag. The flag lists its parts top to bottom
+ * as their lines lie, so a part is read by its timeline, never by its place in the flag.
+ */
+const coordinate = (page: Page, timeline = "melody") =>
+  flag(page).locator(`[data-timeline="${timeline}"]`).getByTestId("coordinate");
 const row = (page: Page, map: string) => flag(page).locator(`[data-map="${map}"]`);
 const footer = (page: Page) => flag(page).getByTestId("coordinate-footer");
 /** The marks of the hovered (`hover`) or the pinned (`pin`) position. */
@@ -140,6 +145,12 @@ test("the flag and the marks follow the pointer along a line and stay over its m
 }) => {
   await hover(page, MELODY.start + 123, MELODY.y);
   await expect(coordinate(page)).toHaveText("2 7/15 ♩");
+  // `melody`'s line crosses its child `phrase`, drawn above it: the flag lists `phrase` first.
+  expect(
+    await flag(page)
+      .locator("[data-timeline]")
+      .evaluateAll((parts) => parts.map((part) => part.getAttribute("data-timeline"))),
+  ).toEqual(["phrase", "melody"]);
   await expect(row(page, "tempo")).toHaveText("Tempo 1.233″");
   await expect(footer(page)).toHaveText("click to pin");
   await expect(wedge(page, "hover")).toHaveCount(1);
@@ -161,7 +172,7 @@ test("the flag and the marks follow the pointer along a line and stay over its m
 
 test("a child's flag holds its own maps only", async ({ page }) => {
   await hover(page, 263.53662109375, PHRASE_Y);
-  await expect(coordinate(page)).toHaveText("2 ♩");
+  await expect(coordinate(page, "phrase")).toHaveText("2 ♩");
   await expect(row(page, "ticks")).toHaveText("Ticks 960 ticks");
   await expect(row(page, "tempo")).toHaveCount(0);
 });

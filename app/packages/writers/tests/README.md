@@ -415,7 +415,7 @@ showing a band the defaults hide, each selecting the band by `{addresses:
 `group_parent_both`, `group_parent_right` and `group_parents_mixed` with
 the layer `{element: ancestor_card}` `display: inline`, which shows the
 ancestor cards the defaults hide (`group__<file>__ancestor-cards`; the
-layout's README derives their geometry). 87 fixtures in all.
+layout's README derives their geometry). 90 fixtures in all.
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards
@@ -443,7 +443,16 @@ drawing.md §8.7 across cards and within one card: a score shared by two
 groups is drawn in two frames, so the anchor between the performance and
 the score takes the shorter of its two candidate lines, and the anchor
 between the score and its child overlaps, its line horizontal, the tie
-between the two cards' pairs going to the first in descriptor order. Every root of a non-corpus fixture carries the named timestamps
+between the two cards' pairs going to the first in descriptor order;
+`map_band_order_subset` the completion of a band order that lists two of
+its six entries (`["markers", "line"]` on the root: its markers band
+against the line above, its map and its child beyond); and
+`group__group_child_member_stamps` the lines on a child member: the
+cross-section lines of a named timestamp and of a match timestamp on
+`middle` run from `piece`'s ancestor line at 67.7812 to `middle`'s line at
+81.7812, and the anchor from that segment's lower end down to
+`recording`'s line, `<line data-id="anchor_1" x1="311.7036" y1="81.7812"
+x2="311.7036" y2="139.1602" …/>`. Every root of a non-corpus fixture carries the named timestamps
 `origin` and `length` (`origin` alone for an unknown length), each drawing
 its wedge and its coordinate label where the root's start and end were
 marked before: their figures keep every number and address the wedges
@@ -476,7 +485,7 @@ data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
 font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
 `\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
 (261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
-There are 84 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
+There are 90 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

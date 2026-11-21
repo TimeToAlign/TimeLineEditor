@@ -102,7 +102,14 @@ describe("the containers of a manifest", () => {
       [{ id: "excerpt", part: ["card"] }, "excerpt"],
       [{ id: "annotations", part: ["card"] }, "annotations"],
     ]);
-    expect(ancestorCards).toEqual([all[0]]);
+    expect(ancestorCards.map(({ ref }) => ref)).toEqual([all[0]]);
+    expect(
+      ancestorCards.map(({ card }) => [
+        card.group.id,
+        card.member.timeline.id,
+        card.root.timeline.id,
+      ]),
+    ).toEqual([["group_2", "excerpt", "recording"]]);
     expect([...frames.keys()]).toEqual(["group_1", "group_2"]);
     expect([...cards.keys()]).toEqual([
       "recording",
@@ -257,7 +264,7 @@ describe("place members by holding", () => {
     ]);
     const band = regions as ContainerRef;
     expect([holdingOf(band), placeMembersOf(band)]).toEqual([null, []]);
-    const [ancestor] = containersOf(manifest).ancestorCards;
+    const [ancestor] = containersOf(manifest).ancestorCards.map(({ ref }) => ref);
     expect([holdingOf(ancestor as ContainerRef), placeMembersOf(ancestor as ContainerRef)]).toEqual(
       ["ancestor", []],
     );
@@ -424,8 +431,11 @@ describe("ancestor cards", () => {
 
   it("lists them first, keyed by frame and root, addressed by the root, with no band", () => {
     const manifest = load("groups/group_parents_mixed.yaml");
-    const { all, ancestorCards, byKey, bands } = containersOf(manifest);
+    const { all, ancestorCards: entries, byKey, bands } = containersOf(manifest);
+    const ancestorCards = entries.map(({ ref }) => ref);
     expect(ancestorCards).toEqual(all.slice(0, 3));
+    // Each container is listed with the card `memberDrawings` gives, in the same order.
+    expect(entries.map(({ card }) => card)).toEqual(memberDrawings(manifest).ancestorCards);
     expect(ancestorCards.map((ref) => [ref.kind, ref.key, ref.address, ref.holder?.kind])).toEqual(
       ["sonata", "session", "page"].map((root) => [
         "card",

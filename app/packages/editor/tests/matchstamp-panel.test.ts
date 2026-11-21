@@ -2,14 +2,14 @@
 
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
-import type { AnchorIndex, Store } from "@timetoalign/tilie-core";
+import type { AnchorIndex, CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   coordinateOf,
   DEFAULT_BELIEFS,
   DEFAULT_MATCH_CLAIM_FILTER,
   matchClaimColumns,
 } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timetoshare";
+import { fontMetrics, JsonFloat } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MatchstampPanel from "../src/inspector/MatchstampPanel.svelte";
@@ -20,6 +20,11 @@ import { namedPinOf } from "../src/inspector/timestamp.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, q, tableManifest } from "./matches.ts";
 import { informing, providing, storeOf } from "./support.ts";
+
+/** The command of the store's last journal entry. */
+function lastCommand(store: Store): unknown {
+  return (store.journal.at(-1) as CommandEntry | undefined)?.command;
+}
 
 const A = "0000000000";
 const NO_SERVER = "Matches need a server: MatchClaim tables are read through tilie-server.";
@@ -522,16 +527,14 @@ describe("Lines", () => {
     toggleOf("li[data-timestamp='timestamp_2']", "Wedge").click();
     flushSync();
     expect(store.journal.length).toBe(before + 1);
-    expect(store.journal.at(-1)).toMatchObject({
-      command: {
-        type: "set",
-        changes: [
-          {
-            target: { block: A, id: "timestamp_2" },
-            values: { display: ["wedge", "cross_section"] },
-          },
-        ],
-      },
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [
+        {
+          target: { block: A, id: "timestamp_2" },
+          values: { display: ["wedge", "cross_section"] },
+        },
+      ],
     });
     toggleOf("li[data-anchor='anchor_2']", "Name").click();
     flushSync();
@@ -715,11 +718,9 @@ describe("GroupStamps", () => {
     const before = store.journal.length;
     pressGroupstamp("timestamp_12");
     expect(store.journal.length).toBe(before + 1);
-    expect(store.journal.at(-1)).toMatchObject({
-      command: {
-        type: "set",
-        changes: [{ target: { block: A, id: "timestamp_12" }, values: { groupstamp: false } }],
-      },
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: { block: A, id: "timestamp_12" }, values: { groupstamp: false } }],
     });
     expect(lineStates()[2]).toEqual([
       "timestamp",
@@ -741,15 +742,15 @@ describe("GroupStamps", () => {
     expect(document.querySelector("section.coordinates tr.through")).toBe(null);
   });
 
-  it("wait for a name on a potential MatchStamp, which reads no group", () => {
-    const store = mixedStore();
+  /** The table of one MatchClaim `id` joining `score` at `quarter` to `performance` at 3.0. */
+  function scoreToPerformance(id: string, quarter: number): MatchClaimTables {
     const table: MatchClaimTable = {
       columns: matchClaimColumns(
         [
           { id: "performance", numberType: "float" },
           { id: "score", numberType: "fraction" },
         ],
-        [{ id: "claim_1", timelines: [1, 0], start: [q(6), 3] }],
+        [{ id, timelines: [1, 0], start: [q(quarter), 3] }],
       ),
       beliefs: {
         actors: [],
@@ -758,19 +759,78 @@ describe("GroupStamps", () => {
         word: Uint8Array.from([]),
       },
     };
-    const tables = tablesWith(table);
+    return tablesWith(table);
+  }
+
+  /** Show the potential MatchStamp of `score` at `quarter` of the one MatchClaim of `tables`. */
+  function showPotential(store: Store, tables: MatchClaimTables, quarter: number): void {
     const shown = indexesOver(liveStore(store), tables)(A)?.shown;
     if (shown === undefined) throw new Error("the block holds the table");
-    show(store, potential(shown, "score", q(6)), tables);
+    show(store, potential(shown, "score", q(quarter)), tables);
+  }
+
+  it("show on a potential MatchStamp the GroupStamps naming stores, the group read", () => {
+    const store = mixedStore();
+    showPotential(store, scoreToPerformance("claim_1", 6), 6);
     expect(lineStates()).toEqual([
       ["timestamp", "Score 6 ♩", ["Line"], true, true],
       ["anchor", "Score – Performance", [], null, true],
       ["timestamp", "Performance 3″", ["Line"], true, true],
     ]);
-    expect(throughGroups()).toEqual([
-      ["Second half", "crossed", "crossed by its line", [["coordinate", "2", true, "♩"]]],
-      ["Score", "claimed", "stated by MatchClaims", [["coordinate", "6", true, "♩"]]],
+    const potentialGroups = throughGroups();
+    expect(potentialGroups).toEqual([
+      ...SCORE_GROUPS,
+      ["Score", "group", "through group 'Performance'", [["coordinate", "72/25", true, "♩"]]],
       PERFORMANCE_CLAIMED,
+    ]);
+    expect(store.view.blocks[A]?.manifest.graphical?.matchstamps).toEqual([]);
+    unmountTab();
+    showTurn(store);
+    expect(throughGroups()).toEqual(potentialGroups);
+  });
+
+  it("show a reused match timestamp's own GroupStamp on a potential MatchStamp", () => {
+    const store = mixedStore();
+    showTurn(store);
+    pressGroupstamp("timestamp_12");
+    unmountTab();
+    showPotential(store, scoreToPerformance("claim_2", 5), 5);
+    expect(lineStates()).toEqual([
+      ["timestamp", "Score 5 ♩", ["Line"], true, true],
+      ["anchor", "Score – Performance", [], null, true],
+      ["timestamp", "Performance 3″", ["Line"], false, true],
+    ]);
+    expect(throughGroups()).toEqual([
+      ["Second half", "crossed", "crossed by its line", [["coordinate", "1", true, "♩"]]],
+      ["Score", "claimed", "stated by MatchClaims", [["coordinate", "5", true, "♩"]]],
+      [
+        "Performance",
+        "group",
+        "through group 'Performance'",
+        [
+          ["coordinate", "5.208333333333333", true, "s"],
+          ["cmap_3", "229688", true, "smp"],
+        ],
+      ],
+      PERFORMANCE_CLAIMED,
+    ]);
+    name("Cue");
+    const stamps = store.view.blocks[A]?.manifest.graphical?.timestamps ?? [];
+    expect(
+      stamps
+        .filter((item) => item.matchstamp)
+        .map((item) => [item.id, item.timeline, item.coordinate, item.groupstamp]),
+    ).toEqual([
+      ["timestamp_12", "performance", new JsonFloat(3), false],
+      ["timestamp_13", "score", [5, 1], true],
+      ["timestamp_11", "score", [6, 1], true],
+    ]);
+    unmountTab();
+    show(store, { kind: "named", block: A, id: "matchstamp_2" }, tablesWith(null));
+    expect(lineStates()).toEqual([
+      ["timestamp", "Score 5 ♩ timestamp_13", ["Line"], true, false],
+      ["anchor", "Score – Performance anchor_2", ["Line", "Name"], null, false],
+      ["timestamp", "Performance 3″ timestamp_12", ["Line"], false, false],
     ]);
   });
 });
@@ -1132,11 +1192,9 @@ describe("the Timestamp tab", () => {
     ]).toEqual([true, "true", false, "A GroupStamp's line crosses every member of 'group_1'."]);
     toggle?.click();
     flushSync();
-    expect(store.journal.at(-1)).toMatchObject({
-      command: {
-        type: "set",
-        changes: [{ target: { block: A, id: "timestamp_1" }, values: { groupstamp: false } }],
-      },
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: { block: A, id: "timestamp_1" }, values: { groupstamp: false } }],
     });
   });
 });

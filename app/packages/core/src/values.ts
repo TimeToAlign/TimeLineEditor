@@ -12,7 +12,7 @@ import { isJsonObject, showJson } from "./json.ts";
 import type { CardPlace, ItemPlace, Place, Places } from "./manifest/containers.ts";
 import { ITEM_PLACE_MEMBERS } from "./manifest/containers.ts";
 import { plainDeclaration, plainGraphical, plainSelector, schemaChecked } from "./manifest/io.ts";
-import { jsonInteger } from "./number/coordinate.ts";
+import { parsedInteger } from "./number/coordinate.ts";
 import { isIndex } from "./workspace/order.ts";
 
 function invalid(message: string, path: readonly PathSegment[]): Problem {
@@ -26,7 +26,7 @@ function invalid(message: string, path: readonly PathSegment[]): Problem {
  */
 export function toJson(value: unknown, path: readonly PathSegment[]): Json | Problem {
   if (value === null || typeof value === "boolean" || typeof value === "string") return value;
-  if (typeof value === "bigint") return jsonInteger(value);
+  if (typeof value === "bigint") return parsedInteger(value);
   if (value instanceof JsonFloat) return value;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {

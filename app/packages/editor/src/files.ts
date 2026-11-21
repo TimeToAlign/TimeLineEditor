@@ -10,7 +10,7 @@
 
 import { ServerError } from "@timetoalign/tilie-client";
 import type { Entry, Manifest } from "@timetoalign/tilie-core";
-import { UNTITLED_WORKSPACE } from "@timetoalign/tilie-core";
+import { isRelativeLocation, UNTITLED_WORKSPACE } from "@timetoalign/tilie-core";
 import type { Serialization } from "@timetoalign/timetoshare";
 
 /** What a picker offers: a description and the extensions it filters on, by media type. */
@@ -307,13 +307,14 @@ export function savesByDownload(): boolean {
 // --- Paths on the server -------------------------------------------------------------
 
 /**
- * The segments of `path`, a POSIX path relative to `folder` (itself a
- * path from the server's root, `""` the root): `.` and empty segments
- * dropped, `..` leading up; `null` where it leads above the root, starts
- * with `/` or names a scheme (a URL, not a path).
+ * The segments of `path`, a location relative to `folder` (itself a path
+ * from the server's root, `""` the root): `.` and empty segments dropped,
+ * `..` leading up; `null` where it leads above the root or is no relative
+ * location (core's `isRelativeLocation`: it starts with `/`, names a scheme
+ * or holds a backslash).
  */
 function segmentsOf(folder: string, path: string): string[] | null {
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(path) || path.startsWith("/")) return null;
+  if (!isRelativeLocation(path)) return null;
   const segments: string[] = [];
   for (const part of [...folder.split("/"), ...path.split("/")]) {
     if (part === "" || part === ".") continue;
@@ -329,7 +330,7 @@ function segmentsOf(folder: string, path: string): string[] | null {
 /**
  * The path from the server's root of `path`, relative to the folder
  * `folder` (a path from the root, `""` the root); `null` where it leads
- * above the root, starts with `/` or names a scheme.
+ * above the root or is no relative location (`isRelativeLocation`).
  */
 export function resolvedPath(folder: string, path: string): string | null {
   return segmentsOf(folder, path)?.join("/") ?? null;

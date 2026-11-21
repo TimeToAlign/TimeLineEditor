@@ -773,6 +773,40 @@ while its right edge moves 50. Through the File menu, the
 schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
+**`ancestor-cards.spec.ts`** (Chromium) proves an ancestor card (TimeToShare's
+drawing specification, section 8.8) on the schema package's
+`groups/group_parent_both`, imported through the File menu, at zoom 1
+with the block's place origin at (240, 80) on the pane, so that the card
+reaching left of the frame stays on screen: the root `piece`, whose
+child `middle` is a member of `group_1`, runs on to both sides of its
+member. Selecting `piece` offers the Properties checkbox "Card behind its
+groups", not checked, and the block draws no `piece` card. Checking it
+journals one `style` entry and draws `piece`'s ancestor card, shadow and
+card addressed `{id: piece, part: [card]}`, at the layout's record
+(layout's README, "Ancestor cards", case 2): the card at `x="8"`
+`y="18.8047"`, `869.3354` × `63.3789` (869.33544921875 × 63.37890625 to
+four decimals), the frame now at `x="156.6318"` (8 + the block's origin
+shift 148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
+beyond the frame's left border and 869.33544921875 − 148.6318359375 −
+543.70361328125 = 177 beyond its right one. Nothing else on the canvas
+moves: the block's node moves left by exactly the origin shift (its
+transform from the block's place `(x, y)` to `(x − 148.6318359375, y)`,
+which Chromium writes to six significant digits)
+and the frame and the cards of `middle` and `recording` move right by it
+in its drawing (`x` 8 → `156.6318`, 16 → `164.6318`, each `y`, width
+and height as before: `8`, `32.8047`, `124.7578`; `543.7036` × `174.1367`,
+`527.7036` × `83.9531`, `527.7036` × `49.3789`), so on the canvas they
+lie where they lay; the block's place in the store is unchanged. The
+drawing is compared, never pixels. The card lies behind the
+frame: its rectangle precedes the frame's in the DOM. A double-click on a
+point of the card left of the frame, clear of everything drawn on it
+(`framePoint` of the card's address), opens the timeline editor of
+`{block, id: piece}`, and the card is raised over the frame: its rectangle
+now follows the frame's. Closing the editor (Done) and unchecking the
+checkbox removes the card again (one more `style` entry): no element is
+addressed `{id: piece, part: [card]}`, the frame and the cards are drawn
+as before the check and the node is back at the block's place.
+
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
 imported and its segment `b` selected, Delete and Backspace each show
@@ -985,9 +1019,14 @@ value as core's pretty text, the number, a space and its unit's pretty
 unit (`♩`, `ticks`), seconds with `″` and no pretty unit after, their decimals only
 where they are not zero; a map's row reads the map's name, a space and
 its value (the text of the two elements, separated by white space, as
-Playwright normalises it); and the footer `click to pin`: at
-`xStart + 123` on `melody` (2.46 quarters; divisors 1 to 14 miss, 15
-gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
+Playwright normalises it); and the footer `click to pin`. The flag holds
+one part per timeline the cross-section crosses (`data-timeline`), listed
+top to bottom as their lines lie, so each coordinate is read from its
+timeline's part, never by its place in the flag: at `xStart + 123` on
+`melody` (2.46 quarters; divisors 1 to 14 miss, 15 gives 37/15) the flag
+lists `phrase` (the child the line crosses, drawn above it at y 23) and
+then `melody`, exactly in that order, and `melody`'s
+coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
 (the float 37/30 rounded to three places), with one hovered wedge and one
 hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
 2.0); the same abscissa on `tempo`'s drawing still reads `melody` at 4

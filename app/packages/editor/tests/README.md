@@ -334,12 +334,15 @@ title's, so the refusal is a string the test hands in. The page's whole
 text is compared, so a mark, a separator or a file name too many fails.
 
 - `untitled`, file `untitled.tle.json`, dirty: the text is "• untitled",
-  one button named "Workspace name untitled, click to rename", and no
-  file name, since the file is the one the name gives (`workspaceFileName`
-  of the file module, whose own tests own its spelling).
+  one button named "Workspace name untitled, unsaved changes, click to
+  rename" (the name replaces the button's text for a screen reader, so it
+  says what the mark "•" shows), and no file name, since the file is the
+  one the name gives (`workspaceFileName` of the file module, whose own
+  tests own its spelling).
 - `LayerIt`, file `untitled.tle.json`, clean: the text is
   "LayerIt — untitled.tle.json", the file's name after the name because it
-  is not `LayerIt.tle.json`.
+  is not `LayerIt.tle.json`, and the button is named "Workspace name
+  LayerIt, click to rename".
 - A click on the button swaps in one text field labelled "Workspace name",
   holding `untitled`, focused, all its text selected (selection 0 to 8).
   Replacing the text by `LayerIt` and pressing Enter calls `onrename`
@@ -466,8 +469,10 @@ beside it, which serves its MatchClaim table alone (reading
 `projections.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 164 manifest fixtures, 16 warning cases, the table fixture and 5
-workspaces, 186 options, from `bare` to
+is 170 manifest fixtures (85 and their minimal twins: 51 at the top
+level, 14 in `groups/`, 16 in `bundles/`, 4 in `statements/`, as the
+schema package's fixture README counts them), 16 warning cases, the table
+fixture and 5 workspaces, 192 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -477,7 +482,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 181 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 187 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -556,8 +561,9 @@ keys, so only a changed value fails a comparison) and the store (what it
 accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
-   Each manifest fixture of the installed schema version (top level,
-   `groups/`, `bundles/`; a minimal twin reads back as its complete fixture,
+   Each manifest fixture of the installed schema version (the 51 of the
+   top level, the 14 of `groups/` and the 16 of `bundles/`, the schema
+   package's counts; a minimal twin reads back as its complete fixture,
    a case already) is written in each format and read back, and `dumps` of
    the value read equals the fixture's bytes; the YAML text written is the
    fixture's bytes themselves.
@@ -1702,14 +1708,44 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - *Both tabs alike.* The Timestamp tab showing `timestamp_11` lists, heading for
      heading and row for row ([label, text, unit]), the first coordinate's
      three groups.
-   - *Potential.* On the same manifest, unnamed, with a table of one
-     MatchClaim `score` 6 – `performance` 3.0 (timelines `performance`
-     float, `score` fraction), the potential MatchStamp shows both
-     timestamp lines' GroupStamp pressed and disabled (naming stores
-     GroupStamps), and its Coordinates read no group: "Second half"
-     crossed, "Score" claimed, then "Performance" claimed [3.0 s; `cmap_3`
-     132300 smp]. Nothing is stored yet, and the potential overlay draws no
-     frame line.
+   - *Potential.* One rule: a potential MatchStamp's timestamp line and
+     its Coordinates both show the match timestamp naming will store
+     there (core's `namedAsGroupstamp`): where the manifest holds a match
+     timestamp on that timeline at that exact value, naming takes it and
+     it keeps its own `groupstamp`; else naming adds one, a GroupStamp
+     exactly where the timeline lies in a group. The toggle shows that,
+     disabled until the MatchStamp is named, and the Coordinates read the
+     group through the arranger's `timelinePin` exactly where it is on,
+     nothing stored, so they equal the named MatchStamp's before and after
+     naming. On the same manifest, unnamed, with a table of one MatchClaim
+     `score` 6 – `performance` 3.0 (timelines `performance` float, `score`
+     fraction), the potential MatchStamp shows both timestamp lines'
+     GroupStamp pressed and disabled (naming adds two GroupStamps), and its
+     Coordinates are exactly those of the named "Turn" with both
+     GroupStamps on (above): "Second half" crossed, "Score" claimed,
+     "Performance" through group 'Performance', then "Score" through group
+     'Performance' [72/25 ♩], "Performance" claimed. Nothing is stored yet,
+     and the potential overlay draws no frame line.
+   - *Potential, reusing a match timestamp that is no GroupStamp.* With
+     "Turn" named and `timestamp_12`'s GroupStamp turned off, a table of
+     one MatchClaim `claim_2`, `score` 5 – `performance` 3.0, shows the
+     potential MatchStamp whose coordinate on `performance` lies on
+     `timestamp_12`: its line "Performance 3″" shows GroupStamp not
+     pressed (naming takes `timestamp_12` as it is), the line "Score 5 ♩"
+     pressed (naming adds a GroupStamp on `score` at 5), both disabled;
+     the coordinate on `performance`, read without its group, lists
+     "Performance" claimed alone [3.0 s; `cmap_3` 132300 smp], the last
+     group of the Coordinates, after the coordinate on `score`, read
+     through the group: "Second half" crossed [1 ♩, 5 − its offset 4],
+     "Score" claimed [5 ♩], "Performance" through group 'Performance'
+     [125/24 s = 5 × 12.5/12, written as the float nearest it,
+     5.208333333333333; `cmap_3` 229688 smp: that float times 44100 is
+     229687.5 in binary64, a tie, which an int axis rounds to the even
+     integer]. Naming it then stores
+     `timestamp_12` unchanged (`groupstamp: false`) and a new
+     `timestamp_13` on `score` at 5 with `groupstamp: true`, and the named
+     MatchStamp's lines show exactly the states the potential one
+     showed.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`

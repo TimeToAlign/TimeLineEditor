@@ -9,7 +9,7 @@
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
-import { JsonFloat, jsonInteger as statedInteger } from "@timetoalign/timetoshare";
+import { JsonFloat, jsonInteger } from "@timetoalign/timetoshare";
 import type { PathSegment } from "../json.ts";
 import { showJson } from "../json.ts";
 import type { AxisValue } from "../manifest/types.ts";
@@ -106,8 +106,8 @@ export function readAxisValue(
     }
     // A member is any JSON integer, an integral float included (`[1, 8.0]` is 1/8), as
     // TimeToShare reads it: the number type fixes the form, the spelling within it is free.
-    const numerator = statedInteger(data[0]);
-    const denominator = statedInteger(data[1]);
+    const numerator = jsonInteger(data[0]);
+    const denominator = jsonInteger(data[1]);
     if (numerator === null || denominator === null) {
       throw new CoordinateError(
         `invalid JSON Fraction ${shown}: components must be integers`,
@@ -145,12 +145,12 @@ export function readAxisValue(
 }
 
 /** An integer as `parse` represents it: a plain number when safe, a bigint beyond. */
-export function jsonInteger(value: bigint): number | bigint {
+export function parsedInteger(value: bigint): number | bigint {
   return value >= -SAFE && value <= SAFE ? Number(value) : value;
 }
 
 /** A float as `parse` represents it: a `JsonFloat` when integral, a plain number otherwise. */
-export function jsonFloat(value: number): JsonFloat | number {
+export function parsedFloat(value: number): JsonFloat | number {
   return Number.isInteger(value) || Object.is(value, -0) ? new JsonFloat(value) : value;
 }
 
@@ -179,10 +179,10 @@ export function toAxisValue(coordinate: Coordinate): AxisValue {
 /** An exact value as a manifest writes it on its own axis (`toAxisValue`). */
 export function axisValueOf(value: CoordinateValue): AxisValue {
   return value instanceof Rational
-    ? [jsonInteger(value.numerator), jsonInteger(value.denominator)]
+    ? [parsedInteger(value.numerator), parsedInteger(value.denominator)]
     : typeof value === "bigint"
-      ? jsonInteger(value)
-      : jsonFloat(value);
+      ? parsedInteger(value)
+      : parsedFloat(value);
 }
 
 /** Whether two coordinates share unit and number type. */
