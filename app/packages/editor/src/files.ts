@@ -1,8 +1,10 @@
 /**
  * Opening and saving files: through the File System Access API where the
- * browser has it (a save writes back to the file it opened or last saved),
- * otherwise through a file input and a download. A cancelled picker is
- * `null`, never an error.
+ * browser has it (a save writes back to the file it opened or last saved,
+ * once the browser lets it write there), otherwise through a file input and
+ * a download. A cancelled picker is `null`, never an error. Where the
+ * browser hands over folders, the files a manifest names are read from
+ * the folder chosen as the manifest's.
  */
 
 import type { Entry, Manifest } from "@timetoalign/tilie-core";
@@ -55,6 +57,24 @@ export function withMatchClaimTable(kind: FileKind): FileKind {
     description: `${kind.description} and MatchClaim table`,
     accept: { ...kind.accept, ...MATCH_CLAIM_TABLE.accept },
   };
+}
+
+/**
+ * What Open… offers: a workspace, manifest files (imported, as Import
+ * manifest… imports them) and the MatchClaim tables beside either.
+ */
+export const OPENABLE_FILE: FileKind = {
+  description: "TimeLineEditor workspace, TimeToShare manifest and MatchClaim table",
+  accept: {
+    "application/json": [WORKSPACE_EXTENSION, JSON_EXTENSION],
+    "application/yaml": [YAML_EXTENSION, ".yml"],
+    ...MATCH_CLAIM_TABLE.accept,
+  },
+};
+
+/** Whether the file named `name` is a workspace file to Open…: its extension is `.tle.json`. */
+export function isWorkspaceFile(name: string): boolean {
+  return name.toLowerCase().endsWith(WORKSPACE_EXTENSION);
 }
 
 /** Whether the file named `name` is a MatchClaim table to the pickers: its extension is `.parquet`. */
@@ -191,10 +211,49 @@ function chooseFiles(kind: FileKind, multiple: boolean): Promise<File[]> {
   });
 }
 
+/** How a handle is used: read, or read and written. */
+type Access = "read" | "readwrite";
+
+/** The permission calls of a handle, where the browser has them. */
+interface Permissions {
+  queryPermission?: (descriptor: { mode: Access }) => Promise<PermissionState>;
+  requestPermission?: (descriptor: { mode: Access }) => Promise<PermissionState>;
+}
+
 /**
- * Save `text` (a text, or the bytes of a `Blob`): into `handle` when
- * given, else to a file the viewer picks, offered as `name`. Without the
- * pickers it is downloaded as `name`. `null` when the viewer cancels.
+ * Whether the browser lets the page use `handle` for `access`, asking the
+ * user where it must (a handle kept from an earlier visit; the browser asks
+ * only while the user's last key or click is recent). A browser without
+ * the permission calls lets every handle it gave be used; one that cannot
+ * ask now refuses.
+ */
+export async function permitted(handle: FileSystemHandle, access: Access): Promise<boolean> {
+  const { queryPermission, requestPermission } = handle as FileSystemHandle & Permissions;
+  if (queryPermission === undefined) return true;
+  try {
+    if ((await queryPermission.call(handle, { mode: access })) === "granted") return true;
+    if (requestPermission === undefined) return false;
+    return (await requestPermission.call(handle, { mode: access })) === "granted";
+  } catch {
+    return false;
+  }
+}
+
+/** The failures of writing into a kept handle after which the user picks the file instead. */
+const NOT_WRITABLE = new Set(["NotAllowedError", "SecurityError", "NotFoundError"]);
+
+/** Write `text` into `handle`. */
+async function write(handle: FileSystemFileHandle, text: string | Blob): Promise<void> {
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+/**
+ * Save `text` (a text, or the bytes of a `Blob`): into `handle` when given
+ * and the browser lets the page write there (`permitted`), else to a file
+ * the viewer picks, offered as `name` (Save as). Without the pickers it is
+ * downloaded as `name`. `null` when the viewer cancels.
  */
 export async function saveFile(
   text: string | Blob,
@@ -202,21 +261,22 @@ export async function saveFile(
   name: string,
   handle: FileSystemFileHandle | null = null,
 ): Promise<Saved | null> {
+  if (handle !== null && (await permitted(handle, "readwrite"))) {
+    try {
+      await write(handle, text);
+      return { name: handle.name, handle };
+    } catch (error) {
+      if (!(error instanceof DOMException && NOT_WRITABLE.has(error.name))) throw error;
+    }
+  }
   const { showSaveFilePicker } = pickers();
-  if (handle === null && showSaveFilePicker === undefined) {
+  if (showSaveFilePicker === undefined) {
     download(text, name, mediaType(kind));
     return { name, handle: null };
   }
   try {
-    const target =
-      handle ??
-      (await (showSaveFilePicker as NonNullable<Pickers["showSaveFilePicker"]>)({
-        types: types(kind),
-        suggestedName: name,
-      }));
-    const writable = await target.createWritable();
-    await writable.write(text);
-    await writable.close();
+    const target = await showSaveFilePicker({ types: types(kind), suggestedName: name });
+    await write(target, text);
     return { name: target.name, handle: target };
   } catch (error) {
     if (cancelled(error)) return null;
@@ -235,6 +295,109 @@ function download(text: string | Blob, name: string, type: string): void {
   link.remove();
   // The download has started from the click; the URL is no longer needed after this turn.
   setTimeout(() => URL.revokeObjectURL(url));
+}
+
+/** The File System Access directory picker, where the browser has one. */
+interface DirectoryPicker {
+  showDirectoryPicker?: (options: { mode: Access }) => Promise<FileSystemDirectoryHandle>;
+}
+
+/** The entries of a directory, which the DOM types of this TypeScript version do not list. */
+interface Listed {
+  values(): AsyncIterable<FileSystemHandle>;
+}
+
+/** Whether the browser hands over folders (`chooseFolder`); without, no folder is ever asked for. */
+export function canChooseFolders(): boolean {
+  return (globalThis as DirectoryPicker).showDirectoryPicker !== undefined;
+}
+
+/** Let the viewer choose a folder to read from; `null` when they cancel or the browser cannot. */
+export async function chooseFolder(): Promise<FileSystemDirectoryHandle | null> {
+  const { showDirectoryPicker } = globalThis as DirectoryPicker;
+  if (showDirectoryPicker === undefined) return null;
+  try {
+    return await showDirectoryPicker({ mode: "read" });
+  } catch (error) {
+    if (cancelled(error)) return null;
+    throw error;
+  }
+}
+
+/**
+ * The path within a folder that the location `url` names, relative to a
+ * file in that folder (as a manifest's `resources` state locations): its
+ * segments, decoded, `.` and `..` applied; `null` for a location no folder
+ * holds (with a scheme, from the root, above the folder, or none at all).
+ */
+export function folderPath(url: string): string[] | null {
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(url) || url.startsWith("/")) return null;
+  const [path = ""] = url.split(/[?#]/u, 1);
+  const segments: string[] = [];
+  for (const part of path.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") {
+      if (segments.pop() === undefined) return null;
+      continue;
+    }
+    try {
+      segments.push(decodeURIComponent(part));
+    } catch {
+      return null;
+    }
+  }
+  return segments.length === 0 ? null : segments;
+}
+
+/** Whether `error` says a file or folder is not there (or is the other kind). */
+function absent(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === "NotFoundError" || error.name === "TypeMismatchError")
+  );
+}
+
+/**
+ * The file at the location `url` (`folderPath`) in `folder`; `null` where
+ * the folder holds none there, the location is none a folder holds, or the
+ * browser does not let the page read the folder (`permitted`). Rejects when
+ * reading failed otherwise.
+ */
+export async function readInFolder(
+  folder: FileSystemDirectoryHandle,
+  url: string,
+): Promise<File | null> {
+  const path = folderPath(url);
+  if (path === null || !(await permitted(folder, "read"))) return null;
+  const directories = path.slice(0, -1);
+  const name = path[path.length - 1] ?? "";
+  try {
+    let directory = folder;
+    for (const segment of directories) directory = await directory.getDirectoryHandle(segment);
+    return await (await directory.getFileHandle(name)).getFile();
+  } catch (error) {
+    if (absent(error)) return null;
+    throw error;
+  }
+}
+
+/**
+ * The manifest files directly in `folder`, by name: every `.yaml`, `.yml`
+ * and `.json` file but workspace files.
+ */
+export async function manifestFiles(folder: FileSystemDirectoryHandle): Promise<Opened[]> {
+  const extensions = Object.values(MANIFEST_FILE.accept).flat();
+  const found: Opened[] = [];
+  for await (const entry of (folder as FileSystemDirectoryHandle & Listed).values()) {
+    if (entry.kind !== "file" || isWorkspaceFile(entry.name)) continue;
+    const lower = entry.name.toLowerCase();
+    if (!extensions.some((extension) => lower.endsWith(extension))) continue;
+    const handle = entry as FileSystemFileHandle;
+    found.push({ name: entry.name, file: await handle.getFile(), handle });
+  }
+  return found.sort((left, right) =>
+    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+  );
 }
 
 /**

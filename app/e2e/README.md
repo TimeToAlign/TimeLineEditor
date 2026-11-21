@@ -412,6 +412,34 @@ the About pane names the editor, the bundled packages and the server
 (offline in the test build, where no server answers the health check) and
 links a notices file the build serves.
 
+**`open-save.spec.ts`** (Chromium, Firefox, WebKit) proves Open… with a
+manifest and Save in place. With the pickers deleted (the fallback path):
+`bare.yaml` opened into the new, empty workspace is imported without a
+question (one block); opened again, the question "Add bare.yaml to the
+open workspace, or open it in a new, empty workspace?" is asked: Add makes
+two blocks; New workspace downloads the unsaved workspace under
+`untitled.tle.json` with exactly the hook's `text()` of before, then
+leaves one block. With pickers stubbed in the page (an open picker handing
+over one in-page file handle holding a workspace file, whose writes are
+recorded, and a save picker that records its calls): the opened file's
+name is shown, a change marks it, Ctrl/Cmd+S writes the hook's `text()`
+into that handle, clears the mark and calls no save picker; with the
+handle's write permission refused, Ctrl/Cmd+S calls the save picker.
+
+**`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
+the tables a manifest names, the table route replayed from the client's
+recording (`match-claims.answer.bin`, `rows` read from its header): the
+table fixture opened from the Fixture menu, its tables served beside it,
+loads both on the `m` key without a dialog and with one table request;
+the same manifest imported from the system, Show matches (its toolbar
+button) opens "Load the tables of The manifest" with one group per table,
+Load disabled until a file is chosen, and loads the chosen files with one
+request; a URL entered is fetched once and loaded; Cancel loads nothing
+and adds no message; and "Choose the manifest's folder…" (the directory
+picker stubbed in the page by an in-page folder holding both tables) loads
+both without asking for anything else. Each loaded table's status line in
+the Matchstamp tab reads "match_claims.parquet: <rows> MatchClaims".
+
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
 `small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is
 applied as one `set` of the manifest and undone by Undo; a refused edit

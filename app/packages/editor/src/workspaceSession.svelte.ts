@@ -17,7 +17,15 @@ import {
   NOTHING_SELECTED,
   selectionOf,
 } from "@timetoalign/tilie-arranger";
-import type { Address, LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Block,
+  LoadError,
+  Problem,
+  Store,
+  View,
+  Workspace,
+} from "@timetoalign/tilie-core";
 import {
   createStore,
   ErrorCode,
@@ -36,10 +44,13 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Example } from "./examples.ts";
 import type { Opened } from "./files.ts";
 import {
+  chooseFolder,
   isMatchClaimTable,
+  isWorkspaceFile,
   MANIFEST_FILE,
   manifestFileKind,
   manifestFileName,
+  manifestFiles,
   openFiles,
   saveFile,
   UNTITLED,
@@ -50,6 +61,7 @@ import {
 import { fileNameOf } from "./inspector/matchstamps.ts";
 import {
   type AskTables,
+  type FolderMemory,
   MATCHES_NEED_A_SERVER,
   type MatchClaimServer,
   MatchClaimTables,
@@ -99,6 +111,21 @@ export interface SessionOptions {
   readonly matchClaims?: MatchClaimServer | null;
   /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
   readonly askTables?: AskTables | null;
+  /** Where the folders of blocks' manifests are kept beyond the session; without it, for the session only. */
+  readonly folders?: FolderMemory | null;
+}
+
+/**
+ * The blocks of `view` as they lie on the canvas: from the top, then from
+ * the left, by the position of each block's drawing (ties by ID).
+ */
+function onScreen(view: View): Block[] {
+  return Object.values(view.blocks).sort(
+    (left, right) =>
+      left.y - right.y ||
+      left.x - right.x ||
+      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+  );
 }
 
 /** Whether two selections name the same addresses. */
@@ -133,7 +160,11 @@ export class WorkspaceSession {
 
   constructor(options: SessionOptions) {
     this.#options = options;
-    this.tables = new MatchClaimTables(options.matchClaims ?? null, options.askTables ?? null);
+    this.tables = new MatchClaimTables(
+      options.matchClaims ?? null,
+      options.askTables ?? null,
+      options.folders ?? null,
+    );
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
   }
@@ -276,21 +307,78 @@ export class WorkspaceSession {
   }
 
   /**
-   * Import the manifest files the viewer picks, each as one new block
-   * (`#add`), with the MatchClaim tables picked beside them (`readTables`).
+   * Import the manifest files the viewer picks, each as one new block, with
+   * the MatchClaim tables picked beside them (`importPicked`).
    */
   async importManifest(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
     try {
-      const picked = await openFiles(withMatchClaimTable(MANIFEST_FILE), true);
-      const blocks: string[] = [];
-      for (const opened of picked) {
-        if (isMatchClaimTable(opened.name)) continue;
-        const block = this.#add(opened.name, await opened.file.text(), canvas, metrics);
-        if (block !== null) blocks.push(block);
-      }
-      await this.readTables(picked, blocks);
+      await this.importPicked(
+        await openFiles(withMatchClaimTable(MANIFEST_FILE), true),
+        canvas,
+        metrics,
+      );
     } catch (error) {
       this.#options.warn(`The file could not be imported: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * Import the manifest files among `picked`, each as one new block
+   * (`#add`), with the MatchClaim tables among them (`readTables`); the new
+   * blocks.
+   */
+  async importPicked(
+    picked: readonly Opened[],
+    canvas: ImportTarget,
+    metrics: FontMetrics,
+  ): Promise<string[]> {
+    const blocks: string[] = [];
+    for (const opened of picked) {
+      if (isMatchClaimTable(opened.name)) continue;
+      const block = this.#add(opened.name, await opened.file.text(), canvas, metrics);
+      if (block !== null) blocks.push(block);
+    }
+    await this.readTables(picked, blocks);
+    return blocks;
+  }
+
+  /**
+   * Import the manifests of a folder the viewer chooses (where the browser
+   * hands over folders), each manifest file directly in it as one new
+   * block (`#add`), the folder kept as each block's, so the tables its
+   * manifest names are read from there (`MatchClaimTables.inFolder`). A
+   * file there that is no manifest is left, and said so; a folder holding
+   * none says so.
+   */
+  async importFolder(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
+    try {
+      const folder = await chooseFolder();
+      if (folder === null) return;
+      const manifests: Opened[] = [];
+      const left: string[] = [];
+      for (const opened of await manifestFiles(folder)) {
+        if (isLoadError(readManifestFile(await opened.file.text()))) left.push(opened.name);
+        else manifests.push(opened);
+      }
+      if (manifests.length === 0) {
+        this.#options.warn(
+          `The folder ${folder.name} holds no manifest TimeLineEditor can import.`,
+        );
+        return;
+      }
+      if (left.length > 0) {
+        this.#options.inform?.(`Left ${left.join(", ")} in ${folder.name}: no manifest.`);
+      }
+      const blocks: string[] = [];
+      for (const opened of manifests) {
+        const block = this.#add(opened.name, await opened.file.text(), canvas, metrics);
+        if (block === null) continue;
+        this.tables.inFolder(block, folder);
+        blocks.push(block);
+      }
+      await this.readTables([], blocks);
+    } catch (error) {
+      this.#options.warn(`The folder could not be imported: ${messageOf(error)}`);
     }
   }
 
@@ -347,19 +435,20 @@ export class WorkspaceSession {
 
   /**
    * Load the tables every block's manifest names whose MatchClaim table is
-   * not loaded (what turning Show matches on asks), block after block in
-   * the view's order: from where the manifest came from, else as the user
-   * chooses them (`MatchClaimTables.loadNamed`); what each load says goes
-   * to the message bar. A call while one is under way is ignored.
+   * not loaded (what turning Show matches on asks), block after block as
+   * they lie on the canvas (from the top, then from the left): from where
+   * the manifest came from, else as the user chooses them
+   * (`MatchClaimTables.loadNamed`); what each load says goes to the
+   * message bar. A call while one is under way is ignored.
    */
   async loadNamedTables(): Promise<void> {
     if (this.#loadingTables) return;
     this.#loadingTables = true;
     try {
-      for (const block of Object.keys(this.store.view.blocks)) {
-        const manifest = this.store.view.blocks[block]?.manifest;
+      for (const { id } of onScreen(this.store.view)) {
+        const manifest = this.store.view.blocks[id]?.manifest;
         if (manifest === undefined) continue;
-        this.post(await this.tables.loadNamed(block, manifest));
+        this.post(await this.tables.loadNamed(id, manifest));
       }
     } finally {
       this.#loadingTables = false;
@@ -373,14 +462,13 @@ export class WorkspaceSession {
   }
 
   /**
-   * Open the workspace file among `picked` as saved (`open`), the
-   * MatchClaim tables picked beside it read as its blocks' (`readTables`);
-   * the reader's refusal, or `null` when it opened. Every other file is
-   * reported and left.
+   * Open the workspace file among `picked` (`isWorkspaceFile`) as saved
+   * (`open`), the MatchClaim tables picked beside it read as its blocks'
+   * (`readTables`); the reader's refusal, or `null` when it opened. Every
+   * other file is reported and left.
    */
   async openPicked(picked: readonly Opened[]): Promise<LoadError | null> {
-    const workspaces = picked.filter((opened) => !isMatchClaimTable(opened.name));
-    const [workspace, ...others] = workspaces;
+    const [workspace, ...others] = picked.filter((opened) => isWorkspaceFile(opened.name));
     if (workspace === undefined) {
       this.#options.warn(
         "No workspace file was picked: a MatchClaim table opens with its workspace.",
@@ -389,6 +477,10 @@ export class WorkspaceSession {
     }
     for (const other of others)
       this.#options.warn(`${other.name} was not opened: one workspace opens at a time.`);
+    for (const other of picked) {
+      if (isWorkspaceFile(other.name) || isMatchClaimTable(other.name)) continue;
+      this.#options.warn(`${other.name} was not opened: a manifest is opened without a workspace.`);
+    }
     const refusal = this.open(await workspace.file.text(), workspace.name, workspace.handle);
     if (refusal !== null) return refusal;
     await this.readTables(picked, Object.keys(this.store.view.blocks));
