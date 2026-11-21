@@ -1,6 +1,5 @@
 <script lang="ts">
 import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
-import { findTimeline } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -36,12 +35,13 @@ import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
 import type { LiveStore } from "./liveStore.svelte.ts";
 import MatchFlag from "./MatchFlag.svelte";
 import MatchOverlay from "./MatchOverlay.svelte";
-import type { MatchHit, MatchLayer, MatchOverlayInput, Screen } from "./matches.ts";
+import type { MatchHit, MatchLayer, MatchOverlayInput, MatchStampPin, Screen } from "./matches.ts";
 import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
   NO_MATCHES,
+  NO_TABLES,
   overlayOf,
   staleAnchors,
   stampOverlay,
@@ -112,21 +112,22 @@ interface Props {
    */
   picking?: ((address: Address) => void) | null;
   /**
-   * What "Show matches" draws: the anchor index of the loaded MatchClaim
-   * table, over every block drawing a timeline it names, and the named
-   * MatchStamps compared with it, whose alignment anchors no longer stated
-   * are drawn red; `null` (the default) without a server or a loaded table,
-   * when "Show matches" says so and nothing is drawn red.
+   * What "Show matches" draws: one entry per block with a loaded MatchClaim
+   * table, the anchor index of that table drawn over that block alone, and
+   * the block's named MatchStamps compared with it, whose alignment anchors
+   * no longer stated are drawn red; empty (the default) without a server or
+   * a loaded table, when "Show matches" says so and nothing is drawn red.
    */
-  matches?: MatchOverlayInput | null;
-  /** The pinned potential MatchStamp, a set number of `matches.index`, drawn blue; `null` for none. */
-  pinnedMatchStamp?: number | null;
+  matches?: readonly MatchOverlayInput[];
+  /** The pinned potential MatchStamp, drawn blue in its block; `null` for none. */
+  pinnedMatchStamp?: MatchStampPin | null;
   /**
    * While "Show matches" is on, called with the potential MatchStamp a click
-   * on its line or connector pins, and with `null` on any other click on the
-   * canvas; called with `null` when "Show matches" is turned off.
+   * on its line or connector pins, with its block, and with `null` on any
+   * other click on the canvas; called with `null` when "Show matches" is
+   * turned off.
    */
-  onmatchstamppin?: (set: number | null) => void;
+  onmatchstamppin?: (pin: MatchStampPin | null) => void;
 }
 
 let {
@@ -143,7 +144,7 @@ let {
   oncoordinatepin,
   measureMaps,
   picking = null,
-  matches = null,
+  matches = NO_TABLES,
   pinnedMatchStamp = null,
   onmatchstamppin,
 }: Props = $props();
@@ -578,6 +579,11 @@ $effect(() => () => frames.cancel());
 /** No anchor drawn red. */
 const NONE_STALE: ReadonlySet<string> = new Set();
 
+/** The match input of each block holding a table, by the block's ID. */
+const matchInputs: ReadonlyMap<string, MatchOverlayInput> = $derived(
+  new Map(matches.map((input) => [input.block, input])),
+);
+
 /** The device pixels per CSS pixel. */
 function deviceRatio(): number {
   return typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
@@ -594,33 +600,32 @@ const screen: Screen = $derived({
 });
 
 /**
- * The address keys of each block's alignment anchors the table no longer
- * states (`staleAnchors`): with a table, for every block whose manifest holds
- * a timeline the table names; none without one.
+ * The address keys of each block's alignment anchors its table no longer
+ * states (`staleAnchors`), for every block with a table; none without one.
  */
-const staleByBlock: ReadonlyMap<string, ReadonlySet<string>> = $derived.by(() => {
-  if (matches === null) return new Map();
-  const { index, named } = matches;
-  const timelines = [...index.timelineNumbers.keys()];
-  return new Map(
-    Object.values(view.blocks).flatMap((block) => {
-      if (!timelines.some((id) => findTimeline(block.manifest, id) !== undefined)) return [];
-      const stale = staleAnchors(block.manifest, named);
-      return stale.size === 0 ? [] : [[block.id, stale] as const];
-    }),
-  );
-});
+const staleByBlock: ReadonlyMap<string, ReadonlySet<string>> = $derived.by(
+  () =>
+    new Map(
+      matches.flatMap(({ block, named }) => {
+        const manifest = view.blocks[block]?.manifest;
+        const stale = manifest === undefined ? NONE_STALE : staleAnchors(manifest, named);
+        return stale.size === 0 ? [] : [[block, stale] as const];
+      }),
+    ),
+);
 
-/** Per shown block drawing a timeline of the table, its lines and what it draws in view. */
+/** Per shown block with a table drawing a timeline of it, its index, its lines and what it draws in view. */
 const matchBlocks = $derived.by(() => {
-  if (!showMatches || matches === null) return [];
-  const { index } = matches;
+  if (!showMatches) return [];
   return nodes.nodes.flatMap((node) => {
     const { block, drawing } = node.data;
+    const input = matchInputs.get(block.id);
+    if (input === undefined) return [];
+    const { index } = input;
     const lines = matchLinesOf(drawing, index);
     if (lines.all.length === 0) return [];
     const placed = { origin: node.position, scale: block.scale };
-    return [{ node, lines, placed, overlay: overlayOf(index, lines, placed, screen) }];
+    return [{ node, index, lines, placed, overlay: overlayOf(index, lines, placed, screen) }];
   });
 });
 
@@ -635,12 +640,10 @@ const matchHover: { readonly block: string; readonly hit: MatchHit } | null = $d
  * the nearest in device pixels, a later block on a tie; `null` where none.
  */
 function matchHitOf(point: Point): { readonly block: string; readonly hit: MatchHit } | null {
-  if (matches === null) return null;
-  const { index } = matches;
   const { x, y, zoom } = viewport;
   const canvas = { x: (point.x - x) / zoom, y: (point.y - y) / zoom };
   let found: { block: string; hit: MatchHit; devicePixels: number } | null = null;
-  for (const { node, lines, placed, overlay } of matchBlocks) {
+  for (const { node, index, lines, placed, overlay } of matchBlocks) {
     const devicePixels = zoom * placed.scale * screen.ratio;
     const local = {
       x: (canvas.x - placed.origin.x) / placed.scale,
@@ -651,37 +654,38 @@ function matchHitOf(point: Point): { readonly block: string; readonly hit: Match
       hit !== null &&
       (found === null || hit.distance * devicePixels <= found.hit.distance * found.devicePixels)
     ) {
-      found = { block: node.id, hit, devicePixels };
+      found = { block: node.data.block.id, hit, devicePixels };
     }
   }
   return found === null ? null : { block: found.block, hit: found.hit };
 }
 
 /** What the overlay draws: per block the potential MatchStamps, the hovered and the pinned one. */
-const matchLayers: readonly MatchLayer[] = $derived.by(() => {
-  if (matches === null) return [];
-  const { index } = matches;
-  const hovered = matchHover?.hit.stamp ?? null;
-  const pinned = pinnedMatchStamp;
-  return matchBlocks.map(({ node, lines, placed, overlay }) => ({
-    block: node.id,
-    width: node.data.drawing.width,
-    height: node.data.drawing.height,
-    origin: placed.origin,
-    scale: placed.scale,
-    potential: overlay,
-    hovered: hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
-    pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
-  }));
-});
+const matchLayers: readonly MatchLayer[] = $derived.by(() =>
+  matchBlocks.map(({ node, index, lines, placed, overlay }) => {
+    const block = node.data.block.id;
+    const hovered = matchHover?.block === block ? matchHover.hit.stamp : null;
+    const pinned = pinnedMatchStamp?.block === block ? pinnedMatchStamp.matchStamp : null;
+    return {
+      block,
+      width: node.data.drawing.width,
+      height: node.data.drawing.height,
+      origin: placed.origin,
+      scale: placed.scale,
+      potential: overlay,
+      hovered: hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
+      pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
+    };
+  }),
+);
 
 /** The hovered MatchStamp's flag: its groups and its place in canvas pixels. */
 const matchFlagShown = $derived.by(() => {
   const hovered = matchHover;
-  if (hovered === null || matches === null) return null;
-  const shown = matchBlocks.find(({ node }) => node.id === hovered.block);
+  if (hovered === null) return null;
+  const shown = matchBlocks.find(({ node }) => node.data.block.id === hovered.block);
   if (shown === undefined) return null;
-  const { node, lines, placed } = shown;
+  const { node, index, lines, placed } = shown;
   const { x, y, zoom } = viewport;
   const screenOf = (dx: number, dy: number) => ({
     x: x + (placed.origin.x + dx * placed.scale) * zoom,
@@ -691,7 +695,7 @@ const matchFlagShown = $derived.by(() => {
   const foot = screenOf(at.x, at.y);
   const decimals = (granularity ?? view.settings.granularity).decimals;
   return {
-    groups: matchFlag(matches.index, node.data.block.manifest, lines, stamp, decimals),
+    groups: matchFlag(index, node.data.block.manifest, lines, stamp, decimals),
     x: foot.x,
     y: foot.y,
     top: screenOf(at.x, at.top).y,
@@ -704,10 +708,10 @@ const matchFlagShown = $derived.by(() => {
  * anywhere else; without a table it pins nothing.
  */
 function pinMatchStamp(point: Point | null): void {
-  if (matches === null) return;
+  if (matches.length === 0) return;
   const read = point === null ? null : matchHitOf(point);
   announced = read === null ? "" : "Pinned a MatchStamp";
-  onmatchstamppin?.(read?.hit.stamp ?? null);
+  onmatchstamppin?.(read === null ? null : { block: read.block, matchStamp: read.hit.stamp });
 }
 
 /** Turn "Show matches" on or off, "Show coordinates" off with it on; turned off, the pin is cleared. */
@@ -980,7 +984,7 @@ function onkeydowncapture(event: KeyboardEvent) {
       width={root?.clientWidth ?? 0}
     />
   {/if}
-  {#if showMatches && matches === null}
+  {#if showMatches && matches.length === 0}
     <p class="tilie-matches-state" data-testid="matches-state" role="status">{NO_MATCHES}</p>
   {/if}
   <p class="tilie-hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>

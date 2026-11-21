@@ -534,6 +534,7 @@ describe("lineAxes", () => {
       },
     ).toEqual({
       timeline: "form",
+      card: { item: "form" },
       y: 27.5,
       xStart: 49.84033203125,
       xEnd: 449.84033203125,
@@ -570,8 +571,14 @@ describe("lineAxes", () => {
     const drawings = [
       placeKeyText({ item: "g1", member: "t" }) + addressKey(at("t")),
       placeKeyText({ item: "g2", member: "t" }) + addressKey(at("t")),
-    ].map((key) => axes.get(key)?.timeline);
-    expect(drawings).toEqual(["t", "t"]);
+    ].map((key) => {
+      const axis = axes.get(key);
+      return axis && { timeline: axis.timeline, card: axis.card };
+    });
+    expect(drawings).toEqual([
+      { timeline: "t", card: { item: "g1", member: "t" } },
+      { timeline: "t", card: { item: "g2", member: "t" } },
+    ]);
   });
 });
 

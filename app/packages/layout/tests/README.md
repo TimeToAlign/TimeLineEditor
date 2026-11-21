@@ -1496,19 +1496,20 @@ own axis (section 3.4), none otherwise.
 **`lineAxes(drawing)`** gives the same lines for a hit test, one entry per
 axis, keyed by the card's place key text followed by the timeline's address
 key, so two drawings of one timeline keep two entries: `timeline` the ID,
-`y` the ordinate, `xStart` and `xEnd`, `start`, `length` (`end − start`,
+`card` the place key of the card drawing it (the axis's own, so a reader
+needs no second walk to tell the cards apart), `y` the ordinate, `xStart` and `xEnd`, `start`, `length` (`end − start`,
 null where the end is not known), `drawnLength` (`drawnEnd − start`, the
 coordinates the line spans as drawn), `numberType`, `unit`, the segments and the
 maps as the axis lists them. For the segment line `form` of the slots
 section (`x0 = 16 + 25.84033203125 + 8 = 49.84033203125`, `x(t) = x0 + 12.5
-t`): one entry keyed by `form`'s card `{item: form}`, `y` 27.5, `xStart`
+t`): one entry keyed by `form`'s card `{item: form}`, its `card` that key, `y` 27.5, `xStart`
 49.84033203125, `xEnd` 449.84033203125, start 0, length 32, drawn length
 32, segments `A`
 (0, 8), `B` (8, 12), `C` (20, 12); maps `form_ticks` (owner `form`, `yc`
 22, from 49.84033203125 to 449.84033203125) and `b_ticks` (owner `B`, `yc`
 17, from 149.84033203125 to 299.84033203125). `bundle__bundle_shared_member`
 draws `t` in two cards: two entries for `t`, keyed by `{item: g1, member:
-t}` and `{item: g2, member: t}`.
+t}` and `{item: g2, member: t}`, each carrying its key as its `card`.
 
 **`abscissaOf(line, t)`** is the abscissa of the coordinate `t` on the
 line's own axis on its drawn scale, `xStart + (t − start) / drawnLength ×

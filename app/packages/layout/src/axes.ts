@@ -24,6 +24,8 @@ import { add, negate } from "./numbers.ts";
 export interface LineAxis {
   /** The ID of the timeline drawn. */
   readonly timeline: string;
+  /** The place key of the card whose member drawing draws it. */
+  readonly card: PlaceKey;
   /** The ordinate of its line. */
   readonly y: number;
   /** The abscissas of its start and its end, the reach's where its end is not known. */
@@ -66,6 +68,7 @@ export function lineAxes(drawing: Drawing): ReadonlyMap<string, LineAxis> {
       if (id === undefined) return [];
       const line: LineAxis = {
         timeline: id,
+        card: axis.card,
         y: axis.line,
         xStart: axis.xStart,
         xEnd: axis.xEnd,

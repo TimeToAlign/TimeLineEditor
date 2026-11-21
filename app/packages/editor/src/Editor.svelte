@@ -37,8 +37,7 @@ import {
   withMatchClaimTable,
 } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
-import type { MatchOverlay } from "./inspector/matchstamps.ts";
-import { matchOverlay } from "./inspector/matchstamps.ts";
+import { matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
@@ -394,23 +393,18 @@ const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
 
 // --- Matches ------------------------------------------------------------------
 
+/** The anchor indexes of block `block`'s table under its filter; `null` without one. */
+const indexesOf = (block: string) => drawer?.indexesOf(block) ?? null;
+
 /**
- * What the canvas's match overlay draws: the potential MatchStamps of one
- * block's MatchClaim table under its filter, its named MatchStamps compared
- * with the table, and the potential one the Matchstamp tab shows; for the
- * block of the MatchStamp shown, else of the selection, else the only block
- * holding a table; nothing without a table.
+ * What the canvas's match overlay draws: for every block holding a
+ * MatchClaim table, the potential MatchStamps of that table under the
+ * block's filter over that block, and its named MatchStamps compared with
+ * the table; nothing without a table.
  */
-const overlay: MatchOverlay = $derived.by(() => {
-  const shown = drawer?.shownMatch() ?? null;
-  const [only, ...others] = session.tables.blocks;
-  const block =
-    shown?.block ?? session.exportable ?? (only !== undefined && others.length === 0 ? only : null);
-  const indexes = block === null ? null : (drawer?.indexesOf(block) ?? null);
-  return matchOverlay(session.live.view, block, indexes, shown, (set) => {
-    if (block !== null) drawer?.pinMatchStamp(block, set);
-  });
-});
+const matches = $derived(matchInputs(session.live.view, session.tables.blocks, indexesOf));
+/** The potential MatchStamp the Matchstamp tab shows, with its block, drawn blue. */
+const pinnedMatchStamp = $derived(pinnedMatchStampOf(drawer?.shownMatch() ?? null, indexesOf));
 
 // --- The server and the autosave ---------------------------------------------
 
@@ -567,7 +561,9 @@ if (withTestHook) {
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
         picking={picking.active ? picking.take : null}
-        {...overlay}
+        {matches}
+        {pinnedMatchStamp}
+        onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
       />
       <MessageBar messages={messages.shown} ondismiss={(id) => messages.dismiss(id)} />
     </div>

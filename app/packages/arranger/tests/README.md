@@ -1861,8 +1861,10 @@ before an animation frame run one reading, with the last point.
 
 ## Show matches (`matches.test.ts`, `matches-budget.test.ts`)
 
-"Show matches" draws the potential MatchStamps of the loaded MatchClaim
-table over every block drawing a timeline the table names (by ID). The
+"Show matches" draws the potential MatchStamps of each block's loaded
+MatchClaim table over that block alone, on its lines drawing a timeline
+the table names (by ID): every block's manifest names its own table and
+filter, and every table numbers its own MatchStamps from 0. The
 anchor index, its coordinates, anchors and potential MatchStamps, is
 core's (`anchorIndexOf`, proven there); where a cross-section line lies
 and the line of an alignment anchor are layout's (`crossSectionSegment`,
@@ -1909,7 +1911,10 @@ c5 take_1 264600, c6 other 0.5; the anchors a0 (c0, c4), a1 (c0, c5), a2
 MatchStamp 1 = {c1, c3}.
 
 **The lines.** The lines holding T's timelines are `score`'s, `take_1`'s
-and `take_2`'s, in the drawing's order; `other` has none.
+and `take_2`'s, in the drawing's order; `other` has none. Each line's
+card is the one layout's line record names (`LineAxis.card`): the three
+ungrouped roots' own cards, `{item: score}`, `{item: take_1}`, `{item:
+take_2}`.
 
 **What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
 per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
@@ -1990,9 +1995,9 @@ drawing's own elements are written): for T at zoom 1 `M261.0928
 43.207V43.207` and so on, then `M261.0928 43.207L161.0928 100.5859` and
 so on, in the order above.
 
-**Budget** (`matches-budget.test.ts`, run alone from `app/packages/arranger`
-with `pnpm vitest run --config vitest.budget.config.ts`, excluded from the
-default run). 250,000 claims made as core's anchor-index budget makes them
+**Budget** (`matches-budget.test.ts`, run alone by `pnpm test:budget` in
+`app/`, after core's budgets, through `vitest.budget.config.ts`; excluded
+from the default run). 250,000 claims made as core's anchor-index budget makes them
 (the same generator, seed and shares: 70 % instants, 25 % intervals, 5 %
 NOMATCH), their steps spread over the three lines' spans (score in steps
 of 1/25001 quarter, take_1 and take_2 in whole samples), so all of them
@@ -2014,7 +2019,8 @@ and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
 `placeEdit`, the timestamp pane's `namedPin` and the type `KnotsOf`
 (the MeasureKnots source is the canvas's own), and the types
 `MatchOverlayInput` and `NamedComparison` the canvas's `matches` takes;
-tests import everything else from its modules.
+and the type `MatchStampPin` its `pinnedMatchStamp` and
+`onmatchstamppin` take; tests import everything else from its modules.
 `pnpm typecheck` type-checks
 `src` and `tests` strictly, and the workspace's dependency rules keep it
 on `writers`, `layout`, `core`, `svelte` and `@xyflow/svelte`.
@@ -2455,7 +2461,7 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   (`M` too) toggle it (`aria-pressed`); turning it on turns "Show
   coordinates" off and turning "Show coordinates" on turns it off: one at
   a time. Turning it off calls `onmatchstamppin` with `null`.
-- **Without a table.** With `matches` `null` and the mode on, the status
+- **Without a table.** With `matches` empty and the mode on, the status
   `Matches need the server and a loaded MatchClaim table.` is shown and
   nothing is drawn; with the mode off, no status.
 - **The overlay.** With T, one `<svg>` for block A whose `width`,
@@ -2470,14 +2476,25 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   anchors a0, a1, a3 (a4 not drawn); the flag lists `Score`, `Take 1`,
   `Take 2`, `other` with the values `6 ♩`, `176 400 smp`, `264 600 smp`,
   `297 675 smp`, `0.5`, its pole at the node's left + 361.0927734375.
-- **Pin.** A click there calls `onmatchstamppin(0)`; a click at (461.0927734375,
-  70), on nothing, calls it with `null`. Given `pinnedMatchStamp` 0, the
+- **Pin.** A click there calls `onmatchstamppin({block: A, matchStamp:
+  0})`; a click at (461.0927734375, 70), on nothing, calls it with
+  `null`. Given `pinnedMatchStamp` `{block: A, matchStamp: 0}`, the
   pinned path (`stroke="#1BA1E2"`) is MatchStamp 0's, and hovering it
-  draws no hovered path; given 1, MatchStamp 1's (c1, c3, a2).
+  draws no hovered path; given `{block: A, matchStamp: 1}`, MatchStamp
+  1's (c1, c3, a2).
 - **Red anchors.** With T and the comparisons of "Stale anchors", the
   drawn line of `anchor_2` has `stroke="#E51400"` and that of `anchor_1`
-  keeps `#1BA1E2`, with the mode on or off; with `matches` `null` both
+  keeps `#1BA1E2`, with the mode on or off; with `matches` empty both
   keep `#1BA1E2`.
+- **One table per block.** Block B holds the same manifest at (40, 330),
+  so every drawing point of B lies 250 below A's. With `matches` holding
+  T for A alone, the mode on: one overlay `<svg>`, A's; B's `anchor_2`
+  keeps `#1BA1E2` while A's is red; a click on B where MatchStamp 0 lies
+  in A (250 lower) calls `onmatchstamppin` with `null`. With T for both A
+  and B: two overlays; that click calls it with `{block: B, matchStamp:
+  0}`, the same number A's MatchStamp 0 has; given `pinnedMatchStamp`
+  `{block: B, matchStamp: 0}`, B's overlay alone has a pinned path, equal
+  to A's MatchStamp 0 path (the drawings are equal), and A's has none.
 - **The mode split.** With the mode on, exactly the drawn elements that
   draw part of a named MatchStamp or of a match timestamp (`ownerOf`
   `match`) let the pointer through: `anchor_1`'s and `anchor_2`'s lines,

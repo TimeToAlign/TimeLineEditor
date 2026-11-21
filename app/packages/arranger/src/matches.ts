@@ -50,11 +50,30 @@ export interface NamedComparison {
   readonly comparison: MatchStampCheck;
 }
 
-/** What "Show matches" draws from: the anchor index of the loaded table and the named MatchStamps compared with it. */
+/**
+ * What "Show matches" draws in one block: the anchor index of the MatchClaim
+ * table loaded for block `block` (its potential MatchStamps, under the
+ * block's MatchClaim filter) and the block's named MatchStamps compared with
+ * the table.
+ */
 export interface MatchOverlayInput {
+  readonly block: string;
   readonly index: AnchorIndex;
   readonly named: readonly NamedComparison[];
 }
+
+/**
+ * A pinned potential MatchStamp: the block whose table holds it and its
+ * number in that table's index. Every block's table numbers its own
+ * MatchStamps from 0, so a number alone names none.
+ */
+export interface MatchStampPin {
+  readonly block: string;
+  readonly matchStamp: number;
+}
+
+/** No block with a table: what the canvas draws from by default. */
+export const NO_TABLES: readonly MatchOverlayInput[] = [];
 
 /** The potential MatchStamps' lines and connectors: light grey, 70 % opaque, width 1, dash 3 3. */
 export const POTENTIAL_STROKE = "#C8C8C8";
@@ -123,21 +142,6 @@ function perUnit(line: MatchLine): number {
   return line.length === 0 ? 0 : line.length / (line.xEnd - line.xStart);
 }
 
-/**
- * The card drawing each line of `drawing`, by its key in `lineAxes`, which
- * lists the axes of `drawing` that draw a timeline, in their order.
- */
-function cardsOf(drawing: Drawing): ReadonlyMap<string, string> {
-  const keys = [...lineAxes(drawing).keys()];
-  const drawn = drawing.axes.filter((axis) => axis.address.id !== undefined);
-  return new Map(
-    keys.flatMap((key, at) => {
-      const axis = drawn[at];
-      return axis === undefined ? [] : [[key, placeKeyText(axis.card)] as const];
-    }),
-  );
-}
-
 /** The lines of a drawing for one index, all of them and by the index's timeline number. */
 export interface MatchLines {
   readonly all: readonly MatchLine[];
@@ -156,8 +160,7 @@ const linesByDrawing = new WeakMap<Drawing, { index: AnchorIndex; lines: MatchLi
 export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
   const known = linesByDrawing.get(drawing);
   if (known?.index === index) return known.lines;
-  const cards = cardsOf(drawing);
-  const rank = new Map([...cards.keys()].map((key, at) => [key, at]));
+  const rank = new Map([...lineAxes(drawing).keys()].map((key, at) => [key, at]));
   const found: MatchLine[] = [];
   for (const [id, timeline] of index.timelineNumbers) {
     for (const { key, axis, offset, length } of holdings(drawing, id)) {
@@ -169,7 +172,7 @@ export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
       const end = length === null ? Number.POSITIVE_INFINITY : zero + toFloat(length);
       found.push({
         key,
-        card: cards.get(key) ?? "",
+        card: placeKeyText(axis.card),
         timeline,
         xStart: axis.xStart,
         xEnd: axis.xEnd,

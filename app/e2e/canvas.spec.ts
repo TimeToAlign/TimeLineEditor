@@ -736,7 +736,7 @@ test.describe("keyboard", () => {
       );
     await page.getByRole("button", { name: "Zoom in" }).focus();
     const visited: (string | null)[] = [];
-    for (let n = 0; n < 6; n += 1) {
+    for (let n = 0; n < 7; n += 1) {
       await page.keyboard.press("ArrowDown");
       visited.push(await focused());
     }
@@ -746,11 +746,10 @@ test.describe("keyboard", () => {
       "lock",
       "marquee",
       "coordinates",
+      "matches",
       "Zoom in",
     ]);
-    await page.keyboard.press("ArrowUp");
-    await page.keyboard.press("ArrowUp");
-    await page.keyboard.press("ArrowUp");
+    for (let n = 0; n < 4; n += 1) await page.keyboard.press("ArrowUp");
     expect(await focused()).toBe("lock");
     await page.keyboard.press("ArrowRight");
     expect(await focused()).toBe("lock");
@@ -893,6 +892,7 @@ test.describe("shell", () => {
         "Add to selection: dragging on the canvas draws a marquee, and clicks and marquees add to the selection",
       ],
       ["coordinates", "Show coordinates", "Show coordinates (C)"],
+      ["matches", "Show matches", "Show matches (M)"],
     ]);
     await expect(page.locator(".svelte-flow__controls-interactive")).toHaveCount(0);
   });

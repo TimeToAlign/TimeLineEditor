@@ -5,7 +5,7 @@
  */
 
 import type { AnchorIndex, Manifest } from "@timetoalign/tilie-core";
-import { addressKey, idAddress } from "@timetoalign/tilie-core";
+import { addressKey, idAddress, placeKeyText } from "@timetoalign/tilie-core";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
@@ -81,11 +81,35 @@ describe("the lines holding a table's timelines", () => {
   it("are score's, take_1's and take_2's, in the drawing's order", () => {
     const { all } = linesOf(T);
     expect(
-      all.map(({ timeline, y, y1, y2, xStart, xEnd }) => [timeline, y, y1, y2, xStart, xEnd]),
+      all.map(({ timeline, card, y, y1, y2, xStart, xEnd }) => [
+        timeline,
+        card,
+        y,
+        y1,
+        y2,
+        xStart,
+        xEnd,
+      ]),
     ).toEqual([
-      [SCORE, SCORE_Y, SCORE_Y, SCORE_Y, X_START, X_START + 400],
-      [TAKE_1, TAKE_1_Y, TAKE_1_Y, TAKE_1_Y, X_START, X_START + 400],
-      [TAKE_2, TAKE_2_Y, TAKE_2_Y, TAKE_2_Y, X_START, X_START + 400],
+      [SCORE, placeKeyText({ item: "score" }), SCORE_Y, SCORE_Y, SCORE_Y, X_START, X_START + 400],
+      [
+        TAKE_1,
+        placeKeyText({ item: "take_1" }),
+        TAKE_1_Y,
+        TAKE_1_Y,
+        TAKE_1_Y,
+        X_START,
+        X_START + 400,
+      ],
+      [
+        TAKE_2,
+        placeKeyText({ item: "take_2" }),
+        TAKE_2_Y,
+        TAKE_2_Y,
+        TAKE_2_Y,
+        X_START,
+        X_START + 400,
+      ],
     ]);
   });
 });
