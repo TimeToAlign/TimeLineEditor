@@ -355,7 +355,7 @@ function placeChildren(
  * band above its parent's line lies at `yl − lk`, one below at `yl + lk`,
  * `yl` its parent's ordinate and `lk` its `PlacedChild.distance`; it shares
  * `x0`, the top and `Hc` of `place` and takes the name size of its
- * own row.
+ * own row, never the root's `ancestors`.
  */
 export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): PlacedLine[] {
   const rows = new Map<Entry, Row>();
@@ -371,7 +371,8 @@ export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): P
     for (const child of drawing.children?.children ?? []) {
       const y = side === "above" ? at.y - child.distance : at.y + child.distance;
       const size = known(rows, child.drawing.prepared.line).size;
-      visit(child.drawing, { ...at, y, size });
+      // The ancestor lines are the root's alone: a child's cross-section lines never reach them.
+      visit(child.drawing, { x0: at.x0, y, size, top: at.top, Hc: at.Hc });
     }
   };
   visit(root, place);

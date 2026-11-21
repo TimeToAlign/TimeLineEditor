@@ -115,12 +115,15 @@ export function layoutMember(
 
   const drawAt = (x0: number, n: number, top: number): MemberDrawn => {
     const yRoot = top + yLocal;
+    // The root's cross-section lines reach its outermost displayed ancestor line (section 6.6).
+    const outermost = band.distances.at(-1);
     const placed = placeLines(root, rootRow, {
       x0,
       y: yRoot,
       size: rootRow.size,
       top,
       Hc,
+      ...(outermost === undefined ? {} : { ancestors: outermost }),
     });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>

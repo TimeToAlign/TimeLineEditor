@@ -92,6 +92,12 @@ export interface LinePlace {
   readonly top: number;
   /** The member drawing's content height `Hc` (section 6.5), its ancestor band included (section 8.4). */
   readonly Hc: number;
+  /**
+   * For the root of a member drawing with an ancestor band (section 8.3) alone: the distance
+   * from its line up to its outermost displayed ancestor line, which its cross-section lines
+   * reach (section 6.6). Absent for every other line and where no ancestor line is drawn.
+   */
+  readonly ancestors?: number;
 }
 
 /** A child placed in its parent's children band (section 6.4, Children). */
@@ -409,7 +415,7 @@ export function layoutTimeline(
 
   const elements = (place: LinePlace): LineElements => {
     const at = linePosition(prepared, edges, place);
-    const extent = crossSectionExtent(laid, at);
+    const extent = crossSectionExtent(laid, at, place.ancestors);
     const parts = [
       prepared.levelZero.draw(at, againstOf(prepared, slots, "above")),
       ...laid.map((band) =>
@@ -468,20 +474,29 @@ function linesIn(laid: LaidChildren | undefined): Entry[] {
 /**
  * The extent of the cross-section lines of a line placed at `at` whose
  * present bands are `laid` (section 6.6, Cross-section lines): of the line's
- * ordinate and the ordinates of the start and the outer edge of its children
- * band and of its conversion maps band, each where present, the smallest and
- * the largest, each ordinate the line's ordinate less or plus a distance
- * summed whole first; null where neither band is present. Nothing else
- * bounds it: no other band, no card margin, no ancestor band.
+ * ordinate, the ordinates of the start and the outer edge of its children
+ * band and of its conversion maps band, each where present, and, for the
+ * root of a member drawing with an ancestor band, the ordinate of its
+ * outermost displayed ancestor line, `ancestors` above its line (section
+ * 8.3), the smallest and the largest, each ordinate the line's ordinate less
+ * or plus a distance summed whole first; null where none of these is
+ * present. So the line crosses every ancestor line drawn for the member as
+ * it crosses the member's children, and stops at the outermost, short of its
+ * marks. Nothing else bounds it: no card margin, no other band.
  */
-function crossSectionExtent(laid: readonly LaidBand[], at: LinePosition): CrossSectionExtent {
+function crossSectionExtent(
+  laid: readonly LaidBand[],
+  at: LinePosition,
+  ancestors: number | undefined,
+): CrossSectionExtent {
   const crossed = laid.filter(
     (band) => band.facet === "children" || band.facet === "conversion_maps",
   );
-  if (crossed.length === 0) return null;
+  if (crossed.length === 0 && ancestors === undefined) return null;
   const ordinates = [
     at.y,
     ...crossed.flatMap((band) => [at.yAt(band.side, band.start), at.yAt(band.side, band.edge)]),
+    ...(ancestors === undefined ? [] : [at.yAt("above", ancestors)]),
   ];
   return [Math.min(...ordinates), Math.max(...ordinates)];
 }
