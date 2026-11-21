@@ -353,7 +353,7 @@ def test_values_keep_their_axis_exactly(server: TestClient) -> None:
         claim(
             "c1",
             ("dpt", "e1", cell("samples", "int", big)),
-            ("clt", "e2", cell("quarters", "fraction", 1, 2)),
+            ("clt", "e2", cell("quarters", "fraction", 2, 4)),
         ),
         claim(
             "c2",

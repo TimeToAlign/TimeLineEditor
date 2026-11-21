@@ -440,8 +440,9 @@ function statedRotation(manifest: Manifest, id: string): number | undefined {
 
 /**
  * The rotation of the wedge of `pin`'s timestamp in `view` (its block drawn
- * with `metrics`): a named one's as its first drawn wedge carries it (every
- * drawing of one address shares it), whichever rule sets it; while its wedge
+ * with `metrics`): a named one's as its first drawn wedge carries it, in
+ * drawing order (a rule scoped to a band or card can turn one address
+ * differently in each drawing), whichever rule sets it; while its wedge
  * is not drawn, as its rule states it, else the initial value. An unnamed
  * one's as naming would draw it: the initial value of a groupstamp's wedge
  * where naming stores a groupstamp (`groupstampOf`, `editor` the innermost
