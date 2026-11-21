@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 import pytest
 import timetoshare.tables as tables
 from fastapi.testclient import TestClient
-from timetoshare import dumps, loads
+from timetoshare import dumps, loads, with_context
 from timetoshare.tables import fixture_path
 
 from tilie_server.app import create_app
@@ -260,6 +260,73 @@ def test_a_table_the_checks_refuse_is_refused(server: TestClient, route: str) ->
     }
 
 
+COMPACT_A = "orcid:0000-0002-1825-0097"
+"""A written compactly under the prefix ``orcid``."""
+
+
+def orcid_manifest() -> bytes:
+    """The fixture's manifest with an ``@context`` declaring ``orcid``.
+
+    A statement uses the prefix: timetoalign keeps the prefixes a manifest's
+    statements use.
+    """
+    manifest = loads(fixture_manifest().decode())
+    manifest["@context"] = {"orcid": "https://orcid.org/"}
+    manifest["statements"] = {"dcterms:creator": [{"id": COMPACT_A}]}
+    manifest = with_context(manifest, {"dcterms": "http://purl.org/dc/terms/"})
+    return dumps(manifest).encode()
+
+
+def with_belief_actor(table: pa.Table, row: int, at: int, actor: str) -> pa.Table:
+    """The table with the actor of row ``row``'s belief ``at`` replaced."""
+    index = table.schema.get_field_index("provenance")
+    field = table.schema.field(index)
+    cells = table.column(index).to_pylist()
+    cells[row]["beliefs"][at]["actor"] = actor
+    return table.set_column(index, field, pa.array(cells, field.type))
+
+
+CLAIM_13 = {
+    "date": "2026-11-20",
+    "method": "imported",
+    "service": SERVICE,
+}
+"""``claim_13``'s paradata as the provenance route answers it."""
+
+
+@pytest.mark.parametrize(
+    ("manifest", "actor"),
+    [(orcid_manifest, A), (fixture_manifest, COMPACT_A)],
+    ids=["declared", "undeclared"],
+)
+def test_a_beliefs_actor_is_answered_as_it_compares(
+    server: TestClient, manifest: Any, actor: str
+) -> None:
+    table = with_belief_actor(fixture_table(), 12, 0, COMPACT_A)
+    content = body({"claims": ["claim_13"]}, table, manifest=manifest())
+    response = post(server, PROVENANCE, content)
+    assert response.status_code == 200
+    assert response.json() == {
+        "claims": [
+            {
+                "id": "claim_13",
+                "provenance": {
+                    **CLAIM_13,
+                    "beliefs": [
+                        {
+                            "actor": actor,
+                            "belief": "false",
+                            "date": "2026-11-21",
+                            "note": "a grace note, played late",
+                        },
+                        {"actor": B, "belief": "true", "date": "2026-11-21"},
+                    ],
+                },
+            }
+        ]
+    }
+
+
 # --- A belief -------------------------------------------------------------------
 
 
@@ -313,6 +380,52 @@ def test_a_belief_is_recorded_in_its_row_alone(
     assert without_provenance(table) == without_provenance(fixture_table())
     provenance = list(FIXTURE_PROVENANCE)
     provenance[row] = expected
+    assert table.column("provenance").to_pylist() == provenance
+    assert table.schema.metadata is None or b"timetoshare:provenance" not in (
+        table.schema.metadata
+    )
+
+
+@pytest.mark.parametrize(
+    ("posted", "manifest", "stated", "expected"),
+    [
+        (
+            fixture_table,
+            orcid_manifest,
+            belief("claim_6", COMPACT_A, "false"),
+            [held(COMPACT_A, "false", DAY)],
+        ),
+        (
+            lambda: with_belief_actor(fixture_table(), 5, 0, COMPACT_A),
+            orcid_manifest,
+            belief("claim_6", A, "false"),
+            [held(A, "false", DAY)],
+        ),
+        (
+            fixture_table,
+            fixture_manifest,
+            belief("claim_6", COMPACT_A, "false"),
+            [
+                held(A, "unlikely", "2026-11-21", "the onset is blurred"),
+                held(COMPACT_A, "false", DAY),
+            ],
+        ),
+    ],
+    ids=["compact replaces full", "full replaces compact", "undeclared stands beside"],
+)
+def test_one_actor_in_two_spellings_is_one_actor(
+    server: TestClient,
+    posted: Any,
+    manifest: Any,
+    stated: dict[str, Any],
+    expected: list[dict[str, Any]],
+) -> None:
+    before = posted()
+    table = believed(server, body(stated, before, manifest=manifest()))
+    assert table.column_names == before.column_names
+    assert without_provenance(table) == without_provenance(fixture_table())
+    provenance = list(FIXTURE_PROVENANCE)
+    provenance[5] = cell(beliefs=expected)
     assert table.column("provenance").to_pylist() == provenance
     assert table.schema.metadata is None or b"timetoshare:provenance" not in (
         table.schema.metadata

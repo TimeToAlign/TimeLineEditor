@@ -16,9 +16,14 @@ from typing import Any
 import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
-from timetoshare import BELIEFS, number_type_of
+from timetoalign.alignment import AlignmentBundle
+from timetoalign.alignment.filters import belief_context
+from timetoalign.core.provenance import actor_iri
+from timetoshare import BELIEFS, number_type_of, with_file_ids
 from timetoshare.tables import PROVENANCE_METADATA_KEY
 from timetoshare.validation.diagnostics import timelines_by_id
+
+from tilie_server.manifests import Refusal
 
 SAFE = 2**53
 """Below this magnitude an int64 is a double exactly, so the IEEE quotient of
@@ -91,15 +96,51 @@ def value_column(
     return position, numerator, denominator
 
 
-def row_beliefs(table: pa.Table) -> tuple[list[str], Arrays]:
+def manifest_bundle(manifest: Mapping[str, Any]) -> AlignmentBundle:
+    """The manifest as timetoalign reads it, without MatchClaims.
+
+    Args:
+        manifest: The manifest as its file writes it (IDs ``#id``).
+
+    Raises:
+        Refusal: 422 with timetoalign's message if it refuses the manifest.
+    """
+    try:
+        return AlignmentBundle.from_dict(dict(manifest))
+    except ValueError as error:
+        raise Refusal([], str(error)) from error
+
+
+def actor_context(manifest: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The JSON-LD context under which timetoalign compares the actors of
+    the manifest's MatchClaims (its ``belief_context``).
+
+    Args:
+        manifest: The manifest, IDs bare.
+
+    Raises:
+        Refusal: As :func:`manifest_bundle`.
+    """
+    return belief_context(manifest_bundle(with_file_ids(dict(manifest))))
+
+
+def row_beliefs(
+    table: pa.Table, context: Mapping[str, Any] | None
+) -> tuple[list[str], Arrays]:
     """Every row's beliefs: its own, or the file's where the file states them
     (the checks refuse a table stating both).
 
+    Args:
+        table: A checked MatchClaim table.
+        context: The context under which actors are compared
+            (:func:`actor_context`).
+
     Returns:
-        The actors, sorted by code point, and three arrays: per row the
-        offset of its first belief (``rows + 1`` entries, the last the
-        number of beliefs), per belief its actor's index among the actors
-        and its word's index in ``BELIEFS``, both in the row's order.
+        The actors, each the IRI timetoalign compares it as (two spellings
+        of one IRI are one actor), sorted by code point, and three arrays:
+        per row the offset of its first belief (``rows + 1`` entries, the
+        last the number of beliefs), per belief its actor's index among the
+        actors and its word's index in ``BELIEFS``, both in the row's order.
     """
     rows = table.num_rows
     shared = (table.schema.metadata or {}).get(PROVENANCE_METADATA_KEY.encode())
@@ -115,20 +156,25 @@ def row_beliefs(table: pa.Table) -> tuple[list[str], Arrays]:
         flat = pc.list_flatten(lists)
         actors_of = flat.field("actor").to_pylist()
         words_of = flat.field("belief").to_pylist()
-    actors = sorted(set(actors_of))
+    written = sorted(set(actors_of))
+    iris = [actor_iri(actor, context) for actor in written]
+    actors = sorted(set(iris))
+    number = {iri: at for at, iri in enumerate(actors)}
+    actor_of_written = np.array([number[iri] for iri in iris], "<u4")
     offsets = np.zeros(rows + 1, "<u4")
     np.cumsum(counts, out=offsets[1:])
-    actor, word = (
+    written_index, word = (
         pc.index_in(
             pa.array(values, pa.string()), value_set=pa.array(words, pa.string())
         )
         .to_numpy(zero_copy_only=False)
         .astype(kind)
         for values, words, kind in (
-            (actors_of, actors, "<u4"),
+            (actors_of, written, "<u4"),
             (words_of, list(BELIEFS), "u1"),
         )
     )
+    actor = actor_of_written[written_index]
     arrays = [
         ("belief_offsets", offsets.tobytes(), rows + 1),
         ("belief_actors", actor.tobytes(), len(actor)),
@@ -147,9 +193,12 @@ def columns_of(
         manifest: The manifest, IDs bare.
 
     Returns:
-        ``rows``, ``timelines``, ``actors`` and ``beliefs`` (the belief
-        words, a belief's index naming its word), and the arrays in the
-        answer's order.
+        ``rows``, ``timelines``, ``actors`` (:func:`row_beliefs`) and
+        ``beliefs`` (the belief words, a belief's index naming its word),
+        and the arrays in the answer's order.
+
+    Raises:
+        Refusal: As :func:`actor_context`.
     """
     timelines, a_numbers, b_numbers = axis_timelines(table, manifest)
     number_types = np.array([t["number_type"] for t in timelines], "U8")
@@ -174,7 +223,7 @@ def columns_of(
     for anchor, column in anchors.items():
         present = column.is_valid().to_numpy(zero_copy_only=False).astype("u1")
         arrays.append((f"{anchor}_present", present.tobytes(), rows))
-    actors, beliefs = row_beliefs(table)
+    actors, beliefs = row_beliefs(table, actor_context(manifest))
     header = {
         "rows": rows,
         "timelines": timelines,

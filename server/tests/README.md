@@ -153,6 +153,8 @@ anchor are zero.
 | the fixture's manifest written as pretty JSON | the same bytes as for the YAML |
 | the fixture's table with one more column, `note` | the same bytes: a column the table type does not declare is kept by the checks and no part of a MatchClaim |
 | the fixture's table without row provenance, the file's metadata `timetoshare:provenance` stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}` (A, B the two actors) | `actors` `[B, A]`, `belief_offsets` 0, 2, … 30, `belief_actors` `1 0` per row and `belief_words` `1 0` per row: every row holds the file's beliefs |
+| the fixture's table with A in `claim_1`'s belief written compactly, `orcid:0000-0002-1825-0097`, against the fixture's manifest with an `@context` declaring `orcid` as `https://orcid.org/` (and a statement `dcterms:creator` naming that compact IRI, since timetoalign keeps the prefixes a manifest's statements use) | the fixture's bytes: actors are answered as timetoalign compares them, expanded under the manifest's `@context`, so the compact and the full spelling are one actor, A |
+| the same table against the fixture's manifest as it is (no `@context`) | `actors` `[B, A, "orcid:0000-0002-1825-0097"]` and `belief_actors` `2 1 1 1 0 0`: a prefix the context does not declare expands to nothing, and the actor is compared as written |
 | a table built in the test on a samples, a quarters and a seconds timeline: 2^53 + 1 samples, the stated `[2, 4]` quarters, `[2^62 + 1, 3]` quarters and −0.0 seconds | numerator 9007199254740993 with position 2^53 (the double nearest it, ties to even); `1/2` with 0.5; the pair unchanged (already in lowest terms) with Python's `float` of the fraction, the correctly rounded quotient; 0.0 with its sign bit clear |
 | the fixture against its manifest without the child `clt_2` | 422 `{"detail": {"path": [], "message": "the manifest has no timeline 'clt_2'", "problems": [{"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"], "message": "the manifest has no timeline 'clt_2'"}]}}`: TimeToShare's check, every problem, as its own `match_claim_problems` lists them |
 | the fixture's table without its `certainty` column | 422, `problems` `[{"code": "schema_violation", "row": null, "column": ["certainty"], "message": "the table has no column 'certainty'"}]` |
@@ -199,7 +201,9 @@ from the service `https://example.org/aligner`, `claim_6` with A's
 this list, never read off an answer.
 
 **Provenance.** An entry is answered as TimeToShare's provenance entry,
-its absent members left out.
+its absent members left out, each belief's actor as the MatchClaims route
+answers it: expanded under the manifest's `@context` as timetoalign
+compares actors (`stated_by` is answered as written).
 
 | Request | Answer |
 | --- | --- |
@@ -209,8 +213,13 @@ its absent members left out.
 | `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
 | `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
 | the fixture against its manifest without `clt_2` | 422 with the table route's problems (`unknown_timeline`, row 14) |
+| the fixture's table with A in `claim_13`'s belief written `orcid:0000-0002-1825-0097`, against the manifest declaring `orcid` (as for the MatchClaims route); `claims` `["claim_13"]` | `claim_13`'s entry with its beliefs `[A false 2026-11-21 "a grace note, played late", B true 2026-11-21]`: A expanded |
+| the same against the fixture's manifest as it is | the actor `orcid:0000-0002-1825-0097` as written |
 
-**A belief.** The answer is 200 `application/vnd.apache.parquet`, a
+**A belief.** The belief is recorded by timetoalign: the server reads the
+manifest as an `AlignmentBundle`, adds the table's MatchClaims and calls
+its `add_belief`, so the belief replaces the earlier one of the same actor
+as timetoalign compares actors, expanded under the manifest's `@context`. The answer is 200 `application/vnd.apache.parquet`, a
 Parquet file read back in the test. Every column but `provenance` equals
 the fixture's, compared whole; so do the provenance cells of every row but
 the believed one; the believed row's cell is written in the test:
@@ -229,6 +238,17 @@ row 2 holds `[A false 2026-11-21, B false 2026-11-22]`. A column the table
 type does not declare (`note`) is kept with its values. The answer posted
 to `POST /api/match-claims` is accepted, and its beliefs are the
 fixture's but in row 5: A's `false` (`belief_words` `0 1 0 1 0 0`).
+
+**One actor, two spellings.** Against the manifest declaring `orcid` (as
+above), with C the compact `orcid:0000-0002-1825-0097`, each table compared
+whole before and after (every column, every row, the believed cell written
+in the test):
+
+| Posted | Belief | The believed row's `beliefs` |
+| --- | --- | --- |
+| the fixture's table | C `false` in `claim_6` | `[C false 2026-11-22]`: A's `unlikely` replaced, the actor recorded as the request names it |
+| the fixture's table, `claim_6`'s belief by C | A `false` in `claim_6` | `[A false 2026-11-22]`: C's replaced |
+| the fixture's table, against the fixture's manifest as it is | C `false` in `claim_6` | `[A unlikely 2026-11-21 "the onset is blurred", C false 2026-11-22]`: undeclared, C is another actor beside A |
 
 Refusals, each 422 at the parameter's name with this message: `claim`
 `claim_99`, `the MatchClaim table has no MatchClaim 'claim_99'`; `actor`

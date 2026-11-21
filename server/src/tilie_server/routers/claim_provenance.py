@@ -46,21 +46,22 @@ BELIEF_PARAMETERS = ("claim", "actor", "belief", "date")
 """The parameters of the belief route, in the order they are checked."""
 
 
-def provenance_model() -> tuple[Any, Any, Callable[[list[Any]], Any]]:
-    """Return timetoalign's ``Provenance``, ``Belief`` and ``provenance_array``.
+def provenance_model() -> tuple[Any, Callable[[str, Any], str], Callable[[Any], Any]]:
+    """Return timetoalign's ``Provenance``, ``actor_iri`` and ``belief_context``.
 
     Raises:
         Refusal: 501, if the installed timetoalign lacks them.
     """
     try:
-        from timetoalign.core.provenance import Belief, Provenance, provenance_array
+        from timetoalign.alignment.filters import belief_context
+        from timetoalign.core.provenance import Provenance, actor_iri
     except ImportError as error:
         message = (
             f"the installed timetoalign {version('timetoalign')} cannot record "
             "provenance"
         )
         raise Refusal([], message, status_code=501) from error
-    return Provenance, Belief, provenance_array
+    return Provenance, actor_iri, belief_context
 
 
 def split_parameters(
@@ -105,10 +106,11 @@ def split_parameters(
 
 def read_request(
     body: bytes, names: tuple[str, ...]
-) -> tuple[dict[str, Any], Any, Mapping[str, Any], Any, Any]:
+) -> tuple[dict[str, Any], Any, Mapping[str, Any], Any, Any, Any]:
     """The parameters, the posted table, the manifest (file form),
-    ``timetoshare.tables`` and timetoalign's ``MatchClaimField``, once the
-    table's checks accept the table.
+    ``timetoshare.tables``, timetoalign's ``MatchClaimField`` and the
+    table as timetoalign gives it back, once the table's checks accept the
+    table.
 
     Raises:
         Refusal: As :func:`split_parameters`, and as the table route for the
@@ -119,8 +121,8 @@ def read_request(
     manifest_data, table_data = split_body(rest)
     manifest, _ = read_manifest(manifest_data, "the manifest")
     table = read(table_data)
-    checked_table(tables, field_class, table, manifest)
-    return parameters, table, manifest, tables, field_class
+    checked = checked_table(tables, field_class, table, manifest)
+    return parameters, table, manifest, tables, field_class, checked
 
 
 def claim_rows(table: Any) -> dict[str, int]:
@@ -147,39 +149,49 @@ def provenance_answer(body: bytes) -> dict[str, Any]:
         ``{"claims": [{"id", "provenance"}]}`` in the order the request names
         them, ``provenance`` the entry the MatchClaim is read with (its row's
         own, else the file's), its absent members left out, or ``None`` for
-        a MatchClaim stated without one.
+        a MatchClaim stated without one. Each belief's actor is the IRI
+        timetoalign compares it as, expanded under the manifest's
+        ``@context``, as the MatchClaims route answers actors.
 
     Raises:
         Refusal: As :func:`read_request`; 422 if ``claims`` is no list, or
-            names a MatchClaim the table lacks (at ``["claims", index]``).
+            names a MatchClaim the table lacks (at ``["claims", index]``);
+            as :func:`tilie_server.claim_columns.manifest_bundle`.
     """
-    Provenance, _, _ = provenance_model()
-    parameters, table, _, tables, _ = read_request(body, PROVENANCE_PARAMETERS)
+    from tilie_server.claim_columns import manifest_bundle
+
+    Provenance, actor_iri, belief_context = provenance_model()
+    parameters, table, manifest, tables, _, _ = read_request(
+        body, PROVENANCE_PARAMETERS
+    )
     claims = parameters["claims"]
     if not isinstance(claims, list):
         raise Refusal(["claims"], "the parameter 'claims' is no list of MatchClaim IDs")
     rows = claim_rows(table)
     found = [row_of(rows, claim, ["claims", at]) for at, claim in enumerate(claims)]
+    context = belief_context(manifest_bundle(manifest))
     cells = tables.row_provenance(table)
+
+    def entry(cell: Any) -> dict[str, Any] | None:
+        if cell is None:
+            return None
+        described = Provenance.from_row(cell).to_dict()
+        for belief in described.get("beliefs", ()):
+            belief["actor"] = actor_iri(belief["actor"], context)
+        return described
+
     return {
         "claims": [
-            {
-                "id": claim,
-                "provenance": (
-                    None
-                    if cells[row] is None
-                    else Provenance.from_row(cells[row]).to_dict()
-                ),
-            }
+            {"id": claim, "provenance": entry(cells[row])}
             for claim, row in zip(claims, found, strict=True)
         ]
     }
 
 
 def checked_belief(
-    parameters: Mapping[str, Any], rows: Mapping[str, int], belief_class: Any
-) -> tuple[int, Any]:
-    """The row of the believed MatchClaim and the belief the parameters state.
+    parameters: Mapping[str, Any], rows: Mapping[str, int]
+) -> tuple[str, str, str, str]:
+    """The believed MatchClaim's ID, the actor, the belief and its date.
 
     Raises:
         Refusal: 422 at the parameter at fault: a MatchClaim the table
@@ -190,7 +202,8 @@ def checked_belief(
     from timetoshare import BELIEFS
     from timetoshare.statements import calendar_date
 
-    row = row_of(rows, parameters["claim"], ["claim"])
+    claim = parameters["claim"]
+    row_of(rows, claim, ["claim"])
     actor = parameters["actor"]
     if not isinstance(actor, str) or actor == "":
         raise Refusal(["actor"], "an actor is named by a non-empty string")
@@ -205,55 +218,36 @@ def checked_belief(
         calendar_date(date)
     except ValueError as error:
         raise Refusal(["date"], str(error)) from error
-    return row, belief_class(actor=actor, belief=belief, date=date)
+    return claim, actor, belief, date
 
 
-def believed_table(
-    table: Any,
-    row: int,
-    belief: Any,
-    tables: Any,
-    provenance_class: Any,
-    provenance_array: Callable[[list[Any]], Any],
-) -> Any:
-    """The table with ``belief`` recorded in the provenance of row ``row``.
+def believed_table(table: Any, believed: Any) -> Any:
+    """The posted table with the provenance of the table timetoalign wrote.
 
-    The belief replaces its actor's earlier belief in that MatchClaim and
-    leaves every other actor's standing (timetoalign's
-    ``Provenance.with_belief``); a MatchClaim stated without provenance gets
-    an entry holding the belief alone. Where the file states one provenance
-    for every row, every row now states it as its own and the file no
-    longer does, since one row's differs. Every other column, the columns
-    the table type does not declare included, and every other row are kept.
+    ``believed`` is the posted table's MatchClaims as timetoalign holds them
+    after recording a belief: the same rows in the same order, the columns
+    the table type declares. Its provenance column replaces the posted
+    one, and the file's provenance for every row is the one ``believed``
+    states, if any (timetoalign keeps a shared entry only while it is every
+    row's). Every other column, the columns the table type does not declare
+    included, and the file's other metadata are kept.
     """
-    import pyarrow as pa
     from timetoshare.tables import PROVENANCE_METADATA_KEY
 
+    key = PROVENANCE_METADATA_KEY.encode()
     index = table.schema.get_field_index("provenance")
     field = table.schema.field(index)
-    cells = tables.row_provenance(table)
-    earlier = cells[row]
-    entry = (
-        provenance_class(beliefs=(belief,))
-        if earlier is None
-        else provenance_class.from_row(earlier).with_belief(belief)
-    )
-    key = PROVENANCE_METADATA_KEY.encode()
-    metadata = dict(table.schema.metadata or {})
-    shared = metadata.pop(key, None)
-    column = table.column(index).combine_chunks()
+    column = believed.column("provenance").cast(field.type)
+    metadata = {
+        name: value
+        for name, value in (table.schema.metadata or {}).items()
+        if name != key
+    }
+    shared = (believed.schema.metadata or {}).get(key)
     if shared is not None:
-        common = provenance_array([provenance_class.from_dict(json.loads(shared))])
-        column = common.take(pa.array([0] * table.num_rows, pa.int64()))
-    column = pa.concat_arrays(
-        [
-            column.slice(0, row).cast(field.type),
-            provenance_array([entry]).cast(field.type),
-            column.slice(row + 1).cast(field.type),
-        ]
-    )
-    believed = table.set_column(index, field, column)
-    return believed.replace_schema_metadata(metadata or None)
+        metadata[key] = shared
+    new = table.set_column(index, field, column)
+    return new.replace_schema_metadata(metadata or None)
 
 
 def succeeding(tables: Any, old: Any, new: Any) -> None:
@@ -284,23 +278,37 @@ def succeeding(tables: Any, old: Any, new: Any) -> None:
 def belief_answer(body: bytes) -> bytes:
     """The Parquet file of the posted table with the posted belief recorded.
 
-    The new table is checked against the manifest as a posted one is, and
-    against the posted table by the succession rule, before it is written.
+    timetoalign records the belief: the manifest is read as an
+    ``AlignmentBundle``, the table's MatchClaims are added to it, and its
+    ``add_belief`` replaces the actor's earlier belief in the MatchClaim,
+    actors compared as IRIs under the manifest's ``@context``. The new
+    table is checked against the manifest as a posted one is, and against
+    the posted table by the succession rule, before it is written.
 
     Raises:
-        Refusal: As :func:`read_request` and :func:`checked_belief`; 422
-            with the problems if the new table fails its checks or the
-            succession rule.
+        Refusal: As :func:`read_request`, :func:`checked_belief` and
+            :func:`tilie_server.claim_columns.manifest_bundle`; 422 with
+            timetoalign's message if it refuses the MatchClaims or the
+            belief, with the problems if the new table fails its checks or
+            the succession rule.
     """
     import pyarrow as pa
     import pyarrow.parquet as parquet
 
-    provenance_class, belief_class, provenance_array = provenance_model()
-    parameters, table, manifest, tables, field_class = read_request(
+    from tilie_server.claim_columns import manifest_bundle
+
+    provenance_model()  # 501 before the body is read
+    parameters, table, manifest, tables, field_class, checked = read_request(
         body, BELIEF_PARAMETERS
     )
-    row, belief = checked_belief(parameters, claim_rows(table), belief_class)
-    new = believed_table(table, row, belief, tables, provenance_class, provenance_array)
+    claim, actor, belief, date = checked_belief(parameters, claim_rows(table))
+    bundle = manifest_bundle(manifest)
+    try:
+        bundle.add_match_claim_field(field_class.from_table(checked))
+        bundle.add_belief(claim, actor=actor, belief=belief, date=date)
+    except (KeyError, ValueError) as error:
+        raise Refusal([], str(error.args[0] if error.args else error)) from error
+    new = believed_table(table, bundle.match_claim_table.table)
     checked_table(tables, field_class, new, manifest)
     succeeding(tables, table, new)
     sink = pa.BufferOutputStream()

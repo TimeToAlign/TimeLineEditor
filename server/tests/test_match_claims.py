@@ -15,7 +15,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
-from timetoshare import dumps, loads
+from timetoshare import dumps, loads, with_context
 from timetoshare.tables import MATCH_CLAIM_SCHEMA, fixture_path
 
 import tilie_server.app
@@ -266,6 +266,53 @@ def test_the_files_provenance_gives_every_row_its_beliefs(server: TestClient) ->
     assert arrays["belief_actors"] == [1, 0] * 15
     assert arrays["belief_words"] == [1, 0] * 15
     assert values(arrays, "a.start") == FIXTURE_VALUES["a.start"]
+
+
+COMPACT_A = "orcid:0000-0002-1825-0097"
+"""A written compactly under the prefix ``orcid``."""
+
+
+def orcid_manifest() -> bytes:
+    """The fixture's manifest with an ``@context`` declaring ``orcid``.
+
+    A statement uses the prefix: timetoalign keeps the prefixes a manifest's
+    statements use.
+    """
+    manifest = loads(fixture_manifest().decode())
+    manifest["@context"] = {"orcid": "https://orcid.org/"}
+    manifest["statements"] = {"dcterms:creator": [{"id": COMPACT_A}]}
+    manifest = with_context(manifest, {"dcterms": "http://purl.org/dc/terms/"})
+    return dumps(manifest).encode()
+
+
+def with_belief_actor(table: pa.Table, row: int, at: int, actor: str) -> pa.Table:
+    """The table with the actor of row ``row``'s belief ``at`` replaced."""
+    index = table.schema.get_field_index("provenance")
+    field = table.schema.field(index)
+    cells = table.column(index).to_pylist()
+    cells[row]["beliefs"][at]["actor"] = actor
+    return table.set_column(index, field, pa.array(cells, field.type))
+
+
+def test_actors_are_answered_expanded_under_the_manifests_context(
+    server: TestClient,
+) -> None:
+    table = parquet(with_belief_actor(fixture_table(), 0, 0, COMPACT_A))
+    response = post(server, body(orcid_manifest(), table))
+    assert response.status_code == 200
+    assert response.content == fixture_answer(server)
+
+
+def test_an_actor_whose_prefix_is_undeclared_is_answered_as_written(
+    server: TestClient,
+) -> None:
+    table = parquet(with_belief_actor(fixture_table(), 0, 0, COMPACT_A))
+    response = post(server, body(fixture_manifest(), table))
+    assert response.status_code == 200
+    header, arrays = decoded(response.content)
+    assert header == {**FIXTURE_HEADER, "actors": [B, A, COMPACT_A]}
+    assert arrays["belief_actors"] == [2, 1, 1, 1, 0, 0]
+    assert arrays["belief_words"] == FIXTURE_ARRAYS["belief_words"]
 
 
 def claim(
