@@ -7,6 +7,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "matchstamps": [],
           "order": {},
           "rules": [],
           "styles": {},
@@ -15,6 +16,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
+              "matchstamp": false,
               "name": "origin",
               "timeline": "bare"
             },
@@ -22,6 +24,7 @@
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
+              "matchstamp": false,
               "name": "length",
               "timeline": "bare"
             }
@@ -33,6 +36,7 @@
           "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": null,
+        "resources": [],
         "timelines": [
           {
             "children": [],
@@ -67,6 +71,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "matchstamps": [],
           "order": {},
           "rules": [],
           "styles": {},
@@ -75,6 +80,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
+              "matchstamp": false,
               "name": "origin",
               "timeline": "flow:quarters"
             },
@@ -82,6 +88,7 @@
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
+              "matchstamp": false,
               "name": "length",
               "timeline": "flow:quarters"
             }
@@ -93,6 +100,7 @@
           "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": null,
+        "resources": [],
         "timelines": [
           {
             "children": [],
@@ -180,6 +188,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "matchstamps": [],
           "order": {},
           "rules": [],
           "styles": {},
@@ -188,6 +197,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
+              "matchstamp": false,
               "name": "origin",
               "timeline": "melody"
             },
@@ -195,6 +205,7 @@
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
+              "matchstamp": false,
               "name": "length",
               "timeline": "melody"
             }
@@ -206,6 +217,7 @@
           "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": null,
+        "resources": [],
         "timelines": [
           {
             "children": [
@@ -276,6 +288,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "matchstamps": [],
           "order": {},
           "rules": [],
           "styles": {},
@@ -284,6 +297,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
+              "matchstamp": false,
               "name": "origin",
               "timeline": "clt_1"
             },
@@ -291,6 +305,7 @@
               "coordinate": [16, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
+              "matchstamp": false,
               "name": "length",
               "timeline": "clt_1"
             }
@@ -302,6 +317,7 @@
           "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": null,
+        "resources": [],
         "timelines": [
           {
             "children": [
@@ -368,6 +384,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "matchstamps": [],
           "order": {
             "score": ["children", "markers", "line", "conversion_maps", "regions", "flow_control"]
           },
@@ -592,6 +609,7 @@
               "coordinate": [0, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
+              "matchstamp": false,
               "name": "origin",
               "timeline": "score"
             },
@@ -599,6 +617,7 @@
               "coordinate": [8, 1],
               "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
+              "matchstamp": false,
               "name": "length",
               "timeline": "score"
             }
@@ -610,6 +629,7 @@
           "generator": "timetoalign 1.2.0 (40161e42)"
         },
         "name": null,
+        "resources": [],
         "timelines": [
           {
             "children": [
@@ -708,6 +728,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "matchstamps": [],
               "order": {},
               "rules": [],
               "styles": {},
@@ -716,6 +737,7 @@
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
+                  "matchstamp": false,
                   "name": "origin",
                   "timeline": "bare"
                 },
@@ -723,6 +745,7 @@
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
+                  "matchstamp": false,
                   "name": "length",
                   "timeline": "bare"
                 }
@@ -734,6 +757,7 @@
               "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": null,
+            "resources": [],
             "timelines": [
               {
                 "children": [],
@@ -773,6 +797,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "matchstamps": [],
               "order": {},
               "rules": [],
               "styles": {},
@@ -781,6 +806,7 @@
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
+                  "matchstamp": false,
                   "name": "origin",
                   "timeline": "clt_1"
                 },
@@ -788,6 +814,7 @@
                   "coordinate": [16, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
+                  "matchstamp": false,
                   "name": "length",
                   "timeline": "clt_1"
                 }
@@ -799,6 +826,7 @@
               "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": null,
+            "resources": [],
             "timelines": [
               {
                 "children": [
@@ -870,6 +898,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "matchstamps": [],
               "order": {},
               "rules": [],
               "styles": {},
@@ -878,6 +907,7 @@
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
+                  "matchstamp": false,
                   "name": "origin",
                   "timeline": "melody"
                 },
@@ -885,6 +915,7 @@
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
+                  "matchstamp": false,
                   "name": "length",
                   "timeline": "melody"
                 }
@@ -896,6 +927,7 @@
               "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": null,
+            "resources": [],
             "timelines": [
               {
                 "children": [
@@ -971,6 +1003,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "matchstamps": [],
               "order": {},
               "rules": [],
               "styles": {},
@@ -979,6 +1012,7 @@
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
+                  "matchstamp": false,
                   "name": "origin",
                   "timeline": "flow:quarters"
                 },
@@ -986,6 +1020,7 @@
                   "coordinate": [16, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
+                  "matchstamp": false,
                   "name": "length",
                   "timeline": "flow:quarters"
                 }
@@ -997,6 +1032,7 @@
               "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": null,
+            "resources": [],
             "timelines": [
               {
                 "children": [],
@@ -1089,6 +1125,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "matchstamps": [],
               "order": {
                 "score": ["children", "markers", "line", "conversion_maps", "regions", "flow_control"]
               },
@@ -1313,6 +1350,7 @@
                   "coordinate": [0, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
+                  "matchstamp": false,
                   "name": "origin",
                   "timeline": "score"
                 },
@@ -1320,6 +1358,7 @@
                   "coordinate": [8, 1],
                   "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
+                  "matchstamp": false,
                   "name": "length",
                   "timeline": "score"
                 }
@@ -1331,6 +1370,7 @@
               "generator": "timetoalign 1.2.0 (40161e42)"
             },
             "name": null,
+            "resources": [],
             "timelines": [
               {
                 "children": [
@@ -1444,6 +1484,7 @@
       "size": 8,
       "snap": true
     },
-    "manifests": {}
+    "manifests": {},
+    "matchClaimFilters": {}
   }
 }

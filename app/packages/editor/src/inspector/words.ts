@@ -161,6 +161,18 @@ function describe(resolved: ResolvedAddress): Described | null {
       const { name = null, id } = resolved.timestamp;
       return { parts: [], kind: "timestamp", name, id, titled: false };
     }
+    case "matchstamp": {
+      const { name, id } = resolved.matchstamp;
+      return { parts: [], kind: "MatchStamp", name, id, titled: false };
+    }
+    case "anchor":
+      return {
+        parts: [],
+        kind: "alignment anchor",
+        name: null,
+        id: resolved.anchor.id,
+        titled: false,
+      };
     case "part": {
       const owner = describe(resolved.owner);
       if (owner === null) return null;
@@ -173,7 +185,8 @@ function describe(resolved: ResolvedAddress): Described | null {
 /**
  * The subject the selection names: for one address, what core resolves it
  * to (the bundle, a group, a measure map, a timeline, a conversion map, a
- * region, a jump origin, a jump target or a flow marker), each part the
+ * region, a jump origin, a jump target, a flow marker, a timestamp, a
+ * MatchStamp or an alignment anchor), each part the
  * address appends prefixed (`Card of
  * timeline`, `Coordinate of timestamp`, `Regions band of timeline`); for
  * several addresses their count; `null` for no selection or an address

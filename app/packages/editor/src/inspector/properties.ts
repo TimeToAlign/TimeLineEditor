@@ -531,8 +531,20 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
     case "timestamp": {
       const { block, timestamp } = resolved;
       const target = inBlock(block.id, idAddress(timestamp.id));
-      return { target, name: timestamp.name ?? null, nullable: false, manifest: block.manifest };
+      return {
+        target,
+        name: timestamp.name ?? null,
+        nullable: timestamp.matchstamp,
+        manifest: block.manifest,
+      };
     }
+    case "matchstamp": {
+      const { block, matchstamp } = resolved;
+      const target = inBlock(block.id, idAddress(matchstamp.id));
+      return { target, name: matchstamp.name, nullable: false, manifest: block.manifest };
+    }
+    case "anchor":
+      return null;
     case "part":
       return namedBy(resolved.owner);
   }
@@ -544,8 +556,10 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
  * address its opening selects, `editedSelection`); else the one inspected
  * thing's. Each wherever the schema gives it a name (the block's manifest, a
  * group, a measure map, a timeline or its card, a conversion map, a region,
- * a flow-control element; a part names its element's); `null` for a band or
- * several things.
+ * a flow-control element, a named timestamp, a MatchStamp; a part names its
+ * element's); a match timestamp's name may be emptied, a named timestamp's
+ * and a MatchStamp's not; `null` for a band, an alignment anchor or several
+ * things.
  */
 export function nameOf(
   view: View,
