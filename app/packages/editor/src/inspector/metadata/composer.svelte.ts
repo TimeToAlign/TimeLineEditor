@@ -8,10 +8,10 @@
  */
 
 import type { Catalogue, Recognition } from "@timetoalign/timetoshare";
-import { expandIri, instantiate, recognize } from "@timetoalign/timetoshare";
+import { compactIri, expandIri, instantiate, recognize } from "@timetoalign/timetoshare";
 import type { Candidate } from "../../lookup/index.ts";
 import type { SystemChoice, VerbChoice } from "./catalogue.ts";
-import { alternativeAt, compactIri, namedSlots, OTHER, patternSystem } from "./catalogue.ts";
+import { alternativeAt, namedSlots, OTHER, patternSystem } from "./catalogue.ts";
 import type { Frame, Pair } from "./frame.ts";
 import { framePrefixes } from "./frame.ts";
 

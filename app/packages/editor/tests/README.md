@@ -1103,6 +1103,93 @@ which no position solves).
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
 
+## How IRIs are shown (`iris.test.ts`)
+
+Wherever the editor shows an IRI it shows a slug, `prefix:local`, as it
+shows every other ID, and keeps the full IRI for the hover (the title) and
+for copies; an IRI it knows nothing of is shown as written. What it knows
+is the schema package's: the shipped catalogue's identifier systems
+(`recognize` over each thing's URL patterns, the thing's `prefix`), the
+catalogue's namespaces and aliases (`compactIri`) and the namespaces a
+manifest's `@context` declares; the editor adds one table, the slug word of
+a system whose things have no prefix (`mbid` for MusicBrainz, whose
+identifiers are MBIDs), and otherwise writes the system's catalogue ID. So
+the oracles are the catalogue's patterns and prefixes and the IRIs below,
+each written in the test; `shownIri(names, written)` with `names` =
+`iriNames(defaultCatalogue(), C)`, `C` = `{ex: "https://example.org/",
+tilie: USER_TAG}`, gives `{text, iri}`:
+
+1. **A thing of a system.**
+   `http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96` →
+   `mbid:8d331505-4d88-39ae-81c7-bec5da77af96`, and so does its `https:`
+   form with `www.`, each carrying its own IRI as written;
+   `https://musicbrainz.org/recording/7A0C7C3B-…` → `mbid:` with the value
+   lowered (the thing writes it lower case); `http://www.wikidata.org/entity/Q235650`
+   and the page `https://www.wikidata.org/wiki/Q235650` → `wd:Q235650`
+   (the thing's prefix); `https://d-nb.info/gnd/124927521` →
+   `gnd:124927521`; `https://www.youtube.com/watch?v=Ch2mrPm1JnM` →
+   `youtube:Ch2mrPm1JnM` (the system's ID); `https://doi.org/10.1000/182`
+   → `doi:10.1000/182`.
+2. **A namespace.** `http://schema.org/VideoObject` and, through the
+   catalogue's alias, `https://schema.org/VideoObject` →
+   `schema:VideoObject`; `https://example.org/thing` → `ex:thing` (the
+   context's namespace); `https://example.org/people/editor` as written
+   with no IRI (a rest holding `/` is no local name).
+3. **As written.** A compact IRI keeps its text and carries the IRI it
+   stands for: `wd:Q1` → `{wd:Q1, http://www.wikidata.org/entity/Q1}`,
+   `ex:sources/a` → `{ex:sources/a, https://example.org/sources/a}`. An
+   IRI nothing knows (`https://example.com/a`, `urn:isbn:0451450523`), a
+   name ("Clair de lune") and a reference within the manifest (`#clt_6`)
+   are shown as written with no IRI.
+4. **The namespaces.** `prefixesOf(catalogue, C)` is the catalogue's
+   prefixes with `ex` added; `tilie` (a namespace ending in neither `/`
+   nor `#`) and a key beginning with `@` are left out, and a context
+   prefix overrides the catalogue's of the same name.
+
+## A provenance entry (`provenance.test.ts`, `matchstamps.test.ts`)
+
+One data shape and one component show a provenance entry in both tabs, a
+Metadata pair's and a MatchClaim's: `lineOf` reads an entry into an
+`EntryLine`, `paradataRows` lists its paradata, `Provenance` shows it
+behind a Provenance button (the panel tests of both tabs read it). The
+oracles are the entries written in the test.
+
+1. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
+   → its iD; `…:user:Clara%20Wieck` → "Clara Wieck"; `TILIE` → "TiLiE";
+   any other IRI as written, or, given names, as shown
+   (`http://www.wikidata.org/entity/Q1` → `wd:Q1`).
+2. **An entry** (`lineOf`) reads every actor and every IRI of `stated_by`
+   as the IRI it stands for under the manifest's context (core's
+   `actorIri`, as the belief filter does), the service and the basis as
+   shown. The entry `stated_by` [`ex:people/editor`, `tilie:Gerhardt`],
+   date 2026-11-18, method `manual`, service
+   `http://www.wikidata.org/entity/Q2`, basis [`ex:sources/a`,
+   `http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96`],
+   beliefs `tilie:Gerhardt` true (2026-11-19) and `ex:people/editor`
+   unlikely (2026-11-18, note "check"), under the names of `C` for the
+   user Gerhardt (no ORCID): `statedBy` [{`P`, no IRI}, {"Gerhardt",
+   `G`}]; service {`wd:Q2`, its IRI}; basis [{`ex:sources/a`,
+   `https://example.org/sources/a`}, {`mbid:8d331505-…`, its IRI}];
+   beliefs `[actor as written, iri, who, belief]` [`tilie:Gerhardt`, `G`,
+   "Gerhardt", true], [`ex:people/editor`, `P`, `P`, unlikely];
+   `beliefOf` `"true"`. Without a context the actors are the texts as
+   written and `beliefOf` is `null`.
+3. **Paradata.** `paradataRows` lists `{key, label, items}` in the one
+   order and words of both tabs: statedBy "stated by", method "method",
+   service "service", basis "basis", match "match", note "note", date
+   "date", only those the entry states, each item as its line holds it (a
+   word with no IRI): here stated by (two items), method, service, basis
+   (two items), date; an empty entry none.
+4. **A MatchClaim's entry** (`claimEntryLine`, in `matchstamps.test.ts`
+   on its MatchClaim table; the shipped catalogue and the manifest's
+   context): `null` for an entry the table does not state;
+   while unread, the table's beliefs (`claim.beliefs`) and no paradata;
+   once read (`stated_by` the user, 2026-11-20, `imported`, the service
+   `https://example.org/aligner`, the other actor believing it true on
+   2026-11-21 with the note "seen in the score"), the entry's line:
+   `statedBy` the user's name with the user's IRI, the service as written
+   with no IRI, the belief with its date and note.
+
 ## MatchClaims and the Matchstamp tab (`matchstamps.test.ts`, `matchstamp-panel.test.ts`, `matchclaims-loading.test.ts`, `matchclaim-beliefs.test.ts`)
 
 The anchor index, the belief mask, the comparison of a named MatchStamp
@@ -1187,10 +1274,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    timestamps in one entry, leaving the tab on the hint. Without a table
    nothing is compared: no anchor is marked, no difference listed, no
    Update shown, Remove offered.
-5. **MatchClaims and beliefs.** A MatchClaim's provenance is shown by the
-   Metadata tab's details (one component, one reader: `claimEntryLine`
-   gives the Metadata tab's `EntryLine`, `paradataRows` its rows, the
-   same words and order as a pair's details; "The Metadata tab" below).
+5. **MatchClaims and beliefs.** A MatchClaim's provenance is shown as a
+   Metadata pair's is (one data shape, one reader: `claimEntryLine` gives
+   the `EntryLine`, `paradataRows` its rows, the same words and order as
+   a pair's provenance; "A provenance entry" above).
    Before its entry is read, each MatchClaim lists the beliefs the table
    states, every actor worded by `whoOf` (`claim_4`: "tag:example.org,2026:other
    believes it true"; the user's own by the user's name), with no date, no
@@ -1210,12 +1297,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    belief: "true"}` and the user's own belief `true`; the filter "only what
    I believe true" keeps 1 anchor (`claim_5`'s). Without the context the
    compact actor is no IRI of the user: no belief of the user, 0 anchors.
-   `claimEntryLine` of `claim_4`: `null` for an entry the table does not
-   state; while unread, the table's beliefs and no paradata; once read
-   (`stated_by` the user, 2026-11-20, `imported`, the service
-   `https://example.org/aligner`, the other actor believing it true on
-   2026-11-21 with the note "seen in the score"), the entry's line, `who`
-   the user's name and the belief with its date and note.
+   `claimEntryLine` is "A provenance entry", item 4.
 6. **The filter** lists the manifest's timelines (`clt_1`, `clt_2`,
    `cpt_1`, `dpt_1`) checked and the two belief choices; unchecking
    `cpt_1` configures `{timelines: ["clt_1", "clt_2", "dpt_1"], belief:
@@ -1380,8 +1462,11 @@ default, Gerhardt, who states and believes as `G` =
    timeline or a region." Two subjects selected: `SELECT_HINT`.
 2. **`cpt_1`'s rectangles**, headings `["is a", "performed by", "same
    as"]` (`rectangles`' order: "is a" first, then by first pair, the pairs
-   by property in code-point order). Each pair's line is its provenance
-   entry, whatever beliefs it holds, else `null`:
+   by property in code-point order). A row's property and value are
+   shown as "How IRIs are shown" says (a compact IRI as written with the
+   IRI it stands for, an absolute one as its slug); below, a row is
+   written by its texts. Each pair's line is its provenance entry,
+   whatever beliefs it holds, else `null`:
    - "is a", keyed by its first pair `["type","schema:VideoObject"]`, no
      label, rows `type schema:VideoObject` (to `http://schema.org/VideoObject`),
      `type melod:Manifestation` (to
@@ -1394,8 +1479,8 @@ default, Gerhardt, who states and believes as `G` =
      rectangle, the two values sharing the VIAF cluster through the
      Wikidata node's `schema:sameAs`. Its things, first seen first, are
      the VIAF, Wikidata and GND IRIs, recognised as `viaf`, `wikidata`,
-     `gnd`. Lines: `reconciled · T · 2026-11-18` with basis the Wikidata
-     and GND IRIs and no belief, then `reconciled · P · 2026-11-18` with
+     `gnd`. Lines: `reconciled · T · 2026-11-18` with basis `wd:Q235650`
+     and `gnd:124927521` (each with its IRI) and no belief, then `reconciled · P · 2026-11-18` with
      service `https://www.wikidata.org/w/api.php` and the one belief `P`
      `"true"` on 2026-11-18. `addable` is `[musicbrainz, gnd, melody]`:
      the verb's vocabularies in catalogue order (those with a pattern of
@@ -1403,9 +1488,11 @@ default, Gerhardt, who states and believes as `G` =
      states it with a thing slot) without Wikidata (`wdt:P175` with a
      Wikidata value), VIAF and the fallback (`rel:prf`, the fallback's
      property; the fallback holds no things, the value is VIAF's).
-   - "same as", no label, row `schema:sameAs
-     https://www.youtube.com/watch?v=Ch2mrPm1JnM` linking to itself,
-     line `manual · P · 2026-11-18`, belief `P` `"true"`.
+   - "same as", no label, row `schema:sameAs youtube:Ch2mrPm1JnM`, the
+     value carrying and linking to
+     `https://www.youtube.com/watch?v=Ch2mrPm1JnM`, line `manual · P ·
+     2026-11-18`, belief `P` `"true"`. `T` and `P` are shown as written
+     (no namespace holds them as a local name) with no IRI.
    The user's own belief (`beliefOf`) in every line is `null`: `G` holds
    none.
 3. **What the element is.** The first tile's sentence (`typeSentence`)
@@ -1430,18 +1517,19 @@ default, Gerhardt, who states and believes as `G` =
    node gives `wd:Q29117946`), pair `["wdt:P2550", {"id":
    "wd:Q29117946"}]`, line method `inferred`, who `T`, basis `#clt_6`,
    `#dpt_1`, no belief, key the canonical text of
-   `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`. Believed false
-   by the user: none.
+   `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`, the label a
+   name with no IRI. Believed false by the user: none.
 5. **`clt_6`**: headings `["is a", "dcterms:created", "is a version or
    edition of"]`; `dcterms:created` (no verb) labelled by its literal
    "2025-12-05", its line `imported`; "is a version or edition of"
    labelled "Clair de lune", rows `schema:exampleOfWork
-   http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96` and
-   `wdt:P629 wd:Q29117946` (one thing shared through the node's
-   `schema:sameAs`), its two lines `manual` by `P` with match `broad`
-   (belief `P` `"true"`) and `reconciled` by `T` with service Wikidata.
+   mbid:8d331505-4d88-39ae-81c7-bec5da77af96` (the value carrying and
+   linking to `http://musicbrainz.org/work/8d331505-…`) and `wdt:P629
+   wd:Q29117946` (one thing shared through the node's `schema:sameAs`),
+   its two lines `manual` by `P` with match `broad` (belief `P` `"true"`)
+   and `reconciled` by `T` with service Wikidata and basis `mbid:8d331505-…`.
    Its candidate "is a version or edition of" `gnd:1156628156` (no label
-   known), method `reconciled`, its note kept, is believed `"false"` by
+   known, so its ID as written, carrying `https://d-nb.info/gnd/1156628156`), method `reconciled`, its note kept, is believed `"false"` by
    `P`, not by the user: it is offered to `G`, its line holding `P`'s
    belief. Believed false by the user: none. The value node's own entry is
    about a pair the node states, so no candidate.
@@ -1452,40 +1540,17 @@ default, Gerhardt, who states and believes as `G` =
    empty "is a", `rdfs:seeAlso` and `schema:about` (`wd:Q29117946`), which
    no verb reads.
    A rectangle in words is its heading and its label, else its first value
-   as written: `cpt_1`'s read "is a schema:VideoObject", "performed by
-   Maria João Pires", "same as
-   https://www.youtube.com/watch?v=Ch2mrPm1JnM".
-8. **Who.** `whoOf`: `G` → "Gerhardt"; `https://orcid.org/0000-0002-1825-0097`
-   → its iD; `…:user:Clara%20Wieck` → "Clara Wieck"; `TILIE` → "TiLiE";
-   any other IRI as written.
-   **A provenance entry** (`lineOf`, the one reader of the Metadata tab's
-   and the Matchstamp tab's details) reads every actor and every IRI of
-   `stated_by` as the IRI it stands for under the manifest's context
-   (core's `actorIri`, as the belief filter does). The entry `stated_by`
-   [`ex:people/editor`, `tilie:Gerhardt`], date 2026-11-18, method
-   `manual`, basis [`ex:sources/a`, `ex:sources/b`], beliefs
-   `tilie:Gerhardt` true (2026-11-19) and `ex:people/editor` unlikely
-   (2026-11-18, note "check"), under the context `{tilie: USER_TAG, ex:
-   "https://example.org/"}`, for the user Gerhardt (no ORCID): `who`
-   "`P`, Gerhardt"; beliefs `[actor as written, iri, who, belief]`
-   [`tilie:Gerhardt`, `G`, "Gerhardt", true], [`ex:people/editor`, `P`,
-   `P`, unlikely]; `beliefOf` `"true"`. Without the context the IRIs are
-   the texts as written and `beliefOf` is `null`. `paradataRows` lists
-   `{key, label, text}` in the one order and words of both tabs: who
-   "stated by", method "method", service "service", basis "basis" (joined
-   by ", "), match "match", note "note", date "date", only those the entry
-   states: here stated by, method, basis "ex:sources/a, ex:sources/b",
-   date; an empty entry none.
+   as shown: `cpt_1`'s read "is a schema:VideoObject", "performed by
+   Maria João Pires", "same as youtube:Ch2mrPm1JnM".
+8. **Who and the entries.** Read by `lineOf` and `whoOf` ("A provenance
+   entry").
 9. **Choices.** `systemChoices` of "performed by": Wikidata, MusicBrainz,
    GND, "MeLODy / LRMoo", "Other vocabularies", "An element of this
    manifest". `verbChoices` for the types `cpt_1`'s "is a" states begin
    "is a", then the usual verbs of `video` (the type three of its
    vocabularies agree on: fallback, MeLODy and Wikidata) and end with
    "Other property…"; with the system `wikidata` no reading Wikidata cannot
-   state is offered. `compactIri` writes
-   `http://www.wikidata.org/entity/Q235650` as `wd:Q235650` and keeps
-   `http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96`
-   absolute (no prefix holds it).
+   state is offered.
 
 **The edits** (`metadata-edits.test.ts`, pure, exact commands, the clock
 at `2026-11-20T12:00:00Z`):
@@ -1551,34 +1616,43 @@ every other one's is its verb and its label.
 2. **Expanded.** One click on "performed by"'s expand button: expanded,
    its pairs shown, each its own row whose pair reads `rel:prf
    viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗` (two anchors with
-   `rel="noreferrer"`, `target="_blank"`), each row with a button
-   reading "Details", named "Details of rel:prf viaf:113931950" and
-   "Details of wdt:P175 wd:Q235650", and one "＋ Add vocabulary". A row
-   is its pair and its button, so the pair is read from its own span.
-3. **Details.** Details of `wdt:P175`: the paradata "stated by" `P`,
+   `rel="noreferrer"`, `target="_blank"`, titled with the IRI each value
+   stands for), each row with a button reading "Provenance", named
+   "Provenance of rel:prf viaf:113931950" and "Provenance of wdt:P175
+   wd:Q235650", collapsed (`aria-expanded="false"`), and one "＋ Add
+   vocabulary". A row is its pair and its button, so the pair is read from
+   its own span. "same as" reads `schema:sameAs youtube:Ch2mrPm1JnM ↗`,
+   the anchor titled and linking to
+   `https://www.youtube.com/watch?v=Ch2mrPm1JnM`; on `clt_6` "is a version
+   or edition of" reads `schema:exampleOfWork
+   mbid:8d331505-4d88-39ae-81c7-bec5da77af96 ↗`, titled with its
+   MusicBrainz IRI, and its Wikidata line's basis reads the same slug
+   with the same title.
+3. **Provenance.** The provenance of `wdt:P175`: the paradata "stated by" `P`,
    "method" reconciled, "service" Wikidata's API, "note" "Portuguese
    pianist; the video's title names her", "date" 2026-11-18; the belief
    "https://example.org/people/editor believes it true (2026-11-18)"; the
-   buttons True, Unlikely, False (none pressed) and Remove. Details of
-   `rel:prf`: "No one has stated a belief.". Details of a pair of "is a":
+   buttons True, Unlikely, False (none pressed) and Remove. The provenance of
+   `rel:prf`: "No one has stated a belief.". The provenance of a pair of "is a":
    "No provenance entry: the manifest states it." (a pair listed in
    `statements` is stated by the manifest; no other actor is named).
-4. **Believing a stated pair.** False in `wdt:P175`'s details: one
+4. **Believing a stated pair.** False in `wdt:P175`'s provenance: one
    journal entry whose `set` changes `cpt_1`'s `provenance` alone, entry 1
    holding `P`'s and `G`'s beliefs; the tiles unchanged (the pair stays
    stated); False pressed; two beliefs listed. Unlikely then: one more
    entry, Unlikely pressed and False not, still two beliefs.
-5. **Remove.** Remove in `rel:prf`'s details: the "performed by" tile
+5. **Remove.** Remove in `rel:prf`'s provenance: the "performed by" tile
    keeps `wdt:P175`, now after "same as" (tiles follow their first pair in
    code-point order), and takes the focus. On `dpt_1`, Remove on both pairs
    of "is a" (the tile expanded again after the first): the empty "is a"
    is left, keyed `is_a`, and the focus is on "＋ Add statement".
-6. **Candidates.** On `cpt_1`, True in the candidate's details: one
+6. **Candidates.** On `cpt_1`, True in the candidate's provenance (which
+   adds "Believing a candidate true states it."): one
    journal entry, a fourth tile "is a recording of Clair de lune" that has
    the focus, "Candidates (0)". On `dpt_1`, False in its candidate's
-   details: one entry, "Candidates (0)", "Believed false by you (1)", the
+   provenance: one entry, "Candidates (0)", "Believed false by you (1)", the
    focus on the Candidates summary; Unlikely in the set-apart row's
-   details: one entry, "Candidates (1)", "Believed false by you (0)", the
+   provenance: one entry, "Candidates (1)", "Believed false by you (0)", the
    focus on that list's summary.
 7. **Paste.** On `cpt_2`, "＋ Add statement", a paste of
    `https://www.wikidata.org/wiki/Q235650` into Value: Vocabulary reads
@@ -1739,7 +1813,7 @@ read from a recording, never typed from the implementation; `T` is
   the names stay without an identifier until a candidate is stated, so
   the offer stays. Pressed again, nothing is journalled and "No new match
   was found for the 2 names." is posted. True in the `rel:prf` row's
-  details: one journal entry whose `set` states `cpt_2`'s statements as
+  provenance: one journal entry whose `set` states `cpt_2`'s statements as
   under Stating for a name, "Candidates (1)", "1 name without an
   identifier here and below". On `cpt_1` (its names all lie on `cpt_2`
   below it; it has one candidate of its own), the count reads "2 names

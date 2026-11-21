@@ -520,18 +520,18 @@ other one's is its verb and its label. `P` =
    collapsed (its pairs hidden), no "Status" text; "performed by"
    expanded: labelled "Maria João Pires", its pairs `rel:prf
    viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗`, each in its row beside
-   a button reading "Details" (a pair is read from its own span, not from
-   the row, which holds the button's word too), a "＋ Add vocabulary"
+   a button reading "Provenance" (a pair is read from its own span, not
+   from the row, which holds the button's word too), a "＋ Add vocabulary"
    button on each of the three tiles (each has a vocabulary not yet
    used); "Candidates (1)", "Believed false by you (0)"; the candidate
    "is a recording of Clair de lune". `clt_6`: "Candidates (1)", the
-   candidate naming `gnd:1156628156`, whose details list "P believes it
+   candidate naming `gnd:1156628156`, whose provenance lists "P believes it
    false (2026-11-18)": another actor's belief, so it is still offered
    to the user. `dpt_1`: "Candidates (1)". The bundle: "Nothing states
    yet what LayerIt, Clair de lune mm. 1–6 (Pires) is." with "State what
    it is".
 2. **A candidate believed true.** On `cpt_1`, True in the candidate's
-   details: "is a recording of" follows "same as", the journal grows by
+   provenance: "is a recording of" follows "same as", the journal grows by
    one; the export's `#cpt_1` states `wdt:P2550: [{id: "wd:Q29117946"}]`,
    its entry 3 kept as made (`stated_by: [T]`, 2026-11-18, method, basis
    and note) with `beliefs: [{actor: G, belief: "true", date:
@@ -568,7 +568,8 @@ other one's is its verb and its label. `P` =
 6. **The user.** File, "Your name…", "Clara Wieck" and
    `https://orcid.org/0000-0002-1825-0097`, Save: the user line reads "You
    state as Clara Wieck (ORCID iD 0000-0002-1825-0097)."; Remove in the
-   details of the "same as" pair journals an entry by "Clara Wieck"; the
+   provenance of the "same as" pair (`schema:sameAs youtube:Ch2mrPm1JnM`,
+   its YouTube address shown as a slug) journals an entry by "Clara Wieck"; the
    candidate believed true then carries the belief `"true"` of the actor
    `https://orcid.org/0000-0002-1825-0097`; after a reload `tilie.user`
    holds `{"name":"Clara Wieck","orcid":"0000-0002-1825-0097"}`.
@@ -577,7 +578,7 @@ other one's is its verb and its label. `P` =
    Escape in the open Verb listbox closes it and leaves the composer open;
    Enter on the new tile's focused expand button expands it.
 8. **A stated pair believed false.** On `cpt_1`, "performed by" expanded,
-   the details of `wdt:P175 wd:Q235650`: its False button focused,
+   the provenance of `wdt:P175 wd:Q235650`: its False button focused,
    ArrowDown and ArrowUp change nothing (no journal entry, not pressed);
    Enter: False pressed, one journal entry, the three tiles kept; the
    export's `#cpt_1` still states `wdt:P175` as imported, its entry
@@ -620,7 +621,7 @@ shared by both specs).
    information "Proposed 1 match: they are listed under Candidates.", no
    message that Wikidata or the GND could not be searched, "performed
    by Maria João Pires" (the label `cpt_1` gives `wd:Q235650`); its
-   details list stated by "TiLiE", method "reconciled", service
+   provenance lists stated by "TiLiE", method "reconciled", service
    `https://www.wikidata.org/w/api.php`, the note "found for the name
    “Maria João Pires”", date 2026-11-20 (no match: Wikidata's search
    states none) and "No one has stated a belief.". True: the export's

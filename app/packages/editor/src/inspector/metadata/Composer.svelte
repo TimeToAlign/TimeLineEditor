@@ -9,13 +9,14 @@
  * value is first offered from the cross-references of its first thing.
  * An element of the manifest may also be picked on the canvas. Add states
  * the pairs with their paradata (who, when and how) and the user's belief
- * `true`.
+ * `true`. An option's IRI shows as a slug, the full IRI its title.
  */
 import { statementHolders } from "@timetoalign/tilie-core";
 import { recognize } from "@timetoalign/timetoshare";
 import { onDestroy, onMount, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import Combobox from "../../combobox/Combobox.svelte";
+import { shownIri } from "../../iris.ts";
 import type { Candidate } from "../../lookup/index.ts";
 import { lookupOf } from "../../lookup/index.ts";
 import { informOf } from "../../messages.svelte.ts";
@@ -44,7 +45,7 @@ import { valueText } from "./composer.svelte.ts";
 import type { EntryFields } from "./edits.ts";
 import { dayOf, tied } from "./edits.ts";
 import type { Frame, Pair, RectangleView, Thing } from "./frame.ts";
-import { framePrefixes, states } from "./frame.ts";
+import { frameNames, framePrefixes, states } from "./frame.ts";
 import OtherProperty from "./OtherProperty.svelte";
 import { Search } from "./search.svelte.ts";
 
@@ -71,6 +72,8 @@ const inform = informOf();
 const profiles = profilesOf();
 /** The catalogue the editor's type profiles offer. */
 const catalogue = $derived(profiles.catalogue);
+/** The names the options' IRIs are shown with. */
+const names = $derived(frameNames(frame, catalogue));
 /** The canvas to pick an element on; none where the panel is shown without one. */
 const picking = hasPicking() ? pickingOf() : null;
 
@@ -540,16 +543,20 @@ onMount(() => {
 {#snippet systemOption(choice: SystemChoice)}{choice.label}{/snippet}
 {#snippet valueOption(choice: ValueChoice)}
   {#if choice.kind === "candidate"}
+    {@const candidateIri = shownIri(names, choice.candidate.iri)}
     <span class="candidate">
       {#if choice.candidate.image !== null}<img src={choice.candidate.image} alt="" width="24" height="24" />{/if}
       <span>
         <strong>{choice.candidate.label}</strong>
         {#if choice.candidate.description !== null}<span class="description">{choice.candidate.description}</span>{/if}
-        <code>{choice.candidate.iri}</code>
+        <code title={candidateIri.iri ?? undefined}>{candidateIri.text}</code>
       </span>
     </span>
   {:else if choice.kind === "element"}
     <code>#{choice.id}</code> {choice.label}
+  {:else if choice.kind === "recognized" && choice.label === null && choice.recognition.iri !== null}
+    {@const shown = shownIri(names, choice.recognition.iri)}
+    <span title={shown.iri ?? undefined}>{shown.text}</span>
   {:else}
     {valueText(choice)}
   {/if}

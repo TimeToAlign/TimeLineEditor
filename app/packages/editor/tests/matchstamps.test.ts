@@ -291,7 +291,7 @@ describe("MatchClaims and beliefs", () => {
     expect(claimEntryLine(claim, null, DEFAULT_USER, CONTEXT)).toBe(null);
     expect(claimEntryLine(claim, undefined, DEFAULT_USER, CONTEXT)).toEqual({
       method: null,
-      who: null,
+      statedBy: [],
       date: null,
       service: null,
       basis: [],
@@ -310,9 +310,9 @@ describe("MatchClaims and beliefs", () => {
     };
     expect(claimEntryLine(claim, entry, DEFAULT_USER, CONTEXT)).toEqual({
       method: "imported",
-      who: DEFAULT_USER.name,
+      statedBy: [{ text: DEFAULT_USER.name, iri: ME }],
       date: "2026-11-20",
-      service: "https://example.org/aligner",
+      service: { text: "https://example.org/aligner", iri: null },
       basis: [],
       match: null,
       note: null,

@@ -6,7 +6,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { details, exported, field, importLayerIt, openList, showMetadata } from "./metadata.ts";
+import { exported, field, importLayerIt, openList, provenance, showMetadata } from "./metadata.ts";
 import { arranger, dispatch, framePoint, journalLength, selection } from "./support.ts";
 
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
@@ -151,7 +151,7 @@ test("names without an identifier get candidates, and one believed true replaces
   await expect(page.getByText("Proposed 1 match: they are listed under Candidates.")).toBeVisible();
   await expect(page.getByText(/^(Wikidata|GND) could not be searched/u)).toHaveCount(0);
   await expect(rows.locator(".what")).toHaveText("performed by Maria João Pires");
-  const region = await details(page, "performed by Maria João Pires");
+  const region = await provenance(page, "performed by Maria João Pires");
   await expect(region.locator("dt")).toHaveText(["stated by", "method", "service", "note", "date"]);
   await expect(region.locator("dd")).toHaveText([
     "TiLiE",

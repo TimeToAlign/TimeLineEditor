@@ -11,6 +11,7 @@ import type { PathSegment, Skeleton, View } from "@timetoalign/tilie-core";
 import { canonicalText, skeletonOf, statementHolders, TILIE_AGENT } from "@timetoalign/tilie-core";
 import type { Catalogue, Pair } from "@timetoalign/timetoshare";
 import {
+  compactIri,
   entries,
   expandIri,
   pairs,
@@ -23,7 +24,7 @@ import {
 } from "@timetoalign/timetoshare";
 import type { Candidate, Lookup, ValueKind } from "../../lookup/index.ts";
 import type { JsonObject } from "./catalogue.ts";
-import { compactIri, systemChoices, valueKindOf } from "./catalogue.ts";
+import { systemChoices, valueKindOf } from "./catalogue.ts";
 import type { CandidateRow, Frame } from "./frame.ts";
 import { entryPair, isNode } from "./frame.ts";
 

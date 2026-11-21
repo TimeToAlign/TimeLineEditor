@@ -6,12 +6,15 @@
  * note, when), who believes it and how, and the user's own belief (true,
  * unlikely, false), one button each, the one the user holds pressed.
  * Without an entry it says why, in the words its host gives. More actions
- * of the host (Remove) follow the belief buttons.
+ * of the host (Remove) follow the belief buttons. An IRI shown as a slug
+ * or in words carries the full IRI as its title. `Provenance` opens it
+ * behind a Provenance button.
  */
 import type { Belief } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
-import type { EntryLine } from "./metadata/frame.ts";
-import { paradataRows } from "./metadata/frame.ts";
+import type { ShownIri } from "../iris.ts";
+import type { EntryLine } from "./provenance.ts";
+import { paradataRows } from "./provenance.ts";
 
 let {
   line,
@@ -30,14 +33,14 @@ let {
   /** The user's own belief; `null` for none. */
   mine: Belief | null;
   /** The accessible name of the belief buttons' group. */
-  label?: string;
+  label?: string | undefined;
   /** Whether the belief buttons wait (no server, a belief being recorded). */
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   /** Why the belief buttons are disabled, their title. */
   title?: string | undefined;
   onbelieve: (belief: Belief) => void;
   /** The host's further actions, after the belief buttons. */
-  actions?: Snippet;
+  actions?: Snippet | undefined;
 } = $props();
 
 /** The beliefs from most to least, as the buttons offer them. */
@@ -51,6 +54,8 @@ const WORDS: Readonly<Record<Belief, string>> = {
 const rows = $derived(line === null ? [] : paradataRows(line));
 </script>
 
+{#snippet shown(item: ShownIri)}<span title={item.iri ?? undefined}>{item.text}</span>{/snippet}
+
 <div class="provenance">
   {#if line === null}
     <p class="muted no-provenance">{missing}</p>
@@ -58,7 +63,9 @@ const rows = $derived(line === null ? [] : paradataRows(line));
     <dl class="paradata" data-testid="metadata-paradata">
       {#each rows as row (row.key)}
         <dt>{row.label}</dt>
-        <dd>{#if row.key === "service"}<code>{row.text}</code>{:else}{row.text}{/if}</dd>
+        <dd>{#each row.items as item, index (index)}{index > 0 ? ", " : ""}{#if row.key === "service"}<code
+                >{@render shown(item)}</code
+              >{:else}{@render shown(item)}{/if}{/each}</dd>
       {/each}
     </dl>
   {/if}
@@ -68,7 +75,7 @@ const rows = $derived(line === null ? [] : paradataRows(line));
     <ul class="beliefs" data-testid="metadata-beliefs" aria-label="Beliefs">
       {#each line.beliefs as held (held.actor)}
         <li>
-          {held.who} believes it <strong>{held.belief}</strong>{held.date === null
+          {@render shown({ text: held.who, iri: held.who === held.iri ? null : held.iri })} believes it <strong>{held.belief}</strong>{held.date === null
             ? ""
             : ` (${held.date})`}{held.note === null ? "" : `: ${held.note}`}
         </li>
