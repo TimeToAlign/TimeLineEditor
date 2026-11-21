@@ -773,7 +773,7 @@ while its right edge moves 50. Through the File menu, the
 schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
-**`ancestor-cards.spec.ts`** (Chromium) proves an ancestor card (TimeToShare's
+**`ancestor-cards.spec.ts`** (Chromium, Firefox, WebKit) proves an ancestor card (TimeToShare's
 drawing specification, section 8.8) on the schema package's
 `groups/group_parent_both`, imported through the File menu, at zoom 1
 with the block's place origin at (240, 80) on the pane, so that the card
@@ -790,8 +790,12 @@ shift 148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
 beyond the frame's left border and 869.33544921875 − 148.6318359375 −
 543.70361328125 = 177 beyond its right one. Nothing else on the canvas
 moves: the block's node moves left by exactly the origin shift (its
-transform from the block's place `(x, y)` to `(x − 148.6318359375, y)`,
-which Chromium writes to six significant digits)
+transform from the block's place `(x, y)` to `(x − 148.6318359375, y)`;
+each engine prints a transform's lengths to its own precision, Chromium
+and Firefox to six significant digits, WebKit to six decimals, so the
+node's transform is compared with the string the same browser writes for
+`translate(<x>px, <y>px)` of the exact position, never with one engine's
+rounding)
 and the frame and the cards of `middle` and `recording` move right by it
 in its drawing (`x` 8 → `156.6318`, 16 → `164.6318`, each `y`, width
 and height as before: `8`, `32.8047`, `124.7578`; `543.7036` × `174.1367`,
@@ -1109,9 +1113,14 @@ Lines list, in screen order (`clt_1` drawn above `dpt_1`), the line of
 the match timestamp on `clt_1`, the anchor's, then the line of the one on
 `dpt_1`; Wedge on the first stores that match timestamp's `display`
 `["wedge", "cross_section"]` in one journal entry. The manifest imported without its table
-makes no table request and the message bar reads "The manifest names the
-MatchClaim table match_claims.parquet, which is not loaded: Load
-MatchClaims… in the Matchstamp tab reads it."
+says nothing of the table and requests nothing: once it is imported and
+selected, the Matchstamp tab's status reads "No MatchClaim table loaded.",
+the message bar holds no message, no `POST /api/match-claims` was answered
+and no request named `match_claims` was made at all. Importing once warned
+that the named table was not loaded; that warning is gone on purpose, since
+the table is loaded when Show matches needs it, silently when it is found
+beside the manifest, and through the tables dialog only when it cannot be
+found (`matchclaim-loading.spec.ts`).
 
 **`matchclaim-beliefs.spec.ts`** (Chromium, Firefox, WebKit) proves a
 MatchClaim's provenance and the user's belief end to end, on the same

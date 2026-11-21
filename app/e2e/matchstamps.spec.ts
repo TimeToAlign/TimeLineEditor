@@ -9,7 +9,8 @@
  * with their Copy buttons), a click on the line of one of its match
  * timestamps selecting it and showing it in the tab, its lines listed in
  * screen order with a timestamp's display toggled from them, and a manifest naming
- * a table that is not loaded saying so.
+ * a MatchClaim table imported without it saying nothing of the table and
+ * requesting nothing (Show matches loads it when asked).
  */
 
 import { readFileSync } from "node:fs";
@@ -271,11 +272,19 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
   ).toEqual(["wedge", "cross_section"]);
 });
 
-test("a manifest naming a table that is not loaded says so", async ({ page }) => {
+test("importing a manifest that names a MatchClaim table says nothing of it and requests nothing", async ({
+  page,
+}) => {
   const seen = await openPage(page);
-  await importFiles(page, [{ name: "manifest.yaml", buffer: MANIFEST }]);
-  await expect(page.getByTestId("message").locator("p")).toHaveText(
-    "The manifest names the MatchClaim table match_claims.parquet, which is not loaded: Show matches (M) loads it.",
-  );
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("match_claims")) asked.push(request.url());
+  });
+  const block = await importFiles(page, [{ name: "manifest.yaml", buffer: MANIFEST }]);
+  await select(page, [{ block }]);
+  await showMatchstamps(page);
+  await expect(page.getByTestId("matchclaims-status")).toHaveText("No MatchClaim table loaded.");
+  await expect(page.getByTestId("message")).toHaveCount(0);
   expect(seen.requests).toBe(0);
+  expect(asked).toEqual([]);
 });

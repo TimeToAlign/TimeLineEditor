@@ -50,17 +50,26 @@ function heldBoxes(page: Page, block: string): Promise<(string | null)[][]> {
   );
 }
 
+/** Block `block`'s node transform, as the browser holds it in its style. */
+function nodeTransform(page: Page, block: string): Promise<string> {
+  return node(page, block).evaluate((item) => (item as HTMLElement).style.transform);
+}
+
 /**
- * The canvas position of block `block`'s node, read from its transform,
- * which Chromium writes to six significant digits.
+ * The transform placing a node at `(x, y)`, as this browser writes it: each
+ * engine prints a length to its own precision (Chromium and Firefox to six
+ * significant digits, WebKit to six decimals), so the node's transform is
+ * compared with the engine's own spelling of the exact position.
  */
-async function nodeAt(page: Page, block: string): Promise<number[]> {
-  const transform = await node(page, block).evaluate(
-    (item) => (item as HTMLElement).style.transform,
+function placedAt(page: Page, x: number, y: number): Promise<string> {
+  return page.evaluate(
+    ([left, top]) => {
+      const probe = document.createElement("div");
+      probe.style.transform = `translate(${left}px, ${top}px)`;
+      return probe.style.transform;
+    },
+    [x, y],
   );
-  const found = /^translate\((-?[\d.e+-]+)px, (-?[\d.e+-]+)px\)$/.exec(transform);
-  if (found === null) throw new Error(`block ${block}'s node is placed by ${transform}`);
-  return [Number(found[1]), Number(found[2])];
 }
 
 /** The frame and the member cards before the ancestor card is shown, as the writer prints them. */
@@ -111,7 +120,7 @@ test("an ancestor card is drawn beyond the frame, opened by a double-click and r
   await expect(checkbox).not.toBeChecked();
   await expect(element(page, block, PIECE_CARD)).toHaveCount(0);
   expect(await heldBoxes(page, block)).toEqual(HELD);
-  expect(await nodeAt(page, block)).toEqual([place.x, place.y]);
+  expect(await nodeTransform(page, block)).toBe(await placedAt(page, place.x, place.y));
 
   await checkbox.check();
   await expect.poll(() => journalLength(page)).toBe(2);
@@ -129,7 +138,7 @@ test("an ancestor card is drawn beyond the frame, opened by a double-click and r
     ["164.6318", "32.8047", "527.7036", "83.9531"],
     ["164.6318", "124.7578", "527.7036", "49.3789"],
   ]);
-  expect(await nodeAt(page, block)).toEqual([Number((place.x - SHIFT).toPrecision(6)), place.y]);
+  expect(await nodeTransform(page, block)).toBe(await placedAt(page, place.x - SHIFT, place.y));
   expect(await placement(page, block)).toEqual(place);
   expect(await cardAfterFrame(page, block)).toBe(false);
 
@@ -148,5 +157,5 @@ test("an ancestor card is drawn beyond the frame, opened by a double-click and r
   await expect.poll(() => journalLength(page)).toBe(entries + 1);
   await expect(element(page, block, PIECE_CARD)).toHaveCount(0);
   expect(await heldBoxes(page, block)).toEqual(HELD);
-  expect(await nodeAt(page, block)).toEqual([place.x, place.y]);
+  expect(await nodeTransform(page, block)).toBe(await placedAt(page, place.x, place.y));
 });
