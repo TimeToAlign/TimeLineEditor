@@ -16,6 +16,7 @@ import {
 } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { LinePosition, PreparedBand, Side } from "./bands.ts";
+import type { AxisTimestamp } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import { LABEL_GAP, MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type {
@@ -108,6 +109,7 @@ interface StampLabel extends Styled, Measured {
  * displayed (section 2.4).
  */
 interface Stamp {
+  readonly id: string;
   readonly at: Real;
   readonly wedge: Styled | undefined;
   /** Its stack: its drawn labels in the order of `TIMESTAMP_LABELS`. */
@@ -131,6 +133,12 @@ export interface MarkersBand extends PreparedBand {
    * `extent` is null.
    */
   crossSections(at: LinePosition, extent: CrossSectionExtent): VerticalLineElement[];
+  /**
+   * Every named timestamp it holds, in the order it places them, with the abscissa of its
+   * cross-section line at the line placed at `at`, whether or not that line is drawn: where the
+   * alignment anchors joining its timestamp meet it (section 8.7).
+   */
+  timestamps(at: LinePosition): AxisTimestamp[];
   /**
    * The styles of a wedge and a cross-section line of the band's timeline that no named
    * timestamp holds: the cascade's, the wedge held by the band and the line by the timeline's
@@ -174,7 +182,8 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       const at = idAddress(timestamp.id);
       const lists = (word: (typeof timestamp.display)[number]) => timestamp.display.includes(word);
       const drawn = (item: Styled): Styled | undefined => (shown(item.style) ? item : undefined);
-      const texts: Readonly<Record<TimestampLabel, string>> = {
+      // A match timestamp may have no name, and draws no name label then (section 2).
+      const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
         name: timestamp.name,
         id: timestamp.id,
         coordinate: coordinateText(own, timeline.number_type, timeline.unit),
@@ -182,6 +191,8 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       const labels = !banded
         ? []
         : TIMESTAMP_LABELS.filter(lists).flatMap((word): StampLabel[] => {
+            const text = texts[word];
+            if (text === undefined) return [];
             const label = styled(
               elementKey("label", partAddress(at, word), timeline, band.key),
               band.style,
@@ -189,9 +200,10 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
             if (!shown(label.style)) return [];
             const coordinate =
               word === "coordinate" ? { unit: timeline.unit, value: own } : undefined;
-            return [{ ...label, ...measured(label, texts[word]), coordinate }];
+            return [{ ...label, ...measured(label, text), coordinate }];
           });
       return {
+        id: timestamp.id,
         at: add(source.start, own),
         wedge:
           banded && lists("wedge")
@@ -272,6 +284,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
               ? []
               : [crossSectionElement(drawn.address, drawn.style, at.x(position), extent)],
           ),
+    timestamps: (at) => stamps.map(({ id, at: position }) => ({ id, x: at.x(position) })),
     unnamed: {
       wedge: cascade.resolveUnaddressed(
         unnamedKey("wedge", line.bands.markers.key),

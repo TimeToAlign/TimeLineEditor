@@ -12,13 +12,24 @@
 export const name = "@timetoalign/tilie-layout" as const;
 
 export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
-export type { CrossSection, LineAxis, WedgeMark } from "./axes.ts";
-export { abscissaOf, crossedLines, crossSection, lineAxes, wedgeAt } from "./axes.ts";
+export type { AnchorLine } from "./anchors.ts";
+export { anchorLine } from "./anchors.ts";
+export type { CrossSection, CrossSectionSegment, LineAxis, WedgeMark } from "./axes.ts";
+export {
+  abscissaOf,
+  crossedLines,
+  crossSection,
+  crossSectionSegment,
+  lineAxes,
+  timestampSegments,
+  wedgeAt,
+} from "./axes.ts";
 export { draw } from "./block.ts";
 export type {
   AxisMap,
   AxisMarker,
   AxisSegment,
+  AxisTimestamp,
   DrawnAxis,
   DrawnBox,
   ElementRange,
@@ -28,6 +39,7 @@ export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
+  AnchorElement,
   BlockElement,
   Drawing,
   DrawnElement,

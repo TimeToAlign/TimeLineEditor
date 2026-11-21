@@ -10,10 +10,12 @@
 import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import { BLOCK_KEY } from "@timetoalign/tilie-core/drawing";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
+import { anchorElements } from "./anchors.ts";
 import { emitDrawing } from "./block/emit.ts";
 import { columnsOf, horizontalOf } from "./block/horizontal.ts";
 import { drawItem, layoutItem } from "./block/items.ts";
 import { placeItems, titleOf } from "./block/places.ts";
+import type { DrawnAxis } from "./boxes.ts";
 import { Cascade } from "./cascade.ts";
 import { F, P } from "./constants.ts";
 import type { Drawing, Placement } from "./elements.ts";
@@ -25,7 +27,8 @@ import type { Context, Holder } from "./traversal.ts";
  * and its ungrouped roots as cards, each item at its place (section 8.6).
  * The items are placed and their member drawings laid out; the block's one
  * horizontal layout is found over every member drawing; each item is laid
- * out by it; the block is grown around them.
+ * out by it; the block is grown around them; the alignment anchors of its
+ * named MatchStamps are drawn last, over everything (section 8.7).
  *
  * `manifest` is in canonical order, as every manifest core reads or settles
  * is: the drawing follows the order of its arrays and never copies it. Its
@@ -64,5 +67,7 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  return emitDrawing(laid, { style: block.style, title, Pt, margin }, placement, measure);
+  const after = (axes: readonly DrawnAxis[]) =>
+    anchorElements(manifest, axes, cascade, block.style, measure);
+  return emitDrawing(laid, { style: block.style, title, Pt, margin, after }, placement, measure);
 }

@@ -445,6 +445,7 @@ export function layoutTimeline(
         crossSection:
           crossing === null ? null : { y1: crossing.y1, y2: crossing.y2, style: crossing.style },
         descendants,
+        timestamps: prepared.markers.timestamps(at),
       },
     };
     return { ...merged, markers: [marker] };

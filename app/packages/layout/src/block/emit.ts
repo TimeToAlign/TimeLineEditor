@@ -26,6 +26,11 @@ export interface BlockContent {
   readonly Pt: number;
   /** The block's margin `Vb`, again below its lowest item. */
   readonly margin: number;
+  /**
+   * The elements drawn after every item (section 8.7), from the drawn lines in the block's
+   * coordinates: the alignment anchors and their labels, which take no room.
+   */
+  readonly after: (axes: readonly DrawnAxis[]) => readonly DrawnElement[];
 }
 
 /**
@@ -34,8 +39,9 @@ export interface BlockContent {
  * them, so the place origin lies at `(Ox, Oy)` in the block; its content runs
  * from `Xl` to `Xr` and from `Yt` to `Yb` in place coordinates, the block's
  * margin below its lowest item (a block without items has none), and its size
- * is at least the requested one. The block's own record comes first, its range
- * every element.
+ * is at least the requested one. The elements `block.after` gives from the
+ * lines in the block follow every item's. The block's own record comes first,
+ * its range every element.
  */
 export function emitDrawing(
   laid: readonly LaidItem[],
@@ -93,6 +99,8 @@ export function emitDrawing(
   const W = placement.width === null ? Wb : Math.max(Wb, placement.width);
   const H = placement.height === null ? Hb : Math.max(Hb, placement.height);
   const inBlock = elements.map((element) => placedAt(element, Ox, Oy));
+  const blockAxes = axes.map((axis) => placedAxis(axis, Ox, Oy));
+  inBlock.push(...block.after(blockAxes));
   inBlock.unshift({
     type: "block",
     address: BUNDLE_ADDRESS,
@@ -118,7 +126,7 @@ export function emitDrawing(
     height: H,
     origin: { x: Ox, y: Oy },
     boxes: [own, ...boxes.map((record) => placedBox(record, Ox, Oy))],
-    axes: axes.map((axis) => placedAxis(axis, Ox, Oy)),
+    axes: blockAxes,
     elements: inBlock,
     unmapped: [...measure.unmapped].sort((left, right) => left - right),
   };

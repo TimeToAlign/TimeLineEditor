@@ -64,8 +64,9 @@ const DEFAULT_DISPLAY: readonly Word[] = ["wedge", "name", "cross_section"];
 const MARKS: readonly Word[] = ["wedge", "coordinate"];
 
 /**
- * The fixture `name` with its named timestamps replaced by `timestamps` and
- * `rules` appended to its own, in canonical order and validated.
+ * The fixture `name` with its named timestamps replaced by `timestamps`, none
+ * a match timestamp (`matchstamp: false`, the complete form), and `rules`
+ * appended to its own, in canonical order and validated.
  */
 function stamped(
   name: string,
@@ -79,7 +80,7 @@ function stamped(
     graphical: {
       ...graphical,
       rules: [...(graphical.rules ?? []), ...rules],
-      timestamps,
+      timestamps: timestamps.map((timestamp) => ({ ...timestamp, matchstamp: false })),
     },
   });
   validate(withFileIds(result));

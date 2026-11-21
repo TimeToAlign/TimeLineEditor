@@ -242,7 +242,11 @@ with width 1 and dash `3 3`, is `<line data-id="s" data-part="line" x1="10"
 y1="25" x2="10" y2="5" stroke="#1BA1E2" stroke-width="1"
 stroke-dasharray="3 3"/>`, in TikZ `\path[draw=ts1BA1E2,line
 width=1pt,dash pattern=on 3pt off 3pt] (10,5) -- (10,25);` (`30 − 25` and
-`30 − 5`). A wedge's points are the layout's (tip, then the base's left and
+`30 − 5`). An **alignment anchor's line** (section 8.7) runs from its first
+point to its second as the layout states them: `{id: anchor_1}` from `(30,
+5)` to `(10, 25)`, stroked alike, is `<line data-id="anchor_1" x1="30"
+y1="5" x2="10" y2="25" stroke="#1BA1E2" stroke-width="1"
+stroke-dasharray="3 3"/>`, in TikZ `… (30,25) -- (10,5);`. A wedge's points are the layout's (tip, then the base's left and
 right corners), the same an editor's unnamed wedge is drawn with.
 
 An ancestor line `{id: a}` running on at both sides, `xs = Xa = 20`, `xe = Xr =
@@ -436,8 +440,18 @@ x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2"
 stroke-width="1" stroke-dasharray="3 3"/>`, in TikZ `(124.9155,106.9062) --
 (124.9155,44.9766)` (`122.90625 − y`, 106.90625 a tie to the even
 106.9062). `timestamp_2` lists no cross-section line and `timestamp_3`'s
-timeline has no band for one to cross. There are
-77 cases. Every case stating a spacing, of the block, in a place or in a
+timeline has no band for one to cross. `bundle__bundle_matchstamps` draws
+named MatchStamps as stored (drawing.md §8.7, its numbers derived in the
+layout's README): the drawing ends with the lines of its two alignment
+anchors and the one label, `<line data-id="anchor_1" x1="261.0928"
+y1="43.207" x2="161.0928" y2="100.5859" stroke="#1BA1E2" stroke-width="1"
+stroke-dasharray="3 3"/>`, `<line data-id="anchor_2" x1="261.0928"
+y1="43.207" x2="161.0928" y2="157.9648" …/>` and `<text data-id="anchor_1"
+data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
+font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
+`\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
+(261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
+There are 79 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

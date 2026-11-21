@@ -947,6 +947,79 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
 - an ancestor line (`group_child_member`'s `piece`) and a key naming no
   line have neither.
 
+## Alignment anchors (`anchors.test.ts`)
+
+A named MatchStamp's alignment anchor `A` joins the cross-section segments
+of its two match timestamps (section 8.7): a timestamp has one segment in
+every member drawing that draws its timeline's line (its segment line's
+for a segment without a line), the vertical extent of section 6.6 at its
+`X`, or the point `(X, y)` on the line where neither the children band nor
+the conversion maps band is present, whether or not its cross-section line
+is displayed. The line `{id: A}` is the shortest between one segment of
+each, the label `{id: A, part: [name]}` the MatchStamp's name centred on
+its midpoint, baseline `ym + (a(9) − d(9)) / 2 = ym + 3.11572265625`; both
+drawn after every item (lines, then labels), neither taking room. A match
+timestamp without a name draws no name label. Manifests are fixtures, or
+fixtures with match timestamps and one MatchStamp written onto them and
+validated (`matchstamp: true`, the complete form).
+
+- **`anchorLine` alone**, segments written `(x, [y1, y2])`: overlapping
+  `(1, [0, 10])` and `(5, [4, 20])` give the horizontal line at `(4 + 10) /
+  2 = 7`, from `(1, 7)` to `(5, 7)`; two points at one ordinate `(2, 5)` to
+  `(6, 5)`; `A` above `B`, `(0, [0, 2])` and `(3, [5, 9])`, from `A`'s lower
+  end `(0, 2)` to `B`'s upper `(3, 5)`; `A` below, `(0, [10, 12])` and `(3,
+  [1, 4])`, from `(0, 10)` to `(3, 4)`. Of the points `(0, 0)` and `(0, 100)`
+  against `(10, 90)` the second pair (square 200 against 8200); of equal
+  squares the first of the first timestamp's (`(0, 0)`, `(20, 0)` against
+  `(10, 0)`: from `(0, 0)`), then of the second's (`(0, 0)` against `(10, 0)`,
+  `(−10, 0)`: to `(10, 0)`). Two equal points give the line of no length;
+  no segment on either side gives none.
+- **`bundle_matchstamps`**, three ungrouped roots, none with a band that a
+  cross-section crosses, so every segment is a point and no cross-section
+  line is drawn. The widest name `Take 1` (`A = 6906`, `N = 37.0927734375`)
+  puts `x0 = 16 + N + 8 = 61.0927734375` in every card. The title
+  `MatchStamps` puts the first card at `Pt = 8 + h(11) + 8 = 28.8046875`;
+  every card is `bare`'s, `Hc = 49.37890625` high, its line `14.40234375`
+  below its top: `score` at 43.20703125, `take_1` (card at `28.8046875 +
+  49.37890625 + 8 = 86.18359375`) at 100.5859375, `take_2` (card at
+  143.5625) at 157.96484375. `timestamp_1` lies at 4 of 8 quarters, `x0 +
+  200 = 261.0927734375`; `timestamp_2` at 88200 of 352800 samples and
+  `timestamp_3` at 99225 of 396900, both a quarter, `x0 + 100 =
+  161.0927734375`. `anchor_1` (`[line, name]`) runs from `(261.0927734375,
+  43.20703125)`, above, to `(161.0927734375, 100.5859375)`; `anchor_2`
+  (`[line]`) from the same point to `(161.0927734375, 157.96484375)`,
+  crossing `take_1`'s card. The label `Bar 2, downbeat (take 1)` lies at
+  `x = 211.0927734375`, `ym = 71.896484375`, baseline 75.01220703125. The
+  last three elements are the two lines and the label; the block's record
+  holds every element; the block stays `W = 8 + (8 + 490.71630859375 + 2)
+  = 508.71630859375` by `H = 8 + (143.5625 + 49.37890625 + 2) =
+  202.94140625`, as without them. The default rule (section 4) styles the
+  lines `#1BA1E2`, width 1, dash `3 3`; the label takes fill `#000000` and
+  size 9 from the label rule, the rest from its line. `timestamp_1`, listing
+  `cross_section` alone and nameless, draws nothing; the segments of
+  `timestamp_1` to `timestamp_3` are those three points;
+  `crossSectionSegment` at 100 on `score`'s line is `(100, 43.20703125)`, and
+  none for a key naming no line. Hiding `{id: anchor_1}` keeps its label
+  in place; hiding `{id: anchor_1, part: [name]}` keeps both lines.
+- **`nested`** with match timestamps on the root `clt_1` at 8 (`x0 + 25 × 8
+  = 249.91552734375`) and on `clt_2` at 1 of its own axis, `3/2 + 4 + 1 =
+  13/2` of the root's (`212.41552734375`): the root's cross-section line
+  runs from 16 to 51 (as under "Named timestamps"), `clt_2` has neither band
+  and so the point at its line, 23. They overlap at `lo = hi = 23`: the line
+  is horizontal, `(249.91552734375, 23)` to `(212.41552734375, 23)`. Hiding
+  the root's cross-section line keeps the anchor.
+- **`bundle_shared_member`**, `t` a member of `g1` and of `g2`, with match
+  timestamps at the half of `t` (4 of 8), `u` (2.0 of 4.0) and `v` (400 of
+  800), all at `x0 + 200 = 302.29150390625` (`x0 = 24 + N(Performance) + 8`,
+  `A = 13087`, `N = 70.29150390625`). The frames place the lines at 68.01171875
+  (`t` in `g1`), 125.390625 (`u`), 215.57421875 (`t` in `g2`) and
+  272.953125 (`v`): `t`'s two segments, in that order. `t`–`u` takes `t` in
+  `g1` (57.37890625 against 90.18359375), `v`–`t` takes `t` in `g2` (57.37890625
+  against 204.94140625), each from the first timestamp's point. An anchor
+  displaying `[name]` alone draws its label, `(68.01171875 + 125.390625) / 2
+  + 3.11572265625 = 99.81689453125`, and no line; `t`'s nameless match
+  timestamp listing `name` draws no name label.
+
 ## Timelines of unknown length (`unknown.test.ts`)
 
 Every end rule of section 6.6 is drawn. `unknown_length`'s root is scaled

@@ -92,6 +92,15 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
     case "boundary":
     case "cross_section":
       return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };
+    case "alignment_anchor":
+      return {
+        ...element,
+        style,
+        x1: x(element.x1),
+        y1: y(element.y1),
+        x2: x(element.x2),
+        y2: y(element.y2),
+      };
     case "wedge":
       return {
         ...element,
@@ -155,6 +164,7 @@ export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): 
                     style: scaledStyle(marker.crossSection.style, scale),
                   },
             descendants: marker.descendants,
+            timestamps: marker.timestamps.map(({ id, x }) => ({ id, x: dx + scale * x })),
           },
     xStart: dx + scale * axis.xStart,
     xEnd: dx + scale * axis.xEnd,

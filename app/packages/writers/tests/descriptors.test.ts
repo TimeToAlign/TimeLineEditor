@@ -270,6 +270,42 @@ describe("descriptors", () => {
     expect(written?.tag === "polygon" && written.points).toEqual(unnamed?.points);
   });
 
+  it("writes an alignment anchor's line from its first point to its second", () => {
+    const drawing = synthetic({
+      type: "alignment_anchor",
+      address: at("anchor_1"),
+      style: style({ stroke: "#1BA1E2", "stroke-dasharray": "3 3" }),
+      x1: 30,
+      y1: 5,
+      x2: 10,
+      y2: 25,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<line data-id="anchor_1" x1="30" y1="5" x2="10" y2="25" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (30,25) -- (10,5);",
+    ]);
+  });
+
+  it("writes the bundle_matchstamps fixture's anchors and their label last, as stored", () => {
+    const manifest = loadFixture("bundles/bundle_matchstamps");
+    const drawing = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, manifestLayer(manifest)],
+      fontMetrics,
+    );
+    expect(svgBody(drawing).slice(-3)).toEqual([
+      '<line data-id="anchor_1" x1="261.0928" y1="43.207" x2="161.0928" y2="100.5859" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+      '<line data-id="anchor_2" x1="261.0928" y1="43.207" x2="161.0928" y2="157.9648" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+      '<text data-id="anchor_1" data-part="name" x="211.0928" y="75.0122" text-anchor="middle" font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>',
+    ]);
+    expect(tikzBody(drawing).slice(-3, -2)).toEqual([
+      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (261.0928,159.7344) -- (161.0928,102.3555);",
+    ]);
+  });
+
   it("ends a jump's shaft at its filled arrowhead's base", () => {
     const drawing = synthetic({
       type: "jump_from",
