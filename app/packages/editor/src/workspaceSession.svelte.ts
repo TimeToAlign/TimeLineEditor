@@ -5,6 +5,14 @@
  * the workspace goes through this object; the editor's components read its
  * state and call its methods, and the autosave and the host follow it
  * through `listen`.
+ *
+ * Where the editor reaches the user's files through the server
+ * (`FileHost`), a file is named by its path from the server's root, opened
+ * and saved through the editor's file dialog, and the workspace keeps
+ * where each block's manifest file lies (`ManifestFile.location`, relative
+ * to the workspace file's folder), so the MatchClaim table a manifest
+ * names is read from beside it. Otherwise the browser's pickers and
+ * downloads serve (`files.ts`).
  */
 
 import type { LiveStore, Selection } from "@timetoalign/tilie-arranger";
@@ -18,7 +26,16 @@ import {
   NOTHING_SELECTED,
   selectionOf,
 } from "@timetoalign/tilie-arranger";
-import type { Address, LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
+import type { FileServer } from "@timetoalign/tilie-client";
+import type {
+  Address,
+  LoadError,
+  ManifestFile,
+  Problem,
+  Store,
+  View,
+  Workspace,
+} from "@timetoalign/tilie-core";
 import {
   createStore,
   ErrorCode,
@@ -31,34 +48,37 @@ import {
   readManifestFile,
   readWorkspace,
   saveManifest,
+  WORKSPACE,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Example } from "./examples.ts";
-import type { Opened } from "./files.ts";
+import type { FileKind, Opened } from "./files.ts";
 import {
-  chooseFolder,
+  baseName,
+  folderOf,
   isMatchClaimTable,
   isWorkspaceFile,
   MANIFEST_FILE,
   manifestFileKind,
   manifestFileName,
-  manifestFiles,
   openFiles,
+  relativePath,
+  resolvedPath,
   saveFile,
+  savesByDownload,
   UNTITLED,
   WORKSPACE_FILE,
   withMatchClaimTable,
   workspaceFileName,
 } from "./files.ts";
+import { nameCommand } from "./inspector/properties.ts";
 import {
   type AskTables,
-  type FolderMemory,
   fileNameOf,
-  MATCHES_NEED_A_SERVER,
+  type ManifestPlaces,
   type MatchClaimServer,
   MatchClaimTables,
-  manifestTitle,
   namedTable,
   saveFailure,
   type TableMessages,
@@ -89,6 +109,26 @@ export interface ImportTarget {
   focus(): void;
 }
 
+/**
+ * The user's files through the server, as the session uses them: read and
+ * written by path from the server's root, and the editor's file dialog
+ * choosing paths (`null` when the user cancels).
+ */
+export interface FileHost {
+  readonly server: Pick<FileServer, "readFile" | "writeFile">;
+  /** Let the user choose a file of one of `kinds`, starting in the folder `start`. */
+  open(kinds: readonly FileKind[], start: string): Promise<string | null>;
+  /** Let the user choose where to save a file of `kind`, starting in `start`, offered as `suggested`. */
+  save(kind: FileKind, start: string, suggested: string): Promise<string | null>;
+}
+
+/** What Open… offers through the file dialog: workspaces and manifests. */
+const OPENED_KINDS: readonly FileKind[] = [WORKSPACE_FILE, MANIFEST_FILE];
+
+/** Said once, after the first save that downloaded the workspace. */
+export const SAVED_AS_DOWNLOAD =
+  "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.";
+
 export interface SessionOptions {
   /** Show a warning, kept until dismissed; editing goes on. */
   readonly warn: (text: string, problems?: readonly Problem[]) => void;
@@ -104,8 +144,12 @@ export interface SessionOptions {
   readonly matchClaims?: MatchClaimServer | null;
   /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
   readonly askTables?: AskTables | null;
-  /** Where the folders of blocks' manifests are kept beyond the session; without it, for the session only. */
-  readonly folders?: FolderMemory | null;
+  /**
+   * The user's files through the server as far as the editor reaches them
+   * now (`null`: it does not, and the browser's pickers serve); without it,
+   * never.
+   */
+  readonly files?: () => FileHost | null;
 }
 
 /** Whether two selections name the same addresses. */
@@ -124,6 +168,8 @@ export class WorkspaceSession {
   fileName: string = $state(UNTITLED);
   /** Where Save writes back to, when the browser handed over a file handle. */
   handle: FileSystemFileHandle | null = null;
+  /** Where Save writes back to through the server: the workspace file's path from its root. */
+  path: string | null = null;
   /** Whether the workspace holds changes its file does not. */
   readonly dirty: boolean = $derived(this.live.view !== this.savedView);
   /** The MatchClaim tables of the open workspace's blocks, held for the session, never written to its file. */
@@ -132,8 +178,12 @@ export class WorkspaceSession {
   #selection: Selection = $state.raw(NOTHING_SELECTED);
   /** The open store's count of openings when the session last followed it: a larger count is an editor opened. */
   #openings = this.store.openings;
-  /** The open store's blocks when the session last followed it: a block missing since has left. */
-  #blocks = this.store.view.blocks;
+  /** The workspace's name at the last open, replace or save: a Save after a rename asks where (Save as). */
+  #savedName = this.store.view.name;
+  /** The folder the file dialog was last used in this session; `null` before. */
+  #lastFolder: string | null = null;
+  /** Whether the page said that a save downloads. */
+  #toldDownload = false;
   #listeners = new Set<() => void>();
   #unsubscribe: () => void;
   #saving = false;
@@ -142,10 +192,8 @@ export class WorkspaceSession {
 
   constructor(options: SessionOptions) {
     this.#options = options;
-    this.tables = new MatchClaimTables(
-      options.matchClaims ?? null,
-      options.askTables ?? null,
-      options.folders ?? null,
+    this.tables = new MatchClaimTables(options.matchClaims ?? null, options.askTables ?? null, () =>
+      this.#places(),
     );
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
@@ -179,16 +227,17 @@ export class WorkspaceSession {
 
   /**
    * Make `workspace` the open one, in a new store; `saved` when it equals its
-   * file. A workspace whose journal does not reproduce its view is refused
-   * (`journal_mismatch`, at the first place it differs) and the open one kept.
-   * Every block of the open workspace that `workspace` does not hold leaves:
-   * its manifest's folder is forgotten (`MatchClaimTables.left`).
+   * file, which is called `name` and written back through `handle` (the
+   * browser's) or at `path` (the server's). A workspace whose journal does
+   * not reproduce its view is refused (`journal_mismatch`, at the first
+   * place it differs) and the open one kept.
    */
   replace(
     workspace: Workspace,
     name: string,
     handle: FileSystemFileHandle | null,
     saved: boolean,
+    path: string | null = null,
   ): LoadError | null {
     let next: Store;
     try {
@@ -201,14 +250,14 @@ export class WorkspaceSession {
     }
     this.#unsubscribe();
     this.selection = NOTHING_SELECTED;
-    this.#left(next.view.blocks);
     this.tables.clear();
     this.store = next;
     this.#openings = next.openings;
-    this.#blocks = next.view.blocks;
+    this.#savedName = next.view.name;
     this.savedView = saved ? next.view : null;
     this.fileName = name;
     this.handle = handle;
+    this.path = path;
     this.#unsubscribe = next.subscribe(() => this.#changed());
     this.#notify();
     this.#options.replaced?.();
@@ -220,10 +269,85 @@ export class WorkspaceSession {
     text: string,
     name = UNTITLED,
     handle: FileSystemFileHandle | null = null,
+    path: string | null = null,
   ): LoadError | null {
     const workspace = readWorkspace(text);
     if (isLoadError(workspace)) return workspace;
-    return this.replace(workspace, name, handle, true);
+    return this.replace(workspace, name, handle, true, path);
+  }
+
+  /** The user's files through the server, where the editor reaches them now; `null` where it does not. */
+  get files(): FileHost | null {
+    return this.#options.files?.() ?? null;
+  }
+
+  /** The folder of the workspace's file on the server, `""` (the root) for a workspace without one. */
+  get #folder(): string {
+    return this.path === null ? "" : folderOf(this.path);
+  }
+
+  /** Where the file dialog starts: where it was last used, else the workspace file's folder. */
+  get #start(): string {
+    return this.#lastFolder ?? this.#folder;
+  }
+
+  /** Let the user choose a file of one of `kinds` in the file dialog of `host`; its path, `null` when cancelled. */
+  async #chosen(
+    host: FileHost,
+    kinds: readonly FileKind[],
+    near: string | null,
+  ): Promise<string | null> {
+    const path = await host.open(kinds, near === null ? this.#start : folderOf(near));
+    if (path !== null) this.#lastFolder = folderOf(path);
+    return path;
+  }
+
+  /**
+   * The path from the server's root of the file block `block`'s manifest
+   * came from, as the workspace states it (`location`, relative to the
+   * workspace file's folder); `null` where it states none.
+   */
+  manifestPath(block: string): string | null {
+    const location = this.store.view.settings.manifests[block]?.location;
+    return location === undefined ? null : resolvedPath(this.#folder, location);
+  }
+
+  /** Keep `path` as where block `block`'s manifest file lies, relative to the workspace file's folder. */
+  #locate(block: string, path: string): void {
+    const file = manifestFileOf(this.store.view.settings, block);
+    const configured = this.store.configure({
+      manifests: { [block]: { ...file, location: relativePath(this.#folder, path) } },
+    });
+    if (configured !== null) throw new Error(`a location is refused: ${configured.message}`);
+  }
+
+  /** The server's files as the MatchClaim tables reach them; `null` where the editor does not reach them. */
+  #places(): ManifestPlaces | null {
+    const host = this.files;
+    if (host === null) return null;
+    return {
+      files: host.server,
+      pathOf: (block) => this.manifestPath(block),
+      located: (block, path) => this.#locate(block, path),
+      choose: (kinds, near) => this.#chosen(host, kinds, near),
+    };
+  }
+
+  /**
+   * Rename the workspace to `name` (`set {} {name}`, journalled): `null`
+   * when it is renamed or already so called, else the store's refusal's
+   * message (an empty name; a rename inside an editor).
+   */
+  rename(name: string): string | null {
+    const field = {
+      target: WORKSPACE,
+      name: this.store.view.name,
+      nullable: false,
+      manifest: null,
+    };
+    const command = nameCommand(field, name);
+    if (command === null) return null;
+    return this.store.dispatch(command)?.message ?? null;
   }
 
   /** The open workspace as Save writes it. */
@@ -232,33 +356,121 @@ export class WorkspaceSession {
   }
 
   /**
-   * Save the open workspace: back into its file, or, with `as` or without a
-   * file handle (a new or restored workspace), to a file picked now, offered
-   * under the workspace's file name: its file's, or for a workspace that has
-   * none yet the one its name gives. A save requested while one is under way
-   * is ignored.
+   * Save the open workspace: back into its file, or, with `as`, without a
+   * file to write back to (a new workspace, one without a handle), or after
+   * a rename since it was last opened or saved (until the rename is
+   * undone), to a file the user chooses now, offered under the workspace's
+   * file name: the one its name gives for a new or renamed workspace, else
+   * its file's. Through the server (`FileHost`) the file is a path chosen in
+   * the file dialog, and a save into another folder first rewrites every
+   * block's manifest location relative to that folder; otherwise it is
+   * the browser's (`saveFile`), and where that downloads, the page says so
+   * once. A save requested while one is under way is ignored.
    */
   async save(as: boolean): Promise<void> {
     if (this.#saving) return;
     this.#saving = true;
-    const current = this.store.view;
-    const text = this.text();
+    const renamed = this.store.view.name !== this.#savedName;
     const offered =
-      this.handle === null && this.fileName === UNTITLED
-        ? workspaceFileName(current.name)
+      renamed || (this.handle === null && this.path === null && this.fileName === UNTITLED)
+        ? workspaceFileName(this.store.view.name)
         : this.fileName;
     try {
-      const saved = await saveFile(text, WORKSPACE_FILE, offered, as ? null : this.handle);
-      if (saved === null) return;
-      this.fileName = saved.name;
-      this.handle = saved.handle;
-      this.savedView = current;
-      this.#notify();
+      const host = this.files;
+      if (host === null) await this.#saveInBrowser(as || renamed, offered);
+      else await this.#saveOnServer(host, as || renamed, offered);
     } catch (error) {
       this.#options.warn(`The workspace could not be saved: ${messageOf(error)}`);
     } finally {
       this.#saving = false;
     }
+  }
+
+  /** Save through the browser: into the handle unless `asking`, else to a file picked, or downloaded. */
+  async #saveInBrowser(asking: boolean, offered: string): Promise<void> {
+    const current = this.store.view;
+    const text = this.text();
+    const saved = await saveFile(text, WORKSPACE_FILE, offered, asking ? null : this.handle);
+    if (saved === null) return;
+    this.fileName = saved.name;
+    this.handle = saved.handle;
+    this.path = null;
+    this.#saved(current);
+    if (saved.handle === null && savesByDownload() && !this.#toldDownload) {
+      this.#toldDownload = true;
+      this.#options.inform?.(SAVED_AS_DOWNLOAD);
+    }
+  }
+
+  /**
+   * Save through the server: at `path` unless `asking` or without one, else
+   * at the path chosen in the file dialog. The text written holds every
+   * block's manifest location relative to the folder it is written into
+   * (`#relocated`); the settings take those locations once it is written,
+   * and nothing changes when the write fails.
+   */
+  async #saveOnServer(host: FileHost, asking: boolean, offered: string): Promise<void> {
+    const target =
+      !asking && this.path !== null
+        ? this.path
+        : await host.save(WORKSPACE_FILE, this.#start, offered);
+    if (target === null) return;
+    this.#lastFolder = folderOf(target);
+    const current = this.store.view;
+    const snapshot = this.store.snapshot();
+    const moved = this.#relocated(snapshot.view.settings.manifests, folderOf(target));
+    const written =
+      moved === null
+        ? snapshot
+        : {
+            ...snapshot,
+            view: {
+              ...snapshot.view,
+              settings: {
+                ...snapshot.view.settings,
+                manifests: { ...snapshot.view.settings.manifests, ...moved },
+              },
+            },
+          };
+    await host.server.writeFile(target, writeWorkspace(written));
+    const unchanged = this.store.view === current;
+    if (moved !== null) {
+      const configured = this.store.configure({ manifests: moved });
+      if (configured !== null) throw new Error(`a location is refused: ${configured.message}`);
+    }
+    this.fileName = baseName(target);
+    this.handle = null;
+    this.path = target;
+    // Changes made while the file was written are not in it, so they stay unsaved.
+    this.#saved(unchanged ? this.store.view : current);
+  }
+
+  /**
+   * The entries of `manifests` whose stated location changes when the
+   * workspace file lies in `folder` instead of its own folder, each with
+   * the location relative to `folder` (one leading out of the root is
+   * kept as it is); `null` when none changes.
+   */
+  #relocated(
+    manifests: View["settings"]["manifests"],
+    folder: string,
+  ): { [block: string]: ManifestFile } | null {
+    const changed: { [block: string]: ManifestFile } = {};
+    for (const [block, file] of Object.entries(manifests)) {
+      if (file.location === undefined) continue;
+      const path = resolvedPath(this.#folder, file.location);
+      if (path === null) continue;
+      const location = relativePath(folder, path);
+      if (location !== file.location) changed[block] = { ...file, location };
+    }
+    return Object.keys(changed).length === 0 ? null : changed;
+  }
+
+  /** The view `current` is now the file's: no changes are unsaved, and its name is the saved one. */
+  #saved(current: View): void {
+    this.savedView = current;
+    this.#savedName = current.name;
+    this.#notify();
   }
 
   /**
@@ -293,19 +505,58 @@ export class WorkspaceSession {
   }
 
   /**
-   * Import the manifest files the viewer picks, each as one new block, with
-   * the MatchClaim tables picked beside them (`importPicked`).
+   * Import the manifest files the viewer picks, each as one new block: one
+   * chosen in the file dialog through the server (`importPath`), else those
+   * picked in the browser, with the MatchClaim tables picked beside them
+   * (`importPicked`).
    */
   async importManifest(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
     try {
-      await this.importPicked(
-        await openFiles(withMatchClaimTable(MANIFEST_FILE), true),
-        canvas,
-        metrics,
-      );
+      const host = this.files;
+      if (host === null) {
+        await this.importPicked(
+          await openFiles(withMatchClaimTable(MANIFEST_FILE), true),
+          canvas,
+          metrics,
+        );
+        return;
+      }
+      const path = await this.#chosen(host, [MANIFEST_FILE], null);
+      if (path !== null) await this.importPath(host, path, canvas, metrics);
     } catch (error) {
       this.#options.warn(`The file could not be imported: ${messageOf(error)}`);
     }
+  }
+
+  /**
+   * Import the manifest file at `path` on the server as one new block
+   * (`#add`), the workspace keeping where it lies (`location`); the new
+   * block, `null` when the file is no manifest.
+   */
+  async importPath(
+    host: FileHost,
+    path: string,
+    canvas: ImportTarget,
+    metrics: FontMetrics,
+  ): Promise<string | null> {
+    const text = await (await host.server.readFile(path)).text();
+    const block = this.#add(baseName(path), text, canvas, metrics);
+    if (block !== null) this.#locate(block, path);
+    return block;
+  }
+
+  /**
+   * Let the user choose a workspace or a manifest file in the file dialog
+   * (Open… through the server); its path, `null` when cancelled.
+   */
+  async chooseOpened(host: FileHost): Promise<string | null> {
+    return this.#chosen(host, OPENED_KINDS, null);
+  }
+
+  /** Open the workspace file at `path` on the server as saved; the reader's refusal, or `null` when it opened. */
+  async openPath(host: FileHost, path: string): Promise<LoadError | null> {
+    const text = await (await host.server.readFile(path)).text();
+    return this.open(text, baseName(path), null, path);
   }
 
   /**
@@ -329,53 +580,11 @@ export class WorkspaceSession {
   }
 
   /**
-   * Import the manifests of a folder the viewer chooses (where the browser
-   * hands over folders), each manifest file directly in it as one new
-   * block (`#add`), the folder kept as each block's, so the tables its
-   * manifest names are read from there (`MatchClaimTables.inFolder`). A
-   * file there that is no manifest is left, and said so; a folder holding
-   * none says so.
-   */
-  async importFolder(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
-    try {
-      const folder = await chooseFolder();
-      if (folder === null) return;
-      const manifests: { readonly name: string; readonly text: string }[] = [];
-      const left: string[] = [];
-      for (const opened of await manifestFiles(folder)) {
-        const text = await opened.file.text();
-        if (isLoadError(readManifestFile(text))) left.push(opened.name);
-        else manifests.push({ name: opened.name, text });
-      }
-      if (manifests.length === 0) {
-        this.#options.warn(
-          `The folder ${folder.name} holds no manifest TimeLineEditor can import.`,
-        );
-        return;
-      }
-      if (left.length > 0) {
-        this.#options.inform?.(`Left ${left.join(", ")} in ${folder.name}: no manifest.`);
-      }
-      const blocks: string[] = [];
-      for (const { name, text } of manifests) {
-        const block = this.#add(name, text, canvas, metrics);
-        if (block === null) continue;
-        this.tables.inFolder(block, folder);
-        blocks.push(block);
-      }
-      await this.readTables([], blocks);
-    } catch (error) {
-      this.#options.warn(`The folder could not be imported: ${messageOf(error)}`);
-    }
-  }
-
-  /**
    * Read the tables among `picked` as tables of `blocks`: every one is a
    * MatchClaim table, read through the server as the table of the block
    * whose manifest names a MatchClaim table of its file name, else of the
-   * only block; a table no block takes is reported. Then every block of
-   * `blocks` whose manifest names a MatchClaim table that is still not
-   * loaded says so in the message bar, and how to load it.
+   * only block; a table no block takes is reported. A block whose table is
+   * not among them says nothing: Show matches loads it.
    */
   async readTables(picked: readonly Opened[], blocks: readonly string[]): Promise<void> {
     const manifestOf = (block: string) => this.store.view.blocks[block]?.manifest;
@@ -397,27 +606,16 @@ export class WorkspaceSession {
       const failure = await this.tables.load(block, manifest, opened.file, opened.name);
       if (failure !== null) this.#options.warn(failure);
     }
-    for (const block of blocks) {
-      const manifest = manifestOf(block);
-      if (manifest === undefined || this.tables.of(block) !== null) continue;
-      const url = namedTable(manifest);
-      if (url === null) continue;
-      const named = manifestTitle(manifest);
-      this.#options.warn(
-        this.tables.connected
-          ? `${named} names the MatchClaim table ${url}, which is not loaded: Show matches (M) loads it.`
-          : `${named} names the MatchClaim table ${url}, which is not loaded. ${MATCHES_NEED_A_SERVER}`,
-      );
-    }
   }
 
   /**
    * Load the MatchClaim table every block's manifest names where it is not
    * loaded (what turning Show matches on asks), block after block in
-   * the canvas's one order of blocks (the arranger's `blocksInOrder`): from where
-   * the manifest came from, else as the user chooses it
-   * (`MatchClaimTables.loadNamed`); what each load says goes to the
-   * message bar. A call while one is under way is ignored.
+   * the canvas's one order of blocks (the arranger's `blocksInOrder`): from
+   * beside the manifest's file (or where an example came from), silently,
+   * else as the user chooses it (`MatchClaimTables.loadNamed`); what each
+   * load says goes to the message bar. A call while one is under way is
+   * ignored.
    */
   async loadNamedTables(): Promise<void> {
     if (this.#loadingTables) return;
@@ -473,9 +671,7 @@ export class WorkspaceSession {
   async importExample(example: Example, canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
     try {
       const block = this.#add(example.label, await example.text(), canvas, metrics);
-      if (block === null) return;
-      if (example.source !== undefined) this.tables.locate(block, example.source);
-      await this.readTables([], [block]);
+      if (block !== null && example.source !== undefined) this.tables.locate(block, example.source);
     } catch (error) {
       this.#options.warn(`The example could not be added: ${messageOf(error)}`);
     }
@@ -558,16 +754,13 @@ export class WorkspaceSession {
 
   /**
    * The open store changed (a command, an undo or a redo, an editor opened
-   * or closed): a block that left the workspace has its manifest's folder
-   * forgotten (`MatchClaimTables.left`); an editor that opened selects its
-   * edited element (`editedSelection`), every other change keeps of the
-   * selection what the view keeps under the innermost open editor
-   * (`existing`); then tell the listeners.
+   * or closed, a setting): an editor that opened selects its edited
+   * element (`editedSelection`), every other change keeps of the selection
+   * what the view keeps under the innermost open editor (`existing`); then
+   * tell the listeners.
    */
   #changed(): void {
     const { store } = this;
-    this.#left(store.view.blocks);
-    this.#blocks = store.view.blocks;
     const innermost = store.editing.at(-1) ?? null;
     const opened = store.openings !== this.#openings;
     this.#openings = store.openings;
@@ -576,14 +769,6 @@ export class WorkspaceSession {
         ? editedSelection(store.view, innermost)
         : existing(store.view, this.selection, innermost);
     this.#notify();
-  }
-
-  /** Every block of the view last seen that `blocks` does not hold left the workspace. */
-  #left(blocks: View["blocks"]): void {
-    if (blocks === this.#blocks) return;
-    for (const block of Object.keys(this.#blocks)) {
-      if (!Object.hasOwn(blocks, block)) this.tables.left(block);
-    }
   }
 
   #notify(): void {

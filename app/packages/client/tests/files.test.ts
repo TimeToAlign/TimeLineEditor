@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fileCalls, type Transport } from "../src/files.ts";
+import { connect, ServerError } from "../src/index.ts";
 
 const HEADERS = { Authorization: "Bearer t" } as const;
 const MALFORMED_LISTING = "the folder answer is not a listing of the folder asked for";
@@ -185,4 +186,29 @@ describe("writeFile", () => {
       expect([error.status, error.message]).toEqual([200, MALFORMED_WRITTEN]);
     });
   }
+});
+
+describe("connect", () => {
+  it("gives its Server the file calls over its own transport", async () => {
+    const fetched = vi.fn(async (_input: string, _init: RequestInit) =>
+      Response.json(
+        { detail: { path: ["path"], message: "path outside the root" } },
+        { status: 400 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetched);
+    const error = await rejection(
+      connect({ url: "api/", token: "t" }).listFolder("sub"),
+      ServerError,
+    );
+    expect(fetched.mock.calls).toEqual([
+      ["api/folders?path=sub", { headers: { Authorization: "Bearer t" } }],
+    ]);
+    expect([error.code, error.status, error.message]).toEqual([
+      "status",
+      400,
+      "path outside the root",
+    ]);
+    expect(error.refusal?.path).toEqual(["path"]);
+  });
 });

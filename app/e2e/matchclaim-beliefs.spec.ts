@@ -62,11 +62,9 @@ const CLAIM_1_EVENTS = {
   timeline_a_id: "clt_1",
   event_a_id: "note_1",
   event_a_name: "C4",
-  event_a_projection: null,
   timeline_b_id: "dpt_1",
   event_b_id: "onset_1",
   event_b_name: null,
-  event_b_projection: null,
   certainty: 0.75,
   is_synchronous: true,
 };
@@ -302,7 +300,7 @@ test("New asks to save a changed table with the unsaved workspace, and saves bot
   expect(await downloaded(Promise.resolve(first))).toEqual(["untitled.tle.json", workspace]);
   expect(second.suggestedFilename()).toBe("match_claims.parquet");
   expect(readFileSync(await second.path()).equals(BELIEVED)).toBe(true);
-  await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
+  await expect(page).toHaveTitle("untitled.tle.json – TimeLineEditor");
 });
 
 test("New asks about a changed table alone once the workspace is saved, and Discard drops it", async ({
@@ -313,7 +311,7 @@ test("New asks about a changed table alone once the workspace is saved, and Disc
   const saved = page.waitForEvent("download");
   await page.keyboard.press("Control+S");
   await saved;
-  await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
+  await expect(page).toHaveTitle("untitled.tle.json – TimeLineEditor");
 
   await chooseItem(page, "New workspace");
   await expect(page.getByRole("dialog")).toHaveText(

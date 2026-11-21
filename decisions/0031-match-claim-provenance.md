@@ -127,8 +127,7 @@ editor offers to save is the server's answer byte for byte. The exit cost
 is local: the two routes and the client's two calls.
 
 Decision 0032 adds the route that reads the events of given MatchClaims;
-it takes this request with the Projections table between the parameters
-and the table route's body.
+it takes this request unchanged.
 
 ## Review date
 

@@ -1,6 +1,6 @@
 /**
  * The autosave of one editor: while the editor holds its slot's Web Lock it
- * keeps the slot in step with the open workspace and the handle of its file
+ * keeps the slot in step with the open workspace and where its file lies
  * (`autosave.ts` writes it),
  * writes a pending snapshot at once when the page is hidden, and offers
  * what an earlier session left in the slot when it starts.
@@ -82,10 +82,11 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
       autosave.discard();
       return;
     }
-    const { fileName: name, handle } = session;
+    const { fileName: name, handle, path } = session;
     autosave.schedule(() => ({
       text: writeWorkspace(current.snapshot()),
       name,
+      ...(path === null ? {} : { path }),
       ...(handle === null ? {} : { handle }),
     }));
   }
@@ -133,9 +134,15 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
     if (stopped) return;
     if (answer === "Discard") autosave.discard();
     if (answer !== "Restore") return;
-    // A restored workspace has its file's name and, where the browser kept it, its handle:
-    // Save writes back into that file, and asks where only without one.
-    const refusal = session.replace(workspace, snapshot.name, snapshot.handle ?? null, false);
+    // A restored workspace has its file's name and its path on the server or, where the
+    // browser kept it, its handle: Save writes back into that file, and asks where only without one.
+    const refusal = session.replace(
+      workspace,
+      snapshot.name,
+      snapshot.handle ?? null,
+      false,
+      snapshot.path ?? null,
+    );
     if (refusal !== null) warn("The autosaved workspace cannot be restored.", refusal.problems);
   }
 

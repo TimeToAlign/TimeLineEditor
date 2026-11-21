@@ -66,20 +66,14 @@ const PREFIX = 4;
 
 /**
  * A request of the routes taking parameters: the parameters' UTF-8 length
- * (little-endian), the parameters as JSON, the parts `between` (none for
- * the provenance and belief routes), then the request of `POST
+ * (little-endian), the parameters as JSON, then the request of `POST
  * /api/match-claims`.
  */
-export function parametersRequest(
-  parameters: object,
-  manifest: string,
-  table: Blob,
-  between: readonly BlobPart[] = [],
-): Blob {
+export function parametersRequest(parameters: object, manifest: string, table: Blob): Blob {
   const text = new TextEncoder().encode(JSON.stringify(parameters));
   const prefix = new Uint8Array(PREFIX);
   new DataView(prefix.buffer).setUint32(0, text.length, true);
-  return new Blob([prefix, text, ...between, matchClaimsRequest(manifest, table)]);
+  return new Blob([prefix, text, matchClaimsRequest(manifest, table)]);
 }
 
 /** Whether `value` is a JSON object: neither `null` nor a list. */

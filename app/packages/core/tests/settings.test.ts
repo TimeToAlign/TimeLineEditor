@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { Command, SetCommand } from "../src/commands/types.ts";
-import { isCommandError } from "../src/errors.ts";
+import { isCommandError, isLoadError } from "../src/errors.ts";
 import { NEW_MANIFEST_FILE } from "../src/manifest/io.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import { isSessionEntry } from "../src/workspace/sessions.ts";
 import type { SettingsChange, Store } from "../src/workspace/store.ts";
 import { createStore, replay } from "../src/workspace/store.ts";
@@ -290,6 +293,76 @@ describe("how each block's manifest is written", () => {
     const refused = store.configure({ manifests } as SettingsChange);
     expect(refused && { code: refused.code, path: refused.path }).toEqual({ code, path });
     expect(store.view).toBe(view);
+  });
+});
+
+describe("where each block's manifest file lies", () => {
+  const LOCATED = {
+    minimal: true,
+    serialization: "yaml",
+    styling: true,
+    location: "../layerit-story/step1.yaml",
+  } as const;
+
+  it("holds the optional location exactly, and writes and reads it back", () => {
+    const { store } = threeEntries();
+    expect(store.configure({ manifests: { [A]: LOCATED } })).toBeNull();
+    expect(store.view.settings.manifests[A]).toEqual(LOCATED);
+    expect(manifestFileOf(store.view.settings, A)).toEqual(LOCATED);
+    const text = writeWorkspace(store.snapshot());
+    const written = parseJson(text) as { settings: { manifests: { [block: string]: unknown } } };
+    expect(written.settings.manifests).toEqual({ [A]: LOCATED });
+    const read = readWorkspace(text);
+    if (isLoadError(read)) throw new Error(JSON.stringify(read.problems));
+    expect(read.view.settings.manifests).toEqual({ [A]: LOCATED });
+    expect(writeWorkspace(read)).toBe(text);
+  });
+
+  it("writes an entry without a location without the member", () => {
+    const { store } = threeEntries();
+    const form = { minimal: true, serialization: "yaml", styling: true } as const;
+    expect(store.configure({ manifests: { [A]: form } })).toBeNull();
+    const written = parseJson(writeWorkspace(store.snapshot())) as {
+      settings: { manifests: { [block: string]: object } };
+    };
+    expect(written.settings.manifests[A]).toEqual(form);
+    expect(Object.keys(written.settings.manifests[A] ?? {}).sort()).toEqual([
+      "minimal",
+      "serialization",
+      "styling",
+    ]);
+  });
+
+  it.each<[string, unknown]>([
+    ["an empty location", ""],
+    ["an absolute path", "/home/x.yaml"],
+    ["a scheme", "file:x.yaml"],
+    ["a drive", "C:\\x.yaml"],
+    ["a backslash", "a\\b.yaml"],
+    ["a number", 5],
+  ])("refuses %s at its path", (_, location) => {
+    const { store } = threeEntries();
+    const view = store.view;
+    // The values are wrong on purpose: the store checks what an untyped caller gives.
+    const refused = store.configure({
+      manifests: { [A]: { ...LOCATED, location } },
+    } as SettingsChange);
+    expect(refused && { code: refused.code, path: refused.path }).toEqual({
+      code: "invalid_value",
+      path: ["settings", "manifests", A, "location"],
+    });
+    expect(store.view).toBe(view);
+  });
+
+  it("reads a block of a workspace the editor saved before locations, its entry unchanged", () => {
+    const text = readFileSync(new URL("./data/layerit-step.tle.json", import.meta.url), "utf8");
+    const read = readWorkspace(text);
+    if (isLoadError(read)) throw new Error(JSON.stringify(read.problems));
+    expect(read.view.settings.manifests).toEqual({
+      vvn359k35o: { minimal: true, serialization: "yaml", styling: true },
+    });
+    expect(Object.keys(read.view.blocks)).toEqual(["vvn359k35o"]);
+    expect(createStore(read).view.blocks).toEqual(read.view.blocks);
   });
 });
 

@@ -58,7 +58,14 @@ vi.mock("../src/autosave.ts", async (importOriginal) =>
   (await import("./support.ts")).recordAutosaves(await importOriginal()),
 );
 
-function start(response: () => Response = () => Response.json(health)): void {
+/**
+ * No server answering: the editor's files are the browser's (its pickers
+ * and downloads), as without a server; tables still go to the server's
+ * routes, which the tests stub where they need them.
+ */
+const OFFLINE = () => new Response(null, { status: 503, statusText: "Service Unavailable" });
+
+function start(response: () => Response = OFFLINE): void {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => response()),
@@ -141,8 +148,25 @@ function focusedLabel(): string | null | undefined {
   return document.activeElement?.querySelector("span")?.textContent;
 }
 
+/** The file's name as the page's title shows it, "• " first while unsaved. */
 function fileName(): string {
-  return document.querySelector('[data-testid="file-name"]')?.textContent ?? "";
+  return document.title.replace(/ – TimeLineEditor$/u, "");
+}
+
+/** The header's title: the workspace's name, and its file's where that is not the name's. */
+function title(): string {
+  return document.querySelector(".workspace-title")?.textContent ?? "";
+}
+
+/** Rename the workspace in the header's title: a click, the text, Enter. */
+function renameInTitle(name: string): void {
+  document.querySelector<HTMLButtonElement>('[data-testid="file-name"]')?.click();
+  flushSync();
+  const field = document.querySelector<HTMLInputElement>('input[aria-label="Workspace name"]');
+  if (field === null) throw new Error("no name field");
+  field.value = name;
+  field.dispatchEvent(new Event("input"));
+  key(field, { key: "Enter" });
 }
 
 function messages(): string[] {
@@ -223,9 +247,11 @@ describe("opening and saving", () => {
     start();
     expect(fileName()).toBe("untitled.tle.json");
     expect(document.title).toBe("untitled.tle.json – TimeLineEditor");
+    expect(title()).toBe("untitled");
     addBlock(hook().store(), A);
     expect(fileName()).toBe("• untitled.tle.json");
     expect(document.title).toBe("• untitled.tle.json – TimeLineEditor");
+    expect(title()).toBe("• untitled");
     key(document.body, { key: "z", ctrlKey: true });
     expect(fileName()).toBe("untitled.tle.json");
     key(document.body, { key: "y", ctrlKey: true });
@@ -307,30 +333,82 @@ describe("opening and saving", () => {
     expect(fileName()).toBe("untitled.tle.json");
   });
 
-  it("offers a new workspace's file under its name, and keeps a file's name on a rename", async () => {
+  it("offers a new workspace's file under its name, and a renamed one's next Save is Save as", async () => {
     start();
     const downloads = interceptDownloads();
-    const rename = (name: string) =>
-      expect(
-        hook()
-          .store()
-          .dispatch({ type: "set", changes: [{ target: {}, values: { name } }] }),
-      ).toBeNull();
-    rename("Eroica sketches");
+    const informed = () => messages().filter((text) => text.startsWith("Saved as a download"));
+    renameInTitle("Eroica sketches");
+    expect(title()).toBe("• Eroica sketches — untitled.tle.json");
     key(document.body, { key: "s", ctrlKey: true });
     await vi.waitFor(() =>
       expect(downloads.map(([name]) => name)).toEqual(["Eroica sketches.tle.json"]),
     );
-    expect(fileName()).toBe("Eroica sketches.tle.json");
-    rename("Variations");
+    expect([fileName(), title()]).toEqual(["Eroica sketches.tle.json", "Eroica sketches"]);
+    await vi.waitFor(() =>
+      expect(informed()).toEqual([
+        "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.",
+      ]),
+    );
+    renameInTitle("Variations");
     key(document.body, { key: "s", ctrlKey: true });
     await vi.waitFor(() =>
       expect(downloads.map(([name]) => name)).toEqual([
         "Eroica sketches.tle.json",
-        "Eroica sketches.tle.json",
+        "Variations.tle.json",
       ]),
     );
-    expect(fileName()).toBe("Eroica sketches.tle.json");
+    expect(informed()).toEqual([
+      "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.",
+    ]);
+  });
+
+  it("asks where to save after a rename, and saves in place once the rename is undone", async () => {
+    start();
+    const opened = { writes: [] as string[] };
+    const handle = {
+      kind: "file",
+      name: "score.tle.json",
+      getFile: async () => new File([EMPTY_TEXT], "score.tle.json"),
+      createWritable: async () => ({
+        write: async (data: string) => {
+          opened.writes.push(data);
+        },
+        close: async () => undefined,
+      }),
+    } as unknown as FileSystemFileHandle;
+    vi.stubGlobal(
+      "showOpenFilePicker",
+      vi.fn(async () => [handle]),
+    );
+    const saving = vi.fn(async (): Promise<FileSystemFileHandle> => {
+      throw new DOMException("cancelled", "AbortError");
+    });
+    vi.stubGlobal("showSaveFilePicker", saving);
+    choose("Open…");
+    await vi.waitFor(() => expect(fileName()).toBe("score.tle.json"));
+    renameInTitle("Variations");
+    key(document.body, { key: "s", ctrlKey: true });
+    await vi.waitFor(() => expect(saving).toHaveBeenCalledTimes(1));
+    expect(saving.mock.calls[0]).toEqual([
+      {
+        types: [
+          {
+            description: "TimeLineEditor workspace",
+            accept: { "application/json": [".tle.json"] },
+          },
+        ],
+        suggestedName: "Variations.tle.json",
+      },
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(opened.writes).toEqual([]);
+    key(document.body, { key: "z", ctrlKey: true });
+    expect(title()).toBe("untitled — score.tle.json");
+    addBlock(hook().store(), A);
+    const text = writeWorkspace(hook().store().snapshot());
+    key(document.body, { key: "s", ctrlKey: true });
+    await vi.waitFor(() => expect(opened.writes).toEqual([text]));
+    expect(saving).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1023,7 +1101,7 @@ describe("the About pane", () => {
   }
 
   it("shows the versions, the server and the packages", async () => {
-    start();
+    start(() => Response.json(health));
     await vi.waitFor(() => expect(hook().health()).toEqual(health));
     flushSync();
     const dialog = openAbout();

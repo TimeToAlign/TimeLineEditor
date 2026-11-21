@@ -431,11 +431,11 @@ describe("the test hook", () => {
     await vi.waitFor(() => expect(hook().store()).not.toBe(store), {
       timeout: FIXTURE_LOAD_TIMEOUT,
     });
-    expect([
-      hook().store().view,
-      hook().store().journal,
-      document.querySelector('[data-testid="file-name"]')?.textContent,
-    ]).toEqual([expected.view, expected.journal, "untitled.tle.json"]);
+    expect([hook().store().view, hook().store().journal, document.title]).toEqual([
+      expected.view,
+      expected.journal,
+      "untitled.tle.json – TimeLineEditor",
+    ]);
   });
 
   it("opens and closes editors and lists the editing path", () => {

@@ -2666,6 +2666,23 @@ holding `bare.yaml`, two moves of `A`) and an injected clock.
    `minimal` `"yes"` → `invalid_value` at `["settings", "manifests", A,
    "minimal"]`; a key that is no block ID, `"A"` → `invalid_block_id` at
    `["settings", "manifests", "A"]`.
+   **Where the manifest's file lies** (`location`, optional): the path of
+   the file, POSIX and relative to the workspace file's folder (a setting
+   of the workspace, never a manifest key). The entry `{"minimal": true,
+   "serialization": "yaml", "styling": true, "location":
+   "../layerit-story/step1.yaml"}` configured for `A` is held exactly so,
+   `manifestFileOf` gives it, and the workspace file written from it holds
+   exactly that object under `settings.manifests[A]` and reads back equal,
+   writing the same text again; an entry without `location` is held and
+   written without the member (no `null`, no empty string). The first
+   block of the workspace file the editor's user saved on 2026-11-21 (its
+   three entries `{minimal: false, serialization: "yaml", styling: true}`,
+   none with a location), trimmed to that block and its `add`, reads with
+   no problem and keeps its entry unchanged. Refused, leaving the settings
+   as they were, `invalid_value` at `["settings", "manifests", A,
+   "location"]`: `""` (a location is never empty), `"/home/x.yaml"` (no
+   absolute path), `"file:x.yaml"` and `"C:\\x.yaml"` (no scheme or drive),
+   `"a\\b.yaml"` (a POSIX path, so no backslash) and `5` (a string).
 8. **Which MatchClaims a block shows** (`matchClaimFilters`, by block ID,
    each entry `{timelines, beliefs}` whole; the MatchClaim table itself is
    never a setting). A new workspace holds `{}`, and

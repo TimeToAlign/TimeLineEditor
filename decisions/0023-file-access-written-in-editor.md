@@ -77,6 +77,11 @@ by removing the pickers from the page in Chromium. The exit cost is small:
 the two functions keep their signatures if their bodies are replaced by
 `browser-fs-access` calls.
 
+Amended 2026-11-21: where `tilie-server` answers, the editor opens,
+imports and saves files by path through the server's file routes and its
+own file dialog (decision 0033); these functions serve it where no server
+answers.
+
 ## Review date
 
 2027-04-12.

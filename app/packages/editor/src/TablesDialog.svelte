@@ -1,18 +1,19 @@
 <script lang="ts">
 /**
- * A native modal dialog asking for the file of the MatchClaim table a
- * manifest names: a file the user chooses on their system or a URL they
- * enter (a relative URL is read relative to the page). Where the browser
- * hands over folders and the manifest names where its table lies, the user
- * may instead choose the manifest's folder, which answers at once. `ask`
- * resolves what they chose (Load, once a file or a URL is given; or the
- * folder), or `null` when the dialog is dismissed (Cancel, Escape). It is
- * the editor's one dialog shell (`ModalDialog`) holding a form.
+ * A native modal dialog asking, once, for what the MatchClaim table a
+ * manifest names is read from, as the question says (`TableQuestion`):
+ * without the server's files, the table's file chosen on the user's system;
+ * with them, where the manifest lies or the table's file, either located in
+ * the editor's file dialog (Locate…), which answers at once. A URL of the
+ * table may be entered instead (a relative URL is read relative to the
+ * page). `ask` resolves what they chose, or `null` when the dialog is
+ * dismissed (Cancel, Escape). It is the editor's one dialog shell
+ * (`ModalDialog`) holding a form.
  */
 import type { Attachment } from "svelte/attachments";
-import { canChooseFolders, chooseFolder, MATCH_CLAIM_TABLE, openFiles } from "./files.ts";
+import { MATCH_CLAIM_TABLE, openFiles } from "./files.ts";
 import ModalDialog from "./ModalDialog.svelte";
-import type { TableChoice, TableRequest } from "./matchClaims.svelte.ts";
+import type { TableChoice, TableQuestion, TableRequest } from "./matchClaims.svelte.ts";
 import { messageOf } from "./messages.svelte.ts";
 
 const id = $props.id();
@@ -30,13 +31,14 @@ const heldFirst: Attachment<HTMLButtonElement> = (element) => {
 let manifest = $state("");
 /** Where the manifest names its table; `null` where it names none. */
 let named: string | null = $state(null);
+let question = $state.raw<TableQuestion>({ kind: "file" });
 /** The file chosen; `null` while none is. */
 let file: File | null = $state(null);
 /** The URL entered. */
 let url = $state("");
-/** Why the picker failed; empty while it has not. */
+/** Why the picker or the file dialog failed; empty while it has not. */
 let problem = $state("");
-/** What answered the question shown: the table's choice, or the folder. */
+/** What answered the question shown. */
 let answer: TableChoice | null = null;
 
 /** The choice the form holds: the file where one is chosen, else the URL where one is entered. */
@@ -46,13 +48,29 @@ const choice: TableChoice | null = $derived.by(() => {
   return entered === "" ? null : { url: entered };
 });
 
-/** Whether the folder may be chosen: the browser hands folders over, and the table's place is named. */
-const folders = $derived(named !== null && canChooseFolders());
+/** The dialog's title, which names what is asked for. */
+const title = $derived.by(() => {
+  if (question.kind === "manifest") return `Where is ${manifest}?`;
+  if (question.kind === "table" && question.missing !== null && named !== null) {
+    return `${named} is not beside ${manifest}, at ${question.missing}`;
+  }
+  return `Load the MatchClaim table of ${manifest}`;
+});
 
-/** Ask for the file of `request`'s table; a question asked while another is open dismisses that one. */
+/** What the hint says the dialog wants. */
+const hint = $derived(
+  question.kind === "manifest"
+    ? "Locate the manifest's file: its MatchClaim table is read from beside it, now and whenever the workspace is opened again. Or enter the table's URL; a relative URL is read relative to this page."
+    : question.kind === "table"
+      ? "Locate the MatchClaim table's file, or enter its URL; a relative URL is read relative to this page."
+      : "Choose the MatchClaim table's file on your system, or enter its URL; a relative URL is read relative to this page.",
+);
+
+/** Ask `request`'s question; a question asked while another is open dismisses that one. */
 export async function ask(request: TableRequest): Promise<TableChoice | null> {
   manifest = request.manifest;
   named = request.table.url;
+  question = request.question;
   file = null;
   url = "";
   problem = "";
@@ -67,7 +85,7 @@ function finish(value: TableChoice): void {
   shell?.accept();
 }
 
-/** Let the user pick the table's file; a chosen file replaces the URL entered. */
+/** Let the user pick the table's file on their system; a chosen file replaces the URL entered. */
 async function choose(): Promise<void> {
   try {
     const [picked] = await openFiles(MATCH_CLAIM_TABLE);
@@ -80,13 +98,14 @@ async function choose(): Promise<void> {
   }
 }
 
-/** Let the user choose the manifest's folder, which answers the question. */
-async function chooseManifestFolder(): Promise<void> {
+/** Let the user locate the file asked for in the file dialog, which answers the question. */
+async function locate(): Promise<void> {
+  if (question.kind === "file") return;
   try {
-    const folder = await chooseFolder();
-    if (folder !== null) finish({ folder });
+    const path = await question.locate();
+    if (path !== null) finish({ path });
   } catch (error) {
-    problem = `The folder could not be chosen: ${messageOf(error)}`;
+    problem = `The file could not be located: ${messageOf(error)}`;
   }
 }
 
@@ -98,39 +117,28 @@ function onsubmit(event: SubmitEvent): void {
 
 <ModalDialog bind:this={shell} labelledby="{id}-title" wide>
   <form {onsubmit}>
-    <h2 id="{id}-title">Load the tables of {manifest}</h2>
-    <p class="hint">
-      Choose the MatchClaim table's file on your system, or enter its URL; a relative URL is read
-      relative to this page.
-    </p>
-    {#if folders}
-      <div class="line folder">
-        <button type="button" onclick={chooseManifestFolder}>Choose the manifest's folder…</button>
-        <span class="chosen">The table is read from it, now and when matches are shown again.</span>
-      </div>
-    {/if}
-    <fieldset>
-      <legend>MatchClaim table {#if named !== null}<code>{named}</code>{/if}</legend>
+    <h2 id="{id}-title">{title}</h2>
+    <p class="hint">{hint}</p>
+    {#if question.kind === "file"}
+      <fieldset>
+        <legend>MatchClaim table {#if named !== null}<code>{named}</code>{/if}</legend>
+        <div class="line">
+          <button type="button" {@attach heldFirst} onclick={choose}>Choose file…</button>
+          <span class="chosen" data-testid="tables-chosen"
+            >{file === null ? "No file chosen" : file.name}</span
+          >
+        </div>
+        {@render urlField()}
+      </fieldset>
+    {:else}
       <div class="line">
-        <button type="button" {@attach heldFirst} onclick={choose}>Choose file…</button>
-        <span class="chosen" data-testid="tables-chosen"
-          >{file === null ? "No file chosen" : file.name}</span
-        >
+        <button type="button" {@attach heldFirst} onclick={locate}>Locate…</button>
       </div>
-      <label class="line">
-        <span>URL</span>
-        <input
-          type="text"
-          inputmode="url"
-          autocomplete="url"
-          bind:value={() => url, (value) => {
-            url = value;
-            if (value !== "") file = null;
-          }}
-          aria-label="URL of the MatchClaim table"
-        />
-      </label>
-    </fieldset>
+      <fieldset>
+        <legend>MatchClaim table {#if named !== null}<code>{named}</code>{/if}</legend>
+        {@render urlField()}
+      </fieldset>
+    {/if}
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <div class="answers">
       <button type="submit" disabled={choice === null}>Load</button>
@@ -138,6 +146,22 @@ function onsubmit(event: SubmitEvent): void {
     </div>
   </form>
 </ModalDialog>
+
+{#snippet urlField()}
+  <label class="line">
+    <span>URL</span>
+    <input
+      type="text"
+      inputmode="url"
+      autocomplete="url"
+      bind:value={() => url, (value) => {
+        url = value;
+        if (value !== "") file = null;
+      }}
+      aria-label="URL of the MatchClaim table"
+    />
+  </label>
+{/snippet}
 
 <style>
   h2 {
@@ -170,14 +194,6 @@ function onsubmit(event: SubmitEvent): void {
     align-items: center;
     gap: 0.5rem;
     margin: 0.25rem 0;
-  }
-
-  .folder {
-    margin: 0 0 0.75rem;
-  }
-
-  .folder .chosen {
-    white-space: normal;
   }
 
   .chosen {

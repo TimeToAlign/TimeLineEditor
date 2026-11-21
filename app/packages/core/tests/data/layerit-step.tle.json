@@ -1,0 +1,2228 @@
+{
+  "blocks": {
+    "vvn359k35o": {
+      "height": null,
+      "id": "vvn359k35o",
+      "index": "a0",
+      "length": 400,
+      "manifest": {
+        "graphical": {
+          "matchstamps": [],
+          "order": {
+            "group_1": ["dpt_1", "cgt_3"],
+            "group_2": ["cpt_2", "dpt_1"],
+            "group_3": ["clt_7", "clt_6"]
+          },
+          "rules": [],
+          "styles": {},
+          "timestamps": []
+        },
+        "groups": [
+          {
+            "id": "group_1",
+            "members": ["cgt_3", "dpt_1"],
+            "meta": {},
+            "name": "LayerIt session"
+          },
+          {
+            "id": "group_2",
+            "members": ["cpt_2", "dpt_1"],
+            "meta": {},
+            "name": "recording"
+          },
+          {
+            "id": "group_3",
+            "members": ["clt_6", "clt_7"],
+            "meta": {},
+            "name": "Clair de lune mm. 1–6"
+          }
+        ],
+        "id": "layerit_clair_de_lune",
+        "measure_maps": [
+          {
+            "id": "measuremap_1",
+            "meta": {},
+            "name": null,
+            "rows": [
+              {
+                "actual_length": [4, 1],
+                "count": 1,
+                "end_repeat": false,
+                "name": "1",
+                "next": ["2"],
+                "nominal_length": [4, 1],
+                "number": 1,
+                "qstamp": [0, 1],
+                "start_repeat": false,
+                "time_signature": "4/4"
+              },
+              {
+                "actual_length": [4, 1],
+                "count": 89,
+                "end_repeat": false,
+                "name": "89",
+                "nominal_length": [4, 1],
+                "number": 89,
+                "qstamp": [352, 1],
+                "start_repeat": false,
+                "time_signature": "4/4"
+              }
+            ]
+          },
+          {
+            "id": "measuremap_2",
+            "meta": {},
+            "name": null,
+            "rows": [
+              {
+                "actual_length": [3, 1],
+                "count": 1,
+                "end_repeat": false,
+                "name": "1",
+                "next": ["2"],
+                "nominal_length": [3, 1],
+                "number": 1,
+                "qstamp": [0, 1],
+                "start_repeat": false,
+                "time_signature": "3/4"
+              },
+              {
+                "actual_length": [3, 1],
+                "count": 104,
+                "end_repeat": false,
+                "name": "104",
+                "nominal_length": [3, 1],
+                "number": 104,
+                "qstamp": [309, 1],
+                "start_repeat": false,
+                "time_signature": "3/4"
+              }
+            ]
+          },
+          {
+            "id": "measuremap_3",
+            "meta": {},
+            "name": null,
+            "rows": [
+              {
+                "actual_length": [9, 2],
+                "count": 1,
+                "end_repeat": false,
+                "name": "1",
+                "next": ["2"],
+                "nominal_length": [9, 2],
+                "number": 1,
+                "qstamp": [0, 1],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "actual_length": [9, 2],
+                "count": 72,
+                "end_repeat": false,
+                "name": "72",
+                "nominal_length": [9, 2],
+                "number": 72,
+                "qstamp": [639, 2],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              }
+            ]
+          },
+          {
+            "id": "measuremap_4",
+            "meta": {},
+            "name": null,
+            "rows": [
+              {
+                "actual_length": [4, 1],
+                "count": 1,
+                "end_repeat": false,
+                "name": "1",
+                "next": ["2"],
+                "nominal_length": [4, 1],
+                "number": 1,
+                "qstamp": [0, 1],
+                "start_repeat": false,
+                "time_signature": "4/4"
+              },
+              {
+                "actual_length": [4, 1],
+                "count": 156,
+                "end_repeat": false,
+                "name": "156",
+                "nominal_length": [4, 1],
+                "number": 156,
+                "qstamp": [620, 1],
+                "start_repeat": false,
+                "time_signature": "4/4"
+              }
+            ]
+          },
+          {
+            "id": "measuremap_5",
+            "meta": {},
+            "name": null,
+            "rows": [
+              {
+                "ID": "qhghzyb",
+                "actual_length": [9, 2],
+                "count": 1,
+                "end_repeat": false,
+                "name": "1",
+                "next": ["t1ajik95"],
+                "nominal_length": [9, 2],
+                "number": 1,
+                "qstamp": [0, 1],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "ID": "t1ajik95",
+                "actual_length": [9, 2],
+                "count": 2,
+                "end_repeat": false,
+                "name": "2",
+                "next": ["l1lqnom3"],
+                "nominal_length": [9, 2],
+                "number": 2,
+                "qstamp": [9, 2],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "ID": "l1lqnom3",
+                "actual_length": [9, 2],
+                "count": 3,
+                "end_repeat": false,
+                "name": "3",
+                "next": ["p13e44d5"],
+                "nominal_length": [9, 2],
+                "number": 3,
+                "qstamp": [9, 1],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "ID": "p13e44d5",
+                "actual_length": [9, 2],
+                "count": 4,
+                "end_repeat": false,
+                "name": "4",
+                "next": ["j1wjncss"],
+                "nominal_length": [9, 2],
+                "number": 4,
+                "qstamp": [27, 2],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "ID": "j1wjncss",
+                "actual_length": [9, 2],
+                "count": 5,
+                "end_repeat": false,
+                "name": "5",
+                "next": ["e1ksyeqi"],
+                "nominal_length": [9, 2],
+                "number": 5,
+                "qstamp": [18, 1],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              },
+              {
+                "ID": "e1ksyeqi",
+                "actual_length": [9, 2],
+                "count": 6,
+                "end_repeat": false,
+                "name": "6",
+                "nominal_length": [9, 2],
+                "number": 6,
+                "qstamp": [45, 2],
+                "start_repeat": false,
+                "time_signature": "9/8"
+              }
+            ]
+          }
+        ],
+        "meta": {},
+        "name": "LayerIt, Clair de lune mm. 1–6 (Pires)",
+        "provenance": [
+          {
+            "basis": ["CITATION.cff"],
+            "date": "2026-11-19",
+            "method": "imported",
+            "property": "dcterms:source",
+            "stated_by": ["https://timetoalign.github.io/"],
+            "value": {
+              "id": "https://doi.org/10.5281/zenodo.7473568"
+            }
+          }
+        ],
+        "resources": [
+          {
+            "id": "resource_1",
+            "integrity": {
+              "algorithm": "SHA-256",
+              "digest": "bc4b3a6a1f1aa43ff84955ec1a6b1acb681b9192cb0e20342c762ec8e9fe5029"
+            },
+            "media_type": "application/vnd.apache.parquet",
+            "size": 13655,
+            "timelines": ["clt_6", "dpt_1"],
+            "type": "MatchClaim",
+            "url": "step3.match_claims.parquet"
+          },
+          {
+            "id": "resource_2",
+            "integrity": {
+              "algorithm": "SHA-256",
+              "digest": "2bcad91608a818978ce6f0e736a2280137a0e564be44567dd588f2ffa7e542c4"
+            },
+            "media_type": "application/vnd.apache.parquet",
+            "size": 4500,
+            "timelines": ["dpt_1"],
+            "type": "Projection",
+            "url": "step3.projections.parquet"
+          }
+        ],
+        "statements": {
+          "dcterms:source": [
+            {
+              "id": "https://doi.org/10.5281/zenodo.7473568",
+              "label": "Claude Debussy - Suite Bergamasque (A corpus of annotated scores)",
+              "provenance": [
+                {
+                  "basis": ["CITATION.cff"],
+                  "date": "2026-11-19",
+                  "method": "imported",
+                  "property": "rdf:type",
+                  "stated_by": ["https://timetoalign.github.io/"],
+                  "value": {
+                    "id": "schema:Dataset"
+                  }
+                },
+                {
+                  "basis": ["CITATION.cff"],
+                  "date": "2026-11-19",
+                  "method": "imported",
+                  "property": "schema:version",
+                  "stated_by": ["https://timetoalign.github.io/"],
+                  "value": "v2.3"
+                },
+                {
+                  "basis": ["CITATION.cff"],
+                  "date": "2026-11-19",
+                  "method": "imported",
+                  "property": "schema:codeRepository",
+                  "stated_by": ["https://timetoalign.github.io/"],
+                  "value": {
+                    "id": "https://github.com/DCMLab/debussy_suite_bergamasque"
+                  }
+                },
+                {
+                  "basis": [".zenodo.json"],
+                  "date": "2026-11-19",
+                  "method": "imported",
+                  "property": "schema:license",
+                  "stated_by": ["https://timetoalign.github.io/"],
+                  "value": {
+                    "id": "http://spdx.org/licenses/CC-BY-NC-SA-4.0"
+                  }
+                }
+              ],
+              "schema:codeRepository": [
+                {
+                  "id": "https://github.com/DCMLab/debussy_suite_bergamasque"
+                }
+              ],
+              "schema:license": [
+                {
+                  "id": "http://spdx.org/licenses/CC-BY-NC-SA-4.0"
+                }
+              ],
+              "schema:version": ["v2.3"],
+              "type": ["schema:Dataset"]
+            }
+          ],
+          "rdfs:seeAlso": [
+            {
+              "id": "https://github.com/FernandoAze/LayerIt/tree/c88ca33065d49f622fca7225b784240df34a0fe8/src/input_files/ClairDeLune"
+            }
+          ],
+          "schema:about": [
+            {
+              "id": "wd:Q29117946",
+              "label": "Clair de lune"
+            }
+          ]
+        },
+        "timelines": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [
+                      {
+                        "id": "lmap_2",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 0.04675470144567245,
+                        "source_unit": "css_pixels",
+                        "target_unit": "seconds",
+                        "type": "LinearMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "cgt_3",
+                    "is_segment_line": false,
+                    "length": 713.3617548979767,
+                    "locked": true,
+                    "meta": {},
+                    "name": "mm. 1-6",
+                    "number_type": "float",
+                    "offset": 0.0,
+                    "regions": [],
+                    "unit": "css_pixels"
+                  }
+                ],
+                "conversion_maps": [
+                  {
+                    "id": "lmap_1",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": 0.04675470144567245,
+                    "source_unit": "css_pixels",
+                    "target_unit": "seconds",
+                    "type": "LinearMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "cgt_2",
+                "is_segment_line": false,
+                "length": 855.5289364103584,
+                "locked": true,
+                "meta": {},
+                "name": "ScoreWarp time axis",
+                "number_type": "float",
+                "offset": 76.70371459980326,
+                "regions": [],
+                "unit": "css_pixels"
+              }
+            ],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "cgt_1",
+            "is_segment_line": false,
+            "length": 932.2326510101616,
+            "locked": false,
+            "meta": {
+              "svg_height": "175px",
+              "svg_width": "792px"
+            },
+            "name": "ScoreWarp SVG",
+            "number_type": "float",
+            "regions": [],
+            "unit": "css_pixels"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "LinearMap"
+                  },
+                  {
+                    "id": "cmap_2",
+                    "measure_map": "measuremap_1",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": null,
+                    "type": "MeasureRecordMap"
+                  },
+                  {
+                    "id": "tmap_1",
+                    "measure_map": "measuremap_1",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": "floating_measures",
+                    "type": "FloatingMeasureMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "clt_2",
+                "is_segment_line": false,
+                "length": [356, 1],
+                "locked": true,
+                "meta": {},
+                "name": "Prelude",
+                "number_type": "fraction",
+                "offset": [0, 1],
+                "provenance": [
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "wdt:P629",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "wd:Q29117932"
+                    }
+                  },
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "http://musicbrainz.org/work/fe4cfa64-156a-3d74-bf2e-7c12f01908bb"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "http://musicbrainz.org/work/fe4cfa64-156a-3d74-bf2e-7c12f01908bb",
+                      "label": "Prelude"
+                    }
+                  ],
+                  "wdt:P629": [
+                    {
+                      "id": "wd:Q29117932",
+                      "label": "Prelude"
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              },
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_3",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "LinearMap"
+                  },
+                  {
+                    "id": "cmap_4",
+                    "measure_map": "measuremap_2",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": null,
+                    "type": "MeasureRecordMap"
+                  },
+                  {
+                    "id": "tmap_2",
+                    "measure_map": "measuremap_2",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": "floating_measures",
+                    "type": "FloatingMeasureMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "clt_3",
+                "is_segment_line": false,
+                "length": [312, 1],
+                "locked": true,
+                "meta": {},
+                "name": "Menuet",
+                "number_type": "fraction",
+                "offset": [356, 1],
+                "provenance": [
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "wdt:P629",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "wd:Q29117940"
+                    }
+                  },
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "http://musicbrainz.org/work/82ea1cd4-1692-3b55-99a8-9b387cfa2ba3"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "http://musicbrainz.org/work/82ea1cd4-1692-3b55-99a8-9b387cfa2ba3",
+                      "label": "Menuet"
+                    }
+                  ],
+                  "wdt:P629": [
+                    {
+                      "id": "wd:Q29117940",
+                      "label": "Menuet"
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [],
+                    "flow_control": [],
+                    "id": "clt_7",
+                    "is_segment_line": false,
+                    "length": [27, 1],
+                    "locked": true,
+                    "meta": {},
+                    "name": "mm. 1–6",
+                    "number_type": "fraction",
+                    "offset": [0, 1],
+                    "regions": [],
+                    "unit": "quarters"
+                  }
+                ],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_5",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "LinearMap"
+                  },
+                  {
+                    "id": "cmap_6",
+                    "measure_map": "measuremap_3",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": null,
+                    "type": "MeasureRecordMap"
+                  },
+                  {
+                    "id": "tmap_3",
+                    "measure_map": "measuremap_3",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": "floating_measures",
+                    "type": "FloatingMeasureMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "clt_4",
+                "is_segment_line": false,
+                "length": [324, 1],
+                "locked": true,
+                "meta": {},
+                "name": "Clair de Lune",
+                "number_type": "fraction",
+                "offset": [668, 1],
+                "provenance": [
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "wdt:P629",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "wd:Q29117946"
+                    }
+                  },
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96",
+                      "label": "Clair de Lune"
+                    }
+                  ],
+                  "wdt:P629": [
+                    {
+                      "id": "wd:Q29117946",
+                      "label": "Clair de Lune"
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              },
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_7",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "LinearMap"
+                  },
+                  {
+                    "id": "cmap_8",
+                    "measure_map": "measuremap_4",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": null,
+                    "type": "MeasureRecordMap"
+                  },
+                  {
+                    "id": "tmap_4",
+                    "measure_map": "measuremap_4",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": "floating_measures",
+                    "type": "FloatingMeasureMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "clt_5",
+                "is_segment_line": false,
+                "length": [624, 1],
+                "locked": true,
+                "meta": {},
+                "name": "Passepied",
+                "number_type": "fraction",
+                "offset": [992, 1],
+                "provenance": [
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "wdt:P629",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "wd:Q29117951"
+                    }
+                  },
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "http://musicbrainz.org/work/59cce5c6-5483-32c4-8823-5841ae4e8a69"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "http://musicbrainz.org/work/59cce5c6-5483-32c4-8823-5841ae4e8a69",
+                      "label": "Passepied"
+                    }
+                  ],
+                  "wdt:P629": [
+                    {
+                      "id": "wd:Q29117951",
+                      "label": "Passepied"
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              }
+            ],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "clt_1",
+            "is_segment_line": false,
+            "length": [1616, 1],
+            "locked": false,
+            "meta": {},
+            "name": "Suite bergamasque",
+            "number_type": "fraction",
+            "provenance": [
+              {
+                "basis": ["metadata.tsv"],
+                "date": "2026-11-19",
+                "method": "imported",
+                "property": "schema:exampleOfWork",
+                "stated_by": ["https://timetoalign.github.io/"],
+                "value": {
+                  "id": "viaf:177398380"
+                }
+              }
+            ],
+            "regions": [],
+            "statements": {
+              "schema:exampleOfWork": [
+                {
+                  "id": "viaf:177398380",
+                  "label": "Suite bergamasque",
+                  "provenance": [
+                    {
+                      "basis": ["metadata.tsv"],
+                      "date": "2026-11-19",
+                      "method": "imported",
+                      "property": "rdfs:seeAlso",
+                      "stated_by": ["https://timetoalign.github.io/"],
+                      "value": {
+                        "id": "https://imslp.org/wiki/Suite_bergamasque_(Debussy%2C_Claude)"
+                      }
+                    }
+                  ],
+                  "rdfs:seeAlso": [
+                    {
+                      "id": "https://imslp.org/wiki/Suite_bergamasque_(Debussy%2C_Claude)"
+                    }
+                  ]
+                }
+              ]
+            },
+            "unit": "quarters"
+          },
+          {
+            "children": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_10",
+                "measure_map": "measuremap_5",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": null,
+                "type": "MeasureRecordMap"
+              }
+            ],
+            "flow_control": [],
+            "id": "clt_6",
+            "is_segment_line": false,
+            "length": [27, 1],
+            "locked": false,
+            "meta": {},
+            "name": "Clair de lune, mm. 1–6 (MEI)",
+            "number_type": "fraction",
+            "provenance": [
+              {
+                "basis": ["clair-de-lune%20M6-basic.mei"],
+                "date": "2026-11-18",
+                "method": "imported",
+                "note": "meiHead/fileDesc/pubStmt/date[@type='encoding-date'], which has no xml:id",
+                "property": "dcterms:created",
+                "stated_by": ["https://example.org/agents/timetoalign"],
+                "value": {
+                  "@type": "xsd:date",
+                  "@value": "2025-12-05"
+                }
+              },
+              {
+                "beliefs": [
+                  {
+                    "actor": "https://example.org/people/editor",
+                    "belief": "true",
+                    "date": "2026-11-18"
+                  }
+                ],
+                "date": "2026-11-18",
+                "match": "broad",
+                "method": "manual",
+                "property": "schema:exampleOfWork",
+                "stated_by": ["https://example.org/people/editor"],
+                "value": {
+                  "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                }
+              },
+              {
+                "basis": ["http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"],
+                "date": "2026-11-18",
+                "match": "broad",
+                "method": "reconciled",
+                "note": "+ vocabulary: proposed from the Wikidata item carrying P435 8d331505…",
+                "property": "wdt:P629",
+                "service": "https://www.wikidata.org/w/api.php",
+                "stated_by": ["https://example.org/agents/tilie"],
+                "value": {
+                  "id": "wd:Q29117946"
+                }
+              },
+              {
+                "beliefs": [
+                  {
+                    "actor": "https://example.org/people/editor",
+                    "belief": "false",
+                    "date": "2026-11-18"
+                  }
+                ],
+                "date": "2026-11-18",
+                "method": "reconciled",
+                "note": "GND 'Clair de lune' is Debussy's song L 32 on Verlaine (voice and piano, 1882), not the piano piece",
+                "property": "schema:exampleOfWork",
+                "service": "https://lobid.org/gnd/search",
+                "stated_by": ["https://example.org/people/editor"],
+                "value": {
+                  "id": "gnd:1156628156"
+                }
+              }
+            ],
+            "regions": [],
+            "statements": {
+              "dcterms:created": [
+                {
+                  "@type": "xsd:date",
+                  "@value": "2025-12-05"
+                }
+              ],
+              "schema:exampleOfWork": [
+                {
+                  "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96",
+                  "label": "Clair de lune"
+                }
+              ],
+              "type": ["melod:Manifestation", "schema:SheetMusic"],
+              "wdt:P629": [
+                {
+                  "id": "wd:Q29117946",
+                  "label": "Clair de lune",
+                  "provenance": [
+                    {
+                      "date": "2026-11-18",
+                      "match": "exact",
+                      "method": "reconciled",
+                      "note": "GND 'Suite bergamasque. Clair de lune'; lobid gives sameAs VIAF 265616918, as Wikidata's P214 does",
+                      "property": "schema:sameAs",
+                      "service": "https://lobid.org/gnd/search",
+                      "stated_by": ["https://example.org/agents/tilie"],
+                      "value": {
+                        "id": "gnd:300042558"
+                      }
+                    }
+                  ],
+                  "schema:sameAs": [
+                    {
+                      "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                    },
+                    {
+                      "id": "gnd:300042558"
+                    }
+                  ]
+                }
+              ]
+            },
+            "unit": "quarters"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "cpt_2",
+                "is_segment_line": false,
+                "length": 33.35301587301587,
+                "locked": true,
+                "meta": {
+                  "offset_note": "unmeasured: t0, the WAV's start in the video, is not known; 0.0 holds its place"
+                },
+                "name": null,
+                "number_type": "float",
+                "offset": 0.0,
+                "regions": [],
+                "unit": "seconds"
+              }
+            ],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "cpt_1",
+            "is_segment_line": false,
+            "length": null,
+            "locked": false,
+            "meta": {},
+            "name": "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",
+            "number_type": "float",
+            "provenance": [
+              {
+                "date": "2026-11-18",
+                "method": "manual",
+                "note": "pasted URL; label and thumbnail from YouTube's oEmbed",
+                "property": "schema:sameAs",
+                "stated_by": ["https://example.org/people/editor"],
+                "value": {
+                  "id": "https://www.youtube.com/watch?v=Ch2mrPm1JnM"
+                }
+              },
+              {
+                "date": "2026-11-18",
+                "method": "reconciled",
+                "note": "Portuguese pianist; the video's title names her",
+                "property": "wdt:P175",
+                "service": "https://www.wikidata.org/w/api.php",
+                "stated_by": ["https://example.org/people/editor"],
+                "value": {
+                  "id": "wd:Q235650"
+                }
+              },
+              {
+                "basis": [
+                  "http://www.wikidata.org/entity/Q235650",
+                  "https://d-nb.info/gnd/124927521"
+                ],
+                "date": "2026-11-18",
+                "method": "reconciled",
+                "note": "+ vocabulary: Wikidata P214 and lobid's sameAs agree",
+                "property": "rel:prf",
+                "stated_by": ["https://example.org/agents/tilie"],
+                "value": {
+                  "id": "viaf:113931950"
+                }
+              },
+              {
+                "basis": ["#clt_6", "#dpt_1"],
+                "date": "2026-11-18",
+                "method": "inferred",
+                "note": "from the encoding's work and the WAV's source; whether the video holds the whole movement is unchecked",
+                "property": "wdt:P2550",
+                "stated_by": ["https://example.org/agents/tilie"],
+                "value": {
+                  "id": "wd:Q29117946"
+                }
+              }
+            ],
+            "regions": [],
+            "statements": {
+              "rel:prf": [
+                {
+                  "id": "viaf:113931950"
+                }
+              ],
+              "schema:sameAs": [
+                {
+                  "id": "https://www.youtube.com/watch?v=Ch2mrPm1JnM"
+                }
+              ],
+              "type": ["schema:VideoObject", "melod:Manifestation"],
+              "wdt:P175": [
+                {
+                  "id": "wd:Q235650",
+                  "label": "Maria João Pires",
+                  "schema:sameAs": [
+                    {
+                      "id": "viaf:113931950"
+                    },
+                    {
+                      "id": "gnd:124927521"
+                    }
+                  ]
+                }
+              ],
+              "wdt:P31": [
+                {
+                  "id": "wd:Q98069877"
+                }
+              ]
+            },
+            "unit": "seconds"
+          },
+          {
+            "children": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_9",
+                "name": null,
+                "offset": 0,
+                "scalar": [1, 44100],
+                "source_unit": "samples",
+                "target_unit": "seconds",
+                "type": "LinearMap"
+              }
+            ],
+            "flow_control": [],
+            "id": "dpt_1",
+            "is_segment_line": false,
+            "length": 1470868,
+            "locked": false,
+            "meta": {},
+            "name": "WAV excerpt",
+            "number_type": "int",
+            "provenance": [
+              {
+                "date": "2026-11-18",
+                "method": "inferred",
+                "note": "assumed ripped from the video's sound and cut",
+                "property": "dcterms:source",
+                "stated_by": ["https://example.org/people/editor"],
+                "value": {
+                  "id": "#cpt_1"
+                }
+              }
+            ],
+            "regions": [],
+            "statements": {
+              "type": ["schema:AudioObject", "melod:Manifestation"]
+            },
+            "unit": "samples"
+          }
+        ],
+        "timetoshare": "0.2.0"
+      },
+      "margin": 0,
+      "parent": null,
+      "places": {},
+      "scale": 1,
+      "spacing": 8,
+      "width": null,
+      "x": 1584,
+      "y": 424
+    }
+  },
+  "graphical": {},
+  "journal": [
+    {
+      "author": "Gerhardt",
+      "command": {
+        "block": {
+          "height": null,
+          "id": "vvn359k35o",
+          "length": 400,
+          "manifest": {
+            "graphical": {
+              "matchstamps": [],
+              "order": {
+                "group_1": ["dpt_1", "cgt_3"],
+                "group_2": ["cpt_2", "dpt_1"],
+                "group_3": ["clt_7", "clt_6"]
+              },
+              "rules": [],
+              "styles": {},
+              "timestamps": []
+            },
+            "groups": [
+              {
+                "id": "group_1",
+                "members": ["cgt_3", "dpt_1"],
+                "meta": {},
+                "name": "LayerIt session"
+              },
+              {
+                "id": "group_2",
+                "members": ["cpt_2", "dpt_1"],
+                "meta": {},
+                "name": "recording"
+              },
+              {
+                "id": "group_3",
+                "members": ["clt_6", "clt_7"],
+                "meta": {},
+                "name": "Clair de lune mm. 1–6"
+              }
+            ],
+            "id": "layerit_clair_de_lune",
+            "measure_maps": [
+              {
+                "id": "measuremap_1",
+                "meta": {},
+                "name": null,
+                "rows": [
+                  {
+                    "actual_length": [4, 1],
+                    "count": 1,
+                    "end_repeat": false,
+                    "name": "1",
+                    "next": ["2"],
+                    "nominal_length": [4, 1],
+                    "number": 1,
+                    "qstamp": [0, 1],
+                    "start_repeat": false,
+                    "time_signature": "4/4"
+                  },
+                  {
+                    "actual_length": [4, 1],
+                    "count": 89,
+                    "end_repeat": false,
+                    "name": "89",
+                    "nominal_length": [4, 1],
+                    "number": 89,
+                    "qstamp": [352, 1],
+                    "start_repeat": false,
+                    "time_signature": "4/4"
+                  }
+                ]
+              },
+              {
+                "id": "measuremap_2",
+                "meta": {},
+                "name": null,
+                "rows": [
+                  {
+                    "actual_length": [3, 1],
+                    "count": 1,
+                    "end_repeat": false,
+                    "name": "1",
+                    "next": ["2"],
+                    "nominal_length": [3, 1],
+                    "number": 1,
+                    "qstamp": [0, 1],
+                    "start_repeat": false,
+                    "time_signature": "3/4"
+                  },
+                  {
+                    "actual_length": [3, 1],
+                    "count": 104,
+                    "end_repeat": false,
+                    "name": "104",
+                    "nominal_length": [3, 1],
+                    "number": 104,
+                    "qstamp": [309, 1],
+                    "start_repeat": false,
+                    "time_signature": "3/4"
+                  }
+                ]
+              },
+              {
+                "id": "measuremap_3",
+                "meta": {},
+                "name": null,
+                "rows": [
+                  {
+                    "actual_length": [9, 2],
+                    "count": 1,
+                    "end_repeat": false,
+                    "name": "1",
+                    "next": ["2"],
+                    "nominal_length": [9, 2],
+                    "number": 1,
+                    "qstamp": [0, 1],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "actual_length": [9, 2],
+                    "count": 72,
+                    "end_repeat": false,
+                    "name": "72",
+                    "nominal_length": [9, 2],
+                    "number": 72,
+                    "qstamp": [639, 2],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  }
+                ]
+              },
+              {
+                "id": "measuremap_4",
+                "meta": {},
+                "name": null,
+                "rows": [
+                  {
+                    "actual_length": [4, 1],
+                    "count": 1,
+                    "end_repeat": false,
+                    "name": "1",
+                    "next": ["2"],
+                    "nominal_length": [4, 1],
+                    "number": 1,
+                    "qstamp": [0, 1],
+                    "start_repeat": false,
+                    "time_signature": "4/4"
+                  },
+                  {
+                    "actual_length": [4, 1],
+                    "count": 156,
+                    "end_repeat": false,
+                    "name": "156",
+                    "nominal_length": [4, 1],
+                    "number": 156,
+                    "qstamp": [620, 1],
+                    "start_repeat": false,
+                    "time_signature": "4/4"
+                  }
+                ]
+              },
+              {
+                "id": "measuremap_5",
+                "meta": {},
+                "name": null,
+                "rows": [
+                  {
+                    "ID": "qhghzyb",
+                    "actual_length": [9, 2],
+                    "count": 1,
+                    "end_repeat": false,
+                    "name": "1",
+                    "next": ["t1ajik95"],
+                    "nominal_length": [9, 2],
+                    "number": 1,
+                    "qstamp": [0, 1],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "ID": "t1ajik95",
+                    "actual_length": [9, 2],
+                    "count": 2,
+                    "end_repeat": false,
+                    "name": "2",
+                    "next": ["l1lqnom3"],
+                    "nominal_length": [9, 2],
+                    "number": 2,
+                    "qstamp": [9, 2],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "ID": "l1lqnom3",
+                    "actual_length": [9, 2],
+                    "count": 3,
+                    "end_repeat": false,
+                    "name": "3",
+                    "next": ["p13e44d5"],
+                    "nominal_length": [9, 2],
+                    "number": 3,
+                    "qstamp": [9, 1],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "ID": "p13e44d5",
+                    "actual_length": [9, 2],
+                    "count": 4,
+                    "end_repeat": false,
+                    "name": "4",
+                    "next": ["j1wjncss"],
+                    "nominal_length": [9, 2],
+                    "number": 4,
+                    "qstamp": [27, 2],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "ID": "j1wjncss",
+                    "actual_length": [9, 2],
+                    "count": 5,
+                    "end_repeat": false,
+                    "name": "5",
+                    "next": ["e1ksyeqi"],
+                    "nominal_length": [9, 2],
+                    "number": 5,
+                    "qstamp": [18, 1],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  },
+                  {
+                    "ID": "e1ksyeqi",
+                    "actual_length": [9, 2],
+                    "count": 6,
+                    "end_repeat": false,
+                    "name": "6",
+                    "nominal_length": [9, 2],
+                    "number": 6,
+                    "qstamp": [45, 2],
+                    "start_repeat": false,
+                    "time_signature": "9/8"
+                  }
+                ]
+              }
+            ],
+            "meta": {},
+            "name": "LayerIt, Clair de lune mm. 1–6 (Pires)",
+            "provenance": [
+              {
+                "basis": ["CITATION.cff"],
+                "date": "2026-11-19",
+                "method": "imported",
+                "property": "dcterms:source",
+                "stated_by": ["https://timetoalign.github.io/"],
+                "value": {
+                  "id": "https://doi.org/10.5281/zenodo.7473568"
+                }
+              }
+            ],
+            "resources": [
+              {
+                "id": "resource_1",
+                "integrity": {
+                  "algorithm": "SHA-256",
+                  "digest": "bc4b3a6a1f1aa43ff84955ec1a6b1acb681b9192cb0e20342c762ec8e9fe5029"
+                },
+                "media_type": "application/vnd.apache.parquet",
+                "size": 13655,
+                "timelines": ["clt_6", "dpt_1"],
+                "type": "MatchClaim",
+                "url": "step3.match_claims.parquet"
+              },
+              {
+                "id": "resource_2",
+                "integrity": {
+                  "algorithm": "SHA-256",
+                  "digest": "2bcad91608a818978ce6f0e736a2280137a0e564be44567dd588f2ffa7e542c4"
+                },
+                "media_type": "application/vnd.apache.parquet",
+                "size": 4500,
+                "timelines": ["dpt_1"],
+                "type": "Projection",
+                "url": "step3.projections.parquet"
+              }
+            ],
+            "statements": {
+              "dcterms:source": [
+                {
+                  "id": "https://doi.org/10.5281/zenodo.7473568",
+                  "label": "Claude Debussy - Suite Bergamasque (A corpus of annotated scores)",
+                  "provenance": [
+                    {
+                      "basis": ["CITATION.cff"],
+                      "date": "2026-11-19",
+                      "method": "imported",
+                      "property": "rdf:type",
+                      "stated_by": ["https://timetoalign.github.io/"],
+                      "value": {
+                        "id": "schema:Dataset"
+                      }
+                    },
+                    {
+                      "basis": ["CITATION.cff"],
+                      "date": "2026-11-19",
+                      "method": "imported",
+                      "property": "schema:version",
+                      "stated_by": ["https://timetoalign.github.io/"],
+                      "value": "v2.3"
+                    },
+                    {
+                      "basis": ["CITATION.cff"],
+                      "date": "2026-11-19",
+                      "method": "imported",
+                      "property": "schema:codeRepository",
+                      "stated_by": ["https://timetoalign.github.io/"],
+                      "value": {
+                        "id": "https://github.com/DCMLab/debussy_suite_bergamasque"
+                      }
+                    },
+                    {
+                      "basis": [".zenodo.json"],
+                      "date": "2026-11-19",
+                      "method": "imported",
+                      "property": "schema:license",
+                      "stated_by": ["https://timetoalign.github.io/"],
+                      "value": {
+                        "id": "http://spdx.org/licenses/CC-BY-NC-SA-4.0"
+                      }
+                    }
+                  ],
+                  "schema:codeRepository": [
+                    {
+                      "id": "https://github.com/DCMLab/debussy_suite_bergamasque"
+                    }
+                  ],
+                  "schema:license": [
+                    {
+                      "id": "http://spdx.org/licenses/CC-BY-NC-SA-4.0"
+                    }
+                  ],
+                  "schema:version": ["v2.3"],
+                  "type": ["schema:Dataset"]
+                }
+              ],
+              "rdfs:seeAlso": [
+                {
+                  "id": "https://github.com/FernandoAze/LayerIt/tree/c88ca33065d49f622fca7225b784240df34a0fe8/src/input_files/ClairDeLune"
+                }
+              ],
+              "schema:about": [
+                {
+                  "id": "wd:Q29117946",
+                  "label": "Clair de lune"
+                }
+              ]
+            },
+            "timelines": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "conversion_maps": [
+                          {
+                            "id": "lmap_2",
+                            "name": null,
+                            "offset": 0,
+                            "scalar": 0.04675470144567245,
+                            "source_unit": "css_pixels",
+                            "target_unit": "seconds",
+                            "type": "LinearMap"
+                          }
+                        ],
+                        "flow_control": [],
+                        "id": "cgt_3",
+                        "is_segment_line": false,
+                        "length": 713.3617548979767,
+                        "locked": true,
+                        "meta": {},
+                        "name": "mm. 1-6",
+                        "number_type": "float",
+                        "offset": 0.0,
+                        "regions": [],
+                        "unit": "css_pixels"
+                      }
+                    ],
+                    "conversion_maps": [
+                      {
+                        "id": "lmap_1",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 0.04675470144567245,
+                        "source_unit": "css_pixels",
+                        "target_unit": "seconds",
+                        "type": "LinearMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "cgt_2",
+                    "is_segment_line": false,
+                    "length": 855.5289364103584,
+                    "locked": true,
+                    "meta": {},
+                    "name": "ScoreWarp time axis",
+                    "number_type": "float",
+                    "offset": 76.70371459980326,
+                    "regions": [],
+                    "unit": "css_pixels"
+                  }
+                ],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "cgt_1",
+                "is_segment_line": false,
+                "length": 932.2326510101616,
+                "locked": false,
+                "meta": {
+                  "svg_height": "175px",
+                  "svg_width": "792px"
+                },
+                "name": "ScoreWarp SVG",
+                "number_type": "float",
+                "regions": [],
+                "unit": "css_pixels"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_1",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "LinearMap"
+                      },
+                      {
+                        "id": "cmap_2",
+                        "measure_map": "measuremap_1",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": null,
+                        "type": "MeasureRecordMap"
+                      },
+                      {
+                        "id": "tmap_1",
+                        "measure_map": "measuremap_1",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": "floating_measures",
+                        "type": "FloatingMeasureMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "clt_2",
+                    "is_segment_line": false,
+                    "length": [356, 1],
+                    "locked": true,
+                    "meta": {},
+                    "name": "Prelude",
+                    "number_type": "fraction",
+                    "offset": [0, 1],
+                    "provenance": [
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "wdt:P629",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "wd:Q29117932"
+                        }
+                      },
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "schema:exampleOfWork",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "http://musicbrainz.org/work/fe4cfa64-156a-3d74-bf2e-7c12f01908bb"
+                        }
+                      }
+                    ],
+                    "regions": [],
+                    "statements": {
+                      "schema:exampleOfWork": [
+                        {
+                          "id": "http://musicbrainz.org/work/fe4cfa64-156a-3d74-bf2e-7c12f01908bb",
+                          "label": "Prelude"
+                        }
+                      ],
+                      "wdt:P629": [
+                        {
+                          "id": "wd:Q29117932",
+                          "label": "Prelude"
+                        }
+                      ]
+                    },
+                    "unit": "quarters"
+                  },
+                  {
+                    "children": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_3",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "LinearMap"
+                      },
+                      {
+                        "id": "cmap_4",
+                        "measure_map": "measuremap_2",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": null,
+                        "type": "MeasureRecordMap"
+                      },
+                      {
+                        "id": "tmap_2",
+                        "measure_map": "measuremap_2",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": "floating_measures",
+                        "type": "FloatingMeasureMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "clt_3",
+                    "is_segment_line": false,
+                    "length": [312, 1],
+                    "locked": true,
+                    "meta": {},
+                    "name": "Menuet",
+                    "number_type": "fraction",
+                    "offset": [356, 1],
+                    "provenance": [
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "wdt:P629",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "wd:Q29117940"
+                        }
+                      },
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "schema:exampleOfWork",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "http://musicbrainz.org/work/82ea1cd4-1692-3b55-99a8-9b387cfa2ba3"
+                        }
+                      }
+                    ],
+                    "regions": [],
+                    "statements": {
+                      "schema:exampleOfWork": [
+                        {
+                          "id": "http://musicbrainz.org/work/82ea1cd4-1692-3b55-99a8-9b387cfa2ba3",
+                          "label": "Menuet"
+                        }
+                      ],
+                      "wdt:P629": [
+                        {
+                          "id": "wd:Q29117940",
+                          "label": "Menuet"
+                        }
+                      ]
+                    },
+                    "unit": "quarters"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": [],
+                        "id": "clt_7",
+                        "is_segment_line": false,
+                        "length": [27, 1],
+                        "locked": true,
+                        "meta": {},
+                        "name": "mm. 1–6",
+                        "number_type": "fraction",
+                        "offset": [0, 1],
+                        "regions": [],
+                        "unit": "quarters"
+                      }
+                    ],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_5",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "LinearMap"
+                      },
+                      {
+                        "id": "cmap_6",
+                        "measure_map": "measuremap_3",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": null,
+                        "type": "MeasureRecordMap"
+                      },
+                      {
+                        "id": "tmap_3",
+                        "measure_map": "measuremap_3",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": "floating_measures",
+                        "type": "FloatingMeasureMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "clt_4",
+                    "is_segment_line": false,
+                    "length": [324, 1],
+                    "locked": true,
+                    "meta": {},
+                    "name": "Clair de Lune",
+                    "number_type": "fraction",
+                    "offset": [668, 1],
+                    "provenance": [
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "wdt:P629",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "wd:Q29117946"
+                        }
+                      },
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "schema:exampleOfWork",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                        }
+                      }
+                    ],
+                    "regions": [],
+                    "statements": {
+                      "schema:exampleOfWork": [
+                        {
+                          "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96",
+                          "label": "Clair de Lune"
+                        }
+                      ],
+                      "wdt:P629": [
+                        {
+                          "id": "wd:Q29117946",
+                          "label": "Clair de Lune"
+                        }
+                      ]
+                    },
+                    "unit": "quarters"
+                  },
+                  {
+                    "children": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_7",
+                        "name": null,
+                        "offset": 0,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "LinearMap"
+                      },
+                      {
+                        "id": "cmap_8",
+                        "measure_map": "measuremap_4",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": null,
+                        "type": "MeasureRecordMap"
+                      },
+                      {
+                        "id": "tmap_4",
+                        "measure_map": "measuremap_4",
+                        "name": null,
+                        "source_unit": "quarters",
+                        "target_unit": "floating_measures",
+                        "type": "FloatingMeasureMap"
+                      }
+                    ],
+                    "flow_control": [],
+                    "id": "clt_5",
+                    "is_segment_line": false,
+                    "length": [624, 1],
+                    "locked": true,
+                    "meta": {},
+                    "name": "Passepied",
+                    "number_type": "fraction",
+                    "offset": [992, 1],
+                    "provenance": [
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "wdt:P629",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "wd:Q29117951"
+                        }
+                      },
+                      {
+                        "basis": ["metadata.tsv"],
+                        "date": "2026-11-19",
+                        "method": "imported",
+                        "property": "schema:exampleOfWork",
+                        "stated_by": ["https://timetoalign.github.io/"],
+                        "value": {
+                          "id": "http://musicbrainz.org/work/59cce5c6-5483-32c4-8823-5841ae4e8a69"
+                        }
+                      }
+                    ],
+                    "regions": [],
+                    "statements": {
+                      "schema:exampleOfWork": [
+                        {
+                          "id": "http://musicbrainz.org/work/59cce5c6-5483-32c4-8823-5841ae4e8a69",
+                          "label": "Passepied"
+                        }
+                      ],
+                      "wdt:P629": [
+                        {
+                          "id": "wd:Q29117951",
+                          "label": "Passepied"
+                        }
+                      ]
+                    },
+                    "unit": "quarters"
+                  }
+                ],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "clt_1",
+                "is_segment_line": false,
+                "length": [1616, 1],
+                "locked": false,
+                "meta": {},
+                "name": "Suite bergamasque",
+                "number_type": "fraction",
+                "provenance": [
+                  {
+                    "basis": ["metadata.tsv"],
+                    "date": "2026-11-19",
+                    "method": "imported",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://timetoalign.github.io/"],
+                    "value": {
+                      "id": "viaf:177398380"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "viaf:177398380",
+                      "label": "Suite bergamasque",
+                      "provenance": [
+                        {
+                          "basis": ["metadata.tsv"],
+                          "date": "2026-11-19",
+                          "method": "imported",
+                          "property": "rdfs:seeAlso",
+                          "stated_by": ["https://timetoalign.github.io/"],
+                          "value": {
+                            "id": "https://imslp.org/wiki/Suite_bergamasque_(Debussy%2C_Claude)"
+                          }
+                        }
+                      ],
+                      "rdfs:seeAlso": [
+                        {
+                          "id": "https://imslp.org/wiki/Suite_bergamasque_(Debussy%2C_Claude)"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              },
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_10",
+                    "measure_map": "measuremap_5",
+                    "name": null,
+                    "source_unit": "quarters",
+                    "target_unit": null,
+                    "type": "MeasureRecordMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "clt_6",
+                "is_segment_line": false,
+                "length": [27, 1],
+                "locked": false,
+                "meta": {},
+                "name": "Clair de lune, mm. 1–6 (MEI)",
+                "number_type": "fraction",
+                "provenance": [
+                  {
+                    "basis": ["clair-de-lune%20M6-basic.mei"],
+                    "date": "2026-11-18",
+                    "method": "imported",
+                    "note": "meiHead/fileDesc/pubStmt/date[@type='encoding-date'], which has no xml:id",
+                    "property": "dcterms:created",
+                    "stated_by": ["https://example.org/agents/timetoalign"],
+                    "value": {
+                      "@type": "xsd:date",
+                      "@value": "2025-12-05"
+                    }
+                  },
+                  {
+                    "beliefs": [
+                      {
+                        "actor": "https://example.org/people/editor",
+                        "belief": "true",
+                        "date": "2026-11-18"
+                      }
+                    ],
+                    "date": "2026-11-18",
+                    "match": "broad",
+                    "method": "manual",
+                    "property": "schema:exampleOfWork",
+                    "stated_by": ["https://example.org/people/editor"],
+                    "value": {
+                      "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                    }
+                  },
+                  {
+                    "basis": ["http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"],
+                    "date": "2026-11-18",
+                    "match": "broad",
+                    "method": "reconciled",
+                    "note": "+ vocabulary: proposed from the Wikidata item carrying P435 8d331505…",
+                    "property": "wdt:P629",
+                    "service": "https://www.wikidata.org/w/api.php",
+                    "stated_by": ["https://example.org/agents/tilie"],
+                    "value": {
+                      "id": "wd:Q29117946"
+                    }
+                  },
+                  {
+                    "beliefs": [
+                      {
+                        "actor": "https://example.org/people/editor",
+                        "belief": "false",
+                        "date": "2026-11-18"
+                      }
+                    ],
+                    "date": "2026-11-18",
+                    "method": "reconciled",
+                    "note": "GND 'Clair de lune' is Debussy's song L 32 on Verlaine (voice and piano, 1882), not the piano piece",
+                    "property": "schema:exampleOfWork",
+                    "service": "https://lobid.org/gnd/search",
+                    "stated_by": ["https://example.org/people/editor"],
+                    "value": {
+                      "id": "gnd:1156628156"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "dcterms:created": [
+                    {
+                      "@type": "xsd:date",
+                      "@value": "2025-12-05"
+                    }
+                  ],
+                  "schema:exampleOfWork": [
+                    {
+                      "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96",
+                      "label": "Clair de lune"
+                    }
+                  ],
+                  "type": ["melod:Manifestation", "schema:SheetMusic"],
+                  "wdt:P629": [
+                    {
+                      "id": "wd:Q29117946",
+                      "label": "Clair de lune",
+                      "provenance": [
+                        {
+                          "date": "2026-11-18",
+                          "match": "exact",
+                          "method": "reconciled",
+                          "note": "GND 'Suite bergamasque. Clair de lune'; lobid gives sameAs VIAF 265616918, as Wikidata's P214 does",
+                          "property": "schema:sameAs",
+                          "service": "https://lobid.org/gnd/search",
+                          "stated_by": ["https://example.org/agents/tilie"],
+                          "value": {
+                            "id": "gnd:300042558"
+                          }
+                        }
+                      ],
+                      "schema:sameAs": [
+                        {
+                          "id": "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96"
+                        },
+                        {
+                          "id": "gnd:300042558"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "unit": "quarters"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [],
+                    "flow_control": [],
+                    "id": "cpt_2",
+                    "is_segment_line": false,
+                    "length": 33.35301587301587,
+                    "locked": true,
+                    "meta": {
+                      "offset_note": "unmeasured: t0, the WAV's start in the video, is not known; 0.0 holds its place"
+                    },
+                    "name": null,
+                    "number_type": "float",
+                    "offset": 0.0,
+                    "regions": [],
+                    "unit": "seconds"
+                  }
+                ],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "cpt_1",
+                "is_segment_line": false,
+                "length": null,
+                "locked": false,
+                "meta": {},
+                "name": "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",
+                "number_type": "float",
+                "provenance": [
+                  {
+                    "date": "2026-11-18",
+                    "method": "manual",
+                    "note": "pasted URL; label and thumbnail from YouTube's oEmbed",
+                    "property": "schema:sameAs",
+                    "stated_by": ["https://example.org/people/editor"],
+                    "value": {
+                      "id": "https://www.youtube.com/watch?v=Ch2mrPm1JnM"
+                    }
+                  },
+                  {
+                    "date": "2026-11-18",
+                    "method": "reconciled",
+                    "note": "Portuguese pianist; the video's title names her",
+                    "property": "wdt:P175",
+                    "service": "https://www.wikidata.org/w/api.php",
+                    "stated_by": ["https://example.org/people/editor"],
+                    "value": {
+                      "id": "wd:Q235650"
+                    }
+                  },
+                  {
+                    "basis": [
+                      "http://www.wikidata.org/entity/Q235650",
+                      "https://d-nb.info/gnd/124927521"
+                    ],
+                    "date": "2026-11-18",
+                    "method": "reconciled",
+                    "note": "+ vocabulary: Wikidata P214 and lobid's sameAs agree",
+                    "property": "rel:prf",
+                    "stated_by": ["https://example.org/agents/tilie"],
+                    "value": {
+                      "id": "viaf:113931950"
+                    }
+                  },
+                  {
+                    "basis": ["#clt_6", "#dpt_1"],
+                    "date": "2026-11-18",
+                    "method": "inferred",
+                    "note": "from the encoding's work and the WAV's source; whether the video holds the whole movement is unchecked",
+                    "property": "wdt:P2550",
+                    "stated_by": ["https://example.org/agents/tilie"],
+                    "value": {
+                      "id": "wd:Q29117946"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "rel:prf": [
+                    {
+                      "id": "viaf:113931950"
+                    }
+                  ],
+                  "schema:sameAs": [
+                    {
+                      "id": "https://www.youtube.com/watch?v=Ch2mrPm1JnM"
+                    }
+                  ],
+                  "type": ["schema:VideoObject", "melod:Manifestation"],
+                  "wdt:P175": [
+                    {
+                      "id": "wd:Q235650",
+                      "label": "Maria João Pires",
+                      "schema:sameAs": [
+                        {
+                          "id": "viaf:113931950"
+                        },
+                        {
+                          "id": "gnd:124927521"
+                        }
+                      ]
+                    }
+                  ],
+                  "wdt:P31": [
+                    {
+                      "id": "wd:Q98069877"
+                    }
+                  ]
+                },
+                "unit": "seconds"
+              },
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_9",
+                    "name": null,
+                    "offset": 0,
+                    "scalar": [1, 44100],
+                    "source_unit": "samples",
+                    "target_unit": "seconds",
+                    "type": "LinearMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "dpt_1",
+                "is_segment_line": false,
+                "length": 1470868,
+                "locked": false,
+                "meta": {},
+                "name": "WAV excerpt",
+                "number_type": "int",
+                "provenance": [
+                  {
+                    "date": "2026-11-18",
+                    "method": "inferred",
+                    "note": "assumed ripped from the video's sound and cut",
+                    "property": "dcterms:source",
+                    "stated_by": ["https://example.org/people/editor"],
+                    "value": {
+                      "id": "#cpt_1"
+                    }
+                  }
+                ],
+                "regions": [],
+                "statements": {
+                  "type": ["schema:AudioObject", "melod:Manifestation"]
+                },
+                "unit": "samples"
+              }
+            ],
+            "timetoshare": "0.2.0"
+          },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
+          "x": 1584,
+          "y": 424
+        },
+        "into": {},
+        "type": "add"
+      },
+      "time": "2026-11-21T18:01:10.323Z"
+    }
+  ],
+  "meta": {
+    "format": "tilie-workspace",
+    "version": 7
+  },
+  "name": "untitled",
+  "sessions": {},
+  "settings": {
+    "blockDefaults": {
+      "height": null,
+      "length": 400,
+      "margin": 0,
+      "scale": 1,
+      "spacing": 8,
+      "width": null
+    },
+    "granularity": {
+      "decimals": 3,
+      "denominator": 2520
+    },
+    "grid": {
+      "size": 8,
+      "snap": true
+    },
+    "manifests": {
+      "vvn359k35o": {
+        "minimal": true,
+        "serialization": "yaml",
+        "styling": true
+      }
+    },
+    "matchClaimFilters": {}
+  }
+}

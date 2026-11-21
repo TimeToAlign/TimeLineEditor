@@ -66,13 +66,15 @@ test("a workspace survives save, reopen and save byte for byte", async ({ page }
   await expect.poll(() => journalLength(page)).toBe(3);
   expect(await placement(page, id)).toMatchObject({ x: 584, y: 360, length: 420, spacing: 8 });
 
-  await expect(page.getByTestId("file-name")).toHaveText("• untitled.tle.json");
+  await expect(page.getByTestId("file-name")).toHaveText("• untitled");
+  await expect(page).toHaveTitle("• untitled.tle.json – TimeLineEditor");
   const first = downloaded(page.waitForEvent("download"));
   await page.keyboard.press("ControlOrMeta+s");
   const [firstName, firstText] = await first;
   expect(firstName).toBe("untitled.tle.json");
   expect(firstText).toBe(await page.evaluate(() => window.__tilie.text()));
-  await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
+  await expect(page.getByTestId("file-name")).toHaveText("untitled");
+  await expect(page).toHaveTitle("untitled.tle.json – TimeLineEditor");
 
   expect(await selection(page)).toEqual([{ block: id }]);
   await pick(page, "Open…", "untitled.tle.json", firstText);

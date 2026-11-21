@@ -100,8 +100,9 @@ describe("renaming", () => {
       input.selectionEnd,
       target.querySelector("button"),
     ]).toEqual(["Workspace name", "untitled", true, 0, 8, null]);
-    press(type(input, "LayerIt"), "Enter");
+    const enter = press(type(input, "LayerIt"), "Enter");
     expect(calls).toEqual(["rename LayerIt"]);
+    expect(enter.defaultPrevented).toBe(true);
     expect([target.querySelector("input"), document.activeElement === button(target)]).toEqual([
       null,
       true,

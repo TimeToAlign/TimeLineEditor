@@ -6,7 +6,11 @@ import type { TableChoice, TableRequest } from "../src/matchClaims.svelte.ts";
 import TablesDialog from "../src/TablesDialog.svelte";
 import { stubEditor } from "./dom.ts";
 
-const REQUEST: TableRequest = { manifest: "Tables", table: { url: "match_claims.parquet" } };
+const REQUEST: TableRequest = {
+  manifest: "Tables",
+  table: { url: "match_claims.parquet" },
+  question: { kind: "file" },
+};
 
 let dialog: ReturnType<typeof TablesDialog> | undefined;
 
@@ -64,7 +68,7 @@ describe("the tables dialog", () => {
   it("shows one group, the MatchClaim table's, Load disabled until it has a file or a URL", () => {
     void ask();
     expect(shown().open).toBe(true);
-    expect(shown().querySelector("h2")?.textContent).toBe("Load the tables of Tables");
+    expect(shown().querySelector("h2")?.textContent).toBe("Load the MatchClaim table of Tables");
     expect(
       groups().map((group) =>
         group.querySelector("legend")?.textContent?.replace(/\s+/g, " ").trim(),
@@ -158,32 +162,58 @@ describe("the tables dialog", () => {
     expect(await answer).toEqual({ url: "match_claims.parquet" });
   });
 
-  it("offers the manifest's folder only where folders are handed over and a place is named", async () => {
-    void ask();
-    expect(() => button("Choose the manifest's folder…")).toThrow();
-    button("Cancel").click();
-
-    const folder = { kind: "directory", name: "pkg" } as unknown as FileSystemDirectoryHandle;
-    const picker = vi.fn(async (): Promise<FileSystemDirectoryHandle> => {
-      throw new DOMException("cancelled", "AbortError");
-    });
-    vi.stubGlobal("showDirectoryPicker", picker);
+  it("locates the file asked for in the file dialog where the server's files are reached", async () => {
     if (dialog === undefined) throw new Error("not mounted");
-    const unnamed = dialog.ask({ manifest: "Bare", table: { url: null } });
-    flushSync();
-    expect(() => button("Choose the manifest's folder…")).toThrow();
-    button("Cancel").click();
-    expect(await unnamed).toBe(null);
+    const answers: (string | null)[] = [null, "story/step1.yaml"];
+    const locate = vi.fn(async () => answers.shift() ?? null);
+    const titled = (question: TableRequest["question"]) => {
+      void dialog?.ask({ ...REQUEST, question });
+      flushSync();
+      const title = shown().querySelector("h2")?.textContent;
+      button("Cancel").click();
+      return title;
+    };
+    expect(titled({ kind: "table", missing: "story/step1.yaml", locate })).toBe(
+      "match_claims.parquet is not beside Tables, at story/step1.yaml",
+    );
+    expect(titled({ kind: "table", missing: null, locate })).toBe(
+      "Load the MatchClaim table of Tables",
+    );
 
-    const answer = ask();
+    const answer = dialog.ask({ ...REQUEST, question: { kind: "manifest", locate } });
     flushSync();
-    button("Choose the manifest's folder…").click();
-    await vi.waitFor(() => expect(picker).toHaveBeenCalledTimes(1));
+    expect(shown().querySelector("h2")?.textContent).toBe("Where is Tables?");
+    expect(() => button("Choose file…")).toThrow();
+    expect(
+      [...shown().querySelectorAll("input")].map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["URL of the MatchClaim table"]);
+    button("Locate…").click();
+    await vi.waitFor(() => expect(locate).toHaveBeenCalledTimes(1));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(shown().open).toBe(true);
-    picker.mockImplementation(async () => folder);
-    button("Choose the manifest's folder…").click();
-    expect(await answer).toEqual({ folder });
+    button("Locate…").click();
+    expect(await answer).toEqual({ path: "story/step1.yaml" });
+    expect(locate).toHaveBeenCalledTimes(2);
     expect(shown().open).toBe(false);
+
+    const failing = dialog.ask({
+      ...REQUEST,
+      question: {
+        kind: "table",
+        missing: null,
+        locate: async () => {
+          throw new Error("no such folder");
+        },
+      },
+    });
+    flushSync();
+    button("Locate…").click();
+    await vi.waitFor(() =>
+      expect(shown().querySelector(".problem")?.textContent).toBe(
+        "The file could not be located: no such folder",
+      ),
+    );
+    button("Cancel").click();
+    expect(await failing).toBe(null);
   });
 });

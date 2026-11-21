@@ -290,6 +290,7 @@ export type { User } from "./workspace/user.ts";
 export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
 export type {
   Granularity,
+  ManifestFile,
   MatchClaimFilter,
   View,
   WorkspaceSettings,

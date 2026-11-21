@@ -1,16 +1,9 @@
-/** Handles kept in IndexedDB; the cases are derived in `README.md` ("Autosave"). */
+/** Where a snapshot's file lies, kept in IndexedDB; the cases are derived in `README.md` ("Autosave"). */
 
 import { DEFAULT_USER } from "@timetoalign/tilie-core";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createAutosave,
-  forgetFolder,
-  KEPT_FOLDERS,
-  recoverWorkspace,
-  rememberedFolder,
-  rememberFolder,
-} from "../src/autosave.ts";
+import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import { startAutosave } from "../src/autosaving.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { fixture } from "./support.ts";
@@ -80,28 +73,43 @@ describe("a snapshot's handle", () => {
   });
 });
 
-describe("the folders of blocks' manifests", () => {
-  const folder = { kind: "directory", name: "pkg" } as unknown as FileSystemDirectoryHandle;
-
-  it("are kept by block", async () => {
-    await rememberFolder("000000000a", folder);
-    expect(await rememberedFolder("000000000a")).toEqual(folder);
-    expect(await rememberedFolder("000000000b")).toBe(null);
-    await rememberFolder("000000000b", folder);
-    await forgetFolder("000000000a");
-    expect(await rememberedFolder("000000000a")).toBe(null);
-    expect(await rememberedFolder("000000000b")).toEqual(folder);
+describe("a snapshot's path on the server", () => {
+  it("is recovered with the snapshot", async () => {
+    const autosave = createAutosave({ key: "w", delayMs: 100 });
+    autosave.schedule({ text: "one", name: "w.tle.json", path: "work/w.tle.json" });
+    await autosave.flush();
+    expect(await recoverWorkspace("w")).toEqual({
+      text: "one",
+      name: "w.tle.json",
+      path: "work/w.tle.json",
+    });
   });
 
-  it("keep nothing and fail nothing where IndexedDB cannot keep them", async () => {
-    const unstorable = {
-      ...folder,
-      values: () => undefined,
-    } as unknown as FileSystemDirectoryHandle;
-    await expect(KEPT_FOLDERS.remember("000000000a", unstorable)).resolves.toBeUndefined();
-    expect(await KEPT_FOLDERS.recall("000000000a")).toBe(null);
-    vi.stubGlobal("indexedDB", undefined);
-    expect(await KEPT_FOLDERS.recall("000000000a")).toBe(null);
-    await expect(KEPT_FOLDERS.forget("000000000a")).resolves.toBeUndefined();
+  it("is written by the editor's autosave beside the workspace's text", async () => {
+    const session = new WorkspaceSession({
+      warn: () => undefined,
+      author: () => DEFAULT_USER.name,
+    });
+    session.path = "work/w.tle.json";
+    const autosaving = startAutosave(session, {
+      slot: "current",
+      delayMs: 100,
+      warn: () => undefined,
+      ask: async () => null,
+    });
+    await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
+    expect(
+      session.store.dispatch({
+        type: "add",
+        into: {},
+        block: { id: "000000000a", manifest: fixture("bare"), x: 0, y: 0 },
+      }),
+    ).toBeNull();
+    await vi.waitFor(async () => {
+      await autosaving.flush();
+      expect((await recoverWorkspace("current"))?.path).toBe("work/w.tle.json");
+    });
+    autosaving.stop();
+    session.dispose();
   });
 });

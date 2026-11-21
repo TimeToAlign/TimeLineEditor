@@ -1,13 +1,14 @@
 /**
- * Loading the tables a manifest names, in the built editor: the table
- * fixture opened from the Fixture menu, whose MatchClaim and Projections
- * tables are served beside it, loads both without a question; the same
- * manifest imported from the user's system (where nothing beside it can be
- * reached) asks for them in the tables dialog, which takes a file chosen on
- * the system, a URL or the manifest's folder, or is cancelled. The
- * server's table route is replayed from the client's recording; loading is
- * started by turning Show matches on, by its key or its toolbar button, or
- * by the Matchstamp tab's Load MatchClaims…, which asks in the same dialog.
+ * Loading the MatchClaim table a manifest names, in the built editor: the
+ * table fixture opened from the Fixture menu, whose MatchClaim table is
+ * served beside it, loads it without a question; the same manifest
+ * imported from the user's system (where nothing beside it can be reached,
+ * and no server answers for the user's files) asks for it in the tables
+ * dialog, which takes a file chosen on the system or a URL, or is
+ * cancelled. The server's table route is replayed from the client's
+ * recording; loading is started by turning Show matches on, by its key or
+ * its toolbar button, or by the Matchstamp tab's Load MatchClaims…, which
+ * asks in the same dialog.
  */
 
 import { readFileSync } from "node:fs";
@@ -20,7 +21,6 @@ import { arranger, chooseItem, select, tabs, withoutPickers } from "./support.ts
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
 const PARQUET = readFileSync(path.join(TABLES, "match_claims.parquet"));
-const PROJECTIONS = readFileSync(path.join(TABLES, "projections.parquet"));
 const ANSWER = readFileSync(
   path.join(import.meta.dirname, "../packages/client/tests/data/match-claims.answer.bin"),
 );
@@ -28,6 +28,7 @@ const ROWS: number = JSON.parse(
   ANSWER.subarray(4, 4 + ANSWER.readUInt32LE(0)).toString("utf8"),
 ).rows;
 const URL_OF_TABLE = "https://tables.example.org/package/match_claims.parquet";
+const DIALOG = "Load the MatchClaim table of The manifest";
 
 /** Open a fresh page whose table requests the recording answers, counting them. */
 async function openPage(page: Page): Promise<{ requests: number }> {
@@ -93,30 +94,22 @@ test("a fixture whose tables are served beside it loads them without a question"
   );
 });
 
-test("a manifest from the user's system asks for its tables, a file each", async ({ page }) => {
+test("a manifest from the user's system asks for its MatchClaim table's file", async ({ page }) => {
   const seen = await openPage(page);
   const block = await importManifest(page);
   await showMatches(page);
-  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  const dialog = page.getByRole("dialog", { name: DIALOG });
   await expect(dialog).toBeVisible();
   const load = dialog.getByRole("button", { name: "Load" });
   await expect(load).toBeDisabled();
   const groups = dialog.getByRole("group");
-  await expect(groups).toHaveText([
-    /MatchClaim table\s+match_claims\.parquet/u,
-    /Projections table\s+projections\.parquet/u,
+  await expect(groups).toHaveText([/MatchClaim table\s+match_claims\.parquet/u]);
+  const chooser = page.waitForEvent("filechooser");
+  await groups.nth(0).getByRole("button", { name: "Choose file…" }).click();
+  await (await chooser).setFiles([
+    { name: "match_claims.parquet", mimeType: "application/octet-stream", buffer: PARQUET },
   ]);
-  for (const [at, [name, buffer]] of [
-    ["match_claims.parquet", PARQUET],
-    ["projections.parquet", PROJECTIONS],
-  ].entries()) {
-    const chooser = page.waitForEvent("filechooser");
-    await groups.nth(at).getByRole("button", { name: "Choose file…" }).click();
-    await (await chooser).setFiles([
-      { name: name as string, mimeType: "application/octet-stream", buffer: buffer as Buffer },
-    ]);
-    await expect(groups.nth(at)).toContainText(name as string);
-  }
+  await expect(groups.nth(0)).toContainText("match_claims.parquet");
   await load.click();
   await expect(dialog).toBeHidden();
   await expect.poll(() => seen.requests).toBe(1);
@@ -125,19 +118,16 @@ test("a manifest from the user's system asks for its tables, a file each", async
   );
 });
 
-test("Load MatchClaims… asks for the tables the manifest names", async ({ page }) => {
+test("Load MatchClaims… asks for the MatchClaim table the manifest names", async ({ page }) => {
   const seen = await openPage(page);
   const block = await importManifest(page);
   const status = await tableStatus(page, block);
   await expect(status).toHaveText("No MatchClaim table loaded.");
   await page.getByRole("button", { name: "Load MatchClaims…" }).click();
-  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  const dialog = page.getByRole("dialog", { name: DIALOG });
   await expect(dialog).toBeVisible();
   const groups = dialog.getByRole("group");
-  await expect(groups).toHaveText([
-    /MatchClaim table\s+match_claims\.parquet/u,
-    /Projections table\s+projections\.parquet/u,
-  ]);
+  await expect(groups).toHaveText([/MatchClaim table\s+match_claims\.parquet/u]);
   const chooser = page.waitForEvent("filechooser");
   await groups.nth(0).getByRole("button", { name: "Choose file…" }).click();
   await (await chooser).setFiles([
@@ -163,7 +153,7 @@ test("a table is read from the URL the user enters", async ({ page }) => {
   });
   const block = await importManifest(page);
   await showMatches(page);
-  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  const dialog = page.getByRole("dialog", { name: DIALOG });
   await dialog.getByRole("textbox", { name: "URL of the MatchClaim table" }).fill(URL_OF_TABLE);
   await dialog.getByRole("button", { name: "Load" }).click();
   await expect.poll(() => seen.requests).toBe(1);
@@ -178,46 +168,9 @@ test("cancelled, the dialog loads nothing and says nothing", async ({ page }) =>
   await importManifest(page);
   const before = await page.getByTestId("message").count();
   await showMatches(page);
-  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  const dialog = page.getByRole("dialog", { name: DIALOG });
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
   expect(seen.requests).toBe(0);
   expect(await page.getByTestId("message").count()).toBe(before);
-});
-
-test("the manifest's folder gives both tables, nothing else asked", async ({ page }) => {
-  await page.addInitScript(
-    ({ claims, projections }) => {
-      const bytes = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
-      const files: { [name: string]: Uint8Array<ArrayBuffer> } = {
-        "match_claims.parquet": bytes(claims),
-        "projections.parquet": bytes(projections),
-      };
-      const folder = {
-        kind: "directory",
-        name: "package",
-        async getDirectoryHandle(name: string) {
-          throw new DOMException(name, "NotFoundError");
-        },
-        async getFileHandle(name: string) {
-          const found = files[name];
-          if (found === undefined) throw new DOMException(name, "NotFoundError");
-          return { kind: "file", name, getFile: async () => new File([found], name) };
-        },
-      };
-      (window as { showDirectoryPicker?: unknown }).showDirectoryPicker = async () => folder;
-    },
-    { claims: PARQUET.toString("base64"), projections: PROJECTIONS.toString("base64") },
-  );
-  const seen = await openPage(page);
-  const block = await importManifest(page);
-  await pressM(page);
-  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
-  await dialog.getByRole("button", { name: "Choose the manifest's folder…" }).click();
-  await expect(dialog).toBeHidden();
-  await expect.poll(() => seen.requests).toBe(1);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(await tableStatus(page, block)).toHaveText(
-    `match_claims.parquet: ${ROWS} MatchClaims`,
-  );
 });
