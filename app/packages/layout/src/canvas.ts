@@ -58,6 +58,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
   switch (element.type) {
     case "frame":
     case "card":
+    case "ancestor_card":
       return {
         ...element,
         style,

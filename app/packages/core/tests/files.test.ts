@@ -145,7 +145,7 @@ describe("the elements of a group manifest", () => {
     const line = [...frame, "timeline"];
     const ancestor = [...line, "ancestor"];
     const marker = [...line, "band"];
-    const band = (timeline: string, facet: Facet) => [
+    const band = (timeline: string, facet: Facet, inside = line) => [
       "band",
       bandOf(timeline, facet),
       timeline,
@@ -153,8 +153,12 @@ describe("the elements of a group manifest", () => {
       null,
       null,
       facet,
-      line,
+      inside,
     ];
+    // The ancestor card of `piece` and its drawing, held by the block (drawing.md §8.8).
+    const root = ["block", "timeline"];
+    const row = [...root, "band", "child"];
+    const rowMarker = [...row, "band"];
     expect(
       keys.map((key) => [
         key.type,
@@ -168,6 +172,25 @@ describe("the elements of a group manifest", () => {
       ]),
     ).toEqual([
       ["block", {}, ...none, []],
+      ["ancestor_card", id("piece", "card"), ...piece, null, ["block"]],
+      ["timeline", id("piece"), ...piece, null, ["block"]],
+      ["name", id("piece", "name"), ...piece, null, root],
+      band("piece", "children", root),
+      ["child", id("second-half"), ...half, null, [...root, "band"]],
+      ["name", id("second-half", "name"), ...half, null, row],
+      band("second-half", "children", row),
+      band("second-half", "conversion_maps", row),
+      band("second-half", "markers", row),
+      ["wedge", id("timestamp_3"), ...half, null, rowMarker],
+      ["label", id("timestamp_3", "coordinate"), ...half, null, rowMarker],
+      ["wedge", id("timestamp_4"), ...half, null, rowMarker],
+      ["label", id("timestamp_4", "coordinate"), ...half, null, rowMarker],
+      band("second-half", "regions", row),
+      band("second-half", "flow_control", row),
+      band("piece", "conversion_maps", root),
+      band("piece", "markers", root),
+      band("piece", "regions", root),
+      band("piece", "flow_control", root),
       ["frame", id("group_1"), ...none, ["block"]],
       ["name", id("group_1", "name"), ...none, frame],
       ["card", id("second-half", "card"), ...half, null, frame],
@@ -214,7 +237,28 @@ describe("the elements of a group manifest", () => {
       id("second-half", "end"),
       id("second-half", "end", "label"),
     ];
+    const rowOf = (timeline: string) => [
+      bandOf(timeline, "children"),
+      bandOf(timeline, "conversion_maps"),
+      bandOf(timeline, "markers"),
+    ];
     expect(matched({ within: "piece" })).toEqual([
+      id("piece", "card"),
+      id("piece"),
+      id("piece", "name"),
+      bandOf("piece", "children"),
+      id("second-half"),
+      id("second-half", "name"),
+      ...rowOf("second-half"),
+      id("timestamp_3"),
+      id("timestamp_3", "coordinate"),
+      id("timestamp_4"),
+      id("timestamp_4", "coordinate"),
+      bandOf("second-half", "regions"),
+      bandOf("second-half", "flow_control"),
+      ...rowOf("piece").slice(1),
+      bandOf("piece", "regions"),
+      bandOf("piece", "flow_control"),
       id("second-half", "card"),
       id("piece"),
       id("piece", "name"),
@@ -231,12 +275,13 @@ describe("the elements of a group manifest", () => {
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
     ]);
-    expect(matched({ within: "piece" }).length).toBe(18);
+    expect(matched({ within: "piece" }).length).toBe(19 + 18);
     expect(matched({ element: "frame" })).toEqual([id("group_1")]);
     expect(matched({ element: "card" })).toEqual([
       id("second-half", "card"),
       id("recording", "card"),
     ]);
+    expect(matched({ element: "ancestor_card" })).toEqual([id("piece", "card")]);
     expect(
       matching({ inside: "ancestor" }).map((key) => [key.address, key.inside.join(" ")]),
     ).toEqual([
@@ -251,7 +296,8 @@ describe("the elements of a group manifest", () => {
       id("second-half", "end"),
     ]);
     expect(matched({ element: "name", inside: "ancestor" })).toEqual([id("piece", "name")]);
-    expect(matched({ inside: "frame" })).toEqual(keys.slice(2).map((key) => key.address));
+    const frame = keys.findIndex((key) => key.type === "frame");
+    expect(matched({ inside: "frame" })).toEqual(keys.slice(frame + 1).map((key) => key.address));
   });
 });
 
@@ -289,6 +335,18 @@ describe("the elements of a named manifest with two groups", () => {
     expect(keys.map((key) => key.address)).toEqual([
       {},
       { part: ["name"] },
+      id("recording", "card"),
+      id("recording"),
+      id("recording", "name"),
+      bandOf("recording", "children"),
+      id("excerpt"),
+      id("excerpt", "name"),
+      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }).slice(2),
+      bandOf("recording", "conversion_maps"),
+      id("cmap_5"),
+      bandOf("recording", "markers"),
+      bandOf("recording", "regions"),
+      bandOf("recording", "flow_control"),
       id("group_1"),
       id("group_1", "name"),
       id("score", "card"),
@@ -318,8 +376,13 @@ describe("the elements of a named manifest with two groups", () => {
     const same = (address: ElementAddress) => (item: { readonly address: ElementAddress }) =>
       JSON.stringify(item.address) === JSON.stringify(address);
     const inside = (address: ElementAddress) => keys.filter(same(address)).map((key) => key.inside);
-    expect(keys.find(same(id("recording")))?.type).toBe("ancestor");
-    expect(keys.some(same(id("cmap_5")))).toBe(false);
+    expect(keys.filter(same(id("recording"))).map((key) => key.type)).toEqual([
+      "timeline",
+      "ancestor",
+    ]);
+    expect(keys.filter(same(id("cmap_5"))).map((key) => key.inside)).toEqual([
+      ["block", "timeline", "band"],
+    ]);
     expect([
       inside({ part: ["name"] }),
       inside(id("annotations", "card")),
@@ -329,7 +392,7 @@ describe("the elements of a named manifest with two groups", () => {
   });
 
   it("draw members in display order with their ancestors", () => {
-    const { frames, ungrouped } = memberDrawings(manifest);
+    const { frames, ungrouped, ancestorCards } = memberDrawings(manifest);
     const recording = manifest.timelines[3];
     expect(
       frames.map((frame) => [
@@ -356,6 +419,14 @@ describe("the elements of a named manifest with two groups", () => {
       ],
     ]);
     expect(ungrouped.map((member) => member.timeline.id)).toEqual(["annotations"]);
+    expect(
+      ancestorCards.map(({ group, member, root }) => [
+        group.id,
+        member.timeline.id,
+        root.timeline.id,
+        root.ancestors,
+      ]),
+    ).toEqual([["group_2", "excerpt", "recording", []]]);
   });
 });
 

@@ -94,6 +94,12 @@ export interface DrawnBox {
     readonly margin: number;
     readonly stated: CardPlace;
   };
+  /**
+   * An ancestor card (section 8.8), a card the block holds behind the frame of the group `group`,
+   * aligned to its member `member`; it has no place, no `item` and no `card` record, and only a
+   * displayed one is recorded.
+   */
+  readonly ancestor?: { readonly group: string; readonly member: string };
   /** A band: its timeline, facet, level, the elements it holds and its timeline's line. */
   readonly band?: {
     readonly timeline: string;

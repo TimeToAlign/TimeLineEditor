@@ -2,7 +2,8 @@
  * The boxes of a block's drawing and what the pointer does with them. The
  * drawing's containers (`docs/drawing.md` in TimeToShare, section 8) are
  * the block's own box, a group's frame, a timeline's card (an item of the
- * block for an ungrouped root, held by its group's frame for a member) and,
+ * block for an ungrouped root, held by its group's frame for a member), a
+ * root's ancestor card behind a frame (`isAncestorCard`) and,
  * in a timeline's editor, the bands of its timeline (section 6.4), which
  * the drawing records and never draws. Layout records every one of them,
  * the block first, as `Drawing.boxes`; this module is the one reader of that
@@ -87,6 +88,15 @@ export function isCard(box: DrawnBox): box is CardBox {
 /** Whether `box` is a card held by a frame, a group member's: a card that is no item. */
 export function isHeld(box: DrawnBox): box is CardBox {
   return isCard(box) && box.item === undefined;
+}
+
+/**
+ * Whether `box` is an ancestor card (`docs/drawing.md` in TimeToShare, section 8.8): a card the
+ * block holds behind a frame, with no place, never moved, resized or reordered, offering no band.
+ * It is no item and no card of `isCard`.
+ */
+export function isAncestorCard(box: DrawnBox): boolean {
+  return box.ancestor !== undefined;
 }
 
 /** Whether `box` is a band. */
@@ -230,9 +240,10 @@ function recordsOf(drawing: Drawing, address: ElementAddress): readonly DrawnBox
  * element address `address` names where `editing`, the innermost open
  * editor, works: as `boxOf` gives it, except for a card address, which
  * covers every card of its timeline: inside a group editor the card in that
- * group's frame (`frameGroupOf`), else the timeline's only card;
- * `undefined` where no frame tells several cards apart (on the arranger, in
- * the bundle editor), and where no container has the address.
+ * group's frame (`frameGroupOf`), else the timeline's only card, a card
+ * with a place before an ancestor card; `undefined` where no frame tells
+ * several cards apart (on the arranger, in the bundle editor), and where no
+ * container has the address.
  */
 export function workedBox(
   drawing: Drawing,
@@ -240,7 +251,9 @@ export function workedBox(
   address: ElementAddress,
   editing: Editing | null,
 ): DrawnBox | undefined {
-  const records = recordsOf(drawing, address);
+  const all = recordsOf(drawing, address);
+  const placed = all.filter((box) => !isAncestorCard(box));
+  const records = placed.length > 0 ? placed : all;
   const [first, ...others] = records;
   if (first?.kind !== "card" || others.length === 0) return first;
   const group = frameGroupOf(block, editing);
@@ -341,6 +354,7 @@ export function roleOf(descriptor: Descriptor): Role {
     case "frame":
       return "frame";
     case "card":
+    case "ancestor_card":
       return role === "shadow" ? "shadow" : "card";
     case "boundary":
       return "boundary";
@@ -419,7 +433,9 @@ export function hitOf(
   const box =
     element === null
       ? (blockBox(drawing) ?? null)
-      : descriptor?.type === "frame" || descriptor?.type === "card"
+      : descriptor?.type === "frame" ||
+          descriptor?.type === "card" ||
+          descriptor?.type === "ancestor_card"
         ? (shapeBox(drawing, descriptor.element) ?? null)
         : null;
   const timeline = bandTimelineOf(block, editing);

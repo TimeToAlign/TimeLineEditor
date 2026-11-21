@@ -5,7 +5,12 @@
  */
 
 import type { Address, Command, View } from "@timetoalign/tilie-core";
-import { isElementAddress } from "@timetoalign/tilie-core";
+import {
+  holdingOf,
+  isCommandError,
+  isElementAddress,
+  resolveAddress,
+} from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
@@ -14,7 +19,20 @@ import type { LevelRules } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
-import { NOTHING_SELECTED, selectedBand } from "./selection.ts";
+import { NOTHING_SELECTED, selectedBand, selectionOf } from "./selection.ts";
+
+/**
+ * Whether `address` names cards that are ancestor cards alone (`docs/drawing.md` in TimeToShare,
+ * section 8.8): the card address of a root drawn in no card of its own.
+ */
+function namesAncestorCards(view: View, address: Address): boolean {
+  const resolved = resolveAddress(view, address);
+  return (
+    !isCommandError(resolved) &&
+    resolved.kind === "card" &&
+    resolved.cards.every((card) => holdingOf(card) === "ancestor")
+  );
+}
 
 /** Arrow keys move by one grid step; with Shift by this many. */
 export const LARGE_STEP = 8;
@@ -158,7 +176,14 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && (event.key === "Delete" || event.key === "Backspace"),
     run(context) {
       if (context.selection.size === 0 || !context.rules.remove) return false;
-      const removed = removeCommand(context.view, context.selection, context.editing);
+      // An ancestor card stands for no element of its own: Delete leaves it, and its root, alone.
+      const selection = selectionOf(
+        [...context.selection.values()].filter(
+          (address) => !namesAncestorCards(context.view, address),
+        ),
+      );
+      if (selection.size === 0) return true;
+      const removed = removeCommand(context.view, selection, context.editing);
       if ("refused" in removed) context.refuse(removed.refused);
       else if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
       return true;

@@ -3,8 +3,11 @@
  * sections 2.1, 6.4 and 8), the four boxes: the block, which draws the
  * bundle; a group's frame; the cards of every timeline drawn as a root (a
  * member, one in the frame of each group that has it as a member, or an
- * ungrouped root, one held by the block); and the five bands of every
- * timeline drawn in a card, once in each card that draws it. One table
+ * ungrouped root, one held by the block), and the ancestor cards, each the
+ * card of the root of a member that is a child timeline, which the block
+ * holds behind that member's frame and which has no place and no bands; and
+ * the five bands of every timeline drawn in a card, once in each card that
+ * draws it. One table
  * (`CONTAINERS`) states what each kind is styled as and which place members
  * it may state; one listing (`containersOf`) names every container of a
  * manifest with its holder, so a rule about containers reads the table and
@@ -35,8 +38,11 @@ export const CONTAINER_LEVELS = {
 /** The semantic level represented by a container kind. */
 export type ContainerLevel = (typeof CONTAINER_LEVELS)[ContainerKind];
 
-/** How a card is held: by the block (an ungrouped root) or by a frame (a group member). */
-export type Holding = "block" | "frame";
+/**
+ * How a card is held: by the block (an ungrouped root), by a frame (a group member), or by the
+ * block behind a frame (an ancestor card, which has no place).
+ */
+export type Holding = "block" | "frame" | "ancestor";
 
 /** The stated placement members of a freely placed frame or block-held card. */
 export interface ItemPlace {
@@ -174,12 +180,10 @@ export interface ContainerDescriptor {
   readonly element: ElementType;
   /**
    * The place members a container of the kind may state, by how it is held
-   * (a frame-held card's are a subset of an item's); null for none.
+   * (a frame-held card's are a subset of an item's, an ancestor card states
+   * none); null for none.
    */
-  readonly place: {
-    readonly block: readonly (keyof ItemPlace)[];
-    readonly frame: readonly (keyof ItemPlace)[];
-  } | null;
+  readonly place: { readonly [holding in Holding]: readonly (keyof ItemPlace)[] } | null;
 }
 
 /** The registry of drawing container kinds and their semantic and placement properties. */
@@ -189,27 +193,32 @@ export const CONTAINERS: { readonly [kind in ContainerKind]: ContainerDescriptor
     kind: "frame",
     level: CONTAINER_LEVELS.frame,
     element: "frame",
-    place: { block: ITEM_PLACE_MEMBERS, frame: [] },
+    place: { block: ITEM_PLACE_MEMBERS, frame: [], ancestor: [] },
   },
   card: {
     kind: "card",
     level: CONTAINER_LEVELS.card,
     element: "card",
-    place: { block: ITEM_PLACE_MEMBERS, frame: CARD_PLACE_MEMBERS },
+    place: { block: ITEM_PLACE_MEMBERS, frame: CARD_PLACE_MEMBERS, ancestor: [] },
   },
   band: { kind: "band", level: CONTAINER_LEVELS.band, element: "band", place: null },
 };
 
 /**
  * One drawing of a container of a manifest. A frame is drawn once; a card
- * once per frame holding it, or once on the block; a band once in each card
- * that draws its timeline. Every drawing of a container carries its
- * container's address, so the cards of one timeline share theirs: the place
- * key tells them apart.
+ * once per frame holding it, or once on the block, and a root's ancestor
+ * card once behind each frame holding a member below it; a band once in
+ * each card that draws its timeline, never in an ancestor card. Every
+ * drawing of a container carries its container's address, so the cards of
+ * one timeline share theirs: the key tells them apart.
  */
 export interface ContainerRef {
   readonly kind: ContainerKind;
-  /** Where its place lies in `places`: a frame's and a card's; null for the block and a band. */
+  /**
+   * Where its place lies in `places`: a frame's and a card's; null for the block and a band.
+   * An ancestor card has no place: its key `{item: G, member: R}`, the frame `G` it lies behind
+   * and its root `R`, only tells it apart, and `places` never states it.
+   */
   readonly key: PlaceKey | null;
   /**
    * The element address: `{}` for the block, `{id: G}` for a frame,
@@ -229,11 +238,13 @@ export interface Containers {
   readonly block: ContainerRef;
   /** Every frame and card, and every drawing of a band, in drawing order. */
   readonly all: readonly ContainerRef[];
-  /** Every frame and card by its place key (`placeKeyText`). */
+  /** Every frame and card that has a place, by its place key (`placeKeyText`): no ancestor card. */
   readonly byKey: ReadonlyMap<string, ContainerRef>;
+  /** The ancestor cards, in drawing order. */
+  readonly ancestorCards: readonly ContainerRef[];
   /** Every frame by its group's ID. */
   readonly frames: ReadonlyMap<string, ContainerRef>;
-  /** The cards of every timeline drawn in one, by timeline ID, in drawing order. */
+  /** The cards of every timeline drawn in one, ancestor cards included, by timeline ID, in drawing order. */
   readonly cards: ReadonlyMap<string, readonly ContainerRef[]>;
   /** Every drawing of every band, by timeline ID and then facet, in drawing order. */
   readonly bands: ReadonlyMap<string, ReadonlyMap<Facet, readonly ContainerRef[]>>;
@@ -253,7 +264,9 @@ const BLOCK: ContainerRef = {
 
 /**
  * List every container of `manifest`, memoised by manifest identity, in
- * drawing order: per group in canonical order its frame, then per member in
+ * drawing order: the ancestor cards behind the frames (`memberDrawings`),
+ * each held by the block, keyed `{item: G, member: R}` and holding no band;
+ * then per group in canonical order its frame, then per member in
  * display order the member's card followed by the bands of the timelines the
  * card holds; then the same for every ungrouped root's card. A timeline that
  * several groups have as a member has a card in each of their frames, each
@@ -285,7 +298,7 @@ export function containersOf(manifest: Manifest): Containers {
   };
   const add = (ref: ContainerRef) => {
     all.push(ref);
-    if (ref.key !== null) byKey.set(placeKeyText(ref.key), ref);
+    if (ref.key !== null && holdingOf(ref) !== "ancestor") byKey.set(placeKeyText(ref.key), ref);
   };
   const bandsOf = (card: ContainerRef, timeline: TimelineManifest) => {
     let own = bands.get(timeline.id);
@@ -321,6 +334,19 @@ export function containersOf(manifest: Manifest): Containers {
     listIn(cards, timeline.id, ref);
     bandsOf(ref, timeline);
   };
+  const ancestorCards = drawn.ancestorCards.map(({ group, root }) => {
+    const ref: ContainerRef = {
+      kind: "card",
+      key: { item: group.id, member: root.timeline.id },
+      address: cardAddress(root.timeline.id),
+      holder: BLOCK,
+      timeline: root.timeline.id,
+      facet: null,
+    };
+    add(ref);
+    listIn(cards, root.timeline.id, ref);
+    return ref;
+  });
   for (const { group, members } of drawn.frames) {
     const frame: ContainerRef = {
       kind: "frame",
@@ -339,7 +365,15 @@ export function containersOf(manifest: Manifest): Containers {
   for (const member of drawn.ungrouped) {
     card(member.timeline, BLOCK, { item: member.timeline.id });
   }
-  const containers: Containers = { block: BLOCK, all, byKey, frames, cards, bands };
+  const containers: Containers = {
+    block: BLOCK,
+    all,
+    byKey,
+    ancestorCards,
+    frames,
+    cards,
+    bands,
+  };
   listed.set(manifest, containers);
   return containers;
 }
@@ -351,12 +385,14 @@ export function placedContainer(manifest: Manifest, key: PlaceKey): ContainerRef
 
 /**
  * How `ref` is held when it is a frame or a card: by a frame (a member's
- * card) or by the block (a frame, or an ungrouped root's card); `null` for
- * the block and a band, which have no place.
+ * card), by the block (a frame, or an ungrouped root's card), or by the block
+ * behind a frame (an ancestor card, the one block-held card keyed by a
+ * member); `null` for the block and a band, which have no place.
  */
 export function holdingOf(ref: ContainerRef): Holding | null {
   if (ref.kind !== "frame" && ref.kind !== "card") return null;
-  return ref.holder?.kind === "frame" ? "frame" : "block";
+  if (ref.holder?.kind === "frame") return "frame";
+  return ref.key?.member === undefined ? "block" : "ancestor";
 }
 
 /** The place members `ref` may state, as selected by its kind and holder. */
@@ -391,6 +427,15 @@ export function placedElement(manifest: Manifest, key: PlaceKey): string | undef
   const ref = placedContainer(manifest, key);
   if (ref === undefined) return undefined;
   return ref.kind === "card" ? (ref.timeline ?? undefined) : key.item;
+}
+
+/**
+ * The cards of the timeline `id` that have a place, in drawing order: its
+ * cards less its ancestor cards.
+ */
+export function placedCards(manifest: Manifest, id: string): readonly ContainerRef[] {
+  const cards = containersOf(manifest).cards.get(id) ?? [];
+  return cards.filter((ref) => holdingOf(ref) !== "ancestor");
 }
 
 /** Whether the timeline `id` is a group member: a frame holds a card of it. */

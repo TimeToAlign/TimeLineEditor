@@ -854,6 +854,23 @@ ancestor, has no card).
    of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
+10. **"Card behind its groups"** (`inspector-fields.test.ts`). Beside
+    Locked, a checkbox shows and hides the ancestor cards of a root that
+    contains a group member (drawing.md §8.8): offered when every inspected
+    thing is that one root, its card, its ancestor line or a part of
+    either; in `bundle_mixed` `recording` (the root of the member
+    `excerpt`), by `{id: recording}` and by `{id: recording, part:
+    [card]}`; never for `score`'s card, `excerpt`, `group_1`, the block, or
+    `recording` with `score`. Unchecked by default (the defaults hide every
+    ancestor card); a click sends exactly `{type: style, select: {element:
+    ancestor_card, addresses: [{id: recording, part: [card]}]}, set:
+    {display: inline}, blocks: [M]}`, one journal entry, after which the
+    box is checked and the drawing records `recording`'s ancestor card; a
+    second click sends the same with `display: null`, which removes the
+    rule, leaving the manifest's rules as they were. With the workspace's
+    `graphical` showing every ancestor card the box is checked and
+    disabled, titled "Shown by another style rule", and a click sends
+    nothing.
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's

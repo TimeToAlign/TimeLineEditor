@@ -17,8 +17,8 @@ import type { Json, JsonObject } from "../json.ts";
 import { isJsonObject } from "../json.ts";
 import type { ContainerRef, PlaceKey, Places } from "../manifest/containers.ts";
 import {
-  containersOf,
   keptPlace,
+  placedCards,
   placedContainer,
   placeEntries,
   placeKeyText,
@@ -172,13 +172,12 @@ function covered(manifest: Manifest, checked: boolean): Manifest | CommandError 
  * `places` itself when nothing changes.
  */
 function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifest): Places {
-  const { cards } = containersOf(manifest);
   const stated = placeEntries(places);
   const statedAt = new Set(stated.map(([key]) => placeKeyText(key)));
   const movedTo = (key: PlaceKey): ContainerRef | undefined => {
     const timeline = was === undefined ? null : (placedContainer(was, key)?.timeline ?? null);
     if (timeline === null) return undefined;
-    const [card, ...others] = cards.get(timeline) ?? [];
+    const [card, ...others] = placedCards(manifest, timeline);
     if (card === undefined || others.length > 0 || card.key === null) return undefined;
     return statedAt.has(placeKeyText(card.key)) ? undefined : card;
   };

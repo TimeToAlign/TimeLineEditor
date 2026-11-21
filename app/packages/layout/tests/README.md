@@ -100,9 +100,11 @@ gives `bare`'s block and card their fill, stroke, `rx` and shadow; in
 and their labels opacity 0.35, its name grey at size 9 and not faded. It
 hides exactly the regions and flow control bands of every timeline held by
 a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
-`a`, `b` and `c`, `timestamps`' `clt_2`) and no band of a member drawing's
-root, a member that is a child included: every markers band is shown, so
-every named timestamp stays visible.
+`a`, `b` and `c`, `timestamps`' `clt_2`, and `group_child_member`'s
+`second-half` as the child row it is in `piece`'s ancestor card) and no
+band of a member drawing's root, a member that is a child included: every
+markers band is shown, so every named timestamp stays visible. It hides
+every ancestor card (section 8.8).
 
 ## The cascade (`cascade.test.ts`)
 
@@ -802,6 +804,102 @@ records of the same drawing (the ancestor line's `y`, the member's line
   47.3046875}`, its maps band.
 
 ## Named timestamps (`timestamps.test.ts`)
+
+## Ancestor cards (`ancestor-cards.test.ts`)
+
+Section 8.8 is the oracle. Every number below is derived from its rules,
+the fixtures' offsets and lengths, `L = 400`, the constants `P = Q = K = G
+= 8`, the advance widths `w(text, s) = A × s / 2048` (section 5.1) and the
+layout's existing values, which the figures of the drawings without the
+layer pin (`group__group_parent_both` and the others, byte for byte); the
+layer `{rules: [{select: {element: ancestor_card}, set: {display:
+inline}}]}` shows the cards. The frame's start `s0` is section 8.2's: `n
+= Q + K = 16`, plus the widest drawn name `N`, plus `G`, plus `8w = 24`
+when an ancestor line runs on to the left. Each card's own start is `s0' =
+K + N' + G`, `N'` the widest name of the root's own drawing; its width
+`s0' + LA + Mr + K`, `Mr` the furthest a drawn right edge lies past `s0' +
+LA` (the root's arrowhead `3w = 9` with `w = 3`, or the half of a centred
+coordinate label at the root's end).
+
+1. **Hidden by default.** For every manifest fixture drawn with the
+   default layer, no element is an `ancestor_card` and no record carries
+   `ancestor`: the figures stay as they are.
+2. **`group_parent_both`** (`piece` 16 quarters, `middle` at 4, 8 long).
+   `N = w("Recording", 11) = 10371 × 11 / 2048 = 55.70361328125`, `piece`
+   runs on to the left, so `s0 = 16 + 55.70361328125 + 8 + 24 =
+   103.70361328125`, the frame at `x = P = 8`. `ts = −4`, `λ = 8`, `te =
+   −4 + 16 = 12`: `us = −0.5`, `ue = 1.5`, `xs = 103.70361328125 − 200 =
+   −96.29638671875`, `xe = 703.70361328125`, `LA = 800`. `N' = w("Middle",
+   11) = 6765 × 11 / 2048 = 36.33544921875` (wider than `Piece`'s
+   29.2724609375), `s0' = 52.33544921875`; the card's left in the frame
+   `xs − s0' = −148.6318359375`, place `−140.6318359375`; its width
+   `52.33544921875 + 800 + 9 + 8 = 869.33544921875`. The block grows left
+   to `Xl = −140.6318359375 − P`: origin `(148.6318359375, 0)`, `W =
+   P + (−140.6318359375 + 869.33544921875 + 2) + 148.6318359375 =
+   887.33544921875`, `H` unchanged (`190.13671875`): the card's bottom lies
+   above the frame's. Vertically the card is `piece` as the one ungrouped
+   root of a block holding nothing else: its height and the distance of
+   its line below its top are those of `piece` in the drawing of the same
+   manifest after core's `remove` of `group_1` and `recording` at `L =
+   800` (63.37890625 and 48.9765625); its line lies on `piece`'s ancestor
+   row in `middle`'s card, `y = 67.78125` in the block, so its top is
+   `67.78125 − 48.9765625 = 18.8046875`. In the block: the card's record
+   at `x = 8`, `y = 18.8046875`, `869.33544921875 × 63.37890625`, key
+   `{item: group_1, member: piece}`, address `{id: piece, part: [card]}`,
+   holder null, `ancestor {group: group_1, member: middle}`, no `item` or
+   `card` member; `piece`'s line from `−88.29638671875 + 148.6318359375 =
+   60.33544921875` to `860.33544921875` at `67.78125`; `middle`'s row from
+   `111.70361328125 + 148.6318359375 = 260.33544921875` to
+   `660.33544921875`. Its whole drawing is the reference block's (every
+   element of `piece`'s card there, its rectangle a `card`, here an
+   `ancestor_card`) moved by the difference of the two cards' corners,
+   exactly (every value is dyadic).
+3. **Nothing moves.** Every element after the ancestor cards, every record
+   but theirs, and every axis equal those of the drawing without the layer
+   moved by the change of the origin, `(148.6318359375, 0)`: the cards take
+   no room and add no axis. The order: the block's background, the
+   ancestor card's rectangle and its drawing (records' ranges 1 to 10),
+   then the frame.
+4. **`group_parent_right`** (`first-half` at 0, 8 long). `s0 = 16 +
+   55.70361328125 + 8 = 79.70361328125` (no line runs on to the left), `us
+   = 0`, `ue = 16 / 8 = 2`, `xs = s0`, `LA = 800`; `N' = w("First half",
+   11) = 8953 × 11 / 2048 = 48.08740234375`, `s0' = 64.08740234375`; left
+   `8 + 79.70361328125 − 64.08740234375 = 23.6162109375`, width
+   `64.08740234375 + 800 + 9 + 8 = 881.08740234375`; the origin stays `(0,
+   0)`, `W = 23.6162109375 + 881.08740234375 + 2 + 8 = 914.70361328125`,
+   `H = 190.13671875`; top `18.8046875` as in case 2 (same rows).
+5. **`group_parents_mixed`** (one frame, display order `exposition`,
+   `take`, `system`, `audio`): three cards, in that order, behind it.
+   `N = w("Exposition", 11) = 57.0302734375`, chevrons: `s0 =
+   105.0302734375`. `sonata` (`ts = −16`, `λ = 32`, `λR = 48`): `us =
+   −0.5`, `ue = 1`, `LA = 600`, `s0' = 8 + 57.0302734375 + 8 =
+   73.0302734375`, left `−94.9697265625 − 73.0302734375 = −168` (item),
+   `Mr` the half of `w("32 ♩", 9) = 18.55810546875`, width `73.0302734375
+   + 600 + 9.279052734375 + 8 = 690.309326171875`. `session` (seconds,
+   floats: `ts = −30.0`, `λ = 25.5`, `te = 60.0`): `us = −30 / 25.5`, `ue
+   = 60 / 25.5` in binary64, `xs = s0 + 400 × us = −365.5579618566177`,
+   `xe = 1046.2067440257354`, `LA = xe − xs = 1411.7647058823532`, `s0' = 8
+   + w("Session", 11) + 8 = 57.9697265625`, left `−423.5276884191177`,
+   width `57.9697265625 + LA + 9 + 8 = 1486.7344324448532`. `page` (int
+   pixels: `ts = 0`, `λ = 600`, `λR = 1754`): `ue = 1754 / 600` exactly
+   then rounded, `2.9233333333333333`, `LA = 1169.3333333333333`, `s0' = 8
+   + w("System", 11) + 8 = 57.01904296875`, left `105.0302734375 −
+   57.01904296875 = 48.01123046875`, width `1243.3523763020833`. The block
+   grows left to `session`'s card: origin `(423.5276884191177, 0)`; the
+   records at `x` 263.5276884191177, 8, 479.5389188878677 (each left `+ 8 +
+   423.5276884191177`), tops `18.8046875`, `110.7578125`, `206.2109375`
+   (each member's ancestor row, `67.78125`, `159.734375`, `255.1875`, less
+   48.9765625: every root has one child row with two labelled wedges);
+   `W = 479.5389188878677 + 1243.3523763020833 + 2 + 8 =
+   1732.891295189951`, `H` unchanged.
+6. **One hidden of several.** The same with `session`'s cards hidden by
+   `{addresses: [{id: session, part: [card]}]}` `display: none` in a
+   second layer: two cards, the block grown left to `sonata`'s only,
+   origin `(168, 0)`, nothing of `session` drawn but its ancestor line.
+7. **No ancestor line.** With the ancestor lines hidden (`{element:
+   ancestor}` `display: none`), `piece`'s card in `group_parent_both` lies
+   on `middle`'s own line instead: its line's ordinate equals `middle`'s.
+
 
 A named timestamp `X` of `graphical.timestamps` draws the elements its
 `display` lists (sections 2, 2.1, 6.4 Markers, 6.6): its wedge `{id: X}`

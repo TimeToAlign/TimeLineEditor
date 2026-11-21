@@ -12,6 +12,7 @@ import {
   sameAddress,
   TITLE_ADDRESS,
 } from "../src/manifest/address.ts";
+import { containersOf } from "../src/manifest/containers.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
 import type { Address, ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
@@ -251,7 +252,15 @@ describe("resolving an address", () => {
     ],
     [inA({ id: "score" }), ["timeline", "score", [{ item: "group_1", member: "score" }]]],
     [inA({ id: "excerpt" }), ["timeline", "excerpt", [{ item: "group_2", member: "excerpt" }]]],
-    [inA({ id: "recording" }), ["timeline", "recording", []]],
+    // `recording` holds the member `excerpt`: its one card is its ancestor card behind `group_2`.
+    [
+      inA({ id: "recording" }),
+      ["timeline", "recording", [{ item: "group_2", member: "recording" }]],
+    ],
+    [
+      inA({ id: "recording", part: ["card"] }),
+      ["card", "recording", [{ item: "group_2", member: "recording" }]],
+    ],
     [
       inA({ id: "score", part: ["card"] }),
       ["card", "score", [{ item: "group_1", member: "score" }]],
@@ -342,10 +351,6 @@ describe("resolving an address", () => {
     [
       inA({ id: "recording", facet: "regions" }),
       "the regions band of timeline 'Recording' in bundle 'Mixed'",
-    ],
-    [
-      inA({ id: "recording", part: ["card"] }),
-      "the card of timeline 'Recording' in bundle 'Mixed'",
     ],
     [
       inA({ id: "group_1", facet: "regions" }),
@@ -523,6 +528,7 @@ describe("free IDs", () => {
 function kindOf(key: ElementKey): ResolvedElement["kind"] {
   switch (key.type) {
     case "card":
+    case "ancestor_card":
       return "card";
     case "band":
       return "band";
@@ -555,7 +561,14 @@ describe("every drawn element", () => {
       const manifest = loadText(text);
       const drawn = manifestElements(manifest).filter((key) => key.type !== "block");
       const found = drawn.map((key) => [key.address, resolveElement(manifest, key.address)?.kind]);
-      expect(found).toEqual(drawn.map((key) => [key.address, kindOf(key)]));
+      // A band of a timeline drawn in no card but an ancestor card has no container: it names
+      // nothing, though its elements are listed and styled.
+      const { bands } = containersOf(manifest);
+      const kind = (key: ElementKey) =>
+        key.type === "band" && key.timeline !== null && !bands.has(key.timeline)
+          ? undefined
+          : kindOf(key);
+      expect(found).toEqual(drawn.map((key) => [key.address, kind(key)]));
       expect(resolveElement(manifest, BUNDLE_ADDRESS)).toBeUndefined();
     },
   );

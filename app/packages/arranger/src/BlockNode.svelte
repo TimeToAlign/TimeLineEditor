@@ -27,6 +27,7 @@ import {
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
 import { affordancesOf } from "./coordinates.ts";
+import { raisedEntries } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
@@ -118,7 +119,13 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
   });
 }
 
-const entries = $derived(keyed(data.block.manifest, data.drawing, data.descriptors));
+/**
+ * The entries in the order the block shows them: the drawing's (`drawnEntries`, keyed once per
+ * drawing), with a root's ancestor cards
+ * raised over the frames while one of its timelines lying in no group is edited (`raisedEntries`).
+ */
+const drawnEntries = $derived(keyed(data.block.manifest, data.drawing, data.descriptors));
+const entries = $derived(raisedEntries(drawnEntries, data.block, data.drawing, data.editing));
 
 /**
  * The entries a mark copies: each frame's and card's own rectangle by its

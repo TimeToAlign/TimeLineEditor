@@ -392,6 +392,77 @@ describe("the Properties panel", () => {
     expect(locked()).toBe(null);
   });
 
+  function ancestorCard(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>(
+      '[data-testid="ancestor-card"] input[type=checkbox]',
+    );
+  }
+
+  /** The ancestor cards of `recording` the store's block draws. */
+  const recordingCards = (store: Store) =>
+    drawingOf(blockOf(store), store.view.graphical, fontMetrics).boxes.filter(
+      (box) => box.ancestor !== undefined && box.address.id === "recording",
+    ).length;
+
+  it.each<[ElementAddress[]]>([[[{ id: "recording" }]], [[{ id: "recording", part: ["card"] }]]])(
+    "shows and hides recording's ancestor cards for %j",
+    (elements) => {
+      const store = storeOf();
+      const rules = blockOf(store).manifest.graphical?.rules;
+      show(store, elements);
+      const box = ancestorCard();
+      expect([box?.checked, box?.disabled]).toEqual([false, false]);
+      const before = store.journal.length;
+      const command = {
+        type: "style",
+        select: { element: "ancestor_card", addresses: [{ id: "recording", part: ["card"] }] },
+        set: { display: "inline" },
+        blocks: [M],
+      };
+      box?.click();
+      flushSync();
+      expect(store.journal.length).toBe(before + 1);
+      expect(lastCommand(store)).toEqual(command);
+      expect(ancestorCard()?.checked).toBe(true);
+      expect(recordingCards(store)).toBe(1);
+      ancestorCard()?.click();
+      flushSync();
+      expect(lastCommand(store)).toEqual({ ...command, set: { display: null } });
+      expect(ancestorCard()?.checked).toBe(false);
+      expect(recordingCards(store)).toBe(0);
+      expect(blockOf(store).manifest.graphical?.rules).toEqual(rules);
+    },
+  );
+
+  it.each<[ElementAddress[]]>([
+    [[{ id: "score", part: ["card"] }]],
+    [[{ id: "excerpt" }]],
+    [[{ id: "group_1" }]],
+    [[{}]],
+    [[{ id: "recording" }, { id: "score" }]],
+  ])("offers no card behind the groups for %j", (elements) => {
+    show(storeOf(), elements);
+    expect(ancestorCard()).toBe(null);
+  });
+
+  it("disables the box when another rule shows the card", () => {
+    const store = storeOf();
+    const shown = { rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }] };
+    const refusal = store.dispatch({
+      type: "set",
+      changes: [{ target: {}, values: { graphical: shown } }],
+    });
+    if (refusal !== null) throw new Error(refusal.message);
+    show(store, [{ id: "recording" }]);
+    const box = ancestorCard();
+    expect([box?.checked, box?.disabled]).toEqual([true, true]);
+    expect(box?.closest("label")?.title).toBe("Shown by another style rule");
+    const before = store.journal.length;
+    box?.click();
+    flushSync();
+    expect(store.journal.length).toBe(before);
+  });
+
   /** The notice a size below `minimum` gives. */
   const below = (property: string, minimum: number) =>
     `To decrease the ${property} below ${shownValue(minimum)} px, decrease the size of the contained elements first.`;

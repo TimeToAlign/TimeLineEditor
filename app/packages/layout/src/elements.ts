@@ -59,9 +59,9 @@ export interface BlockElement {
   readonly height: number;
 }
 
-/** A group's frame or a timeline's card: a rounded rectangle (section 8). */
+/** A group's frame, a timeline's card or a root's ancestor card: a rounded rectangle (section 8). */
 export interface RectElement extends Addressed {
-  readonly type: "frame" | "card";
+  readonly type: "frame" | "card" | "ancestor_card";
   readonly x: number;
   readonly y: number;
   readonly width: number;

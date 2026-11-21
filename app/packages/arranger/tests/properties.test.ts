@@ -9,6 +9,7 @@ import {
   manifestIds,
   placeAt,
   placeKeyText,
+  resolveElement,
   samePlaceKey,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
@@ -528,9 +529,12 @@ describe("affectedBy", () => {
         (fixture, picks) => {
           const view = fixture === "numbers" ? numbersView() : initial([{ fixture, x: 0, y: 0 }]);
           const manifest = blockIn(view, A).manifest;
-          // Every element address but the block's own, which no element selection holds.
+          // Every element address but the block's own, which no element selection holds, and but
+          // the bands of a timeline drawn in no card but an ancestor card, which name nothing.
           const elements = manifestElements(manifest).flatMap((key) =>
-            key.type === "block" ? [] : [key.address],
+            key.type === "block" || resolveElement(manifest, key.address) === undefined
+              ? []
+              : [key.address],
           );
           const local = new Map<string, ElementAddress>();
           for (const pick of picks) {

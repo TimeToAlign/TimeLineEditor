@@ -211,6 +211,7 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       return { left: 0, top: 0, right: element.width, bottom: element.height };
     case "frame":
     case "card":
+    case "ancestor_card":
       return {
         left: element.x,
         top: element.y,
@@ -283,7 +284,12 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
  * none for the block, a frame or a card, which hold content and are none.
  */
 export function rightEdge(element: DrawnElement, measure: TextMeasure): number | undefined {
-  if (element.type === "block" || element.type === "frame" || element.type === "card") {
+  if (
+    element.type === "block" ||
+    element.type === "frame" ||
+    element.type === "card" ||
+    element.type === "ancestor_card"
+  ) {
     return undefined;
   }
   return boundsOf(element, measure).right;

@@ -10,7 +10,7 @@ import {
   sameAddress,
 } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
-import type { Hit } from "./boxes.ts";
+import { type Hit, isAncestorCard } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 
@@ -48,12 +48,16 @@ export function editorTargetOf(view: View, hit: Hit, editing: Editing | null): A
  * The element `hit` in the drawing of `manifest` opens: its group's or
  * timeline's ID, `null` for the block itself, `undefined` for nothing. A
  * frame stands for its group and a card for its timeline (core's
- * `placedElement` of its place key); a line, addressed by its timeline's ID
+ * `placedElement` of its place key; an ancestor card, which has no place,
+ * for the root its address names); a line, addressed by its timeline's ID
  * alone, for its timeline.
  */
 function openedBy(hit: Hit, manifest: Manifest): string | null | undefined {
-  const standsFor = (box: DrawnBox | null) =>
-    box?.key == null ? undefined : placedElement(manifest, box.key);
+  const standsFor = (box: DrawnBox | null) => {
+    if (box === null) return undefined;
+    if (isAncestorCard(box)) return box.address.id;
+    return box.key === null ? undefined : placedElement(manifest, box.key);
+  };
   switch (hit.kind) {
     case "block":
       return null;

@@ -44,6 +44,7 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
       return { x: 0, y: 0, width: element.width, height: element.height };
     case "frame":
     case "card":
+    case "ancestor_card":
       return { x: element.x, y: element.y, width: element.width, height: element.height };
     case "timeline":
     case "child":

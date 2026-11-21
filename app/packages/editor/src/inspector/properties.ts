@@ -46,11 +46,15 @@ import type {
   PlaceKey,
   ResolvedAddress,
   SetCommand,
+  StyleCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
   bandAddress,
+  canonicalText,
+  containersOf,
+  holdingOf,
   idAddress,
   inBlock,
   isCommandError,
@@ -60,6 +64,8 @@ import {
   WORKSPACE,
   withPlaceAt,
 } from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
+import type { Selector } from "@timetoalign/timetoshare";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
@@ -625,4 +631,73 @@ export function lockOf(subjects: readonly Subject[]): LockShown | null {
   if (values.size === 0) return null;
   const mixed = values.size > 1;
   return { checked: !mixed && values.has(true), mixed };
+}
+
+/** What the "Card behind its groups" checkbox shows for the inspected root. */
+export interface AncestorCardShown {
+  /** The root whose ancestor cards it shows or hides. */
+  readonly root: string;
+  /** The drawing shows an ancestor card of the root. */
+  readonly checked: boolean;
+  /**
+   * The card is shown by a rule other than the root's own (a workspace rule, a broader manifest
+   * rule): the checkbox cannot hide it and is disabled.
+   */
+  readonly ruled: boolean;
+}
+
+/** The selector of the root `root`'s own rule: its ancestor cards (drawing.md section 8.8). */
+function ancestorCardSelector(root: string): Selector {
+  return { element: "ancestor_card", addresses: [{ id: root, part: ["card"] }] };
+}
+
+/**
+ * The "Card behind its groups" checkbox of the inspected subjects, all in
+ * `block`, drawn as `drawing`: offered when every subject is one root that
+ * contains a group member (the root, its card, its ancestor line, or a part
+ * of either), checked when the drawing shows an ancestor card of it, and
+ * ruled when it is shown but the manifest holds no rule of the root's own
+ * selector (`{element: ancestor_card, addresses: [{id: R, part: [card]}]}`)
+ * displaying it; `null` otherwise.
+ */
+export function ancestorCardOf(
+  block: Block,
+  subjects: readonly Subject[],
+  drawing: Drawing,
+): AncestorCardShown | null {
+  const roots = new Set<string>();
+  for (const subject of subjects) {
+    const timeline = subject.block === block.id ? timelineOf(subject.resolved) : null;
+    if (timeline === null) return null;
+    roots.add(timeline.id);
+  }
+  const [root, ...others] = roots;
+  if (root === undefined || others.length > 0) return null;
+  const cards = containersOf(block.manifest).cards.get(root) ?? [];
+  if (!cards.some((card) => holdingOf(card) === "ancestor")) return null;
+  const checked = drawing.boxes.some(
+    (box) => box.ancestor !== undefined && box.address.id === root,
+  );
+  const key = canonicalText(ancestorCardSelector(root));
+  const graphical = block.manifest.graphical;
+  const own = (graphical?.rules ?? []).some((rule) => {
+    if (canonicalText(rule.select) !== key) return false;
+    const set = typeof rule.set === "string" ? graphical?.styles?.[rule.set] : rule.set;
+    return set?.display === "inline";
+  });
+  return { root, checked, ruled: checked && !own };
+}
+
+/**
+ * The `style` command the checkbox sends for `root` in `block`: on, a rule of the root's own
+ * selector displaying its ancestor cards; off, that rule's `display` removed (and the rule with
+ * it when it sets nothing else).
+ */
+export function ancestorCardCommand(block: Block, root: string, on: boolean): StyleCommand {
+  return {
+    type: "style",
+    select: ancestorCardSelector(root),
+    set: { display: on ? "inline" : null },
+    blocks: [block.id],
+  };
 }

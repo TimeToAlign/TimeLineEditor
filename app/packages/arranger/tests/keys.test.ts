@@ -115,6 +115,26 @@ describe("Delete inside an editor", () => {
     expect(findTimeline(manifest, "excerpt")?.children).toEqual([]);
   });
 
+  it("leaves an ancestor card alone, and removes the rest of the selection", () => {
+    // `recording` holds the member `excerpt`: its one card is its ancestor card behind `group_2`.
+    const card = inBlock(A, cardAddress("recording"));
+    const store = storeIn(null);
+    const view = store.view;
+    expect(deleteIn(store, card)).toEqual({
+      refused: [],
+      dispatched: [],
+      selection: selectionOf([card]),
+    });
+    expect(store.view).toBe(view);
+    const dlt = inBlock(A, idAddress("dlt_1"));
+    expect(deleteIn(store, card, dlt)).toEqual({
+      refused: [],
+      dispatched: [{ type: "remove", targets: [dlt] }],
+      selection: NOTHING_SELECTED,
+    });
+    expect(findTimeline(blockIn(store.view, A).manifest, "recording")).toBeDefined();
+  });
+
   it("removes the block on the arranger", () => {
     const store = storeIn(null);
     const pressed = deleteIn(store, { block: A });

@@ -5,7 +5,9 @@
  * editor), then, for a selection in one block, the read-only rows
  * of one band, or the form of the selected containers' geometry, or the
  * hint that the selection has none; the stored lock of the inspected
- * timelines stands right of the container size, read-only. Typed text is
+ * timelines stands right of the container size, read-only, and beside it,
+ * for a root that contains a group member, "Card behind its groups", which
+ * shows or hides the root's ancestor cards by one `style` command. Typed text is
  * the inspector's `PropertyDrafts`; a commit or a step is one `set`. Below,
  * the group memberships of the selected timelines or group, and the New
  * group button (`groups.ts`), each click one command.
@@ -25,7 +27,16 @@ import type { Attachment } from "svelte/attachments";
 import { informOf } from "../messages.svelte.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
-import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
+import {
+  ancestorCardCommand,
+  ancestorCardOf,
+  bandRows,
+  fieldLabel,
+  geometryOf,
+  isSize,
+  lockOf,
+  nameOf,
+} from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
 let {
@@ -86,6 +97,23 @@ const band = $derived(shown === null ? null : bandRows(subjects, shown));
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
 
+/** The "Card behind its groups" checkbox of the inspected root; `null` unless it is offered. */
+const ancestorCard = $derived(
+  block === null || shown === null ? null : ancestorCardOf(block, subjects, shown.drawing),
+);
+
+/** The store's refusal of the last ancestor-card command, shown until the next one. */
+let ancestorCardProblem = $state<string | null>(null);
+
+/** Show or hide the inspected root's ancestor cards. */
+function toggleAncestorCard(input: HTMLInputElement, on: boolean): void {
+  if (block === null || ancestorCard === null) return;
+  // The box shows what the drawing shows until the store has taken the command.
+  input.checked = ancestorCard.checked;
+  ancestorCardProblem =
+    store.dispatch(ancestorCardCommand(block, ancestorCard.root, on))?.message ?? null;
+}
+
 /** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
 const memberships = $derived(
   block === null ? null : (groupsOf(view, subjects, editing) ?? membersOf(view, subjects, editing)),
@@ -123,6 +151,11 @@ const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.prop
 
 /** What the Locked checkbox's tooltip says. */
 const LOCK_TITLE = "Whether the timeline's length is fixed";
+
+/** What the "Card behind its groups" checkbox's tooltip says, enabled and disabled. */
+const ANCESTOR_CARD_TITLE =
+  "Whether the timeline is drawn whole behind the frames of its members' groups";
+const ANCESTOR_CARD_RULED = "Shown by another style rule";
 
 /** What the tab shows for a selection without one role of geometry. */
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
@@ -238,6 +271,27 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       Locked
     </label>
   {/if}
+  {#if ancestorCard !== null}
+    {@const card = ancestorCard}
+    <label
+      class="ancestor-card"
+      title={card.ruled ? ANCESTOR_CARD_RULED : ANCESTOR_CARD_TITLE}
+      data-testid="ancestor-card"
+    >
+      <input
+        type="checkbox"
+        name="ancestor-card"
+        checked={card.checked}
+        disabled={card.ruled}
+        aria-describedby={ancestorCardProblem === null ? undefined : `${uid}-problem-ancestor-card`}
+        onchange={(event) => toggleAncestorCard(event.currentTarget, event.currentTarget.checked)}
+      />
+      Card behind its groups
+    </label>
+    {#if ancestorCardProblem !== null}
+      <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
+    {/if}
+  {/if}
 {/snippet}
 
 {#snippet placeField(field: PlaceField, edited: Geometry)}
@@ -350,7 +404,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     gap: 0.25rem 0.5rem;
   }
 
-  .properties label:not(.locked),
+  .properties label:not(.locked, .ancestor-card),
   dl.properties > div {
     display: flex;
     flex-direction: column;
@@ -383,10 +437,13 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     color: #b00020;
   }
 
-  /* The container's width and height side by side, the Locked checkbox to their right. */
+  /*
+   * The container's width and height side by side, the Locked checkbox and a root's "Card behind
+   * its groups" to their right.
+   */
   .properties .size {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr auto auto;
     gap: 0.25rem 0.5rem;
     align-items: end;
   }
@@ -415,6 +472,18 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     flex-direction: row;
     align-items: center;
     gap: 0.25rem;
+    color: #595959;
+    cursor: not-allowed;
+  }
+
+  .ancestor-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .ancestor-card:has(input:disabled) {
     color: #595959;
     cursor: not-allowed;
   }
