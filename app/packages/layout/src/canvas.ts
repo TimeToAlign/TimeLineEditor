@@ -6,7 +6,8 @@
 
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import type { DrawnElement, Point, WedgeCorner } from "./elements.ts";
+import type { DrawnElement, Point } from "./elements.ts";
+import type { WedgeCorner } from "./rotation.ts";
 
 /** A style at the scale `scale`: each of its lengths multiplied by it (section 8.6). */
 export function scaledStyle(style: Style, scale: number): Style {

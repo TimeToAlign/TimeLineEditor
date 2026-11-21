@@ -8,6 +8,15 @@
 import { MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 
 /**
+ * A corner of a wedge's base: `dx` across from its tip's abscissa, a length,
+ * and `y` its ordinate.
+ */
+export interface WedgeCorner {
+  readonly dx: number;
+  readonly y: number;
+}
+
+/**
  * The sines of 0 to 90 degrees, each rounded to four decimal places and
  * read as a double. No sine of a whole number of degrees lies within 1e-9
  * of a halfway point between two such decimals, so the rounding has no tie
