@@ -1,14 +1,40 @@
 /**
- * Autosave of workspace snapshots to IndexedDB: one object store, one slot
- * per workspace key. A snapshot is the workspace's text, stored and returned
- * exactly as given (normally what `writeWorkspace` returns; this module never
- * parses or builds it), and the name of the file it belongs to. A caller may
- * pass a function giving the snapshot instead, so the text is written out
- * only when it is due, not on every change.
+ * What the editor keeps in IndexedDB. The autosave of workspace snapshots:
+ * one object store, one slot per workspace key. A snapshot is the
+ * workspace's text, stored and returned exactly as given (normally what
+ * `writeWorkspace` returns; this module never parses or builds it), the
+ * name of the file it belongs to and, where the browser can store it, the
+ * handle of that file, so a restored workspace is saved back into it. A
+ * caller may pass a function giving the snapshot instead, so the text is
+ * written out only when it is due, not on every change. And the folders
+ * blocks' manifests were chosen in, by block, so the files a manifest
+ * names are read from there again after the workspace is reopened.
  */
-const DATABASE = "tilie-autosave";
-const VERSION = 1;
-const STORE = "workspaces";
+
+import type { FolderMemory } from "./matchClaims.svelte.ts";
+
+/** One object store of its own database, and how its failures name a key. */
+interface Kept {
+  readonly database: string;
+  readonly version: number;
+  readonly store: string;
+  /** What a failure says failed for a key, before the key. */
+  readonly subject: string;
+}
+
+const WORKSPACES: Kept = {
+  database: "tilie-autosave",
+  version: 1,
+  store: "workspaces",
+  subject: "autosave of workspace",
+};
+
+const FOLDERS: Kept = {
+  database: "tilie-folders",
+  version: 1,
+  store: "folders",
+  subject: "the folder of block",
+};
 
 export type AutosaveErrorCode = "indexeddb_unavailable" | "indexeddb_failed";
 
@@ -37,10 +63,11 @@ export interface AutosaveOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-/** What a slot holds: a workspace's text and the name of its file. */
+/** What a slot holds: a workspace's text, the name of its file and, where kept, its file's handle. */
 export interface Snapshot {
   readonly text: string;
   readonly name: string;
+  readonly handle?: FileSystemFileHandle;
 }
 
 /** A snapshot, or a function giving it when the write is due. */
@@ -116,25 +143,76 @@ export function createAutosave({ key, delayMs, onError }: AutosaveOptions): Auto
   };
 }
 
+/** Whether `value` is a handle of `kind`, as a browser stores and gives one back. */
+function isHandle(value: unknown, kind: FileSystemHandleKind): boolean {
+  return typeof value === "object" && value !== null && (value as { kind?: unknown }).kind === kind;
+}
+
 /** The snapshot last written under `key`, or `null` when the slot holds none. */
 export async function recoverWorkspace(key: string): Promise<Snapshot | null> {
-  const value: unknown = await inStore(key, "readonly", (store) => store.get(key));
+  const value: unknown = await inStore(WORKSPACES, key, "readonly", (store) => store.get(key));
   if (typeof value !== "object" || value === null) return null;
-  const { text, name } = value as Record<string, unknown>;
-  return typeof text === "string" && typeof name === "string" ? { text, name } : null;
+  const { text, name, handle } = value as Record<string, unknown>;
+  if (typeof text !== "string" || typeof name !== "string") return null;
+  return isHandle(handle, "file")
+    ? { text, name, handle: handle as FileSystemFileHandle }
+    : { text, name };
 }
 
 /** Remove the slot of `key`. */
 export async function clear(key: string): Promise<void> {
-  await inStore(key, "readwrite", (store) => store.delete(key));
+  await inStore(WORKSPACES, key, "readwrite", (store) => store.delete(key));
 }
 
-async function putSnapshot(key: string, { text, name }: Snapshot): Promise<void> {
-  await inStore(key, "readwrite", (store) => store.put({ text, name }, key));
+/** Whether `error` is IndexedDB refusing to store a value (a handle a browser cannot keep). */
+function notStorable(error: unknown): boolean {
+  const { cause } = error instanceof AutosaveError ? error : { cause: undefined };
+  return cause instanceof Error && cause.name === "DataCloneError";
 }
 
-/** Run one request in its own transaction and resolve once the transaction completes. */
+/** Write `snapshot` under `key`; a handle the browser cannot store is left out. */
+async function putSnapshot(key: string, { text, name, handle }: Snapshot): Promise<void> {
+  const put = (value: object) =>
+    inStore(WORKSPACES, key, "readwrite", (store) => store.put(value, key));
+  if (handle === undefined) {
+    await put({ text, name });
+    return;
+  }
+  try {
+    await put({ text, name, handle });
+  } catch (error) {
+    if (!notStorable(error)) throw error;
+    await put({ text, name });
+  }
+}
+
+/** The folder block `block`'s manifest was last chosen in; `null` when none is kept. */
+export async function rememberedFolder(block: string): Promise<FileSystemDirectoryHandle | null> {
+  const value: unknown = await inStore(FOLDERS, block, "readonly", (store) => store.get(block));
+  return isHandle(value, "directory") ? (value as FileSystemDirectoryHandle) : null;
+}
+
+/** Keep `folder` as the folder of block `block`'s manifest, replacing any kept. */
+export async function rememberFolder(
+  block: string,
+  folder: FileSystemDirectoryHandle,
+): Promise<void> {
+  await inStore(FOLDERS, block, "readwrite", (store) => store.put(folder, block));
+}
+
+/**
+ * The folders of blocks' manifests kept in this browser, as the MatchClaim
+ * tables use them: kept where the browser can (a failure, a handle it
+ * cannot store, keeps nothing), none recalled where it cannot.
+ */
+export const KEPT_FOLDERS: FolderMemory = {
+  recall: (block) => rememberedFolder(block).catch(() => null),
+  remember: (block, folder) => rememberFolder(block, folder).catch(() => undefined),
+};
+
+/** Run one request in its own transaction of `kept` and resolve once the transaction completes. */
 async function inStore<T>(
+  kept: Kept,
   key: string,
   mode: IDBTransactionMode,
   request: (store: IDBObjectStore) => IDBRequest<T>,
@@ -144,16 +222,16 @@ async function inStore<T>(
     throw new AutosaveError(
       "indexeddb_unavailable",
       key,
-      `autosave of workspace "${key}" failed: IndexedDB is not available`,
+      `${kept.subject} "${key}" failed: IndexedDB is not available`,
     );
   }
   let database: IDBDatabase | undefined;
   try {
-    database = await open(factory);
+    database = await open(factory, kept);
     const opened = database;
     return await new Promise<T>((resolve, reject) => {
-      const transaction = opened.transaction(STORE, mode);
-      const pendingRequest = request(transaction.objectStore(STORE));
+      const transaction = opened.transaction(kept.store, mode);
+      const pendingRequest = request(transaction.objectStore(kept.store));
       transaction.oncomplete = () => resolve(pendingRequest.result);
       transaction.onerror = () => reject(pendingRequest.error ?? transaction.error);
       transaction.onabort = () => reject(transaction.error);
@@ -162,7 +240,7 @@ async function inStore<T>(
     throw new AutosaveError(
       "indexeddb_failed",
       key,
-      `autosave of workspace "${key}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      `${kept.subject} "${key}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
       cause,
     );
   } finally {
@@ -170,11 +248,11 @@ async function inStore<T>(
   }
 }
 
-function open(factory: IDBFactory): Promise<IDBDatabase> {
+function open(factory: IDBFactory, kept: Kept): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = factory.open(DATABASE, VERSION);
+    const request = factory.open(kept.database, kept.version);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE);
+      request.result.createObjectStore(kept.store);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

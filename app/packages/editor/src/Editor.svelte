@@ -22,6 +22,7 @@ import { onMount, tick, untrack } from "svelte";
 import { on } from "svelte/events";
 import AboutDialog from "./AboutDialog.svelte";
 import { NOTICES_FILE } from "./attributions.ts";
+import { KEPT_FOLDERS } from "./autosave.ts";
 import type { Autosaving } from "./autosaving.ts";
 import { startAutosave } from "./autosaving.ts";
 import ConfirmDialog from "./ConfirmDialog.svelte";
@@ -29,12 +30,14 @@ import type { Example } from "./examples.ts";
 import { EXAMPLES } from "./examples.ts";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
+import type { Opened } from "./files.ts";
 import {
+  canChooseFolders,
   isMatchClaimTable,
+  isWorkspaceFile,
+  OPENABLE_FILE,
   openFiles,
   UNTITLED,
-  WORKSPACE_FILE,
-  withMatchClaimTable,
 } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
@@ -148,6 +151,8 @@ const session = new WorkspaceSession({
   inform: (text) => messages.inform(text),
   matchClaims: untrack(() => (server === null ? null : connect(server))),
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
+  // The folders of blocks' manifests are kept only where the host lets the editor keep anything.
+  folders: untrack(() => (storage === null ? null : KEPT_FOLDERS)),
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -251,20 +256,58 @@ async function openExample(example: Example): Promise<void> {
   }
 }
 
-/** Open a workspace file the viewer picks, with the MatchClaim tables picked beside it. */
+/**
+ * Open the files the viewer picks: a workspace file replaces the open
+ * workspace (`openWorkspace`), manifest files are imported (`openManifests`),
+ * each with the MatchClaim tables picked beside it.
+ */
 async function openFromFile(): Promise<void> {
-  if (!(await mayReplace())) return;
   try {
-    const picked = await openFiles(withMatchClaimTable(WORKSPACE_FILE), true);
+    const picked = await openFiles(OPENABLE_FILE, true);
     if (picked.length === 0) return;
-    const refusal = await session.openPicked(picked);
-    if (refusal !== null) {
-      const name = picked.find((opened) => !isMatchClaimTable(opened.name))?.name ?? "The file";
-      warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
-    }
+    if (picked.some(({ name }) => isWorkspaceFile(name))) await openWorkspace(picked);
+    else if (picked.some(({ name }) => !isMatchClaimTable(name))) await openManifests(picked);
+    else warn("No workspace or manifest was picked: a MatchClaim table opens with one of them.");
   } catch (error) {
     warn(`The file could not be opened: ${messageOf(error)}`);
   }
+}
+
+/** Replace the open workspace (`mayReplace`) by the workspace file among `picked`. */
+async function openWorkspace(picked: readonly Opened[]): Promise<void> {
+  if (!(await mayReplace())) return;
+  const refusal = await session.openPicked(picked);
+  if (refusal !== null) {
+    const name = picked.find((opened) => isWorkspaceFile(opened.name))?.name ?? "The file";
+    warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+  }
+}
+
+/**
+ * Import the manifest files among `picked`, as Import manifest… does: into
+ * an empty workspace at once; otherwise the viewer is asked whether to add
+ * them to the open workspace or to open them in a new, empty one, before
+ * which the open workspace, if unsaved, is saved (the save dialog, then
+ * each changed MatchClaim table's); a save not made keeps it open and
+ * imports nothing.
+ */
+async function openManifests(picked: readonly Opened[]): Promise<void> {
+  if (canvas === undefined) return;
+  if (Object.keys(session.store.view.blocks).length > 0) {
+    const names = picked.filter(({ name }) => !isMatchClaimTable(name)).map(({ name }) => name);
+    const them = names.length === 1 ? "it" : "them";
+    const answer = await confirm?.ask(
+      `Add ${names.join(", ")} to the open workspace, or open ${them} in a new, empty workspace?`,
+      ["Add", "New workspace", "Cancel"],
+      "Add",
+    );
+    if (answer !== "Add" && answer !== "New workspace") return;
+    if (answer === "New workspace") {
+      if (session.unsaved() !== null && !(await session.saveUnsaved())) return;
+      session.replace(emptyWorkspace(), UNTITLED, null, true);
+    }
+  }
+  await session.importPicked(picked, canvas, fontMetrics);
 }
 
 // --- Shortcuts --------------------------------------------------------------
@@ -380,6 +423,16 @@ const fileItems: readonly MenuItem[] = $derived([
       if (canvas !== undefined) void session.importManifest(canvas, fontMetrics);
     },
   },
+  ...(canChooseFolders()
+    ? [
+        {
+          label: "Import manifest from folder…",
+          run: () => {
+            if (canvas !== undefined) void session.importFolder(canvas, fontMetrics);
+          },
+        },
+      ]
+    : []),
   {
     label: "Export manifest…",
     disabled: session.exportable === null,
@@ -533,7 +586,6 @@ if (withTestHook) {
     cancel: () => session.store.cancel(),
     bands: (block) => bandsOf(session.store.view, block),
     boxes: (block) => boxesOf(session.store.view, block),
-    loadTables: () => session.loadNamedTables(),
   };
   $effect(() => installTestHook(hook));
 }
@@ -576,6 +628,9 @@ if (withTestHook) {
         {matchesStatus}
         {pinnedMatchStamp}
         onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
+        onmatches={(shown) => {
+          if (shown) void session.loadNamedTables();
+        }}
       />
       <MessageBar messages={messages.shown} ondismiss={(id) => messages.dismiss(id)} />
     </div>

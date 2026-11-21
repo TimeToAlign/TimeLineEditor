@@ -4,9 +4,9 @@
  * tables are served beside it, loads both without a question; the same
  * manifest imported from the user's system (where nothing beside it can be
  * reached) asks for them in the tables dialog, which takes a file chosen on
- * the system or a URL, or is cancelled. The server's table route is
- * replayed from the client's recording; loading is started through the
- * hook's `loadTables`, what turning Show matches on asks.
+ * the system, a URL or the manifest's folder, or is cancelled. The
+ * server's table route is replayed from the client's recording; loading is
+ * started by turning Show matches on, by its key or its toolbar button.
  */
 
 import { readFileSync } from "node:fs";
@@ -14,7 +14,7 @@ import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, select, tabs, withoutPickers } from "./support.ts";
+import { arranger, chooseItem, select, tabs, withoutPickers } from "./support.ts";
 
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
@@ -54,6 +54,17 @@ async function tableStatus(page: Page, block: string) {
   return page.getByTestId("matchclaims-status");
 }
 
+/** Turn Show matches on with its key, the arranger focused. */
+async function pressM(page: Page): Promise<void> {
+  await arranger(page).focus();
+  await page.keyboard.press("m");
+}
+
+/** Turn Show matches on with its toolbar button. */
+async function showMatches(page: Page): Promise<void> {
+  await page.getByTestId("matches").click();
+}
+
 /** Import the table fixture's manifest alone through "Import manifest…"; its block. */
 async function importManifest(page: Page): Promise<string> {
   const chooser = page.waitForEvent("filechooser");
@@ -73,9 +84,9 @@ test("a fixture whose tables are served beside it loads them without a question"
   await page.getByTestId("fixture-open").click();
   await expect.poll(() => blocks(page)).toHaveLength(1);
   const [block] = await blocks(page);
-  await page.evaluate(() => window.__tilie.loadTables());
+  await pressM(page);
+  await expect.poll(() => seen.requests).toBe(1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  expect(seen.requests).toBe(1);
   await expect(await tableStatus(page, block ?? "")).toHaveText(
     `match_claims.parquet: ${ROWS} MatchClaims`,
   );
@@ -84,7 +95,7 @@ test("a fixture whose tables are served beside it loads them without a question"
 test("a manifest from the user's system asks for its tables, a file each", async ({ page }) => {
   const seen = await openPage(page);
   const block = await importManifest(page);
-  const loading = page.evaluate(() => window.__tilie.loadTables());
+  await showMatches(page);
   const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
   await expect(dialog).toBeVisible();
   const load = dialog.getByRole("button", { name: "Load" });
@@ -106,9 +117,8 @@ test("a manifest from the user's system asks for its tables, a file each", async
     await expect(groups.nth(at)).toContainText(name as string);
   }
   await load.click();
-  await loading;
   await expect(dialog).toBeHidden();
-  expect(seen.requests).toBe(1);
+  await expect.poll(() => seen.requests).toBe(1);
   await expect(await tableStatus(page, block)).toHaveText(
     `match_claims.parquet: ${ROWS} MatchClaims`,
   );
@@ -127,13 +137,12 @@ test("a table is read from the URL the user enters", async ({ page }) => {
     });
   });
   const block = await importManifest(page);
-  const loading = page.evaluate(() => window.__tilie.loadTables());
+  await showMatches(page);
   const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
   await dialog.getByRole("textbox", { name: "URL of the MatchClaim table" }).fill(URL_OF_TABLE);
   await dialog.getByRole("button", { name: "Load" }).click();
-  await loading;
+  await expect.poll(() => seen.requests).toBe(1);
   expect(fetched).toEqual([URL_OF_TABLE]);
-  expect(seen.requests).toBe(1);
   await expect(await tableStatus(page, block)).toHaveText(
     `match_claims.parquet: ${ROWS} MatchClaims`,
   );
@@ -143,11 +152,47 @@ test("cancelled, the dialog loads nothing and says nothing", async ({ page }) =>
   const seen = await openPage(page);
   await importManifest(page);
   const before = await page.getByTestId("message").count();
-  const loading = page.evaluate(() => window.__tilie.loadTables());
+  await showMatches(page);
   const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await loading;
   await expect(dialog).toBeHidden();
   expect(seen.requests).toBe(0);
   expect(await page.getByTestId("message").count()).toBe(before);
+});
+
+test("the manifest's folder gives both tables, nothing else asked", async ({ page }) => {
+  await page.addInitScript(
+    ({ claims, projections }) => {
+      const bytes = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+      const files: { [name: string]: Uint8Array<ArrayBuffer> } = {
+        "match_claims.parquet": bytes(claims),
+        "projections.parquet": bytes(projections),
+      };
+      const folder = {
+        kind: "directory",
+        name: "package",
+        async getDirectoryHandle(name: string) {
+          throw new DOMException(name, "NotFoundError");
+        },
+        async getFileHandle(name: string) {
+          const found = files[name];
+          if (found === undefined) throw new DOMException(name, "NotFoundError");
+          return { kind: "file", name, getFile: async () => new File([found], name) };
+        },
+      };
+      (window as { showDirectoryPicker?: unknown }).showDirectoryPicker = async () => folder;
+    },
+    { claims: PARQUET.toString("base64"), projections: PROJECTIONS.toString("base64") },
+  );
+  const seen = await openPage(page);
+  const block = await importManifest(page);
+  await pressM(page);
+  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  await dialog.getByRole("button", { name: "Choose the manifest's folder…" }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => seen.requests).toBe(1);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(await tableStatus(page, block)).toHaveText(
+    `match_claims.parquet: ${ROWS} MatchClaims`,
+  );
 });

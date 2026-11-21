@@ -133,4 +133,45 @@ describe("the tables dialog", () => {
     shown().close();
     expect(await escaped).toBe(null);
   });
+
+  it("takes a relative URL as entered", async () => {
+    const answer = ask();
+    const [claims] = groups();
+    const url = claims?.querySelector("input");
+    if (url === null || url === undefined) throw new Error("no URL field");
+    expect([url.type, url.getAttribute("inputmode")]).toEqual(["text", "url"]);
+    type(url, "match_claims.parquet");
+    expect(shown().querySelector("form")?.checkValidity()).toBe(true);
+    shown().querySelector("form")?.requestSubmit();
+    expect(await answer).toEqual([{ type: "MatchClaim", url: "match_claims.parquet" }]);
+  });
+
+  it("offers the manifest's folder only where folders are handed over and a place is named", async () => {
+    void ask();
+    expect(() => button("Choose the manifest's folder…")).toThrow();
+    button("Cancel").click();
+
+    const folder = { kind: "directory", name: "pkg" } as unknown as FileSystemDirectoryHandle;
+    const picker = vi.fn(async (): Promise<FileSystemDirectoryHandle> => {
+      throw new DOMException("cancelled", "AbortError");
+    });
+    vi.stubGlobal("showDirectoryPicker", picker);
+    if (dialog === undefined) throw new Error("not mounted");
+    const unnamed = dialog.ask({ manifest: "Bare", tables: [{ type: "MatchClaim", url: null }] });
+    flushSync();
+    expect(() => button("Choose the manifest's folder…")).toThrow();
+    button("Cancel").click();
+    expect(await unnamed).toBe(null);
+
+    const answer = ask();
+    flushSync();
+    button("Choose the manifest's folder…").click();
+    await vi.waitFor(() => expect(picker).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(shown().open).toBe(true);
+    picker.mockImplementation(async () => folder);
+    button("Choose the manifest's folder…").click();
+    expect(await answer).toEqual([{ folder }]);
+    expect(shown().open).toBe(false);
+  });
 });

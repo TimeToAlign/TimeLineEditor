@@ -2,14 +2,17 @@
 /**
  * A native modal dialog asking for the files of the tables a manifest
  * names (its MatchClaim table, its Projections table): for each, a file the
- * user chooses on their system or a URL they enter. `ask` resolves what
- * they chose (Load, once one table has a file or a URL; a table left
- * without either is absent), or `null` when the dialog is dismissed
+ * user chooses on their system or a URL they enter (a relative URL is read
+ * relative to the page). Where the browser hands over folders and the
+ * manifest names where its tables lie, the user may instead choose the
+ * manifest's folder, which answers at once. `ask` resolves what they chose
+ * (Load, once one table has a file or a URL; a table left without either
+ * is absent; or the folder), or `null` when the dialog is dismissed
  * (Cancel, Escape).
  */
 import { flushSync } from "svelte";
 import type { Attachment } from "svelte/attachments";
-import { MATCH_CLAIM_TABLE, openFiles } from "./files.ts";
+import { canChooseFolders, chooseFolder, MATCH_CLAIM_TABLE, openFiles } from "./files.ts";
 import type { NamedTable, TableChoice, TableRequest } from "./matchClaims.svelte.ts";
 import { tableWords } from "./matchClaims.svelte.ts";
 import { messageOf } from "./messages.svelte.ts";
@@ -54,6 +57,9 @@ const choices: readonly TableChoice[] = $derived(
   }),
 );
 
+/** Whether the folder may be chosen: the browser hands folders over, and a table's place is named. */
+const folders = $derived(rows.some(({ table }) => table.url !== null) && canChooseFolders());
+
 /** Ask for the files of `request`'s tables; a question asked while another is open dismisses that one. */
 export function ask(request: TableRequest): Promise<readonly TableChoice[] | null> {
   answer?.(null);
@@ -88,6 +94,16 @@ async function choose(row: Row): Promise<void> {
   }
 }
 
+/** Let the user choose the manifest's folder, which answers the question. */
+async function chooseManifestFolder(): Promise<void> {
+  try {
+    const folder = await chooseFolder();
+    if (folder !== null) finish([{ folder }]);
+  } catch (error) {
+    problem = `The folder could not be chosen: ${messageOf(error)}`;
+  }
+}
+
 function onsubmit(event: SubmitEvent): void {
   event.preventDefault();
   if (choices.length > 0) finish(choices);
@@ -97,7 +113,16 @@ function onsubmit(event: SubmitEvent): void {
 <dialog {@attach heldDialog} aria-labelledby="{id}-title" onclose={() => finish(null)}>
   <form {onsubmit}>
     <h2 id="{id}-title">Load the tables of {manifest}</h2>
-    <p class="hint">Choose each table's file on your system, or enter its URL.</p>
+    <p class="hint">
+      Choose each table's file on your system, or enter its URL; a relative URL is read relative to
+      this page.
+    </p>
+    {#if folders}
+      <div class="line folder">
+        <button type="button" onclick={chooseManifestFolder}>Choose the manifest's folder…</button>
+        <span class="chosen">The tables are read from it, now and when matches are shown again.</span>
+      </div>
+    {/if}
     {#each rows as row, index (row.table.type)}
       <fieldset>
         <legend>
@@ -117,7 +142,9 @@ function onsubmit(event: SubmitEvent): void {
         <label class="line">
           <span>URL</span>
           <input
-            type="url"
+            type="text"
+            inputmode="url"
+            autocomplete="url"
             bind:value={() => row.url, (value) => {
               row.url = value;
               if (value !== "") row.file = null;
@@ -178,6 +205,14 @@ function onsubmit(event: SubmitEvent): void {
     align-items: center;
     gap: 0.5rem;
     margin: 0.25rem 0;
+  }
+
+  .folder {
+    margin: 0 0 0.75rem;
+  }
+
+  .folder .chosen {
+    white-space: normal;
   }
 
   .chosen {

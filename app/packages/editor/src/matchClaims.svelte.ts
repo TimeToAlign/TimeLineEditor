@@ -18,7 +18,10 @@
  * `decisions/0032-match-claim-events.md`). The tables a manifest names are
  * loaded from where the manifest came from (its `ManifestSource`) when they
  * can be reached from there; otherwise the user chooses them (`AskTables`):
- * a file on their system or a URL.
+ * a file on their system or a URL, or, where the browser hands over
+ * folders, the manifest's folder, which the block then keeps for the
+ * session and, where the browser can, beyond it (`FolderMemory`), so its
+ * tables load from there without a question.
  */
 
 import type {
@@ -32,7 +35,7 @@ import { ServerError } from "@timetoalign/tilie-client";
 import type { Manifest } from "@timetoalign/tilie-core";
 import { saveManifest } from "@timetoalign/tilie-core";
 import { SvelteMap } from "svelte/reactivity";
-import { MATCH_CLAIM_TABLE, saveFile } from "./files.ts";
+import { MATCH_CLAIM_TABLE, readInFolder, saveFile } from "./files.ts";
 import { fileNameOf } from "./inspector/matchstamps.ts";
 import { messageOf } from "./messages.svelte.ts";
 
@@ -87,10 +90,30 @@ export interface ManifestSource {
   read(url: string): Promise<Blob | null>;
 }
 
-/** What the user chose for one table: a file of their system, or a URL. */
+/**
+ * What the user chose: for one table a file of their system or a URL; or
+ * the folder the manifest lies in, which holds every table it names.
+ */
 export type TableChoice =
   | { readonly type: TableType; readonly file: File }
-  | { readonly type: TableType; readonly url: string };
+  | { readonly type: TableType; readonly url: string }
+  | { readonly folder: FileSystemDirectoryHandle };
+
+/**
+ * The folders blocks' manifests lie in, kept beyond the session by block
+ * (in the browser's storage): `recall` gives the one kept for a block,
+ * `null` when none is; `remember` keeps one. Neither fails: what cannot be
+ * kept is not.
+ */
+export interface FolderMemory {
+  recall(block: string): Promise<FileSystemDirectoryHandle | null>;
+  remember(block: string, folder: FileSystemDirectoryHandle): Promise<void>;
+}
+
+/** A manifest's folder as where it came from: the files it names, read from the folder. */
+export function folderSource(folder: FileSystemDirectoryHandle): ManifestSource {
+  return { read: (url) => readInFolder(folder, url) };
+}
 
 /** What the user is asked to choose: the tables of the manifest called `manifest`. */
 export interface TableRequest {
@@ -260,15 +283,22 @@ export class MatchClaimTables {
   /** Where each block's manifest came from, where it came from somewhere its files can be read. */
   readonly #sources = new Map<string, ManifestSource>();
   readonly #ask: AskTables | null;
+  readonly #folders: FolderMemory | null;
 
   /**
    * The tables read through `server` (`null`: no server, so no table is
    * ever read), the user asked for the files of tables through `ask`
-   * (`null`: never asked, as if they cancelled).
+   * (`null`: never asked, as if they cancelled), the folders of blocks'
+   * manifests kept in `folders` (`null`: for the session only).
    */
-  constructor(server: MatchClaimServer | null, ask: AskTables | null = null) {
+  constructor(
+    server: MatchClaimServer | null,
+    ask: AskTables | null = null,
+    folders: FolderMemory | null = null,
+  ) {
     this.#server = server;
     this.#ask = ask;
+    this.#folders = folders;
   }
 
   /** Whether tables can be read: a server is given. */
@@ -314,6 +344,30 @@ export class MatchClaimTables {
     this.#sources.set(block, source);
   }
 
+  /**
+   * Block `block`'s manifest lies in `folder`: the files it names are read
+   * from there, for the session and, kept in the folder memory, after the
+   * workspace is opened again.
+   */
+  inFolder(block: string, folder: FileSystemDirectoryHandle): void {
+    this.locate(block, folderSource(folder));
+    void this.#folders?.remember(block, folder);
+  }
+
+  /**
+   * Where block `block`'s manifest came from: as located this session, else
+   * the folder the memory kept for it (located from then on), else `null`.
+   */
+  async #sourceOf(block: string): Promise<ManifestSource | null> {
+    const located = this.#sources.get(block);
+    if (located !== undefined || this.#folders === null) return located ?? null;
+    const folder = await this.#folders.recall(block);
+    if (folder === null) return null;
+    const source = folderSource(folder);
+    this.#sources.set(block, source);
+    return source;
+  }
+
   /** Forget every table and where every manifest came from: another workspace was opened. */
   clear(): void {
     this.#tables.clear();
@@ -324,8 +378,9 @@ export class MatchClaimTables {
   /**
    * Load the tables block `block`'s manifest `manifest` names, when it names
    * a MatchClaim table and the block holds none (what Show matches asks):
-   * each from where the manifest came from where it can be reached there,
-   * the others as the user chooses them (one question for all, the user's
+   * each from where the manifest came from (located this session, or its
+   * folder kept from an earlier one) where it can be reached there, the
+   * others as the user chooses them (one question for all, the user's
    * `AskTables`; cancelled, they are left). The MatchClaim table is read
    * through the server (`load`), the Projections table held as it is. What
    * the message bar says of it: nothing without a server, which Show matches
@@ -335,7 +390,7 @@ export class MatchClaimTables {
     const named = namedTables(manifest);
     if (this.#server === null || this.of(block) !== null) return NO_MESSAGES;
     if (!named.some(({ type }) => type === "MatchClaim")) return NO_MESSAGES;
-    const source = this.#sources.get(block) ?? null;
+    const source = await this.#sourceOf(block);
     const reached: { type: TableType; name: string; file: Blob }[] = [];
     const unreached: NamedTable[] = [];
     const warned: string[] = [];
@@ -353,7 +408,8 @@ export class MatchClaimTables {
         unreached.push(table);
       }
     }
-    const chosen = unreached.length === 0 ? [] : await this.#chosen(manifest, unreached, warned);
+    const chosen =
+      unreached.length === 0 ? [] : await this.#chosen(block, manifest, unreached, warned);
     if (chosen === null && reached.length === 0) return { informed: [], warned };
     const taken = await this.#take(block, manifest, [...reached, ...(chosen ?? [])]);
     return { informed: taken.informed, warned: [...warned, ...taken.warned] };
@@ -373,18 +429,21 @@ export class MatchClaimTables {
       ? named
       : [{ type: "MatchClaim", url: null }, ...named];
     const warned: string[] = [];
-    const chosen = await this.#chosen(manifest, tables, warned);
+    const chosen = await this.#chosen(block, manifest, tables, warned);
     if (chosen === null) return { informed: [], warned };
     const taken = await this.#take(block, manifest, chosen);
     return { informed: taken.informed, warned: [...warned, ...taken.warned] };
   }
 
   /**
-   * The files the user chooses for `tables` of `manifest`, each URL read;
-   * `null` when they cancel (or nobody can be asked). A URL that cannot be
-   * read adds its warning to `warned` and is left.
+   * The files the user chooses for `tables` of block `block`'s manifest
+   * `manifest`, each URL read; `null` when they cancel (or nobody can be
+   * asked). A URL that cannot be read adds its warning to `warned` and is
+   * left. A folder chosen becomes the block's (`inFolder`) and every table
+   * named is read from it; one it does not hold is said in `warned`.
    */
   async #chosen(
+    block: string,
     manifest: Manifest,
     tables: readonly NamedTable[],
     warned: string[],
@@ -394,6 +453,11 @@ export class MatchClaimTables {
     if (choices === null) return null;
     const files: { type: TableType; name: string; file: Blob }[] = [];
     for (const choice of choices) {
+      if ("folder" in choice) {
+        this.inFolder(block, choice.folder);
+        files.push(...(await this.#fromFolder(choice.folder, tables, warned)));
+        continue;
+      }
       if ("file" in choice) {
         files.push({ type: choice.type, name: choice.file.name, file: choice.file });
         continue;
@@ -402,6 +466,26 @@ export class MatchClaimTables {
         files.push({ type: choice.type, ...(await fetched(choice.url)) });
       } catch (error) {
         warned.push(`The ${tableWords(choice.type)} was not loaded: ${messageOf(error)}`);
+      }
+    }
+    return files;
+  }
+
+  /** The files of `tables` that `folder` holds; each it does not hold, or fails to read, said in `warned`. */
+  async #fromFolder(
+    folder: FileSystemDirectoryHandle,
+    tables: readonly NamedTable[],
+    warned: string[],
+  ): Promise<{ type: TableType; name: string; file: Blob }[]> {
+    const files: { type: TableType; name: string; file: Blob }[] = [];
+    for (const { type, url } of tables) {
+      if (url === null) continue;
+      try {
+        const file = await readInFolder(folder, url);
+        if (file === null) warned.push(`The folder ${folder.name} holds no ${url}.`);
+        else files.push({ type, name: fileNameOf(url), file });
+      } catch (error) {
+        warned.push(`${url} could not be read from the folder ${folder.name}: ${messageOf(error)}`);
       }
     }
     return files;

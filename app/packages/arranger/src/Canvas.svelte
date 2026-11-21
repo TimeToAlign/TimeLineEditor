@@ -143,6 +143,12 @@ interface Props {
    */
   onmatchstamppin?: (pin: MatchStampPin | null) => void;
   /**
+   * Called with whether "Show matches" is shown whenever it is turned on or
+   * off (by its key or its toolbar button), so the host can load the tables
+   * it draws from.
+   */
+  onmatches?: (shown: boolean) => void;
+  /**
    * What "Show matches" says while `matches` is empty: why its host has no
    * table to give (no server, say); `NO_MATCHES` when not given.
    */
@@ -166,6 +172,7 @@ let {
   matches = NO_TABLES,
   pinnedMatchStamp = null,
   onmatchstamppin,
+  onmatches,
   matchesStatus = NO_MATCHES,
 }: Props = $props();
 
@@ -798,12 +805,14 @@ function setMatches(next: boolean): void {
   showMatches = next;
   if (next) {
     setCoordinates(false);
+    onmatches?.(true);
     return;
   }
   frames.cancel();
   hover = null;
   announced = "";
   onmatchstamppin?.(null);
+  onmatches?.(false);
 }
 
 // --- Picking ---------------------------------------------------------------

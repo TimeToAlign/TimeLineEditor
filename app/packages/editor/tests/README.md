@@ -210,6 +210,33 @@ picker gives nothing and any other failure is thrown. About shows
 version and schema version, the workspace packages and the link to
 `THIRD_PARTY_NOTICES.txt`; offline, "offline: " and the reason.
 
+**Open… takes a manifest, and Save writes in place** (`open-save.test.ts`,
+the App mounted as above). Open… offers a workspace (`.tle.json`), manifest
+files (`.yaml`, `.yml`, `.json`) and MatchClaim tables (`.parquet`) at
+once, the fallback input accepting `.tle.json,.json,.yaml,.yml,.parquet`;
+a picked file is a workspace file by its name ending `.tle.json`, any
+case. A manifest (`bare`'s fixture, `bare.yaml`) opened into an empty
+workspace is imported as Import imports it, nothing asked: one block, its
+journal one `add`. Opened into a workspace holding a block, one question
+is asked, "Add bare.yaml to the open workspace, or open it in a new,
+empty workspace?", answers Add, New workspace and Cancel, the focus on
+Add: Cancel (and Escape) changes nothing; Add imports it beside the block
+(two blocks); New workspace on a saved workspace replaces it at once by a
+new one holding the manifest's block alone, named `untitled`, under
+`untitled.tle.json`; on an unsaved one it first saves it (the download
+of exactly its text under its file name, as Save writes without a
+handle) and then does the same; a save that writes nothing (the save
+picker cancelled) keeps the open workspace and imports nothing. Ctrl+S on
+a workspace opened through the File System Access picker writes its text
+into the opened file's handle and asks for no file
+(`showSaveFilePicker` not called), clearing the mark, when the handle's
+permission is granted, or granted when requested; when the browser
+refuses writing (`requestPermission` answers `denied`, or the write
+throws `NotAllowedError`), Ctrl+S picks a file as Save as does, and the
+workspace then belongs to the picked one. Ctrl+Shift+S always picks. A
+workspace restored from an autosave that kept its file's handle saves
+back into that handle on Ctrl+S.
+
 ## Autosave (`autosave.test.ts`, `shell.test.ts`)
 
 The storage alone: a snapshot is written once after the delay, the latest
@@ -218,7 +245,16 @@ flush writes at once; a discard empties the slot, also after a write has
 started; each key has its own slot, which recovers the last text byte for
 byte. A failing IndexedDB rejects with `indexeddb_failed`, a failed timed
 write once at the next flush or to the error callback; no IndexedDB is
-`indexeddb_unavailable`.
+`indexeddb_unavailable`. A snapshot with its file's handle recovers it
+(a value the browser could store: a plain `{kind: "file", name}` object in
+these tests); one whose handle IndexedDB cannot store (a `DataCloneError`:
+an object holding a function) is written without it and recovers
+`{text, name}` exactly; the autosave of an editor whose workspace has a
+handle writes it beside the text. The folders of blocks' manifests are
+kept in a database of their own by block ID: a kept `{kind:
+"directory", name}` is given back for its block, `null` for another; the
+editor's folder memory keeps nothing and fails nothing for a folder
+IndexedDB cannot store, and recalls `null` without IndexedDB.
 
 The editor uses the slot `current`. A slot holding more than an empty
 workspace is offered with "Restore the unsaved workspace from 2026-10-12
@@ -1517,9 +1553,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - a block already holding a MatchClaim table, a manifest naming no
      MatchClaim table and a session without a server ask nothing and say
      nothing.
-   The session's `loadNamedTables` runs it for every block in the view's
-   order and posts the information through `inform`, the warnings through
-   `warn`. The manual route (`choose`, Load MatchClaims…) always asks, for
+   The session's `loadNamedTables` runs it for every block as the blocks
+   lie on the canvas, from the top, then from the left (blocks at `y` 200,
+   then `y` 0 and `x` 300, then `y` 0 and `x` 0, added in that order, are
+   asked for from the last to the first), and posts the information
+   through `inform`, the warnings through `warn`. Turning Show matches on,
+   by its key or its button, is what calls it (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load MatchClaims…) always asks, for
    the MatchClaim table (with `url` `null` where the manifest names none)
    and the Projections table where the manifest names one, and loads what
    is chosen the same way; without a server it asks nothing and warns
@@ -1527,6 +1566,40 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    carries a source reading the files served beside the fixture
    (`servedSource`): `match_claims.parquet` and `projections.parquet` are
    served, `other.parquet` is not (`null`).
+
+9d. **The manifest's folder** (`matchclaims-folders.test.ts`, folders as
+   in-memory directory handles: names to files and subfolders, the
+   permission calls stubbed). A location in a folder (`folderPath`) is
+   the relative URL's path, segments decoded, `.` and `..` applied:
+   `match_claims.parquet` → `["match_claims.parquet"]`, `./data/a%20b.parquet`
+   → `["data", "a b.parquet"]`, `data/../p.parquet` → `["p.parquet"]`;
+   none for `../p.parquet`, `/p.parquet`, `https://h/p.parquet`,
+   `file:p.parquet` and `` (empty). Reading one (`readInFolder`) gives the
+   file at that path, `null` where the folder holds none (nor a subfolder
+   on the way), and `null` without asking further when the folder's
+   permission is `denied` on request (a granted one is read; a `prompt`
+   then `granted` asks once). Answered with the folder in the dialog, the
+   block's tables are read from it: both of the table fixture's tables
+   loaded exactly as from files ("Loaded the MatchClaims of
+   match_claims.parquet." then "Loaded the Projections of
+   projections.parquet."), the folder kept by the folder memory under the
+   block, and a folder holding no `projections.parquet` loads the
+   MatchClaim table and warns "The folder pkg holds no projections.parquet.".
+   A block whose folder the memory kept (none located this session) loads
+   both without a question; one whose kept folder may no longer be read
+   (permission `denied`) is asked as before. Import manifest from folder…
+   (the session's `importFolder`, the directory picker stubbed) imports
+   every manifest directly in the chosen folder `pkg` holding the table
+   fixture's `manifest.yaml`, an `expected.yaml` that is no manifest
+   (`cases: []`) and both tables: one block (one journal entry), the
+   information "Left expected.yaml in pkg: no manifest.", the import's
+   usual warning that the named MatchClaim table is not loaded and Show
+   matches (M) loads it, the folder kept for the block, and then
+   `loadNamedTables` loads both tables without a question; a folder holding no manifest
+   warns "The folder pkg holds no manifest TimeLineEditor can import." and
+   adds nothing; a cancelled picker does nothing. The File menu offers
+   "Import manifest from folder…" only where the browser has
+   `showDirectoryPicker`.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). Asked for the two tables of "Tables",
@@ -1538,7 +1611,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    table (the fallback file input answered) resolves `[{type:
    "MatchClaim", file}, {type: "Projection", url}]` in the tables' order,
    the URL trimmed; a URL entered after a file replaces it. Cancel and
-   Escape (the dialog's `close`) resolve `null`.
+   Escape (the dialog's `close`) resolve `null`. The URL field is a text
+   field (`inputmode="url"`), so a relative URL (`match_claims.parquet`)
+   is taken as entered. "Choose the manifest's folder…" is offered only
+   where the browser has `showDirectoryPicker` and a table's location is
+   named (not for a question naming only `{type: "MatchClaim", url:
+   null}`); choosing a folder resolves `[{folder}]` at once, cancelling
+   the picker keeps the dialog open.
 
 9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
    manifest, claims)` asks the server's events route once per table,
