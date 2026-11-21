@@ -3,9 +3,11 @@
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Command, CommandEntry, Store } from "@timetoalign/tilie-core";
+import { TILIE_AGENT } from "@timetoalign/tilie-core";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
+import { TIE_NOTE } from "../src/inspector/metadata/edits.ts";
 import type { Candidate, Lookup } from "../src/lookup/index.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import UserDialog from "../src/UserDialog.svelte";
@@ -20,6 +22,16 @@ const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const PIRES_WD = "http://www.wikidata.org/entity/Q235650";
 const PIRES_GND = "https://d-nb.info/gnd/124927521";
+/** The "same as" "＋ Add vocabulary" ties a GND value to Wikidata's Pires with, by TiLiE. */
+const TIE = {
+  basis: [PIRES_WD],
+  date: "2026-11-20",
+  method: "inferred",
+  note: TIE_NOTE,
+  property: "schema:sameAs",
+  stated_by: [TILIE_AGENT],
+  value: { id: "wd:Q235650" },
+};
 
 /** The stub lookup's answers: Maria João Pires in Wikidata, with her GND record as a cross-reference. */
 const WIKIDATA_PIRES: Candidate = {
@@ -140,14 +152,46 @@ function one<E extends Element>(selector: string, within: ParentNode = document)
   return found;
 }
 
+const CPT_1_SENTENCE =
+  "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical is a video.";
+const P = "https://example.org/people/editor";
+
+const words = (element: Element) => element.textContent?.replace(/\s+/gu, " ").trim() ?? "";
 const rectangles = () => all<HTMLElement>('[data-testid="metadata-rectangle"]');
+/** The tiles' headings: the first tile's sentence, every other one's verb and label. */
 const headings = () =>
-  rectangles().map((rectangle) => one(".verb", rectangle).textContent?.trim() ?? "");
+  rectangles().map((rectangle) => words(one('[data-testid="metadata-heading"]', rectangle)));
+/** The tile whose heading is `heading`, or begins with it followed by a space. */
 const rectangle = (heading: string) => {
-  const found = rectangles().find((item) => one(".verb", item).textContent?.trim() === heading);
+  const found = rectangles().find((item) => {
+    const text = words(one('[data-testid="metadata-heading"]', item));
+    return text === heading || text.startsWith(`${heading} `);
+  });
   if (found === undefined) throw new Error(`no rectangle ${heading}`);
   return found;
 };
+
+/** Expand the tile, once. */
+function expand(tile: HTMLElement): void {
+  const toggle = one<HTMLButtonElement>('[data-testid="metadata-expand"]', tile);
+  if (toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+  flushSync();
+}
+
+/** Open the details of the pair or candidate whose Details button is named `name`. */
+function details(name: string): HTMLElement {
+  const found = all<HTMLButtonElement>("button").find(
+    (item) => item.getAttribute("aria-label") === `Details of ${name}`,
+  );
+  if (found === undefined) throw new Error(`no details of ${name}`);
+  if (found.getAttribute("aria-expanded") !== "true") found.click();
+  flushSync();
+  return one(`#${CSS.escape(found.getAttribute("aria-controls") ?? "")}`);
+}
+
+/** The pressed belief buttons of a details region. */
+const pressed = (region: HTMLElement) =>
+  all<HTMLButtonElement>('[aria-pressed="true"]', region).map(words);
 
 function button(name: string, within: ParentNode = document): HTMLButtonElement {
   const found = all<HTMLButtonElement>("button", within).find(
@@ -204,20 +248,55 @@ function paste(input: HTMLInputElement, text: string): void {
 const commandsAfter = (store: Store, from: number): Command[] =>
   store.journal.slice(from).map((entry) => (entry as CommandEntry).command);
 
-describe("rectangles and drawers", () => {
-  it("shows cpt_1's three rectangles, the user line and the drawers", () => {
+describe("tiles and candidates", () => {
+  it("shows cpt_1's three tiles collapsed, the user line and the candidates", () => {
     show(layerit(), [{ block: A, id: "cpt_1" }]);
-    expect(one("p.subject").textContent).toBe(
-      "This timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'.",
+    expect(words(one('[data-testid="metadata-user"]'))).toBe("You state as Gerhardt. Change…");
+    const list = one('ol[aria-label^="Statements of "]');
+    expect(list.getAttribute("aria-label")).toBe(
+      "Statements of timeline 'C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical'",
     );
-    expect(one('[data-testid="metadata-user"]').textContent?.replace(/\s+/gu, " ").trim()).toBe(
-      "You state as Gerhardt. Change…",
+    expect(list.children).toHaveLength(3);
+    expect(headings()).toEqual([CPT_1_SENTENCE, "performed by Maria João Pires", "same as"]);
+    expect(
+      rectangles().map((tile) => [
+        one('[data-testid="metadata-expand"]', tile).getAttribute("aria-expanded"),
+        one<HTMLElement>('[data-testid="metadata-vocabulary"]', tile).parentElement?.hidden,
+      ]),
+    ).toEqual([
+      ["false", true],
+      ["false", true],
+      ["false", true],
+    ]);
+    expect(document.body.textContent).not.toContain("Status");
+    expect(all<HTMLButtonElement>("button").filter((item) => words(item) === "Reject")).toEqual([]);
+    expect(summaries()).toEqual(["Candidates (1)", "Believed false by you (0)"]);
+    expect(all('[data-testid="metadata-candidate-row"] .what').map(words)).toEqual([
+      "is a recording of Clair de lune",
+    ]);
+  });
+
+  it("offers the bundle's empty is a in a sentence", () => {
+    show(layerit(), [{ block: A }]);
+    const empty = rectangles()[0];
+    if (empty === undefined) throw new Error("no rectangle");
+    expect(words(one('[data-testid="metadata-heading"]', empty))).toBe(
+      "Nothing states yet what LayerIt, Clair de lune mm. 1–6 (Pires) is.",
     );
-    expect(one('ol[aria-label="Statements"]').children).toHaveLength(3);
-    expect(headings()).toEqual(["is a", "performed by", "same as"]);
+    expect(button("State what it is", empty)).toBeDefined();
+  });
+
+  it("shows a tile's pairs, each with its Details, on one click", () => {
+    show(layerit(), [{ block: A, id: "cpt_1" }]);
     const performed = rectangle("performed by");
-    expect(performed.getAttribute("role")).toBe("group");
-    expect(one('[data-testid="metadata-label"]', performed).textContent).toBe("Maria João Pires");
+    expand(performed);
+    expect(one('[data-testid="metadata-expand"]', performed).getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(all('[data-testid="metadata-vocabulary"] > li', performed).map(words)).toEqual([
+      "rel:prf viaf:113931950 ↗",
+      "wdt:P175 wd:Q235650 ↗",
+    ]);
     expect(
       all<HTMLAnchorElement>("a", performed).map((anchor) => [
         anchor.textContent,
@@ -229,103 +308,122 @@ describe("rectangles and drawers", () => {
       ["viaf:113931950 ↗", "http://viaf.org/viaf/113931950", "noreferrer", "_blank"],
       ["wd:Q235650 ↗", PIRES_WD, "noreferrer", "_blank"],
     ]);
-    expect(one('[data-testid="metadata-provenance"]', performed).textContent).toBe(
-      "reconciled · https://example.org/agents/tilie · 2026-11-18",
-    );
-    expect(all('[data-testid="metadata-add-vocabulary"]', performed)).toHaveLength(1);
-    expect(summaries()).toEqual(["Proposed (1)", "Rejected (0)"]);
     expect(
-      all('[data-testid="metadata-proposed-row"] .what').map((row) =>
-        row.textContent?.replace(/\s+/gu, " ").trim(),
-      ),
-    ).toEqual(["is a recording of Clair de lune"]);
-  });
-
-  it("offers the bundle's empty is a", () => {
-    show(layerit(), [{ block: A }]);
-    const empty = rectangles()[0];
-    if (empty === undefined) throw new Error("no rectangle");
-    expect(one("p.empty", empty).textContent).toBe("Not stated yet.");
-    expect(button("State what it is", empty)).toBeDefined();
+      all<HTMLButtonElement>("button", performed).map((item) => item.getAttribute("aria-label")),
+    ).toEqual([null, "Details of rel:prf viaf:113931950", "Details of wdt:P175 wd:Q235650", null]);
+    expect(words(one('[data-testid="metadata-add-vocabulary"]', performed))).toBe(
+      "＋ Add vocabulary",
+    );
   });
 });
 
-describe("drawer actions", () => {
-  it("confirms a proposal into a rectangle that takes the focus", async () => {
+describe("the details of a pair", () => {
+  it("shows the paradata, the beliefs and the actions", () => {
+    show(layerit(), [{ block: A, id: "cpt_1" }]);
+    expand(rectangle("performed by"));
+    const wikidata = details("wdt:P175 wd:Q235650");
+    expect(
+      all("dt", wikidata).map((term) => [words(term), words(term.nextElementSibling as Element)]),
+    ).toEqual([
+      ["stated by", P],
+      ["method", "reconciled"],
+      ["service", WIKIDATA_API],
+      ["note", "Portuguese pianist; the video's title names her"],
+      ["date", "2026-11-18"],
+    ]);
+    expect(all('[data-testid="metadata-beliefs"] li', wikidata).map(words)).toEqual([
+      `${P} believes it true (2026-11-18)`,
+    ]);
+    expect(all("button", wikidata).map(words)).toEqual(["True", "Unlikely", "False", "Remove"]);
+    expect(pressed(wikidata)).toEqual([]);
+    expect(words(one('[data-testid="metadata-beliefs"]', details("rel:prf viaf:113931950")))).toBe(
+      "No one has stated a belief.",
+    );
+    expand(rectangles()[0] as HTMLElement);
+    expect(words(one("p", details("type schema:VideoObject")))).toBe(
+      "No provenance entry: the manifest's publisher states it.",
+    );
+  });
+
+  it("records the user's belief in a stated pair and leaves it stated", async () => {
     const store = layerit();
     show(store, [{ block: A, id: "cpt_1" }]);
-    button("Confirm").click();
+    expand(rectangle("performed by"));
+    button("False", details("wdt:P175 wd:Q235650")).click();
     await settle();
     expect(store.journal).toHaveLength(2);
-    expect(headings()).toEqual(["is a", "performed by", "same as", "is a recording of"]);
-    expect(document.activeElement).toBe(rectangle("is a recording of"));
-  });
-
-  it("rejects a proposal, the focus on the drawer's summary", async () => {
-    const store = layerit();
-    show(store, [{ block: A, id: "dpt_1" }]);
-    button("Reject", one('[data-testid="metadata-drawer-proposed"]')).click();
+    const [command] = commandsAfter(store, 1);
+    const values = command?.type === "set" ? command.changes[0]?.values : undefined;
+    if (values === undefined) throw new Error("no set");
+    expect(Object.keys(values)).toEqual(["provenance"]);
+    expect((values.provenance as { beliefs?: unknown }[])[1]?.beliefs).toEqual([
+      { actor: P, belief: "true", date: "2026-11-18" },
+      { actor: G, belief: "false", date: "2026-11-20" },
+    ]);
+    expect(headings()).toEqual([CPT_1_SENTENCE, "performed by Maria João Pires", "same as"]);
+    const region = details("wdt:P175 wd:Q235650");
+    expect(pressed(region)).toEqual(["False"]);
+    expect(all('[data-testid="metadata-beliefs"] li', region)).toHaveLength(2);
+    button("Unlikely", region).click();
     await settle();
-    expect(store.journal).toHaveLength(2);
-    expect(summaries()).toEqual(["Proposed (0)", "Rejected (1)"]);
-    expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-proposed"] summary'));
+    expect(store.journal).toHaveLength(3);
+    const again = details("wdt:P175 wd:Q235650");
+    expect(pressed(again)).toEqual(["Unlikely"]);
+    expect(all('[data-testid="metadata-beliefs"] li', again)).toHaveLength(2);
   });
-});
 
-describe("removing", () => {
-  it("gives the focus to the next rectangle, else to Add statement", async () => {
+  it("removes a pair, the focus on its tile, else on Add statement", async () => {
     const store = layerit();
     const { selection } = show(store, [{ block: A, id: "cpt_1" }]);
-    button("Remove", rectangle("performed by")).click();
+    expand(rectangle("performed by"));
+    button("Remove", details("rel:prf viaf:113931950")).click();
     await settle();
-    expect(headings()).toEqual(["is a", "same as"]);
-    expect(document.activeElement).toBe(rectangle("same as"));
+    expect(headings()).toEqual([CPT_1_SENTENCE, "same as", "performed by Maria João Pires"]);
+    expect(document.activeElement).toBe(rectangle("performed by"));
     selection.value = selectionOf([{ block: A, id: "dpt_1" }]);
     flushSync();
-    button("Remove", rectangle("is a")).click();
-    await settle();
+    for (const pair of ["type schema:AudioObject", "type melod:Manifestation"]) {
+      expand(rectangles()[0] as HTMLElement);
+      button("Remove", details(pair)).click();
+      await settle();
+    }
     expect(rectangles().map((item) => item.dataset.key)).toEqual(["is_a"]);
     expect(document.activeElement).toBe(button("＋ Add statement"));
   });
 });
 
-describe("rejecting", () => {
-  it("rejects by a named button, posts it, and moves the focus on, at last to the drawer", async () => {
+describe("candidates", () => {
+  it("states a candidate believed true into a tile that takes the focus", async () => {
     const store = layerit();
-    const { informed } = show(store, [{ block: A, id: "cpt_1" }]);
-    const performed = rectangle("performed by");
-    expect([
-      all("select", performed).length,
-      one('[data-testid="metadata-status"]', performed).textContent,
-      all<HTMLButtonElement>("button", performed).map((item) => [
-        item.textContent?.trim(),
-        item.getAttribute("aria-label"),
-      ]),
-    ]).toEqual([
-      0,
-      "Status: confirmed",
-      [
-        ["Reject", "Reject performed by Maria João Pires"],
-        ["Details", null],
-        ["Remove", null],
-        ["＋ vocabulary", null],
-      ],
-    ]);
-    button("Reject", performed).click();
+    show(store, [{ block: A, id: "cpt_1" }]);
+    button("True", details("is a recording of Clair de lune")).click();
     await settle();
     expect(store.journal).toHaveLength(2);
-    expect(headings()).toEqual(["is a", "same as"]);
-    expect(document.activeElement).toBe(rectangle("same as"));
-    button("Reject", rectangle("same as")).click();
+    expect(headings()).toEqual([
+      CPT_1_SENTENCE,
+      "performed by Maria João Pires",
+      "same as",
+      "is a recording of",
+    ]);
+    expect(document.activeElement).toBe(rectangle("is a recording of"));
+    expect(summaries()).toEqual(["Candidates (0)", "Believed false by you (0)"]);
+  });
+
+  it("sets a candidate believed false apart, and offers it again once unlikely", async () => {
+    const store = layerit();
+    show(store, [{ block: A, id: "dpt_1" }]);
+    const name =
+      "is derived from, is based on C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical";
+    button("False", details(name)).click();
+    await settle();
+    expect(store.journal).toHaveLength(2);
+    expect(summaries()).toEqual(["Candidates (0)", "Believed false by you (1)"]);
+    expect(document.activeElement).toBe(one('[data-testid="metadata-candidates"] summary'));
+    button("Unlikely", details(name)).click();
     await settle();
     expect(store.journal).toHaveLength(3);
-    expect(headings()).toEqual(["is a"]);
-    expect(summaries()).toEqual(["Proposed (1)", "Rejected (3)"]);
-    expect(document.activeElement).toBe(one('[data-testid="metadata-drawer-rejected"] summary'));
-    expect(informed).toEqual([
-      "Rejected “performed by Maria João Pires”: it is listed under Rejected.",
-      "Rejected “same as https://www.youtube.com/watch?v=Ch2mrPm1JnM”: it is listed under Rejected.",
-    ]);
+    expect(summaries()).toEqual(["Candidates (1)", "Believed false by you (0)"]);
+    expect(document.activeElement).toBe(one('[data-testid="metadata-dismissed"] summary'));
   });
 });
 
@@ -356,11 +454,11 @@ describe("the composer", () => {
               statements: { "wdt:P175": [{ id: "wd:Q235650", label: "Maria João Pires" }] },
               provenance: [
                 {
+                  beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
                   date: "2026-11-20",
                   method: "manual",
                   property: "wdt:P175",
                   stated_by: [G],
-                  status: "confirmed",
                   value: { id: "wd:Q235650" },
                 },
               ],
@@ -369,7 +467,10 @@ describe("the composer", () => {
         ],
       },
     ]);
-    expect(headings()).toEqual(["is a", "performed by"]);
+    expect(headings()).toEqual([
+      "Nothing states yet what cpt_2 is.",
+      "performed by Maria João Pires",
+    ]);
     expect(document.activeElement).toBe(rectangle("performed by"));
 
     button("＋ Add statement").click();
@@ -441,7 +542,8 @@ describe("the composer", () => {
   it("states performed by in the GND from Wikidata's cross-reference, in the same rectangle", async () => {
     const store = layerit();
     show(store, [{ block: A, id: "cpt_1" }]);
-    button("＋ vocabulary", rectangle("performed by")).click();
+    expand(rectangle("performed by"));
+    button("＋ Add vocabulary", rectangle("performed by")).click();
     flushSync();
     await settle();
     expect(field("Verb").disabled).toBe(true);
@@ -465,20 +567,21 @@ describe("the composer", () => {
         id: "gnd:124927521",
         label: "Pires, Maria João",
         "schema:sameAs": [{ id: "wd:Q235650" }],
+        provenance: [TIE],
       },
     ]);
     expect((values.provenance as unknown[]).at(-1)).toEqual({
       basis: [PIRES_WD],
+      beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
       date: "2026-11-20",
       match: "exact",
       method: "reconciled",
       property: "rel:prf",
       service: WIKIDATA_API,
       stated_by: [G],
-      status: "confirmed",
       value: { id: "gnd:124927521" },
     });
-    expect(headings()).toEqual(["is a", "performed by", "same as"]);
+    expect(headings()).toEqual([CPT_1_SENTENCE, "performed by Pires, Maria João", "same as"]);
   });
 
   it("states a GND value searched in another vocabulary as manual, tied to the same thing", async () => {
@@ -498,7 +601,8 @@ describe("the composer", () => {
     };
     const store = layerit();
     show(store, [{ block: A, id: "cpt_1" }], userContext(), searching);
-    button("＋ vocabulary", rectangle("performed by")).click();
+    expand(rectangle("performed by"));
+    button("＋ Add vocabulary", rectangle("performed by")).click();
     flushSync();
     await settle();
     choose(field("Vocabulary"), "GND");
@@ -522,20 +626,22 @@ describe("the composer", () => {
         id: "gnd:124927521",
         label: "Pires, Maria João",
         "schema:sameAs": [{ id: "wd:Q235650" }],
+        provenance: [TIE],
       },
     ]);
     expect((values.provenance as unknown[]).at(-1)).toEqual({
+      beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
       date: "2026-11-20",
       method: "manual",
       property: "rel:prf",
       stated_by: [G],
-      status: "confirmed",
       value: { id: "gnd:124927521" },
     });
   });
 
   it("gives the focus back to the button that opened it on Cancel", async () => {
     show(layerit(), [{ block: A, id: "cpt_1" }]);
+    expand(rectangle("same as"));
     const opener = one('[data-testid="metadata-add-vocabulary"]', rectangle("same as"));
     (opener as HTMLButtonElement).click();
     flushSync();
@@ -559,7 +665,7 @@ describe("the composer", () => {
 });
 
 describe("the user", () => {
-  it("is asked through the dialog and states the confirmation by the iD", async () => {
+  it("is asked through the dialog and believes by the iD", async () => {
     const state = new UserState(null);
     const dialogTarget = document.createElement("div");
     document.body.append(dialogTarget);
@@ -592,12 +698,12 @@ describe("the user", () => {
     expect(one('[data-testid="metadata-user"]').textContent?.replace(/\s+/gu, " ").trim()).toBe(
       "You state as Clara Wieck (ORCID iD 0000-0002-1825-0097). Change…",
     );
-    button("Confirm").click();
+    button("True", details("is a recording of Clair de lune")).click();
     await settle();
     const [command] = commandsAfter(store, 1);
     const provenance = command?.type === "set" ? command.changes[0]?.values.provenance : [];
-    expect((provenance as { stated_by: unknown }[])[3]?.stated_by).toEqual([
-      "https://orcid.org/0000-0002-1825-0097",
+    expect((provenance as { beliefs: unknown }[])[3]?.beliefs).toEqual([
+      { actor: "https://orcid.org/0000-0002-1825-0097", belief: "true", date: "2026-11-20" },
     ]);
   });
 });
@@ -606,12 +712,13 @@ describe("refusals", () => {
   it("posts the store's refusal as a warning and journals nothing", () => {
     const store = layerit();
     const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
+    const region = details("is a recording of Clair de lune");
     vi.spyOn(store, "dispatch").mockReturnValueOnce({
       code: "schema_violation",
       message: "refused for the test",
       path: [],
     });
-    button("Confirm").click();
+    button("True", region).click();
     flushSync();
     expect([warned, informed]).toEqual([["refused for the test"], []]);
     expect(store.journal).toHaveLength(1);
@@ -620,7 +727,11 @@ describe("refusals", () => {
   it("posts a throw of the statement functions as a warning and journals nothing", () => {
     const store = layerit();
     const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
-    const remove = button("Remove", rectangle("same as"));
+    expand(rectangle("same as"));
+    const remove = button(
+      "Remove",
+      details("schema:sameAs https://www.youtube.com/watch?v=Ch2mrPm1JnM"),
+    );
     const [same] = store.view.blocks[A]?.manifest.timelines[1]?.statements?.["schema:sameAs"] ?? [];
     // The store loses the pair while the rectangle still shows it.
     store.dispatch({

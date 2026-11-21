@@ -5,10 +5,11 @@
  * up in that vocabulary, an element of the manifest, a type, or an IRI or
  * identifier checked against the catalogue. A URL pasted into any field is
  * recognised and fills vocabulary and value, the verb asked after. In
- * vocabulary mode ("＋ vocabulary") the verb is the rectangle's and the
+ * vocabulary mode ("＋ Add vocabulary") the verb is the rectangle's and the
  * value is first offered from the cross-references of its first thing.
  * An element of the manifest may also be picked on the canvas. Add states
- * the pairs with an annotation of who, when and how.
+ * the pairs with their paradata (who, when and how) and the user's belief
+ * `true`.
  */
 import { statementHolders } from "@timetoalign/tilie-core";
 import { recognize } from "@timetoalign/timetoshare";
@@ -264,17 +265,15 @@ const result = $derived(composer.pairs(catalogue, frame));
 const addable = $derived.by((): readonly Pair[] | string => {
   if (typeof result === "string") return result;
   if (result.length === 0) return "Choose a value.";
-  return result.some((pair) => states(frame, pair))
-    ? "This is already stated."
-    : extendedPairs(result);
+  return result.some((pair) => states(frame, pair)) ? "This is already stated." : result;
 });
 
-/** The pairs as Add states them: in vocabulary mode tied by "same as" to the rectangle's first thing. */
-function extendedPairs(pairs: readonly Pair[]): readonly Pair[] {
+/** The pairs as Add states them on `day`: in vocabulary mode tied by "same as" to the rectangle's first thing. */
+function extendedPairs(pairs: readonly Pair[], day: string): readonly Pair[] {
   const first = firstThing();
   return extended === null || first === null || composer.value?.kind === "element"
     ? pairs
-    : tied(pairs, first, framePrefixes(frame, catalogue));
+    : tied(pairs, first, framePrefixes(frame, catalogue), day);
 }
 
 /** The extended rectangle's first thing the lookup resolves, else its first thing. */
@@ -527,7 +526,8 @@ function fieldsOf(value: ValueChoice | null): EntryFields {
 
 function add(): void {
   if (typeof addable === "string") return;
-  onadd(addable, fieldsOf(composer.value));
+  const fields = fieldsOf(composer.value);
+  onadd(extendedPairs(addable, fields.date), fields);
 }
 
 onMount(() => {

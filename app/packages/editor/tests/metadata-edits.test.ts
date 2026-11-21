@@ -2,25 +2,27 @@
 
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { View } from "@timetoalign/tilie-core";
-import { DEFAULT_USER } from "@timetoalign/tilie-core";
+import { DEFAULT_USER, TILIE_AGENT } from "@timetoalign/tilie-core";
 import { defaultCatalogue, fontMetrics, isJsonObject } from "@timetoalign/timetoshare";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   added,
+  believed,
   commandOf,
-  confirmed,
   dayOf,
-  rejected,
-  rejectedRectangle,
-  removedRectangle,
+  removed,
+  stated,
+  TIE_NOTE,
   tied,
 } from "../src/inspector/metadata/edits.ts";
-import type { Frame } from "../src/inspector/metadata/frame.ts";
-import { drawersOf, rectanglesOf, shownOf } from "../src/inspector/metadata/frame.ts";
+import type { Frame, Pair } from "../src/inspector/metadata/frame.ts";
+import { beliefOf, candidatesOf, rectanglesOf, shownOf } from "../src/inspector/metadata/frame.ts";
 import { fixture, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
+const P = "https://example.org/people/editor";
+const YOUTUBE: Pair = ["schema:sameAs", { id: "https://www.youtube.com/watch?v=Ch2mrPm1JnM" }];
 /** The shipped catalogue: what the tab offers without type profiles. */
 const CATALOGUE = defaultCatalogue();
 
@@ -53,14 +55,14 @@ function member(at: Frame, name: "statements" | "provenance"): unknown {
 
 const today = () => dayOf(new Date());
 
-describe("confirming and rejecting a proposal", () => {
-  it("states cpt_1's proposed pair and confirms its annotation in place", () => {
+describe("stating and believing a candidate", () => {
+  it("states cpt_1's candidate, its entry kept as made, with the user's belief true", () => {
     const at = frame("cpt_1");
-    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
-    if (row === undefined) throw new Error("no proposal");
+    const [row] = candidatesOf(at, CATALOGUE, DEFAULT_USER).offered;
+    if (row === undefined) throw new Error("no candidate");
     const before = member(at, "provenance") as unknown[];
     const statements = member(at, "statements") as Record<string, unknown>;
-    expect(commandOf(at, confirmed(at, row, DEFAULT_USER, today()))).toEqual({
+    expect(commandOf(at, stated(at, row, G, today()))).toEqual({
       type: "set",
       changes: [
         {
@@ -71,12 +73,12 @@ describe("confirming and rejecting a proposal", () => {
               ...before.slice(0, 3),
               {
                 basis: ["#clt_6", "#dpt_1"],
-                date: "2026-11-20",
+                beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
+                date: "2026-11-18",
                 method: "inferred",
                 note: "from the encoding's work and the WAV's source; whether the video holds the whole movement is unchecked",
                 property: "wdt:P2550",
-                stated_by: [G],
-                status: "confirmed",
+                stated_by: ["https://example.org/agents/tilie"],
                 value: { id: "wd:Q29117946" },
               },
             ],
@@ -86,11 +88,12 @@ describe("confirming and rejecting a proposal", () => {
     });
   });
 
-  it("rejects dpt_1's proposal in its annotation alone", () => {
+  it("believes dpt_1's candidate false in its entry alone, and sets it apart", () => {
     const at = frame("dpt_1");
-    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
-    if (row === undefined) throw new Error("no proposal");
-    expect(commandOf(at, rejected(at, row, DEFAULT_USER, today()))).toEqual({
+    const [row] = candidatesOf(at, CATALOGUE, DEFAULT_USER).offered;
+    if (row === undefined) throw new Error("no candidate");
+    const after = believed(at, row.subject, row.pair, G, "false", today());
+    expect(commandOf(at, after)).toEqual({
       type: "set",
       changes: [
         {
@@ -98,12 +101,12 @@ describe("confirming and rejecting a proposal", () => {
           values: {
             provenance: [
               {
-                date: "2026-11-20",
+                beliefs: [{ actor: G, belief: "false", date: "2026-11-20" }],
+                date: "2026-11-18",
                 method: "inferred",
                 note: "assumed ripped from the video's sound and cut",
                 property: "dcterms:source",
-                stated_by: [G],
-                status: "rejected",
+                stated_by: [P],
                 value: { id: "#cpt_1" },
               },
             ],
@@ -111,32 +114,47 @@ describe("confirming and rejecting a proposal", () => {
         },
       ],
     });
+    const found = candidatesOf({ ...at, skeleton: after }, CATALOGUE, DEFAULT_USER);
+    expect(found.offered).toEqual([]);
+    expect(
+      found.dismissed.map((item) => [
+        item.heading,
+        item.line.beliefs.map((held) => [held.actor, held.belief, held.date]),
+        beliefOf(item.line, DEFAULT_USER),
+      ]),
+    ).toEqual([["is derived from, is based on", [[G, "false", "2026-11-20"]], "false"]]);
   });
 });
 
-describe("removing and rejecting a rectangle", () => {
-  it("removes cpt_1's same as with its annotation, or keeps it rejected", () => {
+describe("believing and removing a stated pair", () => {
+  it("records the belief beside P's and leaves the pair stated; a second one replaces it", () => {
     const at = frame("cpt_1");
-    const same = rectanglesOf(at, CATALOGUE, DEFAULT_USER)[2];
-    if (same === undefined) throw new Error("no same as");
-    const { "schema:sameAs": _, ...statements } = member(at, "statements") as Record<
-      string,
-      unknown
-    >;
     const [first, ...others] = member(at, "provenance") as Record<string, unknown>[];
-    expect(commandOf(at, removedRectangle(at, same))).toEqual({
-      type: "set",
-      changes: [{ target: { block: A, id: "cpt_1" }, values: { statements, provenance: others } }],
-    });
-    expect(commandOf(at, rejectedRectangle(at, same, DEFAULT_USER, today()))).toEqual({
+    const p = { actor: P, belief: "true", date: "2026-11-18" };
+    const once = believed(at, at.path, YOUTUBE, G, "false", today());
+    expect(commandOf(at, once)).toEqual({
       type: "set",
       changes: [
         {
           target: { block: A, id: "cpt_1" },
           values: {
-            statements,
             provenance: [
-              { ...first, status: "rejected", stated_by: [G], date: "2026-11-20" },
+              { ...first, beliefs: [p, { actor: G, belief: "false", date: "2026-11-20" }] },
+              ...others,
+            ],
+          },
+        },
+      ],
+    });
+    const twice = believed({ ...at, skeleton: once }, at.path, YOUTUBE, G, "unlikely", today());
+    expect(commandOf(at, twice)).toEqual({
+      type: "set",
+      changes: [
+        {
+          target: { block: A, id: "cpt_1" },
+          values: {
+            provenance: [
+              { ...first, beliefs: [p, { actor: G, belief: "unlikely", date: "2026-11-20" }] },
               ...others,
             ],
           },
@@ -144,10 +162,23 @@ describe("removing and rejecting a rectangle", () => {
       ],
     });
   });
+
+  it("removes cpt_1's same as pair with its entry", () => {
+    const at = frame("cpt_1");
+    const { "schema:sameAs": _, ...statements } = member(at, "statements") as Record<
+      string,
+      unknown
+    >;
+    const [, ...others] = member(at, "provenance") as Record<string, unknown>[];
+    expect(commandOf(at, removed(at, YOUTUBE))).toEqual({
+      type: "set",
+      changes: [{ target: { block: A, id: "cpt_1" }, values: { statements, provenance: others } }],
+    });
+  });
 });
 
 describe("adding and tying", () => {
-  it("states a pair on cpt_2 with one confirmed annotation", () => {
+  it("states a pair on cpt_2 with its paradata and the user's belief true", () => {
     const at = frame("cpt_2");
     const value = { id: "wd:Q235650", label: "Maria João Pires" };
     const after = added(at, [["wdt:P175", value]], {
@@ -164,11 +195,11 @@ describe("adding and tying", () => {
             statements: { "wdt:P175": [value] },
             provenance: [
               {
+                beliefs: [{ actor: G, belief: "true", date: "2026-11-20" }],
                 date: "2026-11-20",
                 method: "manual",
                 property: "wdt:P175",
                 stated_by: [G],
-                status: "confirmed",
                 value: { id: "wd:Q235650" },
               },
             ],
@@ -178,12 +209,30 @@ describe("adding and tying", () => {
     });
   });
 
-  it("ties a value node to the first thing by same as, and leaves the thing itself", () => {
+  it("ties a value node to the first thing by same as, saying so, and leaves the thing itself", () => {
     const thing = { system: "wikidata", iri: "http://www.wikidata.org/entity/Q235650" };
-    expect(tied([["rel:prf", { id: "gnd:124927521" }]], thing, CATALOGUE.prefixes)).toEqual([
-      ["rel:prf", { id: "gnd:124927521", "schema:sameAs": [{ id: "wd:Q235650" }] }],
+    const day = today();
+    expect(tied([["rel:prf", { id: "gnd:124927521" }]], thing, CATALOGUE.prefixes, day)).toEqual([
+      [
+        "rel:prf",
+        {
+          id: "gnd:124927521",
+          "schema:sameAs": [{ id: "wd:Q235650" }],
+          provenance: [
+            {
+              basis: ["http://www.wikidata.org/entity/Q235650"],
+              date: "2026-11-20",
+              method: "inferred",
+              note: TIE_NOTE,
+              property: "schema:sameAs",
+              stated_by: [TILIE_AGENT],
+              value: { id: "wd:Q235650" },
+            },
+          ],
+        },
+      ],
     ]);
-    expect(tied([["wdt:P175", { id: "wd:Q235650" }]], thing, CATALOGUE.prefixes)).toEqual([
+    expect(tied([["wdt:P175", { id: "wd:Q235650" }]], thing, CATALOGUE.prefixes, day)).toEqual([
       ["wdt:P175", { id: "wd:Q235650" }],
     ]);
   });
@@ -197,10 +246,8 @@ describe("nothing changed, and a refusal", () => {
 
   it("lets the statement functions' error reach the caller", () => {
     const at = frame("cpt_2");
-    const same = rectanglesOf(frame("cpt_1"), CATALOGUE, DEFAULT_USER)[2];
-    if (same === undefined) throw new Error("no same as");
-    expect(() => removedRectangle(at, same)).toThrow(
-      new Error("'schema:sameAs' does not have this value"),
-    );
+    const [pair] = rectanglesOf(frame("cpt_1"), CATALOGUE, DEFAULT_USER)[2]?.pairs ?? [];
+    if (pair === undefined) throw new Error("no same as");
+    expect(() => removed(at, pair)).toThrow(new Error("'schema:sameAs' does not have this value"));
   });
 });

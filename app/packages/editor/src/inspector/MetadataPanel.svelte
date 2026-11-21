@@ -2,58 +2,51 @@
 /**
  * The Metadata tab: the statements of the shown element (`shownOf`: the
  * selected bundle, timeline or region, the edited element in an editor, the
- * one bundle at the top level) as rectangles, one verb about one thing
- * each, "is a" first; "＋ Add statement" and the composer; the drawers of
- * what is proposed and rejected. Each action is one
- * `set` of the statements and provenance it changes, built on the
- * manifest's statement skeleton by TimeToShare's functions; their throws
- * and the store's refusals are posted to the message bar as warnings. The
- * user who states comes from the editor's user; the choices from its type
+ * one bundle at the top level) as tiles, one verb about one thing each, "is
+ * a" first, saying in a sentence what the element is; "＋ Add statement"
+ * and the composer; the candidates offered to the user and those the user
+ * believes false. Each action is one `set` of the statements and
+ * provenance it changes, built on the manifest's statement skeleton by
+ * TimeToShare's functions; their throws and the store's refusals are posted
+ * to the message bar as warnings. The user who states and believes (the
+ * actor, an IRI) comes from the editor's user; the choices from its type
  * profiles' catalogue; lookups from its lookup, which also proposes matches
  * for the names stated without an identifier of the element and every
  * element below it.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
-import type { PathSegment, Skeleton, Store, View } from "@timetoalign/tilie-core";
+import type { Skeleton, Store, View } from "@timetoalign/tilie-core";
 import { addressWords } from "@timetoalign/tilie-core";
-import { isJsonObject, samePair } from "@timetoalign/timetoshare";
+import type { Belief } from "@timetoalign/timetoshare";
+import { samePair } from "@timetoalign/timetoshare";
 import { onDestroy, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { lookupOf } from "../lookup/index.ts";
 import { informOf, warnOf } from "../messages.svelte.ts";
 import { profilesOf } from "../profiles/profiles.svelte.ts";
 import { userOf } from "../user.svelte.ts";
+import Candidates from "./metadata/Candidates.svelte";
 import Composer from "./metadata/Composer.svelte";
 import { systemChoice } from "./metadata/catalogue.ts";
 import { ComposerState } from "./metadata/composer.svelte.ts";
-import Drawers from "./metadata/Drawers.svelte";
 import type { EntryFields } from "./metadata/edits.ts";
+import { added, believed, commandOf, dayOf, removed, stated } from "./metadata/edits.ts";
+import type { CandidateRow, Frame, Pair, RectangleView } from "./metadata/frame.ts";
 import {
-  added,
-  commandOf,
-  confirmed,
-  dayOf,
-  rejected,
-  rejectedRectangle,
-  removedRectangle,
-} from "./metadata/edits.ts";
-import type { DrawerRow, Frame, Pair, RectangleView } from "./metadata/frame.ts";
-import {
-  drawersOf,
-  entryPair,
+  candidatesOf,
   framePrefixes,
   rectanglesOf,
-  rectangleWords,
   shownOf,
+  typeSentence,
 } from "./metadata/frame.ts";
 import type { Placed } from "./metadata/proposals.ts";
 import {
   answersTo,
-  confirmedProposal,
   frameIn,
   proposed,
   proposedText,
   questionsOf,
+  statedForName,
   unreconciledOf,
 } from "./metadata/proposals.ts";
 import Rectangle from "./metadata/Rectangle.svelte";
@@ -74,7 +67,6 @@ let {
 } = $props();
 
 const ADD_BUTTON = '[data-testid="metadata-add-statement"]';
-const REJECTED_SUMMARY = '[data-testid="metadata-drawer-rejected"] summary';
 
 const inform = informOf();
 const warn = warnOf();
@@ -90,7 +82,15 @@ const composer = new ComposerState();
 const shown = $derived(shownOf(view, subjects, editing));
 const frame = $derived(shown.kind === "none" ? null : shown);
 const rectangles = $derived(frame === null ? [] : rectanglesOf(frame, catalogue, user.state.user));
-const drawers = $derived(frame === null ? null : drawersOf(frame, catalogue, user.state.user));
+/** What the first tile says: the element is a … */
+const sentence = $derived(
+  frame === null || rectangles[0] === undefined
+    ? null
+    : typeSentence(frame, catalogue, rectangles[0]),
+);
+const candidates = $derived(
+  frame === null ? null : candidatesOf(frame, catalogue, user.state.user),
+);
 /** The names below the shown element stated without an identifier that the lookup can look up. */
 const unreconciled = $derived(frame === null ? [] : unreconciledOf(frame, catalogue, lookup));
 /**
@@ -102,7 +102,7 @@ let proposingFor: string | null = $state(null);
 /** Ends the lookups of the proposals when the panel goes. */
 const proposals = new AbortController();
 onDestroy(() => proposals.abort());
-/** The user line: who states what is added here. */
+/** The user line: who states and believes what is done here. */
 const userLine = $derived(
   user.state.orcid === null
     ? `You state as ${user.state.name}.`
@@ -162,7 +162,7 @@ function holderOf(pair: Pair): string | null {
   const context = frame.skeleton["@context"];
   return (
     rectanglesOf(frame, catalogue, user.state.user).find((rectangle) =>
-      rectangle.pairs.some((stated) => samePair(context, stated, pair)),
+      rectangle.pairs.some((held) => samePair(context, held, pair)),
     )?.key ?? null
   );
 }
@@ -174,20 +174,24 @@ function neighbourOf(key: string): string {
   return next === undefined || index < 0 ? ADD_BUTTON : rectangleSelector(next.key);
 }
 
-function remove(at: Frame, rectangle: RectangleView): void {
+/**
+ * Remove a stated pair; the focus moves to the tile still holding the
+ * rectangle's other pairs, else to the next tile, else to the Add button.
+ */
+function remove(at: Frame, rectangle: RectangleView, pair: Pair): void {
+  const context = at.skeleton["@context"];
+  const other = rectangle.pairs.find((held) => !samePair(context, held, pair));
   const after = neighbourOf(rectangle.key);
-  if (edit(at, () => removedRectangle(at, rectangle))) void focusAfter(() => after);
+  if (!edit(at, () => removed(at, pair))) return;
+  void focusAfter(() => {
+    const key = other === undefined ? null : holderOf(other);
+    return key === null ? after : rectangleSelector(key);
+  });
 }
 
-/** Reject a rectangle's pairs; the focus moves to the next rectangle, else to the Rejected drawer. */
-function reject(at: Frame, rectangle: RectangleView): void {
-  const index = rectangles.findIndex((item) => item.key === rectangle.key);
-  const next = index < 0 ? undefined : rectangles[index + 1];
-  const after = next === undefined ? REJECTED_SUMMARY : rectangleSelector(next.key);
-  if (edit(at, () => rejectedRectangle(at, rectangle, user.state.user, dayOf(new Date())))) {
-    inform(`Rejected “${rectangleWords(rectangle)}”: it is listed under Rejected.`);
-    void focusAfter(() => after);
-  }
+/** Record the user's belief in a stated pair; the pair stays stated whatever the belief. */
+function believe(at: Frame, pair: Pair, belief: Belief): void {
+  edit(at, () => believed(at, at.path, pair, user.state.statedBy, belief, dayOf(new Date())));
 }
 
 /** Open the composer: to add a statement, to state "is a", or to state a rectangle in another vocabulary. */
@@ -226,59 +230,52 @@ function add(at: Frame, pairs: readonly Pair[], fields: EntryFields): void {
   }
 }
 
-/** The next row of a drawer after `row`, else its summary. */
-function afterRow(row: DrawerRow, list: readonly DrawerRow[], drawer: string): () => string {
-  const index = list.findIndex((candidate) => candidate.key === row.key);
+/** The Details button of the row after `row` in `list`, else of the one before, else the list's summary. */
+function afterRow(row: CandidateRow, list: readonly CandidateRow[], testid: string): () => string {
+  const index = list.findIndex((item) => item.key === row.key);
   const next = list[index + 1] ?? list[index - 1];
   return () =>
     next === undefined
-      ? `[data-testid="${drawer}"] summary`
+      ? `[data-testid="${testid}"] summary`
       : `[data-key="${CSS.escape(next.key)}"] button`;
 }
 
-/** The pair stated of the shown element that `subject` lies in: `own` itself, or the pair holding the value node. */
-function topPair(at: Frame, subject: readonly PathSegment[], own: Pair): Pair | null {
-  if (subject.length === at.path.length) return own;
-  const [, key, index] = subject.slice(at.path.length);
-  const values = valuesAt(at, key);
-  const value = Array.isArray(values) && typeof index === "number" ? values[index] : undefined;
-  return typeof key === "string" && value !== undefined ? [key, value] : null;
-}
-
-/** The values the shown element states for `key`. */
-function valuesAt(at: Frame, key: PathSegment | undefined): unknown {
-  let value: unknown = at.skeleton;
-  for (const step of at.path) {
-    if (Array.isArray(value) && typeof step === "number") value = value[step];
-    else if (isJsonObject(value) && typeof step === "string") value = value[step];
-  }
-  const statements = isJsonObject(value) ? value.statements : undefined;
-  return isJsonObject(statements) && typeof key === "string" ? statements[key] : undefined;
-}
-
-function confirm(at: Frame, row: DrawerRow): void {
-  const pair = topPair(at, row.subject, entryPair(at.skeleton["@context"], { ...row.entry }));
-  const proposed = drawers?.proposed.includes(row) ?? false;
+/**
+ * Record the user's belief in a candidate. True states it (in place of
+ * the one name it was found for, where it is such a candidate) and gives
+ * the focus to the tile holding it; false sets it apart, unlikely keeps it
+ * offered, the focus moving on in the list it leaves.
+ */
+function believeCandidate(at: Frame, row: CandidateRow, belief: Belief): void {
+  if (candidates === null) return;
+  const offered = candidates.offered.includes(row);
   const fallback = afterRow(
     row,
-    (proposed ? drawers?.proposed : drawers?.rejected) ?? [],
-    proposed ? "metadata-drawer-proposed" : "metadata-drawer-rejected",
+    offered ? candidates.offered : candidates.dismissed,
+    offered ? "metadata-candidates" : "metadata-dismissed",
   );
+  const actor = user.state.statedBy;
   const day = dayOf(new Date());
-  const change = () =>
-    confirmedProposal(at, row, user.state.user, day) ?? confirmed(at, row, user.state.user, day);
-  if (!edit(at, change)) return;
-  void focusAfter(() => {
-    const key = pair === null ? null : holderOf(pair);
-    return key === null ? fallback() : rectangleSelector(key);
-  });
+  if (belief === "true") {
+    const change = () => statedForName(at, row, actor, day) ?? stated(at, row, actor, day);
+    if (!edit(at, change)) return;
+    void focusAfter(() => {
+      const key = row.subject.length === at.path.length ? holderOf(row.pair) : null;
+      return key === null ? fallback() : rectangleSelector(key);
+    });
+    return;
+  }
+  const leaves = offered === (belief === "false");
+  if (edit(at, () => believed(at, row.subject, row.pair, actor, belief, day)) && leaves) {
+    void focusAfter(fallback);
+  }
 }
 
 /**
  * Propose matches for the names below `at` stated without an identifier:
- * each looked up once per system, the answers proposed by TiLiE in one `set`
- * on the element as it stands when they arrive; a system that cannot be
- * searched is named.
+ * each looked up once per system, the answers written as TiLiE's candidates
+ * in one `set` on the element as it stands when they arrive; a system that
+ * cannot be searched is named.
  */
 async function propose(at: Frame): Promise<void> {
   if (proposingFor !== null) return;
@@ -320,32 +317,25 @@ async function propose(at: Frame): Promise<void> {
     );
   }
 }
-
-function rejectRow(at: Frame, row: DrawerRow): void {
-  const after = afterRow(row, drawers?.proposed ?? [], "metadata-drawer-proposed");
-  if (edit(at, () => rejected(at, row, user.state.user, dayOf(new Date())))) {
-    void focusAfter(after);
-  }
-}
 </script>
 
 <div class="metadata" {@attach held}>
   {#if frame === null}
     <p class="hint">{shown.kind === "none" ? shown.hint : ""}</p>
   {:else}
-    <p class="subject">This {frame.words}.</p>
     <p class="user" data-testid="metadata-user">
       {userLine}
       <button type="button" onclick={() => void user.ask()}>Change…</button>
     </p>
-    <ol aria-label="Statements">
-      {#each rectangles as rectangle (rectangle.key)}
+    <ol aria-label="Statements of {frame.words}">
+      {#each rectangles as rectangle, index (rectangle.key)}
         <li>
           <Rectangle
             {rectangle}
             {frame}
-            onremove={() => remove(frame, rectangle)}
-            onreject={() => reject(frame, rectangle)}
+            sentence={index === 0 && sentence !== null ? sentence : undefined}
+            onbelieve={(pair, belief) => believe(frame, pair, belief)}
+            onremove={(pair) => remove(frame, rectangle, pair)}
             onvocabulary={() => openComposer(frame, rectangle)}
             onstate={() => openComposer(frame, rectangle)}
           />
@@ -368,13 +358,12 @@ function rejectRow(at: Frame, row: DrawerRow): void {
         oncancel={cancel}
       />
     {/if}
-    {#if drawers !== null}
-      <Drawers
-        {drawers}
+    {#if candidates !== null}
+      <Candidates
+        {candidates}
         unreconciled={unreconciled.length}
         proposing={proposingFor === frame.key}
-        onconfirm={(row) => confirm(frame, row)}
-        onreject={(row) => rejectRow(frame, row)}
+        onbelieve={(row, belief) => believeCandidate(frame, row, belief)}
         onpropose={() => void propose(frame)}
       />
     {/if}

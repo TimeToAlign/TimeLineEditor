@@ -507,22 +507,38 @@ recorded. Exports are read with `loads`, so their IDs are written `#id`.
 `G` = `tag:timetoalign.github.io,2026:tilie:user:Gerhardt`. Headings are
 the shipped catalogue's labels.
 
-1. **As imported.** One block, no refusal. `cpt_1`: headings "is a",
-   "performed by", "same as"; "performed by" labelled "Maria João Pires"
-   with rows `rel:prf viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗`; a
-   "＋ vocabulary" button on each of the three rectangles (each has a
-   vocabulary not yet used); drawers "Proposed (1)", "Rejected (0)"; the
-   proposed row "is a recording of Clair de lune" with Confirm and Reject.
-   `clt_6`: "Rejected (1)", its row naming `gnd:1156628156`. `dpt_1`:
-   "Proposed (1)". The bundle: the empty "is a" with "State what it is".
-2. **Confirm.** On `cpt_1`, Confirm: "is a recording of" follows "same
-   as", the journal grows by one; the export's `#cpt_1` states
-   `wdt:P2550: [{id: "wd:Q29117946"}]`, its annotation 3 confirmed by `G`
-   on 2026-11-20 with basis, method and note kept. Undo brings the
-   proposal back.
-3. **Reject.** On `dpt_1`, Reject: "Rejected (1)"; the export's `#dpt_1`
-   states no `dcterms:source`, its one annotation rejected by `G` on
-   2026-11-20, method `inferred` and note kept.
+A tile's heading is its sentence: the first tile's says what the element
+is ("<name> is a <type>", the catalogue types its "is a" states), every
+other one's is its verb and its label. `P` =
+`https://example.org/people/editor`, `T` = `https://example.org/agents/tilie`
+(the fixture's annotators), `TILIE` =
+`https://github.com/TimeToAlign/TimeLineEditor`.
+
+1. **As imported.** One block, no refusal. `cpt_1`: headings
+   "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical is
+   a video.", "performed by Maria João Pires", "same as", every tile
+   collapsed (its pairs hidden), no "Status" text; "performed by"
+   expanded: labelled "Maria João Pires", its pair rows `rel:prf
+   viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗` (the Details buttons
+   write no text into the row; their word is drawn), a "＋ Add vocabulary"
+   button on each of the three tiles (each has a vocabulary not yet
+   used); "Candidates (1)", "Believed false by you (0)"; the candidate
+   "is a recording of Clair de lune". `clt_6`: "Candidates (1)", the
+   candidate naming `gnd:1156628156`, whose details list "P believes it
+   false (2026-11-18)": another actor's belief, so it is still offered
+   to the user. `dpt_1`: "Candidates (1)". The bundle: "Nothing states
+   yet what LayerIt, Clair de lune mm. 1–6 (Pires) is." with "State what
+   it is".
+2. **A candidate believed true.** On `cpt_1`, True in the candidate's
+   details: "is a recording of" follows "same as", the journal grows by
+   one; the export's `#cpt_1` states `wdt:P2550: [{id: "wd:Q29117946"}]`,
+   its entry 3 kept as made (`stated_by: [T]`, 2026-11-18, method, basis
+   and note) with `beliefs: [{actor: G, belief: "true", date:
+   "2026-11-20"}]`. Undo brings the candidate back.
+3. **A candidate believed false.** On `dpt_1`, False: "Candidates (0)",
+   "Believed false by you (1)"; the export's `#dpt_1` states no
+   `dcterms:source`, its one entry kept as made with `G`'s belief
+   `"false"` of 2026-11-20.
 4. **Paste.** On `cpt_2`, "＋ Add statement", then
    `https://www.wikidata.org/wiki/Q235650` pasted into Value (a `paste`
    event dispatched with the text as `text/plain`, stated both in the
@@ -531,34 +547,41 @@ the shipped catalogue's labels.
    other engines the latter): Vocabulary
    reads "Wikidata", Value the label "Maria João Pires" (from the recorded
    entity), Verb has the focus; "perf", ArrowDown, Enter, Add: a "performed
-   by" rectangle with the row `wdt:P175 wd:Q235650 ↗`; the export's
-   `#cpt_2` states `{"wdt:P175": [{id: "wd:Q235650", label: "Maria João
-   Pires"}]}`, annotated `manual` by `G`, no `service`.
-5. **＋ vocabulary.** On `cpt_1`'s "performed by", "＋ vocabulary", GND:
-   the first Value option is the GND's preferred name of record
-   `124927521` (read from the recording), offered from Wikidata's P227 of
-   `Q235650`; Add puts the row `rel:prf gnd:124927521 ↗` between the two
-   rows; the export's `rel:prf` gains `{id: "gnd:124927521", label: <that
-   name>, "schema:sameAs": [{id: "wd:Q235650"}]}`, annotated `reconciled`,
-   service `https://www.wikidata.org/w/api.php`, basis
-   `http://www.wikidata.org/entity/Q235650`, match `exact`.
+   by Maria João Pires" tile after "Nothing states yet what cpt_2 is.",
+   expanded the row `wdt:P175 wd:Q235650 ↗`; the export's `#cpt_2` states
+   `{"wdt:P175": [{id: "wd:Q235650", label: "Maria João Pires"}]}`, its
+   entry `manual` by `G`, no `service`, with `G`'s belief `"true"`.
+5. **＋ Add vocabulary.** On `cpt_1`'s "performed by", expanded, "＋ Add
+   vocabulary", GND: the first Value option is the GND's preferred name of
+   record `124927521` (read from the recording), offered from Wikidata's
+   P227 of `Q235650`; Add puts the row `rel:prf gnd:124927521 ↗` between
+   the two rows; the export's `rel:prf` gains `{id: "gnd:124927521",
+   label: <that name>, "schema:sameAs": [{id: "wd:Q235650"}], provenance:
+   [the tie]}`, the tie an entry `inferred` by `TILIE` on 2026-11-20 with
+   basis `http://www.wikidata.org/entity/Q235650` and the note "written by
+   “＋ Add vocabulary” to keep the value with the thing it was chosen for",
+   no belief; the pair's own entry `reconciled`, service
+   `https://www.wikidata.org/w/api.php`, basis
+   `http://www.wikidata.org/entity/Q235650`, match `exact`, with `G`'s
+   belief `"true"`.
 6. **The user.** File, "Your name…", "Clara Wieck" and
    `https://orcid.org/0000-0002-1825-0097`, Save: the user line reads "You
-   state as Clara Wieck (ORCID iD 0000-0002-1825-0097)."; Remove on "same
-   as" journals an entry by "Clara Wieck"; a Confirm then is stated by
+   state as Clara Wieck (ORCID iD 0000-0002-1825-0097)."; Remove in the
+   details of the "same as" pair journals an entry by "Clara Wieck"; the
+   candidate believed true then carries the belief `"true"` of the actor
    `https://orcid.org/0000-0002-1825-0097`; after a reload `tilie.user`
    holds `{"name":"Clara Wieck","orcid":"0000-0002-1825-0097"}`.
 7. **Keyboard only.** Flow 4 from Enter on "＋ Add statement", Tab, the
    arrows, Enter and Escape (the paste dispatched as the clipboard would):
-   Escape in the open Verb listbox closes it and leaves the composer open.
-8. **Reject a rectangle.** On `cpt_1`, "performed by" shows "Status:
-   confirmed" and a button named "Reject performed by Maria João Pires";
-   focused, ArrowDown and ArrowUp change nothing (no journal entry, the
-   three rectangles kept); Enter rejects: "is a" and "same as" left, the
-   focus on "same as", the message "Rejected “performed by Maria João
-   Pires”: it is listed under Rejected." shown, "Rejected (2)", one journal
-   entry; the export's `#cpt_1` states neither `rel:prf` nor `wdt:P175`,
-   their two annotations rejected by `G` on 2026-11-20.
+   Escape in the open Verb listbox closes it and leaves the composer open;
+   Enter on the new tile's focused expand button expands it.
+8. **A stated pair believed false.** On `cpt_1`, "performed by" expanded,
+   the details of `wdt:P175 wd:Q235650`: its False button focused,
+   ArrowDown and ArrowUp change nothing (no journal entry, not pressed);
+   Enter: False pressed, one journal entry, the three tiles kept; the
+   export's `#cpt_1` still states `wdt:P175` as imported, its entry
+   holding `P`'s belief `"true"` and `G`'s `"false"` of 2026-11-20.
+   Believing a pair false records the belief and never removes the pair.
 
 **`metadata-pick.spec.ts`** (Chromium) starts as `metadata.spec.ts` does
 (the import, the replayed lookups and the fixed clock are `metadata.ts`'s,
@@ -587,20 +610,24 @@ shared by both specs).
    (timeline)", the picking ends, the selection is still `cpt_2` alone and
    nothing is journalled.
 4. **Bulk.** `cpt_2` given `{"rel:prf": [{label: "Maria João Pires"}]}` by
-   a `set` through the hook; on `cpt_2` the Proposed drawer, opened, offers
+   a `set` through the hook; on `cpt_2` the Candidates list, opened, offers
    "Propose matches for unreconciled names" beside "1 name without an
    identifier here and below"; pressed (Wikidata's and the GND's recorded
    agent searches for that text answer, `Q235650` and `1057057150` first,
    Wikidata's preferred; MusicBrainz, whose route no server answers here,
-   is not pinned): one journal entry and one proposed row, the
-   information "Proposed 1 match: they are listed under Proposed.", no
+   is not pinned): one journal entry and one candidate row, the
+   information "Proposed 1 match: they are listed under Candidates.", no
    message that Wikidata or the GND could not be searched, "performed
-   by Maria João Pires" (the label `cpt_1` gives `wd:Q235650`), "reconciled
-   · TiLiE · 2026-11-20", the note "found for the name “Maria João
-   Pires”". Confirm: the export's `#cpt_2` states exactly `{"rel:prf": [{id:
-   "wd:Q235650", label: "Maria João Pires"}]}`, the label-only node gone,
-   and its one annotation `confirmed` by `G` with `method: reconciled`,
-   `service: https://www.wikidata.org/w/api.php`, `match: close`.
+   by Maria João Pires" (the label `cpt_1` gives `wd:Q235650`); its
+   details list stated by "TiLiE", method "reconciled", service
+   `https://www.wikidata.org/w/api.php`, the note "found for the name
+   “Maria João Pires”", date 2026-11-20 (no match: Wikidata's search
+   states none) and "No one has stated a belief.". True: the export's
+   `#cpt_2` states exactly `{"rel:prf": [{id: "wd:Q235650", label: "Maria
+   João Pires"}]}`, the label-only node gone (the one name under
+   `rel:prf`), and its one entry kept as made (`stated_by: [TILIE]`,
+   `method: reconciled`, the service and the note, no `match`) with `G`'s
+   belief `"true"` of 2026-11-20.
 
 **`profiles.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording as
 `metadata.spec.ts` does, the lookup hosts answered and aborted alike. The

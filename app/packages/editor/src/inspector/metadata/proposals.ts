@@ -2,18 +2,13 @@
  * Bulk proposals: the names stated without an identifier (value nodes with
  * a `label` and no `id`) of the shown element and every element below it,
  * looked up in the systems the lookup reconciles, the best candidate of each
- * proposed by TiLiE for review, never stated. Confirming such a proposal
- * states the identified thing in place of the name it was found for.
+ * written by TiLiE as a candidate for review, never stated. Stating such a
+ * candidate states the identified thing in place of the one name it can be
+ * for.
  */
 
-import type { PathSegment, Skeleton, User, View } from "@timetoalign/tilie-core";
-import {
-  canonicalText,
-  skeletonOf,
-  statedBy,
-  statementHolders,
-  TILIE_AGENT,
-} from "@timetoalign/tilie-core";
+import type { PathSegment, Skeleton, View } from "@timetoalign/tilie-core";
+import { canonicalText, skeletonOf, statementHolders, TILIE_AGENT } from "@timetoalign/tilie-core";
 import type { Catalogue, Pair } from "@timetoalign/timetoshare";
 import {
   entries,
@@ -22,14 +17,14 @@ import {
   samePair,
   subjectPath,
   verbOf,
-  withConfirmation,
+  withCandidate,
   withoutPair,
-  withProposal,
+  withPair,
 } from "@timetoalign/timetoshare";
 import type { Candidate, Lookup, ValueKind } from "../../lookup/index.ts";
 import type { JsonObject } from "./catalogue.ts";
 import { compactIri, systemChoices, valueKindOf } from "./catalogue.ts";
-import type { DrawerRow, Frame } from "./frame.ts";
+import type { CandidateRow, Frame } from "./frame.ts";
 import { entryPair, isNode } from "./frame.ts";
 
 /** The systems names are reconciled in, in the order their candidates are preferred. */
@@ -182,7 +177,7 @@ export async function answersTo(
   return { answers, failures };
 }
 
-/** The note of a proposal found for a name: it says which stated name the proposed thing would replace. */
+/** The note of a candidate found for a name, in words: which stated name it was looked up for. */
 export function proposalNote(label: string): string {
   return `found for the name “${label}”`;
 }
@@ -194,15 +189,15 @@ export interface Placed {
 }
 
 /**
- * The skeleton with the best candidate of each name proposed, as TiLiE's
- * proposal: the candidate of the first system in `RECONCILING` that found
- * one, `{id, label}` under the name's property on the name's subject,
- * annotated `reconciled` by the candidate's service on `day`, its match
- * `exact` where the service says it matches, else `close`, and the note
- * naming the name. A candidate the subject already states, or has any
- * annotation of (proposed, or rejected and so never proposed again), is
- * passed over. With the number proposed, and how many went to each element
- * (`placed`, those given one, in the order of their names).
+ * The skeleton with the best candidate of each name written as TiLiE's
+ * candidate (TimeToShare's `withCandidate`): the candidate of the first
+ * system in `RECONCILING` that found one, `{id}` under the name's property
+ * on the name's subject, `reconciled` by the candidate's service on `day`,
+ * its match `exact` where the service says it matches and none where it
+ * says nothing, and the note naming the name. A pair the subject already
+ * states, or has any entry of (a candidate, believed `false` by someone or
+ * not), is passed over. With the number proposed, and how many went to each
+ * element (`placed`, those given one, in the order of their names).
  */
 export function proposed(
   frame: Frame,
@@ -228,12 +223,12 @@ export function proposed(
         samePair(context, entryPair(context, entry), pair),
       );
     if (known) continue;
-    skeleton = withProposal(skeleton, item.subject, item.property, value, {
+    skeleton = withCandidate(skeleton, item.subject, item.property, value, {
       stated_by: [TILIE_AGENT],
       date: day,
       method: "reconciled",
       service: candidate.service,
-      match: candidate.match ? "exact" : "close",
+      ...(candidate.match ? { match: "exact" as const } : {}),
       note: proposalNote(item.label),
     });
     count += 1;
@@ -252,9 +247,9 @@ function matches(count: number): string {
 /**
  * What the panel says after proposing: how many, and where they are listed.
  * All on the element shown (`here`, its ID or `null` for the bundle): they
- * are listed under its Proposed. Some on elements below it: the count here,
- * then each other element's count and its words (`words`), in `placed`'s
- * order: "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; …".
+ * are listed under its Candidates. Some on elements below it: the count
+ * here, then each other element's count and its words (`words`), in
+ * `placed`'s order: "Proposed 3 matches: 2 here, 1 on timeline 'clt_6'; …".
  */
 export function proposedText(
   placed: readonly Placed[],
@@ -263,56 +258,49 @@ export function proposedText(
 ): string {
   const total = placed.reduce((sum, entry) => sum + entry.count, 0);
   const others = placed.filter((entry) => entry.holder !== here);
-  if (others.length === 0) return `Proposed ${matches(total)}: they are listed under Proposed.`;
+  if (others.length === 0) return `Proposed ${matches(total)}: they are listed under Candidates.`;
   const own = placed.find((entry) => entry.holder === here)?.count ?? 0;
   const parts = [
     `${own} here`,
     ...others.map((entry) => `${entry.count} on ${words(entry.holder)}`),
   ];
-  return `Proposed ${matches(total)}: ${parts.join(", ")}; each is listed under Proposed of the element it is proposed for.`;
+  return `Proposed ${matches(total)}: ${parts.join(", ")}; each is listed under Candidates of the element it is proposed for.`;
 }
 
 /**
- * The skeleton with a proposal found for a name confirmed by `user` on
- * `day`: the name (a value node without `id` under the same property whose
- * label the proposal's note names) taken out, and the proposed thing stated
- * in its place, the name's node with the thing's `id`, so its label and
- * other keys stay; `null` for any other proposal, which is confirmed as it
- * is.
+ * The skeleton with a candidate for a name stated by `actor` on `day`: where
+ * the candidate's value is a thing (a node with `id`) and its subject states
+ * exactly one name under a property of the same IRI (a value node with a
+ * `label` and no `id`), that name is taken out and the thing stated in its
+ * place, the name's node with the thing's `id`, so its label and other keys
+ * stay; the candidate's entry becomes the stated pair's, with the actor's
+ * belief `true`. `null` for any other candidate, and where several names
+ * could be the one: the candidate is then stated as it is. The entry's
+ * `note` is words and is never read.
  */
-export function confirmedProposal(
+export function statedForName(
   frame: Frame,
-  row: DrawerRow,
-  user: User,
+  row: CandidateRow,
+  actor: string,
   day: string,
 ): Skeleton | null {
   const { skeleton } = frame;
   const context = skeleton["@context"];
-  const { note } = row.entry;
-  const [property, value] = entryPair(context, { ...row.entry });
-  if (typeof note !== "string" || !isNode(value) || typeof value.id !== "string") return null;
+  const [property, value] = row.pair;
+  if (!isNode(value) || typeof value.id !== "string") return null;
   const iri = expandIri(context, property);
-  const name = pairs(skeleton, row.subject).find(
-    ([key, stated]) =>
-      isNode(stated) &&
-      stated.id === undefined &&
-      typeof stated.label === "string" &&
-      proposalNote(stated.label) === note &&
+  const names = pairs(skeleton, row.subject).filter(
+    ([key, held]) =>
+      isNode(held) &&
+      held.id === undefined &&
+      typeof held.label === "string" &&
       expandIri(context, key) === iri,
   );
-  if (name === undefined || !isNode(name[1])) return null;
+  const [name, ...others] = names;
+  if (name === undefined || others.length > 0 || !isNode(name[1])) return null;
   const [key, node] = name;
   const without = withoutPair(skeleton, row.subject, key, node);
-  return withConfirmation(
-    without,
-    row.subject,
-    property,
-    { ...node, id: value.id },
-    {
-      stated_by: [statedBy(user)],
-      date: day,
-    },
-  );
+  return withPair(without, row.subject, property, { ...node, id: value.id }, { actor, date: day });
 }
 
 /**

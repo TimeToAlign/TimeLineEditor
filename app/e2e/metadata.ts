@@ -3,9 +3,9 @@
  * page with the clock fixed at 2026-11-20T12:00:00Z, every request to
  * Wikidata, lobid, YouTube or Wikimedia Commons answered from the editor's
  * recorded lookups (`packages/editor/tests/lookup/index.json`, by URL) and
- * aborted when it is not recorded; the tab, its drawers and composer
- * fields; and a timeline of the exported manifest, read with `loads`, so its
- * IDs are written `#id`.
+ * aborted when it is not recorded; the tab, its tiles, the details of a
+ * pair, its candidate lists and composer fields; and a timeline of the
+ * exported manifest, read with `loads`, so its IDs are written `#id`.
  */
 
 import { readFileSync } from "node:fs";
@@ -69,11 +69,37 @@ export async function showMetadata(page: Page, block: string, id: string | null)
   await tab(page, "Metadata").click();
 }
 
-/** The drawer `name` ("proposed" or "rejected"), opened. */
-export async function openDrawer(page: Page, name: string): Promise<Locator> {
-  const drawer = page.getByTestId(`metadata-drawer-${name}`);
-  if ((await drawer.getAttribute("open")) === null) await drawer.locator("summary").click();
-  return drawer;
+/** The candidate list `name` ("candidates", or "dismissed": those the user believes false), opened. */
+export async function openList(page: Page, name: "candidates" | "dismissed"): Promise<Locator> {
+  const list = page.getByTestId(`metadata-${name}`);
+  if ((await list.getAttribute("open")) === null) await list.locator("summary").click();
+  return list;
+}
+
+/** The tiles of the tab. */
+export const tiles = (page: Page): Locator => page.getByTestId("metadata-rectangle");
+
+/** The tiles' headings: the first tile's sentence, every other one's verb and label. */
+export const headings = (page: Page): Locator => page.getByTestId("metadata-heading");
+
+/** The tile whose heading begins with `heading`. */
+export const tile = (page: Page, heading: string): Locator =>
+  tiles(page).filter({
+    has: page.getByTestId("metadata-heading").filter({ hasText: new RegExp(`^\\s*${heading}`) }),
+  });
+
+/** Expand `tile` with its expand button, once. */
+export async function expand(tile: Locator): Promise<void> {
+  const toggle = tile.getByTestId("metadata-expand");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
+/** Open the details of the pair or candidate `name` ("rel:prf viaf:113931950", "is a recording of Clair de lune"). */
+export async function details(page: Page, name: string): Promise<Locator> {
+  const button = page.getByRole("button", { name: `Details of ${name}`, exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+  return page.locator(`[id="${await button.getAttribute("aria-controls")}"]`);
 }
 
 /** A composer field by its label. */

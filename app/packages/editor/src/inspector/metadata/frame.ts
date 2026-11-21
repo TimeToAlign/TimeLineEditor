@@ -1,11 +1,12 @@
 /**
  * The Metadata tab's view model: which element's statements it shows
- * (`shownOf`), its rectangles as the panel reads them (`rectanglesOf`: one
- * verb about one thing, in as many vocabularies as state it) and its
- * drawers (`drawersOf`: what is proposed and what was rejected).
- * Everything is read from the manifest's statement skeleton through
- * TimeToShare's statement functions and its catalogue; nothing here changes
- * a manifest.
+ * (`shownOf`), the sentence saying what it is (`typeSentence`), its
+ * rectangles as the panel reads them (`rectanglesOf`: one verb about one
+ * thing, in as many vocabularies as state it, each pair with its paradata
+ * and beliefs) and its candidates (`candidatesOf`: the pairs held only in
+ * provenance, those the user believes `false` apart). Everything is read
+ * from the manifest's statement skeleton through TimeToShare's statement
+ * functions and its catalogue; nothing here changes a manifest.
  */
 
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
@@ -31,8 +32,10 @@ import {
   TILIE_AGENT,
   USER_TAG,
 } from "@timetoalign/tilie-core";
-import type { Catalogue, Pair, ProvenanceEntry } from "@timetoalign/timetoshare";
+import type { Belief, Catalogue, Pair } from "@timetoalign/timetoshare";
 import {
+  BELIEFS,
+  candidates,
   entries,
   expandIri,
   isJsonObject,
@@ -44,7 +47,7 @@ import {
   verbOf,
 } from "@timetoalign/timetoshare";
 import type { JsonObject } from "./catalogue.ts";
-import { FALLBACK, prefixesOf, systemChoices, verbLabel } from "./catalogue.ts";
+import { FALLBACK, prefixesOf, systemChoices, typesOf, verbLabel } from "./catalogue.ts";
 
 /** A property and one of its values, as the statements container holds them. */
 export type { Pair };
@@ -59,6 +62,8 @@ export interface Frame {
   readonly id: string | null;
   /** The element as the tab names it, core's words. */
   readonly words: string;
+  /** The element's name, else its ID; the manifest's name, else its ID, for the bundle. */
+  readonly name: string;
   /** The statements of the block's manifest alone, at the paths they have in it. */
   readonly skeleton: Skeleton;
   /** The element's path in the skeleton (and in the manifest). */
@@ -99,6 +104,14 @@ function holderOf(
   }
 }
 
+/** The name of the element `id` of the block's manifest (`null`: the manifest's), else its ID. */
+function nameOf(block: Block, id: string | null): string {
+  for (const holder of statementHolders(block.manifest)) {
+    if (holder.id === id) return holder.name ?? holder.id ?? block.manifest.id ?? "The bundle";
+  }
+  return id ?? "The bundle";
+}
+
 /** The frame of the element `address` shows, resolved in `view`. */
 function shownAt(view: View, address: Address): Shown {
   const resolved = resolveAddress(view, address);
@@ -116,6 +129,7 @@ function shownAt(view: View, address: Address): Shown {
     block,
     target,
     words: addressWords(view, target),
+    name: nameOf(block, holder.id),
     skeleton,
     path: subjectPath(skeleton, holder.id),
     key: addressKey(target),
@@ -159,7 +173,18 @@ export interface VocabularyRow {
   readonly href: string | null;
 }
 
-/** An annotation of a pair as the panel prints it. */
+/** One actor's belief in a pair, as the panel prints it. */
+export interface BeliefLine {
+  /** The actor's IRI, as written. */
+  readonly actor: string;
+  /** The actor in words (`whoOf`). */
+  readonly who: string;
+  readonly belief: Belief;
+  readonly date: string | null;
+  readonly note: string | null;
+}
+
+/** A pair's provenance entry as the panel prints it: how it was made (paradata), and who believes it. */
 export interface EntryLine {
   readonly method: string | null;
   readonly who: string | null;
@@ -168,7 +193,7 @@ export interface EntryLine {
   readonly basis: readonly string[];
   readonly match: string | null;
   readonly note: string | null;
-  readonly status: string;
+  readonly beliefs: readonly BeliefLine[];
 }
 
 /** One verb about one thing, as a rectangle shows it. */
@@ -184,9 +209,9 @@ export interface RectangleView {
   readonly things: readonly Thing[];
   /** One row per pair, in pair order. */
   readonly rows: readonly VocabularyRow[];
-  /** Per pair, its confirmed annotation. */
+  /** Per pair, its provenance entry; `null` where it has none (the manifest's publisher states it). */
   readonly entries: readonly (EntryLine | null)[];
-  /** The systems "＋ vocabulary" offers: those of the verb not yet used here. */
+  /** The systems "＋ Add vocabulary" offers: those of the verb not yet used here. */
   readonly addable: readonly string[];
   readonly pairs: readonly Pair[];
 }
@@ -201,22 +226,23 @@ export function rectangleWords(rectangle: RectangleView): string {
   return thing === undefined ? rectangle.heading : `${rectangle.heading} ${thing}`;
 }
 
-/** One proposed or rejected pair in a drawer. */
-export interface DrawerRow {
+/** A candidate of the shown element or of a value node it states: a pair held only in provenance. */
+export interface CandidateRow {
   /** The canonical text of subject, property and value. */
   readonly key: string;
   /** The path of the element or value node the pair is about. */
   readonly subject: readonly PathSegment[];
   readonly heading: string;
   readonly label: string;
-  readonly entry: ProvenanceEntry;
+  /** The pair as the statement functions take it (`rdf:type` read back as `type`). */
+  readonly pair: Pair;
   readonly line: EntryLine;
 }
 
-/** What the two drawers hold. */
-export interface Drawers {
-  readonly proposed: readonly DrawerRow[];
-  readonly rejected: readonly DrawerRow[];
+/** The candidates of the shown element: those offered to the user, and those the user believes `false`. */
+export interface Candidates {
+  readonly offered: readonly CandidateRow[];
+  readonly dismissed: readonly CandidateRow[];
 }
 
 /**
@@ -241,11 +267,28 @@ export function whoOf(iri: string, user: User): string {
 
 const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
-/** The line an annotation prints. */
+const isBelief = (value: unknown): value is Belief =>
+  (BELIEFS as readonly unknown[]).includes(value);
+
+/** The line a provenance entry prints: its paradata, and its beliefs in their order. */
 export function lineOf(entry: JsonObject, user: User): EntryLine {
   const list = (value: unknown): string[] =>
     Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
   const by = list(entry.stated_by);
+  const beliefs = (Array.isArray(entry.beliefs) ? entry.beliefs : []).flatMap(
+    (held): BeliefLine[] =>
+      isJsonObject(held) && typeof held.actor === "string" && isBelief(held.belief)
+        ? [
+            {
+              actor: held.actor,
+              who: whoOf(held.actor, user),
+              belief: held.belief,
+              date: text(held.date),
+              note: text(held.note),
+            },
+          ]
+        : [],
+  );
   return {
     method: text(entry.method),
     who: by.length === 0 ? null : by.map((iri) => whoOf(iri, user)).join(", "),
@@ -254,8 +297,14 @@ export function lineOf(entry: JsonObject, user: User): EntryLine {
     basis: list(entry.basis),
     match: text(entry.match),
     note: text(entry.note),
-    status: text(entry.status) ?? "confirmed",
+    beliefs,
   };
+}
+
+/** The user's own belief among a line's beliefs, actors compared as the user's IRI; `null` for none. */
+export function beliefOf(line: EntryLine | null, user: User): Belief | null {
+  const actor = statedBy(user);
+  return line?.beliefs.find((held) => held.actor === actor)?.belief ?? null;
 }
 
 /** Whether `value` is a value object, a literal with `@value`. */
@@ -312,11 +361,6 @@ function contextOf(skeleton: Skeleton): JsonObject {
   return skeleton["@context"] as JsonObject;
 }
 
-/** The annotations of the subject at `path` with status `status`. */
-function entriesAt(skeleton: Skeleton, path: readonly PathSegment[], status?: string) {
-  return entries(skeleton, path, status as "confirmed" | undefined);
-}
-
 /** The pair an annotation is about: `rdf:type` read back as `type`. */
 export function entryPair(context: unknown, entry: JsonObject): Pair {
   const property = String(entry.property);
@@ -361,7 +405,7 @@ function patternProperties(
 }
 
 /**
- * The systems "＋ vocabulary" offers a rectangle: the verb's vocabularies
+ * The systems "＋ Add vocabulary" offers a rectangle: the verb's vocabularies
  * (`systemChoices`, an element of the manifest left out) not yet used. A
  * system is used when a pair's property is one its patterns state the verb
  * with (the fallback's where it has none of its own), and either it holds
@@ -407,7 +451,7 @@ export function rectanglesOf(
 ): readonly RectangleView[] {
   const { skeleton, path } = frame;
   const context = contextOf(skeleton);
-  const confirmed = entriesAt(skeleton, path, "confirmed");
+  const annotated = entries(skeleton, path);
   return rectangles(catalogue, skeleton, path).map((rectangle) => {
     const pairs = rectangle.pairs;
     const [first] = pairs;
@@ -424,7 +468,7 @@ export function rectanglesOf(
       things: rectangle.things.map((iri) => ({ system: recognisedAs(catalogue, iri), iri })),
       rows: pairs.map((pair) => rowOf(context, pair)),
       entries: pairs.map((pair) => {
-        const entry = confirmed.find((candidate) =>
+        const entry = annotated.find((candidate) =>
           samePair(context, entryPair(context, candidate), pair),
         );
         return entry === undefined ? null : lineOf(entry, user);
@@ -512,54 +556,123 @@ function valueWords(
   return literalText(value) ?? canonicalText(value);
 }
 
-/** An annotation as the schema types it; the validator has checked every one a manifest holds. */
-function asEntry(entry: JsonObject): ProvenanceEntry {
-  const { property, value, status } = entry;
-  if (
-    typeof property !== "string" ||
-    value === undefined ||
-    (status !== "confirmed" && status !== "proposed" && status !== "rejected")
-  ) {
-    throw new TypeError("an annotation needs a property, a value and a status");
-  }
-  return { ...entry, property, value, status } as ProvenanceEntry;
-}
-
-/** The proposed or rejected rows of the frame's element and of the value nodes it states. */
+/** The rows of `found`, entries of the subject at `subject`. */
 function rowsOf(
   frame: Frame,
   catalogue: Catalogue,
   user: User,
-  status: "proposed" | "rejected",
-): DrawerRow[] {
+  subject: readonly PathSegment[],
+  found: readonly JsonObject[],
+  labels: ReadonlyMap<string, string>,
+  names: ReadonlyMap<string, string>,
+): CandidateRow[] {
   const context = contextOf(frame.skeleton);
+  return found.map((entry) => {
+    const pair = entryPair(context, entry);
+    const [property, value] = pair;
+    const verb = verbOf(catalogue, context, property, value);
+    return {
+      key: canonicalText([subject, entry.property, entry.value]),
+      subject,
+      heading: verb === null ? property : verbLabel(catalogue, verb[0], verb[1]),
+      label: valueWords(context, value, labels, names),
+      pair,
+      line: lineOf(entry, user),
+    };
+  });
+}
+
+/**
+ * The candidates of the frame's element and of the value nodes it states
+ * (TimeToShare's `candidates`): those offered to the user, and apart those
+ * the user believes `false`, which are not offered again.
+ */
+export function candidatesOf(frame: Frame, catalogue: Catalogue, user: User): Candidates {
   const labels = labelsOf(frame.skeleton);
   const names = new Map<string, string>();
   for (const holder of statementHolders(frame.block.manifest)) {
     if (holder.id !== null) names.set(holder.id, holder.name ?? holder.id);
   }
-  return subjectsUnder(frame.skeleton, frame.path).flatMap((subject) =>
-    entriesAt(frame.skeleton, subject, status).map((entry) => {
-      const [property, value] = entryPair(context, entry);
-      const verb = verbOf(catalogue, context, property, value);
-      return {
-        key: canonicalText([subject, entry.property, entry.value]),
+  const actor = statedBy(user);
+  const offered: CandidateRow[] = [];
+  const dismissed: CandidateRow[] = [];
+  for (const subject of subjectsUnder(frame.skeleton, frame.path)) {
+    const all = rowsOf(
+      frame,
+      catalogue,
+      user,
+      subject,
+      candidates(frame.skeleton, subject),
+      labels,
+      names,
+    );
+    const kept = new Set(
+      rowsOf(
+        frame,
+        catalogue,
+        user,
         subject,
-        heading: verb === null ? property : verbLabel(catalogue, verb[0], verb[1]),
-        label: valueWords(context, value, labels, names),
-        entry: asEntry(entry),
-        line: lineOf(entry, user),
-      };
-    }),
-  );
+        candidates(frame.skeleton, subject, actor),
+        labels,
+        names,
+      ).map((row) => row.key),
+    );
+    for (const row of all) (kept.has(row.key) ? offered : dismissed).push(row);
+  }
+  return { offered, dismissed };
 }
 
-/** The drawers of the frame's element: the proposed and rejected pairs of the element and its value nodes. */
-export function drawersOf(frame: Frame, catalogue: Catalogue, user: User): Drawers {
-  return {
-    proposed: rowsOf(frame, catalogue, user, "proposed"),
-    rejected: rowsOf(frame, catalogue, user, "rejected"),
-  };
+/**
+ * The catalogue types an "is a" states, as few as name every pair they
+ * can: the types `typesOf` finds, most vocabularies agreeing first, each
+ * kept only where one of its alternatives names a pair no type kept before
+ * it does.
+ */
+export function typeLabels(
+  catalogue: Catalogue,
+  context: JsonObject,
+  isA: readonly Pair[],
+): readonly string[] {
+  const named = new Set<number>();
+  const labels: string[] = [];
+  for (const id of typesOf(catalogue, context, isA)) {
+    const type = catalogue.types.find((candidate) => candidate.id === id);
+    if (type === undefined) continue;
+    const covered = new Set<number>();
+    for (const alternative of Object.values(type.is_a).flat()) {
+      const wanted = Object.entries(alternative.pattern).flatMap(([key, values]) =>
+        (Array.isArray(values) ? values : []).map((item): Pair => [key, item]),
+      );
+      const at = wanted.map((pair) => isA.findIndex((held) => samePair(context, held, pair)));
+      if (at.every((index) => index >= 0)) for (const index of at) covered.add(index);
+    }
+    if ([...covered].some((index) => !named.has(index))) {
+      labels.push(type.label);
+      for (const index of covered) named.add(index);
+    }
+  }
+  const rest = isA
+    .filter((_, index) => !named.has(index))
+    .map((pair) => rowOf(context, pair).value);
+  return [...labels, ...rest];
+}
+
+/** A type label with its indefinite article: "an" before a vowel, else "a". */
+function withArticle(label: string): string {
+  return `${/^[aeiou]/iu.test(label) ? "an" : "a"} ${label}`;
+}
+
+/**
+ * The first rectangle's sentence: "<name> is a <type>", the types the "is
+ * a" rectangle states in words (`typeLabels`), joined "a, b and c"; where
+ * nothing states what the element is, "Nothing states yet what <name> is."
+ */
+export function typeSentence(frame: Frame, catalogue: Catalogue, isA: RectangleView): string {
+  const labels = typeLabels(catalogue, contextOf(frame.skeleton), isA.pairs).map(withArticle);
+  if (labels.length === 0) return `Nothing states yet what ${frame.name} is.`;
+  const last = labels.at(-1) as string;
+  const words = labels.length === 1 ? last : `${labels.slice(0, -1).join(", ")} and ${last}`;
+  return `${frame.name} is ${words}.`;
 }
 
 /** Whether the frame's element states `pair`. */
