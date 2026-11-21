@@ -1571,6 +1571,10 @@ address in block A, written below by its element address:
   takes `timestamp_1` (at 3/2, abscissa 124.91552734375) and
   `timestamp_3` (1 on `clt_2` at offset 2, 199.91552734375) without
   `timestamp_2`.
+- An alignment anchor's line spans the rectangle of its two end points,
+  whichever is first: from (120, 80) to (40, 30) the bounds `{x: 40, y:
+  30, width: 80, height: 50}`; a horizontal one from (40, 64.5) to (300,
+  64.5) `{x: 40, y: 64.5, width: 260, height: 0}`.
 
 ## The segment's Delete menu (`gap-menu.test.ts`)
 

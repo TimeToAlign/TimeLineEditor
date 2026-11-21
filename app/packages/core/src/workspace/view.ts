@@ -14,6 +14,7 @@ import {
   placeMembersOf,
 } from "../manifest/containers.ts";
 import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
+import { BELIEF_FILTERS, type BeliefFilter } from "../matches/beliefs.ts";
 import {
   type MemberReader,
   readBoolean,
@@ -46,14 +47,6 @@ export interface Granularity {
   /** The most decimal places a float is picked or shown with; an integer from 0 to 15. */
   readonly decimals: number;
 }
-
-/**
- * The belief filter of the MatchClaims, for the editor's one user: every
- * MatchClaim the user does not believe `false` (`not_false`), or only those
- * the user believes `true` (`true`).
- */
-export const BELIEF_FILTERS = ["not_false", "true"] as const;
-export type BeliefFilter = (typeof BELIEF_FILTERS)[number];
 
 /**
  * Which MatchClaims of a block's MatchClaim table are shown: those between

@@ -1,7 +1,8 @@
 import type { ElementAddress, OwnerAddress } from "@timetoalign/tilie-core";
 import { idAddress, inBlock, partAddress } from "@timetoalign/tilie-core";
+import { INITIAL_STYLE, TextMeasure } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { elementsInRect } from "../src/marquee.ts";
+import { elementBounds, elementsInRect } from "../src/marquee.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
 import { A, blockIn, changed, marqueeView, metrics, viewOf } from "./support.ts";
@@ -76,5 +77,25 @@ describe("elementsInRect", () => {
         .sort();
     expect(stamps(drawing.width)).toEqual(["timestamp_1", "timestamp_2", "timestamp_3"]);
     expect(stamps(340)).toEqual(["timestamp_1", "timestamp_3"]);
+  });
+});
+
+describe("elementBounds", () => {
+  it("spans an alignment anchor's line between its two end points, whichever comes first", () => {
+    const measure = new TextMeasure(metrics);
+    const address = idAddress("anchor_1");
+    const line = { type: "alignment_anchor" as const, address, style: INITIAL_STYLE };
+    expect(elementBounds({ ...line, x1: 120, y1: 80, x2: 40, y2: 30 }, measure)).toEqual({
+      x: 40,
+      y: 30,
+      width: 80,
+      height: 50,
+    });
+    expect(elementBounds({ ...line, x1: 40, y1: 64.5, x2: 300, y2: 64.5 }, measure)).toEqual({
+      x: 40,
+      y: 64.5,
+      width: 260,
+      height: 0,
+    });
   });
 });

@@ -672,6 +672,19 @@ check of who holds what.
    `{element: "band", facet: "regions", inside: "band"}` every one but the
    root's; `{inside: "band"}` matches everything but the block, the root's
    card, line, name and bands, and its segments' parts.
+9. **Alignment anchors** of `bundles/bundle_matchstamps.yaml` (drawing.md
+   sections 2.1, 2.2 and 8.7): the last three keys, after every member
+   drawing, are `anchor_1`'s line, its label and `anchor_2`'s line, written
+   out whole. A line is `{type: "alignment_anchor", address: {id: A},
+   inside: ["block"]}`, a label `{type: "label", address: {id: A, part:
+   ["name"]}, inside: ["block", "alignment_anchor"]}` (held by its line);
+   both belong to no timeline (`timeline`, `domain`, `modality`, `class`,
+   `facet` null). `anchor_1` (`display` `["line", "name"]`) lists both,
+   `anchor_2` (`["line"]`) its line only: a label is listed only where the
+   anchor's `display` names it, the line always, as the holder whose style
+   the label inherits. `{element: "alignment_anchor"}` matches `{id:
+   "anchor_1"}` then `{id: "anchor_2"}`, `{inside: "alignment_anchor"}` the
+   label alone, `{within: "score"}` neither.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
@@ -878,7 +891,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    with `resolveElement`, and to the kind its element type says (a card the
    cards, a band a band, a frame a frame, a map, region, flow marker or jump
    origin an entry, a label, wedge or boundary a part, the title the title,
-   every line a timeline): the cross-check between the resolver and the
+   an alignment anchor's line its anchor, every other line a timeline;
+   `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
+   label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
    workspace resolver reads it as the block). The other way round, **every
    resolvable part is drawn**: for every manifest fixture, every address
@@ -2172,7 +2187,14 @@ matchstamp: true}`.
 position 0, `M2`'s anchor); their words are `MatchStamp 'Bar 2, downbeat
 (take 1)'` and `alignment anchor 'anchor_2'`, and a match timestamp
 without a name is worded by its ID (`timestamp 'timestamp_1'`). A part
-of a MatchStamp names nothing (`unknown_target`). `manifestIds` holds
+of a MatchStamp names nothing (`unknown_target`). The label of an
+anchor whose `display` lists `name` is drawn and resolves:
+`{block: A, id: "anchor_1", part: ["name"]}` is kind `part`, word
+`name`, its owner `anchor_1` (index 0, position 0); `anchor_2`'s
+`{part: ["name"]}` is not drawn and names nothing (`unknown_target`). A
+`style` command selecting `{addresses: [{id: "anchor_1", part:
+["name"]}]}` without `blocks` embeds its rule in block `A`, the one block
+whose drawing has that label. `manifestIds` holds
 `matchstamp_1`, `matchstamp_2`, `anchor_1` and `anchor_2`; of
 TimeToShare's table fixture `tables/<version>/manifest.yaml` it holds
 `resource_1` and `resource_2`, which resolve to nothing.
@@ -4188,6 +4210,27 @@ compared for equality on an exact axis.
     reference written in the test with string keys of exact values, plain
     maps and a breadth-first search gives the coordinates, anchors with
     their rows, and connected sets, which the index must equal.
+
+**The belief filter** (`beliefs.ts`, TimeToShare's `believed_rows`):
+`beliefMask(beliefs, believer, belief)` is `null` (nothing filtered)
+without a believer, else 1 for every row the believer does not believe
+`"false"` (`"not_false"`, the default) or, for `"true"`, only for the rows
+the believer believes `"true"`; a belief's word is its number in
+TimeToShare's `BELIEFS` (`true` 0, `false` 1, `unlikely` 2), which core
+re-exports. The case is the beliefs of TimeToShare's table fixture
+`tables/0.2.0` as the client decodes them from the server's recorded
+answer (the client's tests README pins those arrays): 15 rows, actors
+`[B, A]` (B `…0001-5109-3700`, A `…0002-1825-0097`), offsets `[0, 1, 1,
+1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6]`, actor numbers `[1, 1, 1, 1, 0,
+0]`, words `[0, 2, 0, 1, 0, 0]`: A believes row 0 true, row 5 unlikely,
+row 10 true, row 12 false; B rows 12 and 13 true. So, by the rule and as
+`expected.yaml` lists them: A not false every row but 12; A true rows 0
+and 10; B true rows 12 and 13; B not false every row; an actor holding no
+belief not false every row, true none. Any other filter word throws the
+`RangeError` "'false' is no belief filter: write 'not_false' or 'true'"
+(for `false`), as `believed_rows` refuses it. `BELIEF_FILTERS` is
+`["not_false", "true"]`, the words the workspace's MatchClaim filter
+reads too.
 
 **Spans that overlap and run backwards.** Matched spans and segments are
 checked on a second case of their own, between `clt_1` (fraction) and

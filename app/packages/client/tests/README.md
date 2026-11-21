@@ -74,17 +74,12 @@ call or the exact result.
    (it checks them against decision 0029 first) and gives the fixture's
    `expected.yaml` count of unique anchors (14 with nothing filtered).
 
-   **The belief filter.** `beliefMask(beliefs, believer, belief)` is the
-   row mask of TimeToShare's belief filter: `null` (nothing filtered)
-   without a believer; for a believer, 1 for every row the believer does
-   not believe `"false"` (`"not_false"`, the default) or only for the rows
-   the believer believes `"true"` (`"true"`). On the fixture: `…0002-1825-0097`
-   not false is every row but 12 (`claim_13`, believed false); true, rows
-   0 and 10; `…0001-5109-3700` true, rows 12 and 13; an actor holding no
-   belief not false is every row, true none. These are the rows of
-   `expected.yaml`'s cases for the same believer and filter. Any other
-   filter word throws a `RangeError` naming it, as TimeToShare's
-   `believed_rows` refuses it.
+   **The belief filter** is core's (`beliefMask`, tested there on these
+   beliefs): for each of `expected.yaml`'s cases (nothing filtered, then
+   `…0002-1825-0097` not false and true, `…0001-5109-3700` true) the
+   anchor index built from the decoded columns under core's mask of the
+   decoded beliefs has the case's count of unique anchors and potential
+   MatchStamps (14 and 11, 13 and 11, 2 and 2, 1 and 1).
 
    **Refusals.** An answer outside 2xx rejects with code `status` and its
    status; a 422 whose body is `{"detail": {"path", "message",

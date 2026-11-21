@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
-import { anchorIndexOf } from "@timetoalign/tilie-core";
+import { anchorIndexOf, beliefMask } from "@timetoalign/tilie-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { beliefMask, connect, ServerError } from "../src/index.ts";
+import { connect, ServerError } from "../src/index.ts";
 
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 
@@ -360,25 +360,6 @@ describe("matchClaims", () => {
       beliefs.word,
     ];
     expect(new Set(views.map((view) => view.buffer)).size).toBe(1);
-  });
-
-  it("gives the belief filter's rows of the fixture's cases", async () => {
-    stubFetch(answering(recording));
-    const { beliefs } = await call();
-    const rows = (mask: Uint8Array | null) =>
-      mask === null ? null : Array.from(mask.keys()).filter((row) => mask[row] === 1);
-    const every = Array.from({ length: 15 }, (_, row) => row);
-    expect(beliefMask(beliefs, null)).toBeNull();
-    expect(beliefMask(beliefs, null, "true")).toBeNull();
-    expect(rows(beliefMask(beliefs, A))).toEqual(every.filter((row) => row !== 12));
-    expect(rows(beliefMask(beliefs, A, "true"))).toEqual([0, 10]);
-    expect(rows(beliefMask(beliefs, B, "true"))).toEqual([12, 13]);
-    expect(rows(beliefMask(beliefs, B))).toEqual(every);
-    expect(rows(beliefMask(beliefs, "https://example.org/nobody"))).toEqual(every);
-    expect(rows(beliefMask(beliefs, "https://example.org/nobody", "true"))).toEqual([]);
-    expect(() => beliefMask(beliefs, A, "false" as "true")).toThrow(
-      new RangeError("'false' is no belief filter: write 'not_false' or 'true'"),
-    );
   });
 
   it("builds the anchor index of the fixture's expected anchors", async () => {

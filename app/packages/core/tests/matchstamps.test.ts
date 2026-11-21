@@ -100,6 +100,23 @@ describe("reading named MatchStamps", () => {
     expect(isCommandError(part) ? part.code : part.kind).toBe("unknown_target");
   });
 
+  it("resolves the label an anchor draws, and a style rule selecting it reaches its block", () => {
+    const label = resolveAddress(view, { ...at("anchor_1"), part: ["name"] });
+    if (isCommandError(label) || label.kind !== "part") throw new Error("anchor_1's label");
+    expect(label.word).toBe("name");
+    const { owner } = label;
+    if (owner.kind !== "anchor") throw new Error("the label's owner");
+    expect([owner.anchor.id, owner.index, owner.position]).toEqual(["anchor_1", 0, 0]);
+    const hidden = resolveAddress(view, { ...at("anchor_2"), part: ["name"] });
+    expect(isCommandError(hidden) ? hidden.code : hidden.kind).toBe("unknown_target");
+    const select = { addresses: [{ id: "anchor_1", part: ["name"] }] };
+    const styled = changed(view, { type: "style", select, set: { opacity: 0.5 } });
+    expect(block(styled).manifest.graphical?.rules?.at(-1)).toEqual({
+      select,
+      set: { opacity: 0.5 },
+    });
+  });
+
   it("counts their IDs, and the resources', among the manifest's", () => {
     const ids = manifestIds(fixture);
     for (const id of ["matchstamp_1", "matchstamp_2", "anchor_1", "anchor_2"]) {

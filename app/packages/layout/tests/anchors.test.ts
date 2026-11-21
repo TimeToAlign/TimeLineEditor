@@ -4,11 +4,15 @@
  * after every item; every number is derived in tests/README.md.
  */
 
-import { type Manifest, partAddress, sameAddress } from "@timetoalign/tilie-core";
+import {
+  type Manifest,
+  type NamedMatchStamp,
+  partAddress,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import {
   type Address,
   canonicalOrder,
-  type Graphical,
   type Rule,
   validate,
   withFileIds,
@@ -38,9 +42,6 @@ interface MatchTimestamp {
   readonly display: readonly ("wedge" | "name" | "id" | "coordinate" | "cross_section")[];
 }
 
-/** A named MatchStamp as `graphical.matchstamps` holds it, its anchors' `display` stated. */
-type Stamp = NonNullable<Graphical["matchstamps"]>[number];
-
 /**
  * The fixture `name` with the match timestamps `timestamps` added to its own
  * named timestamps, the named MatchStamps `stamps` in place of its own (none) and
@@ -49,7 +50,7 @@ type Stamp = NonNullable<Graphical["matchstamps"]>[number];
 function matched(
   name: string,
   timestamps: readonly MatchTimestamp[],
-  stamps: readonly Stamp[],
+  stamps: readonly NamedMatchStamp[],
   rules: readonly Rule[] = [],
 ): Manifest {
   const manifest = loadFile(name);

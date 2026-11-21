@@ -6,7 +6,7 @@
  */
 
 import { idAddress, type Manifest, partAddress } from "@timetoalign/tilie-core";
-import { BLOCK_KEY, type ElementKey, textKey, unownedKey } from "@timetoalign/tilie-core/drawing";
+import { BLOCK_KEY, unownedKey } from "@timetoalign/tilie-core/drawing";
 import { type CrossSectionSegment, timestampSegments } from "./axes.ts";
 import type { DrawnAxis } from "./boxes.ts";
 import type { Cascade, Style } from "./cascade.ts";
@@ -72,15 +72,6 @@ export function anchorLine(
 }
 
 /**
- * The key of the line of the alignment anchor `id`: held by the block,
- * belonging to no timeline (section 2.1).
- */
-function anchorKey(id: string): ElementKey {
-  // Core's key of an element the block holds, its holder chain `[block]`, under this type.
-  return { ...unownedKey("frame", idAddress(id), BLOCK_KEY), type: "alignment_anchor" };
-}
-
-/**
  * The elements of the alignment anchors of `manifest`'s named MatchStamps
  * (section 8.7), the drawn lines `axes` in block coordinates and `block` the
  * block's style: first every anchor's line, MatchStamp by MatchStamp in the
@@ -107,16 +98,17 @@ export function anchorElements(
       const [first, second] = anchor.timestamps;
       const line = anchorLine(timestampSegments(axes, first), timestampSegments(axes, second));
       if (line === null) continue;
-      const display = anchor.display ?? ["line"];
-      const key = anchorKey(anchor.id);
+      const { display } = anchor;
+      const address = idAddress(anchor.id);
+      const key = unownedKey("alignment_anchor", address, BLOCK_KEY);
       const style = cascade.resolve(key, block);
       const { x1, y1, x2, y2 } = line;
       if (display.includes("line") && shown(style) && (x1 !== x2 || y1 !== y2)) {
         lines.push({ type: "alignment_anchor", address: key.address, ...line, style });
       }
       if (!display.includes("name")) continue;
-      const address = partAddress(idAddress(anchor.id), "name");
-      const labelStyle = cascade.resolve({ ...textKey(key, "label"), address }, style);
+      const label = unownedKey("label", partAddress(address, "name"), key);
+      const labelStyle = cascade.resolve(label, style);
       if (!shown(labelStyle)) continue;
       const size = labelStyle["font-size"];
       const text = cleanText(matchstamp.name);
@@ -124,7 +116,7 @@ export function anchorElements(
       const ym = (y1 + y2) / 2;
       labels.push({
         type: "label",
-        address,
+        address: label.address,
         style: labelStyle,
         x: (x1 + x2) / 2,
         baseline: ym + (measure.ascent(size) - measure.descent(size)) / 2,

@@ -8,7 +8,8 @@
  *
  * - `key`, the drawing's `ElementKey`, built by core from the key of the
  *   element holding it: `BLOCK_KEY` for the block, `unownedKey(type,
- *   address, holder)` for a frame or a title, `elementKey(type, address,
+ *   address, holder)` for a frame, a title, an alignment anchor's line or
+ *   its label, `elementKey(type, address,
  *   timeline, holder, map?)` for every element of a timeline (a card, a
  *   line, an ancestor line, a mark, a map, a region, a segment's node, …),
  *   `bandKey(timeline, facet, holder)` for one of a timeline's five bands,
