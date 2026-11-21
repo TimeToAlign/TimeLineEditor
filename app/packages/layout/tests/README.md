@@ -803,8 +803,6 @@ records of the same drawing (the ancestor line's `y`, the member's line
   its maps band alone); the root member `dpt_1` keeps `{40.8046875,
   47.3046875}`, its maps band.
 
-## Named timestamps (`timestamps.test.ts`)
-
 ## Ancestor cards (`ancestor-cards.test.ts`)
 
 Section 8.8 is the oracle. Every number below is derived from its rules,
@@ -900,6 +898,7 @@ coordinate label at the root's end).
    ancestor}` `display: none`), `piece`'s card in `group_parent_both` lies
    on `middle`'s own line instead: its line's ordinate equals `middle`'s.
 
+## Named timestamps (`timestamps.test.ts`)
 
 A named timestamp `X` of `graphical.timestamps` draws the elements its
 `display` lists (sections 2, 2.1, 6.4 Markers, 6.6): its wedge `{id: X}`
