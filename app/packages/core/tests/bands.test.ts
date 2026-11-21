@@ -115,6 +115,45 @@ describe("band orders", () => {
     ]);
   });
 
+  it.each([
+    [
+      ["markers", "line"],
+      ["children", "conversion_maps", "markers", "line", "regions", "flow_control"],
+    ],
+    [
+      ["line", "flow_control"],
+      ["children", "conversion_maps", "line", "flow_control", "markers", "regions"],
+    ],
+    [
+      ["regions", "line"],
+      ["children", "conversion_maps", "regions", "line", "markers", "flow_control"],
+    ],
+    [["line"], D],
+  ])("complete the root's subset %j", (stated, drawn) => {
+    const manifest = withOrder("nested.yaml", { clt_1: stated });
+    expect(validatorRefusal(manifest)).toBeNull();
+    expect(orders(manifest)).toEqual([
+      ["clt_1", drawn, D],
+      ["clt_3", drawn, drawn],
+      ["clt_2", drawn, drawn],
+    ]);
+  });
+
+  it("complete a child's subset against its parent's completed order", () => {
+    const manifest = withOrder("nested.yaml", {
+      clt_1: ["markers", "line"],
+      clt_3: ["line", "children"],
+    });
+    const root = ["children", "conversion_maps", "markers", "line", "regions", "flow_control"];
+    const child = ["conversion_maps", "markers", "line", "children", "regions", "flow_control"];
+    expect(validatorRefusal(manifest)).toBeNull();
+    expect(orders(manifest)).toEqual([
+      ["clt_1", root, D],
+      ["clt_3", child, root],
+      ["clt_2", child, child],
+    ]);
+  });
+
   it("give an ID no timeline carries the default", () => {
     const manifest = load("nested.yaml");
     expect([bandOrderOf(manifest, "nothing"), inheritedBandOrder(manifest, "nothing")]).toEqual([
@@ -127,9 +166,15 @@ describe("band orders", () => {
 describe("band order problems", () => {
   const manifest = load("nested.yaml");
 
-  it.each([[D], [R], [K], [[...D].reverse()]])("accept %j", (value) => {
-    expect(bandOrderProblem(manifest, "clt_3", value)).toBeNull();
-  });
+  /** Subsets of the facets, each with `line`. */
+  const subsets = [D.filter((entry) => entry !== "markers"), ["line"], ["regions", "line"]];
+
+  it.each([[D], [R], [K], [[...D].reverse()], ...subsets.map((value) => [value])])(
+    "accept %j",
+    (value) => {
+      expect(bandOrderProblem(manifest, "clt_3", value)).toBeNull();
+    },
+  );
 
   it.each([["line"], [null], [{}], [["line", 1]]])("refuse %j as no array of strings", (value) => {
     expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
@@ -166,16 +211,16 @@ describe("band order problems", () => {
       "'clt_3/regions_1' is not 'line' or a facet, in the band order of 'clt_3'",
     ],
     [
-      "a missing facet",
-      D.filter((entry) => entry !== "markers"),
-      "'markers' is missing from the band order of 'clt_3'",
-    ],
-    [
       "a missing line",
       D.filter((entry) => entry !== "line"),
       "'line' is missing from the band order of 'clt_3'",
     ],
-    ["an empty order", [], "'children' is missing from the band order of 'clt_3'"],
+    ["an empty order", [], "'line' is missing from the band order of 'clt_3'"],
+    [
+      "facets without the line",
+      ["markers", "regions"],
+      "'line' is missing from the band order of 'clt_3'",
+    ],
   ];
 
   it.each(others)("refuses %s as the validators do", (_, value, message) => {
@@ -205,6 +250,7 @@ describe("band order problems", () => {
       R,
       K,
       [...D].reverse(),
+      ...subsets,
       "line",
       null,
       {},
@@ -217,6 +263,6 @@ describe("band order problems", () => {
         bandOrderProblem(manifest, "clt_3", value) === null,
         validatorRefusal(carrying(manifest, "clt_3", value)) === null,
       ]),
-    ).toEqual(values.map((_, index) => (index < 4 ? [true, true] : [false, false])));
+    ).toEqual(values.map((_, index) => (index < 7 ? [true, true] : [false, false])));
   });
 });

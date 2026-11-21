@@ -2,7 +2,6 @@
  * Manifest invariants beyond the schema, matching timetoalign's behavior.
  */
 
-import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -14,28 +13,6 @@ import type { Real } from "../number/real.ts";
 import { addReal, compareReal, realOf } from "../number/real.ts";
 import { rootPaths } from "./tree.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
-
-const DISCRETE_UNITS: readonly TimeUnit[] = ["ticks", "samples", "frames", "pixels"];
-
-function allowedNumberTypes(unit: TimeUnit): readonly NumberType[] {
-  if (DISCRETE_UNITS.includes(unit)) return ["int"];
-  if (unit === "number") return ["int", "float", "fraction"];
-  return ["float", "fraction"];
-}
-
-function axisProblems(
-  timeline: Pick<TimelineManifest, "unit" | "number_type">,
-  path: readonly PathSegment[],
-): Problem[] {
-  if (allowedNumberTypes(timeline.unit).includes(timeline.number_type)) return [];
-  return [
-    problem(
-      ErrorCode.numberTypeNotAllowed,
-      `unit ${timeline.unit} does not admit number_type ${timeline.number_type}; allowed: ${allowedNumberTypes(timeline.unit).join(", ")}`,
-      [...path, "number_type"],
-    ),
-  ];
-}
 
 /**
  * Read a bare value on the own axis of `timeline` (`axisCoordinate`): the
@@ -113,7 +90,6 @@ function checkTimeline(
   problems: Problem[],
   root = false,
 ): void {
-  problems.push(...axisProblems(timeline, path));
   const report = (value: Coordinate | Problem): Coordinate | undefined => {
     if (isProblem(value)) {
       problems.push(value);

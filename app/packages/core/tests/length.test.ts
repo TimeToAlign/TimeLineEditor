@@ -1,7 +1,7 @@
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
-import { isLoadError } from "../src/errors.ts";
+import { isCommandError, isLoadError } from "../src/errors.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
 import type { View } from "../src/workspace/view.ts";
@@ -123,6 +123,19 @@ describe("setting a length to and from null", () => {
       path: [key(at("score")), "length"],
     });
     expect(root(changed(open, setLength([6, 1]))).length).toEqual([6, 1]);
+  });
+
+  it("reads a Fraction whose members are integral floats, as a manifest's", () => {
+    const view = deepFreeze(viewOf([16, 1]));
+    expect(root(changed(view, setLength([25, new JsonFloat(2)]))).length).toEqual([25, 2]);
+    const refused = apply(view, setLength([25, new JsonFloat(2.5)]));
+    expect(refusal(refused)).toEqual({
+      code: "invalid_coordinate",
+      path: [key(at("score")), "length"],
+    });
+    expect(isCommandError(refused) && refused.message).toBe(
+      "invalid JSON Fraction [25,2.5]: components must be integers",
+    );
   });
 
   it("is refused on a locked timeline in both directions", () => {

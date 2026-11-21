@@ -1,4 +1,12 @@
-import { dumps, JsonFloat, loads, SCHEMA_VERSION, withBareIds } from "@timetoalign/timetoshare";
+import type { TimeUnit } from "@timetoalign/timetoshare";
+import {
+  dumps,
+  JsonFloat,
+  loads,
+  SCHEMA_VERSION,
+  UNITS,
+  withBareIds,
+} from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
@@ -351,22 +359,40 @@ describe("invariants", () => {
       (manifest) => Object.assign(node(manifest, ...rootPath, "regions", 0), { end: [1, 1] }),
       [...rootPath, "regions", 0, "end"],
     ],
-    [
-      "number_type_not_allowed",
-      (manifest) => {
-        Object.assign(node(manifest, ...rootPath), {
-          unit: "ticks",
-          number_type: "fraction",
-          length: [1, 1],
-          children: [],
-          regions: [],
-        });
-        // The root's timestamps lie on its former axis: they go with it.
-        delete manifest.graphical;
-      },
-      [...rootPath, "number_type"],
-    ],
   ];
+
+  /** Every unit with every number type, as TimeToShare's unit table lists them. */
+  const axes = (Object.keys(UNITS) as TimeUnit[]).flatMap((unit) =>
+    (["int", "float", "fraction"] as const).map((numberType) => [unit, numberType] as const),
+  );
+
+  it("admits exactly the number types TimeToShare's unit table admits", () => {
+    // The root alone, of unknown length, so no value on the axis is read; its timestamps lie
+    // on its former axis and go with it.
+    const read = axes.map(([unit, numberType]) => {
+      const value = base();
+      Object.assign(node(value, ...rootPath), {
+        unit,
+        number_type: numberType,
+        length: null,
+        children: [],
+        regions: [],
+      });
+      delete value.graphical;
+      const result = loadManifest(fileText(value));
+      return isLoadError(result) ? result.problems.map(({ code, path }) => ({ code, path })) : [];
+    });
+    expect(read).toEqual(
+      axes.map(([unit, numberType]) =>
+        UNITS[unit].numberTypes.includes(numberType)
+          ? []
+          : [{ code: "schema_violation", path: [...rootPath, "number_type"] }],
+      ),
+    );
+    expect(axes.filter(([unit, type]) => UNITS[unit].numberTypes.includes(type)).length).toBe(
+      4 + 3 + 2 * 13,
+    );
+  });
 
   it("accepts a child of another number type", () => {
     const value = base();

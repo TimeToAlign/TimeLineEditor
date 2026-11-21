@@ -407,7 +407,14 @@ from sections 4 and 6.4:
 - **Band orders.** A band moved across its line moves everything it holds;
   a child's band order follows its parent's verbatim without an entry,
   is its own entry when it has one, and returns to its parent's when the
-  entry is set to null. A flow marker runs from its flow row across its line, the
+  entry is set to null. An entry listing a subset of the facets draws what
+  its completed order draws (core's rule: an omitted facet keeps its side
+  of the line and lies beyond the stated ones): the fixture
+  `map_band_order_subset`, whose root `melody` states `[markers, line]`,
+  draws every element exactly as `map` does with `melody`'s entry set to
+  the whole order `[children, conversion_maps, markers, line, regions,
+  flow_control]`, and not as `map` draws without an entry (its markers
+  band lies above the line). A flow marker runs from its flow row across its line, the
   root's to the padding, a child's to `max(E, h(s) / 2)` beyond it. In
   `flow_control` both jump origins and the flow marker move with their
   band. With the flow control band moved above the line, next to it, it

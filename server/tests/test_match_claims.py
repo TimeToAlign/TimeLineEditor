@@ -239,6 +239,41 @@ def test_a_column_the_type_does_not_declare_changes_nothing(server: TestClient) 
     assert response.content == fixture_answer(server)
 
 
+def scoped(table: pa.Table) -> pa.Table:
+    """``table`` with a ``scope`` column: ``bundle_1`` in the even rows, ``bundle_2``
+    in the odd ones."""
+    scopes = [f"bundle_{row % 2 + 1}" for row in range(table.num_rows)]
+    return table.append_column("scope", pa.array(scopes))
+
+
+def test_a_scope_column_is_a_further_column(server: TestClient) -> None:
+    response = post(server, body(fixture_manifest(), parquet(scoped(fixture_table()))))
+    assert response.status_code == 200
+    assert response.content == fixture_answer(server)
+
+
+def test_a_scope_tells_no_two_ids_apart(server: TestClient) -> None:
+    table = fixture_table()
+    ids = table.column("id").to_pylist()
+    assert ids[:2] == ["claim_1", "claim_2"]
+    index = table.schema.get_field_index("id")
+    table = table.set_column(
+        index, table.schema.field(index), pa.array(["claim_1", "claim_1", *ids[2:]])
+    )
+    response = post(server, body(fixture_manifest(), parquet(scoped(table))))
+    assert response.status_code == 422
+    message = "the ID 'claim_1' is given twice"
+    assert response.json() == {
+        "detail": {
+            "path": [],
+            "message": message,
+            "problems": [
+                {"code": "duplicate_id", "row": 1, "column": ["id"], "message": message}
+            ],
+        }
+    }
+
+
 def test_the_files_provenance_gives_every_row_its_beliefs(server: TestClient) -> None:
     table = fixture_table()
     index = table.schema.get_field_index("provenance")

@@ -12,7 +12,6 @@ export const ErrorCode = {
   schemaViolation: "schema_violation",
   invalidCommand: "invalid_command",
   invalidCoordinate: "invalid_coordinate",
-  numberTypeNotAllowed: "number_type_not_allowed",
   childExceedsParent: "child_exceeds_parent",
   timestampExceedsLength: "timestamp_exceeds_length",
   locked: "locked",

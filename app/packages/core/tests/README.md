@@ -120,8 +120,18 @@ workspace package does; the editor shell lists the names it links.
    `number_to_json`: an `int` value reads a JSON integer, or an integral JSON
    number as that integer; a `float` value reads a JSON number, or an
    integer as the float it equals exactly; a `fraction` value reads only a
-   pair of integers with a positive denominator; every integer is
-   int64-bounded. One accepted and one refused example per rule, refused
+   pair of integers with a positive denominator, in any terms, each member
+   any JSON integer or integral JSON number, as TimeToShare reads it (the
+   number type fixes the form, the spelling within it is free): `[1,
+   JsonFloat(8)]` is 1/8 and `[1, JsonFloat(8.5)]` is refused with
+   `invalid JSON Fraction [1,8.5]: components must be integers`; every
+   integer is int64-bounded. TimeToShare's acceptance table
+   (`fixtures/acceptances/<version>/numbers.yaml`, 14 rows of number type,
+   value and what is read) is run row by row: an accepted row's value is
+   read and written back (`toAxisValue`) exactly as the row's `read`
+   (`[2, 4]` → `[1, 2]`, `480.0` on `int` → `480`, `2` on `float` →
+   `2.0`), a refused row (`refused: representation`) is a `CoordinateError`
+   `invalid_coordinate`. One accepted and one refused example per rule, refused
    ones carrying the `CoordinateError` code `invalid_coordinate` at the path
    given (`[]` by default). `toAxisValue` writes numbers as TimeToShare's
    `parse` reads them: an `int` value as a plain number (a `bigint` beyond 2^53), a
@@ -254,13 +264,19 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     timeline's own regions after its children), in traversal order, each
     path below `["timelines", 0]`, and `saveManifest` of the same value
     throws `InvalidManifestError`.
-11. **Each invariant at load and in a command.** For each of
-    `number_type_not_allowed` and `region_end_before_start`, one copy of
-    `with_region.yaml`
-    changed in exactly that respect (for `number_type_not_allowed` its
-    `graphical` object, whose timestamps lie on the root's former axis,
-    left out) is refused with exactly one problem:
-    that code at the exact path. `invalid_coordinate` is reached through
+11. **Each invariant at load and in a command.** For
+    `region_end_before_start`, one copy of `with_region.yaml` changed in
+    exactly that respect is refused with exactly one problem: that code at
+    the exact path. **The number types a unit admits** are TimeToShare's
+    unit table (`UNITS`), which its schema enforces, and core holds no copy:
+    for each of the 18 units with each of `int`, `float` and `fraction`, the
+    root of `with_region.yaml` alone (no children, no regions, no
+    `graphical` object, its length null, so that no value on the axis is
+    read) loads exactly when `UNITS` lists the number type for the unit,
+    and is otherwise refused with exactly one problem, `schema_violation`
+    at `["timelines", 0, "number_type"]`; 33 of the 54 pairs load (the four
+    discrete units `int` only, `number` all three, the thirteen other units
+    `float` and `fraction`). `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
     at load). A command meets the same invariants: in a block of
     `with_region.yaml`, `set` of `{block: A, id: "region_1"}`'s `end` to `[0, 1]` is
@@ -472,7 +488,11 @@ the only thing that varies:
    length null at 6, `[5, 1]` is `length_below_content` (the child reaches
    its offset 6) and `[6, 1]` is accepted. A locked root refuses both
    directions with `locked`. Undoing a `set length` to null in a store
-   restores the earlier view object.
+   restores the earlier view object. A command's Fraction is read as a
+   manifest's is: on the root of 16, `length: [25, 2.0]` (the denominator a
+   `JsonFloat`) stores `[25, 2]`, and `[25, 2.5]` is `invalid_coordinate` at
+   `[key, "length"]` with the message `invalid JSON Fraction [25,2.5]:
+   components must be integers`.
 4. **Adding content leaves a length unknown.** Into a root of length null,
    `add` a child of 8 at 4 and a region from 2 to 30: the root's length is
    still null. Into an unlocked root of 16, `add` a child of length null at
@@ -545,7 +565,6 @@ timeline's length is fixed and binds no child to it.
 
 | Code | Invariant | Source in timetoalign |
 |---|---|---|
-| `number_type_not_allowed` | A timeline's unit admits its number type (discrete units `int` only; `number` all three; other continuous units `float` or `fraction`) | `timetoalign.core.enums.TimeUnit.resolve_number_type` / `allowed_number_types` |
 | `invalid_coordinate` | Every own-axis value (a length, an offset, a region's start and end, a flow-control element's coordinate) reads under its axis's number type, every integer is int64-bounded; a child has an offset | `timetoalign.core.time.number_from_json`; the editor's own rule for regions and flow coordinates |
 | `child_exceeds_parent` | A command never leaves a child starting past its parent's known length or, where its own length is known too, ending past it (compared as in "Exact numbers" 6). An unlocked parent grows to hold a child placed past its known end (to the child's end, or its offset when the child's length is not known), only to a value its number type holds exactly (an int parent not to 9/2, a float parent not to 1/3) and only within its own parent's known length; a locked parent refuses. Refused at the command's own path (`[address, "length"]`, `[address, "offset"]`, `[into, "child"]`); a manifest cannot break it (the schema refuses such a child) | `ChildrenMixin.add_child` (`timetoalign.timelines.engines.children`); the editor's own rule for the growth |
 | `segment_end_fixed` | A segment's new length, set or grown to hold a child added into it, keeps its end where its successor starts, or, for the last segment, where its line ends while the line's length is known; a segment line's new length keeps its end where its last segment ends while that segment's length is known; a length of null is always accepted (a rule of `set` and `add`, checked before the schema's segment contiguity would refuse the manifest) | the segment line's contiguity in `timetoalign.timelines.types` |
@@ -719,9 +738,11 @@ roots and groups".
 The band facts (drawing.md §2.2, §4, §6.4; TimeToShare's README,
 "Identity" and "Groups and the `graphical` block") and the orders that stack
 them. Every expected value is read from those texts. A band is addressed
-`{id: T, facet: F}` (see "Addresses and containers"); a band order is a
-permutation of `line` and the five facets, the same words for every
-timeline. The band order cases are built so that each timeline's expected
+`{id: T, facet: F}` (see "Addresses and containers"); a band order lists
+`line` and any of the five facets, the same words for every timeline, and a
+facet a stated order leaves out takes its place from the order the timeline
+follows without an entry. The band order cases are built so that each
+timeline's expected
 order differs from every other candidate rule (the default, the root's
 entry, its parent's entry), so a wrong rule cannot pass by coincidence; the
 order problems are checked against TimeToShare's own validators, so core and
@@ -744,7 +765,28 @@ the schema agree by construction.
    entry wins for its own timeline only; a member that is a child follows
    its parent (`second-half` of `group_child_member.yaml` under `piece: R`
    draws `R`, the root member `recording` `D`); an unknown ID gets `D`.
-4. **Band order problems**, each the first in the README's order (shape,
+4. **Completed subsets** (TimeToShare's README, "Groups and the
+   `graphical` block"): let *I* be the order a timeline follows without an
+   entry (its parent's completed order, the default for a root). A stated
+   order keeps its entries in their order; every facet it leaves out keeps
+   the side of `line` it has in *I* and lies beyond the stated entries on
+   that side, in *I*'s sequence: omitted upper facets before the stated
+   ones, omitted lower facets after. The five cases are worked out by hand
+   from that sentence and compared whole, each drawn order differing from
+   the stated value, from `D` and from the parent's order. On the root
+   `clt_1` of `nested.yaml`: `["markers", "line"]` draws `["children",
+   "conversion_maps", "markers", "line", "regions", "flow_control"]`;
+   `["line", "flow_control"]` draws `["children", "conversion_maps",
+   "line", "flow_control", "markers", "regions"]`; `["regions", "line"]`
+   draws `["children", "conversion_maps", "regions", "line", "markers",
+   "flow_control"]`; `["line"]` draws `D`. With `clt_1: ["markers",
+   "line"]` and its child `clt_3: ["line", "children"]`, `clt_3` draws
+   `["conversion_maps", "markers", "line", "children", "regions",
+   "flow_control"]` (its *I* is `clt_1`'s completed order, not `D`), and the
+   grandchild `clt_2`, without an entry, draws and inherits that same
+   completed order. TimeToShare's validator accepts every one of these
+   stated values.
+5. **Band order problems**, each the first in the README's order (shape,
    repeat, unknown ID, stranger, missing), with the exact message, IDs and
    entries in single quotes: `"line"`, `null`, `{}` and `["line", 1]` give
    `the band order of 'clt_3' is not an array of strings`; `D` with `line`
@@ -754,12 +796,12 @@ the schema agree by construction.
    facet, in the band order of 'clt_3'`, and so for the timeline's own ID
    in place of `line` and for the former band address `clt_3/regions_1` in
    place of `regions` (a stranger comes before what is missing); `D`
-   without `markers` `'markers' is missing from the band order of
-   'clt_3'`, without `line` the same for `line`, and `[]` the same for
-   `children`, the first in the default band order's order. The stranger
-   and missing messages are also what TimeToShare's identity check reports
-   first for the same value.
-5. **Entries the schema refuses** (an empty string, an entry holding a
+   without `line` `'line' is missing from the band order of 'clt_3'`, and
+   `[]` and `["markers", "regions"]` the same: `line` is the one entry an
+   order must list. `D` without `markers`, `["line"]` and `["regions",
+   "line"]` are accepted. The stranger and missing messages are also what
+   TimeToShare's identity check reports first for the same value.
+6. **Entries the schema refuses** (an empty string, an entry holding a
    control character) are refused by both: core as a stranger, the schema
    at the entry (`["graphical", "order", "clt_3", 6]`), the empty string by
    its `minLength` ("must NOT have fewer than 1 characters"), the control
@@ -1755,6 +1797,12 @@ markers band moved to the top and the conversion maps band below the line),
    then `set excerpt order null`: exactly the fixture's `graphical.order`.
    `set annotations order D` stores `annotations: D`: a value equal to what
    the timeline inherits is an entry like any other, deleted only by null.
+   A subset of the facets with `line` is stored as stated and drawn
+   completed against what `excerpt` inherits (`D`, the fixture stating no
+   order for `recording`): `E` without `regions` draws `[line, children,
+   conversion_maps, markers, flow_control, regions]`, and `[line,
+   conversion_maps, regions, flow_control]` draws `[children, line,
+   conversion_maps, regions, flow_control, markers]`.
 8. **Both in one `set`.** `group_1`'s display order `["performance",
    "score"]` and `recording`'s order `R` write both entries beside
    `group_2`'s; `group_1`'s display order the fixture states, `["score",
@@ -1807,11 +1855,9 @@ markers band moved to the top and the conversion maps band below the line),
     of TimeToShare's README, by the rule "Bands and band orders" checks
     against the validators (IDs and entries in single quotes): `E` with
     `flow_control` replaced by `flow`, `'flow' is not 'line' or a facet, in
-    the band order of 'excerpt'`; `E` without `regions`, `'regions' is
-    missing from the band order of 'excerpt'`; `E` without `line`, `'line'
-    is missing from the band order of 'excerpt'`; `E` without `markers` and
-    `children`, the first missing in the default band order's order,
-    `'children' is missing from the band order of 'excerpt'`; `E` with
+    the band order of 'excerpt'`; `E` without `line`, `'line' is missing
+    from the band order of 'excerpt'` (a facet left out is no problem, item
+    7); `E` with
     `regions` replaced by the former band address `excerpt/regions_1` (a
     stranger before anything missing), `'excerpt/regions_1' is not 'line'
     or a facet, in the band order of 'excerpt'`, and the same for `line`
@@ -3733,7 +3779,8 @@ Each manifest fixture starts as block `A` beside a block `B` of
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `negative_child_offset`,
    `nested_member`, `non_finite_number`, `non_positive_number`, `not_an_item`, `not_removable`,
-   `number_type_not_allowed`, `region_end_before_start`, `schema_violation`,
+   `region_end_before_start`, `schema_violation` (which also covers a unit
+   given a number type it does not admit),
    `segment_end_fixed`, `segment_never_locked`, `segment_not_removable`,
    `segment_structure`, `timestamp_exceeds_length`, `unit_mismatch`, `unknown_property`,
    `unknown_target`, `unlocking_not_supported`, `wrong_target_kind`.

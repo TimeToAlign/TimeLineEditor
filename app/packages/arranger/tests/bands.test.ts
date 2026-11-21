@@ -25,7 +25,7 @@ import {
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { affectedBy } from "../src/affected.ts";
-import { bandDrop, bandMoveCommand, bandStep } from "../src/bands.ts";
+import { bandDrop, bandMoveCommand, bandStep, bandStepCommand } from "../src/bands.ts";
 import type { BandBox } from "../src/boxes.ts";
 import { bandAt, hitOf, holdingOf, offeredBands } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
@@ -516,6 +516,28 @@ describe("on layout's drawing of styled__score", () => {
     if (next === null) throw new Error("the markers band steps down");
     const store = storeIn(STYLED, "score");
     expect(store.dispatch(bandMoveCommand(store.view, A, "score", next))).toBeNull();
+  });
+});
+
+describe("a stated subset of the facets", () => {
+  const editing = timelineEditor(A, "melody");
+  const markers = inBlock(A, bandAddress("melody", "markers"));
+
+  it.each([
+    ["down", null, undefined],
+    [
+      "up",
+      ["children", "markers", "conversion_maps", "line", "regions", "flow_control"],
+      ["children", "markers", "conversion_maps", "line", "regions", "flow_control"],
+    ],
+  ] as const)("steps a band %s from the completed order", (direction, written, entry) => {
+    const store = storeIn("map_band_order_subset", "melody");
+    expect(entryOf(store, "melody")).toEqual(["markers", "line"]);
+    const command = bandStepCommand(store.view, markers, direction, editing, metrics);
+    expect(command).toEqual(setting("melody", written));
+    if (command === null) throw new Error("the markers band steps");
+    expect(store.dispatch(command)).toBeNull();
+    expect(entryOf(store, "melody")).toEqual(entry);
   });
 });
 
