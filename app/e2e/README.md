@@ -1001,7 +1001,11 @@ believing it true on 2026-11-20) and no entry for any other MatchClaim;
 the belief route with other Parquet bytes than the picked file's (the
 fixture's `projections.parquet`), so a saved file equal to them proves the
 editor holds and saves the answered file unchanged. A MatchStamp naming
-`claim_1` ("Downbeat", as in `matchstamps.spec.ts`) is selected.
+`claim_1` ("Downbeat", as in `matchstamps.spec.ts`) is selected. The
+parameters of a provenance or belief request are read in the page from the
+body it sends, before the request leaves: the body is a Blob, and WebKit's
+network inspector, from which Playwright takes a request's post data,
+leaves a Blob body out.
 
 1. **Provenance on demand.** Exactly one provenance request, for
    `{claims: ["claim_1"]}`. `claim_1`'s details list its paradata as the
