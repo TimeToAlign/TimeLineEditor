@@ -177,6 +177,91 @@ script calls the route's own function, so the recording is this answer
 byte for byte, proved by a test that runs the script into a temporary
 directory and compares the file with the route's answer.
 
+## MatchClaim provenance and beliefs
+
+`POST /api/match-claims/provenance` answers the provenance of the
+MatchClaims it is asked for, and `POST /api/match-claims/belief` answers
+the posted table with one actor's belief recorded
+(`decisions/0031-match-claim-provenance.md`). Both bodies are the
+parameters' length (a little-endian 32-bit integer), the parameters as a
+JSON object, then the body of `POST /api/match-claims` unchanged; the
+table is checked against the manifest as that route checks it. The oracle
+is again TimeToShare's table fixture, whose rows' provenance is few enough
+to write out by hand (A is `…0002-1825-0097`, B `…0001-5109-3700`):
+`claim_1` and `claim_11` stated by A on 2026-11-20 `manual` with A's
+`true` of that day; `claim_14` stated by B, the same date, `manual`, the
+note "the same gesture, not the same moment", B's `true` of 2026-11-21;
+`claim_15` without provenance; every other row `imported` on 2026-11-20
+from the service `https://example.org/aligner`, `claim_6` with A's
+`unlikely` of 2026-11-21 noted "the onset is blurred", `claim_13` with A's
+`false` of 2026-11-21 noted "a grace note, played late" and then B's
+`true` of 2026-11-21. Every expected value is written in the test from
+this list, never read off an answer.
+
+**Provenance.** An entry is answered as TimeToShare's provenance entry,
+its absent members left out.
+
+| Request | Answer |
+| --- | --- |
+| `claims` `["claim_6", "claim_15", "claim_1"]` | 200 `{"claims": [{"id": "claim_6", "provenance": {"date": "2026-11-20", "method": "imported", "service": "https://example.org/aligner", "beliefs": [{"actor": A, "belief": "unlikely", "date": "2026-11-21", "note": "the onset is blurred"}]}}, {"id": "claim_15", "provenance": null}, {"id": "claim_1", "provenance": {"stated_by": [A], "date": "2026-11-20", "method": "manual", "beliefs": [{"actor": A, "belief": "true", "date": "2026-11-20"}]}}]}`: in the order asked, never more than asked |
+| `claims` `[]` | 200 `{"claims": []}` |
+| the fixture's table without row provenance, the file stating `{"method": "imported", "date": "2026-11-20", "beliefs": [A false, B true]}`, both beliefs of 2026-11-21; `claims` `["claim_4"]` | the file's entry as `claim_4`'s |
+| `claims` `["claim_1", "claim_99"]` | 422 `{"detail": {"path": ["claims", 1], "message": "the MatchClaim table has no MatchClaim 'claim_99'"}}` |
+| `claims` `"claim_1"` | 422 at `["claims"]`, `the parameter 'claims' is no list of MatchClaim IDs` |
+| the fixture against its manifest without `clt_2` | 422 with the table route's problems (`unknown_timeline`, row 14) |
+
+**A belief.** The answer is 200 `application/vnd.apache.parquet`, a
+Parquet file read back in the test. Every column but `provenance` equals
+the fixture's, compared whole; so do the provenance cells of every row but
+the believed one; the believed row's cell is written in the test:
+
+| Belief | The believed row's `beliefs` |
+| --- | --- |
+| A `false` in `claim_6` on 2026-11-22 | `[A false 2026-11-22]`: A's earlier `unlikely` replaced in its place, the note gone with it; the paradata kept |
+| B `unlikely` in `claim_13` | `[A false 2026-11-21 "a grace note, played late", B unlikely 2026-11-22]`: A's stands |
+| A `unlikely` in `claim_2` (no beliefs) | `[A unlikely 2026-11-22]`, the paradata kept |
+| B `true` in `claim_15` (no provenance) | an entry holding `[B true 2026-11-22]` alone, every other member null |
+
+A table whose file states the provenance of every row (as above) and B's
+`false` in `claim_3`: the answer's schema metadata no longer holds
+`timetoshare:provenance`, every row holds the file's entry as its own, and
+row 2 holds `[A false 2026-11-21, B false 2026-11-22]`. A column the table
+type does not declare (`note`) is kept with its values. The answer posted
+to `POST /api/match-claims` is accepted, and its beliefs are the
+fixture's but in row 5: A's `false` (`belief_words` `0 1 0 1 0 0`).
+
+Refusals, each 422 at the parameter's name with this message: `claim`
+`claim_99`, `the MatchClaim table has no MatchClaim 'claim_99'`; `actor`
+`""` or `3`, `an actor is named by a non-empty string`; `belief` `maybe`
+or the JSON `true`, `a belief is one of the strings 'true', 'false',
+'unlikely'`; `date` `2026-02-30`, timetoshare's `'2026-02-30' is no
+Gregorian calendar date written YYYY-MM-DD`; `date` `20261122`, the same
+words for that text; `date` 20261122 (a number), `a date is a string
+written YYYY-MM-DD`; a parameter `note`, `'note' is no parameter of this
+route`; without `date`, `the parameter 'date' is missing`. An actor that is
+no IRI reference (`not an iri`) passes these and makes a table that
+TimeToShare's checks refuse: 422 with the one problem `invalid_provenance`
+at row 5, column `["provenance"]`, the check's message, which points at
+`#/beliefs/1/actor`: the new actor's belief follows A's.
+
+**The parameters**, for both routes: two bytes, `the body does not start
+with the parameters' length`; a prefix stating 100 bytes before 10, `the
+body states parameters of 100 bytes and holds 10`; parameters `[1]`, `the
+parameters are no JSON object`; `{` or bytes that are no UTF-8, `the
+parameters are no JSON text`; each 422 at `[]`. Both routes answer 401
+without the token, and 501 `the installed timetoalign <version> cannot
+record provenance` with `timetoalign.core.provenance` made unimportable.
+
+**The succession rule.** The belief route cannot make a table that breaks
+it, so the rule's check is proved on its own: written over the fixture, the
+fixture without its last row is refused 422 `{"path": [], "message": "the
+MatchClaim 'claim_15' is missing", "problems": [{"code":
+"succession_missing", "row": null, "column": ["id"], "message": …}]}`; the
+fixture with `claim_1`'s certainty 0.5 with `succession_changed` at row 0,
+column `["certainty"]`, `the MatchClaim 'claim_1' changed its
+'certainty'`; the fixture with A's `false` recorded in `claim_6` is
+accepted.
+
 ## MusicBrainz lookup
 
 `/api/reconcile/musicbrainz` is a Reconciliation Service API 0.2 endpoint

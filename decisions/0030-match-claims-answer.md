@@ -131,6 +131,9 @@ A later layout raises `version`; a client refuses a version it does not
 know. The exit cost is local: the server's encoder and the client's
 decoder are the two readers of this layout.
 
+Decision 0031 adds the routes that read a MatchClaim's provenance and
+record a belief; both take this request behind their parameters.
+
 ## Review date
 
 2027-05-21, or when the table reaches the browser without the server.
