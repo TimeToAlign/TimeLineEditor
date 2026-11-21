@@ -993,7 +993,11 @@ on `clt_1` (whose children band gives its line a length) is written with
 (`line[data-id=<it>][data-part="line"]`, dispatched on the element, the
 canvas's selection reading the element clicked) selects `{block, id:
 "matchstamp_1"}`, not the timestamp, and the Matchstamp tab is selected
-with the name "Downbeat". The manifest imported without its table
+with the name "Downbeat" in its name header (`matchstamp-name`). Its
+Lines list, in screen order (`clt_1` drawn above `dpt_1`), the line of
+the match timestamp on `clt_1`, the anchor's, then the line of the one on
+`dpt_1`; Wedge on the first stores that match timestamp's `display`
+`["wedge", "cross_section"]` in one journal entry. The manifest imported without its table
 makes no table request and the message bar reads "The manifest names the
 MatchClaim table match_claims.parquet, which is not loaded: Load
 MatchClaims… in the Matchstamp tab reads it."

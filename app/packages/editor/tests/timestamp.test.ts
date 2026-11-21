@@ -276,15 +276,17 @@ const nameField = () => find<HTMLInputElement>('input[type="text"]', nameHeader(
 
 /** The display toggles as [label, pressed, disabled]. */
 function toggles(): unknown[] {
-  return [...area("Properties").querySelectorAll<HTMLButtonElement>('[role="group"] button')].map(
+  return [...area("Properties").querySelectorAll<HTMLButtonElement>(DISPLAY_TOGGLES)].map(
     (button) => [button.textContent, button.getAttribute("aria-pressed"), button.disabled],
   );
 }
 
+const DISPLAY_TOGGLES = '[data-testid="timestamp-display"] [role="group"] button';
+
 function toggle(label: string): void {
-  const button = [
-    ...area("Properties").querySelectorAll<HTMLButtonElement>('[role="group"] button'),
-  ].find((item) => item.textContent === label);
+  const button = [...area("Properties").querySelectorAll<HTMLButtonElement>(DISPLAY_TOGGLES)].find(
+    (item) => item.textContent === label,
+  );
   if (button === undefined) throw new Error(`no toggle ${label}`);
   button.click();
   flushSync();
@@ -945,7 +947,7 @@ describe("properties", () => {
     expect(lastCommand(store)).toEqual({
       type: "add",
       into: { block: A, id: "score" },
-      timestamp: { name: "Upbeat", coordinate: [16, 5] },
+      timestamp: { name: "Upbeat", coordinate: [16, 5], groupstamp: true },
     });
     expect([
       nameField().value,
@@ -993,7 +995,7 @@ describe("properties", () => {
       pressed([]),
     ]);
     expect(
-      [...area("Properties").querySelectorAll('[role="group"] button')].map(
+      [...area("Properties").querySelectorAll(DISPLAY_TOGGLES)].map(
         (button) => (button as HTMLButtonElement).type,
       ),
     ).toEqual(ALL.map(() => "button"));
@@ -1032,6 +1034,79 @@ describe("properties", () => {
       null,
       null,
     ]);
+  });
+});
+
+describe("GroupStamp", () => {
+  const CROSSES = "A GroupStamp's line crosses every member of 'Performance'.";
+  const field = () => panel().querySelector<HTMLElement>('[data-testid="timestamp-groupstamp"]');
+  /** Press the GroupStamp toggle. */
+  function pressGroupstamp(): void {
+    const button = field()?.querySelector<HTMLButtonElement>("button");
+    if (button === undefined || button === null) throw new Error("no GroupStamp toggle");
+    button.click();
+    flushSync();
+  }
+  /** What describes the GroupStamp toggle's group. */
+  const describedGroup = () => described(field()?.querySelector('[role="group"]') as Element);
+  /** The GroupStamp toggle as [label, pressed, disabled]; `null` where none is offered. */
+  function groupstamp(): unknown[] | null {
+    const button = field()?.querySelector<HTMLButtonElement>("button");
+    return button === undefined || button === null
+      ? null
+      : [button.textContent, button.getAttribute("aria-pressed"), button.disabled];
+  }
+
+  it("is pressed on an unnamed member's timestamp, waits for its name, then sets it", () => {
+    const store = mixed();
+    drawer(store, true).pinTimestamp(unnamed(store));
+    const button = field()?.querySelector("button") as HTMLButtonElement;
+    expect([groupstamp(), describedGroup()]).toEqual([
+      ["GroupStamp", "true", true],
+      `${CROSSES} ${UNNAMED}`,
+    ]);
+    const entries = store.journal.length;
+    button.click();
+    flushSync();
+    expect(store.journal.length).toBe(entries);
+
+    type(nameField(), "Upbeat");
+    press(nameField(), "Enter");
+    const named: Address = { block: A, id: "timestamp_11" };
+    expect([groupstamp(), describedGroup()]).toEqual([["GroupStamp", "true", false], CROSSES]);
+    pressGroupstamp();
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: named, values: { groupstamp: false } }],
+    });
+    expect(groupstamp()).toEqual(["GroupStamp", "false", false]);
+    pressGroupstamp();
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: named, values: { groupstamp: true } }],
+    });
+  });
+
+  it("is off in a timeline editor, where naming stores an ordinary timestamp", () => {
+    const store = mixed();
+    expect(store.open({ block: A, id: "score" })).toBe(null);
+    drawer(store, true).pinTimestamp(unnamed(store));
+    expect(groupstamp()).toEqual(["GroupStamp", "false", true]);
+    type(nameField(), "Upbeat");
+    press(nameField(), "Enter");
+    // The editor's session holds the entry.
+    const entry = store.entries.at(-1);
+    expect(entry !== undefined && "command" in entry ? entry.command : undefined).toEqual({
+      type: "add",
+      into: { block: A, id: "score" },
+      timestamp: { name: "Upbeat", coordinate: [16, 5] },
+    });
+  });
+
+  it("is not offered on a timeline in no group", () => {
+    const store = example();
+    drawer(store, true, T).selected([THEME]);
+    expect([nameField().value, groupstamp()]).toEqual(["Theme", null]);
   });
 });
 
