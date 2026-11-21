@@ -29,6 +29,11 @@ const width = attributeText(MATCH_STROKE_WIDTH);
 {#if layers.length > 0}
   <ViewportPortal target="front" class="tilie-overlay">
     {#each layers as layer (layer.block)}
+      <!--
+        Its own derived: a layer redrawn for another hovered or pinned
+        MatchStamp keeps its potential overlay, so this path stays as written.
+      -->
+      {@const potential = pathOf(layer.potential)}
       <svg
         class="tilie-coordinate-marks"
         data-matches={layer.block}
@@ -41,7 +46,7 @@ const width = attributeText(MATCH_STROKE_WIDTH);
       >
         <path
           data-match="potential"
-          d={pathOf(layer.potential)}
+          d={potential}
           fill="none"
           stroke={POTENTIAL_STROKE}
           stroke-width={width}
