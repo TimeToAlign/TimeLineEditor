@@ -30,9 +30,11 @@ have, the schema is changed first.
   control; optionally groups, measure maps, an `id`, a `name`, statements
   (the manifest, every timeline and every region state what they stand
   for in property–value pairs with their provenance, under an inline
-  JSON-LD `@context`), and `graphical`, the
-  styling of its own drawing with the display orders of its groups and the
-  band orders of its timelines. A manifest knows nothing about a canvas.
+  JSON-LD `@context`), `resources` (the files that come with it, such as
+  its MatchClaim table and its Projections table), and `graphical`, the
+  styling of its own drawing with the display orders of its groups, the
+  band orders of its timelines, its named timestamps (groupstamps among
+  them) and its named MatchStamps. A manifest knows nothing about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
   `y`, `scale`, `length`, `spacing` (the gap between the items of its
   drawing), `margin` (the empty space above its first item and below its
@@ -107,11 +109,14 @@ never a string composed from IDs: `{}` the workspace, `{block}` a block,
 and `{block, id?, facet?, part?}` an element of the block's manifest, its
 members those of the manifest's own address (TimeToShare's drawing
 specification, section 2.2): `{block, id: X}` a timeline, group, measure
-map, conversion map, region or flow-control element; `{block, id: T,
+map, conversion map, region, flow-control element, named timestamp (its
+wedge), named MatchStamp or alignment anchor (its line); `{block, id: T,
 facet: F}` the band drawing facet `F` of timeline `T`; `{block, id: T,
 part: ["card"]}` every card of `T`; `{block, part: ["name"]}` the
 manifest's title; and a part of an element its address with `start`,
-`end`, `name` or `label` appended to `part`. An element drawn more than
+`end`, `name`, `label`, `id`, `coordinate` or `line` appended to `part`
+(a named timestamp's line, a groupstamp's across every frame drawing it
+included, is `{block, id: X, part: ["line"]}`). An element drawn more than
 once, a member's cards in several frames among them, keeps one address in
 every drawing of it, so a rule or a selection reaches every drawing.
 Two addresses are equal when they are equal as whole objects, and
@@ -119,8 +124,8 @@ Two addresses are equal when they are equal as whole objects, and
 or a Svelte keyed block takes for it. Core's `resolveAddress(view,
 address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
-band, entry, measure map, part); a part names something only where it is
-drawn. Nothing reads an ID or an address out of
+band, entry, measure map, timestamp, MatchStamp, anchor, part); a part
+names something only where it is drawn. Nothing reads an ID or an address out of
 a string. A statement has neither an ID nor an address: it is changed
 through the element holding it, by one `set` of that element's whole
 `statements` or `provenance`.
@@ -182,6 +187,18 @@ through the element holding it, by one `set` of that element's whole
 - **A new inspector panel**: a Svelte component over a plain state module
   (`<name>.svelte.ts`) with the logic unit-tested without the component, a
   tab in `tabs.ts`, words in `words.ts`.
+- **A new area of a stamp tab** (Timestamp, Matchstamp): a section
+  component in the editor's `inspector/stamps/`, beside the name header
+  (`StampName`), the Coordinates both tabs share (`StampCoordinates`), the
+  display toggles (`DisplayToggles`), the wedge's rotation
+  (`WedgeRotation`), the Timestamp tab's Properties
+  (`TimestampProperties`), a MatchStamp's Lines, MatchClaims, Update and
+  Remove and MatchClaim filter (`MatchstampLines`, `MatchClaimList`,
+  `MatchstampActions`, `MatchClaimFilter`) and the coordinate granularity
+  (`CoordinateGranularity`), all inside `StampPane`, which holds their
+  shared look. The section reads what its tab hands it and builds its
+  commands with the tab's readers (`timestamp.ts`, `matchstamps.ts`,
+  `matchstampLines.ts`); what both tabs show is one section, never two.
 - **A new schema rule**: the rule in both validators (`js/src/validate/*`,
   `python/src/timetoshare/validation/*`, the same module and the same
   order), a stable code in both `diagnostics` modules' `ValidationCode`, a shared rejection fixture that pins the path and
