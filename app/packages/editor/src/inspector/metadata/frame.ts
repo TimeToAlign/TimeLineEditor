@@ -209,7 +209,7 @@ export interface RectangleView {
   readonly things: readonly Thing[];
   /** One row per pair, in pair order. */
   readonly rows: readonly VocabularyRow[];
-  /** Per pair, its provenance entry; `null` where it has none (the manifest's publisher states it). */
+  /** Per pair, its provenance entry; `null` where it has none (the manifest states it). */
   readonly entries: readonly (EntryLine | null)[];
   /** The systems "＋ Add vocabulary" offers: those of the verb not yet used here. */
   readonly addable: readonly string[];

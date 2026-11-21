@@ -60,7 +60,7 @@ Run each command from the stated directory.
 | `app/` | `pnpm format` | Apply Biome formatting. |
 | `app/` | `pnpm typecheck` | Type-check the workspace. |
 | `app/` | `pnpm test` | Run Vitest. |
-| `app/` | `pnpm test:budget` | Run the workspace store's timing budgets alone, one file at a time (excluded from `pnpm test`). |
+| `app/` | `pnpm test:budget` | Run core's timing budgets, the workspace store's and the MatchClaim anchor index's, alone, one file at a time (excluded from `pnpm test`). |
 | `app/` | `pnpm test:build` | Run the tests that need a production build (the attributions and notices file) alone (excluded from `pnpm test`). |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm build:embed` | Build the embeddable editor into `app/packages/editor/dist-embed/` (`tilie.js`, `tilie.css`, `assets/`, the notices file). |
@@ -76,6 +76,7 @@ Run each command from the stated directory.
 | repository root | `pnpm -C app/packages/writers emit-drawings --into <TimeToShare checkout>` | Write the drawing fixtures into a TimeToShare checkout (an absolute path, or one relative to `app/packages/writers`); never rewrites the hand-derived figures. While the schema package is a `link:`, rebuild the checkout's `js/` package with `pnpm build` afterwards, since TiLiE's tests read the drawings from that package's copy of the fixtures. |
 | `app/packages/editor/` | `node scripts/record-lookup.ts` | Record the answers of Wikidata, lobid-gnd and YouTube that the lookup tests replay, into `tests/lookup/`, one request a second; with `--route ../../../server` the answers of the server's MusicBrainz endpoint, replayed from the server's own recordings. Run only to refresh the recordings. |
 | `server/` | `uv run python scripts/record_musicbrainz.py` | Record the MusicBrainz answers the server's lookup tests replay, into `tests/data/musicbrainz/`, with the server's User-Agent and pace. Run only to refresh the recordings. |
+| `server/` | `uv run python scripts/record_match_claims.py` | Record the match-claims answer for TimeToShare's MatchClaim table fixture that the client's tests decode, into `app/packages/client/tests/data/match-claims.answer.bin`. Run only after the answer's layout or the fixture changed. |
 | repository root | `pnpm -C app/packages/writers review` | Render the writer review sheet into `app/packages/writers/review/` with `rsvg-convert`. |
 | `server/` | `uv sync` | Create or update the locked environment. |
 | `server/` | `uv run ruff check .` | Run Python lint checks. |
