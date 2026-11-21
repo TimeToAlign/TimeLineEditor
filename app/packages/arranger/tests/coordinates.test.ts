@@ -740,6 +740,83 @@ describe("a reading above a timeline editor", () => {
   });
 });
 
+describe("a reading across a group whose member has a child", () => {
+  const view = viewWith("groups/group_groupstamp_child_member");
+
+  /** The parts of the reading at the share `share` of the line of `id`, on the arranger. */
+  function partsAt(id: string, share: number) {
+    const line = axis(view, id);
+    const x = line.xStart + share * (line.xEnd - line.xStart);
+    return readAt(view, x, line.y)?.pin.timestamp.parts.map(({ timeline, position }) => [
+      timeline,
+      position,
+    ]);
+  }
+
+  it("holds the other member's crossed child where it is active", () => {
+    expect(partsAt("performance", 3 / 4)).toEqual([
+      ["performance", 3.0],
+      ["score", q(6)],
+      ["second-half", q(2)],
+    ]);
+    expect(partsAt("score", 3 / 4)).toEqual([
+      ["score", q(6)],
+      ["second-half", q(2)],
+      ["performance", 3.0],
+    ]);
+  });
+
+  it("leaves the child out outside its span", () => {
+    expect(partsAt("performance", 1 / 4)).toEqual([
+      ["performance", 1.0],
+      ["score", q(2)],
+    ]);
+    expect(partsAt("score", 1 / 4)).toEqual([
+      ["score", q(2)],
+      ["performance", 1.0],
+    ]);
+  });
+
+  it("reads the child at the member's offset and scale", () => {
+    const line = axis(view, "performance");
+    const reading = readAt(view, line.xStart + (3 / 4) * (line.xEnd - line.xStart), line.y);
+    expect(
+      reading?.pin.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
+    ).toEqual([
+      ["score", q(0), q(2)],
+      ["second-half", q(2), q(2)],
+    ]);
+  });
+
+  it("lists in the flag the timelines the groupstamp's pin lists", () => {
+    const named = namedPin(
+      blockIn(view, A).manifest,
+      A,
+      drawingIn(view),
+      "timestamp_1",
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+    expect(
+      named?.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
+    ).toEqual([
+      ["score", q(-4), undefined],
+      ["performance", q(-4), q(1, 2)],
+    ]);
+    expect(named?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["second-half", q(2)],
+      ["score", q(6)],
+      ["performance", 3.0],
+    ]);
+    const line = axis(view, "performance");
+    const reading = readAt(view, line.xStart + (3 / 4) * (line.xEnd - line.xStart), line.y);
+    const flagged = reading === null ? [] : flagParts(reading.pin).map(({ timeline }) => timeline);
+    const pinned = named?.timestamp.parts.map(({ timeline }) => timeline) ?? [];
+    expect(flagged.toSorted()).toEqual(pinned.toSorted());
+    expect(flagged.toSorted()).toEqual(["performance", "score", "second-half"]);
+  });
+});
+
 describe("the affordance of a named timestamp that draws nothing", () => {
   const affordances = (view: View) => affordancesOf(blockIn(view, A).manifest, drawingIn(view));
 

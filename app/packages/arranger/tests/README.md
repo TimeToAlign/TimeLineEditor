@@ -1779,6 +1779,33 @@ hovered at the middle of its line (8 quarters over 400) reads the parts
 and in a group editor, `score` 4 alone in a timeline editor; `readsGroup`
 of the pin is true, resp. false. Without groups (`map`) nothing changes.
 
+**A reading across the group holds each member's crossed descendants**,
+where active, exactly as a groupstamp's pin does (one reading of a
+groupstamp's members, below): every other member of the frame comes with
+the descendants its own line's cross-section line crosses (the timelines
+its `crossSectionSpec` holds after its ancestors), each at the member's
+offset plus its own offset within the member divided by the member's
+scale, with the member's scale, so that its coordinate is the member's
+less its offset; and the member card holding the hovered line adds the
+crossed descendants of its member not yet held, unscaled. What proves it
+is the child that the hovered line's own cross-section never reaches: in
+`groups/group_groupstamp_child_member` (`group_1` lists `score` (8
+quarters) and `performance` (4.0 seconds); `second-half` is `score`'s
+child at offset 4, 4 quarters long, and holds the groupstamp
+`timestamp_1` at 2), `performance` hovered at three quarters of its line
+reads `performance` the float 3.0, `score` 6, `second-half` 2 (`score` at
+offset 0, scale 2; `second-half` at offset 4/2 = 2, scale 2: (3 − 2) × 2);
+at a quarter it reads `performance` 1.0 and `score` 2 alone, since
+`second-half` (`(1 − 2) × 2 = −2`) lies outside its span. On `score`'s
+line the same: at three quarters `score` 6, `second-half` 2 (its own
+cross-section), `performance` 3.0; at a quarter `score` 2, `performance`
+1.0. Read without the descendants (the member's own line alone, the
+former reading) the first case lacks `second-half`. The flag shows what
+the reading's pin holds, so the timelines of `flagParts` of the reading at
+`timestamp_1`'s place on `performance`'s line are, as a set, those of
+`timestamp_1`'s named pin, which the Timestamp tab shows (`second-half`,
+`score`, `performance`).
+
 The reading's pin is unnamed (`named` `null`), reads its MeasureMaps as
 the reading does (`no_server` without a server) and holds the reading's
 timestamp; its spec carries the granularity it was read with (the same
@@ -1819,7 +1846,8 @@ drawing and the pin read), after its own members, read from the member
 card holding the timestamp's timeline: at that member's offset from the
 anchor's zero (0 where the anchor is the member, the ancestor offset where
 it is a descendant) with the scale of the other member's drawn end over
-that member's (the members of a frame start and end together). In
+that member's (the members of a frame start and end together), each
+followed by the descendants its line's cross-section crosses (above). In
 `groups/group_groupstamp` the groupstamp `timestamp_1` at 4 on `score` (8
 quarters) gives the member `performance` (4.0 seconds) at offset 0, scale
 1/2, and the parts `score` 4, `performance` the float 2.0; `timestamp_3`
@@ -1827,7 +1855,11 @@ quarters) gives the member `performance` (4.0 seconds) at offset 0, scale
 member's descendant: with a child `motif` (offset 2, 4 quarters) added to
 `score` and the groupstamp `timestamp_6` at 1 on it, the members are
 `score` at −2 (its ancestor), then `performance` at −2, scale 1/2, and the
-parts `motif` 1, `score` 3, `performance` the float 1.5.
+parts `motif` 1, `score` 3, `performance` the float 1.5. In
+`groups/group_groupstamp_child_member` the groupstamp `timestamp_1` at 2
+on `second-half` holds the members `score` at −4 (its ancestor), then
+`performance` at −4, scale 1/2, and the parts `second-half` 2, `score` 6,
+`performance` the float 3.0.
 
 **A position's pin on a timeline** (`timelinePin`, the Matchstamp tab's
 coordinates) is read with the one spec a named timestamp's pin is read
@@ -2548,9 +2580,11 @@ display: wedge, name label, cross-section line).
   position read across its group (`readsGroup` of the reading's pin) is
   marked across the group's frame as a groupstamp's line is drawn: in
   `groups/group_groupstamp`, the pointer on `score`'s line at its middle
-  draws, beside the wedge and line, exactly the one line layout's
-  `groupCrossSections` gives there (`coordinate-group-line`, its
-  attributes those), from `score`'s line to `performance`'s; on `melody`
+  draws, beside the wedge and line, exactly the two lines layout's
+  `groupCrossSections` gives there (`coordinate-group-line`, their
+  attributes those), from the upper border of `score`'s card to the top of
+  `score`'s cross-section extent (its conversion maps band) and from
+  `score`'s line to the lower border of `performance`'s card; on `melody`
   of a block without groups, none.
 - **The flag on the canvas.** The flag's place is `flagPlace` (above) of
   the reading turned into canvas pixels: the node's position plus the
@@ -2573,7 +2607,7 @@ display: wedge, name label, cross-section line).
   across its group (`readsGroup`) also draws the lines layout's
   `groupCrossSections` gives at its abscissa on its line (`coordinate-group-line`,
   their attributes exactly those): in `groups/group_groupstamp`, `score`'s
-  pin at its middle draws one, from `score`'s line to `performance`'s;
+  pin at its middle draws the same two as the hovered position;
   the same pin read in a timeline editor, and every pin on `map`, none.
 - **Pinning.** With Show coordinates on, a press released where it began
   on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of

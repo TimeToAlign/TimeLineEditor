@@ -15,7 +15,7 @@ import { emitDrawing } from "./block/emit.ts";
 import { columnsOf, horizontalOf } from "./block/horizontal.ts";
 import { drawItem, layoutItem } from "./block/items.ts";
 import { placeItems, titleOf } from "./block/places.ts";
-import type { DrawnAxis } from "./boxes.ts";
+import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import { Cascade } from "./cascade.ts";
 import { F, P } from "./constants.ts";
 import type { Drawing, Placement } from "./elements.ts";
@@ -70,8 +70,8 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  const after = (axes: readonly DrawnAxis[]) => [
-    ...groupstampElements(manifest, axes),
+  const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
+    ...groupstampElements(manifest, axes, boxes),
     ...anchorElements(manifest, axes, cascade, block.style, measure),
   ];
   return emitDrawing(laid, { style: block.style, title, Pt, margin, after }, placement, measure);
