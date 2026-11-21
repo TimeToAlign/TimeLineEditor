@@ -1,35 +1,20 @@
 /**
- * The MatchClaim table as `tilie-server` answers it: the request's bytes,
- * the answer's decoder and the belief filter's row mask. The repository's
+ * The MatchClaim table as `tilie-server` answers it: the request's bytes
+ * and the answer's decoder. The repository's
  * `decisions/0030-match-claims-answer.md` fixes both layouts;
  * `decisions/0029-match-claim-columns.md` the columns and the encoding of
- * a value, which core's anchor index checks when it is built.
+ * a value, which core's anchor index checks when it is built. Core's
+ * `beliefMask` makes the belief filter's row mask of the decoded beliefs.
  */
 
-import type {
-  ClaimSide,
-  ClaimTimeline,
-  MatchClaimColumns,
-  ValueColumn,
+import {
+  BELIEFS,
+  type ClaimBeliefs,
+  type ClaimSide,
+  type ClaimTimeline,
+  type MatchClaimColumns,
+  type ValueColumn,
 } from "@timetoalign/tilie-core";
-
-/** The belief words, in TimeToShare's order: a belief's number names its word. */
-export const BELIEF_WORDS = ["true", "false", "unlikely"] as const;
-
-/** What the belief filter asks of its believer: any belief but `"false"`, or `"true"`. */
-export type BeliefFilter = "not_false" | "true";
-
-/**
- * Every MatchClaim's beliefs: those of `offsets[row]` up to `offsets[row +
- * 1]` in `actor` (an index into `actors`) and `word` (an index into
- * `BELIEF_WORDS`). `offsets` has one entry more than there are rows.
- */
-export interface ClaimBeliefs {
-  readonly actors: readonly string[];
-  readonly offsets: Uint32Array;
-  readonly actor: Uint32Array;
-  readonly word: Uint8Array;
-}
 
 /** A MatchClaim table as the server answers it: the anchor index's columns and the beliefs. */
 export interface MatchClaimTable {
@@ -49,8 +34,6 @@ export const MALFORMED_MATCH_CLAIMS =
 
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 const NUMBER_TYPES: readonly ClaimTimeline["numberType"][] = ["int", "fraction", "float"];
-const TRUE = 0;
-const FALSE = 1;
 
 /** The request's body: the manifest's UTF-8 length (little-endian), the manifest, the file. */
 export function matchClaimsRequest(manifest: string, table: Blob): Blob {
@@ -145,7 +128,7 @@ function decoded(buffer: ArrayBuffer): MatchClaimTable {
   const timelines = timelinesOf(member(header, "timelines"));
   const actors = strings(member(header, "actors"));
   const words = strings(member(header, "beliefs"));
-  if (words.length !== BELIEF_WORDS.length || words.some((w, i) => w !== BELIEF_WORDS[i])) {
+  if (words.length !== BELIEFS.length || words.some((w, i) => w !== BELIEFS[i])) {
     malformed();
   }
   const arrays = member(header, "arrays");
@@ -200,42 +183,7 @@ function decoded(buffer: ArrayBuffer): MatchClaimTable {
   }
   for (let index = 0; index < actor.length; index += 1) {
     if ((actor[index] as number) >= actors.length) malformed();
-    if ((word[index] as number) >= BELIEF_WORDS.length) malformed();
+    if ((word[index] as number) >= BELIEFS.length) malformed();
   }
   return { columns, beliefs: { actors, offsets, actor, word } };
-}
-
-/**
- * The belief filter's row mask, which core's anchor index takes: `null`
- * (nothing filtered) without a believer; else 1 for every row the believer
- * does not believe `"false"` (`"not_false"`) or believes `"true"`
- * (`"true"`), 0 for the others.
- *
- * @throws {RangeError} for a filter that is neither.
- */
-export function beliefMask(
-  beliefs: ClaimBeliefs,
-  believer: string | null,
-  belief: BeliefFilter = "not_false",
-): Uint8Array | null {
-  if (belief !== "not_false" && belief !== "true") {
-    throw new RangeError(`'${belief}' is no belief filter: write 'not_false' or 'true'`);
-  }
-  if (believer === null) return null;
-  const { offsets, actor, word } = beliefs;
-  const rows = offsets.length - 1;
-  const believes = belief === "true";
-  const mask = new Uint8Array(rows).fill(believes ? 0 : 1);
-  const number = beliefs.actors.indexOf(believer);
-  if (number < 0) return mask;
-  for (let row = 0; row < rows; row += 1) {
-    const end = offsets[row + 1] as number;
-    for (let index = offsets[row] as number; index < end; index += 1) {
-      if (actor[index] !== number) continue;
-      const held = word[index];
-      mask[row] = believes ? (held === TRUE ? 1 : 0) : held === FALSE ? 0 : 1;
-      break;
-    }
-  }
-  return mask;
 }

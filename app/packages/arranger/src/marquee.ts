@@ -31,7 +31,8 @@ function spanning(xs: readonly number[], ys: readonly number[]): Rect {
  * line from its start to its end on its ordinate, a map likewise on its
  * centre, a region between its edges and ordinates, a jump around its
  * curve's points and its arrowhead, a flow marker, boundary, cross-section
- * line or wedge on its abscissa between its ordinates), and a text over its
+ * line or wedge on its abscissa between its ordinates, an alignment
+ * anchor's line between its two end points), and a text over its
  * measured width (from its anchor, or centred on it) from its baseline less
  * the font's ascent to its baseline plus the descent. Stroke widths and
  * markers are not counted.
@@ -64,6 +65,8 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
       return spanning([element.x], [element.y1, element.y2]);
     case "wedge":
       return spanning([element.x], [element.yt, element.yb]);
+    case "alignment_anchor":
+      return spanning([element.x1, element.x2], [element.y1, element.y2]);
     case "name":
     case "label": {
       const size = element.style["font-size"];

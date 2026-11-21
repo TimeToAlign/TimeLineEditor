@@ -80,9 +80,13 @@ function holdersOf(holder: ElementKey): readonly ElementType[] {
   return holder.type === null ? holder.inside : [...holder.inside, holder.type];
 }
 
-/** The key of an element belonging to no timeline, held by `holder`: a group's frame or a title. */
+/**
+ * The key of an element belonging to no timeline, held by `holder`: a
+ * group's frame, a title, the line of an alignment anchor or the label
+ * that line holds (sections 2.1 and 2.2).
+ */
 export function unownedKey(
-  type: "frame" | "name",
+  type: "frame" | "name" | "alignment_anchor" | "label",
   address: ElementAddress,
   holder: ElementKey,
 ): ElementKey {
@@ -385,10 +389,15 @@ function memberElements(
  * 2.1 and 8.1): the block; the title of a named manifest (one with an `id`
  * or a `name`), addressed `{part: ["name"]}`; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
- * frame. A timeline drawn more than once, as an ancestor line and as a line
- * of its own, or as a member of several groups, is listed at each drawing
- * with the same address, cards included, and so are the marks of a member's
- * start and end on each of its ancestor lines.
+ * frame; then, after every item, the alignment anchors of the named
+ * MatchStamps (section 8.7), MatchStamp by MatchStamp and each one's
+ * anchors in the order of its `alignment_anchors`: each anchor's line `{id:
+ * A}`, which the block holds, and, when its `display` lists `name`, the
+ * MatchStamp's name at it, a `label` addressed `{id: A, part: ["name"]}`
+ * that the line holds. A timeline drawn more than once, as an ancestor
+ * line and as a line of its own, or as a member of several groups, is
+ * listed at each drawing with the same address, cards included, and so are
+ * the marks of a member's start and end on each of its ancestor lines.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);
@@ -404,5 +413,15 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     for (const member of frame.members) memberElements(ordered, member, group, keys);
   }
   for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
+  for (const matchstamp of ordered.graphical?.matchstamps ?? []) {
+    for (const anchor of matchstamp.alignment_anchors) {
+      const address = idAddress(anchor.id);
+      const line = unownedKey("alignment_anchor", address, BLOCK_KEY);
+      keys.push(line);
+      if (anchor.display.includes("name")) {
+        keys.push(unownedKey("label", partAddress(address, "name"), line));
+      }
+    }
+  }
   return keys;
 }

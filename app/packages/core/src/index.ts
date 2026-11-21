@@ -204,6 +204,8 @@ export {
   matchStampMembers,
   segmentsOf,
 } from "./matches/anchors.ts";
+export type { BeliefFilter, ClaimBeliefs } from "./matches/beliefs.ts";
+export { BELIEF_FILTERS, BELIEFS, beliefMask } from "./matches/beliefs.ts";
 export type {
   ClaimSide,
   ClaimTimeline,
@@ -271,14 +273,12 @@ export { createStore } from "./workspace/store.ts";
 export type { User } from "./workspace/user.ts";
 export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
 export type {
-  BeliefFilter,
   Granularity,
   MatchClaimFilter,
   View,
   WorkspaceSettings,
 } from "./workspace/view.ts";
 export {
-  BELIEF_FILTERS,
   createView,
   DEFAULT_GRANULARITY,
   DEFAULT_MATCH_CLAIM_FILTER,

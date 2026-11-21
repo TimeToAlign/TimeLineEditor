@@ -174,6 +174,33 @@ describe("the elements of a manifest", () => {
     expect(top({ id: "edition" })).toEqual(title);
     expect(top({})?.type).toBe("card");
   });
+
+  it("lists every alignment anchor's line after the items, and its label where display names it", () => {
+    const manifest = load("bundles/bundle_matchstamps.yaml");
+    const keys = manifestElements(manifest);
+    const unowned = (type: string, address: ElementAddress, inside: string[]) => ({
+      type,
+      address,
+      timeline: null,
+      domain: null,
+      modality: null,
+      class: null,
+      facet: null,
+      inside,
+    });
+    expect(keys.slice(-3)).toEqual([
+      unowned("alignment_anchor", id("anchor_1"), ["block"]),
+      unowned("label", id("anchor_1", "name"), ["block", "alignment_anchor"]),
+      unowned("alignment_anchor", id("anchor_2"), ["block"]),
+    ]);
+    expect(keys.filter((key) => key.address.id?.startsWith("anchor_") === true)).toHaveLength(3);
+    const matches = matcher(keys, timelineAncestry(manifest));
+    expect(matches({ element: "alignment_anchor" })).toEqual([id("anchor_1"), id("anchor_2")]);
+    expect(matches({ inside: "alignment_anchor" })).toEqual([id("anchor_1", "name")]);
+    expect(
+      matches({ within: "score" }).filter((address) => address.id?.startsWith("anchor_")),
+    ).toEqual([]);
+  });
 });
 
 const BLOCK_NAME = {

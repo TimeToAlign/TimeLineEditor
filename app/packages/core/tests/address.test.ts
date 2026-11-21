@@ -541,6 +541,8 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
     case "boundary":
     case "cross_section":
       return "part";
+    case "alignment_anchor":
+      return "anchor";
     default:
       return "timeline";
   }

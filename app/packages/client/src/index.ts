@@ -11,8 +11,7 @@ import {
   matchClaimsRequest,
 } from "./matchClaims.ts";
 
-export type { BeliefFilter, ClaimBeliefs, MatchClaimTable } from "./matchClaims.ts";
-export { BELIEF_WORDS, beliefMask } from "./matchClaims.ts";
+export type { MatchClaimTable } from "./matchClaims.ts";
 
 export const name = "@timetoalign/tilie-client" as const;
 

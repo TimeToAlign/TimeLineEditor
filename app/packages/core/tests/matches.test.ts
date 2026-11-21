@@ -14,6 +14,7 @@ import {
   matchStampMembers,
   segmentsOf,
 } from "../src/matches/anchors.ts";
+import { BELIEF_FILTERS, BELIEFS, beliefMask } from "../src/matches/beliefs.ts";
 import type { ClaimTimeline, ClaimValues } from "../src/matches/columns.ts";
 import { matchClaimColumns } from "../src/matches/columns.ts";
 import type { NamedAnchor, NamedMatchStampSpec } from "../src/matches/compare.ts";
@@ -772,5 +773,42 @@ describe("a named MatchStamp against the index", () => {
       claimsNew: ["claim_1", "claim_2"],
       update: null,
     });
+  });
+});
+
+describe("the belief filter", () => {
+  const A = "https://orcid.org/0000-0002-1825-0097";
+  const B = "https://orcid.org/0000-0001-5109-3700";
+  // The beliefs of TimeToShare's table fixture as the client decodes them.
+  const beliefs = {
+    actors: [B, A],
+    offsets: Uint32Array.from([0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 6, 6]),
+    actor: Uint32Array.from([1, 1, 1, 1, 0, 0]),
+    word: Uint8Array.from([0, 2, 0, 1, 0, 0]),
+  };
+  const rows = (mask: Uint8Array | null) =>
+    mask === null ? null : Array.from(mask.keys()).filter((row) => mask[row] === 1);
+  const every = Array.from({ length: 15 }, (_, row) => row);
+
+  it("numbers the words as TimeToShare does and reads two filters", () => {
+    expect(BELIEFS).toEqual(["true", "false", "unlikely"]);
+    expect(BELIEF_FILTERS).toEqual(["not_false", "true"]);
+  });
+
+  it("gives the rows of the table fixture's cases", () => {
+    expect(beliefMask(beliefs, null)).toBeNull();
+    expect(beliefMask(beliefs, null, "true")).toBeNull();
+    expect(rows(beliefMask(beliefs, A))).toEqual(every.filter((row) => row !== 12));
+    expect(rows(beliefMask(beliefs, A, "true"))).toEqual([0, 10]);
+    expect(rows(beliefMask(beliefs, B, "true"))).toEqual([12, 13]);
+    expect(rows(beliefMask(beliefs, B))).toEqual(every);
+    expect(rows(beliefMask(beliefs, "https://example.org/nobody"))).toEqual(every);
+    expect(rows(beliefMask(beliefs, "https://example.org/nobody", "true"))).toEqual([]);
+  });
+
+  it("refuses another filter word", () => {
+    expect(() => beliefMask(beliefs, A, "false" as "true")).toThrow(
+      new RangeError("'false' is no belief filter: write 'not_false' or 'true'"),
+    );
   });
 });
