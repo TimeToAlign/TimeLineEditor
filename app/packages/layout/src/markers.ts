@@ -24,12 +24,11 @@ import type {
   ShownCoordinate,
   TextElement,
   VerticalLineElement,
-  WedgeCorner,
 } from "./elements.ts";
 import { type Extent, labelExtent, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue } from "./numbers.ts";
-import { type WedgeOffset, wedgeCorners, wedgeSpan } from "./rotation.ts";
+import { type WedgeCorner, type WedgeOffset, wedgeCorners, wedgeSpan } from "./rotation.ts";
 import {
   type Entry,
   known,

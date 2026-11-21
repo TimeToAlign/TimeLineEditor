@@ -24,7 +24,7 @@ import {
 } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Style } from "./cascade.ts";
-import type { WedgeCorner } from "./elements.ts";
+import type { WedgeCorner } from "./rotation.ts";
 
 /**
  * The half-open range `[start, end)` of `Drawing.elements` that a container

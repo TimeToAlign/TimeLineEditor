@@ -45,6 +45,7 @@ import {
   timestampRows,
 } from "@timetoalign/tilie-core";
 import { toAxisValue } from "@timetoalign/tilie-core/numbers";
+import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import type { FontMetrics, NumberType, Selector } from "@timetoalign/timetoshare";
 import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
@@ -391,13 +392,6 @@ export function groupstampCommand(pin: Pin, groupstamp: boolean): Command {
  * and the buttons under it.
  */
 export const ROTATION_STOPS: readonly number[] = [-180, -135, -45, 0, 45, 135, 180];
-
-/**
- * The rotation in degrees of a groupstamp's wedge that no rule sets: the
- * initial value of the drawing specification (section 2.5), every other
- * wedge's being 0.
- */
-export const GROUPSTAMP_ROTATION = -45;
 
 /** `degrees` as the tab writes it, a negative number with a minus sign (U+2212): "−45", "0", "135". */
 export function degreesText(degrees: number): string {

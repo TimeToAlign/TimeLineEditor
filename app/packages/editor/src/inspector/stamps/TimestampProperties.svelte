@@ -11,6 +11,7 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Pin, TimestampDisplay } from "@timetoalign/tilie-core";
+import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { matchStampsOf } from "../matchstamps.ts";
 import {
@@ -18,7 +19,6 @@ import {
   degreesText,
   displayCommand,
   displayOf,
-  GROUPSTAMP_ROTATION,
   groupstampCommand,
   groupstampOf,
   holdingGroupNames,

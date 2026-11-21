@@ -7,6 +7,7 @@ import type { ElementAddress, Places, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timetoshare";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
+import type { WedgeCorner } from "./rotation.ts";
 
 export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
 
@@ -155,15 +156,6 @@ export interface AnchorElement extends Addressed {
   readonly y1: number;
   readonly x2: number;
   readonly y2: number;
-}
-
-/**
- * A corner of a wedge's base: `dx` across from its tip's abscissa, a length,
- * and `y` its ordinate.
- */
-export interface WedgeCorner {
-  readonly dx: number;
-  readonly y: number;
 }
 
 /**
