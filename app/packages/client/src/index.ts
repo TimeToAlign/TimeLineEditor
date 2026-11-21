@@ -15,6 +15,7 @@ import {
   provenanceOf,
   type StatedBelief,
 } from "./claimProvenance.ts";
+import { type FileServer, fileCalls } from "./files.ts";
 import {
   decodeMatchClaims,
   MALFORMED_MATCH_CLAIMS,
@@ -31,6 +32,7 @@ export type {
   StatedBelief,
 } from "./claimProvenance.ts";
 export { PARQUET_MEDIA_TYPE } from "./claimProvenance.ts";
+export type { FileServer, FolderEntry, FolderListing, WrittenFile } from "./files.ts";
 export type { MatchClaimTable } from "./matchClaims.ts";
 
 export const name = "@timetoalign/tilie-client" as const;
@@ -128,8 +130,8 @@ export class ServerError extends Error {
   }
 }
 
-/** One server, as `connect` returns it. */
-export interface Server {
+/** One server, as `connect` returns it: its routes, the user's files among them (`FileServer`). */
+export interface Server extends FileServer {
   /** The server's health; rejects with a `ServerError` when it does not answer. */
   health(): Promise<Health>;
   /**
@@ -348,6 +350,11 @@ export function connect({ url, token }: ConnectOptions): Server {
   }
 
   return {
+    ...fileCalls({
+      headers,
+      request,
+      malformed: (status, message, cause) => new ServerError("status", status, message, cause),
+    }),
     async health() {
       const response = await request("health", { headers });
       return answer(

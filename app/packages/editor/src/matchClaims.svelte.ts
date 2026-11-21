@@ -15,14 +15,17 @@
  * `decisions/0032-match-claim-events.md`).
  *
  * The MatchClaim table a manifest names is loaded from where the manifest
- * came from (its `ManifestSource`) when it can be reached from there;
- * otherwise the user chooses it (`AskTables`): a file on their system or a
- * URL, or, where the browser hands over folders, the manifest's folder,
- * which the block then keeps for the session and, where the browser can,
- * beyond it (`FolderMemory`), so its table loads from there without a
- * question. The editor reads no other resource a manifest names: it
- * implements no event resource, and the MatchClaim table alone carries what
- * the match display needs.
+ * came from (its `ManifestSource`) when it can be reached from there: a
+ * served example, or, with a server whose files the editor reaches, the
+ * folder of the manifest's file, which the workspace states
+ * (`ManifestPlaces`). Otherwise the user is asked once (`AskTables`): with
+ * the server's files, where the manifest lies, which the workspace then
+ * keeps (a block whose manifest's file it does not state), or the table's
+ * file (a folder that does not hold it), each located in the editor's file
+ * dialog, or a URL; without them, a file on their system or a URL. The
+ * editor reads no other resource a manifest names: it implements no event
+ * resource, and the MatchClaim table alone carries what the match display
+ * needs.
  */
 
 import type {
@@ -36,7 +39,15 @@ import { ServerError } from "@timetoalign/tilie-client";
 import type { Manifest } from "@timetoalign/tilie-core";
 import { saveManifest } from "@timetoalign/tilie-core";
 import { SvelteMap } from "svelte/reactivity";
-import { MATCH_CLAIM_TABLE, readInFolder, saveFile } from "./files.ts";
+import type { FileKind, FileReader } from "./files.ts";
+import {
+  baseName,
+  folderOf,
+  MANIFEST_FILE,
+  MATCH_CLAIM_TABLE,
+  saveFile,
+  serverSource,
+} from "./files.ts";
 import { messageOf } from "./messages.svelte.ts";
 
 /** What a block's table is read from: its file's name, the server's answer and the file. */
@@ -68,8 +79,8 @@ export interface NamedTable {
 
 /**
  * Where a block's manifest came from, as far as the files it names can be
- * read from there: a served example, say. A manifest picked from the
- * user's system, or read from a workspace, has none.
+ * read from there: a served example, or the folder of its file on the
+ * server. A manifest picked from the user's system has none.
  */
 export interface ManifestSource {
   /**
@@ -81,35 +92,56 @@ export interface ManifestSource {
 }
 
 /**
- * What the user chose for the MatchClaim table: a file of their system, a
- * URL, or the folder the manifest lies in, which holds the table it names.
+ * What the user chose: a file of their system, a URL of the table, or the
+ * path of a file on the server, the manifest's or the table's as the
+ * question asked (`TableQuestion`).
  */
 export type TableChoice =
   | { readonly file: File }
   | { readonly url: string }
-  | { readonly folder: FileSystemDirectoryHandle };
+  | { readonly path: string };
 
 /**
- * The folders blocks' manifests lie in, kept beyond the session by block
- * (in the browser's storage): `recall` gives the one kept for a block,
- * `null` when none is; `remember` keeps one; `forget` keeps none for a
- * block any more. None fails: what cannot be kept is not.
+ * The user's files on the server, as the tables reach them: read by path
+ * from the server's root, the path of the file each block's manifest came
+ * from (the workspace states it), and the editor's file dialog.
  */
-export interface FolderMemory {
-  recall(block: string): Promise<FileSystemDirectoryHandle | null>;
-  remember(block: string, folder: FileSystemDirectoryHandle): Promise<void>;
-  forget(block: string): Promise<void>;
+export interface ManifestPlaces {
+  readonly files: FileReader;
+  /** The path of the file block `block`'s manifest came from; `null` where the workspace states none. */
+  pathOf(block: string): string | null;
+  /** The user located block `block`'s manifest at the file `path`: the workspace keeps it. */
+  located(block: string, path: string): void;
+  /**
+   * Let the user choose a file of one of `kinds` in the editor's file
+   * dialog, starting in the folder of the file `near` (else where the
+   * dialog starts); its path, `null` when they cancel.
+   */
+  choose(kinds: readonly FileKind[], near: string | null): Promise<string | null>;
 }
 
-/** A manifest's folder as where it came from: the files it names, read from the folder. */
-export function folderSource(folder: FileSystemDirectoryHandle): ManifestSource {
-  return { read: (url) => readInFolder(folder, url) };
-}
+/**
+ * The question the user is asked: without the server's files, the table's
+ * file on their system (`file`); with them, where the manifest lies
+ * (`manifest`, for a block whose manifest's file the workspace does not
+ * state), or the table's file (`table`; `missing` the manifest's path
+ * where the table is not beside it, `null` when the user asked to load
+ * one). `locate` opens the file dialog on the file asked for.
+ */
+export type TableQuestion =
+  | { readonly kind: "file" }
+  | { readonly kind: "manifest"; readonly locate: () => Promise<string | null> }
+  | {
+      readonly kind: "table";
+      readonly missing: string | null;
+      readonly locate: () => Promise<string | null>;
+    };
 
 /** What the user is asked to choose: the MatchClaim table of the manifest called `manifest`. */
 export interface TableRequest {
   readonly manifest: string;
   readonly table: NamedTable;
+  readonly question: TableQuestion;
 }
 
 /** Ask the user for the file of `request`'s table: what they chose, `null` when they cancel. */
@@ -265,25 +297,25 @@ export class MatchClaimTables {
   >();
   /** The events asked of each table, as `#provenance`. */
   readonly #events = new WeakMap<LoadedTable, Map<string, Promise<readonly ClaimEvents[]>>>();
-  /** Where each block's manifest came from, where it came from somewhere its files can be read. */
+  /** Where the manifests of examples came from, by block: their files are read from there. */
   readonly #sources = new Map<string, ManifestSource>();
   readonly #ask: AskTables | null;
-  readonly #folders: FolderMemory | null;
+  readonly #places: () => ManifestPlaces | null;
 
   /**
    * The tables read through `server` (`null`: no server, so no table is
    * ever read), the user asked for the files of tables through `ask`
-   * (`null`: never asked, as if they cancelled), the folders of blocks'
-   * manifests kept in `folders` (`null`: for the session only).
+   * (`null`: never asked, as if they cancelled), the server's files as
+   * `places` gives them now (`null`: the editor does not reach them).
    */
   constructor(
     server: MatchClaimServer | null,
     ask: AskTables | null = null,
-    folders: FolderMemory | null = null,
+    places: () => ManifestPlaces | null = () => null,
   ) {
     this.#server = server;
     this.#ask = ask;
-    this.#folders = folders;
+    this.#places = places;
   }
 
   /** Whether tables can be read: a server is given. */
@@ -314,43 +346,43 @@ export class MatchClaimTables {
     this.#tables.set(block, loaded);
   }
 
-  /** Block `block`'s manifest came from `source`: the files it names are read from there. */
+  /** Block `block`'s manifest came from `source` (an example): the files it names are read from there. */
   locate(block: string, source: ManifestSource): void {
     this.#sources.set(block, source);
   }
 
   /**
-   * Block `block`'s manifest lies in `folder`: the files it names are read
-   * from there, for the session and, kept in the folder memory, after the
-   * workspace is opened again.
+   * Where block `block`'s manifest came from: located this session (an
+   * example), else the folder of its file on the server (`places`), else
+   * `null`.
    */
-  inFolder(block: string, folder: FileSystemDirectoryHandle): void {
-    this.locate(block, folderSource(folder));
-    void this.#folders?.remember(block, folder);
-  }
-
-  /**
-   * Block `block` left the workspace: its manifest's folder is kept no
-   * longer beyond the session, so the folder memory holds no folder of a
-   * block that is gone. Where it came from stays located for the session,
-   * so a block an undo brings back reads its tables from there again.
-   */
-  left(block: string): void {
-    void this.#folders?.forget(block);
-  }
-
-  /**
-   * Where block `block`'s manifest came from: as located this session, else
-   * the folder the memory kept for it (located from then on), else `null`.
-   */
-  async #sourceOf(block: string): Promise<ManifestSource | null> {
+  #sourceOf(block: string, places: ManifestPlaces | null): ManifestSource | null {
     const located = this.#sources.get(block);
-    if (located !== undefined || this.#folders === null) return located ?? null;
-    const folder = await this.#folders.recall(block);
-    if (folder === null) return null;
-    const source = folderSource(folder);
-    this.#sources.set(block, source);
-    return source;
+    if (located !== undefined) return located;
+    const path = places?.pathOf(block) ?? null;
+    return places === null || path === null ? null : serverSource(places.files, folderOf(path));
+  }
+
+  /**
+   * The question for the table of block `block`, as `places` reaches the
+   * server's files (`null`: a file of the user's system): with a `source`
+   * of its manifest, its table's file; without one, where the manifest lies.
+   */
+  #question(
+    block: string,
+    places: ManifestPlaces | null,
+    source: ManifestSource | null,
+  ): TableQuestion {
+    if (places === null) return { kind: "file" };
+    if (source === null) {
+      return { kind: "manifest", locate: () => places.choose([MANIFEST_FILE], null) };
+    }
+    const path = places.pathOf(block);
+    return {
+      kind: "table",
+      missing: path,
+      locate: () => places.choose([MATCH_CLAIM_TABLE], path),
+    };
   }
 
   /** Forget every table and where every manifest came from: another workspace was opened. */
@@ -362,65 +394,97 @@ export class MatchClaimTables {
   /**
    * Load the MatchClaim table block `block`'s manifest `manifest` names,
    * when it names one and the block holds none (what Show matches asks):
-   * from where the manifest came from (located this session, or its folder
-   * kept from an earlier one) where it can be reached there, else as the
-   * user chooses it (the user's `AskTables`; cancelled, it is left), read
-   * through the server (`load`). What the message bar says of it: nothing
-   * without a server, which Show matches says itself.
+   * from where the manifest came from (`#sourceOf`) where it lies there,
+   * silently, else as the user chooses it in one question (`#question`;
+   * cancelled, it is left), read through the server (`load`). What the
+   * message bar says of it: nothing without a server, which Show matches
+   * says itself.
    */
   async loadNamed(block: string, manifest: Manifest): Promise<TableMessages> {
     const url = namedTable(manifest);
     if (this.#server === null || this.of(block) !== null || url === null) return NO_MESSAGES;
-    const source = await this.#sourceOf(block);
+    const places = this.#places();
+    const source = this.#sourceOf(block, places);
     const warned: string[] = [];
-    let reached: TableFile | null = null;
-    try {
-      const file = source === null ? null : await source.read(url);
-      if (file !== null) reached = { name: fileNameOf(url), file };
-    } catch (error) {
-      warned.push(
-        `${url} could not be read from where the manifest came from: ${messageOf(error)}`,
-      );
-    }
-    const taken = reached ?? (await this.#chosen(block, manifest, { url }, warned));
+    const reached = source === null ? null : await this.#read(source, url, warned);
+    const taken =
+      reached ??
+      (await this.#chosen(block, manifest, url, this.#question(block, places, source), warned));
     return this.#take(block, manifest, taken, warned);
   }
 
   /**
    * Let the user choose the MatchClaim table of block `block`'s manifest
-   * `manifest` (Load MatchClaims…), a file of their system or a URL, then
-   * load it as `loadNamed` loads it. Without a server nothing is asked and
+   * `manifest` (Load MatchClaims…): its file, on their system or, with the
+   * server's files, in the file dialog, or a URL; then load it as
+   * `loadNamed` loads it. Without a server nothing is asked and
    * `MATCHES_NEED_A_SERVER` is the warning.
    */
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
     if (this.#server === null) return { informed: [], warned: [MATCHES_NEED_A_SERVER] };
     const warned: string[] = [];
-    const url = namedTable(manifest);
-    const chosen = await this.#chosen(block, manifest, { url }, warned);
+    const places = this.#places();
+    const question: TableQuestion =
+      places === null
+        ? { kind: "file" }
+        : {
+            kind: "table",
+            missing: null,
+            locate: () => places.choose([MATCH_CLAIM_TABLE], places.pathOf(block)),
+          };
+    const chosen = await this.#chosen(block, manifest, namedTable(manifest), question, warned);
     return this.#take(block, manifest, chosen, warned);
   }
 
+  /** The table at `url` from `source`; `null` where it holds none, or (said in `warned`) cannot be read. */
+  async #read(source: ManifestSource, url: string, warned: string[]): Promise<TableFile | null> {
+    try {
+      const file = await source.read(url);
+      return file === null ? null : { name: fileNameOf(url), file };
+    } catch (error) {
+      warned.push(
+        `${url} could not be read from where the manifest came from: ${messageOf(error)}`,
+      );
+      return null;
+    }
+  }
+
   /**
-   * The file the user chooses for `table` of block `block`'s manifest
-   * `manifest`, a URL read; `null` when they cancel (or nobody can be
-   * asked). A URL that cannot be read adds its warning to `warned` and
-   * gives `null`. A folder chosen becomes the block's (`inFolder`) and the
-   * table named is read from it; one it does not hold is said in `warned`.
+   * The file the user chooses for the table `url` of block `block`'s
+   * manifest `manifest`, asked `question`; `null` when they cancel (or
+   * nobody can be asked). A URL, or a path on the server, that cannot be
+   * read adds its warning to `warned` and gives `null`. The manifest's file
+   * located on the server becomes the block's (`ManifestPlaces.located`) and
+   * the table is read beside it; a folder not holding it is said in
+   * `warned`.
    */
   async #chosen(
     block: string,
     manifest: Manifest,
-    table: NamedTable,
+    url: string | null,
+    question: TableQuestion,
     warned: string[],
   ): Promise<TableFile | null> {
-    const choice =
-      this.#ask === null ? null : await this.#ask({ manifest: manifestTitle(manifest), table });
+    const request = { manifest: manifestTitle(manifest), table: { url }, question };
+    const choice = this.#ask === null ? null : await this.#ask(request);
     if (choice === null) return null;
-    if ("folder" in choice) {
-      this.inFolder(block, choice.folder);
-      return table.url === null ? null : this.#fromFolder(choice.folder, table.url, warned);
-    }
     if ("file" in choice) return { name: choice.file.name, file: choice.file };
+    const places = this.#places();
+    if ("path" in choice && places !== null) {
+      if (question.kind !== "manifest") return this.#atPath(places, choice.path, warned);
+      places.located(block, choice.path);
+      if (url === null) return null;
+      const reached = await this.#read(
+        serverSource(places.files, folderOf(choice.path)),
+        url,
+        warned,
+      );
+      if (reached === null && warned.length === 0) {
+        warned.push(`${url} is not beside ${baseName(choice.path)}.`);
+      }
+      return reached;
+    }
+    if (!("url" in choice)) return null;
     try {
       return await fetched(choice.url);
     } catch (error) {
@@ -429,20 +493,14 @@ export class MatchClaimTables {
     }
   }
 
-  /** The file `url` names in `folder`; `null`, said in `warned`, where the folder does not hold it or fails to read it. */
-  async #fromFolder(
-    folder: FileSystemDirectoryHandle,
-    url: string,
-    warned: string[],
-  ): Promise<TableFile | null> {
+  /** The file `path` on the server; `null`, said in `warned`, where it cannot be read. */
+  async #atPath(places: ManifestPlaces, path: string, warned: string[]): Promise<TableFile | null> {
     try {
-      const file = await readInFolder(folder, url);
-      if (file !== null) return { name: fileNameOf(url), file };
-      warned.push(`The folder ${folder.name} holds no ${url}.`);
+      return { name: baseName(path), file: await places.files.readFile(path) };
     } catch (error) {
-      warned.push(`${url} could not be read from the folder ${folder.name}: ${messageOf(error)}`);
+      warned.push(`${path} could not be read: ${messageOf(error)}`);
+      return null;
     }
-    return null;
   }
 
   /** Hold `taken` (none: nothing) as block `block`'s table, read through the server; the messages, after `warned`. */

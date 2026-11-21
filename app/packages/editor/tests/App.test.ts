@@ -56,7 +56,8 @@ describe("App", () => {
     expect(text("h1")).toEqual(["TimeLineEditor"]);
     expect(text("h2")).toEqual([
       "Inspector",
-      "Load the tables of ",
+      "Load the MatchClaim table of ",
+      "Open",
       "Your name",
       "Type profiles",
       "About TimeLineEditor",

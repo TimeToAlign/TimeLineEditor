@@ -189,6 +189,13 @@ call or the exact result.
      another `kind`, an entry with a member more, `entries` no list, text
      that is no JSON) or "the write answer is not the file written" (another
      `path`, a `size` that is negative, fractional or a string).
+   - `connect` gives its `Server` these calls over its own transport:
+     `connect({url: "api/", token: "t"}).listFolder("sub")` asks
+     `api/folders?path=sub` with exactly `{headers: {Authorization: "Bearer
+     t"}}`, and a 400 answer `{"detail": {"path": ["path"], "message": "path
+     outside the root"}}` rejects with a `ServerError` whose code, status and
+     message are `status`, 400 and "path outside the root" and whose
+     `refusal.path` is `["path"]`.
 
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or

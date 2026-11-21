@@ -1,17 +1,14 @@
 /**
- * What the editor keeps in IndexedDB. The autosave of workspace snapshots:
+ * What the editor keeps in IndexedDB: the autosave of workspace snapshots,
  * one object store, one slot per workspace key. A snapshot is the
  * workspace's text, stored and returned exactly as given (normally what
  * `writeWorkspace` returns; this module never parses or builds it), the
- * name of the file it belongs to and, where the browser can store it, the
- * handle of that file, so a restored workspace is saved back into it. A
- * caller may pass a function giving the snapshot instead, so the text is
- * written out only when it is due, not on every change. And the folders
- * blocks' manifests were chosen in, by block, so the files a manifest
- * names are read from there again after the workspace is reopened.
+ * name of the file it belongs to and where that file lies: its path on the
+ * server, or, where the browser can store it, the browser's handle of it,
+ * so a restored workspace is saved back into it. A caller may pass a
+ * function giving the snapshot instead, so the text is written out only
+ * when it is due, not on every change.
  */
-
-import type { FolderMemory } from "./matchClaims.svelte.ts";
 
 /** One object store of its own database, and how its failures name a key. */
 interface Kept {
@@ -27,13 +24,6 @@ const WORKSPACES: Kept = {
   version: 1,
   store: "workspaces",
   subject: "autosave of workspace",
-};
-
-const FOLDERS: Kept = {
-  database: "tilie-folders",
-  version: 1,
-  store: "folders",
-  subject: "the folder of block",
 };
 
 export type AutosaveErrorCode = "indexeddb_unavailable" | "indexeddb_failed";
@@ -63,10 +53,14 @@ export interface AutosaveOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-/** What a slot holds: a workspace's text, the name of its file and, where kept, its file's handle. */
+/**
+ * What a slot holds: a workspace's text, the name of its file and, where
+ * known, the file's path on the server or, where kept, its handle.
+ */
 export interface Snapshot {
   readonly text: string;
   readonly name: string;
+  readonly path?: string;
   readonly handle?: FileSystemFileHandle;
 }
 
@@ -152,11 +146,14 @@ function isHandle(value: unknown, kind: FileSystemHandleKind): boolean {
 export async function recoverWorkspace(key: string): Promise<Snapshot | null> {
   const value: unknown = await inStore(WORKSPACES, key, "readonly", (store) => store.get(key));
   if (typeof value !== "object" || value === null) return null;
-  const { text, name, handle } = value as Record<string, unknown>;
+  const { text, name, path, handle } = value as Record<string, unknown>;
   if (typeof text !== "string" || typeof name !== "string") return null;
-  return isHandle(handle, "file")
-    ? { text, name, handle: handle as FileSystemFileHandle }
-    : { text, name };
+  return {
+    text,
+    name,
+    ...(typeof path === "string" ? { path } : {}),
+    ...(isHandle(handle, "file") ? { handle: handle as FileSystemFileHandle } : {}),
+  };
 }
 
 /** Remove the slot of `key`. */
@@ -171,52 +168,20 @@ function notStorable(error: unknown): boolean {
 }
 
 /** Write `snapshot` under `key`; a handle the browser cannot store is left out. */
-async function putSnapshot(key: string, { text, name, handle }: Snapshot): Promise<void> {
+async function putSnapshot(key: string, { handle, ...kept }: Snapshot): Promise<void> {
   const put = (value: object) =>
     inStore(WORKSPACES, key, "readwrite", (store) => store.put(value, key));
   if (handle === undefined) {
-    await put({ text, name });
+    await put(kept);
     return;
   }
   try {
-    await put({ text, name, handle });
+    await put({ ...kept, handle });
   } catch (error) {
     if (!notStorable(error)) throw error;
-    await put({ text, name });
+    await put(kept);
   }
 }
-
-/** The folder block `block`'s manifest was last chosen in; `null` when none is kept. */
-export async function rememberedFolder(block: string): Promise<FileSystemDirectoryHandle | null> {
-  const value: unknown = await inStore(FOLDERS, block, "readonly", (store) => store.get(block));
-  return isHandle(value, "directory") ? (value as FileSystemDirectoryHandle) : null;
-}
-
-/** Keep `folder` as the folder of block `block`'s manifest, replacing any kept. */
-export async function rememberFolder(
-  block: string,
-  folder: FileSystemDirectoryHandle,
-): Promise<void> {
-  await inStore(FOLDERS, block, "readwrite", (store) => store.put(folder, block));
-}
-
-/** Keep no folder of block `block`'s manifest any more. */
-export async function forgetFolder(block: string): Promise<void> {
-  await inStore(FOLDERS, block, "readwrite", (store) => store.delete(block));
-}
-
-/**
- * The folders of blocks' manifests kept in this browser, as the MatchClaim
- * tables use them: kept where the browser can (a failure, a handle it
- * cannot store, keeps nothing), none recalled where it cannot, and
- * forgotten once their block leaves the workspace (a failure forgets
- * nothing).
- */
-export const KEPT_FOLDERS: FolderMemory = {
-  recall: (block) => rememberedFolder(block).catch(() => null),
-  remember: (block, folder) => rememberFolder(block, folder).catch(() => undefined),
-  forget: (block) => forgetFolder(block).catch(() => undefined),
-};
 
 /** Run one request in its own transaction of `kept` and resolve once the transaction completes. */
 async function inStore<T>(

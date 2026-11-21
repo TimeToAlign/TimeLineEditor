@@ -140,9 +140,7 @@ describe("the shell while editing", () => {
     expect(name).toBe("untitled.tle.json");
     expectFolded(read(text), 1, "S");
     expect(hook().editing().length).toBe(1);
-    expect(document.querySelector('[data-testid="file-name"]')?.textContent).toBe(
-      "untitled.tle.json",
-    );
+    expect(document.title).toBe("untitled.tle.json – TimeLineEditor");
     expectFolded(read(hook().text()), 1, "S");
 
     rename("T");

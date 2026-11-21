@@ -404,7 +404,9 @@ read through the file chooser and written as a download. The gate is the
 round trip: a new workspace, an imported `bare.yaml` placed at the view's
 centre snapped to the grid, a drag and a stretch (three entries), then
 Ctrl/Cmd+S, whose download equals the hook's `text()` and clears the
-file name's unsaved mark, Open of that file, which restores the journal
+unsaved mark of the header's title ("• untitled" → "untitled", the
+workspace's name) and of the page's title ("untitled.tle.json –
+TimeLineEditor"), Open of that file, which restores the journal
 and the same text, and Save again, which writes the same bytes. Further cases prove that an
 opened workspace is fitted while an import leaves the view, that a refused
 file is shown with its problem code and leaves the open workspace, and that
@@ -422,26 +424,49 @@ two blocks; New workspace downloads the unsaved workspace under
 leaves one block. With pickers stubbed in the page (an open picker handing
 over one in-page file handle holding a workspace file, whose writes are
 recorded, and a save picker that records its calls): the opened file's
-name is shown, a change marks it, Ctrl/Cmd+S writes the hook's `text()`
-into that handle, clears the mark and calls no save picker; with the
-handle's write permission refused, Ctrl/Cmd+S calls the save picker.
+name is in the page's title, a change (the workspace's rules, no rename)
+marks it, Ctrl/Cmd+S writes the hook's `text()` into that handle, clears
+the mark and calls no save picker; with the handle's write permission
+refused, Ctrl/Cmd+S calls the save picker. Renamed in the header (a click
+on the title, "Variations", Enter: the title reads "• Variations"),
+Ctrl/Cmd+S calls the save picker once and writes nothing into the opened
+handle, but the hook's `text()` into the picked one.
+**Through the server's files** (the health route and the file routes
+answered in the page: the folders `story` and `work` at the root,
+`story/step1.yaml` the table fixture's manifest named LayerIt naming
+`step1.match_claims.parquet`, which `story` holds too; every read and
+write recorded; the table route replayed from the client's recording):
+Import manifest… opens the file dialog "Open", its list "Contents of the
+root folder" focused and showing `story/`, `work/`; ArrowDown and Enter
+open `story`, ArrowDown and Enter take `step1.yaml` (one block).
+Ctrl/Cmd+S opens "Save as" offering `untitled.tle.json`; Root, a
+double-click on `work/`, the name `layerit` and Save write exactly one
+file, `work/layerit.tle.json`, whose `settings.manifests` entry of the
+block holds the location `../story/step1.yaml`; the page's title is then
+"layerit.tle.json – TimeLineEditor". Renamed "LayerIt" in the header,
+Ctrl/Cmd+S opens "Save as" offering `LayerIt.tle.json`, and Cancel writes
+nothing. Saved into `story` as `layerit`, the page reloaded and the file
+opened through Open… (a double-click on `story/`, then on
+`layerit.tle.json`), the toolbar's Show matches reads exactly one file,
+`story/step1.match_claims.parquet`, sends one table request and opens no
+dialog.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
-the tables a manifest names, the table route replayed from the client's
-recording (`match-claims.answer.bin`, `rows` read from its header): the
-table fixture opened from the Fixture menu, its tables served beside it,
-loads both on the `m` key without a dialog and with one table request;
-the same manifest imported from the system, Show matches (its toolbar
-button) opens "Load the tables of The manifest" with one group per table,
-Load disabled until a file is chosen, and loads the chosen files with one
+the MatchClaim table a manifest names, the table route replayed from the
+client's recording (`match-claims.answer.bin`, `rows` read from its
+header) and no server answering for the user's files (the test build's
+health check fails): the table fixture opened from the Fixture menu, its
+table served beside it, loads it on the `m` key without a dialog and with
+one table request; the same manifest imported from the system, Show
+matches (its toolbar button) opens "Load the MatchClaim table of The
+manifest" with one group, "MatchClaim table match_claims.parquet", Load
+disabled until a file is chosen, and loads the chosen file with one
 request; a URL entered is fetched once and loaded; Cancel loads nothing
-and adds no message; and "Choose the manifest's folder…" (the directory
-picker stubbed in the page by an in-page folder holding both tables) loads
-both without asking for anything else. "Load MatchClaims…" in the
-Matchstamp tab's MatchClaim filter, on the same imported manifest with
-Show matches off, opens the same dialog with the same two groups and
-loads the chosen MatchClaim table with one request (no file picker of its
-own). Each loaded table's status line in
+and adds no message. "Load MatchClaims…" in the Matchstamp tab's
+MatchClaim filter, on the same imported manifest with Show matches off,
+opens the same dialog with the same group and loads the chosen MatchClaim
+table with one request (no file picker of its own). With the server's
+files, `open-save.spec.ts` proves the table read beside the manifest. Each loaded table's status line in
 the Matchstamp tab reads "match_claims.parquet: <rows> MatchClaims".
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
@@ -1064,7 +1089,7 @@ tests prove its beliefs); the provenance route with the fixture's entry of
 believing it true on 2026-11-20) and no entry for any other MatchClaim;
 the events route with the events of `claim_1` written in the spec
 (`clt_1` event `note_1` named "C4" ↔ `dpt_1` event `onset_1`, certainty
-0.75, no Projection); the belief route with other Parquet bytes than the
+0.75); the belief route with other Parquet bytes than the
 picked file's (the
 fixture's `projections.parquet`), so a saved file equal to them proves the
 editor holds and saves the answered file unchanged. A MatchStamp naming

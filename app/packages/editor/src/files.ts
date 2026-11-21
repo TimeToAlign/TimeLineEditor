@@ -2,11 +2,13 @@
  * Opening and saving files: through the File System Access API where the
  * browser has it (a save writes back to the file it opened or last saved,
  * once the browser lets it write there), otherwise through a file input and
- * a download. A cancelled picker is `null`, never an error. Where the
- * browser hands over folders, the files a manifest names are read from
- * the folder chosen as the manifest's.
+ * a download. A cancelled picker is `null`, never an error. With a
+ * server, files are named by their path from the server's root folder
+ * (POSIX, `""` the root) and read and written through it; the paths' own
+ * arithmetic and the reading of the files a manifest names are here too.
  */
 
+import { ServerError } from "@timetoalign/tilie-client";
 import type { Entry, Manifest } from "@timetoalign/tilie-core";
 import { UNTITLED_WORKSPACE } from "@timetoalign/tilie-core";
 import type { Serialization } from "@timetoalign/timetoshare";
@@ -297,107 +299,98 @@ function download(text: string | Blob, name: string, type: string): void {
   setTimeout(() => URL.revokeObjectURL(url));
 }
 
-/** The File System Access directory picker, where the browser has one. */
-interface DirectoryPicker {
-  showDirectoryPicker?: (options: { mode: Access }) => Promise<FileSystemDirectoryHandle>;
+/** Whether a save without a server downloads the file: the browser has no save picker. */
+export function savesByDownload(): boolean {
+  return pickers().showSaveFilePicker === undefined;
 }
 
-/** The entries of a directory, which the DOM types of this TypeScript version do not list. */
-interface Listed {
-  values(): AsyncIterable<FileSystemHandle>;
-}
-
-/** Whether the browser hands over folders (`chooseFolder`); without, no folder is ever asked for. */
-export function canChooseFolders(): boolean {
-  return (globalThis as DirectoryPicker).showDirectoryPicker !== undefined;
-}
-
-/** Let the viewer choose a folder to read from; `null` when they cancel or the browser cannot. */
-export async function chooseFolder(): Promise<FileSystemDirectoryHandle | null> {
-  const { showDirectoryPicker } = globalThis as DirectoryPicker;
-  if (showDirectoryPicker === undefined) return null;
-  try {
-    return await showDirectoryPicker({ mode: "read" });
-  } catch (error) {
-    if (cancelled(error)) return null;
-    throw error;
-  }
-}
+// --- Paths on the server -------------------------------------------------------------
 
 /**
- * The path within a folder that the location `url` names, relative to a
- * file in that folder (as a manifest's `resources` state locations): its
- * segments, decoded, `.` and `..` applied; `null` for a location no folder
- * holds (with a scheme, from the root, above the folder, or none at all).
+ * The segments of `path`, a POSIX path relative to `folder` (itself a
+ * path from the server's root, `""` the root): `.` and empty segments
+ * dropped, `..` leading up; `null` where it leads above the root, starts
+ * with `/` or names a scheme (a URL, not a path).
  */
-export function folderPath(url: string): string[] | null {
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(url) || url.startsWith("/")) return null;
-  const [path = ""] = url.split(/[?#]/u, 1);
+function segmentsOf(folder: string, path: string): string[] | null {
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(path) || path.startsWith("/")) return null;
   const segments: string[] = [];
-  for (const part of path.split("/")) {
+  for (const part of [...folder.split("/"), ...path.split("/")]) {
     if (part === "" || part === ".") continue;
     if (part === "..") {
       if (segments.pop() === undefined) return null;
       continue;
     }
-    try {
-      segments.push(decodeURIComponent(part));
-    } catch {
-      return null;
-    }
+    segments.push(part);
   }
-  return segments.length === 0 ? null : segments;
-}
-
-/** Whether `error` says a file or folder is not there (or is the other kind). */
-function absent(error: unknown): boolean {
-  return (
-    error instanceof DOMException &&
-    (error.name === "NotFoundError" || error.name === "TypeMismatchError")
-  );
+  return segments;
 }
 
 /**
- * The file at the location `url` (`folderPath`) in `folder`; `null` where
- * the folder holds none there, the location is none a folder holds, or the
- * browser does not let the page read the folder (`permitted`). Rejects when
- * reading failed otherwise.
+ * The path from the server's root of `path`, relative to the folder
+ * `folder` (a path from the root, `""` the root); `null` where it leads
+ * above the root, starts with `/` or names a scheme.
  */
-export async function readInFolder(
-  folder: FileSystemDirectoryHandle,
-  url: string,
-): Promise<File | null> {
-  const path = folderPath(url);
-  if (path === null || !(await permitted(folder, "read"))) return null;
-  const directories = path.slice(0, -1);
-  const name = path[path.length - 1] ?? "";
-  try {
-    let directory = folder;
-    for (const segment of directories) directory = await directory.getDirectoryHandle(segment);
-    return await (await directory.getFileHandle(name)).getFile();
-  } catch (error) {
-    if (absent(error)) return null;
-    throw error;
-  }
+export function resolvedPath(folder: string, path: string): string | null {
+  return segmentsOf(folder, path)?.join("/") ?? null;
+}
+
+/** The folder of the file `path` (a path from the root): `""` for a file in the root. */
+export function folderOf(path: string): string {
+  const at = path.lastIndexOf("/");
+  return at < 0 ? "" : path.slice(0, at);
+}
+
+/** The last segment of `path`: the file's name. */
+export function baseName(path: string): string {
+  return path.slice(path.lastIndexOf("/") + 1);
 }
 
 /**
- * The manifest files directly in `folder`, by name: every `.yaml`, `.yml`
- * and `.json` file but workspace files.
+ * The path of the file `path` relative to the folder `folder`, both from
+ * the root: `..` for every folder left, then the rest of `path`
+ * (`relativePath("work", "story/a.yaml")` is `../story/a.yaml`).
  */
-export async function manifestFiles(folder: FileSystemDirectoryHandle): Promise<Opened[]> {
-  const extensions = Object.values(MANIFEST_FILE.accept).flat();
-  const found: Opened[] = [];
-  for await (const entry of (folder as FileSystemDirectoryHandle & Listed).values()) {
-    if (entry.kind !== "file" || isWorkspaceFile(entry.name)) continue;
-    const lower = entry.name.toLowerCase();
-    if (!extensions.some((extension) => lower.endsWith(extension))) continue;
-    const handle = entry as FileSystemFileHandle;
-    found.push({ name: entry.name, file: await handle.getFile(), handle });
-  }
-  return found.sort((left, right) =>
-    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
-  );
+export function relativePath(folder: string, path: string): string {
+  const from = folder === "" ? [] : folder.split("/");
+  const to = path.split("/");
+  let shared = 0;
+  while (shared < from.length && shared < to.length - 1 && from[shared] === to[shared]) shared += 1;
+  return [...from.slice(shared).map(() => ".."), ...to.slice(shared)].join("/");
+}
+
+/** What a server needs to read a file by its path from the root. */
+export interface FileReader {
+  readFile(path: string): Promise<Blob>;
+}
+
+/** HTTP 404: the server holds no such file. */
+const NOT_FOUND = 404;
+
+/**
+ * The files a manifest in the server's folder `folder` names: `read(url)`
+ * reads the location `url` relative to that folder through `server`
+ * (`readFile`); `null` where the server holds no file there (it answers
+ * 404) or the location leads out of the root or is a URL. Rejects when the
+ * server fails otherwise.
+ */
+export function serverSource(
+  server: FileReader,
+  folder: string,
+): { read(url: string): Promise<Blob | null> } {
+  return {
+    async read(url) {
+      const [location = ""] = url.split(/[?#]/u, 1);
+      const path = resolvedPath(folder, location);
+      if (path === null || path === "") return null;
+      try {
+        return await server.readFile(path);
+      } catch (error) {
+        if (error instanceof ServerError && error.status === NOT_FOUND) return null;
+        throw error;
+      }
+    },
+  };
 }
 
 /**

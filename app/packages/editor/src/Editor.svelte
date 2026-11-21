@@ -12,7 +12,7 @@
  */
 import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
-import type { Health } from "@timetoalign/tilie-client";
+import type { Health, Server } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
 import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
 import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
@@ -22,23 +22,16 @@ import { onMount, tick, untrack } from "svelte";
 import { on } from "svelte/events";
 import AboutDialog from "./AboutDialog.svelte";
 import { NOTICES_FILE } from "./attributions.ts";
-import { KEPT_FOLDERS } from "./autosave.ts";
 import type { Autosaving } from "./autosaving.ts";
 import { startAutosave } from "./autosaving.ts";
 import ConfirmDialog from "./ConfirmDialog.svelte";
 import type { Example } from "./examples.ts";
 import { EXAMPLES } from "./examples.ts";
+import FileDialog from "./FileDialog.svelte";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
 import type { Opened } from "./files.ts";
-import {
-  canChooseFolders,
-  isMatchClaimTable,
-  isWorkspaceFile,
-  OPENABLE_FILE,
-  openFiles,
-  UNTITLED,
-} from "./files.ts";
+import { isMatchClaimTable, isWorkspaceFile, OPENABLE_FILE, openFiles, UNTITLED } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
@@ -46,7 +39,7 @@ import MessageBar from "./MessageBar.svelte";
 import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
-import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
+import type { TimeLineEditorOptions } from "./options.ts";
 import { Picking, providePicking } from "./pick.svelte.ts";
 import ProfilesDialog from "./profiles/ProfilesDialog.svelte";
 import { ProfilesState, provideProfiles } from "./profiles/profiles.svelte.ts";
@@ -55,6 +48,8 @@ import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
 import UserDialog from "./UserDialog.svelte";
 import { provideUser, UserState } from "./user.svelte.ts";
+import WorkspaceTitle from "./WorkspaceTitle.svelte";
+import type { FileHost } from "./workspaceSession.svelte.ts";
 import { WorkspaceRefusedError, WorkspaceSession } from "./workspaceSession.svelte.ts";
 
 type Props = TimeLineEditorOptions & {
@@ -93,6 +88,7 @@ let arranger: HTMLElement | undefined = $state();
 let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
 let tablesDialog: ReturnType<typeof TablesDialog> | undefined = $state();
+let fileDialog: ReturnType<typeof FileDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
 let userDialog: ReturnType<typeof UserDialog> | undefined = $state();
@@ -145,14 +141,35 @@ providePicking(picking);
 
 // --- The workspace ----------------------------------------------------------
 
+/** The server's calls; `null` without a server. */
+const client = untrack(() => (server === null ? null : connect(server)));
+
+/** The server's health, kept for the About pane; `null` until it answers. */
+let health: Health | null = $state.raw(null);
+
+/**
+ * The user's files through the server, once it answered its health check:
+ * from then on Open…, Import manifest… and Save as… use the editor's file
+ * dialog; before, and without a server, the browser's pickers.
+ */
+const fileHost: FileHost | null = $derived(
+  client === null || health === null
+    ? null
+    : {
+        server: client,
+        open: async (kinds, start) => (await fileDialog?.open(kinds, start)) ?? null,
+        save: async (kind, start, suggested) =>
+          (await fileDialog?.save(kind, start, suggested)) ?? null,
+      },
+);
+
 const session = new WorkspaceSession({
   author: () => user.name,
   warn,
   inform: (text) => messages.inform(text),
-  matchClaims: untrack(() => (server === null ? null : connect(server))),
+  matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
-  // The folders of blocks' manifests are kept only where the host lets the editor keep anything.
-  folders: untrack(() => (storage === null ? null : KEPT_FOLDERS)),
+  files: () => fileHost,
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -259,10 +276,16 @@ async function openExample(example: Example): Promise<void> {
 /**
  * Open the files the viewer picks: a workspace file replaces the open
  * workspace (`openWorkspace`), manifest files are imported (`openManifests`),
- * each with the MatchClaim tables picked beside it.
+ * each with the MatchClaim tables picked beside it. Through the server the
+ * viewer chooses one file in the file dialog (`openOnServer`).
  */
 async function openFromFile(): Promise<void> {
   try {
+    const host = session.files;
+    if (host !== null) {
+      await openOnServer(host);
+      return;
+    }
     const picked = await openFiles(OPENABLE_FILE, true);
     if (picked.length === 0) return;
     if (picked.some(({ name }) => isWorkspaceFile(name))) await openWorkspace(picked);
@@ -271,6 +294,26 @@ async function openFromFile(): Promise<void> {
   } catch (error) {
     warn(`The file could not be opened: ${messageOf(error)}`);
   }
+}
+
+/**
+ * Open the file the viewer chooses in the file dialog: a workspace replaces
+ * the open one (`mayReplace`); a manifest is imported as Import manifest…
+ * imports it, after the question `openManifests` asks.
+ */
+async function openOnServer(host: FileHost): Promise<void> {
+  const path = await session.chooseOpened(host);
+  if (path === null) return;
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  if (isWorkspaceFile(name)) {
+    if (!(await mayReplace())) return;
+    const refusal = await session.openPath(host, path);
+    if (refusal !== null)
+      warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+    return;
+  }
+  if (canvas === undefined || !(await mayAdd([name]))) return;
+  await session.importPath(host, path, canvas, fontMetrics);
 }
 
 /** Replace the open workspace (`mayReplace`) by the workspace file among `picked`. */
@@ -293,21 +336,32 @@ async function openWorkspace(picked: readonly Opened[]): Promise<void> {
  */
 async function openManifests(picked: readonly Opened[]): Promise<void> {
   if (canvas === undefined) return;
-  if (Object.keys(session.store.view.blocks).length > 0) {
-    const names = picked.filter(({ name }) => !isMatchClaimTable(name)).map(({ name }) => name);
-    const them = names.length === 1 ? "it" : "them";
-    const answer = await confirm?.ask(
-      `Add ${names.join(", ")} to the open workspace, or open ${them} in a new, empty workspace?`,
-      ["Add", "New workspace", "Cancel"],
-      "Add",
-    );
-    if (answer !== "Add" && answer !== "New workspace") return;
-    if (answer === "New workspace") {
-      if (session.unsaved() !== null && !(await session.saveUnsaved())) return;
-      session.replace(emptyWorkspace(), UNTITLED, null, true);
-    }
-  }
+  const names = picked.filter(({ name }) => !isMatchClaimTable(name)).map(({ name }) => name);
+  if (!(await mayAdd(names))) return;
   await session.importPicked(picked, canvas, fontMetrics);
+}
+
+/**
+ * Whether the manifests `names` are to be imported: at once into an empty
+ * workspace; otherwise the viewer is asked whether to add them to the open
+ * workspace or to open them in a new, empty one, before which the open
+ * workspace, if unsaved, is saved; a save not made keeps it open and
+ * imports nothing.
+ */
+async function mayAdd(names: readonly string[]): Promise<boolean> {
+  if (Object.keys(session.store.view.blocks).length === 0) return true;
+  const them = names.length === 1 ? "it" : "them";
+  const answer = await confirm?.ask(
+    `Add ${names.join(", ")} to the open workspace, or open ${them} in a new, empty workspace?`,
+    ["Add", "New workspace", "Cancel"],
+    "Add",
+  );
+  if (answer !== "Add" && answer !== "New workspace") return false;
+  if (answer === "New workspace") {
+    if (session.unsaved() !== null && !(await session.saveUnsaved())) return false;
+    session.replace(emptyWorkspace(), UNTITLED, null, true);
+  }
+  return true;
 }
 
 // --- Shortcuts --------------------------------------------------------------
@@ -423,16 +477,6 @@ const fileItems: readonly MenuItem[] = $derived([
       if (canvas !== undefined) void session.importManifest(canvas, fontMetrics);
     },
   },
-  ...(canChooseFolders()
-    ? [
-        {
-          label: "Import manifest from folder…",
-          run: () => {
-            if (canvas !== undefined) void session.importFolder(canvas, fontMetrics);
-          },
-        },
-      ]
-    : []),
   {
     label: "Export manifest…",
     disabled: session.exportable === null,
@@ -471,14 +515,12 @@ const pinnedMatchStamp = $derived(pinnedMatchStampOf(drawer?.shownMatch() ?? nul
 
 // --- The server and the autosave ---------------------------------------------
 
-/** The server's health, kept for the About pane; `null` until it answers. */
-let health: Health | null = $state.raw(null);
 /** Why the health check failed, the offline mark's title and hidden text; empty while it has not failed. */
 let offline = $state("");
 
-async function checkHealth(options: ServerOptions): Promise<void> {
+async function checkHealth(calls: Server): Promise<void> {
   try {
-    health = await connect(options).health();
+    health = await calls.health();
   } catch (error) {
     offline = `The server did not answer the health check (${messageOf(error)}).`;
   }
@@ -497,7 +539,7 @@ onMount(() => {
         (await confirm?.ask(question, answers, focused)) ?? null,
     });
   }
-  if (server !== null) void checkHealth(server);
+  if (client !== null) void checkHealth(client);
   return () => {
     autosaving?.stop();
     session.dispose();
@@ -596,7 +638,12 @@ if (withTestHook) {
     {#if title}{@render title()}{:else}<span class="title">TimeLineEditor</span>{/if}
     <FileMenu label="File" items={fileItems} />
     {#if examples}<FileMenu label="Examples" items={exampleItems} />{/if}
-    <span class="file" data-testid="file-name">{session.dirty ? "• " : ""}{session.fileName}</span>
+    <WorkspaceTitle
+      name={session.live.view.name}
+      fileName={session.fileName}
+      dirty={session.dirty}
+      onrename={(name) => session.rename(name)}
+    />
     <span class="server" aria-live="polite">
       {#if offline}<span class="offline" title={offline}
           >offline<span class="visually-hidden">: {offline}</span></span
@@ -622,7 +669,7 @@ if (withTestHook) {
         onlive={(next) => (placement = next)}
         pinned={drawer?.shownPin() ?? null}
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
-        measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
+        measureMaps={client === null ? undefined : measureMapsOf(client)}
         picking={picking.active ? picking.take : null}
         {matches}
         {matchesStatus}
@@ -648,6 +695,7 @@ if (withTestHook) {
 
   <ConfirmDialog bind:this={confirm} />
   <TablesDialog bind:this={tablesDialog} />
+  {#if client !== null}<FileDialog bind:this={fileDialog} server={client} />{/if}
   <UserDialog bind:this={userDialog} />
   <ProfilesDialog bind:this={profilesDialog} />
   <AboutDialog bind:this={about} connected={server !== null} {health} {offline} {noticesUrl} />
@@ -696,16 +744,6 @@ if (withTestHook) {
   .offline {
     font-size: 0.8rem;
     color: #666;
-  }
-
-  /* A long name, or the unsaved marker, is cut rather than widening the editor on a phone. */
-  .file {
-    min-width: 0;
-    overflow: hidden;
-    font-size: 0.85rem;
-    color: #3d3d3d;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .spacer {

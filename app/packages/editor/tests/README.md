@@ -29,8 +29,8 @@ the drawing's record, read in the test itself.
 The page is one caller of the editor: the page's one level-1 heading
 "TimeLineEditor", given to the editor's header as its title, the
 level-2 headings of the drawer, the tables dialog (closed, so naming no
-manifest: "Load the tables of "), the "Your name" dialog, the "Type
-profiles" dialog and About, no
+manifest: "Load the MatchClaim table of "), the file dialog ("Open"), the
+"Your name" dialog, the "Type profiles" dialog and About, no
 footer, and the focused canvas (`application`
 "Arranger"). With `#token=abc` in the address, the one health request is
 `api/health` with `Authorization: Bearer abc`, the fragment is gone from
@@ -92,7 +92,8 @@ without a selected block, and every key
 of the pattern, each checked by the focused item and `aria-expanded`. A
 refused file leaves the open workspace as it is and shows one dismissible
 message, "bad.tle.json is not a workspace file", with each problem's code
-and place. The file name and the document title ("untitled.tle.json –
+and place. The header's title (the workspace's name, `WorkspaceTitle`,
+"untitled") and the document title ("untitled.tle.json –
 TimeLineEditor") gain "• " after a command, lose it when undo returns to
 the opened view and regain it on redo. New workspace, Open… and a
 workspace example on unsaved changes ask one question, "untitled.tle.json
@@ -106,10 +107,18 @@ Matchstamp tab's item 12).
 Save writes core's writer's text of the
 store under the workspace's file name, takes Ctrl+S from the browser and
 clears the mark; a workspace with no file yet is offered the file its name
-gives (renamed "Eroica sketches", `Eroica sketches.tle.json`), and a
-workspace with a file keeps that file's name when renamed (renamed again
-"Variations", saved again as `Eroica sketches.tle.json`; restored from
-autosave as `score.tle.json`, saved as `score.tle.json`); a save requested while one is under way is ignored.
+gives (renamed "Eroica sketches", `Eroica sketches.tle.json`). **A renamed
+workspace's next Save is Save as**: renamed in the header (a click on the
+title, "Variations", Enter), Ctrl+S offers `Variations.tle.json` (with
+the save picker: `showSaveFilePicker` called once with that suggested
+name, the opened handle not written); the rename undone, Ctrl+S writes
+into the file again without asking. Saved without a rename, a workspace
+keeps its file's name (restored from autosave as `score.tle.json`, saved
+as `score.tle.json`). The first save that downloads (no save picker, no
+server) informs once "Saved as a download: this browser cannot write
+files; start TiLiE with tilie-server to save in place."; a second
+download says nothing more. A save requested while one is under way is
+ignored.
 A workspace file stating no name opens named `untitled`, whatever the
 file's name (`Op. 35 sketches.tle.json`), and one stating a name its
 journal gave opens under it (`Eroica sketches` from `other.tle.json`); a
@@ -237,6 +246,83 @@ workspace then belongs to the picked one. Ctrl+Shift+S always picks. A
 workspace restored from an autosave that kept its file's handle saves
 back into that handle on Ctrl+S.
 
+**Through the server** (`open-save.test.ts`, the session alone, its
+`FileHost` stubbed: a server holding files by path from its root, which
+records every `readFile` and `writeFile`, and a file dialog answering the
+paths the test queues, recording each `open` and `save` with its kinds,
+start folder and suggested name). The server holds
+`story/step1.yaml` (the table fixture's manifest named "LayerIt", naming
+`step1.match_claims.parquet`), `story/step1.match_claims.parquet` and the
+folder `work/`. Each value below is derived from the paths alone: a
+location is the manifest's path relative to the workspace file's folder.
+- Import manifest… answered `story/step1.yaml` into an unsaved workspace
+  (no file: the root is its folder) reads that path once and gives the
+  block the location `"story/step1.yaml"` (its form as `readManifestFile`
+  infers it, nothing journalled but the `add`).
+- Save (no file yet) asks the dialog once, in the root, offering
+  `untitled.tle.json`; answered `work/layerit.tle.json`, it writes there
+  exactly once, and the written text's `settings.manifests[block]` holds
+  `location` `"../story/step1.yaml"`; the session's `path` is
+  `work/layerit.tle.json`, its file name `layerit.tle.json`, the mark gone.
+- That text opened anew (`openPath`), Show matches (`loadNamedTables`)
+  reads exactly one file, `story/step1.match_claims.parquet`, asks no
+  question, and the messages are exactly `{informed: ["Loaded the
+  MatchClaims of step1.match_claims.parquet."], warned: []}`.
+- With the Parquet file removed from the server, the same asks exactly one
+  question, of kind `table`, its `missing` the manifest's path
+  `story/step1.yaml`; the dialog shows it titled
+  "step1.match_claims.parquet is not beside LayerIt, at story/step1.yaml"
+  (item 9b).
+- Renamed "LayerIt" (`rename`), Save opens the save dialog offering
+  `LayerIt.tle.json`, in `work`, and writes nothing while it is
+  cancelled; with the rename undone, Save writes `work/layerit.tle.json`
+  without opening the dialog.
+- A snapshot restored as `{text, name: "layerit.tle.json", path:
+  "work/layerit.tle.json"}` (`replace` with that path, unsaved) saves on
+  Save into `work/layerit.tle.json`, no dialog.
+- Save as into the root (`layerit.tle.json`) rewrites the location to
+  `"story/step1.yaml"` before writing, and the written text holds it; a
+  write the server refuses leaves the locations as they were
+  (`"../story/step1.yaml"`), the mark and the path unchanged, and warns
+  "The workspace could not be saved: <the server's message>".
+- Open… through the dialog offers workspaces and manifests (the kinds
+  `WORKSPACE_FILE`, `MANIFEST_FILE`); a workspace path opens it under its
+  base name with that `path`.
+
+## The editor's file dialog (`file-dialog.test.ts`)
+
+The dialog is mounted alone over a stubbed `listFolder` holding, at the
+root, the folders `archive.tle.json`, `story` and `work` and the files
+`a.tle.json`, `b.yaml`, `c.parquet`, `d.json` (in that order, as the
+server lists them), and in `story` the file `step1.yaml`; every call is
+recorded. It
+is read by role and name, and driven by keys as a keyboard user would:
+- `open([MANIFEST_FILE], "")` lists the root once (`listFolder("")`),
+  titled "Open"; its list box "Contents of the root folder" shows
+  `archive.tle.json/`, `story/`, `work/`, `b.yaml`, `d.json` (folders,
+  then the manifests;
+  no workspace, since workspaces were not asked for, no table); the
+  breadcrumb holds "Root" alone, `aria-current="location"`.
+- In the list box, ArrowDown twice chooses `story/` (`aria-selected`, the list's
+  `aria-activedescendant` its option), Enter opens it (`listFolder("story")`;
+  breadcrumb "Root", "story"), ArrowDown and Enter take `step1.yaml`: the
+  dialog resolves `"story/step1.yaml"`. Backspace in a folder goes up;
+  "Root" in the breadcrumb lists the root again.
+- A double-click on `b.yaml` resolves `"b.yaml"`; Cancel resolves `null`.
+- `open(…, "gone")` on a folder the server refuses (404 "no such folder")
+  shows the root instead and says "The folder gone could not be shown:
+  no such folder".
+- `save(WORKSPACE_FILE, "", "untitled.tle.json")` titled "Save as" shows
+  `archive.tle.json/`, `story/`, `work/`, `a.tle.json` and the name field
+  "File name" holding
+  `untitled.tle.json`; Save resolves `"untitled.tle.json"`. The name
+  `layerit` resolves `"layerit.tle.json"` (the kind's extension added).
+  The name `a.tle.json` asks "Replace a.tle.json?" (Replace, Cancel, the
+  focus on Cancel): Cancel keeps the dialog open, Replace resolves
+  `"a.tle.json"`. A click on `a.tle.json` in the list fills the field. The
+  name `archive` refuses "archive.tle.json is a folder." and a name
+  holding `/` "A file name holds no /.", the dialog staying open.
+
 ## The workspace's title (`workspace-title.test.ts`)
 
 The title is a component of its own, given the workspace's name, its
@@ -257,7 +343,9 @@ text is compared, so a mark, a separator or a file name too many fails.
 - A click on the button swaps in one text field labelled "Workspace name",
   holding `untitled`, focused, all its text selected (selection 0 to 8).
   Replacing the text by `LayerIt` and pressing Enter calls `onrename`
-  exactly once, with `"LayerIt"`; the button is back, focused. F2 on the
+  exactly once, with `"LayerIt"`; the button is back, focused, and the
+  Enter key's event is prevented (the browser would otherwise press the
+  button that now holds the focus, which opens the field again). F2 on the
   button opens the field as the click does; Enter on a button is the
   browser's click, so it needs no test of its own. Leaving the field
   (blur) commits as Enter does: one call; spaces around the text are
@@ -286,13 +374,10 @@ write once at the next flush or to the error callback; no IndexedDB is
 these tests); one whose handle IndexedDB cannot store (a `DataCloneError`:
 an object holding a function) is written without it and recovers
 `{text, name}` exactly; the autosave of an editor whose workspace has a
-handle writes it beside the text. The folders of blocks' manifests are
-kept in a database of their own by block ID: a kept `{kind:
-"directory", name}` is given back for its block, `null` for another, and
-`null` for its block once forgotten (`forgetFolder`), the other block's
-kept; the editor's folder memory keeps nothing and fails nothing for a
-folder IndexedDB cannot store, and recalls `null` and forgets without
-failing without IndexedDB.
+handle writes it beside the text. A snapshot with its file's path on the
+server (`{text, name, path: "work/w.tle.json"}`) recovers exactly that,
+and the autosave of an editor whose workspace has a path writes it beside
+the text.
 
 The editor uses the slot `current`. A slot holding more than an empty
 workspace is offered with "Restore the unsaved workspace from 2026-10-12
@@ -1666,10 +1751,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    a resource of its file name; every picked Parquet file is a MatchClaim
    table, so with one manifest a file named as its Projections table
    (`projections.parquet`) goes to the table route too, and the route's
-   refusal is the warning. A manifest naming a
-   table that is not loaded says "<name> names the MatchClaim table
-   match_claims.parquet, which is not loaded: Show matches (M) loads it.",
-   without a server the same with "Matches need a server: …". A refused
+   refusal is the warning. A manifest naming a table that is not loaded
+   says nothing on import, with or without a server: Show matches loads
+   it. A refused
    table lists each problem with its row; an unreachable server, 501 and
    any other failure each have their message. Opening another workspace
    drops every table; the workspace file never holds one (its text equals
@@ -1691,7 +1775,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      the MatchClaims of match_claims.parquet."], warned: []}`;
    - from a source that reaches nothing, the user is asked once, for the
      MatchClaim table (`{manifest: "Tables", table: {url:
-     "match_claims.parquet"}}`, the manifest named by its name); a file
+     "match_claims.parquet"}, question: {kind: "file"}}`, the manifest
+     named by its name; without the server's files the question is the
+     file's); a file
      chosen is loaded; the URL `https://example.org/p/m.parquet` is fetched
      (`fetch` stubbed, called once with that URL) and loaded under
      `m.parquet`; a URL answered 404 warns "The MatchClaim table was not
@@ -1721,56 +1807,54 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the information
    through `inform`, the warnings through `warn`. Turning Show matches on,
    by its key or its button, is what calls it (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load MatchClaims…) always asks, for
-   the MatchClaim table (with `url` `null` where the manifest names none),
+   the MatchClaim table (with `url` `null` where the manifest names none;
+   `{kind: "file"}` without the server's files, `{kind: "table", missing:
+   null}` with them),
    and loads what is chosen the same way; without a server it asks nothing
    and warns "Matches need a server: …". The Fixture menu's
    `tables/manifest` entry carries a source reading the files served
    beside the fixture (`servedSource`): `match_claims.parquet` is served,
    `projections.parquet` and `other.parquet` are not (`null`).
 
-9d. **The manifest's folder** (`matchclaims-folders.test.ts`, folders as
-   in-memory directory handles: names to files and subfolders, the
-   permission calls stubbed). A location in a folder (`folderPath`) is
-   the relative URL's path, segments decoded, `.` and `..` applied:
-   `match_claims.parquet` → `["match_claims.parquet"]`, `./data/a%20b.parquet`
-   → `["data", "a b.parquet"]`, `data/../p.parquet` → `["p.parquet"]`;
-   none for `../p.parquet`, `/p.parquet`, `https://h/p.parquet`,
-   `file:p.parquet` and `` (empty). Reading one (`readInFolder`) gives the
-   file at that path, `null` where the folder holds none (nor a subfolder
-   on the way), and `null` without asking further when the folder's
-   permission is `denied` on request (a granted one is read; a `prompt`
-   then `granted` asks once). Answered with the folder in the dialog, the
-   block's table is read from it, loaded exactly as from a file ("Loaded
-   the MatchClaims of match_claims.parquet."), the folder kept by the
-   folder memory under the block; a folder holding no
-   `match_claims.parquet` loads nothing and warns "The folder pkg holds no
-   match_claims.parquet.". A block whose folder the memory kept (none
-   located this session) loads its table without a question; one whose kept folder may no longer be read
-   (permission `denied`) is asked as before. Import manifest from folder…
-   (the session's `importFolder`, the directory picker stubbed) imports
-   every manifest directly in the chosen folder `pkg` holding the table
-   fixture's `manifest.yaml`, an `expected.yaml` that is no manifest
-   (`cases: []`) and both tables: one block (one journal entry), the
-   information "Left expected.yaml in pkg: no manifest.", the import's
-   usual warning that the named MatchClaim table is not loaded and Show
-   matches (M) loads it, the folder kept for the block, and then
-   `loadNamedTables` loads the MatchClaim table without a question. **A block that
-   leaves the workspace has its folder forgotten**: removing that block
-   (one `remove` of `{block}`) has the folder memory forget it, once, and
-   nothing else; its undo forgets nothing more and, the folder still
-   located for the session, Show matches loads the block's table again
-   without a question. Opening a workspace (`replace`) forgets the
-   folder of every block of the open one that the opened one does not
-   hold, once: the open workspace itself, read anew, forgets nothing (its
-   blocks stay), an empty one forgets the block again. A folder holding no manifest
-   warns "The folder pkg holds no manifest TimeLineEditor can import." and
-   adds nothing; a cancelled picker does nothing. The File menu offers
-   "Import manifest from folder…" only where the browser has
-   `showDirectoryPicker`.
+9d. **Beside the manifest's file on the server** (`matchclaims-loading.test.ts`,
+   the tables given `ManifestPlaces` over an in-memory server holding
+   files by path, recording each `readFile`, the manifest's path per block
+   and a stubbed file dialog recording each call and answering a queued
+   path). The paths: `resolvedPath("story", "step1.match_claims.parquet")`
+   is `story/step1.match_claims.parquet`, `resolvedPath("work",
+   "../story/a.yaml")` `story/a.yaml`, `resolvedPath("", "./a/../b.yaml")`
+   `b.yaml`; `null` for `../x` from the root, `/x` and `https://h/x`;
+   `relativePath("work", "story/step1.yaml")` is `../story/step1.yaml`,
+   `relativePath("", "story/step1.yaml")` `story/step1.yaml`,
+   `relativePath("story", "story/step1.yaml")` `step1.yaml`;
+   `folderOf("story/step1.yaml")` `story`, of `w.tle.json` `""`.
+   `serverSource(server, "story").read(url)` reads `story/<url>` (a query
+   or fragment dropped), answers `null` where the server answers 404 and
+   for a URL or a path above the root (nothing read), and rejects with
+   any other failure.
+   - A block whose manifest lies at `story/step1.yaml` loads
+     `story/step1.match_claims.parquet` with no question, its messages
+     exactly `{informed: ["Loaded the MatchClaims of
+     step1.match_claims.parquet."], warned: []}`.
+   - Where that file is missing: one question `{kind: "table", missing:
+     "story/step1.yaml"}`; Locate… (the question's `locate`) opens the
+     file dialog on MatchClaim tables near `story/step1.yaml`; answered
+     `{path: "other/claims.parquet"}`, that file is read and loaded as
+     `claims.parquet`.
+   - A block whose manifest's file is not stated: one question `{kind:
+     "manifest"}`, whose `locate` asks the dialog for manifests; answered
+     `{path: "story/step1.yaml"}`, the place records that path for the
+     block (`located`, once) and the table is read beside it,
+     `story/step1.match_claims.parquet`, loaded; located where the folder
+     holds no such table, nothing is loaded and the warning is
+     "step1.match_claims.parquet is not beside step1.yaml.".
+   - A path the server refuses (`{path: "gone.parquet"}`, 404 "no such
+     file") warns "gone.parquet could not be read: no such file".
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). Asked for the MatchClaim table of
-   "Tables", it is titled "Load the tables of Tables" and shows one group,
+   "Tables" with the question `{kind: "file"}`, it is titled "Load the
+   MatchClaim table of Tables" and shows one group,
    "MatchClaim table match_claims.parquet", with "Choose file…", "No file
    chosen" and one URL field labelled "URL of the MatchClaim table"; Load
    is disabled until a file or a URL is given. A chosen file (the fallback
@@ -1782,11 +1866,15 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    closing) dismisses nothing: the new question answers as chosen. The
    dialog is the editor's one dialog shell, the question dialog's too.
    The URL field is a text field (`inputmode="url"`), so a relative URL
-   (`match_claims.parquet`) is taken as entered. "Choose the manifest's
-   folder…" is offered only where the browser has `showDirectoryPicker`
-   and the table's location is named (not for a question naming `{url:
-   null}`); choosing a folder resolves `{folder}` at once, cancelling the
-   picker keeps the dialog open.
+   (`match_claims.parquet`) is taken as entered. With the server's files
+   the dialog offers "Locate…" instead of "Choose file…", beside the URL
+   field: asked `{kind: "manifest", locate}` it is titled "Where is
+   Tables?"; asked `{kind: "table", missing: "story/step1.yaml", locate}`
+   "match_claims.parquet is not beside Tables, at story/step1.yaml", and
+   with `missing` `null` "Load the MatchClaim table of Tables". Locate…
+   calls `locate` once; a path answered resolves `{path}` at once, `null`
+   (the file dialog cancelled) keeps the dialog open, a rejection shows
+   "The file could not be located: <its message>".
 
 9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
    manifest, claims)` asks the server's events route once per table and

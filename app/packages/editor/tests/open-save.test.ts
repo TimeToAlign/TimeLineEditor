@@ -1,11 +1,25 @@
 /** Open… with a manifest, and Save into the opened file; derived in `README.md` ("Files"). */
 
-import { createStore, emptyWorkspace, writeWorkspace } from "@timetoalign/tilie-core";
+import { ServerError } from "@timetoalign/tilie-client";
+import {
+  createStore,
+  DEFAULT_USER,
+  emptyWorkspace,
+  isLoadError,
+  readManifestFile,
+  readWorkspace,
+  writeWorkspace,
+} from "@timetoalign/tilie-core";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import type { Snapshot } from "../src/autosave.ts";
+import type { TableRequest } from "../src/matchClaims.svelte.ts";
+import type { FileHost } from "../src/workspaceSession.svelte.ts";
+import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
+import { matchTable, TABLE_MANIFEST_TEXT } from "./matches.ts";
 import {
   answer,
   fixture,
@@ -77,8 +91,9 @@ function key(init: KeyboardEventInit): void {
   flushSync();
 }
 
+/** The file's name as the page's title shows it, "• " first while unsaved. */
 function fileName(): string {
-  return document.querySelector('[data-testid="file-name"]')?.textContent ?? "";
+  return document.title.replace(/ – TimeLineEditor$/u, "");
 }
 
 function blocks(): number {
@@ -302,5 +317,233 @@ describe("Save into the opened file", () => {
     key({ key: "s", ctrlKey: true });
     await vi.waitFor(() => expect(kept.writes).toEqual([text]));
     expect(fileName()).toBe("score.tle.json");
+  });
+});
+
+describe("through the server", () => {
+  const MANIFEST = "story/step1.yaml";
+  const TABLE = "story/step1.match_claims.parquet";
+  const SAVED = "work/layerit.tle.json";
+  const STEP_TEXT = TABLE_MANIFEST_TEXT.replace(
+    "url: match_claims.parquet",
+    "url: step1.match_claims.parquet",
+  ).replace(/^timelines:/m, "name: LayerIt\ntimelines:");
+  const canvas = {
+    visible: () => ({ x: 0, y: 0, zoom: 1, width: 0, height: 0 }),
+    focus: () => undefined,
+  };
+
+  /**
+   * A server holding `story/step1.yaml` and its table, recording every read
+   * and write, and a file dialog answering the paths queued in `answers`,
+   * recording every call; `refuse` makes the next writes fail.
+   */
+  function hosting() {
+    const held = new Map<string, Blob>([
+      [MANIFEST, new Blob([STEP_TEXT])],
+      [TABLE, new Blob(["PAR1"])],
+    ]);
+    const record = {
+      held,
+      reads: [] as string[],
+      writes: [] as [string, string][],
+      opens: [] as [string[], string][],
+      saves: [] as [string, string, string][],
+      answers: [] as (string | null)[],
+      refuse: false,
+    };
+    const host: FileHost = {
+      server: {
+        async readFile(path) {
+          record.reads.push(path);
+          const found = held.get(path);
+          if (found === undefined) throw new ServerError("status", 404, "no such file");
+          return found;
+        },
+        async writeFile(path, content) {
+          if (record.refuse) throw new ServerError("status", 404, "no such folder");
+          const text = typeof content === "string" ? content : await content.text();
+          record.writes.push([path, text]);
+          held.set(path, new Blob([text]));
+          return { path, size: text.length };
+        },
+      },
+      open: async (kinds, start) => {
+        record.opens.push([kinds.map((kind) => kind.description), start]);
+        return record.answers.shift() ?? null;
+      },
+      save: async (kind, start, suggested) => {
+        record.saves.push([kind.description, start, suggested]);
+        return record.answers.shift() ?? null;
+      },
+    };
+    return { host, record };
+  }
+
+  /** A session over `host`, its tables read by a stubbed table route, its questions and messages recorded. */
+  function session(host: FileHost) {
+    const said = { informed: [] as string[], warned: [] as string[] };
+    const questions: TableRequest[] = [];
+    const opened = new WorkspaceSession({
+      warn: (text) => said.warned.push(text),
+      inform: (text) => said.informed.push(text),
+      author: () => DEFAULT_USER.name,
+      matchClaims: {
+        matchClaims: async () => matchTable(),
+        matchClaimProvenance: async () => [],
+        believeMatchClaim: async () => new Blob([]),
+        matchClaimEvents: async () => [],
+      },
+      askTables: async (request) => {
+        questions.push(request);
+        return null;
+      },
+      files: () => host,
+    });
+    return { opened, said, questions };
+  }
+
+  /** The location the text `text` states for block `block`. */
+  function locationIn(text: string, block: string): unknown {
+    const value = JSON.parse(text) as {
+      settings: { manifests: { [block: string]: { location?: string } } };
+    };
+    return value.settings.manifests[block]?.location;
+  }
+
+  /** Import the manifest into a new session's unsaved workspace and save it as `work/layerit.tle.json`. */
+  async function savedLayerIt() {
+    const { host, record } = hosting();
+    const { opened, said } = session(host);
+    record.answers.push(MANIFEST);
+    await opened.importManifest(canvas, fontMetrics);
+    const [block = ""] = Object.keys(opened.store.view.blocks);
+    record.answers.push(SAVED);
+    await opened.save(false);
+    return { host, record, opened, said, block };
+  }
+
+  it("keeps where an imported manifest lies, relative to the workspace's folder", async () => {
+    const { host, record } = hosting();
+    const { opened } = session(host);
+    record.answers.push(MANIFEST);
+    await opened.importManifest(canvas, fontMetrics);
+    const [block = ""] = Object.keys(opened.store.view.blocks);
+    expect(record.opens).toEqual([[["TimeToShare manifest"], ""]]);
+    expect(record.reads).toEqual([MANIFEST]);
+    const read = readManifestFile(STEP_TEXT);
+    if (isLoadError(read)) throw new Error("refused");
+    expect(opened.store.view.settings.manifests[block]).toEqual({
+      ...read.file,
+      location: MANIFEST,
+    });
+    expect(opened.store.journal.length).toBe(1);
+  });
+
+  it("saves as a path chosen, the locations relative to its folder", async () => {
+    const { record, opened, block } = await savedLayerIt();
+    expect(record.saves).toEqual([["TimeLineEditor workspace", "story", "untitled.tle.json"]]);
+    expect(record.writes.map(([path]) => path)).toEqual([SAVED]);
+    const [[, text] = ["", ""]] = record.writes;
+    expect(locationIn(text, block)).toBe("../story/step1.yaml");
+    expect(text).toBe(opened.text());
+    expect([opened.path, opened.fileName, opened.dirty]).toEqual([
+      SAVED,
+      "layerit.tle.json",
+      false,
+    ]);
+  });
+
+  it("loads the table beside the manifest when the saved workspace is opened again", async () => {
+    const { host, record } = await savedLayerIt();
+    const again = session(host);
+    expect(await again.opened.openPath(host, SAVED)).toBe(null);
+    expect([again.opened.path, again.opened.fileName]).toEqual([SAVED, "layerit.tle.json"]);
+    record.reads.length = 0;
+    await again.opened.loadNamedTables();
+    expect(record.reads).toEqual([TABLE]);
+    expect(again.questions).toEqual([]);
+    expect(again.said).toEqual({
+      informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
+      warned: [],
+    });
+
+    record.held.delete(TABLE);
+    const missing = session(host);
+    expect(await missing.opened.openPath(host, SAVED)).toBe(null);
+    await missing.opened.loadNamedTables();
+    expect(
+      missing.questions.map(({ manifest, table, question }) => [
+        manifest,
+        table.url,
+        question.kind,
+        question.kind === "table" ? question.missing : undefined,
+      ]),
+    ).toEqual([["LayerIt", "step1.match_claims.parquet", "table", MANIFEST]]);
+  });
+
+  it("asks where to save after a rename, and writes in place once it is undone", async () => {
+    const { host, record } = await savedLayerIt();
+    const { opened } = session(host);
+    expect(await opened.openPath(host, SAVED)).toBe(null);
+    record.saves.length = 0;
+    record.writes.length = 0;
+    expect(opened.rename("LayerIt")).toBe(null);
+    record.answers.push(null);
+    await opened.save(false);
+    expect([record.saves, record.writes]).toEqual([
+      [["TimeLineEditor workspace", "work", "LayerIt.tle.json"]],
+      [],
+    ]);
+    opened.step(true);
+    await opened.save(false);
+    expect(record.writes.map(([path]) => path)).toEqual([SAVED]);
+    expect(record.saves.length).toBe(1);
+    // The store's refusal, as the store words it.
+    expect(opened.rename("")).toBe("a name is a non-empty string");
+  });
+
+  it("saves a restored workspace back to the path its snapshot kept", async () => {
+    const { host, record, opened } = await savedLayerIt();
+    const restored = session(host).opened;
+    const workspace = readWorkspace(opened.text());
+    if (isLoadError(workspace)) throw new Error("refused");
+    expect(restored.replace(workspace, "layerit.tle.json", null, false, SAVED)).toBe(null);
+    record.saves.length = 0;
+    record.writes.length = 0;
+    await restored.save(false);
+    expect([record.saves, record.writes.map(([path]) => path)]).toEqual([[], [SAVED]]);
+  });
+
+  it("rewrites the locations for another folder, and changes nothing when the write fails", async () => {
+    const { record, opened, said, block } = await savedLayerIt();
+    record.refuse = true;
+    record.answers.push("layerit.tle.json");
+    await opened.save(true);
+    expect(said.warned).toEqual(["The workspace could not be saved: no such folder"]);
+    expect([
+      opened.store.view.settings.manifests[block]?.location,
+      opened.path,
+      opened.dirty,
+    ]).toEqual(["../story/step1.yaml", SAVED, false]);
+
+    record.refuse = false;
+    record.answers.push("layerit.tle.json");
+    await opened.save(true);
+    const [path, text = ""] = record.writes.at(-1) ?? [];
+    expect([path, locationIn(text, block)]).toEqual(["layerit.tle.json", MANIFEST]);
+    expect([opened.store.view.settings.manifests[block]?.location, opened.dirty]).toEqual([
+      MANIFEST,
+      false,
+    ]);
+  });
+
+  it("opens a workspace or a manifest chosen in the dialog", async () => {
+    const { host, record } = await savedLayerIt();
+    const { opened } = session(host);
+    record.opens.length = 0;
+    record.answers.push(SAVED);
+    expect(await opened.chooseOpened(host)).toBe(SAVED);
+    expect(record.opens).toEqual([[["TimeLineEditor workspace", "TimeToShare manifest"], ""]]);
   });
 });

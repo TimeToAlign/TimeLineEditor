@@ -73,8 +73,11 @@ const field: Attachment<HTMLInputElement> = (input) => {
   input.focus();
   input.select();
   const onkeydown = (event: KeyboardEvent): void => {
-    if (event.key === "Enter") commit(true);
-    else if (event.key === "Escape") cancel();
+    if (event.key === "Enter") {
+      // The button takes the focus at once; unprevented, the browser's Enter would press it.
+      event.preventDefault();
+      commit(true);
+    } else if (event.key === "Escape") cancel();
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") commit(true);
   };
   input.addEventListener("keydown", onkeydown);

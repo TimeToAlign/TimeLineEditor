@@ -707,7 +707,11 @@ describe("an unsaved table", () => {
     const { server, calls } = serving();
     const tables = tablesOf(server, matchTable(), ask);
     const { informed, warned } = show(storeOf(tableManifest()), null, tables);
-    const asked = { manifest: "The manifest", table: { url: "match_claims.parquet" } };
+    const asked = {
+      manifest: "The manifest",
+      table: { url: "match_claims.parquet" },
+      question: { kind: "file" },
+    };
 
     button("Load MatchClaims…")?.click();
     await vi.waitFor(() => expect(questions).toEqual([asked]));

@@ -16,7 +16,6 @@ import {
 import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
 import { BELIEF_STATES, type BeliefState, DEFAULT_BELIEFS } from "../matches/beliefs.ts";
 import {
-  type MemberReader,
   readBoolean,
   readExact,
   readFinite,
@@ -68,6 +67,17 @@ export const DEFAULT_MATCH_CLAIM_FILTER: MatchClaimFilter = {
 };
 
 /**
+ * How a block's manifest is written to a file (`FileForm`) and, where the
+ * editor knows it, where that file lies: `location`, its path relative to
+ * the folder of the workspace's own file (POSIX, as a manifest states its
+ * resources relative to itself; `..` leads out of that folder). A setting
+ * of the workspace, never part of the manifest.
+ */
+export interface ManifestFile extends FileForm {
+  readonly location?: string;
+}
+
+/**
  * How the editor is used on this workspace: the canvas's snapping grid, the
  * placement of new blocks, the granularity of positions on timelines, how
  * each block's manifest is written to a file and which of its MatchClaims
@@ -80,11 +90,12 @@ export interface WorkspaceSettings {
   readonly blockDefaults: BlockPlacement;
   readonly granularity: Granularity;
   /**
-   * How the manifest of a block is written to a file, by block ID; a block
-   * without an entry as `NEW_MANIFEST_FILE` (`manifestFileOf`). An entry
-   * outlives its block, which the journal may bring back.
+   * How the manifest of a block is written to a file and where that file
+   * lies, by block ID; a block without an entry as `NEW_MANIFEST_FILE`
+   * (`manifestFileOf`). An entry outlives its block, which the journal may
+   * bring back.
    */
-  readonly manifests: { readonly [block: BlockId]: FileForm };
+  readonly manifests: { readonly [block: BlockId]: ManifestFile };
   /**
    * The MatchClaim filter of a block, by block ID; a block without an entry
    * as `DEFAULT_MATCH_CLAIM_FILTER` (`matchClaimFilterOf`). An entry
@@ -124,7 +135,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 };
 
 /** How the manifest of block `block` is written to a file: its entry in `settings`, else `NEW_MANIFEST_FILE`. */
-export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): FileForm {
+export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): ManifestFile {
   return settings.manifests[block] ?? NEW_MANIFEST_FILE;
 }
 
@@ -179,11 +190,46 @@ function readSerialization(value: unknown, path: readonly PathSegment[]): Serial
     : problem(ErrorCode.invalidValue, 'expected "yaml", "json" or "jcs"', path);
 }
 
-const MANIFEST_FILE_READERS = {
+const FILE_FORM_READERS = {
   minimal: readBoolean,
   styling: readBoolean,
   serialization: readSerialization,
 };
+
+/**
+ * A manifest file's location: a non-empty POSIX path, relative (no leading
+ * `/`, no scheme or drive such as `file:` or `C:`, no backslash).
+ */
+function readLocation(value: unknown, path: readonly PathSegment[]): string | Problem {
+  return typeof value === "string" &&
+    value !== "" &&
+    !value.startsWith("/") &&
+    !value.includes("\\") &&
+    !/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(value)
+    ? value
+    : problem(ErrorCode.invalidValue, "expected a relative POSIX path", path);
+}
+
+/** A block's manifest file entry: the file form's three members exactly, and `location` where it is stated. */
+function readManifestEntry(
+  value: unknown,
+  path: readonly PathSegment[],
+  problems: Problem[],
+): ManifestFile | undefined {
+  if (!isJsonObject(value) || !Object.hasOwn(value, "location")) {
+    // Every member was read by the reader of its type.
+    return readExact(value, path, FILE_FORM_READERS, problems) as ManifestFile | undefined;
+  }
+  const { location, ...form } = value;
+  const read = readExact(form, path, FILE_FORM_READERS, problems);
+  const at = readLocation(location, [...path, "location"]);
+  if (isCommandError(at)) {
+    problems.push(at);
+    return undefined;
+  }
+  // Every member was read by the reader of its type.
+  return read === undefined ? undefined : ({ ...read, location: at } as ManifestFile);
+}
 
 /** A filter's belief states: each once, held in the order of `BELIEF_STATES`. */
 function readFilterBeliefs(
@@ -234,14 +280,15 @@ const MATCH_CLAIM_FILTER_READERS = { timelines: readFilterTimelines, beliefs: re
 
 /**
  * Entries by block ID (`WorkspaceSettings.manifests`,
- * `WorkspaceSettings.matchClaimFilters`), every entry read exactly by
- * `readers`. With `lenient`, a value that is no object reads as none and
- * each entry that does not read is left out, without a problem.
+ * `WorkspaceSettings.matchClaimFilters`), every entry read by `readEntry`,
+ * which pushes its problems to the list it is given. With `lenient`, a
+ * value that is no object reads as none and each entry that does not read
+ * is left out, without a problem.
  */
 function readByBlock(
   value: unknown,
   path: readonly PathSegment[],
-  readers: { readonly [member: string]: MemberReader },
+  readEntry: (entry: unknown, path: readonly PathSegment[], problems: Problem[]) => unknown,
   problems: Problem[],
   lenient: boolean,
 ): { [block: BlockId]: unknown } | undefined {
@@ -259,7 +306,7 @@ function readByBlock(
       complete = false;
       continue;
     }
-    const read = readExact(entry, at, readers, found);
+    const read = readEntry(entry, at, found);
     if (read === undefined) complete = false;
     else result[block] = read;
   }
@@ -287,9 +334,15 @@ export function readSettings(
     return readExact(item, at, GRANULARITY_READERS, []) ?? DEFAULT_GRANULARITY;
   };
   const manifests = (item: unknown, at: readonly PathSegment[]) =>
-    readByBlock(item, at, MANIFEST_FILE_READERS, problems, lenient);
+    readByBlock(item, at, readManifestEntry, problems, lenient);
   const matchClaimFilters = (item: unknown, at: readonly PathSegment[]) =>
-    readByBlock(item, at, MATCH_CLAIM_FILTER_READERS, problems, lenient);
+    readByBlock(
+      item,
+      at,
+      (entry, place, found) => readExact(entry, place, MATCH_CLAIM_FILTER_READERS, found),
+      problems,
+      lenient,
+    );
   const stated =
     lenient && isJsonObject(value)
       ? {
