@@ -456,7 +456,7 @@ data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
 font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
 `\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
 (261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
-There are 81 cases (`group__group_groupstamp`, the drawing of a groupstamp's line across its group, among them). Every case stating a spacing, of the block, in a place or in a
+There are 83 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.
