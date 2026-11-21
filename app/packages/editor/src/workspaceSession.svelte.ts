@@ -181,6 +181,8 @@ export class WorkspaceSession {
    * Make `workspace` the open one, in a new store; `saved` when it equals its
    * file. A workspace whose journal does not reproduce its view is refused
    * (`journal_mismatch`, at the first place it differs) and the open one kept.
+   * Every block of the open workspace that `workspace` does not hold leaves:
+   * its manifest's folder is forgotten (`MatchClaimTables.left`).
    */
   replace(
     workspace: Workspace,
@@ -199,6 +201,7 @@ export class WorkspaceSession {
     }
     this.#unsubscribe();
     this.selection = NOTHING_SELECTED;
+    this.#left(next.view.blocks);
     this.tables.clear();
     this.store = next;
     this.#openings = next.openings;
@@ -572,13 +575,8 @@ export class WorkspaceSession {
    */
   #changed(): void {
     const { store } = this;
-    const { blocks } = store.view;
-    if (blocks !== this.#blocks) {
-      for (const block of Object.keys(this.#blocks)) {
-        if (!Object.hasOwn(blocks, block)) this.tables.left(block);
-      }
-      this.#blocks = blocks;
-    }
+    this.#left(store.view.blocks);
+    this.#blocks = store.view.blocks;
     const innermost = store.editing.at(-1) ?? null;
     const opened = store.openings !== this.#openings;
     this.#openings = store.openings;
@@ -587,6 +585,14 @@ export class WorkspaceSession {
         ? editedSelection(store.view, innermost)
         : existing(store.view, this.selection, innermost);
     this.#notify();
+  }
+
+  /** Every block of the view last seen that `blocks` does not hold left the workspace. */
+  #left(blocks: View["blocks"]): void {
+    if (blocks === this.#blocks) return;
+    for (const block of Object.keys(this.#blocks)) {
+      if (!Object.hasOwn(blocks, block)) this.tables.left(block);
+    }
   }
 
   #notify(): void {

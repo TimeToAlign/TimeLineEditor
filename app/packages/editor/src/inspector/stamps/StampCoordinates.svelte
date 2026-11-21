@@ -92,6 +92,18 @@ const text = $derived.by(() => {
     : { ok: false as const, message: written.problems.map((item) => item.message).join(" ") };
 });
 
+/**
+ * The text's status line, always rendered under the format switch so that a
+ * screen reader hears what arrives in it: "Loading …" while the chosen
+ * format's codec loads, the refusal when the stamp cannot be written in it,
+ * else empty.
+ */
+const status = $derived.by(() => {
+  if (shown === "editor" || loadFailure !== null) return { text: "", refused: false };
+  if (text === null) return { text: `Loading ${FORMAT_LABELS[shown]}…`, refused: false };
+  return text.ok ? { text: "", refused: false } : { text: text.message, refused: true };
+});
+
 const drafts = $derived(edit?.drafts.drafts ?? {});
 const problems = $derived(edit?.drafts.problems ?? {});
 
@@ -128,6 +140,9 @@ async function copy(copied: string, what: string): Promise<void> {
     <p class="hint" data-testid="{kind}-hint">{hint}</p>
   {:else}
     <FormatSwitch options={SHOWN} bind:value={() => shown, choose} label={words.format} />
+    <p class={["status", status.refused ? "problem text-problem" : "hint"]} role="status"
+      >{status.text}</p
+    >
 
     {#if shown === "editor"}
       <span class="visually-hidden" id="{uid}-read-only">{READ_ONLY}</span>
@@ -197,11 +212,7 @@ async function copy(copied: string, what: string): Promise<void> {
       {@const label = FORMAT_LABELS[shown]}
       {#if loadFailure !== null}
         <p class="problem" role="alert">{loadFailure}</p>
-      {:else if text === null}
-        <p class="hint" role="status">Loading {label}…</p>
-      {:else if !text.ok}
-        <p class="problem text-problem" role="status">{text.message}</p>
-      {:else}
+      {:else if text?.ok}
         {@const written = text.text}
         <div class="text-head">
           <button type="button" class="action" onclick={() => copy(written, `the ${label}`)}

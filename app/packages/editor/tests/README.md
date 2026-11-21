@@ -1670,9 +1670,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    (one `remove` of `{block}`) has the folder memory forget it, once, and
    nothing else; its undo forgets nothing more and, the folder still
    located for the session, Show matches loads both tables of the block
-   again without a question; opening another workspace (`replace`, the
-   blocks leaving with their workspace, kept in its file) forgets
-   nothing. A folder holding no manifest
+   again without a question. Opening a workspace (`replace`) forgets the
+   folder of every block of the open one that the opened one does not
+   hold, once: the open workspace itself, read anew, forgets nothing (its
+   blocks stay), an empty one forgets the block again. A folder holding no manifest
    warns "The folder pkg holds no manifest TimeLineEditor can import." and
    adds nothing; a cancelled picker does nothing. The File menu offers
    "Import manifest from folder…" only where the browser has
@@ -1788,6 +1789,25 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
 The Timestamp tab lists, for a match timestamp, the MatchStamps naming it
 in a list "MatchStamps" ("Downbeat matchstamp_1" for `timestamp_1`); an
 ordinary timestamp ("Theme" on `clt_1` at 1) has no such list.
+
+## How a read settled (`settlements.test.ts`)
+
+The MatchClaims list reads the events and the provenance of the shown
+MatchStamp's claims from promises, and keeps its DOM when one settles
+(an open Provenance stays open; `matchclaim-beliefs.test.ts`). What is
+proved here is what the holder of those settlements keeps, with promises
+the test settles by hand:
+
+- a promise asked for reads as pending (nothing) until it settles, then as
+  fulfilled with its value, or as rejected with its failure, the same
+  object at every later read;
+- only the promise asked for last is held: one asked for after another
+  that is still pending reads as pending, and the first one's settling,
+  late, shows nowhere; a promise that settled and was then left for
+  another is let go, so asked for again it reads as pending until it
+  settles anew (one microtask), never from a kept settlement. So the
+  holder keeps at most one promise and its value, however many reads the
+  list makes while it stays mounted.
 
 ## The Metadata tab (`metadata-frame.test.ts`, `metadata-edits.test.ts`, `metadata-panel.test.ts`)
 

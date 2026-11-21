@@ -319,7 +319,7 @@ describe("Import manifest from folder…", () => {
     expect(informed.slice(1)).toEqual(LOADED_BOTH);
   });
 
-  it("forgets the folder of a block that leaves the workspace, never of one that leaves with it", async () => {
+  it("forgets the folder of a block that leaves the workspace, by a command or another workspace opened", async () => {
     const { server, sent } = serving();
     const { memo, forgotten } = memory();
     const { opened, questions } = session(server, memo);
@@ -339,8 +339,10 @@ describe("Import manifest from folder…", () => {
     expect(questions).toEqual([]);
     expect(sent.length).toBe(1);
 
-    opened.replace(emptyWorkspace(), "untitled", null, true);
+    expect(opened.replace(opened.store.snapshot(), "again", null, true)).toBe(null);
     expect(forgotten).toEqual([block]);
+    expect(opened.replace(emptyWorkspace(), "untitled", null, true)).toBe(null);
+    expect(forgotten).toEqual([block, block]);
   });
 
   it("adds nothing from a folder holding no manifest, nor from a cancelled picker", async () => {
