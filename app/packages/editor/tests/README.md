@@ -100,6 +100,8 @@ order, the focus on Cancel: Cancel and Escape keep the workspace, Discard
 replaces it, Save saves it first (a download, as Save without a file
 handle writes in jsdom) and then replaces it; a save that writes nothing
 (a picker cancelled) keeps it. Without unsaved changes nothing is asked.
+A MatchClaim table changed by a belief joins the same question (the
+Matchstamp tab's item 12).
 Save writes core's writer's text of the
 store under the workspace's file name, takes Ctrl+S from the browser and
 clears the mark; a workspace with no file yet is offered the file its name
@@ -1249,6 +1251,34 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     file under the table's name (`match_claims.parquet`, its bytes
     unchanged, the Parquet media type) where the browser has no save
     picker; the table is then no longer changed and the button is gone.
+12. **A changed table is never dropped unasked** (`matchclaim-beliefs.test.ts`,
+    the session built directly, the tab mounted, downloads intercepted).
+    What replaces the session's tables asks the one question of the Files
+    section, naming everything unsaved: the workspace alone keeps
+    "untitled.tle.json has unsaved changes. Save them?"; a changed table
+    alone reads "The MatchClaim table match_claims.parquet has unsaved
+    changes. Save them?"; both read "untitled.tle.json and the MatchClaim
+    table match_claims.parquet have unsaved changes. Save them?"; two
+    changed tables "The MatchClaim tables a.parquet and b.parquet have
+    unsaved changes. Save them?", in the order they were loaded. A held
+    table that is not changed asks nothing (no question). Save saves the
+    workspace first and then each changed table, as downloads in exactly
+    that order (`untitled.tle.json` with the workspace's text, then
+    `match_claims.parquet` with the held file's bytes), after which nothing
+    is unsaved and replacing may go on; a cancelled workspace save stops
+    before any table (one download attempt, no table written, the table
+    still changed, replacing refused); a cancelled table save refuses
+    replacing and leaves the table changed; a failed one also warns "The
+    MatchClaims were not saved: <the failure>". Load MatchClaims… on a
+    changed table asks the table's question below the button first:
+    Cancel opens no picker and keeps the table changed; Discard opens the
+    picker. The editor's own question before New is proved end to end
+    (`e2e/matchclaim-beliefs.spec.ts`): after the belief, New asks the
+    combined question; Cancel keeps the table changed; Save downloads the
+    workspace and then the table (the answered bytes unchanged) and opens
+    the empty workspace; with the workspace saved and only the table
+    changed, New asks the table's question and Discard opens the empty
+    workspace without asking again.
 
 The Timestamp tab lists, for a match timestamp, the MatchStamps naming it
 in a list "MatchStamps" ("Downbeat matchstamp_1" for `timestamp_1`); an

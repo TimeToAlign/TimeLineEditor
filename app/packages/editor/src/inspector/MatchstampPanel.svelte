@@ -14,8 +14,9 @@
  * table when a named MatchStamp is out of date, and Update and Remove.
  * **MatchClaim filter**, at the pane's bottom: the block's table (Load
  * MatchClaims…, read through the server; once a belief changed it, Save
- * MatchClaims… saves the new file, never the workspace), its timelines and
- * the belief filter, stored per block in the workspace's settings. A MatchStamp command first closes every group and timeline
+ * MatchClaims… saves the new file, never the workspace; Load MatchClaims…
+ * over a changed table first asks to save it), its timelines and the belief
+ * filter, stored per block in the workspace's settings. A MatchStamp command first closes every group and timeline
  * editor, and a bundle editor of another block, since an editor changes
  * nothing outside what it edits.
  */
@@ -32,9 +33,15 @@ import type {
 } from "@timetoalign/tilie-core";
 import { matchClaimFilterOf } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
-import { MATCH_CLAIM_TABLE, openFiles, saveFile } from "../files.ts";
+import ConfirmDialog from "../ConfirmDialog.svelte";
+import { MATCH_CLAIM_TABLE, openFiles } from "../files.ts";
 import type { MatchClaimTables } from "../matchClaims.svelte.ts";
-import { MATCHES_NEED_A_SERVER, provenanceFailure } from "../matchClaims.svelte.ts";
+import {
+  MATCHES_NEED_A_SERVER,
+  provenanceFailure,
+  saveFailure,
+  unsavedQuestion,
+} from "../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../messages.svelte.ts";
 import { beliefRows, beliefText, entryOf, followedMatch, paradataRows } from "./claimProvenance.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
@@ -373,20 +380,44 @@ function toggleTimeline(timeline: string): void {
 }
 
 let loading = $state(false);
+let loadButton: HTMLButtonElement | undefined = $state();
+let confirm: ConfirmDialog | undefined = $state();
 
-/** Save the block's changed table, offered under its file's name. */
-async function saveTable(): Promise<void> {
-  if (blockId === null || loaded === null) return;
-  const id = blockId;
-  const saving = loaded;
+/** Save block `id`'s changed table, offered under its file's name; whether it was saved. */
+async function saveTableOf(id: string): Promise<boolean> {
   try {
-    const saved = await saveFile(saving.file, MATCH_CLAIM_TABLE, saving.name);
-    if (saved === null) return;
-    tables.saved(id, saving);
-    inform(`Saved the MatchClaims as ${saved.name}.`);
+    const name = await tables.save(id);
+    if (name === null) return false;
+    inform(`Saved the MatchClaims as ${name}.`);
+    return true;
   } catch (error) {
-    warn(`The MatchClaims were not saved: ${messageOf(error)}`);
+    warn(saveFailure(error));
+    return false;
   }
+}
+
+/** Save the block's changed table. */
+async function saveTable(): Promise<void> {
+  if (blockId !== null) await saveTableOf(blockId);
+}
+
+/**
+ * Whether block `id`'s table may be replaced: it is not changed, or the
+ * viewer saves it (and the save is made) or discards it, asked below Load
+ * MatchClaims….
+ */
+async function mayReplaceTable(id: string): Promise<boolean> {
+  const held = tables.of(id);
+  if (held === null || !held.changed) return true;
+  const answer = await confirm?.ask(
+    unsavedQuestion(null, [held.name]),
+    ["Save", "Discard", "Cancel"],
+    "Cancel",
+    loadButton ?? null,
+  );
+  if (answer === "Discard") return true;
+  if (answer !== "Save") return false;
+  return saveTableOf(id);
 }
 
 /** Let the viewer pick the block's MatchClaim table and read it through the server. */
@@ -394,6 +425,7 @@ async function loadTable(): Promise<void> {
   if (blockId === null || manifest === undefined) return;
   const id = blockId;
   const held = manifest;
+  if (!(await mayReplaceTable(id))) return;
   try {
     const [picked] = await openFiles(MATCH_CLAIM_TABLE);
     if (picked === undefined) return;
@@ -650,6 +682,7 @@ async function loadTable(): Promise<void> {
         {/if}
         <button
           type="button"
+          bind:this={loadButton}
           disabled={!tables.connected || loading}
           aria-describedby={tables.connected ? undefined : `${uid}-no-server`}
           onclick={loadTable}>Load MatchClaims…</button
@@ -688,6 +721,7 @@ async function loadTable(): Promise<void> {
       </fieldset>
     {/if}
   </section>
+  <ConfirmDialog bind:this={confirm} />
 </div>
 
 <style>

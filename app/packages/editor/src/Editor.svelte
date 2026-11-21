@@ -207,21 +207,19 @@ if (initial !== undefined) {
 // --- Files ------------------------------------------------------------------
 
 /**
- * Whether the open workspace may be replaced: it has no unsaved changes, or
- * the viewer saves them (and the save is made) or discards them. One
- * question for New, Open and a workspace example (or fixture).
+ * Whether the open workspace, and with it the MatchClaim tables held for
+ * it, may be replaced: nothing is unsaved (the workspace, a table a belief
+ * changed), or the viewer saves all of it (and every save is made) or
+ * discards it. One question for New, Open and a workspace example (or
+ * fixture).
  */
 async function mayReplace(): Promise<boolean> {
-  if (!session.dirty) return true;
-  const answer = await confirm?.ask(
-    `${session.fileName} has unsaved changes. Save them?`,
-    ["Save", "Discard", "Cancel"],
-    "Cancel",
-  );
+  const question = session.unsaved();
+  if (question === null) return true;
+  const answer = await confirm?.ask(question, ["Save", "Discard", "Cancel"], "Cancel");
   if (answer === "Discard") return true;
   if (answer !== "Save") return false;
-  await session.save(false);
-  return !session.dirty;
+  return session.saveUnsaved();
 }
 
 async function newWorkspace(): Promise<void> {
