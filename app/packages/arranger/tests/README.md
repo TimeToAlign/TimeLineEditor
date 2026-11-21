@@ -1859,6 +1859,149 @@ not expanded`, `failed` `the server did not expand its measure map`.
 **One reading per frame.** Pointer moves are coalesced: three moves
 before an animation frame run one reading, with the last point.
 
+## Show matches (`matches.test.ts`, `matches-budget.test.ts`)
+
+"Show matches" draws the potential MatchStamps of the loaded MatchClaim
+table over every block drawing a timeline the table names (by ID). The
+anchor index, its coordinates, anchors and potential MatchStamps, is
+core's (`anchorIndexOf`, proven there); where a cross-section line lies
+and the line of an alignment anchor are layout's (`crossSectionSegment`,
+`anchorLine`, proven there against the drawing specification). What the
+arranger owns, and what is proven here, is where each coordinate is put
+(the lines holding its timeline, at the abscissa of its position), which
+coordinates are drawn for a view (at most one per device pixel column of
+a card, only what is in view), which connectors are drawn, what the
+pointer hovers, the flag's groups and order, and which named anchors are
+drawn red. What would be wrong: a coordinate on the wrong line or
+abscissa, a connector unlike the named one between the same two
+timestamps, more than one line in a column, a cost that grows with the
+table instead of the view, a hit on the wrong MatchStamp, a flag in table
+order instead of screen order, a red anchor that is stated.
+
+**The block.** Block A holds `bundles/bundle_matchstamps` at (40, 80),
+scale 1, its node at (40, 80). Its three ungrouped roots are drawn in
+cards stacked top to bottom (layout's record): `score` ("Score",
+quarters, fraction, 8) on the line y 43.20703125, `take_1` ("Take 1",
+samples, int, 352800) on y 100.5859375, `take_2` ("Take 2", samples, int,
+396900) on y 157.96484375, each from x 61.0927734375 to 461.0927734375
+(400 units: 50 a quarter, 882 samples a unit on `take_1`, 992.25 on
+`take_2`). None has a children or a conversion maps band, so a
+cross-section segment there is the point on the line (`y1 = y2` the
+line's ordinate) and a coordinate's line has no length: what shows are
+the connectors, exactly as for the named MatchStamps of the drawing
+(`anchor_1` joins `timestamp_1`, score 4, to `timestamp_2`, take_1 88200;
+`anchor_2` joins `timestamp_1` to `timestamp_3`, take_2 99225). Abscissas:
+score 4 → 261.0927734375, 6 → 361.0927734375; take_1 88200 →
+161.0927734375, 176400 → 261.0927734375, 264600 → 361.0927734375; take_2
+297675 → 361.0927734375 (297675 / 992.25 = 300).
+
+**The table T.** Timelines in the table's order `take_2` (int), `score`
+(fraction), `take_1` (int), `other` (float, in no manifest); claims:
+`claim_1` and `claim_2` score 4 ↔ take_1 88200, `claim_3` score 6 ↔
+take_1 264600, `claim_4` take_1 264600 ↔ take_2 297675, `claim_5` take_2
+297675 ↔ take_1 176400, `claim_6` score 6 ↔ other 0.5, `claim_7` a
+NOMATCH between score and take_2. By core's numbering (coordinates by
+timeline number then position, anchors by their pair of coordinate
+numbers, MatchStamps by their first coordinate) the coordinates are c0
+take_2 297675, c1 score 4, c2 score 6, c3 take_1 88200, c4 take_1 176400,
+c5 take_1 264600, c6 other 0.5; the anchors a0 (c0, c4), a1 (c0, c5), a2
+(c1, c3), a3 (c2, c5), a4 (c2, c6); MatchStamp 0 = {c0, c2, c4, c5, c6},
+MatchStamp 1 = {c1, c3}.
+
+**The lines.** The lines holding T's timelines are `score`'s, `take_1`'s
+and `take_2`'s, in the drawing's order; `other` has none.
+
+**What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
+per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
+in the drawing's order, each by position: c1 at 261.0927734375 and c2 at
+361.0927734375 on score; c3 at 161.0927734375, c4 at 261.0927734375 and
+c5 at 361.0927734375 on take_1 (its own card, so c4 shares no column with
+c1); c0 at 361.0927734375 on take_2; each line the point `M x y V y`.
+Then every anchor of a drawn coordinate once, in the order the drawn
+coordinates reach them (c1: a2; c2: a3, a4; c4: a0; c5: a1): a2 from
+(261.0927734375, 43.20703125) to (161.0927734375, 100.5859375), exactly
+the drawn `anchor_1` element's `x1, y1, x2, y2`; a3 from (361.0927734375,
+43.20703125) to (361.0927734375, 100.5859375); a4 is not drawn (`other`
+has no line); a0 from (361.0927734375, 157.96484375) to (261.0927734375,
+100.5859375) (no overlap and take_2 below take_1: from the upper end of
+the first to the lower end of the second); a1 from (361.0927734375,
+157.96484375) to (361.0927734375, 100.5859375).
+
+**One line per device pixel column of a card.** The table D holds 1601
+claims `score k/200` ↔ `take_1 220k`, k = 0 … 1600. On score a quarter is
+50 units, so k lies at 61.0927734375 + k/4 and on the screen at 101.0927734375
++ k/4 (node at 40): four coordinates a column, the column ⌊101.0927734375
++ k/4⌋, so exactly the k divisible by 4 are drawn, 401 lines at
+61.0927734375 + k/4 (D's score coordinates are numbered first, by k, then
+take_1's). On take_1, 220k
+samples lie 220k/882 units right of the start, less than one unit apart,
+from the column 101 to ⌊101.0927734375 + 352000/882⌋ = 500: every column
+taken once, 400 lines. In every case no two lines of one card share a
+column, and the connectors are exactly the anchors of the drawn
+coordinates, each once. The view decides, never the table: at the view
+(−200, 0) the score coordinates drawn are those from k = 396 (−200 + 40 +
+61.0927734375 + 99 = 0.0927734375, the first column 0; k = 392 lies left
+of the view) to 1600, every fourth: 302 lines; take_1's 301 (columns 0 to
+300). At zoom 2 on two device pixels per CSS pixel the column of k on
+score is ⌊4 · (101.0927734375 + k/4)⌋ = ⌊404.37109375 + k⌋, one for every k,
+and the view ends at the canvas unit 500, the position (460 −
+61.0927734375)/50 = 7.97814453125: k from 0 to 1595, 1596 lines.
+
+**Hovering** (`matchHitAt`, tolerance 8 canvas units at zoom 1, scale 1,
+ratio 1, as for "Show coordinates"). A line is hovered by its coordinate
+nearest the pointer on the line's axis (core's `coordinateNear`, whatever
+was drawn) at the Euclidean distance from the pointer to its
+cross-section segment; a connector by the distance to its nearest point;
+the nearest wins, a line before a connector on a tie. On T:
+
+| Point | Hovered | Why |
+|---|---|---|
+| (364.0927734375, 40.20703125) | c2's line, MatchStamp 0 | 3 right and 3 above c2's point; a3's top end is as near: the tie goes to the line |
+| (365.0927734375, 46.20703125) | a3, MatchStamp 0, distance 4 | 4 from a3's vertical line, 5 from c2's point |
+| (311.0927734375, 134.275390625) | a0, MatchStamp 0 | 5 below a0's midpoint (311.0927734375, 129.275390625), 500 / √(100² + 57.37890625²) ≈ 4.34 from the diagonal; the nearest line is 23.7 away |
+| (461.0927734375, 70) | nothing | no line or connector within 8 |
+| (364.0927734375, 40.20703125) at zoom 2, ratio 2 | nothing | the tolerance is 2 |
+
+A coordinate hovered on its line puts the flag's pole at its abscissa,
+foot and top the line's ordinate (c2: x 361.0927734375, y and top
+43.20703125); on a connector at the nearest point (a3: (361.0927734375,
+46.20703125)). On D, the pointer at (61.5927734375, 43.20703125), on
+k = 2's place, hovers k = 2 (coordinate 2), which is not drawn.
+
+**The flag** (`matchFlag`, 3 decimals). One group per timeline, named as
+the manifest names it, each coordinate a row in core's `prettyText` with
+the timeline's unit; groups and rows in screen order, top to bottom then
+left to right, by where each coordinate shows first; what the block does
+not draw last. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1` [`176 400
+smp`, `264 600 smp`] (176400 at 261.09… left of 264600 at 361.09…),
+`Take 2` [`297 675 smp`], `other` [`0.5`] (no line, the table's number
+type, no unit); the table's order (take_2 first) is not the screen's.
+MatchStamp 1: `Score` [`4 ♩`], `Take 1` [`88 200 smp`].
+
+**Stale anchors** (`staleAnchors`). The named MatchStamps compared with T
+by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`, score 4 ↔ take_1
+88200, claims `claim_1`, `claim_2`) is stated by a2; `matchstamp_2`
+(`anchor_2`, score 4 ↔ take_2 99225, `claim_3`) is not: the red set is
+exactly `{anchor_2}`'s address key.
+
+**The path.** `pathOf` writes the lines, then the connectors, each a
+subpath, numbers as the writers write them (four decimals, as the
+drawing's own elements are written): for T at zoom 1 `M261.0928
+43.207V43.207` and so on, then `M261.0928 43.207L161.0928 100.5859` and
+so on, in the order above.
+
+**Budget** (`matches-budget.test.ts`, run alone from `app/packages/arranger`
+with `pnpm vitest run --config vitest.budget.config.ts`, excluded from the
+default run). 250,000 claims made as core's anchor-index budget makes them
+(the same generator, seed and shares: 70 % instants, 25 % intervals, 5 %
+NOMATCH), their steps spread over the three lines' spans (score in steps
+of 1/25001 quarter, take_1 and take_2 in whole samples), so all of them
+lie in view with the whole block at zoom 1 on a canvas 1000 × 600: the
+overlay of a view is drawn within 16 ms (one frame) at zoom 1 and at zoom
+4, and a hover is answered within 1 ms; the shortest of five runs after a
+warm-up. The lines of a drawing (`matchLinesOf`) are built once per
+drawing and table and are not timed.
+
 ## Package (`name.test.ts`)
 
 The package exports its exact name `"@timetoalign/tilie-arranger"`; its
@@ -1868,8 +2011,10 @@ surface is `Canvas`, `liveStore`, `addCommand`, the selection helpers
 `isTextInput` and `within`, `drawingOf`, `styleLayers`, `placeChange`
 and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
 `keyedBox`, `isItem`, `isHeld`, `fieldsOf`, `levelOf` and `shownValues`,
-`placeEdit`, and the timestamp pane's `namedPin` and the type `KnotsOf`
-(the MeasureKnots source is the canvas's own); tests import everything else from its modules.
+`placeEdit`, the timestamp pane's `namedPin` and the type `KnotsOf`
+(the MeasureKnots source is the canvas's own), and the types
+`MatchOverlayInput` and `NamedComparison` the canvas's `matches` takes;
+tests import everything else from its modules.
 `pnpm typecheck` type-checks
 `src` and `tests` strictly, and the workspace's dependency rules keep it
 on `writers`, `layout`, `core`, `svelte` and `@xyflow/svelte`.
@@ -2300,3 +2445,42 @@ display: wedge, name label, cross-section line).
   was called exactly once. For a manifest without MeasureMaps (`map`) it
   gives `undefined` and asks nothing; a canvas without `measureMaps` gives
   `undefined` for any manifest.
+
+### Show matches on the canvas (`match-overlay.test.ts`)
+
+The canvas with block A as in "Show matches", the view (0, 0, zoom 1),
+the arranger resized to 1000 × 600, one device pixel per CSS pixel.
+
+- **The mode.** The toolbar's "Show matches (M)" button and the key `m`
+  (`M` too) toggle it (`aria-pressed`); turning it on turns "Show
+  coordinates" off and turning "Show coordinates" on turns it off: one at
+  a time. Turning it off calls `onmatchstamppin` with `null`.
+- **Without a table.** With `matches` `null` and the mode on, the status
+  `Matches need the server and a loaded MatchClaim table.` is shown and
+  nothing is drawn; with the mode off, no status.
+- **The overlay.** With T, one `<svg>` for block A whose `width`,
+  `height` and `viewBox` equal the node's own and whose left and top are
+  the node's position; its one potential path has `d` exactly as in
+  "The path", `fill="none"`, `stroke="#C8C8C8"`, `stroke-width="1"`,
+  `stroke-dasharray="3 3"`, `opacity="0.7"`; no hovered or pinned path.
+  With the mode off, no overlay.
+- **Hover and flag.** At (364.0927734375, 40.20703125) of block A the
+  hovered path (`stroke="#6E6E6E"`, no opacity) is MatchStamp 0's: its
+  coordinates c0, c2, c4, c5 on their lines (c6 has none), then its
+  anchors a0, a1, a3 (a4 not drawn); the flag lists `Score`, `Take 1`,
+  `Take 2`, `other` with the values `6 ♩`, `176 400 smp`, `264 600 smp`,
+  `297 675 smp`, `0.5`, its pole at the node's left + 361.0927734375.
+- **Pin.** A click there calls `onmatchstamppin(0)`; a click at (461.0927734375,
+  70), on nothing, calls it with `null`. Given `pinnedMatchStamp` 0, the
+  pinned path (`stroke="#1BA1E2"`) is MatchStamp 0's, and hovering it
+  draws no hovered path; given 1, MatchStamp 1's (c1, c3, a2).
+- **Red anchors.** With T and the comparisons of "Stale anchors", the
+  drawn line of `anchor_2` has `stroke="#E51400"` and that of `anchor_1`
+  keeps `#1BA1E2`, with the mode on or off; with `matches` `null` both
+  keep `#1BA1E2`.
+- **The mode split.** With the mode on, exactly the drawn elements that
+  draw part of a named MatchStamp or of a match timestamp (`ownerOf`
+  `match`) let the pointer through: `anchor_1`'s and `anchor_2`'s lines,
+  `anchor_1`'s name label and `timestamp_3`'s name label; none with it
+  off. With it off, a click on `anchor_1`'s line or its name label selects
+  `{block: A, id: "matchstamp_1"}`, and then both show the selection.

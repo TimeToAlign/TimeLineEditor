@@ -40,6 +40,17 @@ export interface NodeActions {
    * it.
    */
   coordinates(): boolean;
+  /**
+   * Whether "Show matches" is on: every part of a named MatchStamp (an
+   * alignment anchor's line and label) and of a match timestamp then lets
+   * the pointer through, so the canvas reads the potential MatchStamps there.
+   */
+  matches(): boolean;
+  /**
+   * The address keys of block `block`'s alignment anchors the loaded
+   * MatchClaim table no longer states, drawn red; none without a table.
+   */
+  staleAnchors(block: BlockId): ReadonlySet<string>;
   /** The gesture in progress on this canvas, which Escape ends. */
   readonly gestures: GestureSlot;
 }

@@ -27,7 +27,7 @@ import { axesOf, readingAt } from "../src/coordinates.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.ts";
-import { timestampOwner } from "../src/selectionRules.ts";
+import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 import { A, blockIn, changed, metrics, storeOf, viewOf } from "./support.ts";
@@ -323,7 +323,7 @@ describe("the mode split", () => {
   function stampParts(): (string | null)[][] {
     const { manifest } = blockIn(store.view, A);
     return descriptorsOf(shown().drawing).flatMap(({ tag, source }) =>
-      timestampOwner(manifest, source.address) === null
+      ownerOf(manifest, source.address)?.kind !== "timestamp"
         ? []
         : [[tag, source.address.id ?? null, source.address.part?.join(" ") ?? null]],
     );

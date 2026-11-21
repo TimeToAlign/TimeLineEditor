@@ -64,6 +64,7 @@ function deleteIn(store: Store, ...addresses: Address[]): Pressed {
     setMode: () => {},
     toggleLock: () => {},
     toggleCoordinates: () => {},
+    toggleMatches: () => {},
     zoomIn: () => {},
     zoomOut: () => {},
     fit: () => {},

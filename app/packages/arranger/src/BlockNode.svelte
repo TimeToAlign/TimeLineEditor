@@ -33,10 +33,11 @@ import { bandGesture } from "./gestures/band.ts";
 import { cardDrawing, heldGesture } from "./gestures/held.ts";
 import type { Ghost, NodeHost } from "./gestures/host.ts";
 import { itemGesture } from "./gestures/item.ts";
+import { STALE_STROKE } from "./matches.ts";
 import { settle, slide } from "./motion.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
-import { timestampOwner } from "./selectionRules.ts";
+import { type Owner, ownerOf } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
 let { data }: Pick<NodeProps<BlockNodeType>, "data"> = $props();
@@ -69,19 +70,17 @@ interface Entry {
   readonly attributes: Readonly<Record<string, string>>;
   /** The frame or card whose own rectangle it draws; `undefined` for anything else. */
   readonly box: DrawnBox | undefined;
-  /** The key of the named timestamp it draws a part of (`timestampOwner`); `null` for anything else. */
-  readonly timestamp: string | null;
+  /** The named timestamp or MatchStamp it draws a part of (`ownerOf`); `null` for anything else. */
+  readonly owner: Owner | null;
+  /** The key of the owner's address; `null` without an owner. */
+  readonly ownerKey: string | null;
+  /** Whether it draws an alignment anchor's line, which a stale anchor draws red. */
+  readonly anchorLine: boolean;
 }
 
 /** Whether a role is a box's own rectangle: a frame's or a card's, never a card's shadow. */
 function isBoxShape(role: Role): boolean {
   return role === "frame" || role === "card";
-}
-
-/** The key of the named timestamp `address` draws a part of, else `null`. */
-function ownerKey(manifest: Manifest, address: ElementAddress): string | null {
-  const owner = timestampOwner(manifest, address);
-  return owner === null ? null : addressKey(owner);
 }
 
 /**
@@ -94,6 +93,7 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
   return descriptors.map((descriptor) => {
     const { address, element } = descriptor.source;
     const role = roleOf(descriptor);
+    const owner = ownerOf(manifest, address);
     const pair = `${addressKey(address)}#${descriptor.tag}`;
     const n = seen.get(pair) ?? 0;
     seen.set(pair, n + 1);
@@ -106,7 +106,9 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
         descriptor.attrs.map(([name, value]) => [name, domValue(value)]),
       ),
       box: isBoxShape(role) ? shapeBox(drawing, element) : undefined,
-      timestamp: ownerKey(manifest, address),
+      owner,
+      ownerKey: owner === null ? null : addressKey(owner.address),
+      anchorLine: descriptor.source.type === "alignment_anchor",
     };
   });
 }
@@ -158,12 +160,37 @@ function onpointerleave() {
   show(NO_HOVER);
 }
 
-/** Whether an entry shows the selection: its own address selected, or the named timestamp it draws. */
+/**
+ * Whether an entry shows the selection: its own address selected, or the
+ * named timestamp or MatchStamp it draws a part of.
+ */
 function isSelected(entry: Entry): boolean {
   return (
     showsSelection(entry.role, entry.address, data.selectedElements) ||
-    (entry.timestamp !== null && data.selectedElements.has(entry.timestamp))
+    (entry.ownerKey !== null && data.selectedElements.has(entry.ownerKey))
   );
+}
+
+/**
+ * Whether an entry lets the pointer through: a named timestamp's part while
+ * "Show coordinates" is on, a MatchStamp's or a match timestamp's while
+ * "Show matches" is on.
+ */
+function passes(owner: Owner | null): boolean {
+  return (
+    (owner?.kind === "timestamp" && actions.coordinates()) ||
+    (owner?.match === true && actions.matches())
+  );
+}
+
+/** The address keys of this block's alignment anchors drawn red. */
+const stale = $derived(actions.staleAnchors(data.block.id));
+
+/** An entry's attributes, an alignment anchor the table no longer states stroked red. */
+function attributesOf(entry: Entry): Readonly<Record<string, string>> {
+  return entry.anchorLine && stale.has(addressKey(entry.address))
+    ? { ...entry.attributes, stroke: STALE_STROKE }
+    : entry.attributes;
 }
 
 /** Whether an element shows the selection on itself: any but a box, whose selection is a mark. */
@@ -178,7 +205,8 @@ function glows(entry: Entry): boolean {
 const affordances = $derived(
   affordancesOf(data.block.manifest, data.drawing).map((affordance) => {
     const timestamp = addressKey(affordance.address);
-    return { affordance, timestamp, key: `${timestamp}#${affordance.line}` };
+    const owner = ownerOf(data.block.manifest, affordance.address);
+    return { affordance, timestamp, owner, key: `${timestamp}#${affordance.line}` };
   }),
 );
 
@@ -469,25 +497,25 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
     {#each entries as entry (entry.key)}
       <svelte:element
         this={entry.descriptor.tag}
-        {...entry.attributes}
+        {...attributesOf(entry)}
         visibility={hidden.has(entry.descriptor) ? "hidden" : undefined}
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
         data-outside={isOutside(addressKey(entry.address)) ? "" : undefined}
-        pointer-events={entry.timestamp !== null && actions.coordinates() ? "none" : undefined}
+        pointer-events={passes(entry.owner) ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
         animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
       >
     {/each}
-    {#each affordances as { affordance, timestamp, key } (key)}
+    {#each affordances as { affordance, timestamp, owner, key } (key)}
       <polygon
         class="tilie-timestamp-affordance"
         data-affordance={timestamp}
         points={attributeText(affordance.points)}
         data-selected={data.selectedElements.has(timestamp) ? "" : undefined}
         data-outside={isOutside(timestamp) ? "" : undefined}
-        pointer-events={actions.coordinates() ? "none" : undefined}
+        pointer-events={passes(owner) ? "none" : undefined}
         {@attach drawn(affordance)}
       />
     {/each}

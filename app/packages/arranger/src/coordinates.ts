@@ -343,26 +343,42 @@ export function pinnedPlace(
   return spans(axis, position) ? { key, x: abscissaOf(axis, position) } : null;
 }
 
-/** A line a named timestamp has its place on: its key, its axis and where the timestamp's timeline's zero lies on it. */
-interface Holding {
+/**
+ * A line a timeline has its place on: its key, its axis, where the
+ * timeline's zero lies on it, and the timeline's length there when it is a
+ * segment of the line (`null` on a line of its own).
+ */
+export interface Holding {
   readonly key: string;
   readonly axis: LineAxis;
   readonly offset: Rational;
+  readonly length: Rational | null;
 }
 
 /**
  * The marked lines of `drawing` (`markedOf`) drawing the timeline
  * `timeline`, in their order, each with its timeline's zero on it (0):
  * every line of its own, else every line whose segment it is, at the
- * segment's offset; none where no such line is drawn.
+ * segment's offset and with its length; none where no such line is drawn.
+ * Where a named timestamp, and a coordinate shown by "Show matches", has
+ * its place.
  */
-function holdings(drawing: Drawing, timeline: string): Holding[] {
+export function holdings(drawing: Drawing, timeline: string): Holding[] {
   const lines = [...markedOf(drawing)];
   const own = lines.filter(([, axis]) => axis.timeline === timeline);
-  if (own.length > 0) return own.map(([key, axis]) => ({ key, axis, offset: ZERO }));
+  if (own.length > 0) return own.map(([key, axis]) => ({ key, axis, offset: ZERO, length: null }));
   return lines.flatMap(([key, axis]) => {
     const segment = axis.segments.find((item) => item.id === timeline);
-    return segment === undefined ? [] : [{ key, axis, offset: toRational(segment.offset) }];
+    return segment === undefined
+      ? []
+      : [
+          {
+            key,
+            axis,
+            offset: toRational(segment.offset),
+            length: toRational(segment.length),
+          },
+        ];
   });
 }
 
