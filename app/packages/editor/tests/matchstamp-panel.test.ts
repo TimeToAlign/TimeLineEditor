@@ -429,8 +429,8 @@ describe("Coordinates", () => {
     show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
-      ["Score", [["coordinate", "6", true, "♩"]]],
       ["Second half", [["coordinate", "2", true, "♩"]]],
+      ["Score", [["coordinate", "6", true, "♩"]]],
       [
         "Performance",
         [

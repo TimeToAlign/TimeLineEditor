@@ -11,7 +11,7 @@
  */
 
 import type { KnotsOf } from "@timetoalign/tilie-arranger";
-import { drawingOf, namedPin } from "@timetoalign/tilie-arranger";
+import { drawingOf, namedPin, timelinePin } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   AxisValue,
@@ -33,6 +33,7 @@ import type {
 import {
   canonicalText,
   copyValue,
+  findTimeline,
   groupsHolding,
   groupstampByDefault,
   isGroupMember,
@@ -44,7 +45,13 @@ import {
   timestampJson,
   timestampRows,
 } from "@timetoalign/tilie-core";
-import { toAxisValue } from "@timetoalign/tilie-core/numbers";
+import {
+  axisCoordinate,
+  Rational,
+  realOf,
+  toAxisValue,
+  toRational,
+} from "@timetoalign/tilie-core/numbers";
 import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import type { FontMetrics, NumberType, Selector } from "@timetoalign/timetoshare";
 import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
@@ -240,6 +247,46 @@ export function namedPinOf(
     block.id,
     drawingOf(block, view.graphical, metrics),
     address.id,
+    view.settings.granularity,
+    knotsOf?.(block.manifest) ?? "no_server",
+  );
+}
+
+/**
+ * The pin of the position a timeline's start or end mark stands for, when
+ * `address` names exactly such a mark, `{block, id: T, part: ["start"]}` or
+ * `["end"]` (a member's marks on its ancestor lines, a segment's boundary):
+ * unnamed, of the timeline `T` of the block's manifest at the zero of its
+ * number type or at its length, read as any position on `T` is (the
+ * arranger's `timelinePin`: its ancestors and the timelines its line
+ * crosses), the block drawn with `metrics` under the view's granularity and
+ * with the MeasureMap rows `knotsOf` gives (no server without it). `null`
+ * for any other address, a timeline the manifest does not hold, and the end
+ * of a timeline whose length is not known.
+ */
+export function boundaryPinOf(
+  view: View,
+  address: Address,
+  metrics: FontMetrics,
+  knotsOf?: KnotsOf,
+): Pin | null {
+  const block = address.block === undefined ? undefined : view.blocks[address.block];
+  const [word, ...rest] = address.part ?? [];
+  if (block === undefined || address.id === undefined || address.facet !== undefined) return null;
+  if (rest.length > 0 || (word !== "start" && word !== "end")) return null;
+  const timeline = findTimeline(block.manifest, address.id);
+  if (timeline === undefined) return null;
+  let position = Rational.fromParts(0n, 1n);
+  if (word === "end") {
+    if (timeline.length === null) return null;
+    position = toRational(realOf(axisCoordinate(timeline.length, timeline)));
+  }
+  return timelinePin(
+    block.manifest,
+    block.id,
+    drawingOf(block, view.graphical, metrics),
+    timeline.id,
+    position,
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
   );

@@ -27,6 +27,7 @@ import type {
   MeasureKnots,
   NamedTimestamp,
   Pin,
+  PlaceKey,
   Real,
   Row,
   TimelineAxis,
@@ -213,6 +214,29 @@ export function rowOf(hit: Pick<LineHit, "axis" | "map">): Row {
     : { timeline: map.owner, map: map.id };
 }
 
+/**
+ * The ordinate in `drawing` of the line at which a reading in the card
+ * keyed `card` crosses the timeline `timeline`: the timeline's own line or
+ * ancestor line in that card, else the line there whose segment it is;
+ * `undefined` where the card draws neither.
+ */
+function ordinateIn(drawing: Drawing, card: PlaceKey, timeline: string): number | undefined {
+  let holding: number | undefined;
+  for (const axis of drawing.axes) {
+    if (!samePlaceKey(axis.card, card)) continue;
+    if (axis.address.id === timeline) return axis.line;
+    if (holding === undefined && axis.segments.some((segment) => segment.id === timeline)) {
+      holding = axis.line;
+    }
+  }
+  return holding;
+}
+
+/** `axis` read at the ordinate `ordinate` (`TimelineAxis.ordinate`); as it is where that is `undefined`. */
+function crossedAt<T extends TimelineAxis>(axis: T, ordinate: number | undefined): T {
+  return ordinate === undefined ? axis : { ...axis, ordinate };
+}
+
 /** The timeline `id` of `manifest`, which a drawing of it draws. */
 function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
   const timeline = findTimeline(manifest, id);
@@ -229,14 +253,19 @@ function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
  * line), each once, in traversal order (pre-order, children by offset), each
  * at its offset from that timeline's zero, exact, with the maps drawn for it
  * at the crossed lines, in the order they are drawn, as the manifest holds
- * them. No sibling segment of a segment anchor is among them.
+ * them, and at the ordinate of the line it is crossed at in the line's card
+ * (`ordinateIn`). No sibling segment of a segment anchor is among them.
  */
 function crossedSubtree(
   manifest: Manifest,
   drawing: Drawing,
   lineKey: string,
   anchor?: string,
-): { readonly root: TimelineAxis; readonly descendants: readonly CrossSectionMember[] } {
+): {
+  readonly card: PlaceKey;
+  readonly root: TimelineAxis;
+  readonly descendants: readonly CrossSectionMember[];
+} {
   const all = lineAxes(drawing);
   const lines = crossedLines(drawing, lineKey).flatMap((key) => {
     const line = all.get(key);
@@ -259,17 +288,25 @@ function crossedSubtree(
   );
   const root = drawnTimeline(manifest, anchor ?? line.timeline);
   const descendants: CrossSectionMember[] = [];
-  const walk = (timeline: TimelineManifest, offset: Rational): void => {
+  const walk = (timeline: TimelineManifest, from: Rational): void => {
     for (const child of orderedChildren(timeline)) {
-      const at = offset.add(toRational(realOf(axisCoordinate(child.offset, timeline))));
+      const offset = from.add(toRational(realOf(axisCoordinate(child.offset, timeline))));
       if (crossed.has(child.id)) {
-        descendants.push({ ...timelineAxisOf(child, drawn.get(child.id) ?? []), offset: at });
+        const axis = timelineAxisOf(child, drawn.get(child.id) ?? []);
+        descendants.push(crossedAt({ ...axis, offset }, ordinateIn(drawing, line.card, child.id)));
       }
-      walk(child, at);
+      walk(child, offset);
     }
   };
   walk(root, ZERO);
-  return { root: timelineAxisOf(root, drawn.get(root.id) ?? []), descendants };
+  return {
+    card: line.card,
+    root: crossedAt(
+      timelineAxisOf(root, drawn.get(root.id) ?? []),
+      ordinateIn(drawing, line.card, root.id),
+    ),
+    descendants,
+  };
 }
 
 /**
@@ -282,8 +319,11 @@ function crossedSubtree(
  * is drawn in its parent's card or in a card of its own as a group's
  * member), then every timeline in its subtree that the cross-section line
  * crosses (`crossedSubtree`), each at its offset from the anchor's zero,
- * exact, with the maps drawn for it at the crossed lines. No sibling
- * segment of a segment anchor is a member.
+ * exact, with the maps drawn for it at the crossed lines. Each is read at
+ * the ordinate of its line in the line's card (`ordinateIn`: an ancestor's
+ * ancestor line where the anchor is a member drawn in a card of its own),
+ * so its rows are listed top to bottom. No sibling segment of a segment
+ * anchor is a member.
  */
 export function crossSectionSpec(
   manifest: Manifest,
@@ -293,13 +333,11 @@ export function crossSectionSpec(
   granularity: Granularity,
   anchor?: string,
 ): CrossSectionSpec {
-  const { root, descendants } = crossedSubtree(manifest, drawing, lineKey, anchor);
-  return {
-    block,
-    granularity,
-    anchor: root,
-    members: [...ancestorMembers(manifest, root.timeline), ...descendants],
-  };
+  const { card, root, descendants } = crossedSubtree(manifest, drawing, lineKey, anchor);
+  const ancestors = ancestorMembers(manifest, root.timeline).map((member) =>
+    crossedAt(member, ordinateIn(drawing, card, member.timeline)),
+  );
+  return { block, granularity, anchor: root, members: [...ancestors, ...descendants] };
 }
 
 /** Where a timestamp's wedge and cross-section line are drawn: on a line, at an abscissa. */
@@ -425,7 +463,8 @@ function markedKey(drawing: Drawing, axis: DrawnAxis): string | undefined {
 
 /**
  * `spec` with every member of each group whose frame draws its timestamp in
- * `drawing` added after its members, each with the descendants its line's
+ * `drawing` added after its members, each with its ancestors, drawn as the
+ * ancestor lines its card crosses, and the descendants its line's
  * cross-section line crosses there (`crossedSubtree`): the frames whose
  * cards draw a line `holds` says carries the timestamp (layout's
  * `frameMemberLines` names each frame's members). A group's members start
@@ -435,7 +474,11 @@ function markedKey(drawing: Drawing, axis: DrawnAxis): string | undefined {
  * anchor is a descendant of it), scaled by its drawn end over that member's,
  * with the maps drawn for it; a descendant of it at the member's offset plus
  * its own offset in the member divided by that scale, with the same scale,
- * so that its coordinate is the member's less its offset. The member holding
+ * so that its coordinate is the member's less its offset; an ancestor of it
+ * likewise at the member's offset plus the ancestor's (negative) offset
+ * divided by that scale, so that its coordinate is the member's less that
+ * offset. Each is read at the ordinate of its line in the member's card. The
+ * member holding
  * the anchor adds the crossed descendants it has beyond `spec`'s, unscaled.
  * A timeline already in `spec` or added, a member card whose drawn end is 0
  * and an anchor whose member card is not among `spec`'s timelines are
@@ -460,12 +503,22 @@ function withGroupMembers(
     taken.add(member.timeline);
     members.push(member);
   };
-  /** The member drawn as `line` and its crossed descendants, at `offset` and `scale`. */
+  /**
+   * The member drawn as `line` and, read by the group (`scale` given), its
+   * ancestors, then its crossed descendants, at `offset` and `scale`.
+   */
   const read = (line: DrawnAxis, offset: Rational, scale: Rational | undefined): void => {
     const key = markedKey(drawing, line);
     if (key === undefined) return;
-    const { root, descendants } = crossedSubtree(manifest, drawing, key);
-    if (scale !== undefined) add({ ...root, offset, scale });
+    const { card, root, descendants } = crossedSubtree(manifest, drawing, key);
+    if (scale !== undefined) {
+      add({ ...root, offset, scale });
+      for (const ancestor of ancestorMembers(manifest, root.timeline)) {
+        const own = toRational(ancestor.offset).divide(scale);
+        const ordinate = ordinateIn(drawing, card, ancestor.timeline);
+        add(crossedAt({ ...ancestor, offset: offset.add(own), scale }, ordinate));
+      }
+    }
     for (const descendant of descendants) {
       const own = toRational(descendant.offset);
       add(
@@ -789,14 +842,22 @@ export interface FlagPart {
   readonly rows: readonly TimestampRow[];
 }
 
-/** The rows of `pin` (core's `timestampRows`) grouped by part, in the timestamp's order. */
+/**
+ * The rows of `pin` (core's `timestampRows`) grouped by part in their order,
+ * top to bottom where the reading crosses each part's timeline: each part's
+ * coordinate row, which carries its name, then its maps' rows.
+ */
 export function flagParts(pin: Pin): FlagPart[] {
-  const rows = timestampRows(pin);
-  return pin.timestamp.parts.map((part) => ({
-    timeline: part.timeline,
-    name: part.name,
-    rows: rows.filter((row) => row.timeline === part.timeline),
-  }));
+  const parts: FlagPart[] = [];
+  for (const row of timestampRows(pin)) {
+    const last = parts.at(-1);
+    if (last !== undefined && last.timeline === row.timeline) {
+      parts[parts.length - 1] = { ...last, rows: [...last.rows, row] };
+    } else {
+      parts.push({ timeline: row.timeline, name: row.label, rows: [row] });
+    }
+  }
+  return parts;
 }
 
 /** The width of the flag's pole in pixels, and how far the pole rises above what it marks. */

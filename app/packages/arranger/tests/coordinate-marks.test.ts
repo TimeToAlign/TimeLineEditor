@@ -627,19 +627,20 @@ describe("the flag", () => {
           row.getAttribute("data-hovered"),
         ]),
       ]);
+    // Top to bottom: `phrase`'s line lies above `melody`'s.
     expect(rows()).toEqual([
-      [
-        "Melody",
-        [
-          ["coordinate", "4 ♩", "true"],
-          ["Tempo", "2″", "false"],
-        ],
-      ],
       [
         "Phrase",
         [
           ["coordinate", "2 ♩", "false"],
           ["Ticks", "960 ticks", "false"],
+        ],
+      ],
+      [
+        "Melody",
+        [
+          ["coordinate", "4 ♩", "true"],
+          ["Tempo", "2″", "false"],
         ],
       ],
     ]);

@@ -964,8 +964,10 @@ the children `phrase` (offset
 4, length 6, its map `phrase_ticks`) and `coda` (offset 12, length 4); the
 named `Theme` (`timestamp_5`, at 4, the default display), `Climax`
 (`timestamp_6`, at 21/2, all five words), `Silent` (`timestamp_7`, at 14,
-none). Theme crosses `score` and `phrase` at its start: Score `4` ♩, Bars
-`1`, Tempo `2.0` s, Ticks `1920`; Phrase `0` ♩, Phrase ticks `0`. **A
+none). Theme crosses `score` and `phrase` at its start, listed top to
+bottom as their lines lie (`phrase`'s above `score`'s, in its children
+band): Phrase `0` ♩, Phrase ticks `0`; Score `4` ♩, Bars `1`, Tempo `2.0`
+s, Ticks `1920`. **A
 hand-built cross-section** of a line `score` (16 quarters) at 16 whose maps
 give no value (a PiecewiseMap at its last break), need a MeasureMap's rows
 (a MeasureNumberMap without them) or name their outputs (a CombinationMap,
@@ -1003,6 +1005,20 @@ which no position solves).
    closed drawer on Timestamp showing it, `shownPin()` the arranger's
    `namedPin` of it; selecting anything else (the block) clears it and
    shows the tab chosen before; two addresses at once show nothing.
+   **Selecting a timeline's start or end mark pins that position**:
+   selecting exactly `{block, id: T, part: ["start"]}` or `["end"]` (a
+   member's marks on its ancestor lines, a segment's boundary) opens the
+   drawer on Timestamp with an unnamed pin of `T` at its zero or at its
+   length, read as any position on `T` is (the arranger's `timelinePin`),
+   no name given. In `groups/group_parent_both` (`middle`, offset 4,
+   length 8, in `piece` of 16), the start of `middle` shows the groups
+   Piece [coordinate `4` ♩], Middle [coordinate `0` ♩], top to bottom as
+   `piece`'s ancestor line lies above `middle`'s line, `shownPin()` the
+   arranger's `timelinePin` of `middle` at 0; its end Piece `12` ♩, Middle
+   `8` ♩. Selecting the block afterwards keeps that pin, as any unnamed
+   pin is kept. The end of `unknown_length`'s root `score` (length not
+   known), a mark's label (`["start", "label"]`) and two addresses pin
+   nothing: the tab stays as it was.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its first row "coordinate", then one
    row per map labelled by its name, else its ID. A number is a text field
@@ -1441,10 +1457,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    with the conversion-maps band of `score` hidden by one `style` (`select
    {addresses: [{id: score, facet: conversion_maps}]}`, `set {display:
    none}`, block A), the MatchStamp "Turn" named by one `add` with the
-   anchor [`score` `[6, 1]`, `performance` `3.0`] shows the groups "Score"
-   [coordinate `6` ♩; no `cmap_1`, `cmap_2` row: their band is not drawn],
-   "Second half" [coordinate `2` ♩: 6 − the offset 4, the child its line
-   crosses], "Performance" [coordinate `3.0` s; `cmap_3` `132300` smp];
+   anchor [`score` `[6, 1]`, `performance` `3.0`] shows the groups "Second
+   half" [coordinate `2` ♩: 6 − the offset 4, the child its line crosses,
+   drawn above `score`'s line, so listed first], "Score" [coordinate `6` ♩;
+   no `cmap_1`, `cmap_2` row: their band is not drawn], "Performance"
+   [coordinate `3.0` s; `cmap_3` `132300` smp];
    the groups of its match timestamp on `score` (the first two) equal what
    the Timestamp tab shows for that match timestamp's own pin. A builder
    anchoring on the timeline with all its maps and its ancestors alone

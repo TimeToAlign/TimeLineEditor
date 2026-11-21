@@ -1700,6 +1700,13 @@ one), unit, number type, length and the maps drawn for it at any crossed
 line, in drawing order, as the manifest holds them. The ancestors come
 from the manifest, never the drawing, so a child drawn in a card of its
 own as a group's member holds them as one drawn in its parent's card.
+Every timeline of the spec, the anchor included, carries the **ordinate**
+of the line at which the reading crosses it in the hovered line's card:
+its own line there, its ancestor line there (a member drawn in a card of
+its own), or the line there whose segment it is; none where that card
+draws neither. It is read off layout's record of the same drawing (its
+`axes`), the oracle, and it is what the rows are ordered by (below, "The
+flag").
 
 - **From a root, with its children and their maps.** `map`'s `melody`:
   the anchor `melody` ("Melody", quarters, fraction, 8, `[tempo]`), one
@@ -1808,7 +1815,24 @@ at a quarter it reads `performance` 1.0 and `score` 2 alone, since
 line the same: at three quarters `score` 6, `second-half` 2 (its own
 cross-section), `performance` 3.0; at a quarter `score` 2, `performance`
 1.0. Read without the descendants (the member's own line alone, the
-former reading) the first case lacks `second-half`. The flag shows what
+former reading) the first case lacks `second-half`.
+
+**A reading across the group holds each other member's ancestors**, which
+the member's card draws as ancestor lines and the reading's cross-section
+line crosses there (layout: a member's cross-section lines reach its
+outermost displayed ancestor line): after the member, each of its
+ancestors, at the member's offset plus the ancestor's (negative) offset
+divided by the member's scale, with the member's scale, so that its
+coordinate is the member's less that offset, read at its ancestor line's
+ordinate in that card. In `groups/group_parent_both` (`group_1` lists
+`middle`, offset 4 and 8 quarters long in `piece` of 16, and `recording`,
+10.0 seconds), `recording` hovered at the middle of its line holds the
+members `middle` at 0, scale 8/10 = 4/5, and `piece` at `0 + (−4) / (4/5)
+= −5`, scale 4/5, and the parts `recording` the float 5.0, `middle` 4,
+`piece` `(5 + 5) × 4/5 = 8`; the anchor stays the timestamp's first part.
+Without the ancestors (the former reading) `piece` is missing, although
+its line is drawn in `middle`'s card and the group's line crosses it.
+ The flag shows what
 the reading's pin holds, so the timelines of `flagParts` of the reading at
 `timestamp_1`'s place on `performance`'s line are, as a set, those of
 `timestamp_1`'s named pin, which the Timestamp tab shows (`second-half`,
@@ -1834,15 +1858,16 @@ then the timelines of the segment's own subtree that line crosses, never
 a sibling segment. `segment_line` with `b2_ticks` and a timestamp at 1 on
 `b2` (no children) reads the spec anchor `b2` ("b2", quarters, fraction,
 6, `[b2_ticks]`, the map drawn at `b`'s line for it), members `b` ("B",
-12) at −6 and `form` ("Form", 32) at −14, both without maps, and the
-timestamp `b2` at 1 with `b2_ticks` 480 (1·480), `b` 7, `form` 15; `b1`
+12) at −6 and `form` ("Form", 32) at −14, both without maps (the anchor
+and `b` read at `b`'s line, 36.4765625, `form` at its own, 87.9296875),
+and the timestamp `b2` at 1 with `b2_ticks` 480 (1·480), `b` 7, `form` 15; `b1`
 is no part of it. The same
 holds on a line of unknown length: `unknown_length`'s `origin`
 (`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
 `score` 0 alone (`coda` starts at 10), and on a zero-length line: `late`'s
 `origin` (`timestamp_3`, above) reads anchor `late` (length unknown, no
-maps), no members, `late` 0. Where no line draws its timeline (its line
+maps, at its line's ordinate 22.40234375), no members, `late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
 and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID
@@ -1904,8 +1929,10 @@ which gets an `origin` by default): one affordance, `timestamp_1` on
 `melody`'s `origin` and `length` display their wedge and coordinate, so
 neither has one.
 
-**The flag** lists core's `timestampRows` grouped by part, in the
-timestamp's order: each part's heading its timeline's name, then its
+**The flag** lists core's `timestampRows` grouped by part, in their order:
+the parts top to bottom where the reading crosses their timelines (each
+one's ordinate in the spec; core's README, "The rows"), each part's
+heading its timeline's name, then its
 coordinate (labelled `coordinate`) and its maps' values (labelled by name,
 else ID), each value as core's pretty text in its own number type and
 unit, rounded with the granularity's `decimals` (display rounding is the
@@ -1913,10 +1940,16 @@ flag's alone; a value without a unit is its number alone, a measure its
 name and the word `measure`); a missing value says why in core's
 words. The hovered row is highlighted, the coordinate of the hovered
 line's timeline or the hovered map. Values: `b`'s spec at 457/48, read on
-`b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`), its ancestor
-`Form` (`17 25/48 ♩`) and `b2`
-(`coordinate` `3 25/48 ♩`, then `Ticks` `1 690 ticks`, the hovered row: an int is
-grouped by threes);
+`b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`) and its
+segment `b2` (`coordinate` `3 25/48 ♩`, then `Ticks` `1 690 ticks`, the
+hovered row: an int is grouped by threes), both at `b`'s line (36.4765625,
+the timestamp's order kept), then its ancestor `Form` (`17 25/48 ♩`,
+87.9296875, below), though the timestamp's parts stay `b`, `form`, `b2`;
+in `groups/group_parent_both`, read at the middle of `recording`'s line
+and of `middle`'s, the flag lists `piece` `8 ♩` (its ancestor line in
+`middle`'s card, 67.78125), `middle` `4 ♩` (81.78125), `recording` `5″`
+(139.16015625), whichever line is hovered; reversed (the members' order
+of construction) it fails both;
 `bundle_mixed`'s `score` at 16/5 shows `cmap_2`, a float of seconds, as
 `1.6″` at 3 places;
 in `group_measure_map` the `MeasureRecordMap` `cmap_1` of `score` has no
@@ -2605,8 +2638,9 @@ display: wedge, name label, cross-section line).
   its top the pole's, `data-flipped` `false`. On a canvas 400 pixels wide
   the flag opens to the left: its left edge the node's left +
   263.53662109375 − 0.5 − 180, `data-flipped` `true`. It holds two parts,
-  `Melody` (`coordinate` `4 ♩`, `Tempo` `2″`) and `Phrase` (`coordinate`
-  `2 ♩`, `Ticks` `960 ticks`), and exactly one row is highlighted:
+  top to bottom as their lines lie (`phrase`'s at 23 above `melody`'s at
+  40.5): `Phrase` (`coordinate` `2 ♩`, `Ticks` `960 ticks`), then `Melody`
+  (`coordinate` `4 ♩`, `Tempo` `2″`), and exactly one row is highlighted:
   `melody`'s coordinate, and with the pointer on `tempo` (y 35) `tempo`'s.
 - **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the
   pinned marks equal layout's at 263.53662109375; the pin replaced by the
