@@ -237,6 +237,42 @@ workspace then belongs to the picked one. Ctrl+Shift+S always picks. A
 workspace restored from an autosave that kept its file's handle saves
 back into that handle on Ctrl+S.
 
+## The workspace's title (`workspace-title.test.ts`)
+
+The title is a component of its own, given the workspace's name, its
+file's name, whether it is dirty and `onrename`, the caller's renaming,
+which answers a refusal's message or `null`. The tests mount it alone,
+read it by role and accessible name, and count the calls of a recording
+`onrename`: what a name may be is the store's to decide, never the
+title's, so the refusal is a string the test hands in. The page's whole
+text is compared, so a mark, a separator or a file name too many fails.
+
+- `untitled`, file `untitled.tle.json`, dirty: the text is "• untitled",
+  one button named "Workspace name untitled, click to rename", and no
+  file name, since the file is the one the name gives (`workspaceFileName`
+  of the file module, whose own tests own its spelling).
+- `LayerIt`, file `untitled.tle.json`, clean: the text is
+  "LayerIt — untitled.tle.json", the file's name after the name because it
+  is not `LayerIt.tle.json`.
+- A click on the button swaps in one text field labelled "Workspace name",
+  holding `untitled`, focused, all its text selected (selection 0 to 8).
+  Replacing the text by `LayerIt` and pressing Enter calls `onrename`
+  exactly once, with `"LayerIt"`; the button is back, focused. F2 on the
+  button opens the field as the click does; Enter on a button is the
+  browser's click, so it needs no test of its own. Leaving the field
+  (blur) commits as Enter does: one call; spaces around the text are
+  trimmed (`"  Op. 35 "` → `"Op. 35"`).
+- Escape in the field brings the button back, focused, with no call.
+- A refusal: `onrename` answering "the workspace's name is never empty"
+  keeps the field, marked `aria-invalid="true"`, its description the
+  message, which the page shows; typing again removes the mark.
+- Ctrl+S in the field: a keydown listener on the element the title is
+  mounted in, added before the title, records the order; the calls are
+  `["rename LayerIt", "parent"]` and the parent sees the event not
+  prevented, so the editor's own Save shortcut runs after the rename and
+  saves the new name. The listener on the mount target is the hardest
+  case: a handler delegated to that target would run after it.
+
 ## Autosave (`autosave.test.ts`, `shell.test.ts`)
 
 The storage alone: a snapshot is written once after the delay, the latest
