@@ -6,8 +6,10 @@
  * scrolls); **Coordinates** (`StampCoordinates`, the Matchstamp tab's
  * too): a hint while no timestamp is shown, else its values, edited and
  * copied, or its text in a format; **Properties** (`TimestampProperties`):
- * what it displays, the MatchStamps a match timestamp belongs to, and
- * Delete, inactive until it is named; **Coordinate granularity** at the
+ * what it displays, whether it is a GroupStamp (on a group member), the
+ * MatchStamps a match timestamp belongs to, and Delete, inactive until it
+ * is named (naming one on a group member stores a GroupStamp unless a
+ * timeline editor is open); **Coordinate granularity** at the
  * pane's bottom. An edit of an unnamed timestamp moves its pin; every
  * change of a named one is a command. Every value, row, position and text
  * is core's; the tab reads typed text and sends commands.
@@ -26,6 +28,7 @@ import TimestampProperties from "./stamps/TimestampProperties.svelte";
 import type { ValueRow } from "./timestamp.ts";
 import {
   addedTimestamp,
+  groupstampOf,
   moveCommand,
   nameCommand,
   timelineRows,
@@ -95,7 +98,11 @@ function commitName(): void {
     }
     const before = live.store.view;
     const shown = pin;
-    if (!drafts.send("name", () => live.store.dispatch(nameCommand(shown, name)))) return;
+    const manifest = before.blocks[shown.spec.block]?.manifest;
+    const groupstamp =
+      manifest !== undefined && groupstampOf(manifest, shown, live.editing.at(-1)?.kind ?? null);
+    const command = nameCommand(shown, name, groupstamp);
+    if (!drafts.send("name", () => live.store.dispatch(command))) return;
     const added = addedTimestamp(before, live.store.view, shown.spec.block);
     if (added !== null) onpin({ ...shown, named: added });
   } else if (name === "") drafts.reverted("name", EMPTY_NAME);

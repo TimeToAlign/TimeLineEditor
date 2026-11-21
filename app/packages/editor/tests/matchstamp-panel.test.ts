@@ -243,6 +243,172 @@ describe("Coordinates", () => {
       "0 smp",
     ]);
   });
+
+  it("list each timestamp's conversion-map rows after its coordinate", async () => {
+    const written: string[] = [];
+    vi.stubGlobal("navigator", {
+      clipboard: {
+        writeText: async (text: string) => {
+          written.push(text);
+        },
+      },
+    });
+    const store = storeOf(tableManifest());
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A, id: "cpt_1" },
+        map: {
+          type: "LinearMap",
+          id: "rate",
+          name: "Rate",
+          source_unit: "seconds",
+          target_unit: "samples",
+          scalar: 44100,
+          offset: 0,
+        },
+      }),
+    ).toBe(null);
+    const table = matchTable();
+    show(store, potential(indexesUnder(table).shown, "cpt_1", 8.0), tablesWith(table));
+    const area = document.querySelector("section.coordinates");
+    const groups = [...(area?.querySelectorAll("tbody") ?? [])].map((body) => [
+      body.querySelector('th[scope="colgroup"]')?.textContent,
+      [...body.querySelectorAll("tr[data-row]")].map((row) => {
+        const input = row.querySelector("input");
+        return [
+          row.querySelector('th[scope="row"]')?.textContent,
+          input?.value,
+          input?.disabled,
+          row.querySelector(".unit")?.textContent,
+        ];
+      }),
+    ]);
+    expect(groups).toEqual([
+      [
+        "cpt_1",
+        [
+          ["coordinate", "8.0", true, "s"],
+          ["Rate", "352800", true, "smp"],
+        ],
+      ],
+      ["dpt_1", [["coordinate", "352800", true, "smp"]]],
+    ]);
+    const rate = area?.querySelectorAll<HTMLButtonElement>("tr[data-row] td.copy button");
+    for (const button of [...(rate ?? [])].slice(3, 6)) button.click();
+    await vi.waitFor(() => expect(written).toHaveLength(3));
+    expect(written).toEqual(["352800", "352800 samples", "352 800 smp"]);
+  });
+});
+
+describe("Lines", () => {
+  /** The lines as [kind, label, the labels of the toggles pressed, disabled]. */
+  function lines(): unknown[] {
+    return [...document.querySelectorAll("section.lines li")].map((item) => {
+      const toggles = [...item.querySelectorAll<HTMLButtonElement>(".toggle")];
+      return [
+        item.getAttribute("data-line"),
+        item.querySelector(".line-name")?.textContent?.replace(/\s+/g, " ").trim(),
+        toggles.filter((t) => t.getAttribute("aria-pressed") === "true").map((t) => t.textContent),
+        toggles.every((t) => t.disabled),
+      ];
+    });
+  }
+  const ALL = ["Wedge", "Name", "ID", "Coordinate", "Line"];
+  /** The toggle `label` of the line whose element matches `selector`. */
+  function toggleOf(selector: string, label: string): HTMLButtonElement {
+    const found = [...document.querySelectorAll<HTMLButtonElement>(`${selector} .toggle`)].find(
+      (item) => item.textContent === label,
+    );
+    if (found === undefined) throw new Error(`no toggle ${label} in ${selector}`);
+    return found;
+  }
+
+  it("list a potential MatchStamp's lines in screen order, alternating, inactive", () => {
+    const store = storeOf(tableManifest());
+    const table = matchTable();
+    show(store, potential(indexesUnder(table).shown, "clt_1", q(0)), tablesWith(table));
+    expect(lines()).toEqual([
+      ["timestamp", "clt_1 0 ♩", ["Line"], true],
+      ["anchor", "clt_1 – cpt_1", [], true],
+      ["timestamp", "cpt_1 0″", ["Line"], true],
+      ["anchor", "clt_1 – dpt_1", [], true],
+      ["timestamp", "dpt_1 0 smp", ["Line"], true],
+    ]);
+    expect(
+      [...document.querySelectorAll("section.lines li[data-line=timestamp]")].map((item) =>
+        [...item.querySelectorAll(".toggle")].map((t) => t.textContent),
+      ),
+    ).toEqual([ALL, ALL, ALL]);
+  });
+
+  it("toggle a named MatchStamp's timestamp and anchor displays, one entry each", () => {
+    const store = storeOf(tableManifest());
+    nameDownbeat(store);
+    unmountTab();
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    expect(lines()).toEqual([
+      ["timestamp", "clt_1 0 ♩ timestamp_1", ["Line"], false],
+      ["anchor", "clt_1 – cpt_1 anchor_1", ["Line", "Name"], false],
+      ["timestamp", "cpt_1 0″ timestamp_2", ["Line"], false],
+      ["anchor", "clt_1 – dpt_1 anchor_2", ["Line"], false],
+      ["timestamp", "dpt_1 0 smp timestamp_3", ["Line"], false],
+    ]);
+    const before = store.journal.length;
+    toggleOf("li[data-timestamp='timestamp_2']", "Wedge").click();
+    flushSync();
+    expect(store.journal.length).toBe(before + 1);
+    expect(store.journal.at(-1)).toMatchObject({
+      command: {
+        type: "set",
+        changes: [
+          {
+            target: { block: A, id: "timestamp_2" },
+            values: { display: ["wedge", "cross_section"] },
+          },
+        ],
+      },
+    });
+    toggleOf("li[data-anchor='anchor_2']", "Name").click();
+    flushSync();
+    expect(store.journal.length).toBe(before + 2);
+    expect(lines()[2]).toEqual(["timestamp", "cpt_1 0″ timestamp_2", ["Wedge", "Line"], false]);
+    expect(lines()[3]).toEqual(["anchor", "clt_1 – dpt_1 anchor_2", ["Line", "Name"], false]);
+  });
+
+  it("say where a match timestamp is a line of another MatchStamp too", () => {
+    const store = storeOf(tableManifest());
+    nameDownbeat(store);
+    unmountTab();
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Other",
+          anchors: [
+            [
+              { timeline: "clt_1", coordinate: [0, 1] },
+              { timeline: "dpt_1", coordinate: 176400 },
+            ],
+          ],
+          match_claims: ["claim_3"],
+        },
+      }),
+    ).toBe(null);
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    expect(
+      [...document.querySelectorAll("section.lines li")].map(
+        (item) => item.querySelector(".shared")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      ),
+    ).toEqual([
+      "Also a line of MatchStamp 'Other': a change shows there too.",
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
 });
 
 describe("the pane", () => {
@@ -260,15 +426,15 @@ describe("the pane", () => {
       pane?.querySelector("section label")?.textContent,
       [...(pane?.querySelectorAll(":scope > section > h3") ?? [])].map((item) => item.textContent),
       described,
-      [...document.querySelectorAll<HTMLButtonElement>("section.anchors .toggle")].map(
+      [...document.querySelectorAll<HTMLButtonElement>("section.lines .toggle")].map(
         (item) => item.disabled,
       ),
     ]).toEqual([
       "matchstamp-name",
       "Name",
-      ["Coordinates", "Alignment anchors", "MatchClaims", "MatchClaim filter"],
-      ["Naming the MatchStamp stores it; then its anchors' display can be set."],
-      [true, true, true, true],
+      ["Coordinates", "Lines", "MatchClaims", "MatchClaim filter"],
+      ["Naming the MatchStamp stores it; then its lines' display can be set."],
+      Array.from({ length: 19 }, () => true),
     ]);
   });
 });
@@ -466,5 +632,29 @@ describe("the Timestamp tab", () => {
     ).toBe(null);
     expect(listed(store, "timestamp_1")).toEqual(["Downbeat matchstamp_1"]);
     expect(listed(store, "timestamp_4")).toBe(null);
+  });
+
+  it("offers no GroupStamp for a match timestamp on a group member", () => {
+    const store = storeOf(tableManifest());
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        group: { id: "group_1", members: ["clt_1", "cpt_1"] },
+      }),
+    ).toBe(null);
+    nameDownbeat(store);
+    unmountTab();
+    const pin = namedPinOf(store.view, { block: A, id: "timestamp_1" }, fontMetrics);
+    mounted = mount(TimestampPanel, {
+      target: document.body,
+      context: informing(),
+      props: { live: liveStore(store), pin, onpin: () => undefined },
+    });
+    flushSync();
+    expect([
+      pin?.named?.matchstamp,
+      document.querySelector("[data-testid=timestamp-groupstamp]"),
+    ]).toEqual([true, null]);
   });
 });

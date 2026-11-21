@@ -1052,7 +1052,8 @@ which no position solves).
    controls: "Display" (a group of five toggle buttons Wedge, Name, ID,
    Coordinate, Line, in that order, each `aria-pressed` by whether its word
    is in the timestamp's `display`; Line is the word `cross_section`, whose
-   stored key is unchanged), and Delete.
+   stored key is unchanged), on a group member "Group" (one toggle
+   GroupStamp, item 7a), and Delete.
    - *Unnamed.* The name field is empty and enabled, with the placeholder
      "Type a name to keep it" (hidden by the panel's style while the field
      has focus) and described by the hint under it in the name header; the
@@ -1064,7 +1065,8 @@ which no position solves).
      moved by them before it is named. Typing "Upbeat" and Enter on the
      unnamed pin at 16/5 journals exactly `{type: "add", into: {block:
      "0000000000", id: "score"}, timestamp: {name: "Upbeat", coordinate:
-     [16, 5]}}`; the pane then shows the named `timestamp_11` (the
+     [16, 5], groupstamp: true}}` (`score` is a member of the group
+     Performance and no editor is open, item 7a); the pane then shows the named `timestamp_11` (the
      smallest free ID): Name "Upbeat", the toggles and Delete enabled,
      `shownPin().named.id` `timestamp_11`. An emptied name journals
      nothing.
@@ -1084,6 +1086,32 @@ which no position solves).
      Enter or Space.
    - *Delete* journals `{type: "remove", targets: [{block: "timestamps",
      id: "timestamp_5"}]}`; the pane then shows the hint and no Properties.
+7a. **GroupStamp.** The toggle is offered exactly where core's
+   `isGroupMember` holds for the timestamp's timeline and the timestamp is
+   no match timestamp; whether it is pressed, and what naming stores, is
+   core's `groupstampByDefault` for an unnamed timestamp (the innermost
+   editor open, `null` for none) and the stored `groupstamp` for a named
+   one. Specimens: `bundle_mixed`'s `score`, a member of the group
+   `group_1` "Performance" alone; the example "Timestamps", which holds no
+   group; the table fixture (MatchClaims below) with a group {`clt_1`,
+   `cpt_1`} added by one `add {into: {block}, group}`.
+   - *Unnamed, no editor open.* The unnamed pin on `score` at 16/5 shows
+     "Group" with GroupStamp pressed and disabled, described by "A
+     GroupStamp's line crosses every member of 'Performance'." and by the
+     naming hint; naming it journals `groupstamp: true` (item 7).
+   - *Unnamed, in a timeline editor of `score`.* GroupStamp is shown not
+     pressed; "Upbeat" journals exactly `{type: "add", into: {block:
+     "0000000000", id: "score"}, timestamp: {name: "Upbeat", coordinate:
+     [16, 5]}}`, no `groupstamp` (the command's default, `false`).
+   - *Named.* The named `timestamp_11` (stored a groupstamp) shows
+     GroupStamp pressed and enabled; a press journals exactly `{type:
+     "set", changes: [{target: {block: "0000000000", id: "timestamp_11"},
+     values: {groupstamp: false}}]}` and shows it not pressed, a second
+     press `groupstamp: true`.
+   - *Not offered.* Theme of the example ("Timestamps" holds no group) and
+     the match timestamp `timestamp_1` on `clt_1` of the MatchStamp
+     "Downbeat" named after the group was added (a member, but a match
+     timestamp) show no "Group" key and no GroupStamp toggle.
 8. **Coordinate granularity** shows the workspace's two settings, fields
    "Denominator" and "Decimals" (the defaults 2520 and 3), each with its
    hover hint as `title`, with or without a timestamp, in one line below
@@ -1257,18 +1285,56 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `claim_1`, `claim_2`.
    **Its Coordinates are the Timestamp tab's** (one component): one
    `tbody` per timestamp in that order, headed by its timeline's name, its
-   one row "coordinate" a text field holding the exact value (`clt_1` `0`,
+   row "coordinate" a text field holding the exact value (`clt_1` `0`,
    `cpt_1` `0.0`, `dpt_1` `0`) with the pretty unit (`♩`, `s`, `smp`),
    **disabled** (a MatchStamp's coordinates are not edited), and the three
    Copy columns `value`, `value + unit`, `pretty` with the Timestamp tab's
    buttons and texts, copied in that order: `clt_1` `0`, `0 quarters`,
    `0 ♩`; `cpt_1` `0.0`, `0.0 seconds`, `0″`; `dpt_1` `0`, `0 samples`,
-   `0 smp`. The tab has no "Properties" heading: under the name header
-   come the areas Coordinates, Alignment anchors, MatchClaims and the
-   MatchClaim filter, each a `section` named by its heading. While the
-   MatchStamp is potential (unnamed) the name field is described by "Naming
-   the MatchStamp stores it; then its anchors' display can be set." and
-   every anchor toggle is disabled.
+   `0 smp`. **After its coordinate row come its timeline's conversion-map
+   rows**, as the Timestamp tab lists a timestamp's own timeline (core's
+   `timestampRows` of a pin anchored on that timeline at the coordinate;
+   no ancestor and no other member: each of the MatchStamp's timestamps is
+   its own group): with the LinearMap `rate` "Rate" (seconds → samples,
+   scalar 44100, offset 0) added to `cpt_1` by one `add {into: cpt_1,
+   map}`, the potential MatchStamp of `cpt_1` 8.0 shows the groups `cpt_1`
+   [coordinate `8.0` s; Rate `352800` smp, disabled, copied `352800`,
+   `352800 samples`, `352 800 smp` (8.0 × 44100 written on the samples
+   axis, an int)] and `dpt_1` [coordinate `352800` smp]. The tab has no
+   "Properties" heading: under the name header come the areas Coordinates,
+   Lines, MatchClaims and the MatchClaim filter, each a `section` named by
+   its heading. While the MatchStamp is potential (unnamed) the name field
+   is described by "Naming the MatchStamp stores it; then its lines'
+   display can be set." and every toggle of its lines is disabled (3
+   timestamps × 5 + 2 anchors × 2 = 19).
+2a. **Lines** list every dashed line of the MatchStamp in the one screen
+   order (`inScreenOrder`, the arranger's, which its tests prove): each
+   timestamp line at its coordinate's place, each anchor line just before
+   the line of its lower coordinate (an anchor's second, its coordinates
+   being in screen order), anchors meeting one coordinate by their upper
+   one; so a chain alternates. The potential MatchStamp of `clt_1` 0 lists,
+   as `[kind, label]`: timestamp `clt_1 0 ♩`, anchor `clt_1 – cpt_1`,
+   timestamp `cpt_1 0″`, anchor `clt_1 – dpt_1`, timestamp `dpt_1 0 smp` (a
+   timestamp labelled by its timeline's name and its pretty coordinate, an
+   anchor by its two timelines' names, no ID while potential). A timestamp
+   line carries the Timestamp tab's toggles (one component, its words
+   Wedge, Name, ID, Coordinate, Line), showing what naming stores
+   (TimeToShare's default of a match timestamp: Line alone pressed); an
+   anchor line Line and Name, none pressed while potential. Named
+   "Downbeat" (item 3) the lines are `timestamp_1`, `anchor_1`,
+   `timestamp_2`, `anchor_2`, `timestamp_3`, each label followed by its ID;
+   the timestamps show Line pressed alone, `anchor_1` Line and Name,
+   `anchor_2` Line. Wedge on `timestamp_2`'s line journals exactly one
+   `{type: "set", changes: [{target: {block, id: "timestamp_2"}, values:
+   {display: ["wedge", "cross_section"]}}]}` and shows Wedge and Line
+   pressed; Name on `anchor_2`'s journals the anchor's `display` `["line",
+   "name"]`. **A shared match timestamp**: after a second MatchStamp
+   "Other" is added by one `add {into: {block}, matchstamp: {name: "Other",
+   anchors: [[clt_1 [0, 1], dpt_1 176400]], match_claims: ["claim_3"]}}`,
+   which reuses `timestamp_1` (core reuses a match timestamp per timeline
+   and exact value), Downbeat's `timestamp_1` line alone says "Also a line
+   of MatchStamp 'Other': a change shows there too."; the other lines say
+   nothing of the kind.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`

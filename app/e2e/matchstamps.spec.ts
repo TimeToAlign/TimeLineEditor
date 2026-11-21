@@ -7,7 +7,8 @@
  * is selected and removed in one journal entry (the selection losing it,
  * the tab shown before it is shown again; its coordinates disabled fields
  * with their Copy buttons), a click on the line of one of its match
- * timestamps selecting it and showing it in the tab, and a manifest naming
+ * timestamps selecting it and showing it in the tab, its lines listed in
+ * screen order with a timestamp's display toggled from them, and a manifest naming
  * a table that is not loaded saying so.
  */
 
@@ -213,8 +214,43 @@ test("a click on a match timestamp's line selects its MatchStamp in the Matchsta
     "true",
   );
   await expect(
-    page.getByTestId("matchstamp-properties").getByRole("textbox", { name: "Name" }),
+    page.getByTestId("matchstamp-name").getByRole("textbox", { name: "Name" }),
   ).toHaveValue("Downbeat");
+  // Its lines in screen order, a timestamp's display toggled from them.
+  const lines = page.locator("section.lines li");
+  await expect(lines).toHaveCount(3);
+  const [onClt, onDpt] = await page.evaluate(
+    (id) =>
+      ["clt_1", "dpt_1"].map(
+        (timeline) =>
+          window.__tilie
+            .store()
+            .view.blocks[id]?.manifest.graphical?.timestamps?.find(
+              (each) => each.matchstamp && each.timeline === timeline,
+            )?.id,
+      ),
+    block,
+  );
+  expect(
+    await lines.evaluateAll((items) =>
+      items.map((item) => item.getAttribute("data-timestamp") ?? item.getAttribute("data-anchor")),
+    ),
+  ).toEqual([onClt, "anchor_1", onDpt]);
+  const journal = () => page.evaluate(() => window.__tilie.store().journal.length);
+  const before = await journal();
+  await lines.first().getByRole("button", { name: "Wedge", exact: true }).click();
+  await expect.poll(journal).toBe(before + 1);
+  expect(
+    await page.evaluate(
+      ([id, timestamp]) =>
+        window.__tilie
+          .store()
+          .view.blocks[id ?? ""]?.manifest.graphical?.timestamps?.find(
+            (each) => each.id === timestamp,
+          )?.display,
+      [block, onClt],
+    ),
+  ).toEqual(["wedge", "cross_section"]);
 });
 
 test("a manifest naming a table that is not loaded says so", async ({ page }) => {

@@ -15,9 +15,11 @@ import type {
   Address,
   AxisValue,
   Command,
+  EditorKind,
   Expressed,
   ExpressedNumber,
   Json,
+  Manifest,
   NamedTimestamp,
   Pin,
   Row,
@@ -28,6 +30,8 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   copyValue,
+  groupstampByDefault,
+  isGroupMember,
   measureText,
   prettyText,
   prettyUnit,
@@ -267,16 +271,19 @@ function named(pin: Pin): Address {
 /**
  * The command naming `pin` `name`: for an unnamed pin the `add` storing a
  * timestamp `name` at its anchor's coordinate, into its anchor's timeline
- * (the default `display`); for a named one the `set` of its name.
+ * (the default `display`), a groupstamp where `groupstamp` (what
+ * `groupstampOf` gives it: the command states `groupstamp` only then, `add`
+ * taking `false` without it); for a named one the `set` of its name.
  */
-export function nameCommand(pin: Pin, name: string): Command {
+export function nameCommand(pin: Pin, name: string, groupstamp = false): Command {
   if (pin.named !== null) {
     return { type: "set", changes: [{ target: named(pin), values: { name } }] };
   }
+  const stored = { name, coordinate: anchorCoordinate(pin) };
   return {
     type: "add",
     into: { block: pin.spec.block, id: pin.timestamp.timeline },
-    timestamp: { name, coordinate: anchorCoordinate(pin) },
+    timestamp: groupstamp ? { ...stored, groupstamp } : stored,
   };
 }
 
@@ -320,11 +327,54 @@ export function displayOf(pin: Pin): readonly TimestampDisplay[] {
   return pin.named?.display ?? DEFAULTS.timestamp.display;
 }
 
-/** The `set` of the named timestamp's `display` with `word` toggled, in the canonical order. */
-export function displayCommand(pin: Pin, word: TimestampDisplay): Command {
-  const shown = displayOf(pin);
+/**
+ * The `set` of the `display` of the named timestamp at `target`, `shown`
+ * now, with `word` toggled, in the canonical order: the one display toggle
+ * of a timestamp, in the Timestamp tab and in a MatchStamp's lines.
+ */
+export function timestampDisplayCommand(
+  target: Address,
+  shown: readonly TimestampDisplay[],
+  word: TimestampDisplay,
+): Command {
   const display = shown.includes(word)
     ? shown.filter((item) => item !== word)
     : TIMESTAMP_DISPLAY.filter((item) => item === word || shown.includes(item));
-  return { type: "set", changes: [{ target: named(pin), values: { display } }] };
+  return { type: "set", changes: [{ target, values: { display } }] };
+}
+
+/** The `set` of the named timestamp's `display` with `word` toggled, in the canonical order. */
+export function displayCommand(pin: Pin, word: TimestampDisplay): Command {
+  return timestampDisplayCommand(named(pin), displayOf(pin), word);
+}
+
+/**
+ * Whether the Timestamp tab offers the GroupStamp toggle for `pin`, a
+ * timestamp of `manifest`: on a timeline that is a member of a group
+ * (core's `isGroupMember`), never for a match timestamp.
+ */
+export function offersGroupstamp(manifest: Manifest, pin: Pin): boolean {
+  return isGroupMember(manifest, pin.timestamp.timeline) && !(pin.named?.matchstamp ?? false);
+}
+
+/**
+ * Whether `pin`'s timestamp is a groupstamp: a named one as stored; an
+ * unnamed one as naming it would store it, a groupstamp on a group member
+ * unless `editor`, the innermost editor open (`null` for none), is a
+ * timeline editor (core's `groupstampByDefault`).
+ */
+export function groupstampOf(manifest: Manifest, pin: Pin, editor: EditorKind | null): boolean {
+  return pin.named?.groupstamp ?? groupstampByDefault(manifest, pin.timestamp.timeline, editor);
+}
+
+/** The names (else the IDs) of the groups of `manifest` listing `timeline` among their members. */
+export function groupsOf(manifest: Manifest, timeline: string): string[] {
+  return manifest.groups
+    .filter((group) => group.members.includes(timeline))
+    .map((group) => group.name ?? group.id);
+}
+
+/** The `set` making the named timestamp `pin` shows a groupstamp, or an ordinary timestamp. */
+export function groupstampCommand(pin: Pin, groupstamp: boolean): Command {
+  return { type: "set", changes: [{ target: named(pin), values: { groupstamp } }] };
 }

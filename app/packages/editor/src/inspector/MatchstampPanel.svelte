@@ -6,21 +6,24 @@
  * saying so where the timelines filter hides some of its anchors; it stays
  * in view while the pane scrolls); **Coordinates** (`StampCoordinates`, the
  * Timestamp tab's): a hint while no MatchStamp is shown, else its
- * timestamps in screen order, shown disabled and copied, or its text in a
- * format; **Alignment anchors** (`MatchstampAnchors`), their toggles
- * inactive until it is named; **MatchClaims** (`MatchClaimList`); for a
+ * timestamps in screen order, each with its timeline's conversion-map rows
+ * (`stampGroups`), shown disabled and copied, or its text in a format;
+ * **Lines** (`MatchstampLines`): every dashed line of the MatchStamp in
+ * screen order with its display toggles, inactive until it is named;
+ * **MatchClaims** (`MatchClaimList`); for a
  * named one what differs from the current table, Update and Remove
  * (`MatchstampActions`); the **MatchClaim filter** at the pane's bottom
  * (`MatchClaimFilter`). The tab reads what it shows here once and hands it
  * to its sections.
  */
-import type { LiveStore } from "@timetoalign/tilie-arranger";
+import type { KnotsOf, LiveStore } from "@timetoalign/tilie-arranger";
 import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { Block, Manifest } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { MatchClaimTables } from "../matchClaims.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import type { Format } from "./formats.svelte.ts";
+import { stampGroups, stampLines } from "./matchstampLines.ts";
 import type { MatchIndexes, ShownStamp } from "./matchstamps.ts";
 import {
   addedMatchStamp,
@@ -32,7 +35,6 @@ import {
   namedStamp,
   potentialStamp,
   renameCommand,
-  stampRows,
   stampText,
   stampToName,
 } from "./matchstamps.ts";
@@ -41,7 +43,7 @@ import { StampDrafts } from "./stamps/drafts.svelte.ts";
 import MatchClaimFilter from "./stamps/MatchClaimFilter.svelte";
 import MatchClaimList from "./stamps/MatchClaimList.svelte";
 import MatchstampActions from "./stamps/MatchstampActions.svelte";
-import MatchstampAnchors from "./stamps/MatchstampAnchors.svelte";
+import MatchstampLines from "./stamps/MatchstampLines.svelte";
 import StampCoordinates from "./stamps/StampCoordinates.svelte";
 import StampName from "./stamps/StampName.svelte";
 import StampPane from "./stamps/StampPane.svelte";
@@ -64,9 +66,15 @@ interface Props {
   indexesOf: (block: string) => MatchIndexes | null;
   /** The MatchStamp shown is now `next`: a potential one named, or `null` once removed. */
   onmatch: (next: HeldMatch | null) => void;
+  /**
+   * The expanded MeasureMap rows of a manifest, read through the server,
+   * which the conversion-map rows of the Coordinates are evaluated with;
+   * without it no measure view gives a value.
+   */
+  knotsOf?: KnotsOf | undefined;
 }
 
-let { live, block, match, tables, indexesOf, onmatch }: Props = $props();
+let { live, block, match, tables, indexesOf, onmatch, knotsOf }: Props = $props();
 
 const uid = $props.id();
 /** The editor's one user, whose beliefs the MatchClaims list. */
@@ -74,7 +82,7 @@ const user = userOf();
 
 const HINT =
   "Turn on Show matches (M) and click a match line to pin a potential MatchStamp. With Show matches off, click a named MatchStamp's connector to select it.";
-const UNNAMED = "Naming the MatchStamp stores it; then its anchors' display can be set.";
+const UNNAMED = "Naming the MatchStamp stores it; then its lines' display can be set.";
 const EMPTY_NAME = "A named MatchStamp keeps a name; Remove deletes it.";
 
 /** The texts typed and the refusals, held for the MatchStamp they were typed for. */
@@ -126,7 +134,20 @@ const hidden = $derived(
   stamp === null || naming === null ? null : hiddenAnchorsNote(stamp, naming),
 );
 const groups = $derived(
-  stamp === null || manifest === undefined ? null : stampRows(manifest, stamp.coordinates),
+  stamp === null || manifest === undefined
+    ? null
+    : stampGroups(
+        manifest,
+        stamp.block,
+        stamp.coordinates,
+        view.settings.granularity,
+        knotsOf?.(manifest) ?? "no_server",
+      ),
+);
+const lines = $derived(
+  stamp === null || manifest === undefined || drawing === null
+    ? []
+    : stampLines(manifest, stamp, drawing),
 );
 const claims = $derived(
   stamp === null ? [] : claimLines(loaded?.table ?? null, stamp.claims, user.state.user, context),
@@ -144,11 +165,6 @@ const differences = $derived(
 );
 /** The IDs of the hints under the name of a potential MatchStamp: why its controls wait for a name. */
 const unnamedHint = $derived(stamp !== null && stamp.id === null ? `${uid}-unnamed` : undefined);
-
-/** A timeline's name, else its ID, in the shown block's manifest. */
-function timelineName(id: string): string {
-  return groups?.find((group) => group.timeline === id)?.name ?? id;
-}
 
 function textOf(format: Format) {
   return stamp === null || manifest === undefined ? null : stampText(format, manifest, stamp);
@@ -203,7 +219,7 @@ function commitName(): void {
   <StampCoordinates kind="matchstamp" {groups} hint={HINT} {textOf} />
 
   {#if stamp !== null && match !== null && manifest !== undefined}
-    <MatchstampAnchors {live} {stamp} {timelineName} {drafts} describedby={unnamedHint} />
+    <MatchstampLines {live} {stamp} {lines} {drafts} describedby={unnamedHint} />
     <MatchClaimList
       {stamp}
       {match}
