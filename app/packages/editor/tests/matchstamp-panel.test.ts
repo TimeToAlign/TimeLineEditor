@@ -108,6 +108,20 @@ function button(label: string): HTMLButtonElement {
 const indexesUnder = (table: MatchClaimTable, filter = DEFAULT_MATCH_CLAIM_FILTER) =>
   matchIndexes(table, filter, ME, tableManifest()["@context"]);
 
+/** On `bundle_mixed`: the child "Second half" of the group member `score`, 4 quarters at offset 4. */
+const SECOND_HALF = {
+  type: "add",
+  into: { block: A, id: "score" },
+  child: {
+    id: "second-half",
+    name: "Second half",
+    offset: [4, 1],
+    unit: "quarters",
+    length: [4, 1],
+    locked: true,
+  },
+} as const;
+
 function nameDownbeat(store: Store, table: MatchClaimTable = matchTable()): (HeldMatch | null)[] {
   const { shown } = indexesUnder(table);
   const reported: (HeldMatch | null)[] = [];
@@ -298,6 +312,76 @@ describe("Coordinates", () => {
     for (const button of [...(rate ?? [])].slice(3, 6)) button.click();
     await vi.waitFor(() => expect(written).toHaveLength(3));
     expect(written).toEqual(["352800", "352800 samples", "352 800 smp"]);
+  });
+
+  it("list the ancestors of each timestamp's timeline exactly as the Timestamp tab does", () => {
+    const store = storeOf("bundles/bundle_mixed");
+    expect(store.dispatch(SECOND_HALF)).toBe(null);
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Climax",
+          anchors: [
+            [
+              { timeline: "second-half", coordinate: [2, 1] },
+              { timeline: "performance", coordinate: 3.0 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+      }),
+    ).toBe(null);
+    /** The groups of the Coordinates shown, each [heading, rows as [label, text, disabled, unit]]. */
+    const shownGroups = () =>
+      [...(document.querySelector("section.coordinates")?.querySelectorAll("tbody") ?? [])].map(
+        (body) => [
+          body.querySelector('th[scope="colgroup"]')?.textContent,
+          [...body.querySelectorAll("tr[data-row]")].map((row) => {
+            const input = row.querySelector("input");
+            return [
+              row.querySelector('th[scope="row"]')?.textContent,
+              input?.value,
+              input?.disabled,
+              row.querySelector(".unit")?.textContent,
+            ];
+          }),
+        ],
+      );
+    show(store, { kind: "named", block: A, id: "matchstamp_1" }, tablesWith(null));
+    const matchstamp = shownGroups();
+    expect(matchstamp).toEqual([
+      ["Second half", [["coordinate", "2", true, "♩"]]],
+      ["Score", [["coordinate", "6", true, "♩"]]],
+      [
+        "Performance",
+        [
+          ["coordinate", "3.0", true, "s"],
+          ["cmap_3", "132300", true, "smp"],
+        ],
+      ],
+    ]);
+    unmountTab();
+
+    const ownTimestamp = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
+      (item) => item.matchstamp && item.timeline === "second-half",
+    );
+    if (ownTimestamp === undefined) throw new Error("the match timestamp is stored");
+    const pin = namedPinOf(store.view, { block: A, id: ownTimestamp.id }, fontMetrics);
+    mounted = mount(TimestampPanel, {
+      target: document.body,
+      context: informing(),
+      props: { live: liveStore(store), pin, onpin: () => undefined },
+    });
+    flushSync();
+    // Shown read-only in the Matchstamp tab, editable in the Timestamp tab: compared without that.
+    const withoutDisabled = (groups: unknown[]) =>
+      (groups as [string, unknown[][]][]).map(([heading, rows]) => [
+        heading,
+        rows.map(([label, text, , unit]) => [label, text, unit]),
+      ]);
+    expect(withoutDisabled(shownGroups())).toEqual(withoutDisabled(matchstamp.slice(0, 2)));
   });
 });
 

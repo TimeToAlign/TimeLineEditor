@@ -30,6 +30,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   copyValue,
+  groupsHolding,
   groupstampByDefault,
   isGroupMember,
   measureText,
@@ -367,11 +368,13 @@ export function groupstampOf(manifest: Manifest, pin: Pin, editor: EditorKind | 
   return pin.named?.groupstamp ?? groupstampByDefault(manifest, pin.timestamp.timeline, editor);
 }
 
-/** The names (else the IDs) of the groups of `manifest` listing `timeline` among their members. */
+/**
+ * The names (else the IDs) of the groups of `manifest` holding `timeline`:
+ * those listing it or one of its ancestors among their members (core's
+ * `groupsHolding`).
+ */
 export function groupsOf(manifest: Manifest, timeline: string): string[] {
-  return manifest.groups
-    .filter((group) => group.members.includes(timeline))
-    .map((group) => group.name ?? group.id);
+  return groupsHolding(manifest, timeline).map((group) => group.name ?? group.id);
 }
 
 /** The `set` making the named timestamp `pin` shows a groupstamp, or an ordinary timestamp. */

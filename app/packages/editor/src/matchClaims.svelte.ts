@@ -36,7 +36,6 @@ import type { Manifest } from "@timetoalign/tilie-core";
 import { saveManifest } from "@timetoalign/tilie-core";
 import { SvelteMap } from "svelte/reactivity";
 import { MATCH_CLAIM_TABLE, readInFolder, saveFile } from "./files.ts";
-import { fileNameOf } from "./inspector/matchstamps.ts";
 import { messageOf } from "./messages.svelte.ts";
 
 /** What a block's table is read from: its file's name, the server's answer and the file. */
@@ -146,6 +145,11 @@ export function namedTables(manifest: Manifest): NamedTable[] {
     const url = manifest.resources?.find((resource) => resource.type === type)?.url;
     return url === undefined ? [] : [{ type, url }];
   });
+}
+
+/** The last part of a location: the file name a picker gives for it. */
+export function fileNameOf(url: string): string {
+  return url.split(/[/\\]/).at(-1) ?? url;
 }
 
 /** How a manifest is called in a message or the dialog's title: its name, else its ID, else "The manifest". */

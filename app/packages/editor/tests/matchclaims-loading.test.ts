@@ -481,7 +481,7 @@ describe("the tables a manifest names", () => {
     expect([informed, warned]).toEqual([["Loaded the MatchClaims of m.parquet."], []]);
   });
 
-  it("are loaded block after block as the blocks lie on the canvas, top to bottom, left to right", async () => {
+  it("are loaded block after block in the canvas's order of blocks, wherever they lie", async () => {
     const { server } = serving();
     const { ask, questions } = answering(null);
     const opened = new WorkspaceSession({
@@ -490,19 +490,19 @@ describe("the tables a manifest names", () => {
       matchClaims: server,
       askTables: ask,
     });
-    const placed: [string, string, number, number][] = [
-      ["000000000a", "A", 0, 200],
-      ["000000000b", "B", 300, 0],
-      ["000000000c", "C", 0, 0],
+    const placed: [string, string, number, number, string][] = [
+      ["000000000a", "A", 0, 200, "a2"],
+      ["000000000b", "B", 300, 0, "a0"],
+      ["000000000c", "C", 0, 0, "a1"],
     ];
-    for (const [id, name, x, y] of placed) {
+    for (const [id, name, x, y, index] of placed) {
       const manifest = { ...tableManifest(), name };
       expect(
-        opened.store.dispatch({ type: "add", into: {}, block: { id, manifest, x, y } }),
+        opened.store.dispatch({ type: "add", into: {}, block: { id, manifest, x, y, index } }),
       ).toBeNull();
     }
     await opened.loadNamedTables();
-    expect(questions.map(({ manifest }) => manifest)).toEqual(["C", "B", "A"]);
+    expect(questions.map(({ manifest }) => manifest)).toEqual(["B", "C", "A"]);
   });
 
   it("are served beside the Fixture menu's table fixture", async () => {

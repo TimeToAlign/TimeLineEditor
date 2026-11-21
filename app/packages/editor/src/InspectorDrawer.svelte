@@ -59,8 +59,8 @@ interface Props {
   storageKey: string | null;
   /**
    * The expanded MeasureMaps of a manifest as the canvas reads them, which
-   * a named timestamp is read with, read again when they arrive; without
-   * it no server expands them.
+   * a named timestamp and the Matchstamp tab's coordinates are read with,
+   * read again when they arrive; without it no server expands them.
    */
   knotsOf?: KnotsOf | undefined;
   /** The MatchClaim tables of the workspace's blocks; none read without a server. */
@@ -278,6 +278,7 @@ async function show(next: boolean): Promise<void> {
       bind:match={() => match, (next) => (heldMatch = next)}
       {tables}
       {indexesOf}
+      {knotsOf}
     />
   {/if}
 </aside>

@@ -41,7 +41,7 @@ import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
 import { timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
-import { informing, noMatchClaims, storeOf } from "./support.ts";
+import { informing, noMatchClaims, providing, storeOf } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -185,7 +185,7 @@ interface Drawer {
  */
 function drawer(store: Store, open: boolean, block: string = A, knotsOf?: KnotsOf): Drawer {
   informed = [];
-  const mounted = mount(InspectorDrawer, {
+  const mounted = mount(providing(InspectorDrawer), {
     target: document.body,
     context: informing(informed),
     props: {
@@ -1103,6 +1103,36 @@ describe("GroupStamp", () => {
     });
   });
 
+  it("names the group of a member's descendant", () => {
+    const store = mixed();
+    const added = [
+      {
+        type: "add",
+        into: { block: A, id: "score" },
+        child: {
+          id: "second-half",
+          name: "Second half",
+          offset: [4, 1],
+          unit: "quarters",
+          length: [4, 1],
+          locked: true,
+        },
+      },
+      {
+        type: "add",
+        into: { block: A, id: "second-half" },
+        timestamp: { name: "Bar 4", coordinate: [2, 1] },
+      },
+    ] as const;
+    for (const command of added) expect(store.dispatch(command)).toBe(null);
+    const barFour = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
+      (item) => item.name === "Bar 4",
+    );
+    if (barFour === undefined) throw new Error("Bar 4 is stored");
+    drawer(store, true).selected([{ block: A, id: barFour.id }]);
+    expect([groupstamp(), describedGroup()]).toEqual([["GroupStamp", "false", false], CROSSES]);
+  });
+
   it("is not offered on a timeline in no group", () => {
     const store = example();
     drawer(store, true, T).selected([THEME]);
@@ -1252,6 +1282,56 @@ describe("a named timestamp's MeasureMaps", () => {
     const rows = groups();
     inspector.pinTimestamp({ ...shown, named: null });
     expect([groups(), measureRow()]).toEqual([rows, "2"]);
+  });
+
+  it("are given to the Matchstamp tab, whose conversion-map rows read them", () => {
+    const { store } = measureStore();
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        matchstamp: {
+          name: "Bar two",
+          anchors: [
+            [
+              { timeline: "score", coordinate: [6, 1] },
+              { timeline: "midi", coordinate: 2880 },
+            ],
+          ],
+          match_claims: ["claim_1"],
+        },
+      }),
+    ).toBe(null);
+    const BAR_TWO: Address = { block: A, id: "matchstamp_1" };
+    /** The texts of the Matchstamp tab's rows `cmap_1` and `cmap_3`. */
+    const mapRows = () => {
+      const id = tabNamed("Matchstamp").getAttribute("aria-controls");
+      const shown = id === null ? null : document.getElementById(id);
+      return ["cmap_1", "cmap_3"].map(
+        (label) =>
+          [...(shown?.querySelectorAll("tr[data-row]") ?? [])]
+            .find((item) => item.querySelector('th[scope="row"]')?.textContent === label)
+            ?.querySelector(".text")?.textContent ?? null,
+      );
+    };
+    const known = new SvelteMap<Manifest, readonly MeasureKnots[]>();
+    const inspector = drawer(store, true, A, (manifest) => known.get(manifest) ?? "pending");
+    inspector.selected([BAR_TWO]);
+    expect([selected(), mapRows()]).toEqual([
+      "Matchstamp",
+      ["waiting for the server", "waiting for the server"],
+    ]);
+    const manifest = store.view.blocks[A]?.manifest;
+    if (manifest === undefined) throw new Error("the block is in the store");
+    known.set(manifest, ROWS);
+    flushSync();
+    expect(mapRows()).toEqual(["2", "2"]);
+    if (app !== undefined) unmount(app);
+    app = undefined;
+
+    drawer(store, true).selected([BAR_TWO]);
+    const NO_SERVER = "needs a server to expand its measure map";
+    expect(mapRows()).toEqual([NO_SERVER, NO_SERVER]);
   });
 
   it("leave a measure's null members out of the TOML, where JSON and YAML write them", async () => {

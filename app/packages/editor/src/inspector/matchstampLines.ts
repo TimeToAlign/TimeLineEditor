@@ -1,7 +1,8 @@
 /**
  * What the Matchstamp tab shows of a MatchStamp's timestamps beside what
  * `matchstamps.ts` gives: their Coordinates as the Timestamp tab shows a
- * timestamp's, each with its timeline's conversion-map rows, and the
+ * timestamp's, each with its timeline's conversion-map rows and its
+ * timeline's ancestors, and the
  * MatchStamp's **lines**, every dashed line it draws (its timestamps'
  * lines and its anchors' connectors) in the one screen order, each with
  * what its toggles act on. Values, rows and the order are core's and the
@@ -18,6 +19,7 @@ import type {
   NamedTimestamp,
 } from "@timetoalign/tilie-core";
 import {
+  ancestorMembers,
   findTimeline,
   matchStampSpec,
   prettyText,
@@ -36,12 +38,16 @@ import { coordinateGroup, timelineRows } from "./timestamp.ts";
 /**
  * The groups of `coordinates` of a MatchStamp of block `block`'s
  * `manifest`, in the order given, as the Timestamp tab's Coordinates show a
- * timestamp's own timeline (`timelineRows` of a pin anchored on it, read
- * under `granularity` with `knots`): headed by the timeline's name, else its
- * ID, its row "coordinate", then one row per conversion map of the timeline
- * (its value at the coordinate, as core evaluates it). A coordinate whose
- * timeline the manifest no longer holds is its text alone. Each group's key
- * is unique among them, two coordinates on one timeline included.
+ * timestamp (`timelineRows` of a pin anchored on its timeline, its members
+ * the timeline's ancestors, core's `ancestorMembers`, read under
+ * `granularity` with `knots`): per coordinate the group of its timeline,
+ * headed by the timeline's name, else its ID, its row "coordinate", then
+ * one row per conversion map of the timeline (its value at the coordinate,
+ * as core evaluates it); then one group per ancestor, parent first, with
+ * the ancestor's coordinate there. A coordinate whose timeline the manifest
+ * no longer holds is its text alone. Each group's key is unique among them,
+ * two coordinates on one timeline, or on timelines sharing an ancestor,
+ * included.
  */
 export function stampGroups(
   manifest: Manifest,
@@ -50,27 +56,25 @@ export function stampGroups(
   granularity: Granularity,
   knots: Knots,
 ): TimelineRows[] {
-  return coordinates.map((coordinate, at) => {
-    const key = JSON.stringify([at, coordinate.timeline]);
+  return coordinates.flatMap((coordinate, at) => {
     const timeline = findTimeline(manifest, coordinate.timeline);
     if (timeline === undefined) {
-      return coordinateGroup(
-        key,
-        coordinate.timeline,
-        coordinate.timeline,
-        String(coordinate.value),
-      );
+      const key = JSON.stringify([at, coordinate.timeline]);
+      return [
+        coordinateGroup(key, coordinate.timeline, coordinate.timeline, String(coordinate.value)),
+      ];
     }
     const spec: CrossSectionSpec = {
       block,
       granularity,
       anchor: timelineAxisOf(timeline, timeline.conversion_maps),
-      members: [],
+      members: ancestorMembers(manifest, timeline.id),
     };
     const timestamp = timestampAt(spec, toRational(coordinate.value), knots);
-    const [group] = timelineRows({ spec, knots, timestamp, named: null });
-    if (group === undefined) throw new Error("a timestamp has its anchor's rows");
-    return { ...group, key };
+    return timelineRows({ spec, knots, timestamp, named: null }).map((group) => ({
+      ...group,
+      key: JSON.stringify([at, group.timeline]),
+    }));
   });
 }
 

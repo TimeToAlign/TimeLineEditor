@@ -6,7 +6,8 @@
  * reached) asks for them in the tables dialog, which takes a file chosen on
  * the system, a URL or the manifest's folder, or is cancelled. The
  * server's table route is replayed from the client's recording; loading is
- * started by turning Show matches on, by its key or its toolbar button.
+ * started by turning Show matches on, by its key or its toolbar button, or
+ * by the Matchstamp tab's Load MatchClaims…, which asks in the same dialog.
  */
 
 import { readFileSync } from "node:fs";
@@ -122,6 +123,30 @@ test("a manifest from the user's system asks for its tables, a file each", async
   await expect(await tableStatus(page, block)).toHaveText(
     `match_claims.parquet: ${ROWS} MatchClaims`,
   );
+});
+
+test("Load MatchClaims… asks for the tables the manifest names", async ({ page }) => {
+  const seen = await openPage(page);
+  const block = await importManifest(page);
+  const status = await tableStatus(page, block);
+  await expect(status).toHaveText("No MatchClaim table loaded.");
+  await page.getByRole("button", { name: "Load MatchClaims…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Load the tables of The manifest" });
+  await expect(dialog).toBeVisible();
+  const groups = dialog.getByRole("group");
+  await expect(groups).toHaveText([
+    /MatchClaim table\s+match_claims\.parquet/u,
+    /Projections table\s+projections\.parquet/u,
+  ]);
+  const chooser = page.waitForEvent("filechooser");
+  await groups.nth(0).getByRole("button", { name: "Choose file…" }).click();
+  await (await chooser).setFiles([
+    { name: "match_claims.parquet", mimeType: "application/octet-stream", buffer: PARQUET },
+  ]);
+  await dialog.getByRole("button", { name: "Load" }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => seen.requests).toBe(1);
+  await expect(status).toHaveText(`match_claims.parquet: ${ROWS} MatchClaims`);
 });
 
 test("a table is read from the URL the user enters", async ({ page }) => {

@@ -20,7 +20,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import MatchstampPanel from "../src/inspector/MatchstampPanel.svelte";
 import { matchIndexes } from "../src/inspector/matchstamps.ts";
 import type { HeldMatch } from "../src/inspector/tabs.ts";
-import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
+import type { AskTables, MatchClaimServer, TableRequest } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
@@ -153,9 +153,16 @@ function serving(
   return { server, calls };
 }
 
-/** Block A's table `table`, picked from `PICKED`, read through `server`. */
-function tablesOf(server: MatchClaimServer | null, table = matchTable()): MatchClaimTables {
-  const tables = new MatchClaimTables(server);
+/**
+ * Block A's table `table`, picked from `PICKED`, read through `server`;
+ * the user asked for tables through `ask`, never asked without it.
+ */
+function tablesOf(
+  server: MatchClaimServer | null,
+  table = matchTable(),
+  ask: AskTables | null = null,
+): MatchClaimTables {
+  const tables = new MatchClaimTables(server, ask);
   tables.hold(A, { name: NAME, table, file: PICKED, changed: false });
   return tables;
 }
@@ -641,10 +648,9 @@ describe("an unsaved table", () => {
 
   it("asks before Load MatchClaims… replaces it", async () => {
     stubEditor();
-    const picker = cancelPicker();
-    vi.stubGlobal("showOpenFilePicker", picker);
+    const ask = vi.fn<AskTables>(async () => null);
     const store = storeOf(tableManifest());
-    const tables = tablesOf(serving().server);
+    const tables = tablesOf(serving().server, matchTable(), ask);
     tables.hold(A, { name: NAME, table: matchTable(), file: ANSWERED, changed: true });
     show(store, null, tables);
 
@@ -658,22 +664,59 @@ describe("an unsaved table", () => {
     expect(document.activeElement?.textContent).toBe("Cancel");
     answer("Cancel");
     await settled();
-    expect([picker.mock.calls.length, tables.of(A)?.changed]).toEqual([0, true]);
+    expect([ask.mock.calls.length, tables.of(A)?.changed]).toEqual([0, true]);
 
     button("Load MatchClaims…")?.click();
     await vi.waitFor(() => expect(openDialog()).not.toBe(null));
     answer("Discard");
-    await vi.waitFor(() => expect(picker.mock.calls.length).toBe(1));
+    await vi.waitFor(() => expect(ask.mock.calls.length).toBe(1));
     expect(tables.of(A)?.file).toBe(ANSWERED);
   });
 
   it("is not asked about when unchanged", async () => {
     stubEditor();
+    const ask = vi.fn<AskTables>(async () => null);
+    show(storeOf(tableManifest()), null, tablesOf(serving().server, matchTable(), ask));
+    button("Load MatchClaims…")?.click();
+    await vi.waitFor(() => expect(ask.mock.calls.length).toBe(1));
+    expect(openDialog()).toBe(null);
+  });
+
+  it("is loaded by Load MatchClaims… as the user chooses the manifest's tables", async () => {
+    stubEditor();
     const picker = cancelPicker();
     vi.stubGlobal("showOpenFilePicker", picker);
-    show(storeOf(tableManifest()), null, tablesOf(serving().server));
+    const chosen = new File([PICKED], "m.parquet");
+    const questions: TableRequest[] = [];
+    const answers = [null, [{ type: "MatchClaim" as const, file: chosen }]];
+    const ask: AskTables = async (request) => {
+      questions.push(request);
+      return answers.shift() ?? null;
+    };
+    const { server, calls } = serving();
+    const tables = tablesOf(server, matchTable(), ask);
+    const { informed, warned } = show(storeOf(tableManifest()), null, tables);
+    const asked = {
+      manifest: "The manifest",
+      tables: [
+        { type: "MatchClaim", url: "match_claims.parquet" },
+        { type: "Projection", url: "projections.parquet" },
+      ],
+    };
+
     button("Load MatchClaims…")?.click();
-    await vi.waitFor(() => expect(picker.mock.calls.length).toBe(1));
-    expect(openDialog()).toBe(null);
+    await vi.waitFor(() => expect(questions).toEqual([asked]));
+    await settled();
+    expect([informed, warned, calls.tables.length, tables.of(A)?.name]).toEqual([[], [], 0, NAME]);
+
+    button("Load MatchClaims…")?.click();
+    await vi.waitFor(() => expect(tables.of(A)?.name).toBe("m.parquet"));
+    expect([questions, informed, warned]).toEqual([
+      [asked, asked],
+      ["Loaded the MatchClaims of m.parquet."],
+      [],
+    ]);
+    expect(calls.tables.map(([, file]) => file)).toEqual([chosen]);
+    expect(picker.mock.calls.length).toBe(0);
   });
 });

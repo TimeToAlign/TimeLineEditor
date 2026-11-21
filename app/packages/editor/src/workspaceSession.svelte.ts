@@ -11,21 +11,14 @@ import type { LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import {
   addCommand,
   blockOf,
+  blocksInOrder,
   editedSelection,
   existing,
   liveStore,
   NOTHING_SELECTED,
   selectionOf,
 } from "@timetoalign/tilie-arranger";
-import type {
-  Address,
-  Block,
-  LoadError,
-  Problem,
-  Store,
-  View,
-  Workspace,
-} from "@timetoalign/tilie-core";
+import type { Address, LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
   createStore,
   ErrorCode,
@@ -58,10 +51,10 @@ import {
   withMatchClaimTable,
   workspaceFileName,
 } from "./files.ts";
-import { fileNameOf } from "./inspector/matchstamps.ts";
 import {
   type AskTables,
   type FolderMemory,
+  fileNameOf,
   MATCHES_NEED_A_SERVER,
   type MatchClaimServer,
   MatchClaimTables,
@@ -113,19 +106,6 @@ export interface SessionOptions {
   readonly askTables?: AskTables | null;
   /** Where the folders of blocks' manifests are kept beyond the session; without it, for the session only. */
   readonly folders?: FolderMemory | null;
-}
-
-/**
- * The blocks of `view` as they lie on the canvas: from the top, then from
- * the left, by the position of each block's drawing (ties by ID).
- */
-function onScreen(view: View): Block[] {
-  return Object.values(view.blocks).sort(
-    (left, right) =>
-      left.y - right.y ||
-      left.x - right.x ||
-      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
-  );
 }
 
 /** Whether two selections name the same addresses. */
@@ -435,8 +415,8 @@ export class WorkspaceSession {
 
   /**
    * Load the tables every block's manifest names whose MatchClaim table is
-   * not loaded (what turning Show matches on asks), block after block as
-   * they lie on the canvas (from the top, then from the left): from where
+   * not loaded (what turning Show matches on asks), block after block in
+   * the canvas's one order of blocks (the arranger's `blocksInOrder`): from where
    * the manifest came from, else as the user chooses them
    * (`MatchClaimTables.loadNamed`); what each load says goes to the
    * message bar. A call while one is under way is ignored.
@@ -445,7 +425,7 @@ export class WorkspaceSession {
     if (this.#loadingTables) return;
     this.#loadingTables = true;
     try {
-      for (const { id } of onScreen(this.store.view)) {
+      for (const { id } of blocksInOrder(this.store.view)) {
         const manifest = this.store.view.blocks[id]?.manifest;
         if (manifest === undefined) continue;
         this.post(await this.tables.loadNamed(id, manifest));
