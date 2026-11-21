@@ -330,6 +330,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     integral declaration numbers spelled `4.0`, `2.0`, … reads equal to the
     fixture and saves to its text, every key in place; 2^53 reads, 2^53 + 1
     is `invalid_value` "9007199254740993 has no exact double" at its member.
+    The nine `rotation`s of `timestamp_wedge_rotation.yaml` (90, −135, −45,
+    0, 45, 135, 180, −45, 45, in rule order) read as doubles, and spelled
+    `90.0`, `-135.0`, … read equal to the fixture and save to its text.
 18. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
 

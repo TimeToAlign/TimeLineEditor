@@ -537,8 +537,8 @@ function timelineSpec(
 /**
  * The pin of the position `position` (exact, on the timeline's own axis)
  * of the timeline `timeline` of `manifest`, block `block`'s, drawn as
- * `drawing`, read as a named timestamp there that is no groupstamp is read
- * (`namedPin`), but unnamed: the Matchstamp tab's Coordinates show each
+ * `drawing`, read with the spec `namedPin` reads a named timestamp there
+ * with (never a group's), but unnamed: the Matchstamp tab's Coordinates show each
  * coordinate of a MatchStamp with it, so they list exactly the rows the
  * Timestamp tab lists for a timestamp at that coordinate. `knots` as
  * `timestampAt` takes them; `null` where the manifest holds no timeline

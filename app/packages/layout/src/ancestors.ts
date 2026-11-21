@@ -12,12 +12,12 @@ import {
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
 import type { Style } from "./cascade.ts";
-import { MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
-import { markLabelOffset, markReach } from "./markers.ts";
+import { markLabelOffset, markReach, rotatedStyle } from "./markers.ts";
 import { centredLabel, type NameItem, nameOf } from "./names.ts";
 import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
+import { wedgeCorners } from "./rotation.ts";
 import {
   endOf,
   known,
@@ -209,7 +209,12 @@ export function ancestorLineElements(
   });
 }
 
-/** The marks of the member's start and end on each ancestor line, always above it. */
+/**
+ * The marks of the member's start and end on each ancestor line, always above it: wedges whose
+ * tip lies `w / 2` above the line, each corner of the base at its offset across and its distance
+ * beyond the tip, turned by the mark's `rotation` (0 where unset) as a wedge above its line is
+ * (section 6.6).
+ */
 export function ancestorMarkElements(
   scope: Scope,
   ancestors: readonly AncestorLine[],
@@ -221,15 +226,21 @@ export function ancestorMarkElements(
   return ancestors.flatMap((ancestor, index) => {
     const y = ancestorY(band, index, yRoot);
     const w = ancestor.style["stroke-width"];
-    return ancestor.marks.map((mark) => ({
-      type: "wedge" as const,
-      address: mark.address,
-      style: mark.style,
-      x: x0 + L * mark.u,
-      yt: y - w / 2,
-      yb: y - (w / 2 + MARKER_HEIGHT),
-      base: MARKER_BASE,
-    }));
+    return ancestor.marks.map((mark): MarkerElement => {
+      const style = rotatedStyle(mark.style);
+      const [first, second] = wedgeCorners(style.rotation ?? 0);
+      return {
+        type: "wedge",
+        address: mark.address,
+        style,
+        x: x0 + L * mark.u,
+        yt: y - w / 2,
+        corners: [
+          { dx: first.dx, y: y - (w / 2 + first.out) },
+          { dx: second.dx, y: y - (w / 2 + second.out) },
+        ],
+      };
+    });
   });
 }
 

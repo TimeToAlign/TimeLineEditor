@@ -4,7 +4,7 @@ import { BUNDLE_ADDRESS } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import type { Drawing } from "../src/index.ts";
-import { at, drawFixture, element } from "./support.ts";
+import { at, drawFixture, element, unturned } from "./support.ts";
 
 /** The elements without their styles, for comparison with hand-derived geometry. */
 function geometry(drawing: Drawing): unknown[] {
@@ -12,10 +12,13 @@ function geometry(drawing: Drawing): unknown[] {
 }
 
 const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
-/** The wedges of the root's named timestamps `origin` at 0 and `length` at its length. */
-const wedges = (x0: number, xe: number) => [
-  { type: "wedge", address: at("timestamp_1"), x: x0, yt: 0, yb: 0, base: 6 },
-  { type: "wedge", address: at("timestamp_2"), x: xe, yt: 0, yb: 0, base: 6 },
+/**
+ * The wedges of the root's named timestamps `origin` at 0 and `length` at its length, unturned,
+ * their tips at `yt` and their bases at `yb`.
+ */
+const wedges = (x0: number, xe: number, yt: number, yb: number) => [
+  { type: "wedge", address: at("timestamp_1"), x: x0, yt, corners: unturned(yb) },
+  { type: "wedge", address: at("timestamp_2"), x: xe, yt, corners: unturned(yb) },
 ];
 /** The block and the root's card, `P = 8` from the block's top left, `Hm` high. */
 const blockAndCard = (root: string, W: number, H: number, cardWidth: number, Hm: number) => [
@@ -38,11 +41,7 @@ describe("bare", () => {
   it("draws the hand-derived geometry", () => {
     const x0 = 49.5771484375;
     const xe = 449.5771484375;
-    const tips = wedges(x0, xe).map((item) => ({
-      ...item,
-      yt: 23.90234375,
-      yb: 36.90234375,
-    }));
+    const tips = wedges(x0, xe, 23.90234375, 36.90234375);
     expect(geometry(drawing)).toEqual([
       ...blockAndCard("bare", 476.5771484375, 67.37890625, 458.5771484375, 49.37890625),
       { ...root, address: at("bare"), xs: x0, xe, y: 22.40234375 },
@@ -121,7 +120,7 @@ describe("nested", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 51 },
       { ...child, address: at("clt_3"), xs: 149.91552734375, xe: 349.91552734375, y: 37 },
       { ...child, address: at("clt_2"), xs: 187.41552734375, xe: 237.41552734375, y: 23 },
-      ...wedges(x0, xe).map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
+      ...wedges(x0, xe, 52.5, 65.5),
       ...(
         [
           ["clt_2", 26.80810546875],
@@ -207,11 +206,7 @@ describe("flow_control", () => {
         ],
       },
       { ...root, address: at("flow:quarters"), xs: x0, xe, y: 22.40234375 },
-      ...wedges(x0, xe).map((item) => ({
-        ...item,
-        yt: 23.90234375,
-        yb: 36.90234375,
-      })),
+      ...wedges(x0, xe, 23.90234375, 36.90234375),
       {
         type: "name",
         address: at("flow:quarters", "name"),
@@ -290,7 +285,7 @@ describe("map", () => {
       },
       { ...root, address: at("melody"), xs: x0, xe, y: 40.5 },
       { ...child, address: at("phrase"), xs: 163.53662109375, xe: 363.53662109375, y: 23 },
-      ...wedges(x0, xe).map((item) => ({ ...item, yt: 42, yb: 55 })),
+      ...wedges(x0, xe, 42, 55),
       {
         type: "name",
         address: at("phrase", "name"),
@@ -359,7 +354,7 @@ describe("with_region", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 51 },
       { ...child, address: at("clt_2"), xs: x(1 / 36), xe: x(13 / 36), y: 37 },
       { ...child, address: at("clt_3"), xs: x(1 / 6), xe: x(5 / 12), y: 23 },
-      ...wedges(x0, xe).map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
+      ...wedges(x0, xe, 52.5, 65.5),
       ...(
         [
           ["clt_3", 26.80810546875],

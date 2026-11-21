@@ -8,7 +8,7 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { at, bandOrder, drawFixture, edit, element, metrics, set } from "./support.ts";
+import { at, bandOrder, baseOf, drawFixture, edit, element, metrics, set } from "./support.ts";
 
 /** Each stretched fixture and the id of its one root, whose card's spacing a stretch sets. */
 const ROOTS = {
@@ -34,7 +34,7 @@ function sizes(item: DrawnElement): unknown {
     style: item.style,
   };
   if (item.type === "name" || item.type === "label") kept.text = item.text;
-  if (item.type === "wedge") kept.height = Math.abs(item.yb - item.yt);
+  if (item.type === "wedge") kept.height = Math.abs(baseOf(item) - item.yt);
   return kept;
 }
 
@@ -52,7 +52,7 @@ describe("stretch", () => {
         }
       }
       for (const item of drawFixture(name).elements) {
-        if (item.type === "wedge") expect(Math.abs(item.yb - item.yt)).toBe(13);
+        if (item.type === "wedge") expect(Math.abs(baseOf(item) - item.yt)).toBe(13);
       }
     });
   }

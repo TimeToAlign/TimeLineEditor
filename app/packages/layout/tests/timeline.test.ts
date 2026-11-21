@@ -41,6 +41,7 @@ import {
   quarters,
   set,
   target,
+  unturned,
 } from "./support.ts";
 
 /**
@@ -299,9 +300,9 @@ describe("where a band lies", () => {
     expect(drawn.segmentLabels.map((item) => item.element.baseline)).toEqual([
       68.90087890625, 68.90087890625, 68.90087890625, 68.90087890625,
     ]);
-    expect(drawn.wedges.map((wedge) => [wedge.yt, wedge.yb])).toEqual([
-      [98.5, 85.5],
-      [98.5, 85.5],
+    expect(drawn.wedges.map((wedge) => [wedge.yt, wedge.corners])).toEqual([
+      [98.5, unturned(85.5)],
+      [98.5, unturned(85.5)],
     ]);
   });
 });

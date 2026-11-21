@@ -24,6 +24,7 @@ import {
 } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Style } from "./cascade.ts";
+import type { WedgeCorner } from "./elements.ts";
 
 /**
  * The half-open range `[start, end)` of `Drawing.elements` that a container
@@ -186,7 +187,7 @@ export interface DrawnAxis {
  * Where a coordinate marker of a drawn line lies at any abscissa (sections
  * 6.4, Markers, and 6.6, Wedges and Cross-section lines), as the layout
  * draws a named timestamp's wedge and cross-section line there: the wedge's
- * tip and base ordinates and the width of its base, from the start of the
+ * tip ordinate and the corners of its base, from the start of the
  * line's markers band (or from where that band would start were it present),
  * the cross-section line's ordinates, and what it crosses; each with the
  * style of a wedge or a cross-section line of the line's timeline that no
@@ -195,8 +196,7 @@ export interface DrawnAxis {
 export interface AxisMarker {
   readonly wedge: {
     readonly yt: number;
-    readonly yb: number;
-    readonly base: number;
+    readonly corners: readonly [WedgeCorner, WedgeCorner];
     readonly style: Style;
   };
   readonly crossSection: {

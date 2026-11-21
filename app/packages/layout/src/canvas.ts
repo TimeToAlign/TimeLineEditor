@@ -6,7 +6,7 @@
 
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import type { DrawnElement, Point } from "./elements.ts";
+import type { DrawnElement, Point, WedgeCorner } from "./elements.ts";
 
 /** A style at the scale `scale`: each of its lengths multiplied by it (section 8.6). */
 export function scaledStyle(style: Style, scale: number): Style {
@@ -27,6 +27,18 @@ export function scaledStyle(style: Style, scale: number): Style {
     rx: scale * style.rx,
     "max-width": maxWidth === "none" ? maxWidth : scale * maxWidth,
   };
+}
+
+/** A wedge's corners at the scale `scale`: each offset across multiplied by it, each ordinate placed by `y`. */
+function scaledCorners(
+  [first, second]: readonly [WedgeCorner, WedgeCorner],
+  scale: number,
+  y: (v: number) => number,
+): readonly [WedgeCorner, WedgeCorner] {
+  return [
+    { dx: scale * first.dx, y: y(first.y) },
+    { dx: scale * second.dx, y: y(second.y) },
+  ];
 }
 
 /**
@@ -107,8 +119,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         style,
         x: x(element.x),
         yt: y(element.yt),
-        yb: y(element.yb),
-        base: scale * element.base,
+        corners: scaledCorners(element.corners, scale, y),
       };
     case "name":
     case "label":
@@ -151,8 +162,7 @@ export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): 
         : {
             wedge: {
               yt: y(marker.wedge.yt),
-              yb: y(marker.wedge.yb),
-              base: scale * marker.wedge.base,
+              corners: scaledCorners(marker.wedge.corners, scale, y),
               style: scaledStyle(marker.wedge.style, scale),
             },
             crossSection: {

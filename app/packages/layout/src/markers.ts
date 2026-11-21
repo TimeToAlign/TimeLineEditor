@@ -18,16 +18,18 @@ import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { LinePosition, PreparedBand, Side } from "./bands.ts";
 import type { AxisTimestamp } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import { LABEL_GAP, MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
+import { GROUPSTAMP_ROTATION, LABEL_GAP, MARKER_HEIGHT } from "./constants.ts";
 import type {
   MarkerElement,
   ShownCoordinate,
   TextElement,
   VerticalLineElement,
+  WedgeCorner,
 } from "./elements.ts";
 import { type Extent, labelExtent, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue } from "./numbers.ts";
+import { type WedgeOffset, wedgeCorners, wedgeSpan } from "./rotation.ts";
 import {
   type Entry,
   known,
@@ -47,13 +49,22 @@ export const markLabelOffset = (scope: Scope, w: number, line: number, size: num
   w / 2 + MARKER_HEIGHT + LABEL_GAP + (line - 1) * scope.h(size);
 
 /**
+ * A wedge's style with its `rotation` read (section 2.5): the value a rule
+ * set, else `initial`, −45 on a groupstamp's wedge and 0 on any other.
+ */
+export function rotatedStyle(style: Style, initial = 0): Style {
+  return style.rotation === null ? { ...style, rotation: initial } : style;
+}
+
+/**
  * A wedge at `x` of the markers band of the line placed at `at`, the band
  * starting at `start` outwards on `side` and `w` the line's stroke width
- * (section 6.6, Wedges): its tip `start + w / 2` out and its base 13
- * further, each distance summed in that order before it becomes an
- * ordinate, its base 6 wide. A named timestamp's wedge is drawn by it, and
- * so is the wedge an editor shows at a position no named timestamp holds
- * (`wedgeAt`).
+ * (section 6.6, Wedges): its tip `start + w / 2` out, and each corner of its
+ * base, turned by the style's `rotation` (0 where unset) about the tip, at
+ * its offset across and its distance beyond the tip's, that distance added
+ * to the tip's before it becomes an ordinate; unturned, its base 13 further
+ * out and 6 wide. A named timestamp's wedge is drawn by it, and so is the
+ * wedge an editor shows at a position no named timestamp holds (`wedgeAt`).
  */
 export function wedgeElement(
   address: ElementAddress,
@@ -64,14 +75,17 @@ export function wedgeElement(
   start: number,
   w: number,
 ): MarkerElement {
+  const rotated = rotatedStyle(style);
+  const tip = start + w / 2;
+  const corner = ({ dx, out }: WedgeOffset): WedgeCorner => ({ dx, y: at.yAt(side, tip + out) });
+  const [first, second] = wedgeCorners(rotated.rotation ?? 0);
   return {
     type: "wedge",
     address,
-    style,
+    style: rotated,
     x,
-    yt: at.yAt(side, start + w / 2),
-    yb: at.yAt(side, start + w / 2 + MARKER_HEIGHT),
-    base: MARKER_BASE,
+    yt: at.yAt(side, tip),
+    corners: [corner(first), corner(second)],
   };
 }
 
@@ -164,10 +178,13 @@ export interface MarkersBand extends PreparedBand {
  * it is `w / 2 + 13` wide without a label, `w / 2 + 13 + 2 + T × h(9)` with
  * `T ≥ 1` lines of labels, `w` the stroke width of the line and 9 the
  * largest font size of its drawn labels; it adds to its timeline's extent
- * `[L × u − 3, L × u + 3]` for every wedge it draws and the extent of every
- * stack. Drawn from its start `c`, a wedge's tip lies `c + w / 2` out and its
- * base 13 further, and line `n` starts `c + w / 2 + 13 + 2 + (n − 1) × h(9)`
- * out, summed in that order (section 6.6), whether or not a wedge is drawn.
+ * `[L × u + a, L × u + b]` for every wedge it draws, `a` and `b` the smallest
+ * and largest of 0 and its corners' offsets across (`[−3, 3]` unturned), and
+ * the extent of every stack. A wedge's `rotation` is 0 where no rule sets it,
+ * −45 on a groupstamp's. Drawn from its start `c`, a wedge's tip lies
+ * `c + w / 2` out, its base unturned 13 further, and line `n` starts
+ * `c + w / 2 + 13 + 2 + (n − 1) × h(9)` out, summed in that order (section
+ * 6.6), whether or not a wedge is drawn and whatever its rotation.
  * A cross-section line is held by its timeline's line, not by the band: it
  * is drawn when its timestamp's `display` lists it and its own display is
  * `inline`, whatever the band's, and takes no room in it.
@@ -208,7 +225,10 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
         at: add(source.start, own),
         wedge:
           banded && lists("wedge")
-            ? drawn(styled(elementKey("wedge", at, timeline, band.key), band.style))
+            ? rotated(
+                drawn(styled(elementKey("wedge", at, timeline, band.key), band.style)),
+                timestamp.groupstamp ? GROUPSTAMP_ROTATION : 0,
+              )
             : undefined,
         labels,
         line: lists("cross_section")
@@ -239,10 +259,10 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const size = maxSize(labels);
   const wedges = stamps.filter((stamp) => stamp.wedge !== undefined);
   const w = line.style["stroke-width"];
-  const wedgeExtent = (at: Real): Extent => [
-    relativeX(at) - MARKER_BASE / 2,
-    relativeX(at) + MARKER_BASE / 2,
-  ];
+  const wedgeExtent = ({ at, wedge }: Stamp): Extent => {
+    const [left, right] = wedgeSpan(wedge?.style.rotation ?? 0);
+    return [relativeX(at) + left, relativeX(at) + right];
+  };
   const unnamedKey = (type: "wedge" | "cross_section", holder: ElementKey) =>
     elementKey(type, idAddress(line.manifest.id), line.manifest, holder);
   const count = wedges.length + labels.length;
@@ -251,7 +271,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     elements: count,
     width: count === 0 ? 0 : markReach(scope, w, lines, size),
     extents: [
-      ...wedges.map((stamp) => wedgeExtent(stamp.at)),
+      ...wedges.map(wedgeExtent),
       ...stacks.map((stamp) => labelExtent(relativeX(stamp.at), widest(stamp))),
     ],
     centred: stacks.flatMap((stamp) =>
@@ -323,4 +343,9 @@ function lineOf(scope: Scope, source: Entry, address: ElementAddress): Styled {
     elementKey("cross_section", address, source.manifest, source.key),
     source.style,
   );
+}
+
+/** A drawn wedge with its `rotation` read, `initial` where no rule sets it (`rotatedStyle`). */
+function rotated(wedge: Styled | undefined, initial: number): Styled | undefined {
+  return wedge === undefined ? undefined : { ...wedge, style: rotatedStyle(wedge.style, initial) };
 }

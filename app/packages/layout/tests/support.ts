@@ -39,6 +39,7 @@ import {
   draw,
   manifestLayer,
   type Placement,
+  type WedgeCorner,
 } from "../src/index.ts";
 
 const require = createRequire(import.meta.url);
@@ -111,6 +112,24 @@ export function element(drawing: Drawing, address: ElementAddress, index = 0): D
   const found = drawing.elements.filter((item) => sameAddress(item.address, address))[index];
   if (found === undefined) throw new Error(`no element ${JSON.stringify(address)}`);
   return found;
+}
+
+/**
+ * The corners of an unturned wedge whose base lies at the ordinate `yb`,
+ * `half` to either side of its tip's abscissa (section 6.6): 3, or 3 times
+ * its item's scale.
+ */
+export function unturned(yb: number, half = 3): readonly [WedgeCorner, WedgeCorner] {
+  return [
+    { dx: -half, y: yb },
+    { dx: half, y: yb },
+  ];
+}
+
+/** The ordinate of an unturned wedge's base: its corners'. */
+export function baseOf(wedge: DrawnElement): number {
+  if (wedge.type !== "wedge") throw new Error(`a ${wedge.type} is no wedge`);
+  return wedge.corners[0].y;
 }
 
 /** The containers of one kind a drawing records, in drawing order. */

@@ -243,8 +243,10 @@ export function crossedLines(drawing: Drawing, lineKey: string): readonly string
  * key of `lineAxes`), as a named timestamp of its timeline lying there draws
  * its own (section 6.6, Wedges): in the line's markers band, from where that
  * band starts, or would start were it present; with the style of a wedge of
- * that timeline that no named timestamp holds; null where the key names no
- * line, or an ancestor line, which draws none.
+ * that timeline that no named timestamp holds, turned by that style's
+ * `rotation` (a rule on the band's wedges, never one naming addresses nor a
+ * groupstamp's initial −45); null where the key names no line, or an
+ * ancestor line, which draws none.
  */
 export function wedgeAt(drawing: Drawing, lineKey: string, x: number): WedgeMark | null {
   const marked = markedLine(drawing, lineKey);

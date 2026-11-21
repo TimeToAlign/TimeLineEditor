@@ -21,7 +21,7 @@ import {
   draw,
   manifestLayer,
 } from "../src/index.ts";
-import { at, bandOrder, edit, element, load, metrics, set } from "./support.ts";
+import { at, bandOrder, baseOf, edit, element, load, metrics, set, unturned } from "./support.ts";
 
 /** Draw a manifest with the default layer, `extra` and its own layer. */
 const drawn = (manifest: Manifest, ...extra: Graphical[]): Drawing =>
@@ -66,7 +66,7 @@ function ordinate(
     case "jump_from":
       return [item.c1[1], own(item.address)];
     case "wedge":
-      return [item.yb, own(item.address)];
+      return [baseOf(item), own(item.address)];
     case "flow_marker":
       return [item.y1, own(item.address)];
     default:
@@ -156,7 +156,7 @@ describe("a child's band order", () => {
       melody: 37,
       phrase: 23,
     });
-    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 49, yb: 62 });
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 49, corners: unturned(62) });
     expect(drawing.height).toBe(92.4765625);
   });
 

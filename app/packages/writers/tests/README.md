@@ -246,8 +246,9 @@ width=1pt,dash pattern=on 3pt off 3pt] (10,5) -- (10,25);` (`30 − 25` and
 point to its second as the layout states them: `{id: anchor_1}` from `(30,
 5)` to `(10, 25)`, stroked alike, is `<line data-id="anchor_1" x1="30"
 y1="5" x2="10" y2="25" stroke="#1BA1E2" stroke-width="1"
-stroke-dasharray="3 3"/>`, in TikZ `… (30,25) -- (10,5);`. A wedge's points are the layout's (tip, then the base's left and
-right corners), the same an editor's unnamed wedge is drawn with.
+stroke-dasharray="3 3"/>`, in TikZ `… (30,25) -- (10,5);`. A wedge's points are the layout's (tip, then the base's two
+corners in the order section 6.6 gives them), the same an editor's unnamed
+wedge is drawn with.
 
 An ancestor line `{id: a}` running on at both sides, `xs = Xa = 20`, `xe = Xr =
 40`, `y 20`, width 2, dash `3 3`, opacity 0.35: the line `x1="20" …
@@ -318,12 +319,16 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   data-id="b" data-part="start" x1="10" y1="12" x2="10" y2="18" stroke="#000000"
   stroke-width="1"/>`, in TikZ `\path[draw=ts000000,line width=1pt] (10,18)
   -- (10,12);`.
-- A wedge `x 10`, tip `yt 5`, base `yb 18`, fill `#000000`: `<polygon
-  data-id="w" points="10,5 7,18 13,18" fill="#000000"/>`, fill only.
+- A wedge `x 10`, tip `yt 5`, its corners `(dx −3, y 18)` and `(dx 3, y
+  18)`, fill `#000000`: `<polygon data-id="w" points="10,5 7,18 13,18"
+  fill="#000000"/>`, fill only; turned 90 about its tip, its corners `(13,
+  8)` and `(13, 2)`, it is `points="10,5 23,8 23,2"`, in TikZ `(10,25) --
+  (23,22) -- (23,28) -- cycle` (`30 − y`): the tip, then the corners in
+  their order, never a `transform`.
 - The sizes an element carries are its own, never constants of the writer:
-  a wedge's `base`, a map's double-line `spacing` and a card's
-  `shadowOffset`, 6, 2 and 2 at scale 1 and multiplied by an item's scale
-  (section 8.6). The wedge with `base 12` is `points="10,5 4,18 16,18"`; the
+  a wedge's corners' offsets across, a map's double-line `spacing` and a
+  card's `shadowOffset`, ±3, 2 and 2 at scale 1 and multiplied by an item's
+  scale (section 8.6). The wedge with offsets ±6 is `points="10,5 4,18 16,18"`; the
   map with `spacing 4` is `points="10,18 50,18 50,22 10,22"`; the card with
   `shadowOffset 4` has its shadow at `x="12" y="8"`.
 - On a flow marker's line, opacity 0.5 is written last, as `opacity="0.5"` and
@@ -412,7 +417,16 @@ of `t` alike, and the elements written after each card of `t` up to the
 next card carry the same address attributes in both, `t`'s line (`data-id`
 `t` alone) among them. `bundle__bundle_free_ids` draws IDs with a `/`, a
 space and a URI's `#` (`perf/take 2`, `take 2/intro`,
-`https://example.org/piece/score#exposition`), written verbatim. Among the
+`https://example.org/piece/score#exposition`), written verbatim.
+`timestamp_wedge_rotation` draws wedges turned −135, −45, 0, 45, 135, 180
+below their line and −45, 45, 90 above it (the layout's README derives
+their corners); the three groupstamp figures (`group__group_groupstamp`,
+`group__group_groupstamp_child_member`,
+`bundle__bundle_groupstamp_shared_member`) draw the groupstamp's wedge
+turned −45 by default, `group__group_groupstamp`'s `timestamp_1` as
+`points="302.2915,48.8047 290.9779,55.8757 295.2205,60.1183"`: offsets
+`13 × −0.7071 ∓ 3 × 0.7071 = −11.3136, −7.071` and distances `1.5 + 7.071`
+and `1.5 + 11.3136` below the line at 47.3047, to four decimals. Among the
 hand-derived figures, `map_row_siblings`, `map_row_subslots` and
 `map_row_moved` pin the slots that the conversion maps bands of one row
 share (two siblings with maps of two keys in different canonical orders, a
@@ -456,7 +470,7 @@ data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
 font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
 `\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
 (261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
-There are 83 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame). Every case stating a spacing, of the block, in a place or in a
+There are 84 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

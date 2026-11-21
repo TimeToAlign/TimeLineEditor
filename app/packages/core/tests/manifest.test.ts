@@ -227,6 +227,21 @@ describe("graphical styles", () => {
     );
   });
 
+  it("reads a wedge's rotation as a double, an integral float equal to it", () => {
+    const { text } = fixture("timestamp_wedge_rotation.yaml");
+    const rotations = (manifest: Manifest) =>
+      (manifest.graphical?.rules ?? []).map((rule) =>
+        typeof rule.set === "string" ? undefined : rule.set.rotation,
+      );
+    const read = load("timestamp_wedge_rotation.yaml");
+    expect(rotations(read)).toEqual([90, -135, -45, 0, 45, 135, 180, -45, 45]);
+    const floats = text.replace(/^( *rotation: )(-?\d+)$/gm, "$1$2.0");
+    expect(floats.match(/rotation: -?\d+\.0$/gm)).toHaveLength(9);
+    const manifest = loadText(floats);
+    expect(manifest).toEqual(read);
+    expect(saveManifest(manifest, COMPLETE)).toBe(text);
+  });
+
   it("reads an integer beyond 2^53 only where a double holds it exactly", () => {
     const value = manifestValue("bare.yaml");
     const exact = 2n ** 53n;

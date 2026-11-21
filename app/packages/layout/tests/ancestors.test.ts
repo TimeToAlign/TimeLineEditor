@@ -11,7 +11,18 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { at, bandOrder, drawFixture, edit, element, loadFile, metrics, set } from "./support.ts";
+import {
+  at,
+  bandOrder,
+  baseOf,
+  drawFixture,
+  edit,
+  element,
+  loadFile,
+  metrics,
+  set,
+  unturned,
+} from "./support.ts";
 
 const only = (select: object, set: object): Graphical[] => [{ rules: [{ select, set }] }];
 const drawGroup = (name: string, extra: Graphical[] = [], placement?: Placement) =>
@@ -60,16 +71,20 @@ describe("group_child_member: one ancestor", () => {
       type: "wedge",
       x: 120.61962890625,
       yt: 66.28125,
-      yb: 53.28125,
+      corners: unturned(53.28125),
     });
     expect(endMark).toMatchObject({
       type: "wedge",
       x: 520.61962890625,
       yt: 66.28125,
-      yb: 53.28125,
+      corners: unturned(53.28125),
     });
-    expect(startOwn).toMatchObject({ x: 120.61962890625, yt: 83.28125, yb: 96.28125 });
-    expect(endOwn).toMatchObject({ x: 520.61962890625, yt: 83.28125, yb: 96.28125 });
+    expect(startOwn).toMatchObject({
+      x: 120.61962890625,
+      yt: 83.28125,
+      corners: unturned(96.28125),
+    });
+    expect(endOwn).toMatchObject({ x: 520.61962890625, yt: 83.28125, corners: unturned(96.28125) });
     expect([startMark, endMark, startOwn, endOwn].map((item) => item?.style.opacity)).toEqual([
       0.35, 0.35, 1, 1,
     ]);
@@ -145,12 +160,16 @@ describe("group_grandchild: every ancestor shown", () => {
       ["wedge", 66.28125],
       ["wedge", 100.2578125],
     ]);
-    expect(marks.map((item) => (item as { yb: number }).yb)).toEqual([
-      53.28125, 87.2578125, 53.28125, 87.2578125,
-    ]);
+    expect(marks.map(baseOf)).toEqual([53.28125, 87.2578125, 53.28125, 87.2578125]);
     // The member's own `origin` and `length`, below its line.
-    expect(element(drawing, at("timestamp_3"))).toMatchObject({ yt: 117.2578125, yb: 130.2578125 });
-    expect(element(drawing, at("timestamp_4"))).toMatchObject({ yt: 117.2578125, yb: 130.2578125 });
+    expect(element(drawing, at("timestamp_3"))).toMatchObject({
+      yt: 117.2578125,
+      corners: unturned(130.2578125),
+    });
+    expect(element(drawing, at("timestamp_4"))).toMatchObject({
+      yt: 117.2578125,
+      corners: unturned(130.2578125),
+    });
     expect(element(drawing, at("timestamp_3", "coordinate"))).toMatchObject({
       text: "0 ♩",
       baseline: 140.61181640625,
@@ -308,9 +327,12 @@ describe("single changes to group_child_member", () => {
       height: 87.35546875,
     });
     expect(all(drawing, at("second-half", "start"))).toMatchObject([
-      { yt: 66.28125, yb: 53.28125 },
+      { yt: 66.28125, corners: unturned(53.28125) },
     ]);
-    expect(element(drawing, at("timestamp_3"))).toMatchObject({ yt: 104.2578125, yb: 91.2578125 });
+    expect(element(drawing, at("timestamp_3"))).toMatchObject({
+      yt: 104.2578125,
+      corners: unturned(91.2578125),
+    });
     expect(element(drawing, at("timestamp_3", "coordinate"))).toMatchObject({
       baseline: 87.13525390625,
     });
@@ -379,7 +401,7 @@ describe("single changes to group_child_member", () => {
     expect(element(drawing, at("piece"))).toMatchObject({ xs: 116.61962890625 });
     expect(all(drawing, at("second-half", "start"))[0]).toMatchObject({
       yt: 66.28125,
-      yb: 53.28125,
+      corners: unturned(53.28125),
     });
     expect(all(drawing, at("second-half", "start", "label"))[0]).toMatchObject({
       baseline: 49.15869140625,
@@ -399,7 +421,7 @@ describe("single changes to group_child_member", () => {
     });
     expect(all(drawing, at("second-half", "start"))[0]).toMatchObject({
       yt: 53.8046875,
-      yb: 40.8046875,
+      corners: unturned(40.8046875),
     });
     expect(all(drawing, at("second-half", "start", "label"))).toEqual([]);
     expect(element(drawing, at("timestamp_3", "coordinate")).style.opacity).toBe(1);

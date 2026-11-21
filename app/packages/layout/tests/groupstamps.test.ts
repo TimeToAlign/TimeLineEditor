@@ -16,6 +16,7 @@ import {
   draw,
   groupCrossSections,
   lineAxes,
+  type MarkerElement,
   manifestLayer,
   type TextElement,
   TextMeasure,
@@ -104,7 +105,7 @@ describe("a groupstamp's line", () => {
     expect(performance.xStart + (performance.xEnd - performance.xStart) / 2).toBe(middle);
     expect(score.line).toBeLessThan(performance.line);
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
-    expect(top).toBe((score.marker?.wedge.yb ?? 0) + 2);
+    expect(top).toBe((score.marker?.wedge.corners[0].y ?? 0) + 2);
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
     expect(first.top).toBeLessThan(score.line);
@@ -192,6 +193,56 @@ describe("a groupstamp's line", () => {
       set: { display: "none" },
     };
     expect(lines(drawn(plain(), [hidden]))).toEqual([]);
+  });
+});
+
+describe("a groupstamp's wedge", () => {
+  /** The drawn wedge at `{id}`, a marker element. */
+  function wedgeOf(drawing: Drawing, id: string): MarkerElement {
+    const found = drawing.elements.find(
+      (item) => item.type === "wedge" && sameAddress(item.address, at(id)),
+    );
+    if (found?.type !== "wedge") throw new Error(`no wedge of ${id}`);
+    return found;
+  }
+  /** The ordinate `distance` below `score`'s line, summed in item coordinates (section 8.6). */
+  function below(drawing: Drawing, distance: number): number {
+    const origin = card(drawing, "score").top;
+    return origin + (axisOf(drawing, "score").line - origin + distance);
+  }
+  // The sine and cosine of −45 degrees, rounded to four places.
+  const s = -7071 / 10_000;
+  const k = 7071 / 10_000;
+
+  it("is turned −45 where no rule sets its rotation, its corners left of the line", () => {
+    const drawing = drawn();
+    const wedge = wedgeOf(drawing, "timestamp_1");
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    expect([wedge.x, wedge.yt]).toEqual([middle, score.marker?.wedge.yt]);
+    expect(wedge.corners).toEqual([
+      { dx: 13 * s - 3 * k, y: below(drawing, 1.5 + (13 * k + 3 * s)) },
+      { dx: 13 * s + 3 * k, y: below(drawing, 1.5 + (13 * k - 3 * s)) },
+    ]);
+    expect(wedge.style.rotation).toBe(-45);
+    expect(wedge.corners.map(({ dx }) => dx < 0)).toEqual([true, true]);
+    const [top] = labelLine(nameLabel(drawing, "timestamp_1"));
+    expect(top).toBe((score.marker?.wedge.corners[0].y ?? 0) + 2);
+    for (const id of ["timestamp_2", "timestamp_3", "timestamp_4", "timestamp_5"]) {
+      expect(wedgeOf(drawing, id).style.rotation, id).toBe(0);
+    }
+  });
+
+  it("is unturned by a rule setting 0 or as no groupstamp", () => {
+    const unturned = (drawing: Drawing) => [
+      { dx: -3, y: below(drawing, 1.5 + 13) },
+      { dx: 3, y: below(drawing, 1.5 + 13) },
+    ];
+    const zero: Rule = { select: { element: "wedge" }, set: { rotation: 0 } };
+    const ruled = drawn(plain(), [zero]);
+    expect(wedgeOf(ruled, "timestamp_1").corners).toEqual(unturned(ruled));
+    const ordinary = drawn(plain(set("timestamp_1", { groupstamp: false })));
+    expect(wedgeOf(ordinary, "timestamp_1").corners).toEqual(unturned(ordinary));
   });
 });
 

@@ -47,6 +47,7 @@ import {
   metrics,
   set,
   target,
+  unturned,
 } from "./support.ts";
 
 type Word = "wedge" | "name" | "id" | "coordinate" | "cross_section";
@@ -213,12 +214,12 @@ describe("the timestamps fixture", () => {
 
   it("draws each wedge at its X in its timeline's markers band", () => {
     const shape = (address: ElementAddress) => {
-      const { x, yt, yb, base } = wedge(drawing, address);
-      return [x, yt, yb, base];
+      const { x, yt, corners } = wedge(drawing, address);
+      return [x, yt, corners];
     };
-    expect(shape(at("timestamp_1"))).toEqual([124.91552734375, 79.4296875, 92.4296875, 6]);
-    expect(shape(at("timestamp_2"))).toEqual([349.91552734375, 79.4296875, 92.4296875, 6]);
-    expect(shape(at("timestamp_3"))).toEqual([199.91552734375, 24.5, 37.5, 6]);
+    expect(shape(at("timestamp_1"))).toEqual([124.91552734375, 79.4296875, unturned(92.4296875)]);
+    expect(shape(at("timestamp_2"))).toEqual([349.91552734375, 79.4296875, unturned(92.4296875)]);
+    expect(shape(at("timestamp_3"))).toEqual([199.91552734375, 24.5, unturned(37.5)]);
     expect(wedge(drawing, at("timestamp_1")).style.fill).toBe("#000000");
   });
 
@@ -359,6 +360,21 @@ describe("named timestamps in the layout", () => {
     expect([lineY(drawing, "piece"), lineY(drawing, "b")]).toEqual([72.5, 23]);
   });
 
+  it("counts a turned wedge's extent from its tip to its farthest corner across", () => {
+    const turned = (rotation: number) =>
+      drawn(
+        stamped(
+          "contiguous",
+          [{ id: "timestamp_1", timeline: "b", coordinate: [0, 1], name: "B", display: ["wedge"] }],
+          [{ select: { addresses: [at("timestamp_1")] }, set: { rotation } }],
+        ),
+      );
+    const right = turned(90);
+    expect([lineY(right, "piece"), lineY(right, "b")]).toEqual([58.5, 37]);
+    const left = turned(-90);
+    expect([lineY(left, "piece"), lineY(left, "b")]).toEqual([72.5, 23]);
+  });
+
   it("joins a segment's timestamps to its segment line's markers band", () => {
     const drawing = drawn(
       stamped("segment_line", [
@@ -373,7 +389,11 @@ describe("named timestamps in the layout", () => {
     );
     const y = lineY(drawing, "b");
     const mark = wedge(drawing, at("timestamp_1"));
-    expect([mark.x, mark.yt, mark.yb]).toEqual([lineXs(drawing, "form") + 125, y + 1.5, y + 14.5]);
+    expect([mark.x, mark.yt, mark.corners]).toEqual([
+      lineXs(drawing, "form") + 125,
+      y + 1.5,
+      unturned(y + 14.5),
+    ]);
     // `b` has neither a children band nor a conversion maps band: its line has no length.
     expect(find(drawing, "cross_section", at("timestamp_1", "line"))).toBeUndefined();
   });
@@ -415,7 +435,7 @@ describe("a cross-section line in a band order of its own", () => {
     const crossing = line(drawing, "timestamp_3");
     expect([crossing.x, crossing.y1, crossing.y2]).toEqual([lineXs(drawing, "r") + 150, 16, 43.5]);
     const mark = wedge(drawing, at("timestamp_3"));
-    expect([mark.yt, mark.yb]).toEqual([49, 62]);
+    expect([mark.yt, mark.corners]).toEqual([49, unturned(62)]);
   });
 
   it("gives the same extent at any position, and the lines it crosses", () => {
@@ -542,6 +562,45 @@ describe("the marks at any position", () => {
         ],
       },
     });
+  });
+
+  it("turn with a rule on the line's wedges, never with one naming addresses", () => {
+    const manifest = loadFile("nested");
+    const layered = (rule: Rule) =>
+      draw(
+        manifest,
+        DEFAULT_PLACEMENT,
+        [DEFAULT_LAYER, { rules: [rule] }, manifestLayer(manifest)],
+        metrics,
+      );
+    const within = layered({
+      select: { element: "wedge", within: "clt_3" },
+      set: { rotation: 90 },
+    });
+    expect(wedgeAt(within, keyOf(CLT_1, "clt_3"), 200)?.points).toEqual([
+      [200, 38.5],
+      [213, 37 + (1.5 + 3)],
+      [213, 37 + (1.5 - 3)],
+    ]);
+    expect(wedgeAt(within, keyOf(CLT_1, "clt_3"), 200)?.points).toEqual([
+      [200, 38.5],
+      [213, 41.5],
+      [213, 35.5],
+    ]);
+    expect(wedgeAt(within, keyOf(CLT_1, "clt_1"), 200)?.points).toEqual([
+      [200, 52.5],
+      [197, 65.5],
+      [203, 65.5],
+    ]);
+    const addressed = layered({
+      select: { element: "wedge", addresses: [at("clt_3")] },
+      set: { rotation: 90 },
+    });
+    expect(wedgeAt(addressed, keyOf(CLT_1, "clt_3"), 200)?.points).toEqual([
+      [200, 38.5],
+      [197, 51.5],
+      [203, 51.5],
+    ]);
   });
 
   it("are none on an ancestor line or where no line is keyed", () => {

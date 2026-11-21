@@ -22,8 +22,12 @@ export const SHADOW_OFFSET = 2;
 export const MAP_SPACING = 2;
 /** The map gap `g`. */
 export const MAP_GAP = 3;
+/** The width of a wedge's base. */
 export const MARKER_BASE = 6;
+/** The distance from a wedge's tip to the middle of its base. */
 export const MARKER_HEIGHT = 13;
+/** The `rotation` of a groupstamp's wedge that no rule sets (section 2.5); every other wedge's is 0. */
+export const GROUPSTAMP_ROTATION = -45;
 export const LABEL_GAP = 2;
 export const BRACE = 6;
 export const FLOW_MARKER_LABEL_OFFSET = 3;

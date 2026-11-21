@@ -14,6 +14,7 @@ import {
 import {
   at,
   bandOrder,
+  baseOf,
   build,
   child,
   edit,
@@ -22,6 +23,7 @@ import {
   load,
   metrics,
   set,
+  unturned,
   withLocked,
 } from "./support.ts";
 
@@ -39,10 +41,10 @@ function ordinates(drawing: Drawing): Record<string, number> {
   );
 }
 
-/** The wedges, as `[address, yt, yb]`, and the baselines of their labels. */
+/** The wedges, as `[address, yt, yb]` with `yb` their base's ordinate, and the baselines of their labels. */
 const wedges = (drawing: Drawing) =>
   drawing.elements.flatMap((item) => {
-    if (item.type === "wedge") return [[item.address, item.yt, item.yb]];
+    if (item.type === "wedge") return [[item.address, item.yt, baseOf(item)]];
     // A wedge's label here is a named timestamp's coordinate label.
     if (item.type === "label" && item.address.part?.[0] === "coordinate") {
       return [[item.address, item.baseline]];
@@ -186,7 +188,7 @@ describe("the conversion maps band", () => {
     expect(element(drawing, at("tmap_4"))).toMatchObject({ yc: 82.90234375 });
     expect(element(drawing, at("timestamp_1"))).toMatchObject({
       yt: 89.40234375,
-      yb: 102.40234375,
+      corners: unturned(102.40234375),
     });
     expect(drawing.height).toBe(132.87890625);
   });
@@ -206,7 +208,10 @@ describe("the conversion maps band", () => {
       melody: 37,
       phrase: 23,
     });
-    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 38.5, yb: 51.5 });
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({
+      yt: 38.5,
+      corners: unturned(51.5),
+    });
     expect(drawing.height).toBe(92.4765625);
   });
 });

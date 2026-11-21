@@ -58,6 +58,7 @@ export type {
   ShownCoordinate,
   TextElement,
   VerticalLineElement,
+  WedgeCorner,
 } from "./elements.ts";
 export { DEFAULT_PLACEMENT } from "./elements.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";

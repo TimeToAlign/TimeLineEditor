@@ -28,6 +28,7 @@ import {
   load,
   metrics,
   set as setOf,
+  unturned,
 } from "./support.ts";
 
 const set = (select: object, declaration: object): Graphical => ({
@@ -461,7 +462,10 @@ describe("a markers band at level 1 above a segment line", () => {
     expect(segmentLabels(drawing).map((item) => item[2])).toEqual([
       24.35400390625, 24.35400390625, 24.35400390625, 24.35400390625,
     ]);
-    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 53.953125, yb: 40.953125 });
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({
+      yt: 53.953125,
+      corners: unturned(40.953125),
+    });
     expect(element(drawing, at("timestamp_2", "coordinate"))).toMatchObject({
       baseline: 36.83056640625,
     });

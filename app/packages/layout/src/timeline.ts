@@ -431,7 +431,7 @@ export function layoutTimeline(
     const marker: LineMarker = {
       line: drawnLine,
       marker: {
-        wedge: { yt: wedge.yt, yb: wedge.yb, base: wedge.base, style: wedge.style },
+        wedge: { yt: wedge.yt, corners: wedge.corners, style: wedge.style },
         crossSection: {
           extent: extent === null ? null : { y1: extent[0], y2: extent[1] },
           style: unnamed.crossSection,

@@ -98,4 +98,40 @@ describe("elementBounds", () => {
       height: 0,
     });
   });
+
+  it("spans a wedge's tip and its base's corners, as it is turned", () => {
+    const measure = new TextMeasure(metrics);
+    const tip = {
+      type: "wedge" as const,
+      address: idAddress("w"),
+      style: INITIAL_STYLE,
+      x: 10,
+      yt: 5,
+    };
+    const bounds = (corners: readonly [{ dx: number; y: number }, { dx: number; y: number }]) =>
+      elementBounds({ ...tip, corners }, measure);
+    expect(
+      bounds([
+        { dx: -3, y: 18 },
+        { dx: 3, y: 18 },
+      ]),
+    ).toEqual({ x: 7, y: 5, width: 6, height: 13 });
+    expect(
+      bounds([
+        { dx: 13, y: 8 },
+        { dx: 13, y: 2 },
+      ]),
+    ).toEqual({ x: 10, y: 2, width: 13, height: 6 });
+    expect(
+      bounds([
+        { dx: -11.3136, y: 5 + -2.8284 },
+        { dx: -7.071, y: 5 + -7.071 },
+      ]),
+    ).toEqual({
+      x: 10 + -11.3136,
+      y: 5 + -7.071,
+      width: 10 - (10 + -11.3136),
+      height: 5 - (5 + -7.071),
+    });
+  });
 });
