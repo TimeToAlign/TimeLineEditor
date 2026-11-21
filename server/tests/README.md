@@ -336,6 +336,70 @@ the module; the route reads the event a Projection stands for through it),
 the route answers 501 `the installed timetoalign <version>
 cannot read Projections`.
 
+## Files
+
+`GET /api/folders`, `GET /api/files` and `PUT /api/files` serve the user's
+files below the server's root folder (`decisions/0033-server-file-access.md`):
+the user's home folder unless `tilie --root <folder>` names another. A path
+is the query parameter `path`, POSIX and relative to the root, `""` the root
+itself. What these tests prove first is the boundary: no request reaches a
+file outside the root, and no request writes a file that is not one of
+TimeLineEditor's own kinds (`.tle.json`, `.yaml`, `.yml`, `.json`,
+`.parquet`, by the end of the name in any case). The oracle is the
+temporary folder the test builds and then inspects on disk, never the
+route's own answer: a refusal is proved by its exact answer and by the
+folder being unchanged beside it, a write by the bytes the test reads back.
+
+Each test's root is a fresh temporary folder `R` holding:
+
+- `a.yaml` holding `b"x: 1\n"`,
+- `sub/b.tle.json` holding `b"{}"` and `sub/c.txt`,
+- `.hidden.yaml`,
+- the empty folder `d/`,
+- `out`, a symbolic link to `R`'s parent folder, which lies outside the root.
+
+| Request | Answer |
+| --- | --- |
+| `GET folders` `path=""` | 200 `{"path": "", "entries": [{"name": "d", "kind": "folder"}, {"name": "sub", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`: folders first, then files; `.hidden.yaml` left out (a name starting with `.`), `out` left out (its target lies outside the root) |
+| `GET folders` `path="sub"` | `{"path": "sub", "entries": [{"name": "b.tle.json", "kind": "file"}]}`: `c.txt` is none of the five kinds |
+| `GET folders` `path="d"` | `{"path": "d", "entries": []}` |
+| `GET folders` on a folder holding the folders `y` and `Z`, the files `b.yaml`, `B.json`, `a.PARQUET` and `n.txt`, a link `inner` to `R/sub`, a link `alias.yaml` to `R/a.yaml` and a link `gone.yaml` to nothing | folders `Z`, `inner`, `y`, then files `B.json`, `a.PARQUET`, `alias.yaml`, `b.yaml`: each group sorted by code point (upper case before lower), a link inside the root listed as what it leads to, a link leading nowhere left out |
+| `GET folders` `path="a.yaml"` (a file) or `path="nope"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}` |
+| `GET files` `path="a.yaml"` | 200, `Content-Type: application/octet-stream`, the bytes `b"x: 1\n"` |
+| `GET files` `path="sub/../a.yaml"` | the same: `..` that stays inside the root is allowed |
+| `GET files` `path=".hidden.yaml"` | 200 with its bytes: a hidden file is left out of listings only |
+| `GET files` `path="sub/c.txt"` | 200 with its bytes: any file below the root is read |
+| `GET files` `path="sub"` (a folder) or `path="nope.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such file"}}` |
+| `PUT files` `path="sub/new.yaml"`, body `b"y: 2\n"` | 200 `{"path": "sub/new.yaml", "size": 5}`; `R/sub/new.yaml` holds exactly the body, and `R/sub` holds exactly `b.tle.json`, `c.txt`, `new.yaml` (no temporary file left behind) |
+| `PUT files` `path="a.yaml"`, body `b"z: 3\n"`, after `R/a.yaml` was given the mode `0o640` | 200 `{"path": "a.yaml", "size": 5}`; the file holds the new bytes and keeps the mode `0o640` |
+| `PUT files` `path="sub/X.TLE.JSON"`, body `b"{}"` | 200 `{"path": "sub/X.TLE.JSON", "size": 2}`: the kinds are matched in any case |
+| `PUT files` `path="sub/c.txt"` and `path="a.yaml.txt"` | 403 `{"detail": {"path": ["path"], "message": "TimeLineEditor writes only workspace, manifest and table files"}}`; `c.txt` unchanged, no `a.yaml.txt` |
+| `PUT files` `path="sub/alias.yaml"`, a link inside the root to `R/sub/c.txt` | 403 with the same message, `c.txt` unchanged: the kind of the file written is checked, not only the name asked for |
+| `PUT files` `path="nope/x.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}`, nothing created |
+| `PUT files` `path="d.json"` where `R/d.json` is a folder | 409 `{"detail": {"path": ["path"], "message": "a folder lies at the path"}}`, the folder unchanged |
+
+**Outside the root.** Each of `path="../x.yaml"`, `"/etc/passwd"`,
+`"out/anything.yaml"`, `"out"`, `"sub/../../x.yaml"` and `"a\u0000.yaml"`
+(a NUL character names no file) is refused by all three routes with 400
+`{"detail": {"path": ["path"], "message": "path outside the root"}}`, before
+anything else is looked at: a `PUT` of `"../x.yaml"` or `"out/x.yaml"`
+creates no `x.yaml` in `R`'s parent folder, and one of `"../x.txt"` is
+refused as outside, not as a foreign kind. A path is outside when the
+absolute path it resolves to, every symbolic link followed, does not lie in
+the root's resolved path; a root given through a symbolic link is resolved
+once, so `a.yaml` is read through it.
+
+**The guard.** Without the bearer token every route answers 401
+`{"detail": "missing or invalid token"}`, and a `PUT` with a foreign
+`Origin` 403 `{"detail": "forbidden origin"}`, neither writing anything, as
+for every `/api/` path.
+
+**The root.** `ServerSettings` holds the root, the user's home folder
+unless one is given. `tilie` without `--root` takes the home folder,
+`--root <R>` takes `R`; `--root` naming a missing folder or a file exits
+with code 2 and the message `tilie: error: argument --root: '<given>' is
+no existing folder` on stderr, after argparse's usage line.
+
 ## MusicBrainz lookup
 
 `/api/reconcile/musicbrainz` is a Reconciliation Service API 0.2 endpoint

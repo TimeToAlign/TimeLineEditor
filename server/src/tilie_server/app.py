@@ -8,6 +8,7 @@ from tilie_server import __version__
 from tilie_server.musicbrainz import MusicBrainz
 from tilie_server.routers.claim_events import router as claim_events_router
 from tilie_server.routers.claim_provenance import router as claim_provenance_router
+from tilie_server.routers.files import router as files_router
 from tilie_server.routers.health import router as health_router
 from tilie_server.routers.lookup import router as lookup_router
 from tilie_server.routers.match_claims import router as match_claims_router
@@ -36,7 +37,7 @@ def create_app(
     """Build the application for one local origin and bearer token.
 
     Args:
-        settings: The run's origin, token and editor files.
+        settings: The run's origin, token, editor files and root folder.
         musicbrainz: The one client of MusicBrainz for the run's lookups; a
             new :class:`MusicBrainz` when not given.
     """
@@ -56,7 +57,10 @@ def create_app(
     app.include_router(claim_provenance_router)
     app.include_router(claim_events_router)
     app.include_router(lookup_router)
+    app.include_router(files_router)
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
+    # Resolved once, so a root given through a symbolic link holds its files.
+    app.state.root = settings.root.resolve()
     mount_static(app, static_dir)
     app.add_middleware(
         LocalOriginGuard,

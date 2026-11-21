@@ -154,6 +154,40 @@ call or the exact result.
    a Projection whose `projection_of` lacks its `event_id`. A refusal
    (422, `["claims", 1]`) rejects with the server's message and path.
 
+8. **Files** (`decisions/0033-server-file-access.md`). `fileCalls(transport)`
+   gives the three calls of the server's file routes over `connect`'s
+   transport: its headers, its request (which resolves a 2xx answer and
+   rejects anything else with a `ServerError`, the server's refusal as its
+   `refusal`, as items 3 to 7 prove) and its error for an answer not of a
+   route's form. The tests stand a transport over the stubbed `fetch` in for
+   `connect`'s, recording every request it is given, so what is proved is
+   the calls' own part: the exact route, method, headers and body, that
+   every call asks for the server's explained refusal, and how each answer
+   is read.
+
+   - `listFolder("sub dir/ä")` asks `folders?path=sub+dir%2F%C3%A4`, the
+     path as one form-encoded query parameter, with the transport's headers
+     and no other member of the request; `listFolder("")` asks
+     `folders?path=`. The answer `{"path": "sub dir/ä", "entries":
+     [{"name": "d", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`
+     resolves to exactly that listing.
+   - `readFile("a.yaml")` asks `files?path=a.yaml` and resolves to a `Blob`
+     holding exactly the answer's bytes (`x: 1\n`).
+   - `writeFile("sub/new.yaml", "y: ä\n")` asks `files?path=sub%2Fnew.yaml`
+     with method `PUT`, the transport's headers and `Content-Type:
+     application/octet-stream`, and the string as its body, sent as UTF-8
+     (six bytes); a `Blob` is sent unchanged. The answer `{"path":
+     "sub/new.yaml", "size": 6}` resolves to exactly that.
+   - Every call passes `explained` true, so a refusal (400 `path outside the
+     root`, 403 for a foreign kind, 404 `no such file`) reaches the caller
+     with the server's message, and an answer outside 2xx is never read.
+   - A 2xx answer not of the route's form rejects with the transport's error
+     for its status and the message "the folder answer is not a listing of
+     the folder asked for" (another `path` than the one asked, an entry of
+     another `kind`, an entry with a member more, `entries` no list, text
+     that is no JSON) or "the write answer is not the file written" (another
+     `path`, a `size` that is negative, fractional or a string).
+
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or
 rendering code) is enforced by `.dependency-cruiser.cjs` and proven by
