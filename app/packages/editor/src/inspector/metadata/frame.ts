@@ -21,7 +21,6 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import {
-  actorIri,
   addressKey,
   addressWords,
   canonicalText,
@@ -30,12 +29,9 @@ import {
   skeletonOf,
   statedBy,
   statementHolders,
-  TILIE_AGENT,
-  USER_TAG,
 } from "@timetoalign/tilie-core";
-import type { Belief, Catalogue, Pair } from "@timetoalign/timetoshare";
+import type { Catalogue, Pair } from "@timetoalign/timetoshare";
 import {
-  BELIEFS,
   candidates,
   entries,
   expandIri,
@@ -47,9 +43,15 @@ import {
   subjectPath,
   verbOf,
 } from "@timetoalign/timetoshare";
+import type { IriNames, ShownIri } from "../../iris.ts";
+import { iriNames, shownIri } from "../../iris.ts";
+import type { EntryLine } from "../provenance.ts";
+import { lineOf } from "../provenance.ts";
 import type { JsonObject } from "./catalogue.ts";
-import { FALLBACK, prefixesOf, systemChoices, typesOf, verbLabel } from "./catalogue.ts";
+import { FALLBACK, systemChoices, typesOf, verbLabel } from "./catalogue.ts";
 
+export type { BeliefLine } from "../provenance.ts";
+export { whoOf } from "../provenance.ts";
 /** A property and one of its values, as the statements container holds them. */
 export type { Pair };
 
@@ -166,56 +168,15 @@ export interface Thing {
   readonly iri: string;
 }
 
-/** One pair of a rectangle as the file writes it: property, value, and where the value leads. */
+/**
+ * One pair of a rectangle as the file writes it, its IRIs shown as slugs
+ * (`shownIri`): property, value, and where the value leads.
+ */
 export interface VocabularyRow {
-  readonly property: string;
-  readonly value: string;
+  readonly property: ShownIri;
+  readonly value: ShownIri;
   /** The value's expanded IRI where it is an `http:` or `https:` one; else `null`. */
   readonly href: string | null;
-}
-
-/** One actor's belief in a pair or a MatchClaim, as a provenance entry's details print it. */
-export interface BeliefLine {
-  /** The actor's IRI, as written. */
-  readonly actor: string;
-  /** The IRI the actor stands for under the manifest's context (`actorIri`), which actors are compared by. */
-  readonly iri: string;
-  /** The actor in words (`whoOf` of `iri`). */
-  readonly who: string;
-  readonly belief: Belief;
-  readonly date: string | null;
-  readonly note: string | null;
-}
-
-/**
- * A provenance entry as `lineOf` reads it: a statement's, as the manifest
- * holds it, or a MatchClaim's, as the server answers it; the members of
- * TimeToShare's provenance record, any of them missing or malformed.
- */
-export interface ProvenanceEntry {
-  readonly stated_by?: unknown;
-  readonly date?: unknown;
-  readonly method?: unknown;
-  readonly service?: unknown;
-  readonly basis?: unknown;
-  readonly match?: unknown;
-  readonly note?: unknown;
-  readonly beliefs?: unknown;
-}
-
-/**
- * A provenance entry as its details print it, in the Metadata tab and in
- * the Matchstamp tab alike: how it was made (paradata), and who believes it.
- */
-export interface EntryLine {
-  readonly method: string | null;
-  readonly who: string | null;
-  readonly date: string | null;
-  readonly service: string | null;
-  readonly basis: readonly string[];
-  readonly match: string | null;
-  readonly note: string | null;
-  readonly beliefs: readonly BeliefLine[];
 }
 
 /** One verb about one thing, as a rectangle shows it. */
@@ -240,11 +201,11 @@ export interface RectangleView {
 
 /**
  * A rectangle in words: its verb, then its label, else its first value as
- * written ("performed by Maria João Pires", "same as https://…"); the verb
+ * shown ("performed by Maria João Pires", "same as youtube:…"); the verb
  * alone for the empty "is a".
  */
 export function rectangleWords(rectangle: RectangleView): string {
-  const thing = rectangle.label ?? rectangle.rows[0]?.value;
+  const thing = rectangle.label ?? rectangle.rows[0]?.value.text;
   return thing === undefined ? rectangle.heading : `${rectangle.heading} ${thing}`;
 }
 
@@ -255,7 +216,8 @@ export interface CandidateRow {
   /** The path of the element or value node the pair is about. */
   readonly subject: readonly PathSegment[];
   readonly heading: string;
-  readonly label: string;
+  /** The value in words: its label, an element's name, a literal's text, else its IRI as shown. */
+  readonly label: ShownIri;
   /** The pair as the statement functions take it (`rdf:type` read back as `type`). */
   readonly pair: Pair;
   readonly line: EntryLine;
@@ -265,110 +227,6 @@ export interface CandidateRow {
 export interface Candidates {
   readonly offered: readonly CandidateRow[];
   readonly dismissed: readonly CandidateRow[];
-}
-
-/**
- * Who stated something, in words: the viewer's own statements by their
- * name; an ORCID iD by itself; a name TiLiE wrote as a tag decoded; TiLiE's
- * own proposals "TiLiE"; any other IRI as written.
- */
-export function whoOf(iri: string, user: User): string {
-  if (iri === statedBy(user)) return user.name;
-  if (iri === TILIE_AGENT) return "TiLiE";
-  const orcid = /^https:\/\/orcid\.org\/(.+)$/u.exec(iri);
-  if (orcid?.[1] !== undefined) return orcid[1];
-  if (iri.startsWith(USER_TAG)) {
-    try {
-      return decodeURIComponent(iri.slice(USER_TAG.length));
-    } catch {
-      return iri;
-    }
-  }
-  return iri;
-}
-
-const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
-
-const isBelief = (value: unknown): value is Belief =>
-  (BELIEFS as readonly unknown[]).includes(value);
-
-/**
- * The line a provenance entry prints: its paradata, and its beliefs in
- * their order, every actor and every IRI of `stated_by` read as the IRI it
- * stands for under `context` (the manifest's `@context`, `actorIri`) and
- * worded by `whoOf`.
- */
-export function lineOf(entry: ProvenanceEntry, user: User, context: unknown): EntryLine {
-  const list = (value: unknown): string[] =>
-    Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-  const by = list(entry.stated_by);
-  const beliefs = (Array.isArray(entry.beliefs) ? entry.beliefs : []).flatMap(
-    (held): BeliefLine[] =>
-      isJsonObject(held) && typeof held.actor === "string" && isBelief(held.belief)
-        ? [
-            {
-              actor: held.actor,
-              iri: actorIri(context, held.actor),
-              who: whoOf(actorIri(context, held.actor), user),
-              belief: held.belief,
-              date: text(held.date),
-              note: text(held.note),
-            },
-          ]
-        : [],
-  );
-  return {
-    method: text(entry.method),
-    who: by.length === 0 ? null : by.map((iri) => whoOf(actorIri(context, iri), user)).join(", "),
-    date: text(entry.date),
-    service: text(entry.service),
-    basis: list(entry.basis),
-    match: text(entry.match),
-    note: text(entry.note),
-    beliefs,
-  };
-}
-
-/**
- * The user's own belief among a line's beliefs, each actor compared by the
- * IRI it stands for (`BeliefLine.iri`) with the user's IRI (`statedBy`, an
- * absolute IRI, which every context expands to itself); `null` for none.
- */
-export function beliefOf(line: EntryLine | null, user: User): Belief | null {
-  const actor = statedBy(user);
-  return line?.beliefs.find((held) => held.iri === actor)?.belief ?? null;
-}
-
-/** One line of a provenance entry's paradata: which member, its label, and its text. */
-export interface ParadataRow {
-  readonly key: "who" | "method" | "service" | "basis" | "match" | "note" | "date";
-  readonly label: string;
-  readonly text: string;
-}
-
-/** The paradata of an entry line, in the order shown, with their labels. */
-const PARADATA: readonly (readonly [ParadataRow["key"], string])[] = [
-  ["who", "stated by"],
-  ["method", "method"],
-  ["service", "service"],
-  ["basis", "basis"],
-  ["match", "match"],
-  ["note", "note"],
-  ["date", "date"],
-];
-
-/**
- * How a pair or a MatchClaim was made, as its details list it: one row per
- * paradata member the entry states, in the order who stated it, method,
- * service, basis (joined by ", "), match, note, date. The one paradata
- * reader of both tabs.
- */
-export function paradataRows(line: EntryLine): ParadataRow[] {
-  return PARADATA.flatMap(([key, label]): ParadataRow[] => {
-    const value = line[key];
-    if (typeof value === "string") return [{ key, label, text: value }];
-    return Array.isArray(value) && value.length > 0 ? [{ key, label, text: value.join(", ") }] : [];
-  });
 }
 
 /** Whether `value` is a value object, a literal with `@value`. */
@@ -400,24 +258,40 @@ function isWebIri(iri: string | null): iri is string {
   return iri !== null && /^https?:\/\//u.test(iri);
 }
 
-/** A pair's row: property and value as written, the value's web address. */
-function rowOf(context: unknown, [property, value]: Pair): VocabularyRow {
+/** Words that are no IRI, shown as they are. */
+const words = (text: string): ShownIri => ({ text, iri: null });
+
+/** A pair's row: property and value as written, IRIs as shown (`shownIri`), the value's web address. */
+function rowOf(names: IriNames, [property, value]: Pair): VocabularyRow {
+  const shownProperty = shownIri(names, property);
   if (property === "type" && typeof value === "string") {
-    const iri = expanded(context, value);
-    return { property, value, href: isWebIri(iri) ? iri : null };
+    const iri = expanded(names.context, value);
+    return {
+      property: shownProperty,
+      value: shownIri(names, value),
+      href: isWebIri(iri) ? iri : null,
+    };
   }
   if (isNode(value)) {
     if (typeof value.id === "string") {
-      const iri = expanded(context, value.id);
-      return { property, value: value.id, href: isWebIri(iri) ? iri : null };
+      const iri = expanded(names.context, value.id);
+      return {
+        property: shownProperty,
+        value: shownIri(names, value.id),
+        href: isWebIri(iri) ? iri : null,
+      };
     }
     return {
-      property,
-      value: typeof value.label === "string" ? value.label : canonicalText(value),
+      property: shownProperty,
+      value: words(typeof value.label === "string" ? value.label : canonicalText(value)),
       href: null,
     };
   }
-  return { property, value: literalText(value) ?? canonicalText(value), href: null };
+  return {
+    property: shownProperty,
+    value: words(literalText(value) ?? canonicalText(value)),
+    href: null,
+  };
 }
 
 /** The context the skeleton declares. */
@@ -515,6 +389,7 @@ export function rectanglesOf(
 ): readonly RectangleView[] {
   const { skeleton, path } = frame;
   const context = contextOf(skeleton);
+  const names = iriNames(catalogue, context);
   const annotated = entries(skeleton, path);
   return rectangles(catalogue, skeleton, path).map((rectangle) => {
     const pairs = rectangle.pairs;
@@ -530,12 +405,12 @@ export function rectanglesOf(
       heading: verb === null ? (first?.[0] ?? "") : verbLabel(catalogue, verb, rectangle.inverse),
       label,
       things: rectangle.things.map((iri) => ({ system: recognisedAs(catalogue, iri), iri })),
-      rows: pairs.map((pair) => rowOf(context, pair)),
+      rows: pairs.map((pair) => rowOf(names, pair)),
       entries: pairs.map((pair) => {
         const entry = annotated.find((candidate) =>
           samePair(context, entryPair(context, candidate), pair),
         );
-        return entry === undefined ? null : lineOf(entry, user, context);
+        return entry === undefined ? null : lineOf(entry, user, names);
       }),
       addable: addableOf(catalogue, context, verb, rectangle.inverse, pairs),
       pairs,
@@ -601,23 +476,30 @@ function labelsOf(skeleton: Skeleton): Map<string, string> {
   return labels;
 }
 
-/** The words of an annotated pair's value: its label, an element's name, a literal's text, or its ID. */
+/**
+ * The words of an annotated pair's value: its label, an element's name, a
+ * literal's text, or its ID as shown (`shownIri`).
+ */
 function valueWords(
-  context: unknown,
+  iris: IriNames,
   value: unknown,
   labels: ReadonlyMap<string, string>,
   names: ReadonlyMap<string, string>,
-): string {
+): ShownIri {
+  const named = (id: string): ShownIri => {
+    const label = labels.get(expanded(iris.context, id) ?? id);
+    return label === undefined ? shownIri(iris, id) : words(label);
+  };
   if (isNode(value)) {
-    if (typeof value.label === "string") return value.label;
+    if (typeof value.label === "string") return words(value.label);
     if (typeof value.id === "string") {
-      if (value.id.startsWith("#")) return names.get(value.id.slice(1)) ?? value.id;
-      return labels.get(expanded(context, value.id) ?? value.id) ?? value.id;
+      if (value.id.startsWith("#")) return words(names.get(value.id.slice(1)) ?? value.id);
+      return named(value.id);
     }
-    return canonicalText(value);
+    return words(canonicalText(value));
   }
-  if (typeof value === "string") return labels.get(expanded(context, value) ?? value) ?? value;
-  return literalText(value) ?? canonicalText(value);
+  if (typeof value === "string") return named(value);
+  return words(literalText(value) ?? canonicalText(value));
 }
 
 /** The rows of `found`, entries of the subject at `subject`. */
@@ -631,6 +513,7 @@ function rowsOf(
   names: ReadonlyMap<string, string>,
 ): CandidateRow[] {
   const context = contextOf(frame.skeleton);
+  const iris = iriNames(catalogue, context);
   return found.map((entry) => {
     const pair = entryPair(context, entry);
     const [property, value] = pair;
@@ -639,9 +522,9 @@ function rowsOf(
       key: canonicalText([subject, entry.property, entry.value]),
       subject,
       heading: verb === null ? property : verbLabel(catalogue, verb[0], verb[1]),
-      label: valueWords(context, value, labels, names),
+      label: valueWords(iris, value, labels, names),
       pair,
-      line: lineOf(entry, user, context),
+      line: lineOf(entry, user, iris),
     };
   });
 }
@@ -715,9 +598,10 @@ export function typeLabels(
       for (const index of covered) named.add(index);
     }
   }
+  const iris = iriNames(catalogue, context);
   const rest = isA
     .filter((_, index) => !named.has(index))
-    .map((pair) => rowOf(context, pair).value);
+    .map((pair) => rowOf(iris, pair).value.text);
   return [...labels, ...rest];
 }
 
@@ -750,5 +634,10 @@ export function framePrefixes(
   frame: Frame,
   catalogue: Catalogue,
 ): Readonly<Record<string, string>> {
-  return prefixesOf(catalogue, contextOf(frame.skeleton));
+  return frameNames(frame, catalogue).prefixes;
+}
+
+/** The names a frame's IRIs are shown with (`shownIri`): the catalogue and its manifest's context. */
+export function frameNames(frame: Frame, catalogue: Catalogue): IriNames {
+  return iriNames(catalogue, contextOf(frame.skeleton));
 }

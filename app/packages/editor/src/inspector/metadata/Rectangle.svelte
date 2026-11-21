@@ -4,18 +4,20 @@
  * sentence (the verb in words and the thing's label, with a thumbnail where
  * the lookup finds one; for the first tile, `sentence`: what the element
  * is). One click on the expand button shows its pairs, property and value
- * as the file writes them, each a separate row, each value a link out
- * where it is a web address, each with a Details button opening its
- * paradata, its beliefs and the actions on it (`PairDetails`); then
- * "＋ Add vocabulary". The empty "is a" tile offers "State what it is".
+ * as the file writes them, IRIs as slugs with the full IRI as their title,
+ * each a separate row, each value a link out where it is a web address,
+ * each with a Provenance button opening its paradata, its beliefs and the
+ * actions on it (`Provenance`); then "＋ Add vocabulary". The empty "is a"
+ * tile offers "State what it is". A pair without an entry is stated by the
+ * manifest. Believing a stated pair false records the belief and leaves
+ * the pair stated, so Remove stays an action of its own.
  */
 import { canonicalText } from "@timetoalign/tilie-core";
 import type { Belief } from "@timetoalign/timetoshare";
-import { SvelteSet } from "svelte/reactivity";
 import { userOf } from "../../user.svelte.ts";
+import Provenance from "../Provenance.svelte";
+import { beliefOf } from "../provenance.ts";
 import type { Frame, Pair, RectangleView } from "./frame.ts";
-import { beliefOf } from "./frame.ts";
-import PairDetails from "./PairDetails.svelte";
 import { thumbnailsOf } from "./thumbnails.svelte.ts";
 
 let {
@@ -45,18 +47,11 @@ const user = userOf();
 
 /** Whether the pairs are shown. */
 let expanded = $state(false);
-/** The keys of the pairs whose details are shown. */
-const detailed = new SvelteSet<string>();
 
 const empty = $derived(rectangle.pairs.length === 0);
 const keys = $derived(rectangle.pairs.map((pair) => canonicalText(pair)));
 const thing = $derived(thumbnails.first(rectangle.things));
 const image = $derived(thing === null ? null : thumbnails.imageOf(thing));
-
-function toggle(key: string): void {
-  if (detailed.has(key)) detailed.delete(key);
-  else detailed.add(key);
-}
 </script>
 
 <div
@@ -109,33 +104,31 @@ function toggle(key: string): void {
     <div id="{uid}-pairs" class="pairs" hidden={!expanded}>
       <ul data-testid="metadata-vocabulary">
         {#each rectangle.rows as row, index (keys[index])}
-          {@const key = keys[index] ?? ""}
           {@const pair = rectangle.pairs[index]}
           {@const line = rectangle.entries[index] ?? null}
           <li>
             <span class="pair">
-              <code class="property">{row.property}</code>
+              <code class="property" title={row.property.iri ?? undefined}>{row.property.text}</code>
               {#if row.href !== null}
-                <a href={row.href} rel="noreferrer" target="_blank">{row.value} ↗</a>
+                <a href={row.href} title={row.value.iri ?? undefined} rel="noreferrer" target="_blank"
+                  >{row.value.text} ↗</a
+                >
               {:else}
-                <code>{row.value}</code>
+                <code title={row.value.iri ?? undefined}>{row.value.text}</code>
               {/if}
             </span>
-            <button
-              type="button"
-              aria-label="Details of {row.property} {row.value}"
-              aria-expanded={detailed.has(key)}
-              aria-controls="{uid}-details-{index}"
-              onclick={() => toggle(key)}>Details</button
-            >
-            {#if detailed.has(key) && pair !== undefined}
-              <PairDetails
-                id="{uid}-details-{index}"
+            {#if pair !== undefined}
+              <Provenance
+                subject="{row.property.text} {row.value.text}"
                 {line}
+                missing="No provenance entry: the manifest states it."
                 mine={beliefOf(line, user.state.user)}
                 onbelieve={(belief) => onbelieve(pair, belief)}
-                onremove={() => onremove(pair)}
-              />
+              >
+                {#snippet actions()}
+                  <button type="button" onclick={() => onremove(pair)}>Remove</button>
+                {/snippet}
+              </Provenance>
             {/if}
           </li>
         {/each}
@@ -255,10 +248,6 @@ function toggle(key: string): void {
 
   a {
     color: #1d4f91;
-  }
-
-  li > :global([data-testid="metadata-details"]) {
-    flex-basis: 100%;
   }
 
   button:not(.toggle) {

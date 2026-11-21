@@ -14,7 +14,7 @@
  */
 
 import type { Alternative, Catalogue, CatalogueVerb, Pair } from "@timetoalign/timetoshare";
-import { expandIri, isJsonObject, samePair } from "@timetoalign/timetoshare";
+import { isJsonObject, samePair } from "@timetoalign/timetoshare";
 import type { ValueKind } from "../../lookup/index.ts";
 import { isServiceSystem } from "../../lookup/services.ts";
 
@@ -353,45 +353,6 @@ export function takesLiteral(pattern: unknown): boolean {
     return false;
   };
   return walk(pattern, null);
-}
-
-/** The prefixes of the catalogue and those `context` declares (namespaces ending in `/` or `#`). */
-export function prefixesOf(
-  catalogue: Catalogue,
-  context: unknown,
-): Readonly<Record<string, string>> {
-  const own: Record<string, string> = {};
-  if (isJsonObject(context)) {
-    for (const [prefix, namespace] of Object.entries(context)) {
-      if (typeof namespace === "string" && /[/#]$/u.test(namespace) && !prefix.startsWith("@")) {
-        own[prefix] = namespace;
-      }
-    }
-  }
-  return { ...catalogue.prefixes, ...own };
-}
-
-const LOCAL_NAME = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/u;
-
-/**
- * `iri` written compactly: with the longest namespace of `prefixes` that
- * begins it and leaves a rest that is a plain local name; else as given.
- */
-export function compactIri(prefixes: Readonly<Record<string, string>>, iri: string): string {
-  let best: [string, string] | null = null;
-  for (const [prefix, namespace] of Object.entries(prefixes)) {
-    if (!iri.startsWith(namespace) || !LOCAL_NAME.test(iri.slice(namespace.length))) continue;
-    if (best === null || namespace.length > best[1].length) best = [prefix, namespace];
-  }
-  return best === null ? iri : `${best[0]}:${iri.slice(best[1].length)}`;
-}
-
-/** `text` as an absolute IRI under `prefixes`, or null: a compact IRI expanded, an absolute one kept. */
-export function absoluteIri(
-  prefixes: Readonly<Record<string, string>>,
-  text: string,
-): string | null {
-  return expandIri(prefixes, text.trim());
 }
 
 /** A type the "is a" field offers in `system`: one per alternative of a catalogue type there. */

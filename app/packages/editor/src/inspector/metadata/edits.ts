@@ -10,6 +10,7 @@ import type { Address, PathSegment, SetCommand, Skeleton } from "@timetoalign/ti
 import { canonicalText, TILIE_AGENT } from "@timetoalign/tilie-core";
 import type { Belief, PairProvenance } from "@timetoalign/timetoshare";
 import {
+  compactIri,
   expandIri,
   isJsonObject,
   withBelief,
@@ -17,7 +18,6 @@ import {
   withPair,
 } from "@timetoalign/timetoshare";
 import type { JsonObject } from "./catalogue.ts";
-import { compactIri } from "./catalogue.ts";
 import type { CandidateRow, Frame, Pair, Thing } from "./frame.ts";
 
 /** The paradata written for every pair an Add states; the person in `stated_by` believes it `true`. */

@@ -15,7 +15,6 @@ import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
-  details,
   expand,
   exported,
   field,
@@ -23,6 +22,7 @@ import {
   importLayerIt,
   openList,
   pairs,
+  provenance,
   RECORDED,
   showMetadata as show,
   tile,
@@ -95,8 +95,8 @@ test("the LayerIt recording opens with its tiles collapsed and its candidates", 
   await expect(performed.getByTestId("metadata-label")).toHaveText("Maria João Pires");
   await expect(pairs(performed)).toHaveText(["rel:prf viaf:113931950 ↗", "wdt:P175 wd:Q235650 ↗"]);
   await expect(
-    performed.getByRole("button", { name: "Details of wdt:P175 wd:Q235650", exact: true }),
-  ).toHaveText("Details");
+    performed.getByRole("button", { name: "Provenance of wdt:P175 wd:Q235650", exact: true }),
+  ).toHaveText("Provenance");
   for (const heading of ["C.Debussy", "performed by", "same as"]) {
     await expect(tile(page, heading).getByTestId("metadata-add-vocabulary")).toHaveCount(1);
   }
@@ -110,7 +110,7 @@ test("the LayerIt recording opens with its tiles collapsed and its candidates", 
   await showMetadata(page, "clt_6");
   await expect(summaries(page)).toHaveText(["Candidates (1)", "Believed false by you (0)"]);
   await expect(page.getByTestId("metadata-candidate-row")).toContainText("gnd:1156628156");
-  const believed = await details(page, "is a version or edition of gnd:1156628156");
+  const believed = await provenance(page, "is a version or edition of gnd:1156628156");
   await expect(believed.getByTestId("metadata-beliefs")).toHaveText(
     `${P} believes it false (2026-11-18)`,
   );
@@ -129,7 +129,7 @@ test("believing a candidate true states it with the belief, kept as made", async
   await showMetadata(page, "cpt_1");
   const before = await journalLength(page);
   await openList(page, "candidates");
-  const region = await details(page, "is a recording of Clair de lune");
+  const region = await provenance(page, "is a recording of Clair de lune");
   await region.getByRole("button", { name: "True", exact: true }).click();
   await expect(headings(page)).toHaveText([
     CPT_1_SENTENCE,
@@ -164,7 +164,7 @@ test("believing a candidate true states it with the belief, kept as made", async
 test("believing a candidate false sets it apart, its entry kept", async ({ page }) => {
   await showMetadata(page, "dpt_1");
   await openList(page, "candidates");
-  const region = await details(
+  const region = await provenance(
     page,
     "is derived from, is based on C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",
   );
@@ -288,14 +288,14 @@ test("the user's name and ORCID iD stamp the journal and the beliefs", async ({ 
     "You state as Clara Wieck (ORCID iD 0000-0002-1825-0097).",
   );
   await expand(tile(page, "same as"));
-  const same = await details(page, "schema:sameAs https://www.youtube.com/watch?v=Ch2mrPm1JnM");
+  const same = await provenance(page, "schema:sameAs youtube:Ch2mrPm1JnM");
   await same.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(headings(page)).toHaveText([CPT_1_SENTENCE, "performed by Maria João Pires"]);
   expect(await page.evaluate(() => window.__tilie.store().journal.at(-1)?.author ?? null)).toBe(
     "Clara Wieck",
   );
   await openList(page, "candidates");
-  const candidate = await details(page, "is a recording of Clair de lune");
+  const candidate = await provenance(page, "is a recording of Clair de lune");
   await candidate.getByRole("button", { name: "True", exact: true }).click();
   await expect(headings(page)).toHaveText([
     CPT_1_SENTENCE,
@@ -357,7 +357,7 @@ test("a stated pair is believed false by its own button, never by an arrow key, 
   await showMetadata(page, "cpt_1");
   const before = await journalLength(page);
   await expand(tile(page, "performed by"));
-  const region = await details(page, "wdt:P175 wd:Q235650");
+  const region = await provenance(page, "wdt:P175 wd:Q235650");
   const believeFalse = region.getByRole("button", { name: "False", exact: true });
   await believeFalse.focus();
   await page.keyboard.press("ArrowDown");

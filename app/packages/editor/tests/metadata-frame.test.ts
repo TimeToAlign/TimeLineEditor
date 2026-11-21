@@ -2,37 +2,31 @@
 
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, View } from "@timetoalign/tilie-core";
-import { canonicalText, DEFAULT_USER, USER_TAG } from "@timetoalign/tilie-core";
+import { canonicalText, DEFAULT_USER } from "@timetoalign/tilie-core";
 import { defaultCatalogue, fontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
-import {
-  compactIri,
-  systemChoices,
-  typesOf,
-  verbChoices,
-} from "../src/inspector/metadata/catalogue.ts";
+import { systemChoices, typesOf, verbChoices } from "../src/inspector/metadata/catalogue.ts";
 import type { Frame, RectangleView } from "../src/inspector/metadata/frame.ts";
 import {
-  beliefOf,
   candidatesOf,
-  lineOf,
-  paradataRows,
   rectanglesOf,
   rectangleWords,
   SELECT_HINT,
   shownOf,
   typeLabels,
   typeSentence,
-  whoOf,
 } from "../src/inspector/metadata/frame.ts";
+import type { EntryLine } from "../src/inspector/provenance.ts";
+import { beliefOf } from "../src/inspector/provenance.ts";
+import type { ShownIri } from "../src/iris.ts";
 import { fixture, storeOf } from "./support.ts";
 
 const A = "0000000000";
-const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 /** The shipped catalogue: what the tab offers without type profiles. */
 const CATALOGUE = defaultCatalogue();
 
 const T = "https://example.org/agents/tilie";
+const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const P = "https://example.org/people/editor";
 const CPT_1_NAME = "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical";
 const CPT_1 = `timeline '${CPT_1_NAME}'`;
@@ -40,6 +34,13 @@ const BUNDLE = "bundle 'LayerIt, Clair de lune mm. 1–6 (Pires)'";
 const SEE_ALSO =
   "https://github.com/FernandoAze/LayerIt/tree/c88ca33065d49f622fca7225b784240df34a0fe8/src/input_files/ClairDeLune";
 const MB_WORK = "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96";
+const MBID = "mbid:8d331505-4d88-39ae-81c7-bec5da77af96";
+const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+const YOUTUBE = "https://www.youtube.com/watch?v=Ch2mrPm1JnM";
+const WD = "http://www.wikidata.org/entity/";
+const WDT = "http://www.wikidata.org/prop/direct/";
+/** A compact or slug text with the IRI it carries, as `iri` writes it. */
+const as = (text: string, full: string) => `${text} ${full}`;
 
 const view: View = storeOf(fixture("statements/layerit_recording")).view;
 
@@ -57,22 +58,25 @@ function frame(id: string | null): Frame {
 
 const rectangles = (id: string | null) => rectanglesOf(frame(id), CATALOGUE, DEFAULT_USER);
 const headings = (list: readonly RectangleView[]) => list.map((rectangle) => rectangle.heading);
+/** An IRI as shown, by its text and the IRI it carries, if any. */
+const iri = (shown: ShownIri | null) =>
+  shown === null ? null : shown.iri === null ? shown.text : `${shown.text} ${shown.iri}`;
 const rows = (rectangle: RectangleView | undefined) =>
-  rectangle?.rows.map((row) => [row.property, row.value, row.href]);
-const lines = (rectangle: RectangleView | undefined) =>
-  rectangle?.entries.map((line) =>
-    line === null
-      ? null
-      : [
-          line.method,
-          line.who,
-          line.date,
-          line.service,
-          line.basis,
-          line.match,
-          line.beliefs.map((held) => [held.actor, held.belief, held.date]),
-        ],
-  );
+  rectangle?.rows.map((row) => [iri(row.property), iri(row.value), row.href]);
+/** A line by its method, who stated it (texts), date, service and basis as shown, match and beliefs. */
+const lineText = (line: EntryLine | null) =>
+  line === null
+    ? null
+    : [
+        line.method,
+        line.statedBy.map((who) => who.text).join(", "),
+        line.date,
+        iri(line.service),
+        line.basis.map(iri),
+        line.match,
+        line.beliefs.map((held) => [held.actor, held.belief, held.date]),
+      ];
+const lines = (rectangle: RectangleView | undefined) => rectangle?.entries.map(lineText);
 /** `P`'s belief `"true"` of 2026-11-18. */
 const P_TRUE = [[P, "true", "2026-11-18"]];
 
@@ -123,17 +127,26 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
     expect(rest).toEqual([]);
     expect(headings(rectangles("cpt_1"))).toEqual(["is a", "performed by", "same as"]);
     expect([isA?.key, isA?.label]).toEqual(['["type","schema:VideoObject"]', null]);
+    const MANIFESTATION = "https://lod.academy/melod/vocab/ontology#Manifestation";
     expect(rows(isA)).toEqual([
-      ["type", "schema:VideoObject", "http://schema.org/VideoObject"],
-      ["type", "melod:Manifestation", "https://lod.academy/melod/vocab/ontology#Manifestation"],
-      ["wdt:P31", "wd:Q98069877", "http://www.wikidata.org/entity/Q98069877"],
+      [
+        as("type", RDF_TYPE),
+        as("schema:VideoObject", "http://schema.org/VideoObject"),
+        "http://schema.org/VideoObject",
+      ],
+      [as("type", RDF_TYPE), as("melod:Manifestation", MANIFESTATION), MANIFESTATION],
+      [as("wdt:P31", `${WDT}P31`), as("wd:Q98069877", `${WD}Q98069877`), `${WD}Q98069877`],
     ]);
     expect(lines(isA)).toEqual([null, null, null]);
 
     expect(performed?.label).toBe("Maria João Pires");
     expect(rows(performed)).toEqual([
-      ["rel:prf", "viaf:113931950", "http://viaf.org/viaf/113931950"],
-      ["wdt:P175", "wd:Q235650", "http://www.wikidata.org/entity/Q235650"],
+      [
+        as("rel:prf", "http://id.loc.gov/vocabulary/relators/prf"),
+        as("viaf:113931950", "http://viaf.org/viaf/113931950"),
+        "http://viaf.org/viaf/113931950",
+      ],
+      [as("wdt:P175", `${WDT}P175`), as("wd:Q235650", `${WD}Q235650`), `${WD}Q235650`],
     ]);
     expect(performed?.things).toEqual([
       { system: "viaf", iri: "http://viaf.org/viaf/113931950" },
@@ -146,20 +159,20 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
         T,
         "2026-11-18",
         null,
-        ["http://www.wikidata.org/entity/Q235650", "https://d-nb.info/gnd/124927521"],
+        [as("wd:Q235650", `${WD}Q235650`), as("gnd:124927521", "https://d-nb.info/gnd/124927521")],
         null,
         [],
       ],
-      ["reconciled", P, "2026-11-18", "https://www.wikidata.org/w/api.php", [], null, P_TRUE],
+      ["reconciled", P, "2026-11-18", WIKIDATA_API, [], null, P_TRUE],
     ]);
     expect(performed?.addable).toEqual(["musicbrainz", "gnd", "melody"]);
 
     expect(same?.label).toBe(null);
     expect(rows(same)).toEqual([
       [
-        "schema:sameAs",
-        "https://www.youtube.com/watch?v=Ch2mrPm1JnM",
-        "https://www.youtube.com/watch?v=Ch2mrPm1JnM",
+        as("schema:sameAs", "http://schema.org/sameAs"),
+        as("youtube:Ch2mrPm1JnM", YOUTUBE),
+        YOUTUBE,
       ],
     ]);
     expect(lines(same)).toEqual([["manual", P, "2026-11-18", null, [], null, P_TRUE]]);
@@ -200,7 +213,7 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
         row.label,
         row.pair,
         row.line.method,
-        row.line.who,
+        row.line.statedBy,
         row.line.basis,
         row.line.beliefs,
       ]),
@@ -209,11 +222,14 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
         canonicalText([["timelines", 1], "wdt:P2550", { id: "wd:Q29117946" }]),
         ["timelines", 1],
         "is a recording of",
-        "Clair de lune",
+        { text: "Clair de lune", iri: null },
         ["wdt:P2550", { id: "wd:Q29117946" }],
         "inferred",
-        T,
-        ["#clt_6", "#dpt_1"],
+        [{ text: T, iri: null }],
+        [
+          { text: "#clt_6", iri: null },
+          { text: "#dpt_1", iri: null },
+        ],
         [],
       ],
     ]);
@@ -227,12 +243,12 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
     expect([created?.label, lines(created)?.[0]?.[0]]).toEqual(["2025-12-05", "imported"]);
     expect(version?.label).toBe("Clair de lune");
     expect(rows(version)).toEqual([
-      ["schema:exampleOfWork", MB_WORK, MB_WORK],
-      ["wdt:P629", "wd:Q29117946", "http://www.wikidata.org/entity/Q29117946"],
+      [as("schema:exampleOfWork", "http://schema.org/exampleOfWork"), as(MBID, MB_WORK), MB_WORK],
+      [as("wdt:P629", `${WDT}P629`), as("wd:Q29117946", `${WD}Q29117946`), `${WD}Q29117946`],
     ]);
     expect(lines(version)).toEqual([
       ["manual", P, "2026-11-18", null, [], "broad", P_TRUE],
-      ["reconciled", T, "2026-11-18", "https://www.wikidata.org/w/api.php", [MB_WORK], "broad", []],
+      ["reconciled", T, "2026-11-18", WIKIDATA_API, [as(MBID, MB_WORK)], "broad", []],
     ]);
     const found = candidatesOf(frame("clt_6"), CATALOGUE, DEFAULT_USER);
     expect(found.dismissed).toEqual([]);
@@ -247,7 +263,7 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
     ).toEqual([
       [
         "is a version or edition of",
-        "gnd:1156628156",
+        { text: "gnd:1156628156", iri: "https://d-nb.info/gnd/1156628156" },
         "reconciled",
         "GND 'Clair de lune' is Debussy's song L 32 on Verlaine (voice and piano, 1882), not the piano piece",
         [[P, "false"]],
@@ -261,7 +277,7 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
     expect(found.offered.map((row) => [row.heading, row.label])).toEqual([
       [
         "is derived from, is based on",
-        "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical",
+        { text: "C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical", iri: null },
       ],
     ]);
   });
@@ -282,7 +298,7 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
     expect(rectangles("cpt_1").map(rectangleWords)).toEqual([
       "is a schema:VideoObject",
       "performed by Maria João Pires",
-      "same as https://www.youtube.com/watch?v=Ch2mrPm1JnM",
+      "same as youtube:Ch2mrPm1JnM",
     ]);
   });
 
@@ -295,18 +311,6 @@ describe("the rectangles and candidates of the LayerIt recording", () => {
         "schema:about",
       ],
     ]);
-  });
-});
-
-describe("who stated a pair", () => {
-  it("names the user, an iD, a tagged name, TiLiE and anyone else", () => {
-    expect([
-      whoOf(G, DEFAULT_USER),
-      whoOf("https://orcid.org/0000-0002-1825-0097", DEFAULT_USER),
-      whoOf("tag:timetoalign.github.io,2026:tilie:user:Clara%20Wieck", DEFAULT_USER),
-      whoOf("https://github.com/TimeToAlign/TimeLineEditor", DEFAULT_USER),
-      whoOf(P, DEFAULT_USER),
-    ]).toEqual(["Gerhardt", "0000-0002-1825-0097", "Clara Wieck", "TiLiE", P]);
   });
 });
 
@@ -347,53 +351,5 @@ describe("the choices the composer offers", () => {
     const wikidata = verbChoices(CATALOGUE, [], "wikidata").map((choice) => choice.label);
     expect(wikidata).not.toContain("has a version or edition");
     expect(wikidata).toContain("performed by");
-  });
-
-  it("writes IRIs compactly where a prefix holds them", () => {
-    expect(compactIri(CATALOGUE.prefixes, "http://www.wikidata.org/entity/Q235650")).toBe(
-      "wd:Q235650",
-    );
-    expect(compactIri(CATALOGUE.prefixes, MB_WORK)).toBe(MB_WORK);
-  });
-});
-
-describe("a provenance entry", () => {
-  const GERHARDT = { name: "Gerhardt", orcid: null };
-  const CONTEXT = { tilie: USER_TAG, ex: "https://example.org/" };
-  const entry = {
-    stated_by: ["ex:people/editor", "tilie:Gerhardt"],
-    date: "2026-11-18",
-    method: "manual",
-    basis: ["ex:sources/a", "ex:sources/b"],
-    beliefs: [
-      { actor: "tilie:Gerhardt", belief: "true", date: "2026-11-19" },
-      { actor: "ex:people/editor", belief: "unlikely", date: "2026-11-18", note: "check" },
-    ],
-  };
-
-  it("reads every actor as the IRI it stands for under the manifest's context", () => {
-    const line = lineOf(entry, GERHARDT, CONTEXT);
-    expect(line.who).toBe(`${P}, Gerhardt`);
-    expect(line.beliefs.map((held) => [held.actor, held.iri, held.who, held.belief])).toEqual([
-      ["tilie:Gerhardt", G, "Gerhardt", "true"],
-      ["ex:people/editor", P, P, "unlikely"],
-    ]);
-    expect(beliefOf(line, GERHARDT)).toBe("true");
-    const unexpanded = lineOf(entry, GERHARDT, undefined);
-    expect(unexpanded.beliefs.map((held) => held.iri)).toEqual([
-      "tilie:Gerhardt",
-      "ex:people/editor",
-    ]);
-    expect(beliefOf(unexpanded, GERHARDT)).toBe(null);
-  });
-
-  it("lists its paradata in one order with one set of labels", () => {
-    expect(paradataRows(lineOf(entry, GERHARDT, CONTEXT))).toEqual([
-      { key: "who", label: "stated by", text: `${P}, Gerhardt` },
-      { key: "method", label: "method", text: "manual" },
-      { key: "basis", label: "basis", text: "ex:sources/a, ex:sources/b" },
-      { key: "date", label: "date", text: "2026-11-18" },
-    ]);
-    expect(paradataRows(lineOf({}, GERHARDT, CONTEXT))).toEqual([]);
   });
 });

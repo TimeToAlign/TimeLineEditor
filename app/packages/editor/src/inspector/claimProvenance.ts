@@ -1,22 +1,24 @@
 /**
  * What the Matchstamp tab shows of a MatchClaim's provenance, which the
  * server reads on demand for the MatchClaims of the MatchStamp shown, as
- * the Metadata tab's entry line (`EntryLine`, one reader of both tabs), and
+ * the inspector's one provenance shape (`EntryLine`, one reader of both tabs), and
  * the MatchStamp the tab follows once a belief replaced the block's table.
  */
 
 import type { ClaimProvenance, ClaimProvenanceEntry } from "@timetoalign/tilie-client";
 import type { AnchorIndex, User } from "@timetoalign/tilie-core";
 import { coordinateOf } from "@timetoalign/tilie-core";
+import { defaultCatalogue } from "@timetoalign/timetoshare";
+import { iriNames } from "../iris.ts";
 import type { ClaimLine, ShownStamp } from "./matchstamps.ts";
-import type { EntryLine } from "./metadata/frame.ts";
-import { lineOf } from "./metadata/frame.ts";
+import type { EntryLine } from "./provenance.ts";
+import { lineOf } from "./provenance.ts";
 import type { HeldMatch } from "./tabs.ts";
 
 /**
  * The entry line of the MatchClaim `claim`, given what the server read of
  * its provenance (`entryOf`): the entry's line (`lineOf`, its actors under
- * `context`) once read; `null` where the table states no entry for it;
+ * `context`, its IRIs shown with the shipped catalogue) once read; `null` where the table states no entry for it;
  * while the entry is not read (not yet asked, pending, failed, or without
  * a server), the beliefs the table states (`claim.beliefs`, without date
  * or note) and no paradata.
@@ -28,10 +30,10 @@ export function claimEntryLine(
   context: unknown,
 ): EntryLine | null {
   if (entry === null) return null;
-  if (entry !== undefined) return lineOf(entry, user, context);
+  if (entry !== undefined) return lineOf(entry, user, iriNames(defaultCatalogue(), context));
   return {
     method: null,
-    who: null,
+    statedBy: [],
     date: null,
     service: null,
     basis: [],

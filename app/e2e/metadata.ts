@@ -3,7 +3,7 @@
  * page with the clock fixed at 2026-11-20T12:00:00Z, every request to
  * Wikidata, lobid, YouTube or Wikimedia Commons answered from the editor's
  * recorded lookups (`packages/editor/tests/lookup/index.json`, by URL) and
- * aborted when it is not recorded; the tab, its tiles, the details of a
+ * aborted when it is not recorded; the tab, its tiles, the provenance of a
  * pair, its candidate lists and composer fields; and a timeline of the
  * exported manifest, read with `loads`, so its IDs are written `#id`.
  */
@@ -88,7 +88,7 @@ export const tile = (page: Page, heading: string): Locator =>
     has: page.getByTestId("metadata-heading").filter({ hasText: new RegExp(`^\\s*${heading}`) }),
   });
 
-/** The pairs of `tile`, each its row's property and value without the row's Details button. */
+/** The pairs of `tile`, each its row's property and value without the row's Provenance button. */
 export const pairs = (tile: Locator): Locator =>
   tile.getByTestId("metadata-vocabulary").locator("> li > .pair");
 
@@ -99,9 +99,9 @@ export async function expand(tile: Locator): Promise<void> {
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
-/** Open the details of the pair or candidate `name` ("rel:prf viaf:113931950", "is a recording of Clair de lune"). */
-export async function details(page: Page, name: string): Promise<Locator> {
-  const button = page.getByRole("button", { name: `Details of ${name}`, exact: true });
+/** Open the provenance of the pair or candidate `name` ("rel:prf viaf:113931950", "is a recording of Clair de lune"). */
+export async function provenance(page: Page, name: string): Promise<Locator> {
+  const button = page.getByRole("button", { name: `Provenance of ${name}`, exact: true });
   if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
   return page.locator(`[id="${await button.getAttribute("aria-controls")}"]`);
 }

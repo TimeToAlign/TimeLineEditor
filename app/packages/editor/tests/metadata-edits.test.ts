@@ -16,7 +16,8 @@ import {
   tied,
 } from "../src/inspector/metadata/edits.ts";
 import type { Frame, Pair } from "../src/inspector/metadata/frame.ts";
-import { beliefOf, candidatesOf, rectanglesOf, shownOf } from "../src/inspector/metadata/frame.ts";
+import { candidatesOf, rectanglesOf, shownOf } from "../src/inspector/metadata/frame.ts";
+import { beliefOf } from "../src/inspector/provenance.ts";
 import { fixture, storeOf } from "./support.ts";
 
 const A = "0000000000";

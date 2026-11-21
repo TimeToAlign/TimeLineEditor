@@ -22,6 +22,9 @@ const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const PIRES_WD = "http://www.wikidata.org/entity/Q235650";
 const PIRES_GND = "https://d-nb.info/gnd/124927521";
+const YOUTUBE = "https://www.youtube.com/watch?v=Ch2mrPm1JnM";
+const MB_WORK = "http://musicbrainz.org/work/8d331505-4d88-39ae-81c7-bec5da77af96";
+const MBID = "mbid:8d331505-4d88-39ae-81c7-bec5da77af96";
 /** The "same as" "＋ Add vocabulary" ties a GND value to Wikidata's Pires with, by TiLiE. */
 const TIE = {
   basis: [PIRES_WD],
@@ -178,12 +181,12 @@ function expand(tile: HTMLElement): void {
   flushSync();
 }
 
-/** Open the details of the pair or candidate whose Details button is named `name`. */
-function details(name: string): HTMLElement {
+/** Open the provenance of the pair or candidate whose Provenance button is named `name`. */
+function provenance(name: string): HTMLElement {
   const found = all<HTMLButtonElement>("button").find(
-    (item) => item.getAttribute("aria-label") === `Details of ${name}`,
+    (item) => item.getAttribute("aria-label") === `Provenance of ${name}`,
   );
-  if (found === undefined) throw new Error(`no details of ${name}`);
+  if (found === undefined) throw new Error(`no provenance of ${name}`);
   if (found.getAttribute("aria-expanded") !== "true") found.click();
   flushSync();
   return one(`#${CSS.escape(found.getAttribute("aria-controls") ?? "")}`);
@@ -286,7 +289,7 @@ describe("tiles and candidates", () => {
     expect(button("State what it is", empty)).toBeDefined();
   });
 
-  it("shows a tile's pairs, each with its Details, on one click", () => {
+  it("shows a tile's pairs, each with its Provenance, on one click", () => {
     show(layerit(), [{ block: A, id: "cpt_1" }]);
     const performed = rectangle("performed by");
     expand(performed);
@@ -308,16 +311,52 @@ describe("tiles and candidates", () => {
       ["viaf:113931950 ↗", "http://viaf.org/viaf/113931950", "noreferrer", "_blank"],
       ["wd:Q235650 ↗", PIRES_WD, "noreferrer", "_blank"],
     ]);
+    expect(all<HTMLAnchorElement>("a", performed).map((anchor) => anchor.title)).toEqual([
+      "http://viaf.org/viaf/113931950",
+      PIRES_WD,
+    ]);
     expect(
-      all<HTMLButtonElement>("button", performed).map((item) => item.getAttribute("aria-label")),
-    ).toEqual([null, "Details of rel:prf viaf:113931950", "Details of wdt:P175 wd:Q235650", null]);
+      all<HTMLButtonElement>("button", performed).map((item) => [
+        item.getAttribute("aria-label"),
+        item.getAttribute("aria-expanded"),
+      ]),
+    ).toEqual([
+      [null, "true"],
+      ["Provenance of rel:prf viaf:113931950", "false"],
+      ["Provenance of wdt:P175 wd:Q235650", "false"],
+      [null, null],
+    ]);
     expect(all('[data-testid="metadata-vocabulary"] > li > button', performed).map(words)).toEqual([
-      "Details",
-      "Details",
+      "Provenance",
+      "Provenance",
     ]);
     expect(words(one('[data-testid="metadata-add-vocabulary"]', performed))).toBe(
       "＋ Add vocabulary",
     );
+    const same = rectangle("same as");
+    expand(same);
+    expect(all('[data-testid="metadata-vocabulary"] > li > .pair', same).map(words)).toEqual([
+      "schema:sameAs youtube:Ch2mrPm1JnM ↗",
+    ]);
+    expect(all<HTMLAnchorElement>("a", same).map((anchor) => [anchor.href, anchor.title])).toEqual([
+      [YOUTUBE, YOUTUBE],
+    ]);
+  });
+
+  it("shows a MusicBrainz work as an MBID, its IRI on hover", () => {
+    show(layerit(), [{ block: A, id: "clt_6" }]);
+    const version = rectangle("is a version or edition of");
+    expand(version);
+    expect(all('[data-testid="metadata-vocabulary"] > li > .pair', version).map(words)).toEqual([
+      `schema:exampleOfWork ${MBID} ↗`,
+      "wdt:P629 wd:Q29117946 ↗",
+    ]);
+    expect(all<HTMLAnchorElement>("a", version)[0]?.title).toBe(MB_WORK);
+    const basis = all("dt", provenance(`wdt:P629 wd:Q29117946`)).find(
+      (term) => words(term) === "basis",
+    )?.nextElementSibling;
+    if (!(basis instanceof HTMLElement)) throw new Error("no basis");
+    expect([words(basis), one<HTMLElement>("span", basis).title]).toEqual([MBID, MB_WORK]);
   });
 });
 
@@ -325,7 +364,7 @@ describe("the details of a pair", () => {
   it("shows the paradata, the beliefs and the actions", () => {
     show(layerit(), [{ block: A, id: "cpt_1" }]);
     expand(rectangle("performed by"));
-    const wikidata = details("wdt:P175 wd:Q235650");
+    const wikidata = provenance("wdt:P175 wd:Q235650");
     expect(
       all("dt", wikidata).map((term) => [words(term), words(term.nextElementSibling as Element)]),
     ).toEqual([
@@ -340,11 +379,11 @@ describe("the details of a pair", () => {
     ]);
     expect(all("button", wikidata).map(words)).toEqual(["True", "Unlikely", "False", "Remove"]);
     expect(pressed(wikidata)).toEqual([]);
-    expect(words(one('[data-testid="metadata-beliefs"]', details("rel:prf viaf:113931950")))).toBe(
-      "No one has stated a belief.",
-    );
+    expect(
+      words(one('[data-testid="metadata-beliefs"]', provenance("rel:prf viaf:113931950"))),
+    ).toBe("No one has stated a belief.");
     expand(rectangles()[0] as HTMLElement);
-    expect(words(one("p", details("type schema:VideoObject")))).toBe(
+    expect(words(one("p", provenance("type schema:VideoObject")))).toBe(
       "No provenance entry: the manifest states it.",
     );
   });
@@ -353,7 +392,7 @@ describe("the details of a pair", () => {
     const store = layerit();
     show(store, [{ block: A, id: "cpt_1" }]);
     expand(rectangle("performed by"));
-    button("False", details("wdt:P175 wd:Q235650")).click();
+    button("False", provenance("wdt:P175 wd:Q235650")).click();
     await settle();
     expect(store.journal).toHaveLength(2);
     const [command] = commandsAfter(store, 1);
@@ -365,13 +404,13 @@ describe("the details of a pair", () => {
       { actor: G, belief: "false", date: "2026-11-20" },
     ]);
     expect(headings()).toEqual([CPT_1_SENTENCE, "performed by Maria João Pires", "same as"]);
-    const region = details("wdt:P175 wd:Q235650");
+    const region = provenance("wdt:P175 wd:Q235650");
     expect(pressed(region)).toEqual(["False"]);
     expect(all('[data-testid="metadata-beliefs"] li', region)).toHaveLength(2);
     button("Unlikely", region).click();
     await settle();
     expect(store.journal).toHaveLength(3);
-    const again = details("wdt:P175 wd:Q235650");
+    const again = provenance("wdt:P175 wd:Q235650");
     expect(pressed(again)).toEqual(["Unlikely"]);
     expect(all('[data-testid="metadata-beliefs"] li', again)).toHaveLength(2);
   });
@@ -380,7 +419,7 @@ describe("the details of a pair", () => {
     const store = layerit();
     const { selection } = show(store, [{ block: A, id: "cpt_1" }]);
     expand(rectangle("performed by"));
-    button("Remove", details("rel:prf viaf:113931950")).click();
+    button("Remove", provenance("rel:prf viaf:113931950")).click();
     await settle();
     expect(headings()).toEqual([CPT_1_SENTENCE, "same as", "performed by Maria João Pires"]);
     expect(document.activeElement).toBe(rectangle("performed by"));
@@ -388,7 +427,7 @@ describe("the details of a pair", () => {
     flushSync();
     for (const pair of ["type schema:AudioObject", "type melod:Manifestation"]) {
       expand(rectangles()[0] as HTMLElement);
-      button("Remove", details(pair)).click();
+      button("Remove", provenance(pair)).click();
       await settle();
     }
     expect(rectangles().map((item) => item.dataset.key)).toEqual(["is_a"]);
@@ -400,7 +439,7 @@ describe("candidates", () => {
   it("states a candidate believed true into a tile that takes the focus", async () => {
     const store = layerit();
     show(store, [{ block: A, id: "cpt_1" }]);
-    button("True", details("is a recording of Clair de lune")).click();
+    button("True", provenance("is a recording of Clair de lune")).click();
     await settle();
     expect(store.journal).toHaveLength(2);
     expect(headings()).toEqual([
@@ -418,12 +457,12 @@ describe("candidates", () => {
     show(store, [{ block: A, id: "dpt_1" }]);
     const name =
       "is derived from, is based on C.Debussy - Clair de Lune, Maria João Pires live at Jardin Musical";
-    button("False", details(name)).click();
+    button("False", provenance(name)).click();
     await settle();
     expect(store.journal).toHaveLength(2);
     expect(summaries()).toEqual(["Candidates (0)", "Believed false by you (1)"]);
     expect(document.activeElement).toBe(one('[data-testid="metadata-candidates"] summary'));
-    button("Unlikely", details(name)).click();
+    button("Unlikely", provenance(name)).click();
     await settle();
     expect(store.journal).toHaveLength(3);
     expect(summaries()).toEqual(["Candidates (1)", "Believed false by you (0)"]);
@@ -702,11 +741,11 @@ describe("the user", () => {
     expect(one('[data-testid="metadata-user"]').textContent?.replace(/\s+/gu, " ").trim()).toBe(
       "You state as Clara Wieck (ORCID iD 0000-0002-1825-0097). Change…",
     );
-    button("True", details("is a recording of Clair de lune")).click();
+    button("True", provenance("is a recording of Clair de lune")).click();
     await settle();
     const [command] = commandsAfter(store, 1);
-    const provenance = command?.type === "set" ? command.changes[0]?.values.provenance : [];
-    expect((provenance as { beliefs: unknown }[])[3]?.beliefs).toEqual([
+    const entries = command?.type === "set" ? command.changes[0]?.values.provenance : [];
+    expect((entries as { beliefs: unknown }[])[3]?.beliefs).toEqual([
       { actor: "https://orcid.org/0000-0002-1825-0097", belief: "true", date: "2026-11-20" },
     ]);
   });
@@ -716,7 +755,7 @@ describe("refusals", () => {
   it("posts the store's refusal as a warning and journals nothing", () => {
     const store = layerit();
     const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
-    const region = details("is a recording of Clair de lune");
+    const region = provenance("is a recording of Clair de lune");
     vi.spyOn(store, "dispatch").mockReturnValueOnce({
       code: "schema_violation",
       message: "refused for the test",
@@ -732,10 +771,7 @@ describe("refusals", () => {
     const store = layerit();
     const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
     expand(rectangle("same as"));
-    const remove = button(
-      "Remove",
-      details("schema:sameAs https://www.youtube.com/watch?v=Ch2mrPm1JnM"),
-    );
+    const remove = button("Remove", provenance("schema:sameAs youtube:Ch2mrPm1JnM"));
     const [same] = store.view.blocks[A]?.manifest.timelines[1]?.statements?.["schema:sameAs"] ?? [];
     // The store loses the pair while the rectangle still shows it.
     store.dispatch({
