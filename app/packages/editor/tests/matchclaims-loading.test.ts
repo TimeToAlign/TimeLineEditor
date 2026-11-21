@@ -720,6 +720,71 @@ describe("beside the manifest's file on the server", () => {
     expect(empty.located).toEqual([["b", MANIFEST_PATH]]);
   });
 
+  const WEB_TABLE = "https://example.org/p/step1.match_claims.parquet";
+
+  /** The LayerIt manifest naming its MatchClaim table by `url`. */
+  function naming(url: string) {
+    return {
+      ...LAYERIT,
+      resources: (LAYERIT.resources ?? []).map((resource) =>
+        resource.type === "MatchClaim" ? { ...resource, url } : resource,
+      ),
+    };
+  }
+
+  it("fetches a table named by an absolute URL, reading nothing through the server or a source", async () => {
+    for (const url of [WEB_TABLE, WEB_TABLE.replace("https:", "http:")]) {
+      const { server, requests } = serving();
+      const { ask, questions } = answering(null);
+      const { place, read } = places({ [TABLE_PATH]: MATCH_CLAIMS }, MANIFEST_PATH);
+      const fetching = vi.fn(async (_input: URL) => new Response("served claims"));
+      vi.stubGlobal("fetch", fetching);
+      const tables = new MatchClaimTables(server, ask, () => place);
+      expect(await tables.loadNamed("b", naming(url))).toEqual({
+        informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
+        warned: [],
+      });
+      expect(fetching.mock.calls.map(([input]) => String(input))).toEqual([url]);
+      expect([read, questions]).toEqual([[], []]);
+      expect(await requests[0]?.[1].text()).toBe("served claims");
+      expect(tables.of("b")?.name).toBe("step1.match_claims.parquet");
+    }
+
+    const fromSource: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("served claims")),
+    );
+    const located = new MatchClaimTables(serving().server, answering(null).ask);
+    located.locate("b", source({ "step1.match_claims.parquet": MATCH_CLAIMS }, fromSource));
+    expect((await located.loadNamed("b", naming(WEB_TABLE))).warned).toEqual([]);
+    expect(fromSource).toEqual([]);
+  });
+
+  it("asks as Load MatchClaims… asks where the URL cannot be fetched, saying why", async () => {
+    const { server, requests } = serving();
+    const { ask, questions } = answering(null);
+    const { place, read } = places({ [TABLE_PATH]: MATCH_CLAIMS }, MANIFEST_PATH);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 404, statusText: "Not Found" })),
+    );
+    const tables = new MatchClaimTables(server, ask, () => place);
+    expect(await tables.loadNamed("b", naming(WEB_TABLE))).toEqual({
+      informed: [],
+      warned: [`${WEB_TABLE} could not be read: 404 Not Found`],
+    });
+    expect(
+      questions.map(({ manifest, table, question }) => [
+        manifest,
+        table,
+        question.kind,
+        question.kind === "table" ? question.missing : undefined,
+      ]),
+    ).toEqual([["LayerIt", { url: WEB_TABLE }, "table", null]]);
+    expect([read, requests, tables.of("b")]).toEqual([[], [], null]);
+  });
+
   it("says why a located file the server refuses was not read", async () => {
     const { server, requests } = serving();
     const { place } = places({}, MANIFEST_PATH);

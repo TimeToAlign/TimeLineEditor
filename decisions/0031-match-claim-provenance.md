@@ -131,4 +131,9 @@ it takes this request unchanged.
 
 ## Review date
 
-2027-05-21, or when packages open as folders through the server.
+2027-05-21, or when the editor saves MatchClaim tables through the server.
+Reviewed 2026-11-21, when packages came to open as folders through the
+server (decision 0033), the condition this date first named: the
+decision stands. The server still writes no table and keeps none between
+requests; the editor sends the table it holds, which after a belief
+differs from the file until the user saves it, as a download.

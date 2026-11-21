@@ -329,52 +329,120 @@ manifest's length and refused by the table route's own split.
 files below the server's root folder (`decisions/0033-server-file-access.md`):
 the user's home folder unless `tilie --root <folder>` names another. A path
 is the query parameter `path`, POSIX and relative to the root, `""` the root
-itself. What these tests prove first is the boundary: no request reaches a
-file outside the root, and no request writes a file that is not one of
-TimeLineEditor's own kinds (`.tle.json`, `.yaml`, `.yml`, `.json`,
-`.parquet`, by the end of the name in any case). The oracle is the
-temporary folder the test builds and then inspects on disk, never the
-route's own answer: a refusal is proved by its exact answer and by the
-folder being unchanged beside it, a write by the bytes the test reads back.
+itself. What these tests prove first is the boundary, for a holder of the
+run's token: no request reaches a file outside the root; no request reaches
+a hidden file or folder (a segment starting with `.`) below it, whether
+named or reached through a link; a read answers only the files the editor
+opens, workspace, manifest and table files (`.tle.json`, `.yaml`, `.yml`,
+`.json`, `.parquet`, by the end of the name in any case); and a write
+writes only workspace files (`.tle.json`), the one file the editor saves
+through the server. Kinds are checked on the name asked for and on the
+file a link leads to. The oracle is the temporary folder the test builds
+and then inspects on disk, never the route's own answer: a refusal is
+proved by its exact answer and by the whole tree below the root being
+unchanged beside it (every folder, every file's bytes and mode, every
+link's target, read without following links), a write by the bytes the
+test reads back.
 
 Each test's root is a fresh temporary folder `R` holding:
 
-- `a.yaml` holding `b"x: 1\n"`,
+- `a.yaml` holding `b"x: 1\n"` and `notes.txt`,
 - `sub/b.tle.json` holding `b"{}"` and `sub/c.txt`,
-- `.hidden.yaml`,
+- the hidden files and folders a home folder holds: `.hidden.yaml`,
+  `.ssh/id_rsa`, `.claude.json`, `.claude/settings.json`, `.config/x.yaml`,
+  and `sub/.hidden/a.yaml`,
+- links inside the root leading into hidden places: `sub/key.yaml` to
+  `R/.config/x.yaml`, `sub/conf` to the folder `R/.config`, and
+  `sub/hid.tle.json` to `R/.config/hid.tle.json`, which does not exist,
 - the empty folder `d/`,
 - `out`, a symbolic link to `R`'s parent folder, which lies outside the root.
 
+**Listing.**
+
 | Request | Answer |
 | --- | --- |
-| `GET folders` `path=""` | 200 `{"path": "", "entries": [{"name": "d", "kind": "folder"}, {"name": "sub", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`: folders first, then files; `.hidden.yaml` left out (a name starting with `.`), `out` left out (its target lies outside the root) |
-| `GET folders` `path="sub"` | `{"path": "sub", "entries": [{"name": "b.tle.json", "kind": "file"}]}`: `c.txt` is none of the five kinds |
+| `GET folders` `path=""` | 200 `{"path": "", "entries": [{"name": "d", "kind": "folder"}, {"name": "sub", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`: folders first, then files; the hidden names left out, `notes.txt` left out (none of the readable kinds), `out` left out (its target lies outside the root) |
+| `GET folders` `path="sub"` | `{"path": "sub", "entries": [{"name": "b.tle.json", "kind": "file"}]}`: `c.txt` is none of the readable kinds, `.hidden` is hidden, and `key.yaml`, `conf` and `hid.tle.json` lead into a hidden place |
 | `GET folders` `path="d"` | `{"path": "d", "entries": []}` |
-| `GET folders` on a folder holding the folders `y` and `Z`, the files `b.yaml`, `B.json`, `a.PARQUET` and `n.txt`, a link `inner` to `R/sub`, a link `alias.yaml` to `R/a.yaml` and a link `gone.yaml` to nothing | folders `Z`, `inner`, `y`, then files `B.json`, `a.PARQUET`, `alias.yaml`, `b.yaml`: each group sorted by code point (upper case before lower), a link inside the root listed as what it leads to, a link leading nowhere left out |
+| `GET folders` on a folder holding the folders `y` and `Z`, the files `b.yaml`, `B.json`, `a.PARQUET` and `n.txt`, a link `inner` to `R/sub`, a link `alias.yaml` to `R/a.yaml`, a link `text.yaml` to `R/notes.txt` and a link `gone.yaml` to nothing | folders `Z`, `inner`, `y`, then files `B.json`, `a.PARQUET`, `alias.yaml`, `b.yaml`: each group sorted by code point (upper case before lower), a link inside the root listed as what it leads to, a link leading to a file of another kind or to nothing left out |
 | `GET folders` `path="a.yaml"` (a file) or `path="nope"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}` |
+
+**Reading.**
+
+| Request | Answer |
+| --- | --- |
 | `GET files` `path="a.yaml"` | 200, `Content-Type: application/octet-stream`, the bytes `b"x: 1\n"` |
 | `GET files` `path="sub/../a.yaml"` | the same: `..` that stays inside the root is allowed |
-| `GET files` `path=".hidden.yaml"` | 200 with its bytes: a hidden file is left out of listings only |
-| `GET files` `path="sub/c.txt"` | 200 with its bytes: any file below the root is read |
-| `GET files` `path="sub"` (a folder) or `path="nope.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such file"}}` |
-| `PUT files` `path="sub/new.yaml"`, body `b"y: 2\n"` | 200 `{"path": "sub/new.yaml", "size": 5}`; `R/sub/new.yaml` holds exactly the body, and `R/sub` holds exactly `b.tle.json`, `c.txt`, `new.yaml` (no temporary file left behind) |
-| `PUT files` `path="a.yaml"`, body `b"z: 3\n"`, after `R/a.yaml` was given the mode `0o640` | 200 `{"path": "a.yaml", "size": 5}`; the file holds the new bytes and keeps the mode `0o640` |
-| `PUT files` `path="sub/X.TLE.JSON"`, body `b"{}"` | 200 `{"path": "sub/X.TLE.JSON", "size": 2}`: the kinds are matched in any case |
-| `PUT files` `path="sub/c.txt"` and `path="a.yaml.txt"` | 403 `{"detail": {"path": ["path"], "message": "TimeLineEditor writes only workspace, manifest and table files"}}`; `c.txt` unchanged, no `a.yaml.txt` |
-| `PUT files` `path="sub/alias.yaml"`, a link inside the root to `R/sub/c.txt` | 403 with the same message, `c.txt` unchanged: the kind of the file written is checked, not only the name asked for |
-| `PUT files` `path="nope/x.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}`, nothing created |
-| `PUT files` `path="d.json"` where `R/d.json` is a folder | 409 `{"detail": {"path": ["path"], "message": "a folder lies at the path"}}`, the folder unchanged |
+| `GET files` `path="sub/b.tle.json"` | 200, `b"{}"` |
+| `GET files` `path="nope.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such file"}}` |
+| `GET files` `path="notes.txt"`, `path="sub/c.txt"` and `path="sub"` (a folder: its name is none of the kinds) | 403 `{"detail": {"path": ["path"], "message": "TimeLineEditor reads only workspace, manifest and table files"}}` |
+| `GET files` `path="sub/text.yaml"`, a link to `R/notes.txt` | 403 with the same message: the kind of the file read is checked, not only the name asked for |
+
+**Writing.**
+
+| Request | Answer |
+| --- | --- |
+| `PUT files` `path="sub/new.tle.json"`, body `b"{\"a\": 1}"` | 200 `{"path": "sub/new.tle.json", "size": 8}`; `R/sub/new.tle.json` holds exactly the body, and `R/sub` holds exactly what it held and `new.tle.json` (no temporary file left behind) |
+| `PUT files` `path="sub/b.tle.json"`, body `b"{\"b\": 2}"`, after `R/sub/b.tle.json` was given the mode `0o640` | 200 `{"path": "sub/b.tle.json", "size": 8}`; the file holds the new bytes and keeps the mode `0o640` |
+| `PUT files` `path="sub/X.TLE.JSON"`, body `b"{}"` | 200 `{"path": "sub/X.TLE.JSON", "size": 2}`: the kind is matched in any case |
+| `PUT files` `path="a.yaml"`, `"x.yaml"`, `"package.json"`, `"m.parquet"`, `"sub/c.txt"` and `"a.yaml.txt"` | 403 `{"detail": {"path": ["path"], "message": "TimeLineEditor writes only workspace files"}}`: a manifest, a table or any other file is never written, an existing one (`a.yaml`) never replaced |
+| `PUT files` `path="sub/alias.tle.json"`, a link inside the root to `R/sub/c.txt`, and `path="sub/m.tle.json"`, a link to `R/a.yaml` | 403 with the same message: the kind of the file written is checked, not only the name asked for |
+| `PUT files` `path="nope/x.tle.json"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}`, nothing created |
+| `PUT files` `path="d.tle.json"` where `R/d.tle.json` is a folder | 409 `{"detail": {"path": ["path"], "message": "a folder lies at the path"}}`, the folder unchanged |
+| `GET files` `path="a.yaml/"` and `PUT files` `path="w.tle.json/"` | 400 `{"detail": {"path": ["path"], "message": "a file's path does not end in /"}}`: the slash is not dropped, so `a.yaml` is not read and no `w.tle.json` written |
+| `PUT files` `path="loop.tle.json"`, a link to itself, and `GET files` on it | 400 `{"detail": {"path": ["path"], "message": "the links at the path form a loop"}}`; the link is left as it was |
+
+Every refusal of this section and the next two leaves the tree below `R`
+exactly as it was.
+
+**Hidden files.** A path is refused with 403 `{"detail": {"path":
+["path"], "message": "hidden files are not served"}}` when one of its
+segments starts with `.` and is not `..` (checked on the path as asked,
+before anything is resolved: `.ssh/../a.yaml` is refused though it resolves
+to `a.yaml`), or when the place it resolves to, every link followed, has
+such a segment below the root (a link leading into `.config`). A hidden
+folder above the root is no concern: only segments below the root are
+looked at, so a root inside a hidden folder serves its files.
+
+| Request | Paths |
+| --- | --- |
+| `GET files` | `.ssh/id_rsa`, `.claude.json`, `.claude/settings.json`, `.config/x.yaml`, `.hidden.yaml`, `sub/.hidden/a.yaml`, `.ssh/../a.yaml`, and `sub/key.yaml` (a link into `.config`) |
+| `PUT files` | `.claude.json`, `.claude/settings.json`, `.config/x.yaml`, `sub/.hidden/a.yaml`, `.ssh/w.tle.json`, `.w.tle.json`, `sub/key.yaml`, and `sub/hid.tle.json` (a link to the missing `R/.config/hid.tle.json`, which is not created): a hidden path is refused as hidden, before its kind is looked at |
+| `GET folders` | `.ssh`, `.claude`, `sub/.hidden`, and `sub/conf` (a link to `R/.config`) |
+
+The refusal holds under a root that is itself inside a hidden folder:
+with `--root` naming `R/.config`, `GET files` `path="x.yaml"` answers 200.
+
+**Permissions.** A file or folder the user running the server may not read
+or write answers 403 `{"detail": {"path": ["path"], "message": "permission
+denied"}}`, never a server error. In `R`, the file `locked.yaml` (bytes
+`b"l: 1\n"`), the workspace `locked.tle.json` (bytes `b"{}"`), both mode
+`0o000`, and the folder `shut/` holding `in.yaml`, mode `0o000`, and the
+folder `ro/`, mode `0o555`:
+
+| Request | Answer |
+| --- | --- |
+| `GET files` `path="locked.yaml"` | 403 `permission denied` |
+| `GET files` `path="shut/in.yaml"` | 403 `permission denied` |
+| `GET folders` `path="shut"` and `path="shut/x"` | 403 `permission denied` |
+| `PUT files` `path="shut/new.tle.json"` | 403 `permission denied`, nothing created |
+| `PUT files` `path="ro/new.tle.json"` | 403 `permission denied`, nothing created, no temporary file left |
+| `PUT files` `path="locked.tle.json"` | 403 `permission denied`: a file the user may not write is not replaced, though its folder would let a new file take its place |
+
+Each answer leaves the tree unchanged (inspected after the modes are given
+back). These tests are skipped when the tests run as the superuser, whom no
+mode stops, and on Windows, which has no POSIX modes.
 
 **Outside the root.** Each of `path="../x.yaml"`, `"/etc/passwd"`,
 `"out/anything.yaml"`, `"out"`, `"sub/../../x.yaml"` and `"a\u0000.yaml"`
 (a NUL character names no file) is refused by all three routes with 400
 `{"detail": {"path": ["path"], "message": "path outside the root"}}`, before
-anything else is looked at: a `PUT` of `"../x.yaml"` or `"out/x.yaml"`
-creates no `x.yaml` in `R`'s parent folder, and one of `"../x.txt"` is
-refused as outside, not as a foreign kind. A path is outside when the
-absolute path it resolves to, every symbolic link followed, does not lie in
-the root's resolved path; a root given through a symbolic link is resolved
-once, so `a.yaml` is read through it.
+anything else is looked at: a `PUT` of `"../x.tle.json"` or
+`"out/x.tle.json"` creates no `x.tle.json` in `R`'s parent folder, and one
+of `"../x.txt"` is refused as outside, not as a foreign kind. A path is
+outside when the absolute path it resolves to, every symbolic link
+followed, does not lie in the root's resolved path; a root given through a
+symbolic link is resolved once, so `a.yaml` is read through it.
 
 **The guard.** Without the bearer token every route answers 401
 `{"detail": "missing or invalid token"}`, and a `PUT` with a foreign

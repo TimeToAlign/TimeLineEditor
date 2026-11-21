@@ -3,7 +3,8 @@
  * `GET folders`, `GET files` and `PUT files`
  * (`decisions/0033-server-file-access.md`). A path is POSIX and relative to
  * the root, `""` the root itself; the server refuses one leading outside
- * the root, and writes only the editor's own file kinds.
+ * the root or into a hidden place, reads only workspace, manifest and table
+ * files, and writes only workspace files.
  *
  * The calls run on `connect`'s transport (its headers, its request, which
  * rejects with a `ServerError` carrying the server's refusal, and its
@@ -32,18 +33,22 @@ export interface WrittenFile {
 /** The file calls of a `Server`. */
 export interface FileServer {
   /**
-   * The folder `path` lists: its folders, then its files of the editor's
-   * kinds, hidden names and links leading out of the root left out.
+   * The folder `path` lists: its folders, then its workspace, manifest and
+   * table files, hidden names and links leading out of the root left out.
    * Rejects with a `ServerError` whose `refusal` is the server's (`no such
-   * folder`, `path outside the root`).
+   * folder`, `path outside the root`, `hidden files are not served`,
+   * `permission denied`).
    */
   listFolder(path: string): Promise<FolderListing>;
-  /** The bytes of the file `path`. Rejects as `listFolder` does (`no such file`). */
+  /**
+   * The bytes of the workspace, manifest or table file `path`. Rejects as
+   * `listFolder` does, for `no such file`, and for a file of another kind.
+   */
   readFile(path: string): Promise<Blob>;
   /**
-   * Write `content` into the file `path`, replacing it whole: a string as
-   * its UTF-8 bytes, a `Blob` unchanged. Rejects as `listFolder` does, and
-   * for a file of another kind than the editor's.
+   * Write `content` into the workspace file `path`, replacing it whole: a
+   * string as its UTF-8 bytes, a `Blob` unchanged. Rejects as `listFolder`
+   * does, and for a file that is no workspace file.
    */
   writeFile(path: string, content: Blob | string): Promise<WrittenFile>;
 }
@@ -59,16 +64,16 @@ export interface Transport {
 }
 
 /** The message of a folder answer that is not of the route's form. */
-export const MALFORMED_LISTING = "the folder answer is not a listing of the folder asked for";
+const MALFORMED_LISTING = "the folder answer is not a listing of the folder asked for";
 
 /** The message of a file answer whose bytes could not be read. */
-export const UNREAD_FILE = "the file answer could not be read";
+const UNREAD_FILE = "the file answer could not be read";
 
 /** The message of a write answer that is not of the route's form. */
-export const MALFORMED_WRITTEN = "the write answer is not the file written";
+const MALFORMED_WRITTEN = "the write answer is not the file written";
 
 /** The route of `route` for the file or folder `path`. */
-export function pathRoute(route: "folders" | "files", path: string): string {
+function pathRoute(route: "folders" | "files", path: string): string {
   return `${route}?${new URLSearchParams({ path })}`;
 }
 
@@ -89,7 +94,7 @@ function entryOf(value: unknown): FolderEntry | undefined {
 }
 
 /** The listing of `asked` a 2xx body of `GET folders` holds, or `undefined`. */
-export function listingOf(body: unknown, asked: string): FolderListing | undefined {
+function listingOf(body: unknown, asked: string): FolderListing | undefined {
   if (!isRecord(body) || member(body, "path") !== asked) return undefined;
   const given = member(body, "entries");
   if (!Array.isArray(given)) return undefined;
@@ -99,7 +104,7 @@ export function listingOf(body: unknown, asked: string): FolderListing | undefin
 }
 
 /** The file written at `asked` a 2xx body of `PUT files` states, or `undefined`. */
-export function writtenOf(body: unknown, asked: string): WrittenFile | undefined {
+function writtenOf(body: unknown, asked: string): WrittenFile | undefined {
   if (!isRecord(body) || member(body, "path") !== asked) return undefined;
   const size = member(body, "size");
   return Number.isSafeInteger(size) && typeof size === "number" && size >= 0
