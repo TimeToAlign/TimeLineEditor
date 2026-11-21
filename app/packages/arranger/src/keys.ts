@@ -38,6 +38,8 @@ export interface KeyContext {
   toggleLock(): void;
   /** Turns "Show coordinates" on or off. */
   toggleCoordinates(): void;
+  /** Turns "Show matches" on or off. */
+  toggleMatches(): void;
   zoomIn(): void;
   zoomOut(): void;
   fit(): void;
@@ -200,6 +202,14 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && (event.key === "c" || event.key === "C"),
     run(context) {
       context.toggleCoordinates();
+      return true;
+    },
+  },
+  {
+    // "Show matches" is the viewer's own too, on any canvas; it and "Show coordinates" take turns.
+    match: (event) => plain(event) && (event.key === "m" || event.key === "M"),
+    run(context) {
+      context.toggleMatches();
       return true;
     },
   },

@@ -4,10 +4,14 @@ import { ControlButton, Controls, useSvelteFlow } from "@xyflow/svelte";
 import { roving } from "./roving.ts";
 
 interface Props {
-  /** The canvas lock, the marquee toggle and "Show coordinates"; all are the viewer's own state. */
+  /**
+   * The canvas lock, the marquee toggle, "Show coordinates" and "Show
+   * matches"; all are the viewer's own state.
+   */
   locked: boolean;
   marquee: boolean;
   coordinates: boolean;
+  matches: boolean;
   /** Whether the lock may be toggled: not on a read-only canvas. */
   lockable?: boolean;
 }
@@ -16,6 +20,7 @@ let {
   locked = $bindable(),
   marquee = $bindable(),
   coordinates = $bindable(),
+  matches = $bindable(),
   lockable = true,
 }: Props = $props();
 
@@ -64,8 +69,8 @@ export function toCanvas(client: XYPosition): XYPosition {
   buttons carry no key hints, and its lock toggles all interactivity, while
   ours freezes placement alone (selection, zoom and pan stay). The icons are
   Svelte Flow's (@xyflow/svelte 1.7.0, MIT licence, (c) webkid GmbH), whose
-  icon components the package does not export; the marquee and coordinates
-  icons are ours.
+  icon components the package does not export; the marquee, coordinates
+  and matches icons are ours.
 -->
 <Controls
   position="bottom-left"
@@ -148,6 +153,25 @@ export function toCanvas(client: XYPosition): XYPosition {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
       <path d="M14.5 0h3v9h-3zM14.5 23h3v9h-3zM0 14.5h9v3H0zM23 14.5h9v3h-9z" />
       <circle cx="16" cy="16" r="4.2" />
+    </svg>
+  </ControlButton>
+  <ControlButton
+    class="tilie-toggle"
+    data-testid="matches"
+    aria-pressed={matches}
+    aria-label="Show matches"
+    title="Show matches (M)"
+    onclick={() => (matches = !matches)}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M5 1h3.5v14H5zM23.5 17H27v14h-3.5z" />
+      <path
+        d="M6.75 15.5 25.25 16.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-dasharray="4 3"
+      />
     </svg>
   </ControlButton>
 </Controls>

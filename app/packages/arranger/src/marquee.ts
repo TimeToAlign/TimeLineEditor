@@ -8,7 +8,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf } from "./boxes.ts";
 import { affordancesOf } from "./coordinates.ts";
 import type { BlockNode } from "./node.ts";
-import { timestampOwner } from "./selectionRules.ts";
+import { ownerOf } from "./selectionRules.ts";
 
 /** An axis-aligned rectangle: on the canvas, or in a drawing's own units. */
 export interface Rect {
@@ -120,8 +120,9 @@ function holds(outer: Rect, inner: Rect): boolean {
  * the canvas). An address drawn in several places, such as an ancestor line
  * in several cards, is taken only when all of them lie inside. Every part of
  * a named timestamp (its wedge, labels and line, and the affordance of one
- * that draws nothing, `affordancesOf`) stands for the timestamp, which
- * is taken when all of them lie inside. Frames and cards are containers,
+ * that draws nothing, `affordancesOf`) stands for the timestamp, and every
+ * alignment anchor's line and label for its named MatchStamp (`ownerOf`),
+ * which is taken when all of them lie inside. Frames and cards are containers,
  * which a click selects, never a marquee; a band draws nothing, so no
  * marquee selects one either.
  */
@@ -135,7 +136,7 @@ export function elementsInRect(
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
   const take = (address: ElementAddress, bounds: Rect) => {
-    const owner = timestampOwner(block.manifest, address) ?? address;
+    const owner = ownerOf(block.manifest, address)?.address ?? address;
     const key = addressKey(owner);
     const held = holds(rect, rectOnCanvas(node, bounds));
     const known = taken.get(key);

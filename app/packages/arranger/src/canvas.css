@@ -317,3 +317,20 @@
   margin-top: 4px;
   font-size: 10.5px;
 }
+
+/* What "Show matches" says while it has no MatchClaim table to show. */
+.tilie-canvas > .tilie-matches-state {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #c9ced6;
+  border-radius: 4px;
+  background: #fff;
+  color: #5b6372;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 5;
+}

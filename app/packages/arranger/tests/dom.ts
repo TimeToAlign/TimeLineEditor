@@ -221,6 +221,8 @@ export function recordingActions(
       rules: () => rules,
       reducedMotion: () => reducedMotion,
       coordinates: () => false,
+      matches: () => false,
+      staleAnchors: () => new Set(),
       gestures: new GestureSlot(),
     },
   };

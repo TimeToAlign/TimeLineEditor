@@ -23,6 +23,7 @@ export { placeEdit, shownValues } from "./items.ts";
 export { isTextInput, within } from "./keys.ts";
 export type { LiveStore } from "./liveStore.svelte.ts";
 export { liveStore } from "./liveStore.svelte.ts";
+export type { MatchOverlayInput, NamedComparison } from "./matches.ts";
 export type { LivePlacement } from "./node.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";

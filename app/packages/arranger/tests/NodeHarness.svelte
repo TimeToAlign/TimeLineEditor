@@ -21,6 +21,8 @@ const IDLE: NodeActions = {
   rules: () => LEVELS.arranger,
   reducedMotion: () => false,
   coordinates: () => false,
+  matches: () => false,
+  staleAnchors: () => new Set(),
   gestures: new GestureSlot(),
 };
 
@@ -41,6 +43,8 @@ setNodeActions({
   rules: () => current().rules(),
   reducedMotion: () => current().reducedMotion(),
   coordinates: () => current().coordinates(),
+  matches: () => current().matches(),
+  staleAnchors: (block) => current().staleAnchors(block),
   get gestures() {
     return current().gestures;
   },

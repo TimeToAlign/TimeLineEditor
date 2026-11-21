@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
+import { findTimeline } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -19,6 +20,7 @@ import { levelOf, rulesOf } from "./containers.ts";
 import type { KnotsOf, MarkPlace, MeasureMapsAnswer, PlacedMarks } from "./coordinates.ts";
 import {
   FrameCoalescer,
+  HIT_TOLERANCE,
   MeasureKnotsSource,
   pinnedPlace,
   placeText,
@@ -32,6 +34,18 @@ import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
 import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
 import type { LiveStore } from "./liveStore.svelte.ts";
+import MatchFlag from "./MatchFlag.svelte";
+import MatchOverlay from "./MatchOverlay.svelte";
+import type { MatchHit, MatchLayer, MatchOverlayInput, Screen } from "./matches.ts";
+import {
+  matchFlag,
+  matchHitAt,
+  matchLinesOf,
+  NO_MATCHES,
+  overlayOf,
+  staleAnchors,
+  stampOverlay,
+} from "./matches.ts";
 import type { LivePlacement } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
@@ -97,6 +111,22 @@ interface Props {
    * the pointer is a crosshair; `null` (the default) selects.
    */
   picking?: ((address: Address) => void) | null;
+  /**
+   * What "Show matches" draws: the anchor index of the loaded MatchClaim
+   * table, over every block drawing a timeline it names, and the named
+   * MatchStamps compared with it, whose alignment anchors no longer stated
+   * are drawn red; `null` (the default) without a server or a loaded table,
+   * when "Show matches" says so and nothing is drawn red.
+   */
+  matches?: MatchOverlayInput | null;
+  /** The pinned potential MatchStamp, a set number of `matches.index`, drawn blue; `null` for none. */
+  pinnedMatchStamp?: number | null;
+  /**
+   * While "Show matches" is on, called with the potential MatchStamp a click
+   * on its line or connector pins, and with `null` on any other click on the
+   * canvas; called with `null` when "Show matches" is turned off.
+   */
+  onmatchstamppin?: (set: number | null) => void;
 }
 
 let {
@@ -113,6 +143,9 @@ let {
   oncoordinatepin,
   measureMaps,
   picking = null,
+  matches = null,
+  pinnedMatchStamp = null,
+  onmatchstamppin,
 }: Props = $props();
 
 /**
@@ -157,6 +190,15 @@ let marquee = $state(false);
  * and its maps' values, a click pins, and named timestamps take no pointer.
  */
 let coordinates = $state(false);
+/**
+ * Whether "Show matches" is on: the potential MatchStamps are drawn, hovering
+ * one shows its flag, a click pins it, and named MatchStamps take no pointer.
+ * It and "Show coordinates" take turns.
+ */
+let showMatches = $state(false);
+/** The canvas's size in pixels: what "Show matches" draws follows the view. */
+let canvasWidth = $state(0);
+let canvasHeight = $state(0);
 /** The pointer over the canvas, in pixels from its top-left corner; `null` while it is elsewhere. */
 let hover: Point | null = $state.raw(null);
 /** Bumped when a manifest's expanded MeasureMaps arrive, so the reading is made again with them. */
@@ -334,6 +376,8 @@ setNodeActions({
   rules: () => rules,
   reducedMotion: () => reducedMotion.current,
   coordinates: () => coordinates,
+  matches: () => showMatches,
+  staleAnchors: (block) => staleByBlock.get(block) ?? NONE_STALE,
   gestures,
 });
 
@@ -432,7 +476,7 @@ function pixelOf(event: MouseEvent): Point | null {
 
 /** A move with no button held is read; one dragging something reads nothing. */
 function onpointermove(event: PointerEvent) {
-  if (!coordinates) return;
+  if (!coordinates && !showMatches) return;
   frames.push(event.buttons === 0 ? pixelOf(event) : null);
 }
 
@@ -463,20 +507,27 @@ function pinOnPress(event: PointerEvent) {
 function pinOnRelease(event: PointerEvent) {
   const press = pinPress;
   pinPress = null;
-  if (!coordinates || press === null || !event.isPrimary) return;
+  if (!(coordinates || showMatches) || press === null || !event.isPrimary) return;
   if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) return;
   const point = pixelOf(event);
+  if (showMatches) {
+    pinMatchStamp(point);
+    return;
+  }
   const read = point === null ? null : readingOf(point);
   pinnedLine = read?.hit.key ?? null;
   announced = read === null ? "" : `Pinned ${placeText(read.pin.timestamp)}`;
   oncoordinatepin?.(read?.pin ?? null);
 }
 
-/** Turn "Show coordinates" on or off; turned off, the pin is cleared. */
+/** Turn "Show coordinates" on or off, "Show matches" off with it on; turned off, the pin is cleared. */
 function setCoordinates(next: boolean): void {
   if (next === coordinates) return;
   coordinates = next;
-  if (next) return;
+  if (next) {
+    setMatches(false);
+    return;
+  }
   frames.cancel();
   hover = null;
   announced = "";
@@ -521,6 +572,157 @@ const marks: readonly PlacedMarks[] = $derived.by(() => {
 
 // Unmounted, the canvas leaves no frame waiting.
 $effect(() => () => frames.cancel());
+
+// --- Show matches ----------------------------------------------------------
+
+/** No anchor drawn red. */
+const NONE_STALE: ReadonlySet<string> = new Set();
+
+/** The device pixels per CSS pixel. */
+function deviceRatio(): number {
+  return typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+}
+
+/** The canvas as seen, for what "Show matches" draws. */
+const screen: Screen = $derived({
+  x: viewport.x,
+  y: viewport.y,
+  zoom: viewport.zoom,
+  width: canvasWidth,
+  height: canvasHeight,
+  ratio: deviceRatio(),
+});
+
+/**
+ * The address keys of each block's alignment anchors the table no longer
+ * states (`staleAnchors`): with a table, for every block whose manifest holds
+ * a timeline the table names; none without one.
+ */
+const staleByBlock: ReadonlyMap<string, ReadonlySet<string>> = $derived.by(() => {
+  if (matches === null) return new Map();
+  const { index, named } = matches;
+  const timelines = [...index.timelineNumbers.keys()];
+  return new Map(
+    Object.values(view.blocks).flatMap((block) => {
+      if (!timelines.some((id) => findTimeline(block.manifest, id) !== undefined)) return [];
+      const stale = staleAnchors(block.manifest, named);
+      return stale.size === 0 ? [] : [[block.id, stale] as const];
+    }),
+  );
+});
+
+/** Per shown block drawing a timeline of the table, its lines and what it draws in view. */
+const matchBlocks = $derived.by(() => {
+  if (!showMatches || matches === null) return [];
+  const { index } = matches;
+  return nodes.nodes.flatMap((node) => {
+    const { block, drawing } = node.data;
+    const lines = matchLinesOf(drawing, index);
+    if (lines.all.length === 0) return [];
+    const placed = { origin: node.position, scale: block.scale };
+    return [{ node, lines, placed, overlay: overlayOf(index, lines, placed, screen) }];
+  });
+});
+
+/** The potential MatchStamp the pointer hovers, with the block it is hovered in; nothing while boxes move. */
+const matchHover: { readonly block: string; readonly hit: MatchHit } | null = $derived.by(() =>
+  !showMatches || moving || hover === null ? null : matchHitOf(hover),
+);
+
+/**
+ * What the canvas pixel `point` hovers among the potential MatchStamps:
+ * of every block's hit (`matchHitAt`, `HIT_TOLERANCE` device pixels around),
+ * the nearest in device pixels, a later block on a tie; `null` where none.
+ */
+function matchHitOf(point: Point): { readonly block: string; readonly hit: MatchHit } | null {
+  if (matches === null) return null;
+  const { index } = matches;
+  const { x, y, zoom } = viewport;
+  const canvas = { x: (point.x - x) / zoom, y: (point.y - y) / zoom };
+  let found: { block: string; hit: MatchHit; devicePixels: number } | null = null;
+  for (const { node, lines, placed, overlay } of matchBlocks) {
+    const devicePixels = zoom * placed.scale * screen.ratio;
+    const local = {
+      x: (canvas.x - placed.origin.x) / placed.scale,
+      y: (canvas.y - placed.origin.y) / placed.scale,
+    };
+    const hit = matchHitAt(index, lines, overlay.connectors, local, HIT_TOLERANCE / devicePixels);
+    if (
+      hit !== null &&
+      (found === null || hit.distance * devicePixels <= found.hit.distance * found.devicePixels)
+    ) {
+      found = { block: node.id, hit, devicePixels };
+    }
+  }
+  return found === null ? null : { block: found.block, hit: found.hit };
+}
+
+/** What the overlay draws: per block the potential MatchStamps, the hovered and the pinned one. */
+const matchLayers: readonly MatchLayer[] = $derived.by(() => {
+  if (matches === null) return [];
+  const { index } = matches;
+  const hovered = matchHover?.hit.stamp ?? null;
+  const pinned = pinnedMatchStamp;
+  return matchBlocks.map(({ node, lines, placed, overlay }) => ({
+    block: node.id,
+    width: node.data.drawing.width,
+    height: node.data.drawing.height,
+    origin: placed.origin,
+    scale: placed.scale,
+    potential: overlay,
+    hovered: hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
+    pinned: pinned === null ? null : stampOverlay(index, lines, pinned),
+  }));
+});
+
+/** The hovered MatchStamp's flag: its groups and its place in canvas pixels. */
+const matchFlagShown = $derived.by(() => {
+  const hovered = matchHover;
+  if (hovered === null || matches === null) return null;
+  const shown = matchBlocks.find(({ node }) => node.id === hovered.block);
+  if (shown === undefined) return null;
+  const { node, lines, placed } = shown;
+  const { x, y, zoom } = viewport;
+  const screenOf = (dx: number, dy: number) => ({
+    x: x + (placed.origin.x + dx * placed.scale) * zoom,
+    y: y + (placed.origin.y + dy * placed.scale) * zoom,
+  });
+  const { at, stamp } = hovered.hit;
+  const foot = screenOf(at.x, at.y);
+  const decimals = (granularity ?? view.settings.granularity).decimals;
+  return {
+    groups: matchFlag(matches.index, node.data.block.manifest, lines, stamp, decimals),
+    x: foot.x,
+    y: foot.y,
+    top: screenOf(at.x, at.top).y,
+  };
+});
+
+/**
+ * A click with "Show matches" on pins the potential MatchStamp under the
+ * canvas pixel `point`, read at the release itself, and clears the pin
+ * anywhere else; without a table it pins nothing.
+ */
+function pinMatchStamp(point: Point | null): void {
+  if (matches === null) return;
+  const read = point === null ? null : matchHitOf(point);
+  announced = read === null ? "" : "Pinned a MatchStamp";
+  onmatchstamppin?.(read?.hit.stamp ?? null);
+}
+
+/** Turn "Show matches" on or off, "Show coordinates" off with it on; turned off, the pin is cleared. */
+function setMatches(next: boolean): void {
+  if (next === showMatches) return;
+  showMatches = next;
+  if (next) {
+    setCoordinates(false);
+    return;
+  }
+  frames.cancel();
+  hover = null;
+  announced = "";
+  onmatchstamppin?.(null);
+}
 
 // --- Picking ---------------------------------------------------------------
 
@@ -621,6 +823,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     setMode: (next) => (mode = next),
     toggleLock: () => (locked = !locked),
     toggleCoordinates: () => setCoordinates(!coordinates),
+    toggleMatches: () => setMatches(!showMatches),
     zoomIn: () => toolbar?.zoomIn(),
     zoomOut: () => toolbar?.zoomOut(),
     fit: () => toolbar?.fit(),
@@ -662,10 +865,18 @@ function onkeydowncapture(event: KeyboardEvent) {
   tabindex="0"
   bind:this={root}
   style:--tilie-zoom={viewport.zoom}
-  data-reading={reading === null ? undefined : ""}
+  data-reading={reading === null && matchHover === null ? undefined : ""}
   data-picking={picking === null ? undefined : ""}
-  bind:clientWidth={null, () => editorFocus.resized()}
-  bind:clientHeight={null, () => editorFocus.resized()}
+  bind:clientWidth={null,
+  (next) => {
+    canvasWidth = next ?? 0;
+    editorFocus.resized();
+  }}
+  bind:clientHeight={null,
+  (next) => {
+    canvasHeight = next ?? 0;
+    editorFocus.resized();
+  }}
   {onpointerdowncapture}
   {onpointerupcapture}
   {onclickcapture}
@@ -733,11 +944,13 @@ function onkeydowncapture(event: KeyboardEvent) {
       {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />
       <CoordinateMarks {marks} />
+      <MatchOverlay layers={matchLayers} />
       <CanvasToolbar
         bind:this={toolbar}
         bind:locked
         bind:marquee
         bind:coordinates={() => coordinates, setCoordinates}
+        bind:matches={() => showMatches, setMatches}
         lockable={rules.lock}
       />
     </SvelteFlow>
@@ -757,6 +970,18 @@ function onkeydowncapture(event: KeyboardEvent) {
       top={flag.top}
       width={root?.clientWidth ?? 0}
     />
+  {/if}
+  {#if matchFlagShown !== null}
+    <MatchFlag
+      groups={matchFlagShown.groups}
+      x={matchFlagShown.x}
+      y={matchFlagShown.y}
+      top={matchFlagShown.top}
+      width={root?.clientWidth ?? 0}
+    />
+  {/if}
+  {#if showMatches && matches === null}
+    <p class="tilie-matches-state" data-testid="matches-state" role="status">{NO_MATCHES}</p>
   {/if}
   <p class="tilie-hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
   <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>

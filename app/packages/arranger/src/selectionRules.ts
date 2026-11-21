@@ -52,20 +52,42 @@ export function hitAt(pressed: Pressed, editing: Editing | null): Hit | null {
 }
 
 /**
- * The named timestamp of `manifest` that `element` draws: the timestamp's
- * own address `{id}` for its wedge, its label and its cross-section line
- * (core's `resolveElement`), `null` for any other element.
+ * What a drawn element stands for when it draws part of something else: a
+ * named timestamp (its wedge, its labels, its cross-section line) or a
+ * named MatchStamp (an alignment anchor's line and its name label).
  */
-export function timestampOwner(manifest: Manifest, element: ElementAddress): ElementAddress | null {
+export interface Owner {
+  readonly address: ElementAddress;
+  readonly kind: "timestamp" | "matchstamp";
+  /** Whether it belongs to a MatchStamp: a MatchStamp itself, or a match timestamp. */
+  readonly match: boolean;
+}
+
+/**
+ * What `element` of `manifest` draws part of (core's `resolveElement`, a
+ * part read up to its owner): a named timestamp's own address `{id}` for
+ * its wedge, its labels and its line; the address of the MatchStamp holding
+ * an alignment anchor for the anchor's line and its name label; `null` for
+ * any other element.
+ */
+export function ownerOf(manifest: Manifest, element: ElementAddress): Owner | null {
   let resolved = resolveElement(manifest, element);
   while (resolved?.kind === "part") resolved = resolved.owner;
-  return resolved?.kind === "timestamp" && element.id !== undefined ? idAddress(element.id) : null;
+  if (resolved?.kind === "timestamp" && element.id !== undefined) {
+    const match = resolved.timestamp.matchstamp === true;
+    return { address: idAddress(element.id), kind: "timestamp", match };
+  }
+  if (resolved?.kind === "anchor") {
+    return { address: idAddress(resolved.matchstamp.id), kind: "matchstamp", match: true };
+  }
+  return null;
 }
 
 /**
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
  * the band or the element it hit, a named timestamp for any of its parts
- * (`timestampOwner`) and for its affordance, whose source carries the
+ * and a named MatchStamp for any alignment anchor's line or label
+ * (`ownerOf`), a timestamp for its affordance, whose source carries the
  * timestamp's own address, or the block where it hit the block itself; `null`
  * off every block and outside the edited element, where a press changes
  * nothing. A band is hit only with a drawing point: a key selects none.
@@ -77,8 +99,8 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
     hit === null || node === undefined ? null : pressSelection(hit, editing, node.data.inside);
   if (address === null || node === undefined) return null;
   const { element } = addressParts(address);
-  const owner = element === null ? null : timestampOwner(node.data.block.manifest, element);
-  return owner === null ? address : inBlock(node.id, owner);
+  const owner = element === null ? null : ownerOf(node.data.block.manifest, element);
+  return owner === null ? address : inBlock(node.id, owner.address);
 }
 
 /**

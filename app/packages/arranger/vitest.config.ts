@@ -22,5 +22,7 @@ export default defineConfig({
     name: "arranger",
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The budget times the code and runs on its own: `vitest.budget.config.ts`.
+    exclude: ["tests/matches-budget.test.ts"],
   },
 });
