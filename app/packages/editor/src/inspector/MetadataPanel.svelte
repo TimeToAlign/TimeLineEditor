@@ -4,7 +4,7 @@
  * selected bundle, timeline or region, the edited element in an editor, the
  * one bundle at the top level) as rectangles, one verb about one thing
  * each, "is a" first; "＋ Add statement" and the composer; the drawers of
- * what is stated around it, proposed and rejected. Each action is one
+ * what is proposed and rejected. Each action is one
  * `set` of the statements and provenance it changes, built on the
  * manifest's statement skeleton by TimeToShare's functions; their throws
  * and the store's refusals are posted to the message bar as warnings. The
@@ -90,9 +90,7 @@ const composer = new ComposerState();
 const shown = $derived(shownOf(view, subjects, editing));
 const frame = $derived(shown.kind === "none" ? null : shown);
 const rectangles = $derived(frame === null ? [] : rectanglesOf(frame, catalogue, user.state.user));
-const drawers = $derived(
-  frame === null ? null : drawersOf(view, frame, catalogue, user.state.user),
-);
+const drawers = $derived(frame === null ? null : drawersOf(frame, catalogue, user.state.user));
 /** The names below the shown element stated without an identifier that the lookup can look up. */
 const unreconciled = $derived(frame === null ? [] : unreconciledOf(frame, catalogue, lookup));
 /**

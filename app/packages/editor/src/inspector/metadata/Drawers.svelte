@@ -1,7 +1,6 @@
 <script lang="ts">
 /**
- * The three drawers below the rectangles, native disclosures: what is
- * stated of the elements around the one shown (read only), the proposed
+ * The two drawers below the rectangles, native disclosures: the proposed
  * pairs with Confirm and Reject, and the rejected ones with Confirm. The
  * proposed drawer also offers to propose matches for the names stated
  * without an identifier.
@@ -28,10 +27,6 @@ let {
   onreject: (row: DrawerRow) => void;
   onpropose: () => void;
 } = $props();
-
-const higherCount = $derived(
-  drawers.higher.reduce((count, group) => count + group.rectangles.length, 0),
-);
 </script>
 
 {#snippet line(row: DrawerRow)}
@@ -43,25 +38,6 @@ const higherCount = $derived(
 {/snippet}
 
 <div class="drawers">
-  <details data-testid="metadata-drawer-higher">
-    <summary>Stated higher up ({higherCount})</summary>
-    {#each drawers.higher as group (group.key)}
-      <section>
-        <h4>{group.words}</h4>
-        <ul>
-          {#each group.rectangles as rectangle (rectangle.key)}
-            <li>
-              <span class="verb">{rectangle.heading}</span>
-              {#if rectangle.label !== null}<strong>{rectangle.label}</strong>{/if}
-              {#each rectangle.rows as row, index (index)}
-                <span class="row"><code>{row.property}</code> <code>{row.value}</code></span>
-              {/each}
-            </li>
-          {/each}
-        </ul>
-      </section>
-    {/each}
-  </details>
   <details data-testid="metadata-drawer-proposed">
     <summary>Proposed ({drawers.proposed.length})</summary>
     {#if unreconciled > 0 || proposing}
@@ -126,12 +102,6 @@ const higherCount = $derived(
     outline-offset: 1px;
   }
 
-  h4 {
-    margin: 0.3rem 0 0.15rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-  }
-
   ul {
     margin: 0.2rem 0;
     padding: 0;
@@ -147,18 +117,12 @@ const higherCount = $derived(
     border-bottom: 1px solid #eee;
   }
 
-  .row,
   .line,
   .note {
     flex-basis: 100%;
     color: #595959;
     font-size: 0.78rem;
     overflow-wrap: anywhere;
-  }
-
-  code {
-    font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
-    font-size: 0.78rem;
   }
 
   .propose {

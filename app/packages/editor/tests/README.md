@@ -1146,11 +1146,8 @@ default, Gerhardt, who states as `G` =
    - "same as", no label, row `schema:sameAs
      https://www.youtube.com/watch?v=Ch2mrPm1JnM` linking to itself,
      annotation `manual · P · 2026-11-18`.
-3. **`cpt_1`'s drawers.** Stated higher up: one group, the bundle, with
-   its two rectangles `rdfs:seeAlso` and `schema:about` (`wd:Q29117946`),
-   which no verb reads. Proposed: one row,
-   subject `["timelines", 1]`, heading "is a recording of", label "Clair
-   de lune" (the label `clt_6`'s node gives `wd:Q29117946`), line method
+3. **`cpt_1`'s drawers.** Proposed: one row, subject `["timelines", 1]`,
+   heading "is a recording of", label "Clair de lune" (the label `clt_6`'s node gives `wd:Q29117946`), line method
    `inferred`, who `T`, basis `#clt_6`, `#dpt_1`, status `proposed`, key
    the canonical text of `[["timelines",1],"wdt:P2550",{"id":"wd:Q29117946"}]`.
    Rejected: none.
@@ -1168,12 +1165,9 @@ default, Gerhardt, who states as `G` =
 5. **`dpt_1`**: headings `["is a"]`; proposed one row "is derived from, is
    based on" naming the element `#cpt_1` by its name.
 6. **`cpt_2` and the bundle.** `cpt_2` states nothing: one rectangle, the
-   empty "is a", keyed `is_a`, no rows, in words "is a"; stated higher up
-   the bundle's two rectangles, then `cpt_1`'s three, each group keyed by
-   its element's address key (`{"block":"0000000000"}`,
-   `{"block":"0000000000","id":"cpt_1"}`), since two elements may share
-   their words. The bundle: the empty "is a", `rdfs:seeAlso` and
-   `schema:about`; nothing higher up.
+   empty "is a", keyed `is_a`, no rows, in words "is a". The bundle: the
+   empty "is a", `rdfs:seeAlso` and `schema:about` (`wd:Q29117946`), which
+   no verb reads.
    A rectangle in words is its heading and its label, else its first value
    as written: `cpt_1`'s read "is a schema:VideoObject", "performed by
    Maria João Pires", "same as
@@ -1237,8 +1231,8 @@ record to "Pires, Maria João", and searches nothing.
    label "Maria João Pires", two vocabulary rows (two anchors with
    `rel="noreferrer"`, `target="_blank"`), the provenance line
    "reconciled · https://example.org/agents/tilie · 2026-11-18", and a
-   "＋ vocabulary" button; the drawers read "Stated higher up (2)",
-   "Proposed (1)", "Rejected (0)". The bundle shows "Not stated yet." and
+   "＋ vocabulary" button; the drawers read "Proposed (1)", "Rejected
+   (0)". The bundle shows "Not stated yet." and
    "State what it is".
 2. **Confirm and Reject.** Confirm on `cpt_1`'s proposed row adds one
    journal entry, the "is a recording of" rectangle appears last and
@@ -1306,12 +1300,6 @@ record to "Pires, Maria João", and searches nothing.
     information, neither journals anything.
 11. **State belongs to the element.** The composer opened on `cpt_2` is
     hidden on selecting `cpt_1` and not shown again there.
-12. **Two ancestors of one name.** `cpt_2` given `cpt_1`'s name and the
-    statement `schema:sameAs https://example.org/take`, and the region
-    `region_1` (0 to 10 s) added into it, both accepted: `region_1`
-    selected, "Stated higher up (6)" lists the bundle and then two groups
-    headed "timeline 'C.Debussy - Clair de Lune, Maria João Pires live at
-    Jardin Musical'" (`cpt_1` and `cpt_2`), without a duplicate key.
 
 **The user** (`user.test.ts`): a `UserState` under key `K` with nothing
 stored is Gerhardt without iD, `statedBy` `G`; `set({name: "Clara

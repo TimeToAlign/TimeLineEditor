@@ -511,8 +511,7 @@ the shipped catalogue's labels.
    "performed by", "same as"; "performed by" labelled "Maria João Pires"
    with rows `rel:prf viaf:113931950 ↗` and `wdt:P175 wd:Q235650 ↗`; a
    "＋ vocabulary" button on each of the three rectangles (each has a
-   vocabulary not yet used); drawers "Stated higher up (2)" (the bundle's
-   `rdfs:seeAlso` and `schema:about`), "Proposed (1)", "Rejected (0)"; the
+   vocabulary not yet used); drawers "Proposed (1)", "Rejected (0)"; the
    proposed row "is a recording of Clair de lune" with Confirm and Reject.
    `clt_6`: "Rejected (1)", its row naming `gnd:1156628156`. `dpt_1`:
    "Proposed (1)". The bundle: the empty "is a" with "State what it is".

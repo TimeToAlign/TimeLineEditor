@@ -56,7 +56,7 @@ const today = () => dayOf(new Date());
 describe("confirming and rejecting a proposal", () => {
   it("states cpt_1's proposed pair and confirms its annotation in place", () => {
     const at = frame("cpt_1");
-    const [row] = drawersOf(view, at, CATALOGUE, DEFAULT_USER).proposed;
+    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
     if (row === undefined) throw new Error("no proposal");
     const before = member(at, "provenance") as unknown[];
     const statements = member(at, "statements") as Record<string, unknown>;
@@ -88,7 +88,7 @@ describe("confirming and rejecting a proposal", () => {
 
   it("rejects dpt_1's proposal in its annotation alone", () => {
     const at = frame("dpt_1");
-    const [row] = drawersOf(view, at, CATALOGUE, DEFAULT_USER).proposed;
+    const [row] = drawersOf(at, CATALOGUE, DEFAULT_USER).proposed;
     if (row === undefined) throw new Error("no proposal");
     expect(commandOf(at, rejected(at, row, DEFAULT_USER, today()))).toEqual({
       type: "set",

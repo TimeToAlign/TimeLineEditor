@@ -143,25 +143,8 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
     expect(lines(same)).toEqual([["manual", P, "2026-11-18", null, [], null]]);
   });
 
-  it("puts the bundle higher up and cpt_1's one proposal in the drawers", () => {
-    const drawers = drawersOf(view, frame("cpt_1"), CATALOGUE, DEFAULT_USER);
-    expect(
-      drawers.higher.map((group) => [
-        group.words,
-        group.rectangles.map((r) => [r.heading, rows(r)]),
-      ]),
-    ).toEqual([
-      [
-        BUNDLE,
-        [
-          ["rdfs:seeAlso", [["rdfs:seeAlso", SEE_ALSO, SEE_ALSO]]],
-          [
-            "schema:about",
-            [["schema:about", "wd:Q29117946", "http://www.wikidata.org/entity/Q29117946"]],
-          ],
-        ],
-      ],
-    ]);
+  it("puts cpt_1's one proposal in the drawers", () => {
+    const drawers = drawersOf(frame("cpt_1"), CATALOGUE, DEFAULT_USER);
     expect(
       drawers.proposed.map((row) => [
         row.key,
@@ -202,7 +185,7 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
       ["manual", P, "2026-11-18", null, [], "broad"],
       ["reconciled", T, "2026-11-18", "https://www.wikidata.org/w/api.php", [MB_WORK], "broad"],
     ]);
-    const drawers = drawersOf(view, frame("clt_6"), CATALOGUE, DEFAULT_USER);
+    const drawers = drawersOf(frame("clt_6"), CATALOGUE, DEFAULT_USER);
     expect(drawers.proposed).toEqual([]);
     expect(
       drawers.rejected.map((row) => [row.heading, row.label, row.line.method, row.line.note]),
@@ -218,7 +201,7 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
 
   it("reads dpt_1 as is a with a proposal naming an element", () => {
     expect(headings(rectangles("dpt_1"))).toEqual(["is a"]);
-    const drawers = drawersOf(view, frame("dpt_1"), CATALOGUE, DEFAULT_USER);
+    const drawers = drawersOf(frame("dpt_1"), CATALOGUE, DEFAULT_USER);
     expect(drawers.proposed.map((row) => [row.heading, row.label])).toEqual([
       [
         "is derived from, is based on",
@@ -227,7 +210,7 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
     ]);
   });
 
-  it("shows cpt_2 the empty is a, the bundle and cpt_1 higher up", () => {
+  it("shows cpt_2 the empty is a", () => {
     const [empty, ...rest] = rectangles("cpt_2");
     expect(rest).toEqual([]);
     expect([empty?.key, empty?.heading, empty?.rows, empty?.pairs]).toEqual([
@@ -235,13 +218,6 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
       "is a",
       [],
       [],
-    ]);
-    const drawers = drawersOf(view, frame("cpt_2"), CATALOGUE, DEFAULT_USER);
-    expect(
-      drawers.higher.map((group) => [group.key, group.words, headings(group.rectangles)]),
-    ).toEqual([
-      ['{"block":"0000000000"}', BUNDLE, ["rdfs:seeAlso", "schema:about"]],
-      ['{"block":"0000000000","id":"cpt_1"}', CPT_1, ["is a", "performed by", "same as"]],
     ]);
     expect(empty === undefined ? null : rectangleWords(empty)).toBe("is a");
   });
@@ -254,7 +230,7 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
     ]);
   });
 
-  it("shows the bundle the empty is a and its own two pairs, nothing higher up", () => {
+  it("shows the bundle the empty is a and its own two pairs", () => {
     expect(rectangles(null).map((rectangle) => [rectangle.key, rectangle.heading])).toEqual([
       ["is_a", "is a"],
       [canonicalText(["rdfs:seeAlso", { id: SEE_ALSO }]), "rdfs:seeAlso"],
@@ -263,7 +239,6 @@ describe("the rectangles and drawers of the LayerIt recording", () => {
         "schema:about",
       ],
     ]);
-    expect(drawersOf(view, frame(null), CATALOGUE, DEFAULT_USER).higher).toEqual([]);
   });
 });
 
