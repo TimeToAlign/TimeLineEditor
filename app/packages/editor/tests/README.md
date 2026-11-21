@@ -1161,6 +1161,56 @@ which no position solves).
      the match timestamp `timestamp_1` on `clt_1` of the MatchStamp
      "Downbeat" named after the group was added (a member, but a match
      timestamp) show no "Group" key and no GroupStamp toggle.
+7b. **The wedge's rotation** (key "Wedge", right after Display). What
+   proves it: the value shown is the rotation the drawing gives the
+   timestamp's wedge (layout's cascade, read off the block's drawing, not
+   recomputed), so a rule reaching the wedge by any selector shows; each
+   gesture sends exactly one `style` of one rule addressed to that wedge
+   alone, `{type: "style", select: {element: "wedge", addresses: [{id:
+   X}]}, set: {rotation: v}, blocks: [block]}`, and Default the same with
+   `rotation: null`, which leaves the manifest's rules as they were before
+   the first rotation (the rule removed when nothing else is left in it,
+   core's `style`). A drag journals nothing until the slider changes. The
+   control is a native range input (role `slider`, min −180, max 180, step
+   1, its name "Wedge rotation", `aria-valuetext` "<n> degrees" with a
+   minus sign U+2212 for a negative value), its value shown beside it as
+   "<n>°", and seven stop buttons −180, −135, −45, 0, 45, 135, 180, each
+   named "<n> degrees" and pressed exactly while the value is its stop.
+   Specimens: the example "Timestamps" (no rule sets a rotation; Theme
+   `timestamp_5` displays its wedge, Silent `timestamp_7` displays
+   nothing); `bundle_mixed`'s `score`, a member of "Performance" (item
+   7a).
+   - *Theme, unrotated.* Value 0, "0 degrees", "0°"; the stop 0 pressed,
+     no other; no Default; enabled. The stop −135 journals the rotation
+     −135 and then shows −135, the stop −135 pressed and Default. PageUp
+     on the slider journals −45 (the next stop above −135), PageDown then
+     −135 (the next below). A drag: the input's value set to 42 with an
+     `input` event shows "42°" and journals nothing; its `change` journals
+     42. PageUp at 180 journals nothing (no stop above). Default journals
+     `rotation: null`; the manifest's `graphical.rules` then equal the
+     rules before the first rotation, the value is 0 and Default is gone.
+   - *A rule by another selector.* `{type: "style", select: {element:
+     "wedge", within: "score"}, set: {rotation: 90}, blocks:
+     ["timestamps"]}` (every wedge of `score`) makes Theme show 90, the
+     stop buttons none pressed, and no Default (no rule addressed to the
+     wedge alone states it).
+   - *Wedge not displayed.* Silent shows 0, the slider, the stops and
+     Default disabled, described by "Turn the Wedge on to rotate it.".
+     Theme rotated to 45 and its Wedge toggled off keeps 45 (the stated
+     value, its wedge not drawn), disabled, Default shown and disabled.
+   - *Unnamed.* The unnamed pin on `score` at 16/5 (naming would store a
+     groupstamp, item 7a) shows −45, "−45 degrees", disabled, described
+     by "A GroupStamp's wedge turns −45° by default." and by the naming
+     hint.
+   - *Named groupstamp.* Named "Upbeat" (`timestamp_11`, a groupstamp
+     displaying its wedge): −45 read from the drawing, no Default,
+     enabled. The stop 0 journals `rotation: 0` on `timestamp_11` (a
+     stated 0 overrides the groupstamp's initial value) and shows 0 with
+     Default; Default journals `rotation: null` and shows −45 again.
+   - *In a timeline editor.* With the timeline editor of `score` open in
+     the example, the stop 45 on Theme is accepted and the editor's
+     session holds the `style` as its last entry (the rule is addressed to
+     an element of the edited timeline).
 8. **Coordinate granularity** shows the workspace's two settings, fields
    "Denominator" and "Decimals" (the defaults 2520 and 3), each with its
    hover hint as `title`, with or without a timestamp, in one line below

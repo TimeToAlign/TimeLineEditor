@@ -1140,6 +1140,196 @@ describe("GroupStamp", () => {
   });
 });
 
+describe("the wedge's rotation", () => {
+  const TURNS = "A GroupStamp's wedge turns \u221245° by default.";
+  const WEDGE_OFF = "Turn the Wedge on to rotate it.";
+  const STOPS = ["\u2212180", "\u2212135", "\u221245", "0", "45", "135", "180"];
+  const field = () => find<HTMLElement>('[data-testid="timestamp-rotation"]');
+  const slider = () => find<HTMLInputElement>('input[type="range"]', field());
+  const stopButtons = () => [...field().querySelectorAll<HTMLButtonElement>(".stops button")];
+  const defaultButton = () =>
+    [...field().querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent === "Default",
+    );
+  /** The control as [value, value text, shown text, stops pressed, Default (`null`: none, else disabled), disabled]. */
+  function rotation(): unknown[] {
+    const reset = defaultButton();
+    return [
+      slider().value,
+      slider().getAttribute("aria-valuetext"),
+      field().querySelector("output")?.textContent,
+      stopButtons()
+        .filter((button) => button.getAttribute("aria-pressed") === "true")
+        .map((button) => button.textContent),
+      reset === undefined ? null : reset.disabled,
+      slider().disabled,
+    ];
+  }
+  function stop(label: string): void {
+    const button = stopButtons().find((item) => item.textContent === label);
+    if (button === undefined) throw new Error(`no stop ${label}`);
+    button.click();
+    flushSync();
+  }
+  function reset(): void {
+    defaultButton()?.click();
+    flushSync();
+  }
+  /** The `style` turning the wedge of `address` by `value` degrees. */
+  const turned = (address: Address, value: number | null) => ({
+    type: "style",
+    select: { element: "wedge", addresses: [{ id: address.id }] },
+    set: { rotation: value },
+    blocks: [address.block],
+  });
+  const rules = (store: Store, block: string) =>
+    store.view.blocks[block]?.manifest.graphical?.rules;
+
+  it("is a slider with seven stops, its name, its value as text and the stops as buttons", () => {
+    const store = example();
+    drawer(store, true, T).selected([THEME]);
+    const label = (slider().getAttribute("aria-labelledby") ?? "")
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent)
+      .join(" ");
+    expect([
+      slider().min,
+      slider().max,
+      slider().step,
+      label,
+      [...field().querySelectorAll("datalist option")].map((option) =>
+        option.getAttribute("value"),
+      ),
+      stopButtons().map((button) => [button.textContent, button.getAttribute("aria-label")]),
+      rotation(),
+    ]).toEqual([
+      "-180",
+      "180",
+      "1",
+      "Wedge rotation",
+      ["-180", "-135", "-45", "0", "45", "135", "180"],
+      STOPS.map((text) => [text, `${text} degrees`]),
+      ["0", "0 degrees", "0°", ["0"], null, false],
+    ]);
+  });
+
+  it("sends one style of the wedge's own rule for a stop, PageUp, PageDown and a drag, and Default removes it", () => {
+    const store = example();
+    drawer(store, true, T).selected([THEME]);
+    const before = rules(store, T);
+    stop("\u2212135");
+    expect([lastCommand(store), rotation()]).toEqual([
+      turned(THEME, -135),
+      ["-135", "\u2212135 degrees", "\u2212135°", ["\u2212135"], false, false],
+    ]);
+    press(slider(), "PageUp");
+    expect([lastCommand(store), rotation()[0]]).toEqual([turned(THEME, -45), "-45"]);
+    press(slider(), "PageDown");
+    expect([lastCommand(store), rotation()[0]]).toEqual([turned(THEME, -135), "-135"]);
+
+    const entries = store.journal.length;
+    slider().value = "42";
+    slider().dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    expect([store.journal.length, rotation()]).toEqual([
+      entries,
+      ["42", "42 degrees", "42°", [], false, false],
+    ]);
+    slider().dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    expect([store.journal.length, lastCommand(store), rotation()[0]]).toEqual([
+      entries + 1,
+      turned(THEME, 42),
+      "42",
+    ]);
+
+    stop("180");
+    const atEnd = store.journal.length;
+    press(slider(), "PageUp");
+    expect(store.journal.length).toBe(atEnd);
+
+    reset();
+    expect([lastCommand(store), rules(store, T), rotation()]).toEqual([
+      turned(THEME, null),
+      before,
+      ["0", "0 degrees", "0°", ["0"], null, false],
+    ]);
+  });
+
+  it("shows the rotation a rule by another selector draws, without Default", () => {
+    const store = example();
+    drawer(store, true, T).selected([THEME]);
+    expect(
+      store.dispatch({
+        type: "style",
+        select: { element: "wedge", within: "score" },
+        set: { rotation: 90 },
+        blocks: [T],
+      }),
+    ).toBe(null);
+    flushSync();
+    expect(rotation()).toEqual(["90", "90 degrees", "90°", [], null, false]);
+  });
+
+  it("waits while the wedge is not displayed, keeping its value", () => {
+    const store = example();
+    const inspector = drawer(store, true, T);
+    inspector.selected([SILENT]);
+    expect([rotation(), described(slider())]).toEqual([
+      ["0", "0 degrees", "0°", ["0"], null, true],
+      WEDGE_OFF,
+    ]);
+    expect(stopButtons().map((button) => button.disabled)).toEqual(STOPS.map(() => true));
+
+    inspector.selected([THEME]);
+    stop("45");
+    toggle("Wedge");
+    expect([rotation(), described(slider())]).toEqual([
+      ["45", "45 degrees", "45°", ["45"], true, true],
+      WEDGE_OFF,
+    ]);
+  });
+
+  it("shows an unnamed groupstamp's initial value, then a named one's, which a stated 0 overrides", () => {
+    const store = mixed();
+    drawer(store, true).pinTimestamp(unnamed(store));
+    expect([rotation(), described(slider())]).toEqual([
+      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, true],
+      `${TURNS} ${UNNAMED}`,
+    ]);
+
+    type(nameField(), "Upbeat");
+    press(nameField(), "Enter");
+    const upbeat: Address = { block: A, id: "timestamp_11" };
+    expect([rotation(), described(slider())]).toEqual([
+      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, false],
+      TURNS,
+    ]);
+    stop("0");
+    expect([lastCommand(store), rotation()]).toEqual([
+      turned(upbeat, 0),
+      ["0", "0 degrees", "0°", ["0"], false, false],
+    ]);
+    reset();
+    expect([lastCommand(store), rotation()]).toEqual([
+      turned(upbeat, null),
+      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, false],
+    ]);
+  });
+
+  it("turns a wedge in the timeline editor of its timeline", () => {
+    const store = example();
+    expect(store.open({ block: T, id: "score" })).toBe(null);
+    drawer(store, true, T).selected([THEME]);
+    stop("45");
+    const entry = store.entries.at(-1);
+    expect([
+      entry !== undefined && "command" in entry ? entry.command : undefined,
+      rotation()[0],
+    ]).toEqual([turned(THEME, 45), "45"]);
+  });
+});
+
 describe("coordinate granularity", () => {
   /** Each setting as [label, text, title, invalid, problem]. */
   function settings(): unknown[] {

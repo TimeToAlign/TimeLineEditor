@@ -478,7 +478,16 @@ root's card (`annotations`). The
 heading names what is inspected: a timeline, a bundle, a group, a card's
 timeline (a press on `bare`'s card selects `{block: "bare000000", id:
 "bare", part: ["card"]}`), and the anonymous bundle of a manifest without
-a name (a press on the margin selects `{block: "bare000000"}`).
+a name (a press on the margin selects `{block: "bare000000"}`). The wedge's
+rotation: with `bare`'s named `origin` (`timestamp_1`, its wedge displayed,
+no rule) selected, the Timestamp tab's slider "Wedge rotation" reads "0
+degrees"; PageUp on it journals one command and `bare`'s rules become
+exactly the one rule `{select: {element: "wedge", addresses: [{id:
+"timestamp_1"}]}, set: {rotation: 45}}`, and the drawn wedge's `points`
+change; the stop "−135 degrees" journals one more command, the rule
+stating −135, the stop pressed; axe-core reports no violation in the
+control; Default journals one more, leaves `bare` without rules, hides
+itself, and the wedge's `points` are those it was drawn with before.
 
 **`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
 drawer's Properties tab on `bundles`. With `group_1` selected, its frame

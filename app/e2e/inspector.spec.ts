@@ -6,9 +6,12 @@
  * included; the properties form of a block, a frame and a card, following a
  * frame's Stretch live in the bundle editor; and what the selection names
  * beside the heading (a bundle, a group, a timeline, a card), on `bundles`
- * and for a pressed card. The method is in `README.md` ("inspector.spec.ts").
+ * and for a pressed card; and the Timestamp tab's wedge rotation, by the
+ * keyboard, a stop and Default, turning the drawn wedge and back. The
+ * method is in `README.md` ("inspector.spec.ts").
  */
 
+import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Manifest } from "../packages/core/src/index.ts";
@@ -599,4 +602,50 @@ test("an unapplied text survives a visit to the Properties tab", async ({ page }
   await expect(text).toHaveValue(edited);
   await expectButtons(page, true);
   expect(await journalLength(page)).toBe(5);
+});
+
+test("the Timestamp tab turns a wedge by PageUp, a stop and Default, as one command each", async ({
+  page,
+}) => {
+  const origin = { block: SMALL.bare, id: "timestamp_1" };
+  /** `bare`'s rules as stored. */
+  const rules = () =>
+    page.evaluate(
+      (block) => window.__tilie.store().view.blocks[block]?.manifest.graphical?.rules,
+      SMALL.bare,
+    );
+  const wedge = node(page, SMALL.bare).locator('polygon[data-id="timestamp_1"]');
+  await select(page, [origin]);
+  await expect(tab(page, "Timestamp")).toHaveAttribute("aria-selected", "true");
+  const shown = await panel(page, "Timestamp");
+  const slider = shown.getByRole("slider", { name: "Wedge rotation" });
+  await expect(slider).toHaveAttribute("aria-valuetext", "0 degrees");
+  const unturned = await wedge.getAttribute("points");
+  const before = await journalLength(page);
+  const ruleOf = (rotation: number) => [
+    { select: { addresses: [{ id: "timestamp_1" }], element: "wedge" }, set: { rotation } },
+  ];
+
+  await slider.focus();
+  await page.keyboard.press("PageUp");
+  await expect(slider).toHaveAttribute("aria-valuetext", "45 degrees");
+  expect([await journalLength(page), await rules()]).toEqual([before + 1, ruleOf(45)]);
+  await expect(wedge).not.toHaveAttribute("points", unturned ?? "");
+
+  const stop = shown.getByRole("button", { name: "\u2212135 degrees" });
+  await stop.click();
+  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  await expect(slider).toHaveAttribute("aria-valuetext", "\u2212135 degrees");
+  expect([await journalLength(page), await rules()]).toEqual([before + 2, ruleOf(-135)]);
+
+  const axe = await new AxeBuilder({ page })
+    .include('[data-testid="timestamp-rotation"]')
+    .analyze();
+  expect(axe.violations).toEqual([]);
+
+  await shown.getByRole("button", { name: "Default", exact: true }).click();
+  await expect(slider).toHaveAttribute("aria-valuetext", "0 degrees");
+  await expect(shown.getByRole("button", { name: "Default", exact: true })).toHaveCount(0);
+  expect([await journalLength(page), await rules()]).toEqual([before + 3, []]);
+  await expect(wedge).toHaveAttribute("points", unturned ?? "");
 });
