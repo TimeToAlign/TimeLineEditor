@@ -2126,7 +2126,7 @@ maps. So `timelinePin` and `namedPin` take the line the position was
 read on (`preferred`) and read the cross-section there while that line
 is one of the position's places (`placesAt`), else at the first place
 (a timestamp selected from a list, reloaded, or whose line is gone). The
-review's cases, each read on the second place of a value and named there
+cases below, each read on the second place of a value and named there
 (`add {timestamp}`, a groupstamp where the reading reads a group); the
 named pin on the read line lists the flag's rows exactly, the named pin
 without a line the first place's:
@@ -2156,13 +2156,18 @@ middle 2 ♩ / piece 6 ♩ / recording 2.5″ raised. What would be wrong:
 `middle` read on its own line the raised card covers.
 
 **A held pin read again under another raised card** (`rereadPin`, what
-the drawer does with an unnamed pin while an editor opens or closes):
-the pin of a reading of `middle` 4 on its own line on the arranger (a
-group read, so `recording` too), read again with `piece`'s card raised
-lists middle 4 ♩ / piece 8 ♩ / recording 5″ and is marked on the card's
-row of `middle` at 460.33544921875 with the group's line; read again
-with nothing raised it lists piece 8 ♩ / middle 4 ♩ / recording 5″, as
-read. Once `middle` is removed it is `null`.
+the drawer does with an unnamed pin while an editor opens or closes): it
+is read as a fresh reading at its mark reads, with the group reading the
+caller gives (`groupScoped` of the editor open). The pin of a reading of
+`middle` 4 on its own line on the arranger (a group read, so `recording`
+too: piece 8 ♩ / middle 4 ♩ / recording 5″), read again with `piece`'s
+card raised and no group (a timeline editor is open) lists middle 4 ♩ /
+piece 8 ♩, as a fresh reading on the card's row of `middle` with that
+editor open does, and is marked on that row at 460.33544921875 without
+the group's line; read again with nothing raised and the group it lists
+piece 8 ♩ / middle 4 ♩ / recording 5″, as read. Once `middle` is removed
+it is `null`. What would be wrong: a group read kept where no fresh
+reading reads one, so rows naming the pin does not store.
 
 **The pin's mark outside ancestor cards.** A timeline drawn neither in an
 ancestor card nor as an ancestor line keeps the mark rule of a pin before
@@ -2549,7 +2554,8 @@ before an animation frame run one reading, with the last point.
 
 The rule the Timestamp tab rests on: for every place of every value, the
 flag a reading there shows (`readingAt`) and the pin made from it list
-the same rows (`flagParts`, values to three places). The pin made from
+the same rows (`flagParts`, each row's value compared exactly, never as a
+rounded text). The pin made from
 it is `timelinePin` of the reading's anchor at the reading's position,
 reading a group where the reading does (`groupScoped` of the editor
 open), under the same raised root, the read line preferred: what the
@@ -2575,8 +2581,18 @@ both through the one `timelineSpec`. A test of the suite, not a probe:
   there spans less than the gap between the value and any simpler value
   the snap would prefer (two fractions of denominators up to 2520 lie at
   least 1/2520² apart; an int axis's value is the integer nearest), so
-  the reading reads the value itself (checked wherever the reading's
-  anchor is the timeline).
+  the reading reads the value itself. That is checked at every place,
+  whatever the reading's anchor: the sampled value plus the offsets of the
+  timeline and its ancestors below their root (read from the manifest)
+  equals the reading's position plus those of its anchor, on the same
+  root. 274 places are read with another anchor than the sampled
+  timeline, all in `bundle_shared_parent`: 266 segments read on their
+  segment line (`take_1_first`, `take_1_second`, `exposition_first`,
+  `exposition_second`, `recapitulation_first_1`, `recapitulation_first_2`,
+  `recapitulation_second_1`, `recapitulation_second_2`), and the eight
+  boundary places below, read on `recapitulation_first`. A place whose
+  anchor lies under another root could not be checked; their list is
+  asserted empty, so none can appear unnoticed.
 - **Exact outcome** per fixture: the number of places compared, cards
   shown then hidden: `group_parent_both` 53, 23; `group_parent_right`
   54, 23; `group_parent_exact` 54, 27; `group_child_member` 53, 23;

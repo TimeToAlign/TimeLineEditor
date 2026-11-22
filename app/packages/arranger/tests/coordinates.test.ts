@@ -33,6 +33,7 @@ import {
   FrameCoalescer,
   flagParts,
   flagPlace,
+  groupScoped,
   holdings,
   lineAt,
   MeasureKnotsSource,
@@ -1014,29 +1015,44 @@ describe("a held pin read again under another raised card", () => {
   const drawing = drawingIn(view);
   const raised = raisedRoot(block, PIECE_EDITOR);
 
-  it("is read on the card's row with its group, and as it was once the card is lowered", () => {
+  it("is read as a fresh reading there: on the card's row without its group, and as it was once the card is lowered", () => {
     const reading = readWith(view, AT_PIECE_8, MIDDLE_Y, null);
     if (reading === null) throw new Error("middle is not read on its line");
     const middle = ["middle", [["coordinate", "4 ♩"]]];
     const piece = ["piece", [["coordinate", "8 ♩"]]];
     const recording = ["recording", [["coordinate", "5″"]]];
-    const again = (root: string | null) => {
-      const pin = rereadPin(block.manifest, drawing, reading.pin, root, reading.hit.key);
+    const again = (group: boolean, root: string | null) => {
+      const pin = rereadPin(block.manifest, drawing, reading.pin, group, root, reading.hit.key);
       return pin === null ? null : rowsOf(pin);
     };
-    expect([rowsOf(reading.pin), again(raised), again(null)]).toEqual([
+    // A timeline editor is open while the card is raised, so a fresh reading there reads no group.
+    const fresh = readWith(view, AT_PIECE_8, CARD_MIDDLE_Y, PIECE_EDITOR);
+    expect([
+      rowsOf(reading.pin),
+      again(groupScoped(PIECE_EDITOR), raised),
+      fresh === null ? null : rowsOf(fresh.pin),
+      again(groupScoped(null), null),
+    ]).toEqual([
       [piece, middle, recording],
-      [middle, piece, recording],
+      [middle, piece],
+      [middle, piece],
       [piece, middle, recording],
     ]);
-    const raisedPin = rereadPin(block.manifest, drawing, reading.pin, raised, reading.hit.key);
+    const raisedPin = rereadPin(
+      block.manifest,
+      drawing,
+      reading.pin,
+      false,
+      raised,
+      reading.hit.key,
+    );
     if (raisedPin === null) throw new Error("no pin read again");
     expect(pinnedPlace(drawing, raisedPin, reading.hit.key, raised)).toEqual({
       key: [...lineAxes(drawing)].find(
         ([, line]) => line.timeline === "middle" && line.ancestor !== undefined,
       )?.[0],
       x: AT_PIECE_8,
-      group: true,
+      group: false,
     });
   });
 
@@ -1045,7 +1061,7 @@ describe("a held pin read again under another raised card", () => {
     if (reading === null) throw new Error("middle is not read on its line");
     const gone = changed(view, { type: "remove", targets: [inBlock(A, idAddress("middle"))] });
     expect(
-      rereadPin(blockIn(gone, A).manifest, drawingIn(gone), reading.pin, null, null),
+      rereadPin(blockIn(gone, A).manifest, drawingIn(gone), reading.pin, true, null, null),
     ).toBeNull();
   });
 });

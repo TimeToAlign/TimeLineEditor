@@ -1119,7 +1119,7 @@ has a disclosure button labelled by its text that lists its changes,
 newest first (one undo greys a session's whole run: "Edited bundle Mixed (3
 changes, 2 undone)"), and nothing of the expansion reaches the store.
 
-## The Timestamp tab (`timestamp.test.ts`)
+## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 
 The Timestamp tab is always present. While a timestamp is shown its
 first area is the **name header** (`data-testid="timestamp-name"`, no
@@ -1241,18 +1241,39 @@ which no position solves).
    Movement [`8` ♩], Score [`24` ♩]. What would be wrong: the tab of the
    named timestamp built from the first place's card while the flag
    showed the second's rows.
+   **The editor hands the line over** (`shell.test.ts`, the whole page
+   with its canvas): with the same editor open, the viewport at (0, 0)
+   and zoom 1 and Show coordinates on, a press released on `movement` 8 on
+   its ancestor line in `theme`'s card (its abscissa and ordinate from
+   layout's `lineAxes` and `abscissaOf` on the drawing, moved by the
+   drawing's origin to the canvas) shows Score [`24`], Movement [`8`],
+   Theme [`0`]; naming it "Eight" stores a timestamp on `movement` and
+   shows the same groups. What would be wrong: the canvas's line lost
+   between the canvas and the drawer (the named timestamp read at its
+   first place: Theme, Movement, Score), which a callback taking the pin
+   alone would still typecheck.
    **A held unnamed pin is read again when an editor raises or lowers a
-   card**: in `groups/group_parent_both`, a pin of `middle` at 4 read on
-   its own line with nothing open (a group read, as on the arranger:
-   Piece [`8` ♩], Middle [`4` ♩], Recording [`5.0` s]) shows, once
-   `piece`'s timeline editor is open, the pin read again at `middle` 4
-   under the raised card, keeping its group reading: Middle [`4` ♩]
-   (the card's row), Piece [`8` ♩], Recording [`5.0` s], a new unnamed
-   pin, read once per pin, manifest, raised root and line (`heldPinOf`
-   asked twice gives the same object, so a change of the view elsewhere
-   shows the same pin); after Done the pin held is shown again, the same object. What
-   would be wrong: the rows read before while the canvas marks the pin
-   on the card's row.
+   card**, as a fresh reading at its mark reads it under the root raised
+   then: by the group exactly where naming it would store a groupstamp
+   (never inside a timeline editor), so its rows, the GroupStamp toggle
+   and the tab after naming agree. In `groups/group_parent_both`, a pin of
+   `middle` at 4 read on its own line with nothing open (a group read, as
+   on the arranger: Piece [`8` ♩], Middle [`4` ♩], Recording [`5.0` s])
+   shows, once `piece`'s timeline editor is open, the pin read again at
+   `middle` 4 under the raised card and without the group: Middle [`4` ♩]
+   (the card's row), Piece [`8` ♩], the GroupStamp toggle not pressed; a
+   new unnamed pin, read once per pin, manifest, raised root and line
+   (`heldPinOf` asked twice gives the same object, so a change of the view
+   elsewhere shows the same pin); after Done the pin held is shown again,
+   the same object. The other way round, a pin of `middle` at 4 read on
+   the raised card's row of `middle` with `piece`'s editor open (no group:
+   Middle [`4` ♩], Piece [`8` ♩], the toggle not pressed) is read again
+   after Done on `middle`'s own line, by the group: Piece [`8` ♩], Middle
+   [`4` ♩], Recording [`5.0` s], a new pin, the toggle pressed. What would
+   be wrong: rows that no fresh reading at the mark gives and that naming
+   the pin does not store (the group read kept in a timeline editor, or
+   left out after it), or the rows read before while the canvas marks the
+   pin on the card's row.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its rows in core's order too, top
    to bottom as drawn: the row "coordinate" at its line and one row per map

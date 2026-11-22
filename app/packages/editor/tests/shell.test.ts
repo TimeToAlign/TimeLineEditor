@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { Address, CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -16,6 +17,8 @@ import {
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
+import { abscissaOf, lineAxes } from "@timetoalign/tilie-layout";
 import { dumps, fontMetrics, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -489,6 +492,91 @@ describe("the message bar", () => {
     expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
       "info",
     );
+  });
+});
+
+describe("a pin made on the canvas", () => {
+  /** A primary mouse button's pointer event of `type` on the arranger at the client point `at`. */
+  function pointer(type: string, at: { clientX: number; clientY: number }): void {
+    const arranger = document.querySelector('[aria-label="Arranger"]');
+    if (arranger === null) throw new Error("no arranger");
+    arranger.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        bubbles: true,
+        cancelable: true,
+        ...at,
+      }),
+    );
+  }
+
+  /** The Timestamp tab's Coordinates as `[timeline, [row, value]…]`, top to bottom. */
+  function coordinates(): unknown[] {
+    const area = [...document.querySelectorAll("section")].find(
+      (section) => section.querySelector("h3")?.textContent === "Coordinates",
+    );
+    return [...(area?.querySelectorAll("tbody") ?? [])].map((body) => [
+      body.querySelector('th[scope="colgroup"]')?.textContent,
+      [...body.querySelectorAll("tr[data-row]")].map((row) => [
+        row.querySelector('th[scope="row"]')?.textContent,
+        row.querySelector("input")?.value,
+      ]),
+    ]);
+  }
+
+  it("keeps the rows of the line it was read on in the Timestamp tab", async () => {
+    start();
+    hook().load(workspaceOf("groups/group_grandchild"));
+    flushSync();
+    expect(hook().open({ block: A, id: "score" })).toBeNull();
+    flushSync();
+    hook().setViewport({ x: 0, y: 0, zoom: 1 });
+    document
+      .querySelector('[data-testid="coordinates"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    flushSync();
+    // `movement` 8 on its ancestor line in `theme`'s card, the second of its places: the
+    // raised card's `movement` row is the first.
+    const { view } = hook().store();
+    const block = view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const drawing = drawingOf(block, view.graphical, fontMetrics);
+    const line = [...lineAxes(drawing).values()].find(
+      (axis) =>
+        axis.timeline === "movement" && axis.ancestor === undefined && axis.card.member === "theme",
+    );
+    if (line === undefined) throw new Error("no line of movement in theme's card");
+    const at = {
+      clientX:
+        block.x + (abscissaOf(line, Rational.fromParts(8n, 1n)) - drawing.origin.x) * block.scale,
+      clientY: block.y + (line.y - drawing.origin.y) * block.scale,
+    };
+    pointer("pointerdown", at);
+    pointer("pointerup", at);
+    const read = [
+      ["Score", [["coordinate", "24"]]],
+      ["Movement", [["coordinate", "8"]]],
+      ["Theme", [["coordinate", "0"]]],
+    ];
+    await vi.waitFor(() => expect(coordinates()).toEqual(read));
+    // Named, the timestamp is read anew from the view: on the line the pin was read on, which
+    // the canvas handed over with it; the first place would list Theme, Movement, Score.
+    const name = document.querySelector<HTMLInputElement>(
+      '[data-testid="timestamp-name"] input[type="text"]',
+    );
+    if (name === null) throw new Error("no name field");
+    name.value = "Eight";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    key(name, { key: "Enter" });
+    const named = hook()
+      .store()
+      .view.blocks[A]?.manifest.graphical?.timestamps?.find((item) => item.name === "Eight");
+    expect([named?.timeline, coordinates()]).toEqual(["movement", read]);
   });
 });
 
