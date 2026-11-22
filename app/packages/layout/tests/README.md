@@ -2075,6 +2075,31 @@ wi/2 + 1]`, `wi` the label's width (section 6.3), and no two child lines at
 one ordinate, which one children band's first fit placed in one row, have
 conflicting drawn extents `[Xs, Xe]`.
 
+**The rows of first fit** (`fit.test.ts`). The oracle is section 6.3 read
+literally, written out in the test file alone: an item tries rows 1, 2, 3,
+… in turn and goes to the first one in which it conflicts with no item, an
+item conflicting with another when `a1 < b2` and `a2 < b1`, or when `a1 =
+a2`, every item of the row compared. The layout's first fit must give every
+item the row the oracle gives it and leave every row holding the same
+extents in the same order, for every sequence of extents, so the sequences
+are generated (fast-check, seeded, so a failure reproduces) to reach every
+case the definition distinguishes: ends drawn from a small set of integers
+and halves, so starts tie, items touch at their ends (`b1 = a2`, which
+share a row) and contain one another; zero-length items (`a = b`), alone,
+at another item's start, inside it and at its end; sequences in ascending
+order of start, as the children and the labels arrive, in descending order
+and in any order; long sequences (up to 400 items) beside short ones; and
+extents the layout never makes but the definition still decides: a start
+after its end, NaN at either end, infinities and −0 beside 0 (equal starts,
+so they conflict). Four sequences are also written out with their rows
+derived by hand from the definition: `[0, 1]`, `[1, 2]`, `[2, 3]` touch
+and share row 1; `[0, 2]`, `[0, 1]`, `[1, 3]` give rows 1, 2, 2 (`[0, 1]`
+starts where `[0, 2]` starts, `[1, 3]` starts inside `[0, 2]` and where
+`[0, 1]` ends); `[0, 4]`, `[2, 2]`, `[4, 4]`, `[4, 6]` give rows 1, 2, 1, 2
+(the zero-length `[2, 2]` lies inside `[0, 4]`, `[4, 4]` touches its end,
+`[4, 6]` starts where `[4, 4]` starts); `[5, 6]`, `[3, 4]`, `[4, 5]`,
+`[3.5, 4.5]`, arriving out of order, give rows 1, 1, 1, 2.
+
 ## Redraw operation counts (`scale.test.ts`)
 
 A synthetic manifest has exactly 1,000 element keys, as core enumerates
@@ -2115,3 +2140,18 @@ the tree itself or asks core for each timeline's band order and core
 searches it per question: the draw asks the band order of every timeline
 drawn with a line, so the counts guard core's lookup as much as the
 layout's own walk.
+
+**Work per placement.** A first fit's work per item does not grow with the
+number of items a row already holds: no item is compared again with every
+item placed after it, as a scan of the whole row per placement would. The
+case is the one a timeline with thousands of short children gives, every
+child in one row: 300 and 3,000 extents `[i, i + 1]`, placed in that
+order, each touching the one before it, so first fit puts all of them in
+row 1 (the rows are checked too). Every extent is wrapped so that each read
+of its start or its end is counted. The oracle is the smaller sequence:
+the read counts of the first and the last extent are equal in both, and
+the most-read extent of each is read equally often. A scan of the row
+compares each extent with every other extent of the row, reading both ends
+of both each time: the first and the last extent are read 598 times each
+in the smaller sequence and 5,998 times in the larger, which fails every
+equality.
