@@ -182,6 +182,55 @@ describe("opening", () => {
     expect(await cancelled).toBe(null);
   });
 
+  it("holds only options in its list box, its note beside it, and keeps the keys in an empty folder", async () => {
+    /** The list box's children as their roles, the note's role and text, whether the note is inside the list, and the list's description. */
+    const state = () => {
+      const note = shown().querySelector<HTMLElement>(".note");
+      return [
+        [...list().children].map((child) => child.getAttribute("role")),
+        note?.getAttribute("role"),
+        note?.textContent,
+        list().contains(note ?? null),
+        list().getAttribute("aria-busy"),
+        (list().getAttribute("aria-describedby") ?? "")
+          .split(" ")
+          .map((each) => document.getElementById(each)?.textContent?.trim()),
+      ];
+    };
+    const HINT = "TimeToShare manifest: the files on the server.";
+    void mounted().open([MANIFEST_FILE], "work");
+    flushSync();
+    expect(state()).toEqual([[], "status", "Loading…", false, "true", [HINT, "Loading…"]]);
+    await showing([]);
+    expect(state()).toEqual([
+      [],
+      "status",
+      "Nothing to show here.",
+      false,
+      "false",
+      [HINT, "Nothing to show here."],
+    ]);
+    for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "Enter"]) press(key);
+    expect([list().hasAttribute("aria-activedescendant"), listed, crumbs()]).toEqual([
+      false,
+      ["work"],
+      [
+        ["Root", null],
+        ["work", "location"],
+      ],
+    ]);
+    press("Backspace");
+    await showing(MANIFESTS);
+    expect(state()).toEqual([
+      MANIFESTS.map(() => "option"),
+      "status",
+      "",
+      false,
+      "false",
+      [HINT, ""],
+    ]);
+  });
+
   it("shows the root where the folder it starts in is gone", async () => {
     void mounted().open([MANIFEST_FILE], "gone");
     flushSync();

@@ -8,7 +8,7 @@
  * one command; PageUp and PageDown move to the next stop up or down; a stop
  * commits its value; Default, offered while a rule states the rotation,
  * commits `null`. The caller sends the command (`oncommit`). Disabled, every
- * control shows greyed and the value is kept.
+ * control shows greyed, the value beside them muted, and the value is kept.
  */
 import { degreesText, ROTATION_STOPS } from "../timestamp.ts";
 
@@ -173,9 +173,14 @@ function onkeydown(event: KeyboardEvent): void {
 
   .stop:disabled,
   .default:disabled,
-  .slider:disabled,
-  .slider:disabled + .degrees {
+  .slider:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+
+  /* The value is text, not a control: muted beside a disabled slider, never faded below 4.5:1. */
+  .slider:disabled + .degrees {
+    cursor: not-allowed;
+    color: #595959;
   }
 </style>

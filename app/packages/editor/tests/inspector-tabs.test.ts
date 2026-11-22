@@ -11,6 +11,7 @@ import Inspector from "../src/inspector/Inspector.svelte";
 import type { JournalSource } from "../src/inspector/journal.ts";
 import type { Tab } from "../src/inspector/tabs.ts";
 import { initialPick, nextTab, TABS, tabLabel, toggled } from "../src/inspector/tabs.ts";
+import { addStylesOf, fadingsOf } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
 import { informing, noMatchClaims, providing } from "./support.ts";
@@ -733,6 +734,45 @@ describe("the Journal panel", () => {
     store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { y: 7 } }] });
     flushSync();
     expect(items()).toEqual([[T, G, "Set y of bundle 'Mixed'", false, false, null], ...ADDS]);
+  });
+
+  it("shows an undone row muted and its sentence struck through, never faded", () => {
+    const style = addStylesOf("inspector/JournalPanel.svelte");
+    try {
+      const store = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
+      show(store);
+      click("Journal");
+      store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { x: 25 } }] });
+      store.undo();
+      flushSync();
+      /** Each part of the first item's row as [color, text-decoration, fadings applying]. */
+      const looks = () => {
+        const item = panelOf("Journal")?.querySelector("li");
+        if (item === null || item === undefined) throw new Error("no journal item");
+        return [".time", ".author", ".text"].map((part) => {
+          const element = item.querySelector(`:scope > .row > ${part}`);
+          if (element === null) throw new Error(`no ${part}`);
+          const computed = getComputedStyle(element);
+          return [computed.color, computed.textDecoration, fadingsOf(element)];
+        });
+      };
+      const MUTED = "rgb(89, 89, 89)";
+      expect(looks()).toEqual([
+        [MUTED, "", []],
+        [MUTED, "", []],
+        [MUTED, "line-through", []],
+      ]);
+      store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { y: 7 } }] });
+      flushSync();
+      expect(looks()).toEqual([
+        [MUTED, "", []],
+        [MUTED, "", []],
+        // The text's own colour, inherited: jsdom's black, no page stylesheet being loaded.
+        ["rgb(0, 0, 0)", "", []],
+      ]);
+    } finally {
+      style.remove();
+    }
   });
 
   it("lists the earlier session last, keeping the items per entry", () => {

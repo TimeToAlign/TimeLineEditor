@@ -95,10 +95,13 @@ function idOf(entry: Entry, part: string): string | undefined {
     border-top: 2px solid #b0b0b0;
   }
 
-  /* Undone and not redone yet; each row of a session greyed on its own, so nesting never compounds it. */
+  /* Undone and not redone yet: muted and its sentence struck through; each row of a session on its own. */
   li[data-undone] > .row {
     color: #595959;
-    opacity: 0.5;
+  }
+
+  li[data-undone] > .row > .text {
+    text-decoration: line-through;
   }
 
   .disclosure {
@@ -151,7 +154,7 @@ function idOf(entry: Entry, part: string): string | undefined {
     flex-basis: 100%;
   }
 
-  /* Read by assistive technology, not shown: the grey says it to the eye. */
+  /* Read by assistive technology, not shown: the struck-through sentence says it to the eye. */
   .visually-hidden {
     position: absolute;
     width: 1px;

@@ -9,7 +9,8 @@
  * The dialog shows where it is as a row of buttons from the root (the
  * breadcrumb), then the folder's contents as one list box: its folders,
  * then its files of the kinds asked for, in the order the server lists
- * them. The list takes the focus once: the arrow keys, Home and End move
+ * them; a note beside the list says when it is loading or holds no entry,
+ * announced politely. The list takes the focus once: the arrow keys, Home and End move
  * the choice, Enter or a double-click opens a folder or takes a file,
  * Backspace goes up a folder. Saving offers a name field (a file chosen in
  * the list fills it) and asks before a file is replaced. It is the editor's
@@ -86,6 +87,11 @@ const crumbs = $derived(
 );
 
 const chosenEntry = $derived(chosen === null ? undefined : shown[chosen]);
+
+/** What stands in the list box's place while it shows no entry; empty while it shows some. */
+const note = $derived(
+  entries === null ? "Loading…" : shown.length === 0 ? "Nothing to show here." : "",
+);
 
 /** The path of `entryName` in the folder shown. */
 function inFolder(entryName: string): string {
@@ -260,42 +266,43 @@ function onsubmit(event: SubmitEvent): void {
         {/each}
       </ol>
     </nav>
-    <ul
-      class="entries"
-      role="listbox"
-      tabindex="0"
-      aria-label={folder === "" ? "Contents of the root folder" : `Contents of ${folder}`}
-      aria-describedby="{id}-hint"
-      aria-busy={entries === null}
-      aria-activedescendant={chosen === null ? undefined : `${id}-entry-${chosen}`}
-      onkeydown={onlistkeydown}
-      onclick={(event) => {
-        const index = optionAt(event);
-        if (index === null) return;
-        choose(index);
-        list?.focus();
-      }}
-      ondblclick={(event) => {
-        const index = optionAt(event);
-        if (index !== null) activate(index);
-      }}
-      {@attach heldList}
-    >
-      {#each shown as entry, index (entry.name)}
-        <li
-          id="{id}-entry-{index}"
-          role="option"
-          tabindex="-1"
-          class={entry.kind}
-          aria-selected={chosen === index}
-          data-index={index}
-        >
-          {entry.kind === "folder" ? `${entry.name}/` : entry.name}
-        </li>
-      {:else}
-        <li class="empty" role="presentation">{entries === null ? "Loading…" : "Nothing to show here."}</li>
-      {/each}
-    </ul>
+    <div class="box">
+      <ul
+        class="entries"
+        role="listbox"
+        tabindex="0"
+        aria-label={folder === "" ? "Contents of the root folder" : `Contents of ${folder}`}
+        aria-describedby="{id}-hint {id}-note"
+        aria-busy={entries === null}
+        aria-activedescendant={chosen === null ? undefined : `${id}-entry-${chosen}`}
+        onkeydown={onlistkeydown}
+        onclick={(event) => {
+          const index = optionAt(event);
+          if (index === null) return;
+          choose(index);
+          list?.focus();
+        }}
+        ondblclick={(event) => {
+          const index = optionAt(event);
+          if (index !== null) activate(index);
+        }}
+        {@attach heldList}
+      >
+        {#each shown as entry, index (entry.name)}
+          <li
+            id="{id}-entry-{index}"
+            role="option"
+            tabindex="-1"
+            class={entry.kind}
+            aria-selected={chosen === index}
+            data-index={index}
+          >
+            {entry.kind === "folder" ? `${entry.name}/` : entry.name}
+          </li>
+        {/each}
+      </ul>
+      <p class="note" id="{id}-note" role="status">{note}</p>
+    </div>
     {#if saving}
       <label class="line">
         <span>File name</span>
@@ -349,9 +356,15 @@ function onsubmit(event: SubmitEvent): void {
     padding: 0.1rem 0.4rem;
   }
 
+  /* The list box and, over its top while it shows no entry, the note standing in for its entries. */
+  .box {
+    position: relative;
+    margin: 0 0 0.75rem;
+  }
+
   .entries {
     height: 14rem;
-    margin: 0 0 0.75rem;
+    margin: 0;
     padding: 0;
     overflow: auto;
     list-style: none;
@@ -380,8 +393,15 @@ function onsubmit(event: SubmitEvent): void {
     background: #dbeafe;
   }
 
-  .entries .empty {
+  /* Inside the list box's border, as an entry would stand; a click goes through to the list. */
+  .note {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    margin: 0;
+    padding: 0.2rem 0.5rem;
     color: #595959;
+    pointer-events: none;
   }
 
   .line {
