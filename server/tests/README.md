@@ -18,7 +18,7 @@ missing editors.
 | `/api/` path without exactly `Authorization: Bearer <run token>` (missing, wrong, `Basic`, `bearer`, a doubled space, a trailing space, an unknown path) | 401 `{"detail": "missing or invalid token"}`, before routing |
 | foreign `Host` (also absent, sent through raw ASGI since the test client always supplies one) | 403 `{"detail": "forbidden host"}` |
 | foreign `Origin` | 403 `{"detail": "forbidden origin"}` |
-| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the version of the timetoshare imported; `"timetoshare": null` where timetoshare cannot be imported |
+| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the version of the timetoshare imported; `"timetoshare": null` where timetoshare cannot be imported, whatever the import raises: an `ImportError`, or any other exception, proven by an import that raises `RuntimeError` |
 | authorized `GET /api/openapi.json` | 404 `{"detail": "Not Found"}`; a generated document is no part of the interface |
 | `GET /` without a built editor | 503 `{"detail": "app not built"}` |
 | `GET /` and assets of a built editor | 200, byte for byte, `index.html` as `text/html; charset=utf-8` |
