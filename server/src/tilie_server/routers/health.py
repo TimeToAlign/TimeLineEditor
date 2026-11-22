@@ -24,7 +24,11 @@ def timetoshare_version() -> str | None:
     """
     try:
         from timetoshare import SCHEMA_VERSION
-    except ImportError:
+    # Deliberately broad, around the import alone: importing timetoshare
+    # runs its package code (the schema and jsonschema), and a package that
+    # fails there with any exception must not turn the health answer, which
+    # a host reads to see that the server runs, into a server error.
+    except Exception:
         return None
     return SCHEMA_VERSION
 

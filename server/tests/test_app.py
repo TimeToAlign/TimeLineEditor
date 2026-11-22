@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 import struct
 import threading
@@ -49,6 +50,24 @@ def test_health_answers_the_installed_versions(
     response = unbuilt.get("/api/health", headers=AUTH)
     assert response.status_code == 200
     assert response.json() == installed_health
+
+
+def test_health_answers_without_a_timetoshare_that_fails_to_import(
+    unbuilt: TestClient,
+    installed_health: dict[str, str | None],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    imported = builtins.__import__
+
+    def failing(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "timetoshare" or name.startswith("timetoshare."):
+            raise RuntimeError("timetoshare fails while it is imported")
+        return imported(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", failing)
+    response = unbuilt.get("/api/health", headers=AUTH)
+    assert response.status_code == 200
+    assert response.json() == {**installed_health, "timetoshare": None}
 
 
 def test_api_without_token_is_unauthorized(unbuilt: TestClient) -> None:
