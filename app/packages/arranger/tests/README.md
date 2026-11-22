@@ -2058,8 +2058,9 @@ reader of a coordinate's place reads them and nothing else: screen order
 displaying nothing (one at each place), the mark of a pin (on the line
 it was pinned on while that line draws its anchor there uncovered, else
 at its first place), and the cross-section a named timestamp or a
-position on a timeline is read with (the line of its first place; where
-it has none, the first line `holdings` gives, else its own axis). So a
+position on a timeline is read with (the line it was read on while that
+is one of its places, else the line of its first place; where it has
+none, the first line `holdings` gives, else its own axis). So a
 timeline drawn only in an ancestor card and as an ancestor line is
 placed on the ancestor line inside the member's card where one runs at
 that abscissa, on the card's line where the card is visible, on the
@@ -2117,6 +2118,51 @@ nothing has its affordance on `middle`'s own line on the arranger and on
 the card's row while the card is raised, its points `wedgeAt` on that
 line at 460.33544921875 each time. "Show matches" draws and hits `middle`
 there too (below, "Where a timeline is seen").
+
+**A reading belongs to the line it was read on.** A timeline's rows
+depend on the line read: another card crosses its descendants at other
+ordinates, so lists them in another order, and an ancestor line draws no
+maps. So `timelinePin` and `namedPin` take the line the position was
+read on (`preferred`) and read the cross-section there while that line
+is one of the position's places (`placesAt`), else at the first place
+(a timestamp selected from a list, reloaded, or whose line is gone). The
+review's cases, each read on the second place of a value and named there
+(`add {timestamp}`, a groupstamp where the reading reads a group); the
+named pin on the read line lists the flag's rows exactly, the named pin
+without a line the first place's:
+
+| Fixture, editor | Value, places (y) | Flag and named pin on the line | First place |
+|---|---|---|---|
+| `group_grandchild`, `score`'s | `movement` 8; the card's row 56.9765625, the ancestor line in `theme`'s card 104.953125 | score 24 ♩ / movement 8 ♩ / theme 0 ♩ | theme 0 ♩ / movement 8 ♩ / score 24 ♩ |
+| `bundle_mixed`, `recording`'s | `excerpt` 33075; the card's row 285.8203125, its own line in `group_2` 340.796875 | recording 77 175 smp / excerpt [`cmap_6` 0.75″, 33 075 smp] | excerpt [`cmap_6` 0.75″, 33 075 smp] / recording 77 175 smp |
+| `bundle_shared_parent`, none | `score` 9; the ancestor line in `exposition`'s card 127.234375, `group_2`'s ancestor card's line 344.421875 | exposition [`cmap_2` 4 320 ticks, 9 ♩] / exposition_second [`cmap_3` 1.5″, 3 ♩] / score [`cmap_1` 4 320 ticks, 9 ♩] | score 9 ♩ / exposition […] / exposition_second […] |
+
+In each the reading hovers the place's own line and reads the value
+exactly. A preferred line that is no place of the position (`theme`'s
+line for `movement` 8, a key no line has) reads as no line. What would
+be wrong: the tab of a timestamp named on a second place built from the
+first place's card (other order, other map rows).
+
+**A GroupStamp read under the raised card.** A member of a group that
+the raised card draws is read on the card's row of it, as its own
+reading is placed there: in `group_parent_both` the GroupStamp pin of
+`recording` at 2.5 (`timelinePin`, `groupstamp`) reads `middle` at
+81.78125 (its member card's line) and its ancestor `piece` at 67.78125
+on the arranger, both scaled 4/5 (`middle` 4 ♩ ↔ `recording` 5 s at the
+frame's common abscissa); with `piece`'s editor open `middle` at
+33.8046875 (the card's row) and `piece` at 67.78125 (the card's line).
+Its rows: piece 6 ♩ / middle 2 ♩ / recording 2.5″ on the arranger,
+middle 2 ♩ / piece 6 ♩ / recording 2.5″ raised. What would be wrong:
+`middle` read on its own line the raised card covers.
+
+**A held pin read again under another raised card** (`rereadPin`, what
+the drawer does with an unnamed pin while an editor opens or closes):
+the pin of a reading of `middle` 4 on its own line on the arranger (a
+group read, so `recording` too), read again with `piece`'s card raised
+lists middle 4 ♩ / piece 8 ♩ / recording 5″ and is marked on the card's
+row of `middle` at 460.33544921875 with the group's line; read again
+with nothing raised it lists piece 8 ♩ / middle 4 ♩ / recording 5″, as
+read. Once `middle` is removed it is `null`.
 
 **The pin's mark outside ancestor cards.** A timeline drawn neither in an
 ancestor card nor as an ancestor line keeps the mark rule of a pin before
@@ -2313,7 +2359,8 @@ object), which the flag shows floats with.
 
 **A named timestamp's pin** (`namedPin`) has its own timeline as the
 anchor, always, at its own coordinate: read as a click at its coordinate
-reads it, on the line of its first place (above, "A coordinate's place"),
+reads it, on the line it was named from while that is one of its places,
+else on the line of its first place (above, "A coordinate's place"),
 with that line's cross-section (`{spec, knots, timestamp, named}`,
 `named` the manifest's own entry, the same object). With `timestamp_3` (the next free ID: `map`
 holds `origin` and `length` as `timestamp_1` and `timestamp_2`) at 4 on
@@ -2497,6 +2544,59 @@ not expanded`, `failed` `the server did not expand its measure map`.
 
 **One reading per frame.** Pointer moves are coalesced: three moves
 before an animation frame run one reading, with the last point.
+
+## A reading and the pin made from it (`reading-places.test.ts`)
+
+The rule the Timestamp tab rests on: for every place of every value, the
+flag a reading there shows (`readingAt`) and the pin made from it list
+the same rows (`flagParts`, values to three places). The pin made from
+it is `timelinePin` of the reading's anchor at the reading's position,
+reading a group where the reading does (`groupScoped` of the editor
+open), under the same raised root, the read line preferred: what the
+drawer holds for a canvas pin and what `namedPin` reads after naming,
+both through the one `timelineSpec`. A test of the suite, not a probe:
+
+- **Subjects**: the fixtures holding a grouped child, the ones drawing
+  ancestor cards: `groups/group_parent_both`, `group_parent_right`,
+  `group_parent_exact`, `group_child_member`,
+  `group_child_member_stamps`, `group_grandchild`,
+  `group_parents_mixed`, `bundles/bundle_mixed`,
+  `bundle_shared_parent`; block A at (40, 80), each with its ancestor
+  cards shown and hidden (`withoutAncestorCards`).
+- **States**: nothing open, then for each root an ancestor card draws
+  its timeline editor, kept where `raisedRoot` gives that root (a root
+  in a group raises nothing).
+- **Positions**: every timeline in pre-order, of known length `L`, at
+  `k × L / 8` for `k` from 0 to 8 on its own axis (an int axis floored,
+  a float axis rounded to three decimals, a fraction exact); every place
+  of each (`placesAt` under the state's root).
+- **The reading** at a place is `readingAt` at the place's abscissa on
+  its line's ordinate, at zoom 2^20 and ratio 1: half a device pixel
+  there spans less than the gap between the value and any simpler value
+  the snap would prefer (two fractions of denominators up to 2520 lie at
+  least 1/2520² apart; an int axis's value is the integer nearest), so
+  the reading reads the value itself (checked wherever the reading's
+  anchor is the timeline).
+- **Exact outcome** per fixture: the number of places compared, cards
+  shown then hidden: `group_parent_both` 53, 23; `group_parent_right`
+  54, 23; `group_parent_exact` 54, 27; `group_child_member` 53, 23;
+  `group_child_member_stamps` 53, 23; `group_grandchild` 85, 25;
+  `group_parents_mixed` 252, 47; `bundle_mixed` 117, 47;
+  `bundle_shared_parent` 405, 143: 1,507 places, none differing.
+  Where two lines lie at one point the reading hovers the earlier
+  (`lineAt`'s tie): only in `bundle_shared_parent`, the segments
+  `recapitulation_second` and `recapitulation_second_1` at 0, which lie
+  where `recapitulation_first` ends, are read on `recapitulation_first`'s
+  line: with the cards shown twice on the arranger (`group_2`'s
+  `recapitulation` card) and four times with `score` raised (its two
+  cards in `group_1` and `group_2`), hidden twice on the arranger. Then
+  the reading's own anchor and line are compared, which agree too.
+- **Time**: the nine cases run in about one second together.
+
+What would be wrong: any place whose flag and pin differ. Without the
+read line (the first place always) 49 places differ: 14 in
+`group_grandchild`, 9 in `group_parents_mixed`, 9 in `bundle_mixed`, 17
+in `bundle_shared_parent`, all with the cards shown.
 
 ## Show matches (`matches.test.ts`, `matches-budget.test.ts`)
 
@@ -3372,8 +3472,9 @@ display: wedge, name label, cross-section line).
   the hovered row. With a rule hiding the drawn mark of `middle`'s start
   (`{element: wedge, addresses: [{id: middle, part: [start]}]}`,
   `display: none`) the hover mark is the same. A click there pins `piece`
-  at 8 (`oncoordinatepin`, the anchor `piece`), and the pin's mark is the
-  same wedge at the same place. What would be wrong: no mark, or a mark
+  at 8 (`oncoordinatepin`, the anchor `piece`, handed over with the key
+  of that ancestor line), and the pin's mark is the same wedge at the
+  same place. What would be wrong: no mark, or a mark
   that a rule on the member's start mark hides or recolours.
 - **The pin's mark follows the raised card.** The canvas marks a pinned
   timestamp at its place with the root the node's editor raises
@@ -3413,10 +3514,12 @@ display: wedge, name label, cross-section line).
   the same pin read in a timeline editor, and every pin on `map`, none.
 - **Pinning.** With Show coordinates on, a press released where it began
   on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of
-  `melody` at exactly 4 and announces `Pinned Melody at 4 ♩`; one 30
-  below the line, where nothing is hovered, calls it with `null`; turning
-  Show coordinates off calls it with `null` once more; with it off, a
-  click on the line calls nothing.
+  `melody` at exactly 4 and the key of `melody`'s line (the line it was
+  read on, which the drawer keeps for the pin and the timestamp named
+  from it) and announces `Pinned Melody at 4 ♩`; one 30 below the line,
+  where nothing is hovered, calls it with `null` and no line; turning
+  Show coordinates off calls it with `null` and no line once more; with
+  it off, a click on the line calls nothing.
 - **Mode split.** With Show coordinates on, exactly the drawn elements
   that carry an address of a named timestamp (core resolves it to the
   timestamp or one of its parts) carry `pointer-events="none"`, in the

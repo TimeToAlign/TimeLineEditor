@@ -1226,6 +1226,33 @@ which no position solves).
    wrong: the tab reading the covered card's line on the arranger, or the
    ancestor line the raised card hides while the editor is open, so that
    the tab lists rows in another order than the line the user sees.
+   **A pin keeps the line it was read on** (the canvas hands the line
+   over with the pin, `pinTimestamp(pin, line)`), and so does the
+   timestamp named from it, while that line is a place of its position;
+   a timestamp selected otherwise is read at its first place (a
+   selection names addresses, never the line a wedge was pressed on). In
+   `groups/group_grandchild` with `score`'s timeline editor open, a pin
+   of `movement` at 8 read on `movement`'s ancestor line in `theme`'s
+   card (the second of its places; the first is the raised card's
+   `movement` row) shows Score [`24` ♩], Movement [`8` ♩], Theme [`0` ♩],
+   top to bottom on that card; naming it "Eight" shows the same groups,
+   and selecting it again while shown keeps them; selected afresh (the
+   block first, then it) it is read on the raised card, Theme [`0` ♩],
+   Movement [`8` ♩], Score [`24` ♩]. What would be wrong: the tab of the
+   named timestamp built from the first place's card while the flag
+   showed the second's rows.
+   **A held unnamed pin is read again when an editor raises or lowers a
+   card**: in `groups/group_parent_both`, a pin of `middle` at 4 read on
+   its own line with nothing open (a group read, as on the arranger:
+   Piece [`8` ♩], Middle [`4` ♩], Recording [`5.0` s]) shows, once
+   `piece`'s timeline editor is open, the pin read again at `middle` 4
+   under the raised card, keeping its group reading: Middle [`4` ♩]
+   (the card's row), Piece [`8` ♩], Recording [`5.0` s], a new unnamed
+   pin, read once per pin, manifest, raised root and line (`heldPinOf`
+   asked twice gives the same object, so a change of the view elsewhere
+   shows the same pin); after Done the pin held is shown again, the same object. What
+   would be wrong: the rows read before while the canvas marks the pin
+   on the card's row.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its rows in core's order too, top
    to bottom as drawn: the row "coordinate" at its line and one row per map
@@ -1852,11 +1879,27 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      `p_1`, `piece` 3 ↔ `recording` 2.5 (the group partner of `piece`'s
      child `middle`): with nothing raised `piece` 3 has no place and
      orders after `recording` 2.5, so the one `add` stores the anchor
-     [`recording` 2.5, `piece` [3, 1]], MatchClaims `["p_1"]`. With
-     `piece`'s timeline editor open the tab shows Piece [`3` ♩] first,
-     then Recording [`2.5` s] (the raised order), and naming stores the
-     same command byte for byte (`JSON.stringify` of the journal's last
-     command equal to the one stored with no editor open).
+     [`recording` 2.5, `piece` [3, 1]], MatchClaims `["p_1"]`; the tab
+     shows `recording` 2.5's groups (naming stores a GroupStamp on a group
+     member, so its pin reads `group_1`'s other member `middle` and its
+     ancestor `piece`) Piece [`6` ♩] (`piece`'s ancestor line, 67.78125),
+     Middle [`2` ♩] (its member card's line, 81.78125), Recording [`2.5`
+     s], then Piece [`3` ♩]. `middle` 2 is `recording` 2.5 scaled by the
+     group, 2.5 × 4/5 (`middle` 4 ♩ ↔ `recording` 5 s at the frame's
+     common abscissa 460.33544921875), and `piece` 6 is `middle` 2 plus
+     `middle`'s offset 4. With `piece`'s timeline editor open the tab
+     shows Piece [`3` ♩] first (the card's `piece` line, 67.78125, above
+     `recording` 2.5 at 139.16015625), then the GroupStamp's groups read
+     where the raised card draws them: a member of the group that the
+     raised card draws is read on the card's row of it, as its own
+     reading is placed there (the arranger's README, "A member in the
+     raised card"), so Middle [`2` ♩] (the card's `middle` row,
+     33.8046875), Piece [`6` ♩] (the card's `piece` line, 67.78125),
+     Recording [`2.5` s]; naming stores the same command byte for byte
+     (`JSON.stringify` of the journal's last command equal to the one
+     stored with no editor open). What would be wrong: `middle` 2 read on
+     its own line the raised card covers (Piece [`6` ♩] above Middle
+     [`2` ♩]).
    - Update of that named MatchStamp against a second table holding `p_1`
      and `p_2`, `middle` 1 ↔ `piece` 3 (out of date: the anchor of `p_2`
      is not in it): with nothing raised each pair's placed coordinate comes

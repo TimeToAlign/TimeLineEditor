@@ -547,7 +547,10 @@ describe("an ancestor card raised", () => {
     if (raised) {
       expect(store.open({ block: A, id: "piece" })).toBeNull();
       flushSync();
-      expect(shownGroups()).toEqual([piece, ...throughRecording]);
+      // Raised: `recording` 2.5's group member `middle` 2 is read on the card's row (33.8046875),
+      // its ancestor `piece` 6 on the card's `piece` line (67.78125), above `recording` (139.16015625).
+      const [piece6, middle2, recording] = throughRecording;
+      expect(shownGroups()).toEqual([piece, middle2, piece6, recording]);
     } else expect(shownGroups()).toEqual([...throughRecording, piece]);
     const before = store.journal.length;
     name("Pickup");

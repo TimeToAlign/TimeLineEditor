@@ -11,7 +11,13 @@
  */
 
 import type { Editing, KnotsOf } from "@timetoalign/tilie-arranger";
-import { drawingOf, namedPin, raisedRoot, timelinePin } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  namedPin,
+  raisedRoot,
+  rereadPin,
+  timelinePin,
+} from "@timetoalign/tilie-arranger";
 import type {
   Address,
   AxisValue,
@@ -239,7 +245,9 @@ export function namedAddress(pin: Pin): Address | null {
  * rows `knotsOf` gives for its block's manifest (no server without it), on
  * the lines the canvas shows while `editing`, the innermost open editor, is
  * open (the arranger's `raisedRoot`: an ancestor card it raises is read
- * where the frames cover it); `null` where `address` names none.
+ * where the frames cover it), on the line keyed `line` (the line of the
+ * canvas it was named from) while that line is one of its places, else at
+ * its first place; `null` where `address` names none.
  */
 export function namedPinOf(
   view: View,
@@ -247,6 +255,7 @@ export function namedPinOf(
   metrics: FontMetrics,
   knotsOf?: KnotsOf,
   editing: Editing | null = null,
+  line: string | null = null,
 ): Pin | null {
   const block = address.block === undefined ? undefined : view.blocks[address.block];
   if (block === undefined || address.id === undefined) return null;
@@ -258,7 +267,66 @@ export function namedPinOf(
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
     raisedRoot(block, editing),
+    line,
   );
+}
+
+/**
+ * The root whose ancestor cards the block of `pin` shows raised while
+ * `editing` is open (the arranger's `raisedRoot`); `null` for none or a
+ * block `view` does not hold.
+ */
+export function raisedOf(view: View, pin: Pin, editing: Editing | null): string | null {
+  const block = view.blocks[pin.spec.block];
+  return block === undefined ? null : raisedRoot(block, editing);
+}
+
+/** Where a held unnamed pin was read: the line of the canvas (`null` where unknown) and the root raised then. */
+export interface ReadOn {
+  readonly line: string | null;
+  readonly raised: string | null;
+}
+
+const rereadByPin = new WeakMap<
+  Pin,
+  {
+    readonly manifest: Manifest;
+    readonly raised: string | null;
+    readonly line: string | null;
+    readonly pin: Pin;
+  }
+>();
+
+/**
+ * The unnamed pin `pin`, held since it was read as `readOn` says, as
+ * shown while `editing` is open: itself while its block raises the same
+ * root (`raisedOf`), else read again at its anchor's timeline and position
+ * under the root raised now (the arranger's `rereadPin`: its group reading
+ * kept, on its line while that line is still a place), its block drawn
+ * with `metrics`, once per pin, manifest, root and line, so a change of
+ * the view elsewhere shows the same pin; so the tab lists what a flag at
+ * its mark reads. Itself where its block or its timeline is gone.
+ */
+export function heldPinOf(
+  view: View,
+  pin: Pin,
+  metrics: FontMetrics,
+  editing: Editing | null,
+  readOn: ReadOn,
+): Pin {
+  const block = view.blocks[pin.spec.block];
+  if (block === undefined) return pin;
+  const raised = raisedRoot(block, editing);
+  if (raised === readOn.raised) return pin;
+  const { manifest } = block;
+  const known = rereadByPin.get(pin);
+  if (known?.manifest === manifest && known.raised === raised && known.line === readOn.line) {
+    return known.pin;
+  }
+  const drawing = drawingOf(block, view.graphical, metrics);
+  const read = rereadPin(manifest, drawing, pin, raised, readOn.line) ?? pin;
+  rereadByPin.set(pin, { manifest, raised, line: readOn.line, pin: read });
+  return read;
 }
 
 /**

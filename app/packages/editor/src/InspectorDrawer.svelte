@@ -12,7 +12,13 @@
  * of a timeline, which pins that position. An unnamed pin is dropped, the
  * tab kept, once its block's manifest or the granularity changes or its
  * block is deleted; a named timestamp's pin is read anew from the view
- * after every change, and dropped once the timestamp is gone. A potential
+ * after every change, and dropped once the timestamp is gone. A pin keeps
+ * the line of the canvas it was read on, and so does the timestamp named
+ * from it: both are read on that line while it is a place of their
+ * position, as the flag read there (the arranger's `timelinePin`); a
+ * timestamp selected or reloaded is read at its first place. An unnamed
+ * pin held while an editor opens or closes is read again under the
+ * ancestor card raised then (`heldPinOf`). A potential
  * MatchStamp pinned on the canvas, or exactly one named MatchStamp (or one
  * of its anchors) selected, is shown in the Matchstamp tab, opening the
  * drawer; a potential one is shown while its block's anchor index is the
@@ -48,7 +54,14 @@ import {
   pinned,
   toggled,
 } from "./inspector/tabs.ts";
-import { boundaryPinOf, namedAddress, namedPinOf } from "./inspector/timestamp.ts";
+import type { ReadOn } from "./inspector/timestamp.ts";
+import {
+  boundaryPinOf,
+  heldPinOf,
+  namedAddress,
+  namedPinOf,
+  raisedOf,
+} from "./inspector/timestamp.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 import type { MatchClaimTables } from "./matchClaims.svelte.ts";
 
@@ -102,6 +115,13 @@ const manifest = new ManifestText();
 const drafts = new PropertyDrafts();
 let picked: Picked = $state.raw(untrack(() => initialPick(live.editing.length, live.openings)));
 let pin = $state.raw<ShownPin | null>(null);
+/**
+ * Where the pin held was read: the canvas's line (`null` where unknown, as
+ * for a selected timestamp) and the root raised then. The line stays with
+ * the timestamp named from the pin and with the pin moved or named in the
+ * tab; another pin sets both.
+ */
+let readOn = $state.raw<ReadOn>({ line: null, raised: null });
 /** The MatchStamp last shown, with the tab shown before it; `null` for none. */
 let heldMatch = $state.raw<ShownMatch | null>(null);
 /** The MatchStamp the Matchstamp tab shows: the one held, while it holds in the view and the indexes. */
@@ -117,15 +137,30 @@ let inspector: ReturnType<typeof Inspector> | undefined = $state();
 const editing: Editing | null = $derived(live.editing.at(-1) ?? null);
 
 /**
- * The pin of the timestamp shown: an unnamed pin as held, a named
+ * The pin of the timestamp shown: an unnamed pin as held, read again once
+ * the open editor raises another ancestor card (`heldPinOf`), a named
  * timestamp's read anew from the view with the canvas's MeasureMap rows,
- * on the lines the canvas shows under the open editor.
+ * on the lines the canvas shows under the open editor; both on the line
+ * they were read on while it is a place of their position.
  */
 const timestamp: Pin | null = $derived.by(() => {
-  const address = pin === null ? null : namedAddress(pin.pin);
-  if (address === null) return pin?.pin ?? null;
-  return namedPinOf(live.view, address, fontMetrics, knotsOf, editing);
+  if (pin === null) return null;
+  const address = namedAddress(pin.pin);
+  if (address === null) return heldPinOf(live.view, pin.pin, fontMetrics, editing, readOn);
+  return namedPinOf(live.view, address, fontMetrics, knotsOf, editing, readOn.line);
 });
+
+/**
+ * Hold `next`, a pin the inspector derived from the one shown (moved or
+ * named in the Timestamp tab) or `null`: a new pin keeps the line and is
+ * read under the root raised now.
+ */
+function hold(next: ShownPin | null): void {
+  if (next !== null && next.pin !== pin?.pin) {
+    readOn = { line: readOn.line, raised: raisedOf(live.view, next.pin, editing) };
+  }
+  pin = next;
+}
 
 /** The pin of the timestamp the Timestamp tab shows, which the canvas marks; `null` for none. */
 export function shownPin(): Pin | null {
@@ -150,14 +185,18 @@ export function setOpen(next: boolean): void {
 }
 
 /**
- * Pin `next` in the Timestamp tab, opening the drawer and selecting the
- * tab, or clear the pin (`null`), showing again the tab shown before the
- * first pin.
+ * Pin `next` in the Timestamp tab, read on the canvas's line keyed `line`
+ * (`null` where it was not read on the canvas), opening the drawer and
+ * selecting the tab, or clear the pin (`null`), showing again the tab
+ * shown before the first pin.
  */
-export function pinTimestamp(next: Pin | null): void {
+export function pinTimestamp(next: Pin | null, line: string | null = null): void {
   const held = next === null ? null : heldOf(live.view, next);
   if (held !== null && !open) setOpen(true);
-  if (held !== null) heldMatch = null;
+  if (held !== null) {
+    heldMatch = null;
+    readOn = { line, raised: raisedOf(live.view, held.pin, editing) };
+  }
   ({ picked, pin } = pinned({ picked, pin }, held));
 }
 
@@ -192,7 +231,9 @@ export function shownMatch(): HeldMatch | null {
  * shown in the Timestamp tab, opening the drawer, and exactly one start or
  * end mark of a timeline pins that position there, unnamed
  * (`boundaryPinOf`); any other selection clears a named timestamp shown, an
- * unnamed pin staying.
+ * unnamed pin staying. A selection names addresses only, never the line a
+ * drawn wedge was pressed on, so a timestamp selected is read at its first
+ * place, but for the one shown, which keeps its line.
  */
 export function selected(addresses: readonly Address[]): void {
   const [only, ...others] = addresses;
@@ -207,7 +248,12 @@ export function selected(addresses: readonly Address[]): void {
   if (one !== null && one.block !== undefined && matchStamp !== null) {
     showMatch({ kind: "named", block: one.block, id: matchStamp });
   } else if (match !== null && match.kind === "named") showMatch(null);
-  if (shown !== null) pinTimestamp(shown);
+  const again =
+    shown?.named !== undefined &&
+    shown.named !== null &&
+    shown.spec.block === pin?.pin.spec.block &&
+    shown.named.id === pin.pin.named?.id;
+  if (shown !== null) pinTimestamp(shown, again ? readOn.line : null);
   else if (pin !== null && pin.pin.named !== null) pinTimestamp(null);
 }
 
@@ -283,7 +329,7 @@ async function show(next: boolean): Promise<void> {
       {manifest}
       {drafts}
       bind:picked
-      bind:pin
+      bind:pin={() => pin, hold}
       {timestamp}
       bind:match={() => match, (next) => (heldMatch = next)}
       {tables}

@@ -43,6 +43,7 @@ import {
   raisedRoot,
   readingAt,
   readsGroup,
+  rereadPin,
   rowValueText,
   timelinePin,
 } from "../src/coordinates.ts";
@@ -799,6 +800,253 @@ describe("a member drawn in the raised card", () => {
       x: AT_PIECE_8,
       group: false,
     });
+  });
+});
+
+/** A pin's parts as `[timeline, [map or "coordinate", value text]…]`, values to three places. */
+const rowsOf = (pin: Pin) =>
+  flagParts(pin).map(({ timeline, rows }) => [
+    timeline,
+    rows.map((row) => [row.row.map ?? "coordinate", rowValueText(row, 3)]),
+  ]);
+
+/** The timeline editor of `id` in block A; `null` for none. */
+const editorOf = (id: string | null): Editing | null =>
+  id === null ? null : { target: inBlock(A, idAddress(id)), kind: "timeline" };
+
+describe("a timestamp named from a reading on a timeline's second place", () => {
+  /**
+   * Read `timeline` at `value` on the second of its places in `fixture`
+   * (block A at (40, 80)) with the timeline editor of `editor` open, name
+   * a timestamp there (`coordinate` its JSON), and give the place's
+   * ordinates, the reading's rows and its named pin's rows on the line
+   * read, then at the first place (no line known).
+   */
+  function nameOnSecond(
+    fixture: string,
+    editor: string | null,
+    timeline: string,
+    value: Rational,
+    coordinate: unknown,
+  ) {
+    const view = viewWith(fixture);
+    const editing = editorOf(editor);
+    const raised = raisedRoot(blockIn(view, A), editing);
+    const places = placesAt(drawingIn(view), timeline, value, raised);
+    const [, second] = places;
+    if (second === undefined) throw new Error(`${timeline} has no second place`);
+    const reading = readWith(view, second.x, second.axis.y, editing);
+    if (reading === null) throw new Error("nothing is read at the second place");
+    const after = changed(view, {
+      type: "add",
+      into: inBlock(A, idAddress(timeline)),
+      timestamp: { name: "Read", coordinate, groupstamp: readsGroup(reading.pin) },
+    });
+    const block = blockIn(after, A);
+    const id = block.manifest.graphical?.timestamps?.find((item) => item.name === "Read")?.id;
+    if (id === undefined) throw new Error("nothing named");
+    const named = (preferred: string | null) => {
+      const pin = namedPin(
+        block.manifest,
+        A,
+        drawingIn(after),
+        id,
+        DEFAULT_GRANULARITY,
+        "no_server",
+        raised,
+        preferred,
+      );
+      if (pin === null) throw new Error("no named pin");
+      return rowsOf(pin);
+    };
+    return {
+      ordinates: places.map(({ axis }) => axis.y),
+      read: [reading.hit.key === second.key, reading.position],
+      flag: rowsOf(reading.pin),
+      onLine: named(reading.hit.key),
+      first: named(null),
+    };
+  }
+
+  it("on an ancestor line under the raised card reads the ancestor line's rows", () => {
+    const score = ["score", [["coordinate", "24 ♩"]]];
+    const movement = ["movement", [["coordinate", "8 ♩"]]];
+    const theme = ["theme", [["coordinate", "0 ♩"]]];
+    expect(nameOnSecond("groups/group_grandchild", "score", "movement", q(8), [8, 1])).toEqual({
+      ordinates: [56.9765625, 104.953125],
+      read: [true, q(8)],
+      flag: [score, movement, theme],
+      onLine: [score, movement, theme],
+      first: [theme, movement, score],
+    });
+  });
+
+  it("on a member's own line beside the raised card reads that line's rows", () => {
+    const recording = ["recording", [["coordinate", "77 175 smp"]]];
+    const excerpt = [
+      "excerpt",
+      [
+        ["cmap_6", "0.75″"],
+        ["coordinate", "33 075 smp"],
+      ],
+    ];
+    expect(nameOnSecond("bundles/bundle_mixed", "recording", "excerpt", q(33075), 33075)).toEqual({
+      ordinates: [285.8203125, 340.796875],
+      read: [true, q(33075)],
+      flag: [recording, excerpt],
+      onLine: [recording, excerpt],
+      first: [excerpt, recording],
+    });
+  });
+
+  it("on an ancestor card's line lists the maps that line draws", () => {
+    const exposition = [
+      "exposition",
+      [
+        ["cmap_2", "4 320 ticks"],
+        ["coordinate", "9 ♩"],
+      ],
+    ];
+    const second = [
+      "exposition_second",
+      [
+        ["cmap_3", "1.5″"],
+        ["coordinate", "3 ♩"],
+      ],
+    ];
+    expect(nameOnSecond("bundles/bundle_shared_parent", null, "score", q(9), [9, 1])).toEqual({
+      ordinates: [127.234375, 344.421875],
+      read: [true, q(9)],
+      flag: [
+        exposition,
+        second,
+        [
+          "score",
+          [
+            ["cmap_1", "4 320 ticks"],
+            ["coordinate", "9 ♩"],
+          ],
+        ],
+      ],
+      onLine: [
+        exposition,
+        second,
+        [
+          "score",
+          [
+            ["cmap_1", "4 320 ticks"],
+            ["coordinate", "9 ♩"],
+          ],
+        ],
+      ],
+      first: [["score", [["coordinate", "9 ♩"]]], exposition, second],
+    });
+  });
+
+  it("reads the first place where the line preferred is no place of the position", () => {
+    const view = viewWith("groups/group_grandchild");
+    const raised = raisedRoot(blockIn(view, A), editorOf("score"));
+    const drawing = drawingIn(view);
+    const pinOn = (preferred: string | null) =>
+      timelinePin(
+        blockIn(view, A).manifest,
+        A,
+        drawing,
+        "movement",
+        q(8),
+        DEFAULT_GRANULARITY,
+        "no_server",
+        false,
+        raised,
+        preferred,
+      );
+    const [theme] = holdings(drawing, "theme");
+    if (theme === undefined) throw new Error("no line of theme");
+    expect(pinOn(theme.key)).toEqual(pinOn(null));
+    expect(pinOn("no line")).toEqual(pinOn(null));
+  });
+});
+
+describe("a GroupStamp read under the raised card", () => {
+  const view = viewWith(PARENT_BOTH);
+  const block = blockIn(view, A);
+  const raised = raisedRoot(block, PIECE_EDITOR);
+  const recordingPin = (root: string | null) =>
+    timelinePin(
+      block.manifest,
+      A,
+      drawingIn(view),
+      "recording",
+      q(5, 2),
+      DEFAULT_GRANULARITY,
+      "no_server",
+      true,
+      root,
+    );
+
+  it("reads a member the raised card draws on the card's row of it", () => {
+    const parts = (pin: Pin | null) =>
+      pin?.spec.members.map(({ timeline, ordinate, scale }) => [timeline, ordinate, scale]);
+    expect([parts(recordingPin(null)), parts(recordingPin(raised))]).toEqual([
+      [
+        ["middle", MIDDLE_Y, q(4, 5)],
+        ["piece", PIECE_Y, q(4, 5)],
+      ],
+      [
+        ["middle", CARD_MIDDLE_Y, q(4, 5)],
+        ["piece", PIECE_Y, q(4, 5)],
+      ],
+    ]);
+    const middle = ["middle", [["coordinate", "2 ♩"]]];
+    const piece = ["piece", [["coordinate", "6 ♩"]]];
+    const recording = ["recording", [["coordinate", "2.5″"]]];
+    const pinned = [recordingPin(null), recordingPin(raised)];
+    expect(pinned.map((pin) => (pin === null ? null : rowsOf(pin)))).toEqual([
+      [piece, middle, recording],
+      [middle, piece, recording],
+    ]);
+  });
+});
+
+describe("a held pin read again under another raised card", () => {
+  const view = viewWith(PARENT_BOTH);
+  const block = blockIn(view, A);
+  const drawing = drawingIn(view);
+  const raised = raisedRoot(block, PIECE_EDITOR);
+
+  it("is read on the card's row with its group, and as it was once the card is lowered", () => {
+    const reading = readWith(view, AT_PIECE_8, MIDDLE_Y, null);
+    if (reading === null) throw new Error("middle is not read on its line");
+    const middle = ["middle", [["coordinate", "4 ♩"]]];
+    const piece = ["piece", [["coordinate", "8 ♩"]]];
+    const recording = ["recording", [["coordinate", "5″"]]];
+    const again = (root: string | null) => {
+      const pin = rereadPin(block.manifest, drawing, reading.pin, root, reading.hit.key);
+      return pin === null ? null : rowsOf(pin);
+    };
+    expect([rowsOf(reading.pin), again(raised), again(null)]).toEqual([
+      [piece, middle, recording],
+      [middle, piece, recording],
+      [piece, middle, recording],
+    ]);
+    const raisedPin = rereadPin(block.manifest, drawing, reading.pin, raised, reading.hit.key);
+    if (raisedPin === null) throw new Error("no pin read again");
+    expect(pinnedPlace(drawing, raisedPin, reading.hit.key, raised)).toEqual({
+      key: [...lineAxes(drawing)].find(
+        ([, line]) => line.timeline === "middle" && line.ancestor !== undefined,
+      )?.[0],
+      x: AT_PIECE_8,
+      group: true,
+    });
+  });
+
+  it("is none once its anchor's timeline is gone", () => {
+    const reading = readWith(view, AT_PIECE_8, MIDDLE_Y, null);
+    if (reading === null) throw new Error("middle is not read on its line");
+    const gone = changed(view, { type: "remove", targets: [inBlock(A, idAddress("middle"))] });
+    expect(
+      rereadPin(blockIn(gone, A).manifest, drawingIn(gone), reading.pin, null, null),
+    ).toBeNull();
   });
 });
 

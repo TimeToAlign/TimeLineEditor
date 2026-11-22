@@ -675,7 +675,7 @@ if (withTestHook) {
         bind:viewport
         onlive={(next) => (placement = next)}
         pinned={drawer?.shownPin() ?? null}
-        oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
+        oncoordinatepin={(pin, line) => drawer?.pinTimestamp(pin, line)}
         measureMaps={client === null ? undefined : measureMapsOf(client)}
         picking={picking.active ? picking.take : null}
         {matches}

@@ -68,11 +68,14 @@ let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
 let store: Store;
 let pins: (Pin | null)[];
+/** The line each pin was read on, as the canvas hands it over with the pin. */
+let lines: (string | null)[];
 let resize: ReturnType<typeof stubCanvasGlobals>["resize"];
 
 beforeEach(() => {
   ({ resize } = stubCanvasGlobals());
   pins = [];
+  lines = [];
 });
 
 afterEach(() => {
@@ -90,7 +93,10 @@ async function show(view: View, measureMaps?: MeasureMaps): Promise<void> {
     props: {
       store,
       metrics,
-      oncoordinatepin: (pin: Pin | null) => pins.push(pin),
+      oncoordinatepin: (pin: Pin | null, line: string | null) => {
+        pins.push(pin);
+        lines.push(line);
+      },
       ...(measureMaps === undefined ? {} : { measureMaps }),
     },
   });
@@ -316,7 +322,7 @@ describe("a position on an ancestor line", () => {
     ]);
   });
 
-  it("pins the ancestor's timestamp, marked at the same place", async () => {
+  it("pins the ancestor's timestamp with its ancestor line, marked at the same place", async () => {
     await show(parentView());
     await toggleCoordinates();
     await clickAt(client(AT_PIECE_8, PIECE_Y));
@@ -326,6 +332,10 @@ describe("a position on an ancestor line", () => {
       "piece",
       Rational.of([8, 1]),
     ]);
+    const ancestorLine = [...axesOf(shown().drawing)].find(
+      ([, axis]) => axis.timeline === "piece" && axis.ancestor === undefined,
+    )?.[0];
+    expect([ancestorLine === undefined, lines]).toEqual([false, [ancestorLine]]);
     if (pin === undefined || pin === null) throw new Error("nothing pinned");
     harness.pin(pin);
     await settle();
@@ -505,7 +515,7 @@ describe("a pinned timestamp read across its group", () => {
 });
 
 describe("pinning", () => {
-  it("pins on a line, clears elsewhere, and clears when Show coordinates is turned off", async () => {
+  it("pins on a line with its key, clears elsewhere, and clears when Show coordinates is turned off", async () => {
     await show(mapView());
     await toggleCoordinates();
     await clickAt(client(AT_4, MELODY_Y));
@@ -524,6 +534,8 @@ describe("pinning", () => {
 
     await clickAt(client(AT_4, MELODY_Y));
     expect(pins).toHaveLength(3);
+    const melody = melodyKey(shown().drawing);
+    expect(lines).toEqual([melody, null, null]);
   });
 });
 

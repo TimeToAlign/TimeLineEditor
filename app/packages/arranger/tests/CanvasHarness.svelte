@@ -21,7 +21,7 @@ let {
 }: {
   store: Store;
   metrics: FontMetrics;
-  oncoordinatepin?: (pin: Pin | null) => void;
+  oncoordinatepin?: (pin: Pin | null, line: string | null) => void;
   measureMaps?: (manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">;
   picking?: ((address: Address) => void) | null;
   matches?: readonly MatchOverlayInput[];

@@ -13,7 +13,7 @@ export { addCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
 export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
 export type { KnotsOf, MeasureMapsAnswer } from "./coordinates.ts";
-export { namedPin, raisedRoot, timelinePin } from "./coordinates.ts";
+export { namedPin, raisedRoot, rereadPin, timelinePin } from "./coordinates.ts";
 export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
 export { changedPlace, placeChange } from "./editing.ts";

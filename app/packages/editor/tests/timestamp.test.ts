@@ -36,6 +36,7 @@ import {
   timestampJson,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
+import { lineAxes } from "@timetoalign/tilie-layout";
 import type { TimeUnit } from "@timetoalign/timetoshare";
 import { dumps, fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
@@ -45,7 +46,7 @@ import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import { isLoaded, loadCodec, writeText } from "../src/inspector/formats.svelte.ts";
 import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
-import { timestampText } from "../src/inspector/timestamp.ts";
+import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
 import { informing, noMatchClaims, providing, storeOf } from "./support.ts";
 
@@ -178,7 +179,7 @@ afterEach(() => {
 });
 
 interface Drawer {
-  pinTimestamp(pin: Pin | null): void;
+  pinTimestamp(pin: Pin | null, line?: string | null): void;
   clickedAt(target: EventTarget | null): void;
   setOpen(open: boolean): void;
   selected(addresses: readonly Address[]): void;
@@ -211,7 +212,9 @@ function drawer(store: Store, open: boolean, block: string = A, knotsOf?: KnotsO
       flushSync();
     };
   const handle: Drawer = {
-    pinTimestamp: flushed((pin: Pin | null) => mounted.pinTimestamp(pin)),
+    pinTimestamp: flushed((pin: Pin | null, line: string | null = null) =>
+      mounted.pinTimestamp(pin, line),
+    ),
     clickedAt: flushed((target: EventTarget | null) => mounted.clickedAt(target)),
     setOpen: flushed((next: boolean) => mounted.setOpen(next)),
     selected: flushed((addresses: readonly Address[]) => mounted.selected(addresses)),
@@ -630,6 +633,101 @@ describe("a named timestamp on the root of an ancestor card", () => {
     store.done();
     flushSync();
     expect(groups()).toEqual([piece, middle]);
+  });
+});
+
+describe("a pin read on a line", () => {
+  /** The key of the line drawn for `timeline` in the card of `member` in block A of `store`. */
+  function lineIn(store: Store, timeline: string, member: string): string {
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const drawing = drawingOf(block, store.view.graphical, fontMetrics);
+    const found = [...lineAxes(drawing)].find(
+      ([, axis]) =>
+        axis.timeline === timeline && axis.ancestor === undefined && axis.card.member === member,
+    );
+    if (found === undefined) throw new Error(`no line of ${timeline} in ${member}'s card`);
+    return found[0];
+  }
+
+  /** The arranger's pin of `timeline` at `position` in block A of `store`, as a reading on `line` makes it. */
+  function readOn(
+    store: Store,
+    timeline: string,
+    position: Rational,
+    line: string,
+    group: boolean,
+    raised: string | null,
+  ): Pin {
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const drawing = drawingOf(block, store.view.graphical, fontMetrics);
+    const granularity = store.view.settings.granularity;
+    const pin = timelinePin(
+      block.manifest,
+      A,
+      drawing,
+      timeline,
+      position,
+      granularity,
+      "no_server",
+      group,
+      raised,
+      line,
+    );
+    if (pin === null) throw new Error(`no pin of ${timeline}`);
+    return pin;
+  }
+
+  it("names a timestamp read on that line, and shows a selected one at its first place", () => {
+    const store = storeOf("groups/group_grandchild");
+    expect(store.open({ block: A, id: "score" })).toBeNull();
+    const inspector = drawer(store, true);
+    const line = lineIn(store, "movement", "theme");
+    inspector.pinTimestamp(readOn(store, "movement", q(8), line, false, "score"), line);
+    const score = ["Score", [row("coordinate", "24", "♩")]];
+    const movement = ["Movement", [row("coordinate", "8", "♩")]];
+    const theme = ["Theme", [row("coordinate", "0", "♩")]];
+    expect(groups()).toEqual([score, movement, theme]);
+    type(nameField(), "Eight");
+    press(nameField(), "Enter");
+    const id = inspector.shownPin()?.named?.id;
+    expect([id === undefined, groups()]).toEqual([false, [score, movement, theme]]);
+    inspector.selected([{ block: A, id: id ?? "" }]);
+    expect(groups()).toEqual([score, movement, theme]);
+    inspector.selected([{ block: A }]);
+    inspector.selected([{ block: A, id: id ?? "" }]);
+    expect(groups()).toEqual([theme, movement, score]);
+  });
+
+  it("is read again when an editor raises or lowers its card, and kept as read in between", () => {
+    const store = storeOf("groups/group_parent_both");
+    const inspector = drawer(store, true);
+    const line = lineIn(store, "middle", "middle");
+    const pin = readOn(store, "middle", q(4), line, true, null);
+    inspector.pinTimestamp(pin, line);
+    const piece = ["Piece", [row("coordinate", "8", "♩")]];
+    const middle = ["Middle", [row("coordinate", "4", "♩")]];
+    const recording = ["Recording", [row("coordinate", "5.0", "s")]];
+    expect([groups(), inspector.shownPin()]).toEqual([[piece, middle, recording], pin]);
+    expect(store.open({ block: A, id: "piece" })).toBeNull();
+    flushSync();
+    const raised = inspector.shownPin();
+    expect([groups(), raised?.named, raised === pin]).toEqual([
+      [middle, piece, recording],
+      null,
+      false,
+    ]);
+    const again = () =>
+      heldPinOf(store.view, pin, fontMetrics, store.editing.at(-1) ?? null, {
+        line,
+        raised: null,
+      });
+    expect(again()).toBe(again());
+    store.done();
+    flushSync();
+    expect([groups(), inspector.shownPin()]).toEqual([[piece, middle, recording], pin]);
+    expect(inspector.shownPin()).toBe(pin);
   });
 });
 
