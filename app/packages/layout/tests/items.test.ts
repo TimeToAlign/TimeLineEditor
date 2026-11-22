@@ -14,6 +14,7 @@ import {
   at,
   boxesOf,
   drawFixture,
+  drawWithoutAncestorCards,
   edit,
   element,
   itemsOf,
@@ -26,7 +27,7 @@ const placedAt = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACE
 const ungrouped = (places: Placement["places"]) =>
   drawFixture("bundles/bundle_ungrouped", [], placedAt({ places }));
 const member = (places: Placement["places"]) =>
-  drawFixture("groups/group_child_member", [], placedAt({ places }));
+  drawWithoutAncestorCards("groups/group_child_member", [], placedAt({ places }));
 
 /** The members' cards a drawing records, each with its holding frame as `group`. */
 const memberCards = (drawing: Drawing) =>
@@ -407,7 +408,7 @@ describe("spacings, each its own container's", () => {
   });
 
   it("multiplies no spacing into another", () => {
-    const drawing = drawFixture(
+    const drawing = drawWithoutAncestorCards(
       "groups/group_child_member",
       [],
       placedAt({

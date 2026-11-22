@@ -51,7 +51,8 @@ export interface BlockContent {
  * room but grow the block as an item does, their shadows included. The
  * elements `block.after` gives from the lines and boxes in the block follow
  * every item's. The block's own record comes first, then the ancestor
- * cards', then the items'; the block's range is every element.
+ * cards', then the items'; the block's range is every element. The axes are
+ * the items' lines', then the ancestor cards'.
  */
 export function emitDrawing(
   laid: readonly LaidItem[],
@@ -127,6 +128,12 @@ export function emitDrawing(
     for (const axis of local.axes) axes.push(placedAxis(axis, x, y, scale));
     for (const right of local.rights) rights.push(x + scale * right);
     for (const bottom of local.bottoms) bottoms.push(y + scale * bottom);
+  }
+  // The ancestor cards' axes after every item's, so that a timeline's first drawn line is always
+  // a line of a card of an item.
+  for (const card of block.ancestors) {
+    const { x, y, scale } = card.item;
+    for (const axis of card.axes) axes.push(placedAxis(axis, x, y, scale));
   }
 
   const Xr = rights.length === 0 ? 2 * P + K : P + Math.max(...rights);

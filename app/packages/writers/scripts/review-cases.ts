@@ -9,7 +9,7 @@
  * three manifests with bands the defaults hide shown by an application
  * layer: a child's regions band, every regions band, and a child's flow
  * control band, and three manifests whose ancestor cards, which the
- * defaults hide, an application layer shows: a root reaching past its
+ * defaults show, an application layer hides: a root reaching past its
  * member on both sides, one reaching past it to the right, and three roots
  * of three axes behind one frame. Each is also a drawing fixture of the
  * schema package (`fixtures/<version>/drawings/`).
@@ -168,6 +168,9 @@ export function reviewCases(): ReviewCase[] {
   const shown = (select: Selector): Graphical[] => [
     { rules: [{ select, set: { display: "inline" } }] },
   ];
+  const hidden = (select: Selector): Graphical[] => [
+    { rules: [{ select, set: { display: "none" } }] },
+  ];
   add(
     "unknown_length_child__regions-shown",
     "unknown_length_child",
@@ -191,11 +194,11 @@ export function reviewCases(): ReviewCase[] {
   );
   for (const stem of ["group_parent_both", "group_parent_right", "group_parents_mixed"]) {
     add(
-      `group__${stem}__ancestor-cards`,
+      `group__${stem}__ancestor-cards-hidden`,
       `groups/${stem}`,
       DEFAULT_PLACEMENT,
       1,
-      shown({ element: "ancestor_card" }),
+      hidden({ element: "ancestor_card" }),
     );
   }
   return cases;

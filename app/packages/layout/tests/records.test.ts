@@ -40,7 +40,9 @@ import {
   build,
   child,
   drawFixture,
+  drawWithoutAncestorCards,
   edit,
+  HIDDEN_ANCESTOR_CARDS,
   linearMap,
   loadFile,
   manifestNames,
@@ -103,14 +105,19 @@ describe("the records and core's listing of the containers", () => {
     for (const name of manifestNames()) {
       const manifest = loadFile(name);
       const { block, all } = containersOf(manifest);
-      // The default layer hides every ancestor card, and a hidden one is not recorded.
-      const expected = [block, ...all].filter(
-        (ref) => ref.kind !== "band" && holdingOf(ref) !== "ancestor",
-      );
+      // The default layer shows every ancestor card; hiding the frames and cards leaves them.
+      const expected = [block, ...all].filter((ref) => ref.kind !== "band");
       for (const extra of [[], [hidden]]) {
         const records = drawn(manifest, extra).boxes.filter((record) => record.kind !== "band");
         expect(records.map(identity), name).toEqual(expected.map(listed));
       }
+      // A hidden ancestor card is not recorded.
+      const records = drawn(manifest, [HIDDEN_ANCESTOR_CARDS]).boxes.filter(
+        (record) => record.kind !== "band",
+      );
+      expect(records.map(identity), name).toEqual(
+        expected.filter((ref) => holdingOf(ref) !== "ancestor").map(listed),
+      );
     }
   });
 
@@ -286,7 +293,8 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
     ],
   });
   validate(withFileIds(manifest));
-  const bands = bandsOf(drawn(manifest));
+  // Without the ancestor card of `clt_1` behind `g2`'s frame, which would move the origin.
+  const bands = bandsOf(drawn(manifest, [HIDDEN_ANCESTOR_CARDS]));
   // The cards of `clt_1` in the frame of `g1` and of `clt_2` in the frame of `g2`.
   const G1: PlaceKey = { item: "g1", member: "clt_1" };
   const G2: PlaceKey = { item: "g2", member: "clt_2" };
@@ -421,7 +429,7 @@ describe("the axes of the drawn lines", () => {
 
   it("records one axis per drawn line, in the order of the lines, at the line's ordinate", () => {
     for (const name of ["styled__score", "groups/group_child_member", "bundles/bundle_mixed"]) {
-      const drawing = drawFixture(name);
+      const drawing = drawWithoutAncestorCards(name);
       expect(
         drawing.axes.map((axis) => [axis.address, axis.line]),
         name,
@@ -441,7 +449,7 @@ describe("the axes of the drawn lines", () => {
   });
 
   it("lists the maps drawn at the axis's line, each with its owner", () => {
-    const drawing = drawFixture("bundles/bundle_mixed");
+    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed");
     expect(
       drawing.axes.map((axis) => [axis.address, axis.maps.map((map) => [map.id, map.owner])]),
     ).toEqual([
@@ -481,12 +489,12 @@ describe("the axes of the drawn lines", () => {
   });
 
   it("clips an ancestor's axis to its member, at the coordinates of the member's ends", () => {
-    const member = drawFixture("groups/group_child_member");
+    const member = drawWithoutAncestorCards("groups/group_child_member");
     const ancestor = member.axes[0];
     const [own] = lines(member).filter((line) => sameAddress(line.address, at("second-half")));
     expect(exact(ancestor)).toEqual([at("piece"), "quarters", "fraction", "8", "16"]);
     expect([ancestor?.xStart, ancestor?.xEnd]).toEqual([own?.xs, own?.xe]);
-    const mixed = drawFixture("bundles/bundle_mixed");
+    const mixed = drawWithoutAncestorCards("bundles/bundle_mixed");
     const runsOn = mixed.axes.find((axis) => sameAddress(axis.address, at("recording")));
     expect(exact(runsOn)).toEqual([at("recording"), "samples", "int", "44100", "132300"]);
     expect([runsOn?.xStart, runsOn?.xEnd]).toEqual([126.29150390625, 526.29150390625]);
@@ -503,7 +511,7 @@ describe("the axes of the drawn lines", () => {
 
   it("gives every axis the coordinate drawn at its end", () => {
     const drawEnds = (name: string) =>
-      drawFixture(name).axes.map((axis) => [axis.address, String(axis.drawnEnd)]);
+      drawWithoutAncestorCards(name).axes.map((axis) => [axis.address, String(axis.drawnEnd)]);
     expect(drawEnds("styled__score")).toEqual([
       [at("score"), "8"],
       [at("b"), "4"],

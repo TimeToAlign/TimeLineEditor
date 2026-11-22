@@ -92,7 +92,6 @@ export const DEFAULT_LAYER: Graphical = {
         "stroke-width": 0.75,
         rx: 5,
         shadow: "#B8BEC8",
-        display: "none",
       },
     },
     { select: { inside: "ancestor" }, set: { opacity: 0.35 } },

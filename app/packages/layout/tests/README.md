@@ -18,7 +18,14 @@ non-corpus fixtures carries the named timestamps an editor gives a new
 root, `origin` at 0 and `length` at its length (none for an unknown
 length), each drawing its wedge and its coordinate label, and a manifest
 built through commands starts from a root that carries them too (`bare`'s,
-moved to the new root and its length); the corpus fixtures carry none. The metrics table of the two fonts
+moved to the new root and its length); the corpus fixtures carry none. The
+defaults show every ancestor card (section 8.8), which takes no room but
+moves the origin: a test whose subject is not the ancestor card (the
+ancestor lines, the block, places, items, records, unknown lengths) draws a
+group with a child member with the application layer
+`HIDDEN_ANCESTOR_CARDS` (`{element: ancestor_card}` `display: none`), so
+its numbers, derived without the cards, stand; that the layer removes the
+cards and moves nothing else is proven under "Ancestor cards". The metrics table of the two fonts
 is the schema package's. All comparisons are exact (`toBe`, `toEqual`); no tolerance
 anywhere.
 
@@ -97,14 +104,17 @@ The oracle is the JSON block of section 4, parsed from the installed schema
 package's `docs/drawing.md`: `DEFAULT_LAYER` equals it. Resolved alone, it
 gives `bare`'s block and card their fill, stroke, `rx` and shadow; in
 `group_child_member` the frame its own, the ancestor line `piece`, its marks
-and their labels opacity 0.35, its name grey at size 9 and not faded. It
+and their labels opacity 0.35, its name grey at size 9 and not faded, while
+`piece`'s ancestor card, drawn first, draws `piece`'s line, its name (black,
+11) and `second-half`'s name and its `origin` and `length` wedges and labels
+unfaded, each address so drawn twice. It
 hides exactly the regions and flow control bands of every timeline held by
 a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
 `a`, `b` and `c`, `timestamps`' `clt_2`, and `group_child_member`'s
 `second-half` as the child row it is in `piece`'s ancestor card) and no
 band of a member drawing's root, a member that is a child included: every
-markers band is shown, so every named timestamp stays visible. It hides
-every ancestor card (section 8.8).
+markers band is shown, so every named timestamp stays visible. It shows
+every ancestor card (section 8.8): no rule of it sets `display`.
 
 ## The cascade (`cascade.test.ts`)
 
@@ -815,10 +825,11 @@ records of the same drawing (the ancestor line's `y`, the member's line
 Section 8.8 is the oracle. Every number below is derived from its rules,
 the fixtures' offsets and lengths, `L = 400`, the constants `P = Q = K = G
 = 8`, the advance widths `w(text, s) = A × s / 2048` (section 5.1) and the
-layout's existing values, which the figures of the drawings without the
-layer pin (`group__group_parent_both` and the others, byte for byte); the
-layer `{rules: [{select: {element: ancestor_card}, set: {display:
-inline}}]}` shows the cards. The frame's start `s0` is section 8.2's: `n
+layout's existing values, which the figures of the drawings with the
+hiding layer pin (`group__group_parent_both__ancestor-cards-hidden` and
+the others, byte for byte); the defaults show the cards, and the layer
+`HIDDEN_ANCESTOR_CARDS`, `{rules: [{select: {element: ancestor_card}, set:
+{display: none}}]}`, hides them. The frame's start `s0` is section 8.2's: `n
 = Q + K = 16`, plus the widest drawn name `N`, plus `G`, plus `8w = 24`
 when an ancestor line runs on to the left. Each card's own start is `s0' =
 K + N' + G`, `N'` the widest name of the root's own drawing; its width
@@ -826,9 +837,19 @@ K + N' + G`, `N'` the widest name of the root's own drawing; its width
 LA` (the root's arrowhead `3w = 9` with `w = 3`, or the half of a centred
 coordinate label at the root's end).
 
-1. **Hidden by default.** For every manifest fixture drawn with the
-   default layer, no element is an `ancestor_card` and no record carries
-   `ancestor`: the figures stay as they are.
+1. **Shown by default, hidden by a rule.** For every manifest fixture
+   drawn with the default layer, the `ancestor_card` elements and the
+   records carrying `ancestor` number one per group and root of a child
+   member (section 8.8, Which): two in `bundle_shared_parent` (`score`
+   behind both frames), three in `group_parents_mixed` (`sonata`,
+   `session`, `page`), one in `bundle_mixed`, `group_child_member`,
+   `group_child_member_stamps`, `group_grandchild`, `group_parent_both`,
+   `group_parent_exact` and `group_parent_right`, none in any other. With
+   `HIDDEN_ANCESTOR_CARDS` no element is an `ancestor_card`, no axis
+   carries `ancestor` and no record carries
+   `ancestor`: those drawings are the figures of the drawing fixtures
+   without ancestor cards (`group__<file>__ancestor-cards-hidden` equal
+   to the earlier figures of their manifests).
 2. **`group_parent_both`** (`piece` 16 quarters, `middle` at 4, 8 long).
    `N = w("Recording", 11) = 10371 × 11 / 2048 = 55.70361328125`, `piece`
    runs on to the left, so `s0 = 16 + 55.70361328125 + 8 + 24 =
@@ -860,9 +881,10 @@ coordinate label at the root's end).
    `ancestor_card`) moved by the difference of the two cards' corners,
    exactly (every value is dyadic).
 3. **Nothing moves.** Every element after the ancestor cards, every record
-   but theirs, and every axis equal those of the drawing without the layer
-   moved by the change of the origin, `(148.6318359375, 0)`: the cards take
-   no room and add no axis. The order: the block's background, the
+   but theirs, and every axis of an item's card equal those of the drawing
+   with the hiding layer moved by the change of the origin,
+   `(148.6318359375, 0)`: the cards take no room, and their own axes
+   follow every item's (point 8). The order: the block's background, the
    ancestor card's rectangle and its drawing (records' ranges 1 to 10),
    then the frame.
 4. **`group_parent_right`** (`first-half` at 0, 8 long). `s0 = 16 +
@@ -904,6 +926,35 @@ coordinate label at the root's end).
 7. **No ancestor line.** With the ancestor lines hidden (`{element:
    ancestor}` `display: none`), `piece`'s card in `group_parent_both` lies
    on `middle`'s own line instead: its line's ordinate equals `middle`'s.
+8. **An ancestor card's axes.** Its lines are drawn lines as any card's,
+   so the coordinates over them read as over any card. In
+   `group_parent_both` the drawing's axes are those of the hiding layer's
+   drawing moved by `(148.6318359375, 0)`, then two more, in the order of
+   the card's lines: `piece` and `middle`, each keyed `{item: group_1,
+   member: piece}` (the card's key) and carrying `ancestor {group:
+   group_1, member: middle}` (its record's). From the card's corner `(8,
+   18.8046875)`, `s0' = 52.33544921875` and `LA = 800` (point 2):
+   `piece`'s axis at `18.8046875 + 48.9765625 = 67.78125` from `8 +
+   52.33544921875 = 60.33544921875` to `+ 800 = 860.33544921875`, quarters,
+   fraction, from 0 to 16, drawn end 16, the ends of its line element;
+   `middle`'s at `18.8046875 + 15 = 33.8046875` (the card's padding and the
+   row's half pitch 7) from `60.33544921875 + 800 × 4 / 16 =
+   260.33544921875` to `+ 400 = 660.33544921875`, from 0 to 8, drawn end 8,
+   its line element starting there (a child's line stops short of its end
+   mark). `lineAxes` lists both with these numbers, drawn lengths 16 and 8,
+   and the same `ancestor`.
+9. **No member of the frame.** An ancestor card's key has a member card's
+   shape and `piece`'s line in it names the key's member, yet
+   `frameMemberLines(axes, group_1)` stays `middle` and `recording`; so a
+   groupstamp ignores the card. With `timestamp_1` of
+   `group_child_member_stamps` ("Bar 2" at 2 on `middle`, its cross-section
+   line alone) made a groupstamp, `groupstampElements` draws, with the
+   hiding layer, two pieces at `x0 + 100 = 211.70361328125`: from the top
+   of `middle`'s card, 32.8046875, to `piece`'s ancestor line, 67.78125,
+   and from `middle`'s line, 81.78125, to the bottom of `recording`'s card,
+   `124.7578125 + 49.37890625 = 174.13671875` (TimeToShare's drawings
+   README); with the card shown, the same two pieces `148.6318359375`
+   further right, and none across the ancestor card.
 
 ## Named timestamps (`timestamps.test.ts`)
 
@@ -1737,14 +1788,18 @@ timeline and facet.
 
 **Core's listing.** Over every manifest fixture, the block, frame and card
 records carry core's kind, address and holder (the holder's place key) in
-core's order, displayed or hidden; each drawn band is recorded once per
+core's order, displayed or hidden, the ancestor cards included under the
+defaults (and with every frame and card hidden) and left out under
+`HIDDEN_ANCESTOR_CARDS`, a hidden ancestor card having no record; each drawn band is recorded once per
 card that core lists as drawing it, with core's address and holder,
 except a timeline drawn twice (below), whose second set the card drawing it
 holds.
 
 **A timeline drawn twice.** `with_region` with the map `tempo` on `clt_2`
 and the groups `g1 {clt_1}` and `g2 {clt_2}` (written onto the built
-manifest, since no command adds a group, and validated): `clt_2` is a child
+manifest, since no command adds a group, and validated; drawn with
+`HIDDEN_ANCESTOR_CARDS`, `clt_1`'s ancestor card behind `g2`'s frame
+moving the origin): `clt_2` is a child
 line in the card `{item: g1, member: clt_1}` and the root of the card
 `{item: g2, member: clt_2}`. Its conversion maps band is recorded twice
 under one address `{id: clt_2, facet: conversion_maps}`, at `line`
@@ -1775,7 +1830,9 @@ t}` keeps its drawn width, and a rule `{addresses: [{id: t}]} stroke
 #123456` strokes both lines of `t`.
 
 **Axes.** `Drawing.axes` holds one `DrawnAxis` per line element, in their
-order, at the line's ordinate. A timeline's or child's axis runs from
+order, at the line's ordinate, the lines of the items' cards first and
+then those of the ancestor cards (proven under "Ancestor cards"; the
+cases here are drawn with `HIDDEN_ANCESTOR_CARDS`). A timeline's or child's axis runs from
 `Xs`, its zero, to `Xe`, its end on its own axis (its length, or for a
 segment the end the next segment or its segment line gives it, section
 3.4): `xStart` and `xEnd` are the line element's `xs` and `xe` when the end

@@ -413,9 +413,11 @@ drawing.md §8.6 nests them); drawings with one application layer
 showing a band the defaults hide, each selecting the band by `{addresses:
 [{id: T, facet: F}]}` or `{element: band, facet: F}`; and
 `group_parent_both`, `group_parent_right` and `group_parents_mixed` with
-the layer `{element: ancestor_card}` `display: inline`, which shows the
-ancestor cards the defaults hide (`group__<file>__ancestor-cards`; the
-layout's README derives their geometry). 90 fixtures in all.
+the layer `{element: ancestor_card}` `display: none`, which hides the
+ancestor cards the defaults show (`group__<file>__ancestor-cards-hidden`;
+each equals the drawing of its manifest without ancestor cards, and the
+layout's README derives the cards' geometry in the drawings without the
+layer). 90 fixtures in all.
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards

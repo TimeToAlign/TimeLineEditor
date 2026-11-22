@@ -28,6 +28,7 @@ import {
   drawFixture,
   edit,
   element,
+  HIDDEN_ANCESTOR_CARDS,
   loadFile,
   metrics,
   set,
@@ -36,8 +37,12 @@ import {
 } from "./support.ts";
 
 const only = (select: object, set: object): Graphical[] => [{ rules: [{ select, set }] }];
+/**
+ * A group fixture drawn without its ancestor cards (section 8.8), the subject here being the
+ * ancestor lines in the member's own card; `ancestor-cards.test.ts` draws the cards.
+ */
 const drawGroup = (name: string, extra: Graphical[] = [], placement?: Placement) =>
-  drawFixture(`groups/${name}`, extra, placement);
+  drawFixture(`groups/${name}`, [HIDDEN_ANCESTOR_CARDS, ...extra], placement);
 
 /** Every drawing of an address, in descriptor order. */
 const all = (drawing: Drawing, address: ElementAddress): DrawnElement[] =>
@@ -328,7 +333,7 @@ describe("single changes to group_child_member", () => {
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
+      [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
       metrics,
     );
     expect(member(drawing)).toEqual({
@@ -537,7 +542,12 @@ describe("the cascade on each drawing of an address", () => {
   });
 
   it("matches inside: ancestor on the marks and never on the member's own wedges", () => {
-    const layers = (extra: Graphical[]) => [DEFAULT_LAYER, ...extra, manifestLayer(manifest)];
+    const layers = (extra: Graphical[]) => [
+      DEFAULT_LAYER,
+      HIDDEN_ANCESTOR_CARDS,
+      ...extra,
+      manifestLayer(manifest),
+    ];
     const inside = draw(
       manifest,
       DEFAULT_PLACEMENT,
@@ -564,7 +574,12 @@ describe("a member's cross-section lines cross its ancestor lines", () => {
     timestamp: { name: "Here", coordinate: [2, 1], display: ["cross_section"] },
   };
   const drawEdited = (manifest: Manifest, extra: Graphical[] = []) =>
-    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
+    draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, ...extra, manifestLayer(manifest)],
+      metrics,
+    );
   /** The marker extent of `timeline`'s one drawn line. */
   const extentOf = (drawing: Drawing, timeline: string) =>
     drawing.axes.find((axis) => axis.address.id === timeline && axis.marker !== null)?.marker

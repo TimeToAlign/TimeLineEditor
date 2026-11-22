@@ -18,14 +18,19 @@ import type { VerticalLineElement } from "./elements.ts";
 /** An interval of ordinates `[y1, y2]`, `y1 ≤ y2`, in the drawing's units. */
 export type Span = readonly [number, number];
 
-/** Whether `axis` is drawn in a card held by a group's frame. */
-const inFrame = (axis: DrawnAxis): boolean => axis.card.member !== undefined;
+/**
+ * Whether `axis` is drawn in a card held by a group's frame: a member card, never an ancestor
+ * card, which lies behind the frame and whose key only has a member card's shape.
+ */
+const inFrame = (axis: DrawnAxis): boolean =>
+  axis.card.member !== undefined && axis.ancestor === undefined;
 
 /**
  * The member lines of the frame of the group `group` among the drawn lines
  * `axes`, in their order: the line of each member card's own timeline (the
  * timeline the group lists), never an ancestor line drawn above it nor a
- * descendant's line drawn in its children band. The one statement of which
+ * descendant's line drawn in its children band, nor a line of an ancestor
+ * card behind the frame (section 8.8). The one statement of which
  * lines a group's frame holds, whose cards a groupstamp spans and whose
  * timelines (each with the descendants its cross-section line crosses) a
  * groupstamp's timestamp reads.
@@ -33,8 +38,8 @@ const inFrame = (axis: DrawnAxis): boolean => axis.card.member !== undefined;
 export function frameMemberLines(axes: readonly DrawnAxis[], group: string): DrawnAxis[] {
   return axes.filter(
     (axis) =>
+      inFrame(axis) &&
       axis.card.item === group &&
-      axis.card.member !== undefined &&
       axis.address.id === axis.card.member &&
       axis.marker !== null,
   );

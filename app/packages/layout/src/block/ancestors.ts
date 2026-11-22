@@ -16,20 +16,23 @@ import {
   sameAddress,
 } from "@timetoalign/tilie-core";
 import { BLOCK_KEY, elementKey } from "@timetoalign/tilie-core/drawing";
-import { placedAt } from "../canvas.ts";
+import type { DrawnAxis } from "../boxes.ts";
+import { placedAt, placedAxis } from "../canvas.ts";
 import { CARD_SPACING, K, SHADOW_OFFSET } from "../constants.ts";
 import type { DrawnElement } from "../elements.ts";
 import { layoutMember } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
 import { add, coordinateValue, lengthValue, negate, proportion, reachOf } from "../numbers.ts";
 import { type Context, type Holder, shown } from "../traversal.ts";
+import { axesOf } from "./axes.ts";
 import { columnsOf, contentRight, type Horizontal, horizontalOf } from "./horizontal.ts";
 import type { ItemDrawing } from "./items.ts";
 import type { Card, Item } from "./places.ts";
 
 /**
  * A displayed ancestor card laid out behind its frame, in that frame's item
- * coordinates: its own rectangle first, then its root's member drawing.
+ * coordinates: its own rectangle first, then its root's member drawing, and
+ * the axes of the lines that drawing draws.
  */
 export interface LaidAncestorCard {
   /** Its container as core lists it. */
@@ -40,6 +43,11 @@ export interface LaidAncestorCard {
   /** The frame it lies behind, whose place and scale it is drawn at. */
   readonly item: Item;
   readonly elements: readonly DrawnElement[];
+  /**
+   * The axes of its root's member drawing, in item coordinates and in the order of their
+   * elements, each marked with `ancestor` as the card's record is.
+   */
+  readonly axes: readonly DrawnAxis[];
   /** Its rectangle in item coordinates. */
   readonly x: number;
   readonly y: number;
@@ -80,6 +88,8 @@ function lineAt(
  * ordinate of `R`'s ancestor line in `M`'s card, or of `M`'s line where that
  * ancestor line is not displayed. An ancestor card whose style does not
  * display it, or whose line or target ordinate is not drawn, is not drawn.
+ * Its lines have axes as any card's (`axesOf` over `R`'s drawing at `s0'` and
+ * `LA`), moved with it.
  */
 export function ancestorCards(
   context: Context,
@@ -172,6 +182,10 @@ export function ancestorCards(
       shadowOffset: SHADOW_OFFSET,
     };
     const shadow = style.shadow === "none" ? 0 : SHADOW_OFFSET;
+    const marked = { group: group.id, member: M.id };
+    const axes = axesOf(manifest, root, key, own, columns.s0, LA).map(
+      (axis): DrawnAxis => ({ ...placedAxis(axis, dx, dy), ancestor: marked }),
+    );
     return [
       {
         ref,
@@ -179,6 +193,7 @@ export function ancestorCards(
         member: M.id,
         item,
         elements: [rectangle, ...own.elements.map((element) => placedAt(element, dx, dy))],
+        axes,
         x: dx,
         y: dy,
         width: right,
