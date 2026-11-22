@@ -1822,13 +1822,23 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    and no ancestor line runs) and orders last, so the Coordinates are
    the groups of `middle` 1 (Piece [`5` ♩], its ancestor; Middle [`1` ♩];
    Recording [`1.25` s], through `group_1`, since naming stores a
-   GroupStamp on a group member), then Piece [`3` ♩]; with `piece`'s
-   timeline editor open the card is raised, `piece` 3 lies on its line and
-   `middle` 1 has no place (`middle`'s line lies inside the raised card),
-   so Piece [`3` ♩] comes first, then the three groups of `middle` 1;
-   closing the editor (Done) gives the arranger's order back. What would
-   be wrong: the tab ordering by the places of nothing raised while the
-   canvas shows the raised card.
+   GroupStamp on a group member), then Piece [`3` ♩]. With `piece`'s
+   timeline editor open the card is raised (from (8, 18.8046875),
+   869.33544921875 × 63.37890625, its bottom at 82.18359375; the
+   arranger's README, "A member in the raised card"): `middle`'s own line
+   at 81.78125 lies inside it and is not seen, and a member drawn in the
+   raised card is placed on the card's row that holds it, so `middle` 1
+   lies on the card's `middle` row at (310.33544921875, 33.8046875)
+   (260.33544921875 + 1 × 50) and `piece` 3 on the card's `piece` line at
+   (210.33544921875, 67.78125) (60.33544921875 + 3 × 50). Topmost first,
+   `middle` 1 comes first, and its pin is read on that row: Middle [`1` ♩]
+   at 33.8046875, its ancestor Piece [`5` ♩] at the card's `piece` line
+   (67.78125), Recording [`1.25` s] at its member card's line
+   (139.16015625, outside the card); then Piece [`3` ♩]. Closing the
+   editor (Done) gives the arranger's order back. What would be wrong:
+   the tab ordering by the places of nothing raised while the canvas
+   shows the raised card, or placing `middle` on its own line the raised
+   card covers (Piece [`3` ♩] first, then Piece, Middle, Recording).
    **What is stored never follows it.** Naming (`stampToName`, read from
    the potential MatchStamp with nothing raised) and Update
    (`updateCommand`) store each anchor's coordinates, and the anchors, in
@@ -1836,7 +1846,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    MatchStamp is stored one way. On `groups/group_parent_both` the places
    are (the drawing read with nothing raised | with `piece`'s card
    raised): `piece` 3 none | (210.34, 67.78), `recording` 2.5
-   (360.34, 139.16) | the same, `middle` 1 (310.34, 81.78) | none.
+   (360.34, 139.16) | the same, `middle` 1 (310.34, 81.78) | (310.34,
+   33.80), the card's `middle` row.
    - Naming "Pickup" the potential MatchStamp of a table of one MatchClaim
      `p_1`, `piece` 3 ↔ `recording` 2.5 (the group partner of `piece`'s
      child `middle`): with nothing raised `piece` 3 has no place and
@@ -1853,9 +1864,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      `recording` 2.5 (y 139.16), so the `set` stores the anchors
      [[`middle` [1, 1], `piece` [3, 1]], [`recording` 2.5, `piece` [3, 1]]]
      and `match_claims` `["p_1", "p_2"]` (core's update, in row order);
-     raised the same pairs would read [[`piece` 3, `recording` 2.5],
-     [`piece` 3, `middle` 1]], yet Update with `piece`'s editor open
-     stores the command of no editor open byte for byte.
+     raised the same pairs would read [[`middle` 1, `piece` 3], [`piece`
+     3, `recording` 2.5]] (`middle` 1 at y 33.80 above `piece` 3 at
+     67.78, which lies above `recording` 2.5), yet Update with `piece`'s
+     editor open stores the command of no editor open byte for byte.
    What would be wrong: the same MatchStamp stored in another orientation
    because an editor happened to be open.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
