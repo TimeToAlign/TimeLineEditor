@@ -152,17 +152,41 @@ export const HIDDEN_ANCESTOR_CARDS = {
 } as const;
 
 /**
- * `view` with `HIDDEN_ANCESTOR_CARDS` appended to the workspace's rules by
- * one `set` of its `graphical`: for a test whose subject is not the ancestor
- * card, so that its values, derived without the cards, stand (the cards
- * take no room, and the block's place origin does not move for them).
+ * The rule hiding every elision (section 8.9, Elided and full), which the
+ * defaults draw on an ancestor card: `{select: {element: "elision"}, set:
+ * {display: "none"}}`, the Full view, every ancestor card drawn whole.
  */
-export function withoutAncestorCards(view: View): View {
-  const rules = [...(view.graphical.rules ?? []), HIDDEN_ANCESTOR_CARDS];
+export const FULL_CARDS = {
+  select: { element: "elision" },
+  set: { display: "none" },
+} as const;
+
+/** `view` with `rule` appended to the workspace's rules by one `set` of its `graphical`. */
+function withRule(view: View, rule: object): View {
+  const rules = [...(view.graphical.rules ?? []), rule];
   return changed(view, {
     type: "set",
     changes: [{ target: WORKSPACE, values: { graphical: { ...view.graphical, rules } } }],
   });
+}
+
+/**
+ * `view` with `HIDDEN_ANCESTOR_CARDS` appended to the workspace's rules: for
+ * a test whose subject is not the ancestor card, so that its values, derived
+ * without the cards, stand (the cards take no room, and the block's place
+ * origin does not move for them).
+ */
+export function withoutAncestorCards(view: View): View {
+  return withRule(view, HIDDEN_ANCESTOR_CARDS);
+}
+
+/**
+ * `view` with `FULL_CARDS` appended to the workspace's rules: the Full view,
+ * for a test of an ancestor card whose subject is not the elision, so that
+ * its values, derived on whole cards, stand.
+ */
+export function withFullCards(view: View): View {
+  return withRule(view, FULL_CARDS);
 }
 
 /** The fixture paths of the manifests with groups the tests use. */

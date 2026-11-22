@@ -1340,7 +1340,12 @@ ticks `5760`, coordinate `12` ♩.
    timestamp named from it, while that line is a place of its position;
    a timestamp selected otherwise is read at its first place (a
    selection names addresses, never the line a wedge was pressed on). In
-   `bundles/bundle_shared_parent` with nothing open, a pin of `score` at
+   `bundles/bundle_shared_parent` with nothing open, in the Full view
+   (`support.ts` `withFullCards`, the workspace rule `{"select":
+   {"element": "elision"}, "set": {"display": "none"}}`: the defaults
+   elide `score`'s ancestor cards, and the subject here is the line read,
+   not the elision, so the cards are drawn whole and the values derived on
+   them stand), a pin of `score` at
    9 read on the line of `score`'s card behind `group_2`'s frame, left of
    that frame (the second of its places; the first is `score`'s ancestor
    line in `exposition`'s card, which the arranger's README lists in "A
@@ -1356,7 +1361,8 @@ ticks `5760`, coordinate `12` ♩.
    a raised card covers every ancestor line of the member's card, so no
    ancestor line is a second place beside a raised card any more.)
    **The editor hands the line over** (`shell.test.ts`, the whole page
-   with its canvas): in the same workspace, the viewport at (0, 0) and
+   with its canvas): in the same workspace, in the Full view as above
+   (one `set` of the workspace's rules after loading), the viewport at (0, 0) and
    zoom 1 and Show coordinates on, a press released on `score` 9 on that
    card's line (its abscissa and ordinate from layout's `lineAxes` and
    `abscissaOf` on the drawing, moved by the drawing's origin to the

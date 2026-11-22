@@ -40,6 +40,7 @@ import {
   openDialog,
   pickFile,
   slotsRead,
+  withFullCards,
   workspaceOf,
 } from "./support.ts";
 
@@ -531,6 +532,8 @@ describe("a pin made on the canvas", () => {
   it("keeps the rows of the line it was read on in the Timestamp tab", async () => {
     start();
     hook().load(workspaceOf("bundles/bundle_shared_parent"));
+    // The Full view: the subject is the line read, not the elision of `score`'s cards.
+    withFullCards(hook().store());
     flushSync();
     hook().setViewport({ x: 0, y: 0, zoom: 1 });
     document

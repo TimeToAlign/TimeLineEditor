@@ -65,6 +65,7 @@ import {
   metrics,
   placed,
   viewOf,
+  withFullCards,
   withoutAncestorCards,
 } from "./support.ts";
 
@@ -509,11 +510,16 @@ describe("a covered line, not read", () => {
 });
 
 describe("a later ancestor card over an earlier one", () => {
-  /** `bundle_shared_parent` in block A at (0, 0), `group_2`'s frame placed at (1200, 70). */
-  const view = placed(viewOf({ id: A, fixture: "bundles/bundle_shared_parent" }), A, "group_2", {
-    x: 1200,
-    y: 70,
-  });
+  /**
+   * `bundle_shared_parent` in block A at (0, 0), `group_2`'s frame placed at
+   * (1200, 70), its ancestor cards drawn whole (the Full view).
+   */
+  const view = placed(
+    withFullCards(viewOf({ id: A, fixture: "bundles/bundle_shared_parent" })),
+    A,
+    "group_2",
+    { x: 1200, y: 70 },
+  );
   const drawing = drawingIn(view);
   const FIRST: PlaceKey = { item: "group_1", member: "score" };
   const SECOND: PlaceKey = { item: "group_2", member: "score" };
@@ -591,7 +597,8 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
   }
   const THEME_CARD = { item: "group_1", member: "theme" };
   const SCORE_CARD = { item: "group_1", member: "score" };
-  const grandchild = viewWith("groups/group_grandchild");
+  /** `group_grandchild` in the Full view: its ancestor cards drawn whole. */
+  const grandchild = withFullCards(viewWith("groups/group_grandchild"));
 
   it("reads a grandchild's two ancestor lines, the flag top to bottom", () => {
     expect(readFull(readAt(grandchild, 1482.265625, 119.16015625))).toEqual([
@@ -686,7 +693,7 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
   });
 
   it("reads the card and the ancestor line at an item scale, a block scale and a zoom", () => {
-    const scaled = placed(viewWith(PARENT_BOTH, 0.5), A, "group_1", { scale: 2 });
+    const scaled = placed(withFullCards(viewWith(PARENT_BOTH, 0.5)), A, "group_1", { scale: 2 });
     const drawing = drawingIn(scaled);
     const frame = drawing.boxes.find((box) => box.kind === "frame");
     expect(frame && [frame.x, frame.x + frame.width]).toEqual([305.263671875, 1392.6708984375]);
@@ -921,7 +928,8 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
    * (block A at (40, 80)) with the timeline editor of `editor` open, name
    * a timestamp there (`coordinate` its JSON), and give the place's
    * ordinates, the reading's rows and its named pin's rows on the line
-   * read, then at the first place (no line known).
+   * read, then at the first place (no line known). The ancestor cards are
+   * drawn whole (the Full view).
    */
   function nameOnSecond(
     fixture: string,
@@ -930,7 +938,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
     value: Rational,
     coordinate: unknown,
   ) {
-    const view = viewWith(fixture);
+    const view = withFullCards(viewWith(fixture));
     const editing = editorOf(editor);
     const raised = raisedRoot(blockIn(view, A), editing);
     const places = placesAt(drawingIn(view), timeline, value, raised);
@@ -1293,9 +1301,12 @@ describe("the cross-section", () => {
 });
 
 describe("the position, snapped on the hovered row", () => {
-  /** `bundle_mixed`'s `score` read at `p` = 3.13 with `h` = 0.004 (zoom 3.75), at the ordinate `y`. */
+  /**
+   * `bundle_mixed`'s `score` read at `p` = 3.13 with `h` = 0.004 (zoom 3.75),
+   * at the ordinate `y`, in the Full view.
+   */
   function onScore(y: number, granularity: Granularity = DEFAULT_GRANULARITY) {
-    const view = viewWith(MIXED);
+    const view = withFullCards(viewWith(MIXED));
     const score = axis(view, "score");
     expect([score.xStart, score.xEnd, score.y, score.maps.map((map) => map.yc)]).toEqual([
       279.70361328125,
@@ -2028,7 +2039,7 @@ describe("a timestamp named on an ancestor line", () => {
     ["the cards shown", (view: View) => view, 279.70361328125],
     ["every ancestor card hidden", withoutAncestorCards, 126.29150390625],
   ])("lists in its tab what the flag listed there, %s", (_, layered, xStart) => {
-    const [view, id] = named(layered(viewWith(MIXED)));
+    const [view, id] = named(layered(withFullCards(viewWith(MIXED))));
     const drawing = drawingIn(view);
     const line = [...lineAxes(drawing).values()].find(
       (each) => each.timeline === "recording" && each.ancestor === undefined,
@@ -2164,7 +2175,11 @@ describe("the affordance of a named timestamp that draws nothing", () => {
   });
 
   it("lies on a middle ancestor's ancestor line, never on the card's covered row", () => {
-    const [view, id] = blank(viewWith("groups/group_grandchild"), "movement", [12, 1]);
+    const [view, id] = blank(
+      withFullCards(viewWith("groups/group_grandchild")),
+      "movement",
+      [12, 1],
+    );
     const block = blockIn(view, A);
     const drawing = drawingIn(view);
     const [ancestorKey] = [...lineAxes(drawing)].find(

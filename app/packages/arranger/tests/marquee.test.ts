@@ -7,7 +7,7 @@ import { elementsInRect, type Rect, rectOnCanvas } from "../src/marquee.ts";
 import type { BlockNode } from "../src/node.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, changed, marqueeView, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, marqueeView, metrics, viewOf, withFullCards } from "./support.ts";
 
 // Drawn with the defaults: `recording`'s ancestor card lies behind `group_2`'s frame.
 const view = marqueeView();
@@ -35,6 +35,8 @@ const around = (shown: BlockNode, key: PlaceKey, by = 2): Rect => {
   return { x: x - by, y: y - by, width: width + 2 * by, height: height + 2 * by };
 };
 const ANCESTOR_CARD: PlaceKey = { item: "group_2", member: "recording" };
+/** The view in the Full view: `recording`'s ancestor card drawn whole, no elision. */
+const full = withFullCards(view);
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
@@ -143,6 +145,8 @@ describe("elementsInRect", () => {
   });
 
   it("counts an ancestor card's drawings only while the card is raised", () => {
+    const node = nodeOf(full, null);
+    const every = insideOf(manifest, node.data.drawing, null);
     const card = around(node, ANCESTOR_CARD);
     const frame = around(node, { item: "group_2" }, 0);
     const strip = { ...card, width: frame.x - 2 - card.x };
@@ -161,7 +165,7 @@ describe("elementsInRect", () => {
       part("region_3", "label"),
     ];
     expect(elementsInRect(node, card, every, metrics)).toEqual(at(...behind));
-    const raised = nodeOf(view, RECORDING);
+    const raised = nodeOf(full, RECORDING);
     const { inside } = raised.data;
     expect(elementsInRect(raised, strip, inside, metrics)).toEqual([]);
     expect(elementsInRect(raised, card, inside, metrics)).toEqual(
@@ -183,7 +187,7 @@ describe("elementsInRect", () => {
   });
 
   it("takes the affordance on an ancestor card's line only while the card is raised", () => {
-    const marked = changed(view, {
+    const marked = changed(full, {
       type: "add",
       into: inBlock(A, idAddress("recording")),
       timestamp: { name: "Mark", coordinate: 22050, display: [] },

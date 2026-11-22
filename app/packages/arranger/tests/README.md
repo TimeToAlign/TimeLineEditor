@@ -76,6 +76,22 @@ descriptors and boxes a drawing records, the holding of an element drawn
 in an ancestor card, the ancestor cards themselves) keep the defaults, and
 their values below count the ancestor cards.
 
+**Whole ancestor cards (the Full view).** The defaults also elide an
+ancestor card (section 8.9, Elided and full): a stretch of the root far
+from the member is cut out and drawn as a strip, which changes where the
+card's lines lie and what a point on them reads. In `bundle_mixed`,
+`bundle_shared_parent`, `group_grandchild` and `group_parents_mixed`
+(and `group_parent_both` at a larger scale) the defaults elide. The
+values of the tests whose subject is an ancestor card but not its
+elision (where its lines lie, what a reading or a pin on them lists, what
+the marquee and the viewport take of it, the screen order of its
+matches) are derived on whole cards: those tests draw under the
+workspace rule `{"select": {"element": "elision"}, "set": {"display":
+"none"}}` (`support.ts` `withFullCards`), which draws every ancestor card
+whole, the drawing before elisions existed. Their values stand
+unchanged, which proves the Full view is exactly that drawing; a reading
+on an elided card (one axis per run) is the subject of its own tests.
+
 - **Every manifest is drawn as one block** (section 8). A manifest of one
   root and no name has no title and no frame; its root is drawn in its
   card `{id: T, part: ["card"]}`. The name column starts at `xn = P + K = 16`; the card
@@ -1810,8 +1826,10 @@ within the name's height and right of it; at scale 2 the frame
 `{56, 137.609375, 1127.830078125 × 338.46875}`; a target in another
 block (`{block: "0000000009", id: "group_1"}`) throws. What an ancestor
 card draws counts only while the card is raised, as for the marquee
-(below): on `mixed` drawn with the defaults, `recording`'s ancestor card
-shown behind `group_2`'s frame, `dlt_1`'s rectangle is the same `{64,
+(below): on `mixed` drawn with the defaults in the Full view
+(`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the viewport,
+not the elision), `recording`'s ancestor card shown whole behind
+`group_2`'s frame, `dlt_1`'s rectangle is the same `{64,
 376.91796875, 306.79150390625 × 12.8046875}` (every element outside the
 card keeps its canvas place), not one stretched over the copy of `dlt_1`
 the card draws; in `recording`'s own timeline editor, which raises the
@@ -1930,6 +1948,9 @@ each result an address in block A, written below by its element address:
   maps above it, the names in the card's name column left of it). One 2 larger than `group_2`'s frame takes, before those,
   `group_2`'s name and `page`'s card's `cmap_4`, `page`, `timestamp_5`,
   `timestamp_6` and `page`'s name; the names are taken too.
+- The ancestor card's two points below draw in the Full view
+  (`withFullCards`, "Whole ancestor cards" in the fixture facts): their subject is what the
+  marquee takes of the card, not its elision, so the card is whole.
 - A rectangle 2 larger than the ancestor card itself (the card from
   311.296875, 84.37890625 high: it lies on `recording`'s ancestor row,
   69.9765625 below its top, and so covers the member card from below `dlt_1`'s
@@ -2149,7 +2170,11 @@ the spec's anchor `piece` (ordinate 85.18359375) and its one member
 
 **Two ancestor lines, an ancestor of unknown length, and the scales.**
 The same rules hold for a grandchild, for an ancestor whose length is
-not known, and at an item scale, a block scale and a zoom other than 1:
+not known, and at an item scale, a block scale and a zoom other than 1
+(`group_grandchild`, and `group_parent_both` at the scales, drawn in the
+Full view, `withFullCards`, "Whole ancestor cards" in the fixture facts:
+the subject is the ancestor lines and the cards' rows, not the elision,
+so the cards are whole):
 
 - `groups/group_grandchild` (block A at (40, 80)): `theme` (8 quarters)
   is `movement`'s child at 8, `movement` (16) `score`'s at 16, `score`
@@ -2245,7 +2270,9 @@ editor (a member) and in `recording`'s.
 specification section 8.8 point 4: ancestor cards are written in record
 order, a later one over an earlier one where they meet). In
 `bundles/bundle_shared_parent` (block A at (0, 0)) with `group_2`'s frame
-set to the place (1200, 70), so that the two cards overlap, layout's
+set to the place (1200, 70), so that the two cards overlap, drawn in the
+Full view (`withFullCards`, "Whole ancestor cards" in the fixture facts; the subject is the
+cards' stacking, not their elision), layout's
 record, the oracle: `score`'s card behind `group_1`'s frame (`{item:
 group_1, member: score}`) from (8, 28.8046875), 1243.3592936197915 ×
 154.8828125 (its bottom 183.6875), recorded first, the block's top (the
@@ -2343,8 +2370,8 @@ at 3 displaying nothing has no affordance on the arranger and one while
 the card is raised, on the card's line, at the points `wedgeAt` gives
 there: (210.33544921875, 86.68359375), (207.33544921875, 99.68359375),
 (213.33544921875, 99.68359375) (its markers band below the line: the tip
-85.18359375 + 1.5, the base 13 further). In `group_grandchild` (above) a
-named timestamp on `movement` at 12 displaying nothing has one
+85.18359375 + 1.5, the base 13 further). In `group_grandchild` (above,
+in the Full view) a named timestamp on `movement` at 12 displaying nothing has one
 affordance, on `movement`'s ancestor line in `theme`'s card, at the
 points of that line's mark at 1482.265625 (layout's README, "The marks
 at any position"; the line below the member, so its tip at `85.18359375 +
@@ -2385,7 +2412,8 @@ the position's places (`placesAt`), else at the first place (a timestamp
 selected from a list, reloaded, or whose line is gone). Read on the
 second place of a value and named there (`add {timestamp}`), the named
 pin on the read line lists the flag's rows exactly, the named pin
-without a line the first place's:
+without a line the first place's (drawn in the Full view, `withFullCards`,
+"Whole ancestor cards" in the fixture facts: the subject is the line read, not the elision):
 
 | Fixture, editor | Value, places (y) | Flag and named pin on the line | First place |
 |---|---|---|---|
@@ -2603,7 +2631,9 @@ ratio, halved. Core proves the rule on these very rows (its README, "Snapping on
 a row"); here the inputs are proven, by positions the rule gives only
 for the right row, `p` and `h`.
 
-- **`bundle_mixed`'s `score`** (y 73.109375 from 279.70361328125 to
+- **`bundle_mixed`'s `score`**, drawn in the Full view (`withFullCards`,
+  "Whole ancestor cards" in the fixture facts: the subject is the snap, not the elision)
+  (y 73.109375 from 279.70361328125 to
   679.70361328125, 12 quarters over 400, so 0.03 a canvas unit; `cmap_1`
   480·x onto ticks at 67.609375, `cmap_2` x/2 onto seconds at 62.609375).
   The abscissas: with no ancestor card every line runs from `8 + s0 =
@@ -2804,8 +2834,9 @@ reading on an ancestor line is read back where it was named: its first
 place is that ancestor line, so its Timestamp tab lists what the flag
 listed there, the ancestor's coordinate and what is drawn at the crossed
 lines of the member's card, never the ancestor's own maps, which are not
-drawn there. In `bundles/bundle_mixed` (block A at (40, 80)) `recording`
-is drawn as `excerpt`'s ancestor line in `excerpt`'s card (layout's
+drawn there. In `bundles/bundle_mixed` (block A at (40, 80)), drawn in
+the Full view (`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the
+ancestor line, not the elision), `recording` is drawn as `excerpt`'s ancestor line in `excerpt`'s card (layout's
 record: card `{item: group_2, member: excerpt}`, y 340.796875, below
 `excerpt`'s line at 302.8203125, from
 279.70361328125 to 679.70361328125, start 44100 samples, drawn length
@@ -3017,7 +3048,11 @@ Two passes prove it, one from the places and one from the points read:
   `group_child_member_stamps`, `group_grandchild`,
   `group_parents_mixed`, `bundles/bundle_mixed`,
   `bundle_shared_parent`; block A at (40, 80), each with its ancestor
-  cards shown and hidden (`withoutAncestorCards`).
+  cards shown and hidden (`withoutAncestorCards`). Shown, the cards are
+  drawn whole (`withFullCards`, "Whole ancestor cards" above): the rule
+  is the same on an elided card, but its places and points are counted
+  there on whole cards, and a reading on an elided card (one axis per
+  run) is the subject of its own tests.
 - **States**: nothing open, then for each root an ancestor card draws
   its timeline editor, kept where `raisedRoot` gives that root (a root
   in a group raises nothing).
@@ -3417,7 +3452,9 @@ the frame. `middle` 1 lies at (310.33544921875, 47.20703125) on the
 arranger and at (310.33544921875, 51.20703125), the card's row, while the
 card is raised, so [`piece` 3, `middle` 1] is [`middle` 1, `piece` 3] in
 screen order on the arranger (`piece` 3 has no place) and raised alike.
-In `groups/group_grandchild` (above, "Show coordinates") `score` 28,
+In `groups/group_grandchild` (above, "Show coordinates"), drawn in the
+Full view (`withFullCards`, "Whole ancestor cards" in the fixture facts: the subject is the
+screen order, not the elision), `score` 28,
 `movement` 12 and `theme` 4 lie at x 1482.265625 on `theme`'s card:
 `theme`'s line at 47.20703125, `movement`'s ancestor line at
 85.18359375, `score`'s at 119.16015625; so [`movement` 12, `score` 28,

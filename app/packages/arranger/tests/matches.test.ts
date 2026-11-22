@@ -44,7 +44,15 @@ import {
 import { holdingMatchStamp, ownerOf } from "../src/selectionRules.ts";
 import { G, GROUPSTAMP_FIXTURE } from "./groupTable.ts";
 import { BELIEVED, D, NAMED, NAMED_IN_D, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
-import { A, blockIn, changed, metrics, viewOf, withoutAncestorCards } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  metrics,
+  viewOf,
+  withFullCards,
+  withoutAncestorCards,
+} from "./support.ts";
 
 const view = viewOf({ id: A, fixture: "bundles/bundle_matchstamps", x: 40, y: 80 });
 const manifest: Manifest = blockIn(view, A).manifest;
@@ -571,7 +579,8 @@ describe("screen order of a grandchild and its two ancestors", () => {
   const theme4 = at("theme", Rational.of([4, 1]));
 
   it("places each on the line the user sees in the grandchild's card", () => {
-    const drawn = drawingOf(blockIn(grandchild, A), grandchild.graphical, metrics);
+    const full = withFullCards(grandchild);
+    const drawn = drawingOf(blockIn(full, A), full.graphical, metrics);
     expect([score28, movement12, theme4].map((item) => screenPlace(drawn, item))).toEqual([
       { x: 1482.265625, y: 119.16015625 },
       { x: 1482.265625, y: 85.18359375 },

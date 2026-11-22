@@ -4,7 +4,9 @@
  * value, the flag a reading there shows and the pin made from it (the
  * timeline's pin at that position, the read line preferred) list the same
  * rows, with the ancestor cards shown and hidden, nothing raised and each
- * root raised. Derived in `README.md` ("A reading and the pin made from it").
+ * root raised. The cards are drawn whole (the Full view): a reading on an
+ * elided card is tested on its own. Derived in `README.md` ("A reading and
+ * the pin made from it").
  */
 
 import type { Manifest, TimelineManifest, View } from "@timetoalign/tilie-core";
@@ -25,7 +27,7 @@ import type { Editing } from "../src/editing.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, metrics, viewOf, withoutAncestorCards } from "./support.ts";
+import { A, blockIn, metrics, viewOf, withFullCards, withoutAncestorCards } from "./support.ts";
 
 /** The manifest fixtures holding a grouped child, so drawing ancestor cards. */
 const FIXTURES = [
@@ -441,7 +443,7 @@ describe("a reading at every place and the pin made from it", () => {
   it.each(EXPECTED)(
     "list the same rows in $fixture, cards shown and hidden",
     ({ fixture, places }) => {
-      const view = viewOf({ id: A, fixture, x: 40, y: 80 });
+      const view = withFullCards(viewOf({ id: A, fixture, x: 40, y: 80 }));
       expect([compareAll(view), compareAll(withoutAncestorCards(view))]).toEqual(places);
     },
   );
@@ -451,7 +453,7 @@ describe("a reading at every point of every line read", () => {
   it.each(EXPECTED)(
     "lies on a place of its position in $fixture, the pin listing the flag's rows",
     ({ fixture, points }) => {
-      const view = viewOf({ id: A, fixture, x: 40, y: 80 });
+      const view = withFullCards(viewOf({ id: A, fixture, x: 40, y: 80 }));
       expect([readAll(view), readAll(withoutAncestorCards(view))]).toEqual(
         points.map(([read, covered]) => ({ read, covered, differing: [] })),
       );

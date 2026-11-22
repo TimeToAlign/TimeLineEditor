@@ -2,7 +2,7 @@
 /**
  * Fixtures and file stubs for the editor's tests: manifests from the
  * installed `@timetoalign/timetoshare`, workspaces and stores built of
- * them, the test hook of a mounted page, the open dialog read and
+ * them, the Full view of a store, the test hook of a mounted page, the open dialog read and
  * answered, the fallback file input answered with a chosen file, downloads
  * recorded instead of performed, the autosaves of mounted editors waited
  * for between tests, and the open editor of a level.
@@ -13,7 +13,13 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Editing, Level } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
-import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
+import {
+  createStore,
+  isLoadError,
+  loadManifest,
+  readWorkspace,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import type { DumpsOptions } from "@timetoalign/timetoshare";
 import { dumps, loads, SCHEMA_VERSION, withBareIds, withFileIds } from "@timetoalign/timetoshare";
 import { flushSync } from "svelte";
@@ -87,6 +93,32 @@ export function storeOf(...manifests: readonly (string | Manifest)[]): Store {
   const workspace = readWorkspace(workspaceOf(...manifests));
   if (isLoadError(workspace)) throw new Error("the written workspace is refused");
   return createStore(workspace);
+}
+
+/**
+ * The rule hiding every elision (the drawing specification's section 8.9,
+ * Elided and full), which the defaults draw on an ancestor card: the Full
+ * view, every ancestor card drawn whole.
+ */
+export const FULL_CARDS = {
+  select: { element: "elision" },
+  set: { display: "none" },
+} as const;
+
+/**
+ * `store` with `FULL_CARDS` appended to its workspace's rules by one `set`
+ * of its `graphical`: for a test of an ancestor card whose subject is not
+ * the elision, so that its values, derived on whole cards, stand.
+ */
+export function withFullCards(store: Store): Store {
+  const { graphical } = store.view;
+  const rules = [...(graphical.rules ?? []), FULL_CARDS];
+  const refused = store.dispatch({
+    type: "set",
+    changes: [{ target: WORKSPACE, values: { graphical: { ...graphical, rules } } }],
+  });
+  if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
+  return store;
 }
 
 /** The installed test hook of the mounted page. */

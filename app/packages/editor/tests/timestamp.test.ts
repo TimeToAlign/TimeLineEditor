@@ -48,7 +48,7 @@ import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
 import { transientContext } from "../src/transient.ts";
 import { addStylesOf, fadingsOf } from "./dom.ts";
-import { informing, noMatchClaims, providing, storeOf } from "./support.ts";
+import { informing, noMatchClaims, providing, storeOf, withFullCards } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -775,8 +775,9 @@ describe("a pin read on a line", () => {
 
   it("names a timestamp read on that line, and shows a selected one at its first place", () => {
     // `score` 9 has two places: its ancestor line in `exposition`'s card (first), where no map
-    // is drawn, and the line of its card behind `group_2`'s frame, which draws `cmap_1`.
-    const store = storeOf("bundles/bundle_shared_parent");
+    // is drawn, and the line of its card behind `group_2`'s frame, which draws `cmap_1`; the
+    // cards drawn whole (the Full view), the subject being the line read, not the elision.
+    const store = withFullCards(storeOf("bundles/bundle_shared_parent"));
     const inspector = drawer(store, true);
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");

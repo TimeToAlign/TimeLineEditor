@@ -5,7 +5,7 @@ import { FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, changed, metrics, mixedView, withoutAncestorCards } from "./support.ts";
+import { A, changed, metrics, mixedView, withFullCards, withoutAncestorCards } from "./support.ts";
 
 /**
  * The node of block A, at `scale` when one is given, drawn without `recording`'s ancestor
@@ -57,7 +57,8 @@ describe("targetBounds", () => {
   });
 
   it("leaves out what an ancestor card draws behind the frames, and spans a raised card", () => {
-    const [shown] = project(mixedView(), NOTHING_SELECTED, [], metrics, null);
+    const full = withFullCards(mixedView());
+    const [shown] = project(full, NOTHING_SELECTED, [], metrics, null);
     if (shown === undefined) throw new Error("no node");
     expect(targetBounds(shown, at("dlt_1"), metrics)).toEqual({
       x: 64,
@@ -66,7 +67,7 @@ describe("targetBounds", () => {
       height: 12.8046875,
     });
     const recording = at("recording");
-    const [raised] = project(mixedView(), NOTHING_SELECTED, [], metrics, {
+    const [raised] = project(full, NOTHING_SELECTED, [], metrics, {
       target: recording,
       kind: "timeline",
     });
