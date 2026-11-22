@@ -1,7 +1,7 @@
 /**
  * A member drawing: one timeline drawn as a root, every timeline drawn with
  * a line of its own laid out with its bands at its own line, the rows of
- * their children bands laid out together, the ancestor band, and its
+ * their children bands laid out together, the ancestor bands, and its
  * elements in descriptor order with its bands' records (`docs/drawing.md` in
  * TimeToShare, sections 6, 7.2, 8.3 and 8.5).
  */
@@ -9,7 +9,7 @@
 import { bandAddress, type PlaceKey } from "@timetoalign/tilie-core";
 import type { MemberDrawing } from "@timetoalign/tilie-core/drawing";
 import {
-  ancestorBand,
+  ancestorBands,
   ancestorLabelElements,
   ancestorLineElements,
   ancestorLineMarks,
@@ -27,7 +27,7 @@ import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
 import { rowSlots } from "./slots.ts";
-import { type Context, type Entry, type Holder, known, traverse } from "./traversal.ts";
+import { type Context, type Entry, type Holder, known, nth, traverse } from "./traversal.ts";
 
 /**
  * One member drawing laid out before its horizontal start and its top are
@@ -41,11 +41,11 @@ export interface MemberLayout {
   readonly centred: readonly Centred[];
   /** The stroke widths of its drawn ancestor lines that run on to the left. */
   readonly chevrons: readonly number[];
-  /** Its height `Hm`: the content height `Hc` (section 6.5), the ancestor band included. */
+  /** Its height `Hm`: the content height `Hc` (section 6.5), the ancestor bands included. */
   readonly height: number;
   /**
    * The number of its card's contents (section 1): its root's row, its root's present bands and
-   * its ancestor band when it has one.
+   * its ancestor bands, one on each side holding an ancestor line.
    */
   readonly contentCount: number;
   /** It drawn with the shared start `x0`, the name column `n` and its top `top`, in item coordinates. */
@@ -74,7 +74,7 @@ export interface MemberDrawn {
  * margin `V`, its line held by `holder`, the block or its group's frame, by
  * the three passes of section 6.4: every first fit, every row, and the slots
  * of the conversion maps bands of each row's lines; the
- * distances, from the deepest rows up, then the ancestor band and the
+ * distances, from the deepest rows up, then the ancestor bands and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
  * member drawing's start and top.
  */
@@ -94,8 +94,8 @@ export function layoutMember(
   const slots = rowSlots(rootRow, fitted);
   const root = known(layoutRow(rootRow, fitted, slots), rootEntry);
   const ancestors = ancestorLines(scope);
-  const band = ancestorBand(scope, ancestors, rootRow.pitch, root.edges.above);
-  const { yLocal, Hc } = heights(scope, band.edge, root.edges.below);
+  const bands = ancestorBands(scope, ancestors, rootRow.pitch, root.edges);
+  const { yLocal, Hc } = heights(scope, bands.edges.above, bands.edges.below);
 
   // One text per row (section 6.6): each ancestor's, then the rows of lines, whose order from
   // the top down is known once their ordinates are. A line that is not displayed hides its name,
@@ -118,15 +118,15 @@ export function layoutMember(
 
   const drawAt = (x0: number, n: number, top: number): MemberDrawn => {
     const yRoot = top + yLocal;
-    // The root's cross-section lines reach its outermost displayed ancestor line (section 6.6).
-    const outermost = band.distances.at(-1);
+    // The root's cross-section lines reach its outermost displayed ancestor line on each side
+    // (section 6.6).
     const placed = placeLines(root, rootRow, {
       x0,
       y: yRoot,
       size: rootRow.size,
       top,
       Hc,
-      ...(outermost === undefined ? {} : { ancestors: outermost }),
+      ...(bands.count === 0 ? {} : { ancestors: bands.outermost }),
     });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
@@ -139,7 +139,16 @@ export function layoutMember(
     const ordinate = new Map<Row, number>(placed.map((line) => [line.row, line.place.y]));
     const names = [
       ...ancestorTexts.flatMap((text, index) =>
-        text === undefined ? [] : [nameElement(scope, text, n, ancestorY(band, index, yRoot))],
+        text === undefined
+          ? []
+          : [
+              nameElement(
+                scope,
+                text,
+                n,
+                ancestorY(bands, index, nth(ancestors, index).side, yRoot),
+              ),
+            ],
       ),
       ...rowTexts
         .map((item) => ({ text: item.text, y: known(ordinate, item.row) }))
@@ -148,7 +157,7 @@ export function layoutMember(
           item.text === undefined ? [] : [nameElement(scope, item.text, n, item.y)],
         ),
     ];
-    const ancestorLinesDrawn = ancestorLineElements(scope, ancestors, band, x0, yRoot);
+    const ancestorLinesDrawn = ancestorLineElements(scope, ancestors, bands, x0, yRoot);
     const elements: DrawnElement[] = [
       ...each("flowMarkers"),
       ...each("maps"),
@@ -157,10 +166,10 @@ export function layoutMember(
       ...ancestorLinesDrawn,
       ...each("line"),
       ...bySegment(each("boundaries")),
-      ...ancestorMarkElements(scope, ancestors, band, x0, yRoot),
+      ...ancestorMarkElements(scope, ancestors, bands, x0, yRoot),
       ...each("wedges"),
       ...names,
-      ...ancestorLabelElements(scope, ancestors, band, x0, yRoot),
+      ...ancestorLabelElements(scope, ancestors, bands, x0, yRoot),
       ...each("wedgeLabels"),
       ...bySegment(each("segmentLabels")),
       ...each("regionLabels"),
@@ -179,7 +188,7 @@ export function layoutMember(
     centred,
     chevrons: chevrons(ancestors),
     height: Hc,
-    contentCount: 1 + root.bands.length + (ancestors.length > 0 ? 1 : 0),
+    contentCount: 1 + root.bands.length + bands.count,
     drawAt,
   };
 }

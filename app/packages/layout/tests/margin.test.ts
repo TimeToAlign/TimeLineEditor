@@ -123,15 +123,15 @@ describe("a card's margin", () => {
     });
     const half = at("second-half", "card");
     const recording = at("recording", "card");
-    expect(rect(after, half).height).toBe(107.953125);
+    expect(rect(after, half).height).toBe(111.35546875);
     expect(inside(after, half).slice(1)).toEqual(moved(inside(before, half).slice(1), MARGIN));
     expect(inside(after, half).some((item) => item.type === "ancestor")).toBe(true);
     expect(inside(after, recording)).toEqual(moved(inside(before, recording), 2 * MARGIN));
     expect([rect(before, recording).y, rect(after, recording).y]).toEqual([
-      124.7578125, 148.7578125,
+      128.16015625, 152.16015625,
     ]);
     expect([rect(before, at("group_1")).height, rect(after, at("group_1")).height]).toEqual([
-      174.13671875, 198.13671875,
+      177.5390625, 201.5390625,
     ]);
     expect(boxAt(after, half)).toMatchObject({ contentCount: 3, card: { margin: MARGIN } });
   });

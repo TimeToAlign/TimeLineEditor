@@ -93,11 +93,12 @@ export interface LinePlace {
   /** The member drawing's content height `Hc` (section 6.5), its ancestor band included (section 8.4). */
   readonly Hc: number;
   /**
-   * For the root of a member drawing with an ancestor band (section 8.3) alone: the distance
-   * from its line up to its outermost displayed ancestor line, which its cross-section lines
-   * reach (section 6.6). Absent for every other line and where no ancestor line is drawn.
+   * For the root of a member drawing with an ancestor band (section 8.3) alone: on each side
+   * holding one, the distance from its line out to its outermost displayed ancestor line there,
+   * which its cross-section lines reach (section 6.6). Absent for every other line and where no
+   * ancestor line is drawn.
    */
-  readonly ancestors?: number;
+  readonly ancestors?: Readonly<Partial<Record<Side, number>>>;
 }
 
 /** A child placed in its parent's children band (section 6.4, Children). */
@@ -476,27 +477,32 @@ function linesIn(laid: LaidChildren | undefined): Entry[] {
  * present bands are `laid` (section 6.6, Cross-section lines): of the line's
  * ordinate, the ordinates of the start and the outer edge of its children
  * band and of its conversion maps band, each where present, and, for the
- * root of a member drawing with an ancestor band, the ordinate of its
- * outermost displayed ancestor line, `ancestors` above its line (section
- * 8.3), the smallest and the largest, each ordinate the line's ordinate less
- * or plus a distance summed whole first; null where none of these is
- * present. So the line crosses every ancestor line drawn for the member as
- * it crosses the member's children, and stops at the outermost, short of its
- * marks. Nothing else bounds it: no card margin, no other band.
+ * root of a member drawing with ancestor bands, the ordinate of its
+ * outermost displayed ancestor line on each side holding one, `ancestors`
+ * out from its line (section 8.3), the smallest and the largest, each
+ * ordinate the line's ordinate less or plus a distance summed whole first;
+ * null where none of these is present. So the line crosses every ancestor
+ * line drawn for the member, above it and below it, as it crosses the
+ * member's children, and stops at the outermost on each side, short of
+ * their marks. Nothing else bounds it: no card margin, no other band.
  */
 function crossSectionExtent(
   laid: readonly LaidBand[],
   at: LinePosition,
-  ancestors: number | undefined,
+  ancestors: Readonly<Partial<Record<Side, number>>> | undefined,
 ): CrossSectionExtent {
   const crossed = laid.filter(
     (band) => band.facet === "children" || band.facet === "conversion_maps",
   );
-  if (crossed.length === 0 && ancestors === undefined) return null;
+  const outermost = (["above", "below"] as const).flatMap((side) => {
+    const distance = ancestors?.[side];
+    return distance === undefined ? [] : [at.yAt(side, distance)];
+  });
+  if (crossed.length === 0 && outermost.length === 0) return null;
   const ordinates = [
     at.y,
     ...crossed.flatMap((band) => [at.yAt(band.side, band.start), at.yAt(band.side, band.edge)]),
-    ...(ancestors === undefined ? [] : [at.yAt("above", ancestors)]),
+    ...outermost,
   ];
   return [Math.min(...ordinates), Math.max(...ordinates)];
 }

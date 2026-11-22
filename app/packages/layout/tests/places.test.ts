@@ -65,7 +65,7 @@ describe("default places reproduce the stacked block", () => {
   it("group_child_member: one frame at (8, 8)", () => {
     const drawing = drawWithoutAncestorCards("groups/group_child_member");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    const size = { width: 537.898681640625, height: 174.13671875 };
+    const size = { width: 537.898681640625, height: 177.5390625 };
     expect(itemsOf(drawing)).toEqual([
       {
         kind: "frame",

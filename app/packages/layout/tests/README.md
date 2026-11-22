@@ -802,57 +802,150 @@ band when shown and are hidden by default.
 
 ## Ancestor lines (`ancestors.test.ts`)
 
-`group_child_member`, `group_grandchild` and `group_parents_mixed` are
-checked against section 8.3, every value derived from the member's offsets
-and length: an ancestor line runs on to the left with its own arrowhead,
-marks the member's start and end above itself, faded, labelled on its own
-axis in its unit and number type, under a small grey name; one row per
-ancestor, the parent nearest; the outer chevron's tip counts in the right
-edge; the ancestors' elements come first within each frame (section 8.5).
-Single changes prove the room taken: mark labels in first-fit tiers, a
-row's pitch from its name's size, `q / 2` for a row without marks, eight
+`group_child_member`, `group_grandchild`, `group_parents_mixed` and
+`group_grandchild_parent_on_top` are checked against section 8.3, every
+value derived from the member's offsets and length and the quantities
+below: an ancestor line runs on to the left with its own arrowhead, lies on
+the side of the member opposite to where its own completed band order puts
+its `children` band (the default order puts `children` above the line, so
+every ancestor line of these fixtures but `movement`'s in
+`group_grandchild_parent_on_top` lies below the member), marks the
+member's start and end on its side away from the member, faded, labelled
+on its own axis in its unit and number type, under a small grey name; one
+row per ancestor, the deeper ancestor nearest the member on its side; the
+outer chevron's tip counts in the right edge; the ancestors' elements come
+first within each frame, from `A1` to `Ak` whatever their side (section
+8.5). Single changes prove the room taken: mark labels in first-fit tiers,
+a row's pitch from its name's size, `q / 2` for a row without marks, eight
 stroke widths of `x0` for a line running on to the left, a mark label as a
-centred label, none for a hidden ancestor, and the ancestor band `S` beyond
-the stroke of a wide member's line. The marks `{id: M, part: [start]}` and
-`{id: M, part: [end]}` lie on the ancestor lines alone: the member's own
-start and end are its named timestamps `origin` and `length` (in
-`group_child_member` and `group_grandchild` `timestamp_3` and
+centred label, none for a hidden ancestor, and the ancestor band `S`
+beyond the stroke of a wide member's line. The marks `{id: M, part:
+[start]}` and `{id: M, part: [end]}` lie on the ancestor lines alone: the
+member's own start and end are its named timestamps `origin` and `length`
+(in `group_child_member` and `group_grandchild` `timestamp_3` and
 `timestamp_4`), wedges of its own markers band below its line, which the
 member's own band order moves and which hiding the marks leaves drawn.
 `inside: ancestor` matches the marks, never the member's own wedges.
 
+**The quantities.** The member's card lies at `y = 32.8046875` (the
+frame's top 8, `Q`, the title's `h(11) = 12.8046875` and the gap 4); `P =
+8`, the card spacing `S = 4`, `p0 = max(10 + S, h(11)) = 14`, an ancestor
+row's pitch `q = max(14, h(9) = 10.4765625) = 14` (names of size 9), the
+member's line `w = 3`. A member whose markers band below holds its `origin`
+and `length` in one label tier has `Eb = w / 2 + 13 + 2 + h(9) =
+26.9765625`; with nothing above its line `Ea = 0` and `y_root = max(P + 0,
+P + h(11) / 2) = 14.40234375`, so its line lies at `32.8046875 +
+14.40234375 = 47.20703125`. An ancestor band below starts at `c0 = max(p0
+/ 2, max(Eb, w / 2) + S) = max(7, 30.9765625) = 30.9765625`; a row has the
+inner half `q / 2 = 7` and the outer half `max(7, w / 2 + 13 + 2 + h(9)) =
+26.9765625` with labelled marks, so the nearest ancestor line lies
+`30.9765625 + 7 = 37.9765625` below the member's, each further one
+`26.9765625 + 7 = 33.9765625` beyond, and a band of `k` rows reaches `c0 +
+33.9765625 k`. `Hc = y_root + Eb' + 8` with `Eb'` that reach. On a line at
+`ya` below the member a mark's tip lies at `ya + 1.5`, its base at `ya +
+14.5`, its label's baseline at `ya + 16.5 + a(9) = ya + 24.85400390625`
+(`a(9) = 8.35400390625`); above the member, mirrored, `ya − 1.5`, `ya −
+14.5`, `ya − 16.5 − d(9) = ya − 18.62255859375` (`d(9) =
+2.12255859375`). A name of size 9 has its baseline `(a(9) − d(9)) / 2 =
+3.11572265625` below its row's line. The member's own wedges lie at `y +
+1.5` and `y + 14.5`, their labels at `y + 24.85400390625`. Horizontal
+values are those of the drawing fixtures, which no side changes.
+
+- `group_child_member` (`second-half` 8 at 8 in `piece` 16): `second-half`
+  at 47.20703125, `piece` at `47.20703125 + 37.9765625 = 85.18359375`, its
+  marks at 86.68359375 and 99.68359375, their labels at 110.03759765625,
+  its name at 88.29931640625; the member's own wedges at 48.70703125 and
+  61.70703125, labels 72.06103515625; the card `14.40234375 + 64.953125 + 8
+  = 87.35546875` high.
+- `group_grandchild`: `movement` at 85.18359375 and `score` at
+  `85.18359375 + 33.9765625 = 119.16015625`, marks 120.66015625 and
+  133.66015625 on `score`, labels 144.01416015625, names 88.29931640625 and
+  122.27587890625; the card `14.40234375 + 98.9296875 + 8 = 121.33203125`.
+- `group_parents_mixed`: the cards at 32.8046875, `+ 87.35546875 + 8 =
+  128.16015625` and `+ 87.453125 + 8 = 223.61328125`; `take` has a map
+  above (`Ea = 6.5`, `y_root = 14.5`, its card `14.5 + 64.953125 + 8 =
+  87.453125`), so the lines lie at 47.20703125 / 85.18359375 (`sonata`),
+  142.66015625 / 180.63671875 (`session`) and 238.015625 / 275.9921875
+  (`page`); mark labels at 110.03759765625, 205.49072265625,
+  300.84619140625; ancestor names at 88.29931640625, 183.75244140625,
+  279.10791015625.
+- `group_grandchild_parent_on_top` (`group_grandchild` with `movement`'s
+  band order `[line, children, conversion_maps, markers, regions,
+  flow_control]`, which `theme` follows, its markers band still below):
+  `movement` alone above, its band starting at `max(7, max(0, 1.5) + 4) =
+  7`, its line 14 above the member's and the band `7 + 7 + 26.9765625 =
+  40.9765625` wide, so `y_root = 48.9765625`; `score` alone below at
+  37.9765625. `theme` at 81.78125, `movement` at 67.78125 (marks 66.28125
+  and 53.28125, labels `8 ♩` `16 ♩` 49.15869140625, name 70.89697265625),
+  `score` at 119.7578125 (marks 121.2578125 and 134.2578125, labels `24 ♩`
+  `32 ♩` 144.61181640625, name 122.87353515625); the member's own wedges
+  83.28125 / 96.28125, labels 106.63525390625; the card `48.9765625 +
+  64.953125 + 8 = 121.9296875` high and its record's `contentCount` 4 (row,
+  markers band, two ancestor bands).
+- Single changes to `group_child_member`: its own band order with markers
+  above (`Ea = 26.9765625`, `Eb = 0`): the ancestor band below starts at 7,
+  `second-half` at `32.8046875 + 8 + 26.9765625 = 67.78125`, `piece` at
+  81.78125, the card 83.953125; the member's wedge at 66.28125 / 53.28125,
+  label 49.15869140625. `L = 10`: both pairs of labels take two tiers
+  (`Eb = 37.453125`), the band starts at 41.453125, `piece` at 95.66015625,
+  the start label (first fit, tier 1) at 120.51416015625, the end label
+  (tier 2) at 130.99072265625, the card 108.30859375. Ancestor names of
+  size 20: `q = h(20) = 23.28125`, `piece` at `47.20703125 + 30.9765625 +
+  11.640625 = 89.82421875`, its name at `+ 6.923828125`, the card
+  91.99609375. Marks hidden: the row `7 + 7`, the card 67.37890625. An
+  ancestor stroke of 5: `x0` 136.61962890625, the marks' reach 27.9765625,
+  tip 87.68359375, base 100.68359375, label 111.03759765625, the card
+  88.35546875. Labels hidden: outer half 14.5, the card 74.87890625. Labels
+  of size 150: outer half `16.5 + h(150) = 191.109375`, start label at
+  `85.18359375 + 16.5 + a(150) = 240.9169921875`, the card 251.48828125.
+  The member's line hidden: both edges 0, the band from `max(7, 0 + 4) =
+  7`, `piece` at `32.8046875 + 14.40234375 + 14 = 61.20703125`, the card
+  63.37890625. A member stroke of 16 under `piece`'s order with children
+  below (so `piece` lies above and the member's markers band, following
+  that order, below): the band starts at `max(7, 8 + 4) = 12`, `piece` 19
+  above the member at 67.78125, the member at 86.78125, the card 95.453125.
+
 **A member's cross-section lines cross its ancestor lines** (section 6.6):
 the extent of the cross-section lines of the root of a member drawing with
-an ancestor band reaches up to its outermost displayed ancestor line, as it
-reaches its children and conversion maps bands, and stops there, short of
-the marks above it. What proves it: the ordinates are read off other
-records of the same drawing (the ancestor line's `y`, the member's line
+ancestor bands reaches its outermost displayed ancestor line on each side,
+as it reaches its children and conversion maps bands, and stops there,
+short of their marks. What proves it: the ordinates are read off other
+records of the same drawing (the ancestor lines' `y`, the member's line
 `y`, the children band's edge), and agree with the values below.
 
 - `group_parent_both` (`middle`, offset 4, length 8 in `piece` of 16) with
   the named timestamp `Here` at 2 on `middle`, `display` `[cross_section]`
   (`timestamp_5`): `middle` has no band a cross-section crosses, so before
   this rule its line had no length and was not drawn; now it runs at `x0 +
-  400 × 2 / 8 = 111.70361328125 + 100 = 211.70361328125` from `piece`'s
-  ancestor line, 67.78125, to `middle`'s line, 81.78125, and `middle`'s
-  marker carries that extent. `recording`, a root member without ancestors
-  or bands, keeps no extent.
+  400 × 2 / 8 = 111.70361328125 + 100 = 211.70361328125` from `middle`'s
+  line, 47.20703125, down to `piece`'s ancestor line, 85.18359375, across
+  `middle`'s own markers band, and `middle`'s marker carries that extent.
+  `recording`, a root member without ancestors or bands, keeps no extent.
 - The same with a child `inner` of `middle` (offset 1, length 2) and a
-  named timestamp at 1 on `inner`, `display` `[cross_section]`: `middle`'s
-  extent runs from the ancestor line, 67.78125, to its line, 99.78125, past
-  the children band above it; `inner`'s stays null, so its timestamp draws
-  no line: a descendant of the member never reaches the member's
-  ancestors.
+  named timestamp at 1 on `inner`, `display` `[cross_section]`: the
+  children band above `middle` (from 7 to 21) puts `middle` at `32.8046875
+  + 8 + 21 = 61.8046875` and `piece` at 99.78125; `middle`'s extent runs
+  from the band's outer edge, 40.8046875, to the ancestor line, 99.78125;
+  `inner`'s stays null, so its timestamp draws no line: a descendant of the
+  member never reaches the member's ancestors.
 - Hiding the ancestor line (`{addresses: [{id: piece}]}`, `display: none`)
   removes the ancestor band, and `middle`'s extent is null again.
+- `group_grandchild_parent_on_top`: `theme`'s extent runs from `movement`'s
+  line above, 67.78125, to `score`'s below, 119.7578125, and the named
+  timestamp `Here` at 2 on `theme` (`timestamp_5`, `display`
+  `[cross_section]`) draws its line at 211.70361328125 between them: the
+  line reaches the ancestor lines on both sides.
 - `data/clair-de-lune-session.yaml` (a session of a score image, its time
   axis, a six-measure excerpt drawn on it, a recording and the score's
-  encoding; the grouped child `cgt_3` "mm. 1-6" below `cgt_2` below
-  `cgt_1`, both its ancestors displayed): `cgt_3`'s extent runs from
-  `cgt_1`'s ancestor line, 104.68359375, to its own line, 156.16015625,
-  crossing `cgt_2`'s at 138.66015625 (it was `{149.66015625, 156.16015625}`,
-  its maps band alone); the root member `dpt_1` keeps `{40.8046875,
-  47.3046875}`, its maps band.
+  encoding; the grouped child `cgt_3` "mm. 1-6" in `cgt_2` in `cgt_1`, both
+  its ancestors displayed, every order the default): `cgt_3`'s card lies at
+  69.70703125 (below `dpt_1`'s, `32.8046875 + 28.90234375 + 8`), its map
+  band above (`y_root = 14.5`), so its line lies at 84.20703125; it has no
+  markers band, so its ancestor band starts at `max(7, 1.5 + 4) = 7`:
+  `cgt_2` at 98.20703125, `cgt_1` at `+ 33.9765625 = 132.18359375`.
+  `cgt_3`'s extent runs from its maps band's outer edge, 77.70703125, to
+  `cgt_1`'s line, crossing `cgt_2`'s; the root member `dpt_1` keeps
+  `{40.8046875, 47.3046875}`, its maps band.
 
 ## Ancestor cards (`ancestor-cards.test.ts`)
 
@@ -877,7 +970,8 @@ coordinate label at the root's end).
    member (section 8.8, Which): two in `bundle_shared_parent` (`score`
    behind both frames), three in `group_parents_mixed` (`sonata`,
    `session`, `page`), one in `bundle_mixed`, `group_child_member`,
-   `group_child_member_stamps`, `group_grandchild`, `group_parent_both`,
+   `group_child_member_stamps`, `group_grandchild`,
+   `group_grandchild_parent_on_top`, `group_parent_both`,
    `group_parent_exact` and `group_parent_right`, none in any other. With
    `HIDDEN_ANCESTOR_CARDS` no element is an `ancestor_card`, no axis
    carries `ancestor` and no record carries
@@ -895,19 +989,22 @@ coordinate label at the root's end).
    `52.33544921875 + 800 + 9 + 8 = 869.33544921875`. The block grows left
    to `Xl = −140.6318359375 − P`: origin `(148.6318359375, 0)`, `W =
    P + (−140.6318359375 + 869.33544921875 + 2) + 148.6318359375 =
-   887.33544921875`, `H` unchanged (`190.13671875`): the card's bottom lies
+   887.33544921875`, `H` unchanged (`193.5390625`): the card's bottom lies
    above the frame's. Vertically the card is `piece` as the one ungrouped
    root of a block holding nothing else: its height and the distance of
    its line below its top are those of `piece` in the drawing of the same
    manifest after core's `remove` of `group_1` and `recording` at `L =
    800` (63.37890625 and 48.9765625); its line lies on `piece`'s ancestor
-   row in `middle`'s card, `y = 67.78125` in the block, so its top is
-   `67.78125 − 48.9765625 = 18.8046875`. In the block: the card's record
-   at `x = 8`, `y = 18.8046875`, `869.33544921875 × 63.37890625`, key
+   row in `middle`'s card, below `middle`'s line (section 8.3; the
+   quantities of "Ancestor lines"), `y = 85.18359375` in the block, so its
+   top is `85.18359375 − 48.9765625 = 36.20703125`. In the block: the
+   card's record at `x = 8`, `y = 36.20703125`, `869.33544921875 ×
+   63.37890625`, key
    `{item: group_1, member: piece}`, address `{id: piece, part: [card]}`,
    holder null, `ancestor {group: group_1, member: middle}`, no `item` or
    `card` member; `piece`'s line from `−88.29638671875 + 148.6318359375 =
-   60.33544921875` to `860.33544921875` at `67.78125`; `middle`'s row from
+   60.33544921875` to `860.33544921875` at `85.18359375`; `middle`'s row
+   (at `36.20703125 + 15 = 51.20703125`) from
    `111.70361328125 + 148.6318359375 = 260.33544921875` to
    `660.33544921875`. Its whole drawing is the reference block's (every
    element of `piece`'s card there, its rectangle a `card`, here an
@@ -927,7 +1024,7 @@ coordinate label at the root's end).
    `8 + 79.70361328125 − 64.08740234375 = 23.6162109375`, width
    `64.08740234375 + 800 + 9 + 8 = 881.08740234375`; the origin stays `(0,
    0)`, `W = 23.6162109375 + 881.08740234375 + 2 + 8 = 914.70361328125`,
-   `H = 190.13671875`; top `18.8046875` as in case 2 (same rows).
+   `H = 193.5390625`; top `36.20703125` as in case 2 (same rows).
 5. **`group_parents_mixed`** (one frame, display order `exposition`,
    `take`, `system`, `audio`): three cards, in that order, behind it.
    `N = w("Exposition", 11) = 57.0302734375`, chevrons: `s0 =
@@ -947,9 +1044,10 @@ coordinate label at the root's end).
    57.01904296875 = 48.01123046875`, width `1243.3523763020833`. The block
    grows left to `session`'s card: origin `(423.5276884191177, 0)`; the
    records at `x` 263.5276884191177, 8, 479.5389188878677 (each left `+ 8 +
-   423.5276884191177`), tops `18.8046875`, `110.7578125`, `206.2109375`
-   (each member's ancestor row, `67.78125`, `159.734375`, `255.1875`, less
-   48.9765625: every root has one child row with two labelled wedges);
+   423.5276884191177`), tops `36.20703125`, `131.66015625`, `227.015625`
+   (each member's ancestor row, `85.18359375`, `180.63671875`,
+   `275.9921875`, less 48.9765625: every root has one child row with two
+   labelled wedges);
    `W = 479.5389188878677 + 1243.3523763020833 + 2 + 8 =
    1732.891295189951`, `H` unchanged.
 6. **One hidden of several.** The same with `session`'s cards hidden by
@@ -966,11 +1064,11 @@ coordinate label at the root's end).
    the card's lines: `piece` and `middle`, each keyed `{item: group_1,
    member: piece}` (the card's key) and carrying `ancestor {group:
    group_1, member: middle}` (its record's). From the card's corner `(8,
-   18.8046875)`, `s0' = 52.33544921875` and `LA = 800` (point 2):
-   `piece`'s axis at `18.8046875 + 48.9765625 = 67.78125` from `8 +
+   36.20703125)`, `s0' = 52.33544921875` and `LA = 800` (point 2):
+   `piece`'s axis at `36.20703125 + 48.9765625 = 85.18359375` from `8 +
    52.33544921875 = 60.33544921875` to `+ 800 = 860.33544921875`, quarters,
    fraction, from 0 to 16, drawn end 16, the ends of its line element;
-   `middle`'s at `18.8046875 + 15 = 33.8046875` (the card's padding and the
+   `middle`'s at `36.20703125 + 15 = 51.20703125` (the card's padding and the
    row's half pitch 7) from `60.33544921875 + 800 × 4 / 16 =
    260.33544921875` to `+ 400 = 660.33544921875`, from 0 to 8, drawn end 8,
    its line element starting there (a child's line stops short of its end
@@ -983,10 +1081,11 @@ coordinate label at the root's end).
    `group_child_member_stamps` ("Bar 2" at 2 on `middle`, its cross-section
    line alone) made a groupstamp, `groupstampElements` draws, with the
    hiding layer, two pieces at `x0 + 100 = 211.70361328125`: from the top
-   of `middle`'s card, 32.8046875, to `piece`'s ancestor line, 67.78125,
-   and from `middle`'s line, 81.78125, to the bottom of `recording`'s card,
-   `124.7578125 + 49.37890625 = 174.13671875` (TimeToShare's drawings
-   README); with the card shown, the same two pieces `148.6318359375`
+   of `middle`'s card, 32.8046875, to `middle`'s line, 47.20703125, and
+   from `piece`'s ancestor line below it, 85.18359375, to the bottom of
+   `recording`'s card, `128.16015625 + 49.37890625 = 177.5390625`
+   (TimeToShare's drawings README); with the card shown, the same two
+   pieces `148.6318359375`
    further right, and none across the ancestor card.
 10. **No segment for an alignment anchor.** An ancestor card gives no
    cross-section segment to an alignment anchor (sections 8.7, 8.8 point
@@ -994,7 +1093,7 @@ coordinate label at the root's end).
    In `group_child_member_stamps` drawn with the defaults,
    `timestampSegments(axes, timestamp_2)` is `middle`'s segment in its own
    card alone, `{x: 311.70361328125 + 148.6318359375 = 460.33544921875,
-   y1: 67.78125, y2: 81.78125}` (TimeToShare's drawings README, moved by
+   y1: 47.20703125, y2: 85.18359375}` (TimeToShare's drawings README, moved by
    the origin), though `middle`'s row in `piece`'s card holds `timestamp_2`
    at 460.33544921875 too; the drawn `anchor_1` is the hiding layer's moved
    by the origin. With `timestamp_2` moved onto the root `piece` at quarter
@@ -1033,40 +1132,46 @@ coordinate label at the root's end).
    holding nothing else (the fixture after core's `remove` of both groups,
    both takes and `page`, at `L = LA`): `154.8828125` high, its line
    `98.4296875` below its top; its line lies on `score`'s ancestor row in
-   its member's card, at `88.5859375` (`exposition`'s card) and
-   `305.7734375` (`recapitulation`'s), the ordinates of the drawing with the
-   hiding layer, whose place origin is the block's corner; so the tops lie
-   at `−9.84375` and `207.34375`. The block grows left to the second card,
-   `Xl = −698.6901041666667`, and up to the first, `Yt = −9.84375 − Pt =
-   −38.6484375` with `Pt = 28.8046875`, the first frame's top in the
-   drawing with the hiding layer: origin `(698.6901041666667,
-   38.6484375)`, `W = (8 + (−24.0234375 + 1243.3592936197915 + 2)) −
-   Xl = 1928.0259602864583`, `H = 537.4609375 + 38.6484375 = 576.109375`
-   (the hiding layer's height, its bottom unchanged). Records: two cards,
-   both addressed `{id: score, part: [card]}`, keyed `{item: group_1,
-   member: score}` at `(674.6666666666667, 28.8046875)` and `{item:
-   group_2, member: score}` at `(8, 245.9921875)`, carrying `ancestor
-   {group: group_1, member: exposition}` and `{group: group_2, member:
+   its member's card, below the member's line, at `123.5625`
+   (`exposition`'s card) and `369.7265625` (`recapitulation`'s), the
+   ordinates of the drawing with the hiding layer, whose place origin is
+   the block's corner: each member card's top (53.609375 and 270.796875)
+   plus `y_root = 8 + Ea` (`Ea` the edge of its children and maps bands
+   above, 23.9765625 and 52.953125) plus 37.9765625 (its markers band below
+   holds one label tier; each card keeps its height, 104.9296875 and
+   133.90625, the band having moved from one side to the other); so the
+   tops lie at `25.1328125` and `271.296875`. The block grows left to the
+   second card, `Xl = −698.6901041666667`, and up to the first, `Yt =
+   25.1328125 − Pt = −3.671875` with `Pt = 28.8046875`, the first frame's
+   top in the drawing with the hiding layer: origin `(698.6901041666667,
+   3.671875)`, `W = (8 + (−24.0234375 + 1243.3592936197915 + 2)) − Xl =
+   1928.0259602864583`, `H = 537.4609375 + 3.671875 = 541.1328125` (the
+   hiding layer's height, its bottom unchanged). Records: two cards, both
+   addressed `{id: score, part: [card]}`, keyed `{item: group_1, member:
+   score}` at `(674.6666666666667, 28.8046875)` and `{item: group_2,
+   member: score}` at `(8, 274.96875)`, carrying `ancestor {group:
+   group_1, member: exposition}` and `{group: group_2, member:
    recapitulation}`. `lineAxes` lists `score`'s line in each, keyed by its
    card: at `127.234375` from `834.0802408854167` to
-   `1900.7469075520833` and at `344.421875` from `167.41357421875` to
+   `1900.7469075520833` and at `373.3984375` from `167.41357421875` to
    `1234.0802408854167` (`8 + xs` and `8 + xe` plus the origin), drawn
    length 32 both.
 12. **The hover readers answer for a card's line.** `crossSection`,
    `crossedLines` and `wedgeAt` read an ancestor card's lines by their
    keys as any card's. In `group_parent_both` (point 2), at `x =
    460.33544921875`: `piece`'s line in the card crosses its children band,
-   from the row of `middle` less its half pitch, `33.8046875 − 7 =
-   26.8046875` (the card's top plus `P`), to its line, `67.78125`, in the
+   from the row of `middle` less its half pitch, `51.20703125 − 7 =
+   44.20703125` (the card's top plus `P`), to its line, `85.18359375`, in the
    style of the defaults' unnamed cross-section line (stroke `#1BA1E2`,
    width 1, dashes `3 3`); `crossedLines` is `piece`'s key then `middle`'s
    in the card; the wedge in `piece`'s markers band below the line, from
-   `c = 0`, its tip at `67.78125 + 1.5 = 69.28125`, its base corners at `x
-   ∓ 3` and `69.28125 + 13 = 82.28125`, styled as `middle`'s wedge in its
+   `c = 0`, its tip at `85.18359375 + 1.5 = 86.68359375`, its base corners
+   at `x ∓ 3` and `86.68359375 + 13 = 99.68359375`, styled as `middle`'s
+   wedge in its
    member card (the same defaults and domain, turned 0). `middle`'s line in
    the card has no band its cross-section line could cross: `crossSection`
    is null there, `crossedLines` is its key alone, and `wedgeAt` has its
-   tip at `33.8046875 + 1.5 = 35.3046875` and its base at `48.3046875`.
+   tip at `51.20703125 + 1.5 = 52.70703125` and its base at `65.70703125`.
 
 ## Named timestamps (`timestamps.test.ts`)
 
@@ -1271,9 +1376,10 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   21 = 16` to 37; the root's (children band from 7 to 35) from 16 to 51,
   its wedge `[[200, 52.5], [197, 65.5], [203, 65.5]]` below, uncrossed;
 - an ancestor line, which draws no named timestamp, has no cross-section
-  line but the mark its marks are drawn as (section 8.3): always above the
-  line, its tip on the line's edge, `y − w / 2`, `w` the drawn ancestor
-  line's stroke width, its base 13 further up, turned by its style's
+  line but the mark its marks are drawn as (section 8.3): on the line's
+  side away from the member, its tip on the line's edge, `y ± w / 2`, `w`
+  the drawn ancestor line's stroke width, its base 13 further out, turned
+  by its style's
   `rotation`, in the style the cascade gives a wedge held by the ancestor
   line that no named timestamp holds (a wedge of the ancestor's timeline,
   its parent the ancestor line, no rule naming `addresses` applied). With
@@ -1289,16 +1395,19 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   off a groupstamp. These are the values of the drawn marks of the member's
   start and end on the same line, which the same rules style, so the hover
   mark is faded as they are. In `group_child_member` `piece`'s ancestor line
-  in `second-half`'s card lies at 67.78125 (`w` 3, the defaults' ancestor
-  stroke width), so at 100 the mark is `[[100, 66.28125], [97, 53.28125],
-  [103, 53.28125]]` (`67.78125 − 1.5`, then 13 up, `∓ 3` across). A rule
+  in `second-half`'s card lies below the member at 85.18359375 (`w` 3, the
+  defaults' ancestor stroke width; the quantities of "Ancestor lines"; the
+  ancestor card, shown by the defaults, moves no origin), so at 100 the mark is `[[100,
+  86.68359375], [97, 99.68359375], [103, 99.68359375]]` (`85.18359375 +
+  1.5`, then 13 down, `∓ 3` across). A rule
   hiding the drawn mark of `second-half`'s start and one recolouring and
   turning the mark of its end (each naming its address) change nothing of
   it: the hover mark depends on no styled element. A rule on every wedge
   (`{element: wedge}` with fill `#123456`, naming no address) recolours it,
   as it does every unnamed wedge. In `group_parent_both` `piece`'s
-  ancestor line in `middle`'s card lies at 67.78125 alike, so at 200 the
-  mark is `[[200, 66.28125], [197, 53.28125], [203, 53.28125]]` and its
+  ancestor line in `middle`'s card lies at 85.18359375 alike, so at 200 the
+  mark is `[[200, 86.68359375], [197, 99.68359375], [203, 99.68359375]]`
+  and its
   style is the whole style above, equal to the drawn mark `{id: middle,
   part: [start]}`'s; a rule recolouring that mark (`addresses: [{id:
   middle, part: [start]}]`, fill `#FF0000`) recolours the drawn mark and
@@ -1307,7 +1416,7 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   opacity 1) gives it fill `#123456` and opacity 1 and leaves the unnamed
   wedge of `middle`'s own line as it was (fill `#000000`, opacity 1); with
   `group_1` at scale 2 the mark is scaled with its line: at `x` its tip
-  lies at `y − 3` and its corners at `x ∓ 6` and `y − 3 − 26`, `y` the
+  lies at `y + 3` and its corners at `x ∓ 6` and `y + 3 + 26`, `y` the
   ancestor line's ordinate in that drawing (its axis record), its style's
   lengths doubled as every scaled style's (stroke width 6, font size 18). What would be wrong: none (the hover on an ancestor line
   then shows no mark), the mark of the member's start moved there (a rule
@@ -1593,7 +1702,7 @@ holding it ungrouped, one of one group as a block holding its frame; a
 manifest with neither a `name` nor an `id` has no title. Positions are
 checked against the quantities below, derived from sections 8.1, 8.2 and
 8.4, the advance widths and the member heights `Hm` of section 6.5 (with
-the ancestor band of section 8.3); the drawing fixtures pin the same boxes
+the ancestor bands of section 8.3); the drawing fixtures pin the same boxes
 byte for byte. Order is checked against sections 7.2 and 8.5, and
 `Drawing.boxes` holds one `DrawnBox` per container, the block first, then in
 drawing order each frame, card and band, each naming its holder. A record's
@@ -1619,12 +1728,15 @@ manifest's title `F = 8`, the frame's spacing `Sf = 8`, the title gap 4,
 fixtures has its named timestamps `origin` and `length` (each a wedge and a
 coordinate label) unless its length is unknown (`origin` alone). A member
 drawing with their two wedges below in one label tier is `Hm = 14.40234375 + 26.9765625 + 8 =
-49.37890625` high with no ancestor, `48.9765625 + 26.9765625 + 8 =
-83.953125` with one ancestor row and `82.953125 + 26.9765625 + 8 =
-117.9296875` with two. One map above gives `y_root = 14.5`, `Hm =
-49.4765625`; under one ancestor row an ancestor band starts at `max(7, 6.5
-+ 4) = 10.5`, so `y_root = 52.4765625`, `Hm = 87.453125`, the ancestor's
-line 17.5 above the member's. Maps end at their line's `Xe` and change no
+49.37890625` high with no ancestor. Its ancestor lines, in the default band
+orders, lie below it, beyond those wedges (section 8.3): the band starts at
+`max(7, 26.9765625 + 4) = 30.9765625` and each row with labelled marks adds
+`7 + 26.9765625`, so `Hm = 14.40234375 + 64.953125 + 8 = 87.35546875` with
+one ancestor row and `14.40234375 + 98.9296875 + 8 = 121.33203125` with two,
+the member's line at `y_root = 14.40234375` and the nearest ancestor's
+37.9765625 below it. One map above gives `y_root = 14.5`, `Hm =
+49.4765625`, and with one ancestor row below `Hm = 14.5 + 64.953125 + 8 =
+87.453125`. Maps end at their line's `Xe` and change no
 horizontal quantity.
 
 Per case, `xn`; `x0`; `R`, with what sets it; the member drawings'
@@ -1636,14 +1748,14 @@ heights; and `W`, `H`, with what sets them:
 - `group_child_member`: 24; `24 + 64.61962890625 + 8 + 24 =
   120.61962890625`; 529.898681640625 (`second-half`'s end
   mark `16 ♩` on `piece`'s line, 18.55810546875 wide; `recording`'s end
-  label `10″` reaches only 528.026611328125); 83.953125, 49.37890625;
-  553.898681640625, 190.13671875, set by the frame.
+  label `10″` reaches only 528.026611328125); 87.35546875, 49.37890625;
+  553.898681640625, 193.5390625, set by the frame.
 - `group_parents_mixed`: 24; `24 + 57.0302734375 + 8 + 24 =
-  113.0302734375`; 546.947265625 (`1 323 000 smp`); 83.953125, 87.453125,
-  83.953125, 49.4765625; 570.947265625, 377.640625.
+  113.0302734375`; 546.947265625 (`1 323 000 smp`); 87.35546875, 87.453125,
+  87.35546875, 49.4765625; 570.947265625, 384.4453125.
 - `group_grandchild`: 24; `24 + 55.70361328125 + 8 + 24 =
   111.70361328125`; 535.70361328125 (`score`'s outer chevron, `x0 + L +
-  8w`); 117.9296875, 49.37890625; 559.70361328125, 224.11328125.
+  8w`); 121.33203125, 49.37890625; 559.70361328125, 227.515625.
 
 A frame at `(P, P)` spans `0` to `Ri + K + Q` and `Q + h(11) + 4 + Σ Hm +
 (m − 1) Sf + Q` high for `m` cards; its title lies at `x = P + Q = 16`,
@@ -1776,7 +1888,7 @@ the order of the sums apart.
   458.5771484375, 49.37890625}` (as `{x, y, length, scale, spacing, width,
   height}`, the spacing a card's default 4) stated `{}`; the origin `(+0,
   +0)`. `group_child_member`'s frame `{8, 8, 400, 1, 8, 537.898681640625,
-  174.13671875}` (a frame's default spacing 8), `[1, 23)`. Stating
+  177.5390625}` (a frame's default spacing 8), `[1, 23)`. Stating
   the defaults (`{bare: {x: 8, y: 8, length: 400}}`) draws the same; only
   `stated` changes.
 - **The default `y`** in `bundle_ungrouped` (heights `pages` 63.453125,
@@ -1845,11 +1957,11 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   dash `4.5 4.5`, the name size 16.5.
 - **A member's card size** (`group_child_member`, `{group_1: {cards:
   {recording: {width: 650, height: 120}}}}`): `recording`'s card `{16,
-  124.7578125, 650, 120}`, the
-  frame `{8, 8, 666, 244.7578125}`, `W = 682`, `H = 260.7578125`; the
+  128.16015625, 650, 120}`, the
+  frame `{8, 8, 666, 248.16015625}`, `W = 682`, `H = 264.16015625`; the
   cards' records, keyed `{item: group_1, member: second-half}` and `{item:
   group_1, member: recording}`, held by `{item: group_1}`: `second-half`
-  `{521.898681640625, 83.953125}` `[3, 16)`, `recording` `{650, 120}` stated
+  `{521.898681640625, 87.35546875}` `[3, 16)`, `recording` `{650, 120}` stated
   `{width: 650, height: 120}` `[16, 23)`. A member's entry (under its
   group's entry's `cards`, by member ID) is read for `width`, `height` and
   `spacing` alone: one also stating `x`, `y`, `length` and `scale` draws as
@@ -1869,17 +1981,18 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   the flow marker from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
   and `recording` unchanged, the records `spacing` 4, 4 and 8. A frame's
   spacing 16 (`group_child_member`) lies between its cards alone:
-  `recording`'s card at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
-  132.7578125`, the frame `182.13671875` high, `H = 198.13671875`, both
+  `recording`'s card at `8 + (((8 + 12.8046875) + 4) + 87.35546875 + 16) =
+  136.16015625`, the frame `185.5390625` high, `H = 201.5390625`, both
   cards' spacing 4. A member's card spacing 8 (`{group_1: {cards:
-  {second-half: {spacing: 8}}}}`, one ancestor row) starts its ancestor band at `max(18 / 2, 1.5 + 8) = 9.5`, the row's
-  pitch `max(18, h(9)) = 18`, its halves 9 and 26.9765625: `Ea =
-  45.4765625`, `y_root = 53.4765625`, `Hm = 88.453125`, its line at
-  86.28125, `piece` 18.5 above it at 67.78125, `recording`'s card at
-  129.2578125, the frame 178.63671875 high. All three together, with the
-  block's spacing 24 on the one frame, give the cards 88.453125 and
-  49.37890625 at spacings 8 and 4, `recording`'s card at 137.2578125 and the
-  frame 186.63671875 high: no spacing multiplies another.
+  {second-half: {spacing: 8}}}}`, one ancestor row below its line) starts
+  its ancestor band at `max(18 / 2, 26.9765625 + 8) = 34.9765625`, the
+  row's pitch `max(18, h(9)) = 18`, its halves 9 and 26.9765625: `Eb' =
+  70.953125`, `y_root = 14.40234375`, `Hm = 93.35546875`, its line at
+  47.20703125, `piece` 43.9765625 below it at 91.18359375, `recording`'s
+  card at 134.16015625, the frame 183.5390625 high. All three together,
+  with the block's spacing 24 on the one frame, give the cards 93.35546875
+  and 49.37890625 at spacings 8 and 4, `recording`'s card at 142.16015625
+  and the frame 191.5390625 high: no spacing multiplies another.
 
 ## Margins (`margin.test.ts`)
 
@@ -1915,11 +2028,11 @@ is compared.
   12}}}}`): the card and the frame each 24 higher, the frame's title
   unchanged, everything in the card moved by `(0, 12)`.
 - **A member with an ancestor band** (`group_child_member`, `{group_1:
-  {cards: {second-half: {margin: 12}}}}`): `second-half`'s card `83.953125
-  + 24 = 107.953125` high, everything in it, its ancestor line `piece`
+  {cards: {second-half: {margin: 12}}}}`): `second-half`'s card `87.35546875
+  + 24 = 111.35546875` high, everything in it, its ancestor line `piece`
   included, moved by `(0, 12)`; `recording`'s card and everything in it
-  moved by `(0, 24)`, the card from 124.7578125 to 148.7578125; the frame
-  `174.13671875 + 24 = 198.13671875` high.
+  moved by `(0, 24)`, the card from 128.16015625 to 152.16015625; the frame
+  `177.5390625 + 24 = 201.5390625` high.
 - **Flow markers** (`flow_control`, its root `flow:quarters` at `{margin:
   12}`): the root's flow marker runs to `P + V` and `Hc − P − V` (section
   6.4), so it too is moved by `(0, 12)`, both its ends; the card is 24
@@ -1934,7 +2047,9 @@ is compared.
   `contentCount`, the number of its contents (section 1), counted where
   layout lays them out: the block its items (`bare` 1), a frame its cards
   (`g` 1), a card its root's row, its root's present bands and its
-  ancestor band: `bare` 2 (row, markers band); in
+  ancestor bands, one on each side holding an ancestor line (none, one or
+  two; `group_grandchild_parent_on_top`'s `theme` 4, under "Ancestor
+  lines"): `bare` 2 (row, markers band); in
   `group_child_member` `second-half` 3 (row, markers, ancestor band) and
   `recording` 2; in `bundle_mixed` `score` 4 (row, markers, conversion
   maps, flow control), `performance` and `page` 3 (row, markers,
@@ -1989,10 +2104,11 @@ line in the card `{item: g1, member: clt_1}` and the root of the card
 under one address `{id: clt_2, facet: conversion_maps}`, at `line`
 61.8046875 held by `{item: g1, member: clt_1}` (`x` `8 + (73.91552734375 +
 400 × u(1/3)) = 93.02663845486111`, width 133.33333333333331) and at
-226.5390625 held by `{item: g2, member: clt_2}` (`x` `x0` 81.91552734375,
+188.5625 held by `{item: g2, member: clt_2}` (`x` `x0` 81.91552734375,
 width 400: as the root of its member drawing `clt_2` names no timestamp,
-so its extent is its line's, `[0, 400]`, and it has no markers band), both
-6.5 high.
+so its extent is its line's, `[0, 400]`, and it has no markers band; its
+card lies at 174.0625, its map band above, `y_root = 14.5`, its ancestor
+`clt_1` below it), both 6.5 high.
 
 **A timeline in several groups** (sections 2.2, 8.1, 8.6).
 `bundles/bundle_shared_member` (`g1` {`t`, `u`}, `g2` {`t`, `v`}) records

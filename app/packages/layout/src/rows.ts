@@ -371,7 +371,8 @@ export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): P
     for (const child of drawing.children?.children ?? []) {
       const y = side === "above" ? at.y - child.distance : at.y + child.distance;
       const size = known(rows, child.drawing.prepared.line).size;
-      // The ancestor lines are the root's alone: a child's cross-section lines never reach them.
+      // The ancestor lines on either side are the root's alone: a child's cross-section lines
+      // never reach them.
       visit(child.drawing, { x0: at.x0, y, size, top: at.top, Hc: at.Hc });
     }
   };

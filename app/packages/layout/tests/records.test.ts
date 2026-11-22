@@ -304,7 +304,7 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
       [{ id: "clt_1", facet: "markers" }, 75.8046875, G1],
       [{ id: "clt_1", facet: "regions" }, 75.8046875, G1],
       [{ id: "clt_2", facet: "conversion_maps" }, 61.8046875, G1],
-      [{ id: "clt_2", facet: "conversion_maps" }, 226.5390625, G2],
+      [{ id: "clt_2", facet: "conversion_maps" }, 188.5625, G2],
     ]);
   });
 
@@ -324,8 +324,8 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
         { id: "clt_2", facet: "conversion_maps" },
         1,
         1,
-        226.5390625,
-        { x: 81.91552734375, y: 220.0390625, width: 400, height: 6.5 },
+        188.5625,
+        { x: 81.91552734375, y: 182.0625, width: 400, height: 6.5 },
         G2,
       ),
     ]);

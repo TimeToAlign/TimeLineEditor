@@ -51,6 +51,7 @@ const ANCESTOR_CARDS: Readonly<Record<string, number>> = {
   "groups/group_child_member": 1,
   "groups/group_child_member_stamps": 1,
   "groups/group_grandchild": 1,
+  "groups/group_grandchild_parent_on_top": 1,
   "groups/group_parent_both": 1,
   "groups/group_parent_exact": 1,
   "groups/group_parent_right": 1,
@@ -116,14 +117,14 @@ describe("the ancestor card of group_parent_both", () => {
 
   it("lies behind the frame at the proportions of piece's axis, on piece's ancestor row", () => {
     expect(drawing.origin).toEqual({ x: 148.6318359375, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([887.33544921875, 190.13671875]);
+    expect([drawing.width, drawing.height]).toEqual([887.33544921875, 193.5390625]);
     expect(card).toEqual({
       kind: "card",
       key: { item: "group_1", member: "piece" },
       address: { id: "piece", part: ["card"] },
       holder: null,
       x: 8,
-      y: 18.8046875,
+      y: 36.20703125,
       width: 869.33544921875,
       height: 63.37890625,
       range: { start: 1, end: 10 },
@@ -134,13 +135,13 @@ describe("the ancestor card of group_parent_both", () => {
     const own = drawnBy(drawing, card);
     expect(own[0]?.type).toBe("ancestor_card");
     expect(span(lineOf(own, "timeline", at("piece")))).toEqual([
-      67.78125, 60.33544921875, 860.33544921875,
+      85.18359375, 60.33544921875, 860.33544921875,
     ]);
     expect(span(lineOf(own, "child", at("middle")))).toEqual([
-      33.8046875, 260.33544921875, 660.33544921875,
+      51.20703125, 260.33544921875, 660.33544921875,
     ]);
-    // Its line continues piece's ancestor line in middle's card.
-    expect(span(lineOf(drawing.elements, "ancestor", at("piece")))[0]).toBe(67.78125);
+    // Its line continues piece's ancestor line in middle's card, below middle's line.
+    expect(span(lineOf(drawing.elements, "ancestor", at("piece")))[0]).toBe(85.18359375);
   });
 
   it("is piece drawn alone as an ungrouped root, moved", () => {
@@ -204,9 +205,9 @@ describe("the ancestor card of group_parent_right", () => {
     const drawing = shown("group_parent_right");
     const card = cardOf(drawing, "piece");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([914.70361328125, 190.13671875]);
+    expect([drawing.width, drawing.height]).toEqual([914.70361328125, 193.5390625]);
     expect([card.x, card.y, card.width, card.height]).toEqual([
-      23.6162109375, 18.8046875, 881.08740234375, 63.37890625,
+      23.6162109375, 36.20703125, 881.08740234375, 63.37890625,
     ]);
     expect(card.ancestor).toEqual({ group: "group_1", member: "first-half" });
     expect(span(lineOf(drawnBy(drawing, card), "timeline", at("piece")))[1]).toBe(
@@ -220,7 +221,7 @@ describe("the ancestor cards of group_parents_mixed", () => {
 
   it("lie behind the one frame, one per root, at their own axes' proportions", () => {
     expect(drawing.origin).toEqual({ x: 423.5276884191177, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([1732.891295189951, 377.640625]);
+    expect([drawing.width, drawing.height]).toEqual([1732.891295189951, 384.4453125]);
     expect(
       ancestorsOf(drawing).map((box) => [
         box.address.id,
@@ -231,9 +232,9 @@ describe("the ancestor cards of group_parents_mixed", () => {
         box.height,
       ]),
     ).toEqual([
-      ["sonata", "exposition", 263.5276884191177, 18.8046875, 690.309326171875, 63.37890625],
-      ["session", "take", 8, 110.7578125, 1486.7344324448532, 63.37890625],
-      ["page", "system", 479.5389188878677, 206.2109375, 1243.3523763020833, 63.37890625],
+      ["sonata", "exposition", 263.5276884191177, 36.20703125, 690.309326171875, 63.37890625],
+      ["session", "take", 8, 131.66015625, 1486.7344324448532, 63.37890625],
+      ["page", "system", 479.5389188878677, 227.015625, 1243.3523763020833, 63.37890625],
     ]);
   });
 
@@ -324,17 +325,17 @@ describe("the axes of the ancestor card of group_parent_both", () => {
   });
 
   it("lie on the card's lines, at their timelines' own coordinates", () => {
-    // The card's corner (8, 18.8046875), its start s0' = 52.33544921875 and LA = 800 (README).
+    // The card's corner (8, 36.20703125), its start s0' = 52.33544921875 and LA = 800 (README).
     const piece = axisOf("piece");
     expect([piece.line, piece.xStart, piece.xEnd]).toEqual([
-      18.8046875 + 48.9765625,
+      36.20703125 + 48.9765625,
       8 + 52.33544921875,
       8 + 52.33544921875 + 800,
     ]);
     expect(exact(piece)).toEqual(["quarters", "fraction", "0", "16", "16"]);
     const middle = axisOf("middle");
     expect([middle.line, middle.xStart, middle.xEnd]).toEqual([
-      18.8046875 + 15,
+      36.20703125 + 15,
       8 + 52.33544921875 + 200,
       8 + 52.33544921875 + 600,
     ]);
@@ -365,8 +366,8 @@ describe("the axes of the ancestor card of group_parent_both", () => {
         line.ancestor,
       ]),
     ).toEqual([
-      ["piece", key, 67.78125, 60.33544921875, 860.33544921875, ancestor],
-      ["middle", key, 33.8046875, 260.33544921875, 660.33544921875, ancestor],
+      ["piece", key, 85.18359375, 60.33544921875, 860.33544921875, ancestor],
+      ["middle", key, 51.20703125, 260.33544921875, 660.33544921875, ancestor],
     ]);
     expect(lines.map((line) => String(line.drawnLength))).toEqual(["16", "8"]);
   });
@@ -393,14 +394,14 @@ describe("a groupstamp on a child member beside an ancestor card", () => {
     const pieces = (of: Drawing) =>
       groupstampElements(manifest, of.axes, of.boxes).map(({ x, y1, y2 }) => [x, y1, y2]);
     // At `x0 + 100` of `middle`, from the top of `middle`'s card to the bottom of `recording`'s,
-    // less `middle`'s own cross-section line, from `piece`'s ancestor line to `middle`'s.
+    // less `middle`'s own cross-section line, from `middle`'s line to `piece`'s ancestor line.
     expect(pieces(without)).toEqual([
-      [211.70361328125, 32.8046875, 67.78125],
-      [211.70361328125, 81.78125, 174.13671875],
+      [211.70361328125, 32.8046875, 47.20703125],
+      [211.70361328125, 85.18359375, 177.5390625],
     ]);
     expect(pieces(drawing)).toEqual([
-      [211.70361328125 + 148.6318359375, 32.8046875, 67.78125],
-      [211.70361328125 + 148.6318359375, 81.78125, 174.13671875],
+      [211.70361328125 + 148.6318359375, 32.8046875, 47.20703125],
+      [211.70361328125 + 148.6318359375, 85.18359375, 177.5390625],
     ]);
   });
 });
@@ -427,10 +428,10 @@ describe("an ancestor card and the alignment anchors", () => {
     );
     expect(card?.[1].xStart).toBe(260.33544921875);
     expect(timestampSegments(drawing.axes, "timestamp_2")).toEqual([
-      { x: 460.33544921875, y1: 67.78125, y2: 81.78125 },
+      { x: 460.33544921875, y1: 47.20703125, y2: 85.18359375 },
     ]);
     expect(timestampSegments(without.axes, "timestamp_2")).toEqual([
-      { x: 311.70361328125, y1: 67.78125, y2: 81.78125 },
+      { x: 311.70361328125, y1: 47.20703125, y2: 85.18359375 },
     ]);
     expect(anchors(drawing)).toEqual(
       anchors(without).map((item) => placedAt(item, 148.6318359375, 0)),
@@ -476,8 +477,8 @@ describe("the ancestor cards of bundle_shared_parent", () => {
   ];
 
   it("lie behind both frames, each at its own frame's proportions", () => {
-    expect(drawing.origin).toEqual({ x: 698.6901041666667, y: 38.6484375 });
-    expect([drawing.width, drawing.height]).toEqual([1928.0259602864583, 576.109375]);
+    expect(drawing.origin).toEqual({ x: 698.6901041666667, y: 3.671875 });
+    expect([drawing.width, drawing.height]).toEqual([1928.0259602864583, 541.1328125]);
     expect(
       ancestorsOf(drawing).map((box) => [
         box.key,
@@ -506,7 +507,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         null,
         { group: "group_2", member: "recapitulation" },
         8,
-        245.9921875,
+        274.96875,
         1243.3592936197917,
         154.8828125,
       ],
@@ -540,7 +541,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       without.elements
         .filter((item) => item.type === "ancestor" && sameAddress(item.address, at("score")))
         .map((item) => span(item)[0]),
-    ).toEqual([88.5859375, 305.7734375]);
+    ).toEqual([123.5625, 369.7265625]);
     expect(boxesOf(without, "frame")[0]?.y).toBe(28.8046875);
     expect(without.height).toBe(537.4609375);
   });
@@ -569,7 +570,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       ],
       [
         keys[1],
-        344.421875,
+        373.3984375,
         167.41357421875,
         1234.0802408854167,
         "32",
@@ -598,8 +599,8 @@ describe("the hover readers on the lines of the ancestor card of group_parent_bo
     const line = crossSection(drawing, piece, x);
     expect(line && { x: line.x, y1: line.y1, y2: line.y2 }).toEqual({
       x,
-      y1: 26.8046875,
-      y2: 67.78125,
+      y1: 44.20703125,
+      y2: 85.18359375,
     });
     expect([
       line?.style.stroke,
@@ -616,17 +617,17 @@ describe("the hover readers on the lines of the ancestor card of group_parent_bo
     expect(own?.style.rotation).toBe(0);
     expect(wedgeAt(drawing, piece, x)).toEqual({
       points: [
-        [x, 69.28125],
-        [x - 3, 82.28125],
-        [x + 3, 82.28125],
+        [x, 86.68359375],
+        [x - 3, 99.68359375],
+        [x + 3, 99.68359375],
       ],
       style: own?.style,
     });
     expect(wedgeAt(drawing, middle, x)).toEqual({
       points: [
-        [x, 35.3046875],
-        [x - 3, 48.3046875],
-        [x + 3, 48.3046875],
+        [x, 52.70703125],
+        [x - 3, 65.70703125],
+        [x + 3, 65.70703125],
       ],
       style: own?.style,
     });
