@@ -15,6 +15,7 @@ import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
+  namedGroupstamps,
   overlayOf,
   pathOf,
   stampOverlay,
@@ -109,13 +110,14 @@ describe("Show matches with 250,000 claims in view", () => {
     pathOf(drawn);
     /**
      * A hover: the hit, the view's path again (written once per overlay, so
-     * a lookup), the hovered MatchStamp's overlay and path, its flag.
+     * a lookup), the hovered MatchStamp's overlay with what naming would
+     * store as a groupstamp (as the canvas reads it) and its path, its flag.
      */
     const hoverAt = (point: Point) => {
       const hit = matchHitAt(index, shown, drawn.connectors, point, TOLERANCE);
       if (hit === null) throw new Error("the budget's point hovers nothing");
       pathOf(drawn);
-      pathOf(stampOverlay(index, shown, hit.stamp));
+      pathOf(stampOverlay(index, shown, hit.stamp, namedGroupstamps(block.manifest, index)));
       return matchFlag(index, block.manifest, shown, hit.stamp, 3);
     };
     const point = { x: 261.0927734375, y: 100.5859375 };
