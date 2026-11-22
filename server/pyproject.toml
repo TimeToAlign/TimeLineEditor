@@ -57,6 +57,9 @@ path = "hatch_build.py"
 # The release-age policy of the repository: a package version must be at least
 # fourteen days old. Move this date forward when refreshing the lockfile.
 exclude-newer = "2026-09-25T00:00:00Z"
+# jsonschema-rs 0.60.3 (2026-10-27), which timetoshare requires, is past the
+# fourteen days; no other package moves with it.
+exclude-newer-package = { jsonschema-rs = "2026-11-08T00:00:00Z" }
 # timetoalign names TimeToShare's development branch by a git URL. The server
 # imports nothing from timetoshare and does not require it; the override only
 # replaces timetoalign's requirement in the lockfile, and the source below
