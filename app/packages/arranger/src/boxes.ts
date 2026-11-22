@@ -29,7 +29,6 @@ import {
   addressKey,
   assertNever,
   BUNDLE_ADDRESS,
-  groupsHolding,
   idAddress,
   inBlock,
   indexOf as manifestIndex,
@@ -106,10 +105,15 @@ export function isAncestorCard(box: DrawnBox): boolean {
 /**
  * The root whose ancestor cards block `block` shows raised over every
  * frame while `editing`, the innermost open editor, is open: the root of
- * the timeline a timeline editor in this block edits, where that timeline
- * is no group member and lies in no member (core's `groupsHolding` is
- * empty); `null` for any other editor, none, or another block's. The one
- * decision of the raise, which the stacking (`stackingOf`) is read with.
+ * the timeline a timeline editor in this block edits, where no timeline
+ * from the root's child down to the edited one is a group member (the
+ * edited timeline is then drawn in no member card below the root), and
+ * the root is either in no group or itself a member of one while it draws
+ * an ancestor card, a descendant of it being a member: such a root stands
+ * in its own group's frame and lies covered behind the frame holding its
+ * descendant, and its card comes to the front over that frame; `null` for
+ * any other editor, none, or another block's. The one decision of the
+ * raise, which the stacking (`stackingOf`) is read with.
  */
 export function raisedRoot(
   block: Pick<Block, "id" | "manifest">,
@@ -119,12 +123,18 @@ export function raisedRoot(
   const { block: id, element } = addressParts(editing.target);
   const timeline = element?.id;
   if (id !== block.id || timeline === undefined) return null;
-  const { ancestry } = manifestIndex(block.manifest);
-  const root = ancestry.get(timeline)?.[0];
-  if (root === undefined || groupsHolding(block.manifest, timeline, ancestry).length > 0) {
-    return null;
-  }
-  return root;
+  const { manifest } = block;
+  const { ancestry } = manifestIndex(manifest);
+  const lineage = ancestry.get(timeline) ?? [];
+  const root = lineage[0];
+  if (root === undefined) return null;
+  const members = new Set(manifest.groups.flatMap((group) => group.members));
+  if (lineage.slice(1).some((below) => members.has(below))) return null;
+  if (!members.has(root)) return root;
+  const drawsAncestorCard = [...members].some(
+    (member) => member !== root && ancestry.get(member)?.[0] === root,
+  );
+  return drawsAncestorCard ? root : null;
 }
 
 /** Whether a line of a drawing is covered at a point (block-local canvas units): a box stacked above it holds the point. */

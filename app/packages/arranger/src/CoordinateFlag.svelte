@@ -13,7 +13,7 @@ interface Props {
   y: number;
   /** The topmost ordinate of the line, its maps and its cross-section line, in the same pixels. */
   top: number;
-  /** The canvas's width in pixels: a flag that would leave it there opens to the left. */
+  /** The canvas's width in pixels: a flag that would leave it there opens to the left, and stays inside it. */
   width: number;
 }
 
