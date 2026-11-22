@@ -12,9 +12,9 @@ import Flag from "../src/Flag.svelte";
 import { onScreen } from "../src/onScreen.ts";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 
-/** A flag starting at (`left`, `top`), its pole and side as `flagPlace` leaves them for these tests. */
+/** A flag starting at (`left`, `top`), its pole as `flagPlace` leaves it for these tests. */
 function startingAt(left: number, top: number): FlagPlace {
-  return { pole: { x: 100, top: 128, bottom: 200 }, left, top, flipped: false };
+  return { pole: { x: 100, top: 128, bottom: 200 }, left, top };
 }
 
 const SCREEN = { width: 800, height: 600 };
@@ -35,7 +35,6 @@ describe("onScreen", () => {
       pole: { x: 100, top: 128, bottom: 200 },
       left: keptLeft,
       top: keptTop,
-      flipped: false,
     });
   });
 
@@ -98,21 +97,22 @@ describe("the flag component", () => {
     await settle();
     const pole = one('[data-testid="coordinate-pole"]');
     return {
-      flag: [flag.style.left, flag.style.top, flag.dataset.flipped],
+      flag: [flag.style.left, flag.style.top],
       pole: [pole.style.left, pole.style.top, pole.style.height],
     };
   }
 
-  it("is shifted up by exactly what keeps it above the canvas's bottom, its pole kept", async () => {
+  it("keeps its side and is shifted left and up by exactly its overflow, its pole kept", async () => {
+    // Started right of the pole at 700.5: its right edge 880.5 lies 80.5 past 800, its bottom 638 lies 38 below 600.
     expect(await flagOn(600)).toEqual({
-      flag: ["519.5px", "500px", "true"],
+      flag: ["620px", "500px"],
       pole: ["699.5px", "538px", "42px"],
     });
   });
 
-  it("hangs from its pole while the canvas's height is not measured", async () => {
+  it("is shifted left alone while the canvas's height is not measured", async () => {
     expect(await flagOn(0)).toEqual({
-      flag: ["519.5px", "538px", "true"],
+      flag: ["620px", "538px"],
       pole: ["699.5px", "538px", "42px"],
     });
   });

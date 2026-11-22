@@ -13,10 +13,7 @@ interface Props {
   y: number;
   /** The top of what the flag marks, in the same pixels: the pole rises above it. */
   top: number;
-  /**
-   * The canvas's width in pixels: a flag that would leave it there opens to the left, and a
-   * flag still past a border is shifted inside it.
-   */
+  /** The canvas's width in pixels: a flag past a border is shifted inside it. */
   width: number;
   /** The flag's parts, above its footer. */
   children: Snippet;
@@ -30,17 +27,13 @@ let flagHeight = $state(0);
 let height = $state(0);
 
 const place = $derived(
-  onScreen(
-    flagPlace({ x, y, top }, flagWidth, width),
-    { width: flagWidth, height: flagHeight },
-    { width, height },
-  ),
+  onScreen(flagPlace({ x, y, top }), { width: flagWidth, height: flagHeight }, { width, height }),
 );
 </script>
 
 <!--
-  The one flag of the canvas: a pole standing at what it marks, the flag hanging from its top
-  (`flagPlace`), shifted by exactly what keeps it on screen (`onScreen`).
+  The one flag of the canvas: a pole standing at what it marks, the flag hanging from its top on
+  its right (`flagPlace`), shifted by exactly what keeps it on screen (`onScreen`).
 -->
 <div class="tilie-coordinates" data-testid="{kind}-flag" bind:clientHeight={height}>
   <div
@@ -55,7 +48,6 @@ const place = $derived(
     class="tilie-coordinates-flag"
     role="group"
     aria-label={label}
-    data-flipped={place.flipped}
     style:left="{place.left}px"
     style:top="{place.top}px"
     bind:offsetWidth={flagWidth}

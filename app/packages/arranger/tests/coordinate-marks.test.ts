@@ -746,18 +746,18 @@ describe("the flag", () => {
       `${y + 16 - 22}px`,
       "46.5px",
     ]);
-    expect([flag.style.left, flag.style.top, flag.dataset.flipped]).toEqual([
-      `${x + AT_4 + 0.5}px`,
-      `${y + 16 - 22}px`,
-      "false",
-    ]);
+    expect([flag.style.left, flag.style.top]).toEqual([`${x + AT_4 + 0.5}px`, `${y + 16 - 22}px`]);
   });
 
-  it("opens to the left where it would leave the canvas", async () => {
-    const { flag } = await flagAt(400);
-    expect([flag.style.left, flag.dataset.flipped]).toEqual([
-      `${shown().x + AT_4 - 0.5 - 180}px`,
-      "true",
+  it("keeps its side where it would leave the canvas, shifted by exactly the overflow", async () => {
+    const { flag, pole } = await flagAt(400);
+    const { x, y } = shown();
+    // Started right of the pole (the node at 40), the flag would end 84.03662109375 past 400.
+    expect(x + AT_4 + 0.5 + 180).toBe(484.03662109375);
+    expect([flag.style.left, flag.style.top, pole.style.left]).toEqual([
+      `${400 - 180}px`,
+      `${y + 16 - 22}px`,
+      `${x + AT_4 - 0.5}px`,
     ]);
   });
 
