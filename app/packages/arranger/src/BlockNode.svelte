@@ -184,15 +184,13 @@ function isSelected(entry: Entry): boolean {
 }
 
 /**
- * Whether an entry lets the pointer through: a named timestamp's part while
- * "Show coordinates" is on, a MatchStamp's or a match timestamp's while
- * "Show matches" is on.
+ * Whether an entry lets the pointer through: every part of a named
+ * timestamp or MatchStamp while "Show coordinates" is on, so the lines
+ * beneath are read wherever they lie; a MatchStamp's or a match
+ * timestamp's while "Show matches" is on.
  */
 function passes(owner: Owner | null): boolean {
-  return (
-    (owner?.kind === "timestamp" && actions.coordinates()) ||
-    (owner?.match === true && actions.matches())
-  );
+  return (owner !== null && actions.coordinates()) || (owner?.match === true && actions.matches());
 }
 
 /** How this block's named MatchStamps are painted over their style (`namedPaint`), by address key. */

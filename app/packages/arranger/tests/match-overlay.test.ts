@@ -11,6 +11,7 @@
 
 import type { Address, Store, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import type { AnchorElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
 import { mount, unmount } from "svelte";
@@ -22,6 +23,7 @@ import type { Selection } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
+import { G, GROUPSTAMP_FIXTURE } from "./groupTable.ts";
 import { BELIEVED, NAMED, NAMED_IN_D, T } from "./matchTables.ts";
 import { A, B, blockIn, metrics, storeOf, viewOf } from "./support.ts";
 
@@ -59,13 +61,10 @@ const WITH_T_TWICE: readonly MatchOverlayInput[] = [
 ];
 
 const MATCHES = "bundles/bundle_matchstamps";
-const matchView = (twice: boolean): View =>
+const matchView = (twice: boolean, fixture: string): View =>
   twice
-    ? viewOf(
-        { id: A, fixture: MATCHES, x: 40, y: 80 },
-        { id: B, fixture: MATCHES, x: 40, y: 80 + B_BELOW },
-      )
-    : viewOf({ id: A, fixture: MATCHES, x: 40, y: 80 });
+    ? viewOf({ id: A, fixture, x: 40, y: 80 }, { id: B, fixture, x: 40, y: 80 + B_BELOW })
+    : viewOf({ id: A, fixture, x: 40, y: 80 });
 
 let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
@@ -90,8 +89,9 @@ async function show(
   matches: readonly MatchOverlayInput[],
   twice = false,
   matchesStatus?: string,
+  fixture = MATCHES,
 ): Promise<void> {
-  store = storeOf(matchView(twice));
+  store = storeOf(matchView(twice, fixture));
   const instance = mount(Harness, {
     target: document.body,
     props: {
@@ -314,6 +314,50 @@ describe("hovering and pinning", () => {
     expect(path("pinned")?.getAttribute("d")).toBe(STAMP_1);
   });
 
+  it("draws the pinned and the hovered one's groupstamps as naming would store them", async () => {
+    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE);
+    await key("m");
+    const view = store.view;
+    const anchor = drawingOf(blockIn(view, A), view.graphical, metrics).elements.find(
+      (element): element is AnchorElement =>
+        element.type === "alignment_anchor" && element.address.id === "anchor_1",
+    );
+    if (anchor === undefined) throw new Error("no anchor_1");
+    const number = (value: number) => attributeText(value);
+    /** A piece at `x` from `y1` to `y2`, as "The path" writes it. */
+    const piece = (x: string, y1: number, y2: number) => `M${x} ${number(y1)}V${number(y2)}`;
+    const score = (x: string) =>
+      [
+        [61.609375, 82.609375],
+        [53.609375, 61.609375],
+        [82.609375, 174.96484375],
+        [223.76953125, 244.76953125],
+        [215.76953125, 223.76953125],
+        [244.76953125, 337.125],
+      ].map(([y1, y2]) => piece(x, y1 as number, y2 as number));
+    harness.pinMatchStamp({ block: A, matchStamp: 0 });
+    await settle();
+    expect(path("pinned")?.getAttribute("d")).toBe(
+      [
+        ...score("302.2915"),
+        piece("202.2915", 139.98828125, 139.98828125),
+        // `anchor_1` lists `timestamp_2` first; the connector runs from the lower coordinate, c0.
+        `M${number(anchor.x2)} ${number(anchor.y2)}L${number(anchor.x1)} ${number(anchor.y1)}`,
+      ].join(""),
+    );
+    await hoverAt(client(402.29150390625, 82.609375));
+    const hovered = path("hovered")?.getAttribute("d") ?? "";
+    expect(
+      hovered.startsWith(
+        [
+          ...score("402.2915"),
+          piece("302.2915", 302.1484375, 302.1484375),
+          piece("302.2915", 215.76953125, 337.125),
+        ].join(""),
+      ),
+    ).toBe(true);
+  });
+
   it("draws the pinned one's anchors by the user's belief", async () => {
     await show(WITH_BELIEFS);
     await key("m");
@@ -520,6 +564,34 @@ describe("the named MatchStamps", () => {
     ).toEqual(["anchor_1 name", "anchor_1 null", "anchor_2 null", "timestamp_3 name"]);
     expect(passing()).toEqual(matchParts());
     await key("m");
+    expect(passing()).toEqual([]);
+  });
+
+  /** The drawn elements of block A owned by a named timestamp or a named MatchStamp. */
+  function ownedParts(): (string | null)[][] {
+    const { view } = store;
+    const block = blockIn(view, A);
+    const drawing = drawingOf(block, view.graphical, metrics);
+    return descriptorsOf(drawing).flatMap(({ tag, source }) =>
+      ownerOf(block.manifest, source.address) !== null
+        ? [[tag, source.address.id ?? null, source.address.part?.join(" ") ?? null]]
+        : [],
+    );
+  }
+
+  it("let every part through while Show coordinates is on", async () => {
+    await show(WITH_T);
+    await key("c");
+    expect(pressed("coordinates")).toBe("true");
+    const owned = ownedParts();
+    expect(
+      owned
+        .filter(([, id]) => id?.startsWith("anchor_") === true)
+        .map(([, id, part]) => `${id} ${part}`)
+        .sort(),
+    ).toEqual(["anchor_1 name", "anchor_1 null", "anchor_2 null"]);
+    expect(passing()).toEqual(owned);
+    await key("c");
     expect(passing()).toEqual([]);
   });
 

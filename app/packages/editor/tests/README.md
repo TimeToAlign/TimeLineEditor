@@ -860,23 +860,42 @@ ancestor, has no card).
    of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
-10. **"Card behind its groups"** (`inspector-fields.test.ts`). Beside
-    Locked, a checkbox shows and hides the ancestor cards of a root that
-    contains a group member (drawing.md §8.8): offered when every inspected
-    thing is that one root, its card, its ancestor line or a part of
-    either; in `bundle_mixed` `recording` (the root of the member
-    `excerpt`), by `{id: recording}` and by `{id: recording, part:
-    [card]}`; never for `score`'s card, `excerpt`, `group_1`, the block, or
-    `recording` with `score`. Unchecked by default (the defaults hide every
-    ancestor card); a click sends exactly `{type: style, select: {element:
-    ancestor_card, addresses: [{id: recording, part: [card]}]}, set:
-    {display: inline}, blocks: [M]}`, one journal entry, after which the
-    box is checked and the drawing records `recording`'s ancestor card; a
-    second click sends the same with `display: null`, which removes the
-    rule, leaving the manifest's rules as they were. With the workspace's
-    `graphical` showing every ancestor card the box is checked and
-    disabled, titled "Shown by another style rule", and a click sends
-    nothing.
+10. **The ancestor-card button** (`inspector-fields.test.ts`). Beside
+    Locked, one button hides and shows the ancestor cards of a root that
+    contains a group member (drawing.md §8.8), its text naming its action:
+    offered when every inspected thing is that one root, its card, its
+    ancestor line or a part of either; in `bundle_mixed` `recording` (the
+    root of the member `excerpt`), by `{id: recording}` and by `{id:
+    recording, part: [card]}`; never for `score`'s card, `excerpt`,
+    `group_1`, the block, or `recording` with `score`. What it offers is
+    read from the drawing, never from the default layer: each case states
+    its layers, so it holds whatever the defaults say of ancestor cards.
+    The root's own rule is the one of the selector `{element:
+    ancestor_card, addresses: [{id: recording, part: [card]}]}`; a rule of
+    the manifest naming `addresses` outranks every rule of a lower layer
+    and every manifest rule naming none (drawing.md §2.5).
+    - *Drawn, no own rule* (the workspace's `graphical` shows every
+      ancestor card): "Hide card behind its groups", enabled; a click
+      sends exactly `{type: style, select: {element: ancestor_card,
+      addresses: [{id: recording, part: [card]}]}, set: {display: none},
+      blocks: [M]}`, one journal entry, after which the drawing records no
+      ancestor card of `recording`.
+    - *Hidden by its own rule* (that state): "Show card behind its
+      groups", enabled; a click sends the same with `display: null`, which
+      removes the rule, leaving the manifest's rules as they were, and the
+      card is drawn again.
+    - *Hidden by a manifest-wide rule* (the workspace showing every
+      ancestor card, the manifest's rule `{element: ancestor_card}`
+      hiding every one): "Show card behind its groups", enabled; a click
+      sends the own rule with `display: inline`, which outranks the
+      manifest-wide one, and the card is drawn; "Hide" then sends
+      `display: none` into that same own rule, and "Show" `display:
+      inline` again (removing it would leave the card hidden).
+    - *Hidden by a rule the own one cannot outrank* (the manifest's
+      `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
+      within: recording}` hiding it: a deeper `within` ranks higher):
+      "Show card behind its groups", disabled, titled "Hidden by another
+      style rule"; a click sends nothing.
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's

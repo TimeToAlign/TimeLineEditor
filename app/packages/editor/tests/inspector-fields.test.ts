@@ -392,10 +392,8 @@ describe("the Properties panel", () => {
     expect(locked()).toBe(null);
   });
 
-  function ancestorCard(): HTMLInputElement | null {
-    return document.querySelector<HTMLInputElement>(
-      '[data-testid="ancestor-card"] input[type=checkbox]',
-    );
+  function ancestorCard(): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>('button[data-testid="ancestor-card"]');
   }
 
   /** The ancestor cards of `recording` the store's block draws. */
@@ -404,33 +402,71 @@ describe("the Properties panel", () => {
       (box) => box.ancestor !== undefined && box.address.id === "recording",
     ).length;
 
+  /** The own rule's command of `recording`'s ancestor cards setting `display`. */
+  const ownCommand = (display: "none" | "inline" | null) => ({
+    type: "style",
+    select: { element: "ancestor_card", addresses: [{ id: "recording", part: ["card"] }] },
+    set: { display },
+    blocks: [M],
+  });
+
+  /** Dispatch `command`, failing on a refusal. */
+  function dispatched(store: Store, command: Parameters<Store["dispatch"]>[0]): void {
+    const refusal = store.dispatch(command);
+    if (refusal !== null) throw new Error(refusal.message);
+  }
+
+  /** The workspace's layer showing every ancestor card, so no case rests on the defaults. */
+  function showAll(store: Store): void {
+    dispatched(store, {
+      type: "set",
+      changes: [
+        {
+          target: {},
+          values: {
+            graphical: {
+              rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }],
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  /** The button's text, whether it is disabled, and its title. */
+  const button = () => {
+    const found = ancestorCard();
+    return [found?.textContent?.trim(), found?.disabled, found?.title];
+  };
+  const TITLE = "The timeline drawn whole behind the frames of its members' groups";
+
+  /** Click the button and let the panel follow the store. */
+  function click(): void {
+    ancestorCard()?.click();
+    flushSync();
+  }
+
   it.each<[ElementAddress[]]>([[[{ id: "recording" }]], [[{ id: "recording", part: ["card"] }]]])(
-    "shows and hides recording's ancestor cards for %j",
+    "hides recording's drawn ancestor cards by its own rule and shows them again for %j",
     (elements) => {
       const store = storeOf();
+      showAll(store);
       const rules = blockOf(store).manifest.graphical?.rules;
-      show(store, elements);
-      const box = ancestorCard();
-      expect([box?.checked, box?.disabled]).toEqual([false, false]);
-      const before = store.journal.length;
-      const command = {
-        type: "style",
-        select: { element: "ancestor_card", addresses: [{ id: "recording", part: ["card"] }] },
-        set: { display: "inline" },
-        blocks: [M],
-      };
-      box?.click();
-      flushSync();
-      expect(store.journal.length).toBe(before + 1);
-      expect(lastCommand(store)).toEqual(command);
-      expect(ancestorCard()?.checked).toBe(true);
       expect(recordingCards(store)).toBe(1);
-      ancestorCard()?.click();
-      flushSync();
-      expect(lastCommand(store)).toEqual({ ...command, set: { display: null } });
-      expect(ancestorCard()?.checked).toBe(false);
+      show(store, elements);
+      expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
+      const before = store.journal.length;
+      click();
+      expect(store.journal.length).toBe(before + 1);
+      expect(lastCommand(store)).toEqual(ownCommand("none"));
       expect(recordingCards(store)).toBe(0);
+      expect(button()).toEqual(["Show card behind its groups", false, TITLE]);
+      click();
+      expect(store.journal.length).toBe(before + 2);
+      expect(lastCommand(store)).toEqual(ownCommand(null));
+      expect(recordingCards(store)).toBe(1);
       expect(blockOf(store).manifest.graphical?.rules).toEqual(rules);
+      expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
     },
   );
 
@@ -440,26 +476,53 @@ describe("the Properties panel", () => {
     [[{ id: "group_1" }]],
     [[{}]],
     [[{ id: "recording" }, { id: "score" }]],
-  ])("offers no card behind the groups for %j", (elements) => {
+  ])("offers no ancestor-card button for %j", (elements) => {
     show(storeOf(), elements);
     expect(ancestorCard()).toBe(null);
   });
 
-  it("disables the box when another rule shows the card", () => {
+  it("shows a card a manifest-wide rule hides by the own rule, which outranks it", () => {
     const store = storeOf();
-    const shown = { rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }] };
-    const refusal = store.dispatch({
-      type: "set",
-      changes: [{ target: {}, values: { graphical: shown } }],
+    showAll(store);
+    dispatched(store, {
+      type: "style",
+      select: { element: "ancestor_card" },
+      set: { display: "none" },
+      blocks: [M],
     });
-    if (refusal !== null) throw new Error(refusal.message);
+    expect(recordingCards(store)).toBe(0);
     show(store, [{ id: "recording" }]);
-    const box = ancestorCard();
-    expect([box?.checked, box?.disabled]).toEqual([true, true]);
-    expect(box?.closest("label")?.title).toBe("Shown by another style rule");
+    expect(button()).toEqual(["Show card behind its groups", false, TITLE]);
+    click();
+    expect(lastCommand(store)).toEqual(ownCommand("inline"));
+    expect(recordingCards(store)).toBe(1);
+    expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
+    click();
+    expect(lastCommand(store)).toEqual(ownCommand("none"));
+    expect(recordingCards(store)).toBe(0);
+    click();
+    expect(lastCommand(store)).toEqual(ownCommand("inline"));
+    expect(recordingCards(store)).toBe(1);
+  });
+
+  it("disables Show where a rule the own one cannot outrank hides the card", () => {
+    const store = storeOf();
+    showAll(store);
+    dispatched(store, {
+      type: "style",
+      select: {
+        element: "ancestor_card",
+        addresses: [{ id: "recording", part: ["card"] }],
+        within: "recording",
+      },
+      set: { display: "none" },
+      blocks: [M],
+    });
+    expect(recordingCards(store)).toBe(0);
+    show(store, [{ id: "recording" }]);
+    expect(button()).toEqual(["Show card behind its groups", true, "Hidden by another style rule"]);
     const before = store.journal.length;
-    box?.click();
-    flushSync();
+    click();
     expect(store.journal.length).toBe(before);
   });
 

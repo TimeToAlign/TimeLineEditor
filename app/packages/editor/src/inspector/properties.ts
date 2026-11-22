@@ -60,6 +60,7 @@ import {
   isCommandError,
   placeAt,
   placeKeyText,
+  preview,
   resolveAddress,
   WORKSPACE,
   withPlaceAt,
@@ -633,17 +634,17 @@ export function lockOf(subjects: readonly Subject[]): LockShown | null {
   return { checked: !mixed && values.has(true), mixed };
 }
 
-/** What the "Card behind its groups" checkbox shows for the inspected root. */
+/** What the ancestor-card button offers for the inspected root. */
 export interface AncestorCardShown {
-  /** The root whose ancestor cards it shows or hides. */
+  /** The root whose ancestor cards it hides or shows. */
   readonly root: string;
-  /** The drawing shows an ancestor card of the root. */
-  readonly checked: boolean;
+  /** The drawing draws an ancestor card of the root: the button hides it, else shows it. */
+  readonly drawn: boolean;
   /**
-   * The card is shown by a rule other than the root's own (a workspace rule, a broader manifest
-   * rule): the checkbox cannot hide it and is disabled.
+   * The `style` command the button sends; `null` where the card is hidden by a rule the root's
+   * own rule cannot outrank, and the button is disabled.
    */
-  readonly ruled: boolean;
+  readonly command: StyleCommand | null;
 }
 
 /** The selector of the root `root`'s own rule: its ancestor cards (drawing.md section 8.8). */
@@ -651,16 +652,41 @@ function ancestorCardSelector(root: string): Selector {
   return { element: "ancestor_card", addresses: [{ id: root, part: ["card"] }] };
 }
 
+/** The `style` command setting the `display` of the root `root`'s own rule in `block`. */
+function ancestorCardCommand(
+  block: Block,
+  root: string,
+  display: "none" | "inline" | null,
+): StyleCommand {
+  return {
+    type: "style",
+    select: ancestorCardSelector(root),
+    set: { display },
+    blocks: [block.id],
+  };
+}
+
+/** Whether `drawing` draws an ancestor card of the root `root`. */
+function drawsAncestorCard(drawing: Drawing, root: string): boolean {
+  return drawing.boxes.some((box) => box.ancestor !== undefined && box.address.id === root);
+}
+
 /**
- * The "Card behind its groups" checkbox of the inspected subjects, all in
- * `block`, drawn as `drawing`: offered when every subject is one root that
+ * The ancestor-card button of the inspected subjects, all in `block` of
+ * `view`, drawn as `drawing`: offered when every subject is one root that
  * contains a group member (the root, its card, its ancestor line, or a part
- * of either), checked when the drawing shows an ancestor card of it, and
- * ruled when it is shown but the manifest holds no rule of the root's own
- * selector (`{element: ancestor_card, addresses: [{id: R, part: [card]}]}`)
- * displaying it; `null` otherwise.
+ * of either), `null` otherwise. Where the drawing draws an ancestor card of
+ * the root, it hides it: `display: none` in the root's own rule (selector
+ * `{element: ancestor_card, addresses: [{id: R, part: [card]}]}`). Where
+ * not, it shows it by the first of these that the block, the command
+ * applied (core's `preview`), draws with the card: the own rule's `display`
+ * removed (only where the own rule hides it), else the own rule's `display:
+ * inline`; neither (a rule outranking the root's own hides it) leaves it
+ * disabled. So what it offers is read from the drawing, never from the
+ * default layer.
  */
 export function ancestorCardOf(
+  view: View,
   block: Block,
   subjects: readonly Subject[],
   drawing: Drawing,
@@ -675,29 +701,28 @@ export function ancestorCardOf(
   if (root === undefined || others.length > 0) return null;
   const cards = containersOf(block.manifest).cards.get(root) ?? [];
   if (!cards.some((card) => holdingOf(card) === "ancestor")) return null;
-  const checked = drawing.boxes.some(
-    (box) => box.ancestor !== undefined && box.address.id === root,
-  );
+  if (drawsAncestorCard(drawing, root)) {
+    return { root, drawn: true, command: ancestorCardCommand(block, root, "none") };
+  }
   const key = canonicalText(ancestorCardSelector(root));
   const graphical = block.manifest.graphical;
-  const own = (graphical?.rules ?? []).some((rule) => {
-    if (canonicalText(rule.select) !== key) return false;
-    const set = typeof rule.set === "string" ? graphical?.styles?.[rule.set] : rule.set;
-    return set?.display === "inline";
-  });
-  return { root, checked, ruled: checked && !own };
-}
-
-/**
- * The `style` command the checkbox sends for `root` in `block`: on, a rule of the root's own
- * selector displaying its ancestor cards; off, that rule's `display` removed (and the rule with
- * it when it sets nothing else).
- */
-export function ancestorCardCommand(block: Block, root: string, on: boolean): StyleCommand {
-  return {
-    type: "style",
-    select: ancestorCardSelector(root),
-    set: { display: on ? "inline" : null },
-    blocks: [block.id],
-  };
+  const own = (graphical?.rules ?? []).find((rule) => canonicalText(rule.select) === key);
+  const set = typeof own?.set === "string" ? graphical?.styles?.[own.set] : own?.set;
+  const trials: ("inline" | null)[] = [
+    ...(set?.display === "none" ? [null] : []),
+    ...(set?.display === "inline" ? [] : ["inline" as const]),
+  ];
+  const command =
+    trials
+      .map((display) => ancestorCardCommand(block, root, display))
+      .find((trial) => {
+        const shown = preview(view, trial);
+        if (isCommandError(shown)) return false;
+        const shownBlock = shown.blocks[block.id];
+        return (
+          shownBlock !== undefined &&
+          drawsAncestorCard(drawingOf(shownBlock, shown.graphical, fontMetrics), root)
+        );
+      }) ?? null;
+  return { root, drawn: false, command };
 }

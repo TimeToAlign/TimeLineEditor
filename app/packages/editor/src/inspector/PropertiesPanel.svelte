@@ -6,8 +6,9 @@
  * of one band, or the form of the selected containers' geometry, or the
  * hint that the selection has none; the stored lock of the inspected
  * timelines stands right of the container size, read-only, and beside it,
- * for a root that contains a group member, "Card behind its groups", which
- * shows or hides the root's ancestor cards by one `style` command. Typed text is
+ * for a root that contains a group member, a button that hides or shows the
+ * root's ancestor cards by one `style` command, its text naming what it
+ * does ("Hide card behind its groups", "Show card behind its groups"). Typed text is
  * the inspector's `PropertyDrafts`; a commit or a step is one `set`. Below,
  * the group memberships of the selected timelines or group, and the New
  * group button (`groups.ts`), each click one command.
@@ -28,7 +29,6 @@ import { informOf } from "../messages.svelte.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import {
-  ancestorCardCommand,
   ancestorCardOf,
   bandRows,
   fieldLabel,
@@ -97,21 +97,19 @@ const band = $derived(shown === null ? null : bandRows(subjects, shown));
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
 
-/** The "Card behind its groups" checkbox of the inspected root; `null` unless it is offered. */
+/** The ancestor-card button of the inspected root; `null` unless it is offered. */
 const ancestorCard = $derived(
-  block === null || shown === null ? null : ancestorCardOf(block, subjects, shown.drawing),
+  block === null || shown === null ? null : ancestorCardOf(view, block, subjects, shown.drawing),
 );
 
 /** The store's refusal of the last ancestor-card command, shown until the next one. */
 let ancestorCardProblem = $state<string | null>(null);
 
-/** Show or hide the inspected root's ancestor cards. */
-function toggleAncestorCard(input: HTMLInputElement, on: boolean): void {
-  if (block === null || ancestorCard === null) return;
-  // The box shows what the drawing shows until the store has taken the command.
-  input.checked = ancestorCard.checked;
-  ancestorCardProblem =
-    store.dispatch(ancestorCardCommand(block, ancestorCard.root, on))?.message ?? null;
+/** Hide or show the inspected root's ancestor cards, as the button offers. */
+function toggleAncestorCard(): void {
+  const command = ancestorCard?.command ?? null;
+  if (command === null) return;
+  ancestorCardProblem = store.dispatch(command)?.message ?? null;
 }
 
 /** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
@@ -152,10 +150,9 @@ const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.prop
 /** What the Locked checkbox's tooltip says. */
 const LOCK_TITLE = "Whether the timeline's length is fixed";
 
-/** What the "Card behind its groups" checkbox's tooltip says, enabled and disabled. */
-const ANCESTOR_CARD_TITLE =
-  "Whether the timeline is drawn whole behind the frames of its members' groups";
-const ANCESTOR_CARD_RULED = "Shown by another style rule";
+/** What the ancestor-card button's tooltip says, enabled and disabled. */
+const ANCESTOR_CARD_TITLE = "The timeline drawn whole behind the frames of its members' groups";
+const ANCESTOR_CARD_RULED = "Hidden by another style rule";
 
 /** What the tab shows for a selection without one role of geometry. */
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
@@ -273,21 +270,17 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
   {#if ancestorCard !== null}
     {@const card = ancestorCard}
-    <label
+    <button
+      type="button"
       class="ancestor-card"
-      title={card.ruled ? ANCESTOR_CARD_RULED : ANCESTOR_CARD_TITLE}
+      title={card.command === null ? ANCESTOR_CARD_RULED : ANCESTOR_CARD_TITLE}
       data-testid="ancestor-card"
+      disabled={card.command === null}
+      aria-describedby={ancestorCardProblem === null ? undefined : `${uid}-problem-ancestor-card`}
+      onclick={toggleAncestorCard}
     >
-      <input
-        type="checkbox"
-        name="ancestor-card"
-        checked={card.checked}
-        disabled={card.ruled}
-        aria-describedby={ancestorCardProblem === null ? undefined : `${uid}-problem-ancestor-card`}
-        onchange={(event) => toggleAncestorCard(event.currentTarget, event.currentTarget.checked)}
-      />
-      Card behind its groups
-    </label>
+      {card.drawn ? "Hide card behind its groups" : "Show card behind its groups"}
+    </button>
     {#if ancestorCardProblem !== null}
       <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
     {/if}
@@ -404,7 +397,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     gap: 0.25rem 0.5rem;
   }
 
-  .properties label:not(.locked, .ancestor-card),
+  .properties label:not(.locked),
   dl.properties > div {
     display: flex;
     flex-direction: column;
@@ -438,8 +431,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   }
 
   /*
-   * The container's width and height side by side, the Locked checkbox and a root's "Card behind
-   * its groups" to their right.
+   * The container's width and height side by side, the Locked checkbox and a root's ancestor-card
+   * button to their right.
    */
   .properties .size {
     display: grid;
@@ -477,14 +470,11 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   }
 
   .ancestor-card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.25rem;
+    font: inherit;
+    white-space: nowrap;
   }
 
-  .ancestor-card:has(input:disabled) {
-    color: #595959;
+  .ancestor-card:disabled {
     cursor: not-allowed;
   }
 
