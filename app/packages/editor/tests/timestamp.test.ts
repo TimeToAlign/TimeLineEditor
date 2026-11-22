@@ -613,7 +613,8 @@ describe("coordinates, Editor", () => {
     expect(groups()).toEqual([
       [
         "Score",
-        [row("coordinate", "16/5", "♩"), row("cmap_1", "1536", "ticks"), row("cmap_2", "1.6", "s")],
+        // Both maps are drawn above `score`'s line, the first nearest it.
+        [row("cmap_2", "1.6", "s"), row("cmap_1", "1536", "ticks"), row("coordinate", "16/5", "♩")],
       ],
     ]);
   });
@@ -622,16 +623,16 @@ describe("coordinates, Editor", () => {
     const store = example();
     const inspector = drawer(store, true, T);
     inspector.selected([THEME]);
-    // Top to bottom: `phrase`'s line lies above `score`'s.
+    // Top to bottom: `phrase`'s line lies above `score`'s, each one's maps above its line.
     expect(groups()).toEqual([
-      ["Phrase", [row("coordinate", "0", "♩"), row("Phrase ticks", "0", "ticks")]],
+      ["Phrase", [row("Phrase ticks", "0", "ticks"), row("coordinate", "0", "♩")]],
       [
         "Score",
         [
-          row("coordinate", "4", "♩"),
-          row("Bars", "1", "𝅝"),
-          row("Tempo", "2.0", "s"),
           row("Ticks", "1920", "ticks"),
+          row("Tempo", "2.0", "s"),
+          row("Bars", "1", "𝅝"),
+          row("coordinate", "4", "♩"),
         ],
       ],
     ]);

@@ -486,6 +486,7 @@ describe("a named timestamp's pin", () => {
         length: q(6),
         maps: b2?.conversion_maps,
         ordinate: drawnY(view, "b"),
+        mapOrdinates: new Map([["b2_ticks", 30.9765625]]),
       },
       members: [
         {
@@ -609,6 +610,21 @@ describe("a named timestamp's pin", () => {
     expect(
       pin?.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
     ).toEqual([["performance", q(0), q(1, 2)]]);
+    // Each member's maps at their drawings in its own card, layout's record.
+    const mapsAt = (id: string) =>
+      new Map(
+        drawingIn(view)
+          .axes.filter(({ address }) => address.id === id)
+          .flatMap(({ maps }) => maps.map(({ id: map, yc }) => [map, yc] as const)),
+      );
+    expect([pin?.spec.anchor.mapOrdinates, pin?.spec.members[0]?.mapOrdinates]).toEqual([
+      mapsAt("score"),
+      mapsAt("performance"),
+    ]);
+    expect([...mapsAt("score").keys(), ...mapsAt("performance").keys()]).toEqual([
+      "cmap_1",
+      "cmap_2",
+    ]);
     const plain = pinIn(view, "timestamp_3");
     expect(plain?.timestamp.parts.map(({ timeline }) => timeline)).toEqual(["performance"]);
   });
@@ -938,15 +954,15 @@ describe("the flag", () => {
       rows.map((row) => [row.row, row.label, rowValueText(row, 3)]),
     ]);
     // `b` and its segment `b2` lie on `b`'s line, above `form`'s: top to bottom, the timestamp's
-    // order kept at one ordinate.
+    // order kept at one ordinate; `b2_ticks` is drawn above `b`'s line, so before `b2`'s coordinate.
     expect(parts).toEqual([
       ["b", "B", [[{ timeline: "b", map: null }, "B", "9 25/48 ♩"]]],
       [
         "b2",
         "b2",
         [
-          [{ timeline: "b2", map: null }, "b2", "3 25/48 ♩"],
           [{ timeline: "b2", map: "b2_ticks" }, "Ticks", "1 690 ticks"],
+          [{ timeline: "b2", map: null }, "b2", "3 25/48 ♩"],
         ],
       ],
       ["form", "Form", [[{ timeline: "form", map: null }, "Form", "17 25/48 ♩"]]],
@@ -966,8 +982,96 @@ describe("the flag", () => {
       granularity: { denominator: 2520, decimals: 1 },
     });
     if (reading === null) throw new Error("cmap_2 is not read there");
-    const [, , seconds] = flagParts(reading.pin)[0]?.rows ?? [];
+    const [part] = flagParts(reading.pin);
+    // Both maps are drawn above `score`'s line, so before its coordinate, the first nearest it.
+    expect(part?.rows.map(({ row }) => row.map)).toEqual(["cmap_2", "cmap_1", null]);
+    const [seconds] = part?.rows ?? [];
     expect(seconds && rowValueText(seconds, 3)).toBe("1.6″");
+  });
+
+  /** The flag of `melody` read at 4 on `fixture` as `[name, [label, text]]` per part. */
+  function melodyFlag(fixture: string) {
+    const view = viewWith(fixture);
+    const melody = axis(view, "melody");
+    const reading = readAt(view, melody.xStart + (melody.xEnd - melody.xStart) / 2, melody.y);
+    if (reading === null) throw new Error(`melody is not read on ${fixture}`);
+    return flagParts(reading.pin).map(({ name, rows }) => [
+      name,
+      rows.map((row) => [row.row.map === null ? "coordinate" : row.label, rowValueText(row, 3)]),
+    ]);
+  }
+
+  it("lists a part's rows top to bottom as drawn: maps above the line first", () => {
+    expect(melodyFlag("map")).toEqual([
+      [
+        "Phrase",
+        [
+          ["Ticks", "960 ticks"],
+          ["coordinate", "2 ♩"],
+        ],
+      ],
+      [
+        "Melody",
+        [
+          ["Tempo", "2″"],
+          ["coordinate", "4 ♩"],
+        ],
+      ],
+    ]);
+  });
+
+  it("lists maps drawn below their line after its coordinate, by the stated band orders", () => {
+    // `melody`'s order puts its maps below its line, and `phrase` follows it.
+    expect(melodyFlag("map_root_band_order")).toEqual([
+      [
+        "Phrase",
+        [
+          ["coordinate", "2 ♩"],
+          ["Ticks", "960 ticks"],
+        ],
+      ],
+      [
+        "Melody",
+        [
+          ["coordinate", "4 ♩"],
+          ["Tempo", "2″"],
+        ],
+      ],
+    ]);
+    // Only `phrase`'s order puts its maps below its line; `melody`'s stay above.
+    expect(melodyFlag("map_child_band_order")).toEqual([
+      [
+        "Phrase",
+        [
+          ["coordinate", "2 ♩"],
+          ["Ticks", "960 ticks"],
+        ],
+      ],
+      [
+        "Melody",
+        [
+          ["Tempo", "2″"],
+          ["coordinate", "4 ♩"],
+        ],
+      ],
+    ]);
+  });
+
+  it("carries each drawn map's ordinate, layout's record of its drawing", () => {
+    for (const fixture of ["map", "map_root_band_order", "map_child_band_order"]) {
+      const view = viewWith(fixture);
+      const drawn = new Map(
+        drawingIn(view).axes.flatMap(({ maps }) => maps.map(({ id, yc }) => [id, yc] as const)),
+      );
+      const spec = specOf(view, "melody");
+      expect([
+        spec.anchor.mapOrdinates,
+        spec.members.map(({ timeline, mapOrdinates }) => [timeline, mapOrdinates]),
+      ]).toEqual([
+        new Map([["tempo", drawn.get("tempo")]]),
+        [["phrase", new Map([["ticks", drawn.get("ticks")]])]],
+      ]);
+    }
   });
 
   it.each([
@@ -1009,7 +1113,10 @@ describe("measure maps", () => {
       granularity: DEFAULT_GRANULARITY,
       knotsOf,
     });
-    const row = reading === null ? undefined : flagParts(reading.pin)[0]?.rows[1];
+    const row =
+      reading === null
+        ? undefined
+        : flagParts(reading.pin)[0]?.rows.find(({ row }) => row.map === "cmap_1");
     if (row === undefined) throw new Error("score reads its measure view");
     return row;
   }

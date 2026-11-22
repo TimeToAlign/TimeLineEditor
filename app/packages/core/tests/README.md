@@ -4248,7 +4248,8 @@ the parity table's manifest with its MeasureMap's expanded rows
    `a`.
 6. **Rows.** `timestampRows` lists the parts top to bottom where the
    reading crosses each timeline (the `ordinate` the caller gives the
-   anchor and each member, canvas units growing downwards), stably (parts
+   anchor and each member, canvas units growing downwards; the rows of
+   one part by `mapOrdinates` too, below), stably (parts
    at one ordinate in the timestamp's order), every part without an
    ordinate after those with one, in the timestamp's order; the
    timestamp's own parts keep the anchor first. `recording` at 100000
@@ -4257,7 +4258,22 @@ the parity table's manifest with its MeasureMap's expanded rows
    `excerpt`'s; `form` of `segment_line.yaml` at 8 with `form` at 40, `a`
    and `a1` at 10, `b` and `b1` absent lists `a`, `a1`, `form`, `b`, `b1`
    (the parts `form`, `a`, `a1`, `b`, `b1`); without ordinates, the
-   timestamp's order. Per part its coordinate, then its maps:
+   timestamp's order. **Within a part the rows lie top to bottom as
+   drawn**: the coordinate at its timeline's `ordinate`, each map at its
+   own entry of the timeline's `mapOrdinates` (the ordinate of the map's
+   drawing in the card the reading crosses), stably (rows at one
+   ordinate keep coordinate-then-maps order), every row without an
+   ordinate after those with one. `recording` at 100000 with `recording`
+   at 50 and `cmap_5` at 40, `excerpt` at 20 and `cmap_6` at 30 lists
+   `{recording, cmap_5}` before `{recording, null}` and `{excerpt, null}`
+   before `{excerpt, cmap_6}` (the parts `excerpt`, then `recording`, as
+   before); with `cmap_5` at 40 and no ordinate for `recording` itself,
+   `cmap_5` first; with `recording` at 50 and `cmap_5` at 50 (a tie),
+   coordinate first; with ordinates for the parts only, per part its
+   coordinate, then its maps in drawing order, and so without any
+   ordinate. `timestampJson` of the pin with map ordinates equals the
+   one without, byte for byte (`mapping` keeps the parts' own order).
+   Without ordinates, per part its coordinate, then its maps:
    `recording` at 100000 gives six rows, `{recording, null}` labelled
    `Recording` with the int 100000, `{recording, cmap_5}` labelled `cmap_5`
    (the map has no name), `{excerpt, null}` `Excerpt` 55900, `{excerpt,

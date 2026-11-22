@@ -324,7 +324,7 @@ describe("Coordinates", () => {
     ]);
   });
 
-  it("list each timestamp's conversion-map rows after its coordinate", async () => {
+  it("list each timestamp's conversion-map rows beside its coordinate as they are drawn", async () => {
     const written: string[] = [];
     vi.stubGlobal("navigator", {
       clipboard: {
@@ -364,18 +364,19 @@ describe("Coordinates", () => {
         ];
       }),
     ]);
+    // `rate` is drawn above `cpt_1`'s line, so before its coordinate.
     expect(groups).toEqual([
       [
         "cpt_1",
         [
-          ["coordinate", "8.0", true, "s"],
           ["Rate", "352800", true, "smp"],
+          ["coordinate", "8.0", true, "s"],
         ],
       ],
       ["dpt_1", [["coordinate", "352800", true, "smp"]]],
     ]);
     const rate = area?.querySelectorAll<HTMLButtonElement>("tr[data-row] td.copy button");
-    for (const button of [...(rate ?? [])].slice(3, 6)) button.click();
+    for (const button of [...(rate ?? [])].slice(0, 3)) button.click();
     await vi.waitFor(() => expect(written).toHaveLength(3));
     expect(written).toEqual(["352800", "352800 samples", "352 800 smp"]);
   });
@@ -411,8 +412,8 @@ describe("Coordinates", () => {
       [
         "Performance",
         [
-          ["coordinate", "3.0", true, "s"],
           ["cmap_3", "132300", true, "smp"],
+          ["coordinate", "3.0", true, "s"],
         ],
       ],
     ]);
@@ -460,8 +461,8 @@ describe("Coordinates", () => {
       [
         "Performance",
         [
-          ["coordinate", "3.0", true, "s"],
           ["cmap_3", "132300", true, "smp"],
+          ["coordinate", "3.0", true, "s"],
         ],
       ],
     ]);
@@ -665,8 +666,8 @@ describe("GroupStamps", () => {
       "group",
       "through group 'Performance'",
       [
-        ["coordinate", "6.25", true, "s"],
         ["cmap_3", "275625", true, "smp"],
+        ["coordinate", "6.25", true, "s"],
       ],
     ],
   ];
@@ -675,8 +676,8 @@ describe("GroupStamps", () => {
     "claimed",
     "stated by MatchClaims",
     [
-      ["coordinate", "3.0", true, "s"],
       ["cmap_3", "132300", true, "smp"],
+      ["coordinate", "3.0", true, "s"],
     ],
   ];
 
@@ -808,8 +809,8 @@ describe("GroupStamps", () => {
         "group",
         "through group 'Performance'",
         [
-          ["coordinate", "5.208333333333333", true, "s"],
           ["cmap_3", "229688", true, "smp"],
+          ["coordinate", "5.208333333333333", true, "s"],
         ],
       ],
       PERFORMANCE_CLAIMED,
