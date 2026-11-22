@@ -44,6 +44,7 @@ import {
   recordingInGroup1,
   storeOf,
   viewOf,
+  withoutAncestorCards,
 } from "./support.ts";
 
 const view = mixedPlain();
@@ -455,7 +456,9 @@ describe("itemResizeValues, box", () => {
   });
 
   it("keeps the opposite edge on the canvas when the box grows left", () => {
-    const after = changed(wide, resizeOf(wide, "bundle", FRAME_2, "box", "left", -21, 0));
+    // Without `recording`'s ancestor card, which reaches further left than the grown frame.
+    const plain = withoutAncestorCards(wide);
+    const after = changed(plain, resizeOf(plain, "bundle", FRAME_2, "box", "left", -21, 0));
     const [node] = project(after, NOTHING_SELECTED, [], metrics, null);
     expect(node?.data.drawing.origin).toEqual({ x: 21, y: 0 });
     expect(node?.position.x).toBe(19);

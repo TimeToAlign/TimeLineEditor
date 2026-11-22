@@ -27,7 +27,16 @@ import {
   writeSvg,
   writeTikz,
 } from "../src/index.ts";
-import { at, boxed, everything, loadFixture, reviewCases, style, synthetic } from "./support.ts";
+import {
+  at,
+  boxed,
+  everything,
+  HIDDEN_ANCESTOR_CARDS,
+  loadFixture,
+  reviewCases,
+  style,
+  synthetic,
+} from "./support.ts";
 
 const svgBody = (drawing: Drawing) =>
   writeSvg([{ drawing, x: 0, y: 0, scale: 1 }])
@@ -475,13 +484,17 @@ describe("descriptors", () => {
     });
   }
 
-  /** The points of the polylines a fixture's drawing writes for one address, in order. */
+  /**
+   * The points of the polylines a fixture's drawing writes for one address,
+   * in order, drawn with the ancestor cards hidden: the chevrons are those of
+   * the ancestor line on the member's card, not of the root drawn whole.
+   */
   const chevronsOf = (name: string, id: string) => {
     const manifest = loadFixture(name);
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
+      [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
       fontMetrics,
     );
     const polylines = toDescriptors(drawing).flatMap((each) =>

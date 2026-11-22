@@ -15,6 +15,8 @@ import {
   type Style,
 } from "@timetoalign/tilie-layout";
 
+import type { Graphical } from "@timetoalign/timetoshare";
+
 export {
   drawingsDirectory,
   fixturesDirectory,
@@ -28,6 +30,15 @@ export {
 export function at(id: string, ...part: Part[]): ElementAddress {
   return part.reduce(partAddress, idAddress(id));
 }
+
+/**
+ * An application layer hiding every ancestor card (section 8.8), which the
+ * defaults show: a drawing of a test whose subject is not the ancestor card
+ * keeps the points derived without it, the cards taking no room.
+ */
+export const HIDDEN_ANCESTOR_CARDS: Graphical = {
+  rules: [{ select: { element: "ancestor_card" }, set: { display: "none" } }],
+};
 
 export function style(changes: Partial<Style> = {}): Style {
   return { ...INITIAL_STYLE, ...changes };

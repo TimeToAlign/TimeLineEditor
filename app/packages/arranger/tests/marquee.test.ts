@@ -5,9 +5,19 @@ import { describe, expect, it } from "vitest";
 import { elementBounds, elementsInRect } from "../src/marquee.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, changed, marqueeView, metrics, viewOf } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  marqueeView,
+  metrics,
+  viewOf,
+  withoutAncestorCards,
+} from "./support.ts";
 
-const view = marqueeView();
+// Drawn without `recording`'s ancestor card, which draws `excerpt`, `dlt_1` and their maps once
+// more, behind the frame and not wholly inside the rectangles below.
+const view = withoutAncestorCards(marqueeView());
 const [node] = project(view, NOTHING_SELECTED, [], metrics, null);
 if (node === undefined) throw new Error("no node");
 const { manifest } = blockIn(view, A);

@@ -479,7 +479,12 @@ describe("the message bar", () => {
     hook().load(workspaceOf("bundles/bundle_mixed"));
     hook().select([{ block: A, id: "timestamp_9" }]);
     flushSync();
-    document.querySelector<HTMLButtonElement>('button[title="Copy the value"]')?.click();
+    // The coordinate's own row: `score`'s maps lie above its line, so their rows come first.
+    document
+      .querySelector<HTMLButtonElement>(
+        'button[aria-label="Copy the value of coordinate of Score"]',
+      )
+      ?.click();
     await vi.waitFor(() => expect(messages()).toEqual(["Copied 0."]));
     expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
       "info",

@@ -274,7 +274,11 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   `(473.298828125, 32.5) (477.798828125, 37) (473.298828125, 41.5)`, then
   `(477.798828125, 32.5) (482.298828125, 37) (477.798828125, 41.5)`, the
   outer tip `Xr + 5.5w`; in TikZ, three open three-point paths.
-- `groups/group_grandchild`: the ancestor `score` runs on at both sides
+- `groups/group_grandchild`, drawn under the layer `{element:
+  ancestor_card}` `display: none` (`support.ts` `HIDDEN_ANCESTOR_CARDS`),
+  since the subject is the ancestor line on the member's card and the
+  ancestor card the defaults show (section 8.8) would move the frame right:
+  the ancestor `score` runs on at both sides
   (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 67.78125`) and
   writes exactly four polylines, two on each side: left `(96.70361328125,
   63.28125) (92.20361328125, 67.78125) (96.70361328125, 72.28125)` and

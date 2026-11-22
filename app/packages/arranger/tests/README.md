@@ -56,6 +56,27 @@ none multiplying another: the block's between its items at their default
 member drawing's card spacing `S`, between its rows and between its bands
 (default 4).
 
+**Ancestor cards.** The defaults show every ancestor card (section 8.8):
+the root of a member that is a child timeline, drawn whole behind its
+frame, aligned to that member. It takes no room, but the block grows to
+hold it, so the place origin moves by as much as it reaches left of the
+padding or above it, and every other element lies where it lies without
+it, moved by that origin. In `group_child_member` `piece`'s card reaches
+368 left of the frame (TimeToShare's derivation of
+`group__group_child_member`): the origin is (368, 0) and everything else
+lies 368 further right; in `bundle_mixed` `recording`'s card lies behind
+`group_2`'s frame, aligned to `excerpt`; in `bundle_shared_parent`
+`score` has one behind each frame. The values of this file are derived
+without the ancestor cards wherever a test's subject is something else (a
+box under a point, a mark, a place origin, a resize, a marquee, a
+viewport): those tests draw under the workspace rule `{"select":
+{"element": "ancestor_card"}, "set": {"display": "none"}}` (`support.ts`
+`withoutAncestorCards`), which hides them, so their cards take no room and
+the origin does not move. The tests of what the user sees by default (the
+descriptors and boxes a drawing records, the holding of an element drawn
+in an ancestor card, the ancestor cards themselves) keep the defaults, and
+their values below count the ancestor cards.
+
 - **Every manifest is drawn as one block** (section 8). A manifest of one
   root and no name has no title and no frame; its root is drawn in its
   card `{id: T, part: ["card"]}`. The name column starts at `xn = P + K = 16`; the card
@@ -143,7 +164,8 @@ member drawing's card spacing `S`, between its rows and between its bands
     width grows by exactly the length: `Wf(L) = 167.39013671875 + L` for a
     frame or the ungrouped card, `Wc(L) = 151.39013671875 + L` for a
     member's card, the block `Wb(L) = 185.39013671875 + L` (585.3901 at 400,
-    the fixture's block).
+    the fixture's block without its two ancestor cards of `score`, the
+    figure `bundle__bundle_shared_parent` draws them).
   - **`bundle_shared_member`**: roots `t` (quarters), `u` (seconds) and
     `v` (pixels), groups `g1` of `t`, `u` and `g2` of `t`, `v`: `t` has a
     card in each frame, `{item: "g1", member: "t"}` and `{item: "g2",
@@ -157,7 +179,11 @@ member drawing's card spacing `S`, between its rows and between its bands
   `performance` the map `cmap_3`; `page` `cmap_4`; `recording` `cmap_5`;
   `excerpt` `cmap_6`; `annotations` the regions `region_1` "Verse" and
   `region_2` "Chorus". Maps lie above their lines, jumps and
-  regions below (section 4). With `places` empty the block holds three items
+  regions below (section 4). Every value of this item is derived without
+  `recording`'s ancestor card behind `group_2`'s frame (the workspace rule
+  above), which, drawn by the defaults, reaches left of the padding and
+  moves the place origin; the tests whose subject is a canvas position, a
+  place origin or a size of this block draw it so. With `places` empty the block holds three items
   at their default places, `x = P = 8`, one under the other the block's
   spacing 8 apart, the first `P + h(11) + F = 28.8046875` below the title
   "Mixed" (`F = 8` the gap after the title):
@@ -248,8 +274,9 @@ the grid is configured (the settings are no input of a drawing); after a
 `set` of the workspace's `graphical` it shows the rule (a block fill of
 `#FFFFFF`). Overrides draw the placement they give: drawn at length 800
 `bare` is `W(800) = 876.5771484375` wide and the block's own drawing stays
-the length-400 one; `bundle_mixed` with `annotations` at `{x: −30}` has the
-origin `(38, 0)`, overridden with no places `(0, 0)`.
+the length-400 one; `bundle_mixed` with `annotations` at `{x: −30}`, its
+ancestor card hidden, has the origin `(38, 0)`, overridden with no places
+`(0, 0)`.
 
 **Equal placements share a drawing.** A resize measures the block at many
 placements on every pointer move, and the preview then draws the block it
@@ -288,7 +315,8 @@ node and the identity of every node that did not change.
   ["name"]}`, and their coordinate labels (`{id: "timestamp_1", part:
   ["coordinate"]}`, then `timestamp_2`'s), in drawing order.
 - **A node lies at its place origin** (section 8.6): `bundle_mixed` at
-  (40, 80) with `annotations` at `{x: −30, y: −20}` lies at `(2,
+  (40, 80) with `annotations` at `{x: −30, y: −20}`, its ancestor card
+  hidden, lies at `(2,
   31.1953125)`, `617.9150390625 × 440.578125`; at scale 2 at `(−36,
   −17.609375)`, `1235.830078125 × 881.15625`. With no places the node
   lies at the block's `x`, `y`.
@@ -524,16 +552,17 @@ on the flat piece.
 | ungrouped, height `2 H(8)` = 504.328125 | bottom / top | (0, 32) / (0, −32) | `{spacing: 16, height: 536.328125}` / the same with `y: 48` |
 | ungrouped, width `2 W(400)` = 1054.654296875 and height `2 H(8)` | bottom-right | (40, 32) | `{length: 420, spacing: 16, width: 1094.654296875, height: 536.328125}` |
 | bare, length 500, width 496.58 | right | (20, 0) | `{length: 520, width: null}` (a request the content overtook) |
-| child member, width 600 | right | (50, 0) | `{length: 446.158203125, width: 650}` (the block's content `Wb(L) = 153.898681640625 + L`: `s0 = 16 + 64.61962890625 + 8 + 8 × 3`, the right margin half of the ancestor's end label `16 ♩`, the frame and the block 32 wider than the card; 913733 steps would draw 650.00048828125) |
+| child member, width 600 (its ancestor card hidden) | right | (50, 0) | `{length: 446.158203125, width: 650}` (the block's content `Wb(L) = 153.898681640625 + L`: `s0 = 16 + 64.61962890625 + 8 + 8 × 3`, the right margin half of the ancestor's end label `16 ♩`, the frame and the block 32 wider than the card; 913733 steps would draw 650.00048828125) |
 
-**The shortening lock.** On `bundle_shared_parent` (`Wb(L) =
-185.39013671875 + L`): Box right by 585.39013671875 gives `{width:
+**The shortening lock.** On `bundle_shared_parent`, its ancestor cards
+hidden (`Wb(L) = 185.39013671875 + L`): Box right by 585.39013671875 gives `{width:
 1170.7802734375}`, twice the content; Stretch right by 100 `{length: 450,
 width: 1270.7802734375}`; back by 200 `{length: 350, width:
 1070.7802734375}`: a stretch back shrinks the block.
 
-**The node's edges stay, not the place origin.** On `bundle_mixed` with
-`group_2` at `{width: 600}` and `annotations` at `{x: −30}` (node at x 2,
+**The node's edges stay, not the place origin.** On `bundle_mixed`, its
+ancestor card hidden, with `group_2` at `{width: 600}` and `annotations`
+at `{x: −30}` (node at x 2,
 right edge 656), Box from the left by 21 gives `{width: 675, x: 19}`;
 applied, the node lies at −19 and its right edge stays at 656.
 
@@ -548,8 +577,8 @@ length: 300}}` stretched from 400 to 500 becomes `{group_2: {x: 50, y:
 frame's `cards`, scales alike: `{group_1: {x: 4, cards: {score: {width:
 700, spacing: 2}}}}` to length 500 gives `{group_1: {x: 5, cards: {score:
 {width: 875, spacing: 2}}}}`; an unchanged length keeps the identical
-places. On `bundle_mixed` with `group_2` at `{x: 40, y: 200, width: 700}`,
-right by 74 gives the changes `[{target: {block: A}, values: {length:
+places. On `bundle_mixed`, its ancestor card hidden, with `group_2` at
+`{x: 40, y: 200, width: 700}`, right by 74 gives the changes `[{target: {block: A}, values: {length:
 440}}, {target: {block: A, id: "group_2"}, values: {place: {x: 44, y:
 200, width: 770}}}]`, the block's own change then the item's (a place's
 target is the address of the group or timeline whose place it is);
@@ -799,16 +828,34 @@ coordinates are layout's.
   on the root's line, the middle of `b2`'s boundary and the card's two
   corners lie in `{item: "form"}`; the block's padding, just right of the
   card and the shadow's rim in none; without a point there is none. On
-  `group_child_member` the frame above the first card and the gap between
-  the cards are the frame `{item: "group_1"}`, the ancestor line's start
-  `{item: "group_1", member: "second-half"}`, `recording`'s start `{item:
-  "group_1", member: "recording"}`; with the cards hidden, that last point
-  is the frame.
+  `group_child_member` without its ancestor card the frame above the
+  first card and the gap between the cards are the frame `{item:
+  "group_1"}`, the ancestor line's start `{item: "group_1", member:
+  "second-half"}`, `recording`'s start `{item: "group_1", member:
+  "recording"}`. With its ancestor card, as the defaults draw it, and the
+  cards hidden (`{element: card}` hides no `ancestor_card`), `recording`'s
+  start lies 368 further right, at (488.61962890625, 139.16015625), and is
+  the frame; the point (120.61962890625, 139.16015625) lies left of the
+  frame (from 376) and below the ancestor card (its bottom 18.8046875 +
+  63.37890625 = 82.18359375), in no box.
 - **What each descriptor draws** comes from its source alone: on
   `segment_line` the block (address `{}`), the card's shadow, the card and
-  the three boundaries; on `group_child_member` the block, the frame, and
-  each card's shadow and card; with the cards hidden the block and the
-  frame only.
+  the three boundaries; on `group_child_member`, as the defaults draw it,
+  the block (descriptor 0), the ancestor card of `piece` `{id: "piece",
+  part: ["card"]}`, its shadow (1) and its own rectangle (2), drawn after
+  the block's background and before the frame (section 8.8), then the
+  frame (15), `second-half`'s shadow and card (17, 18) and `recording`'s
+  (36, 37). Between them, the twelve descriptors of `piece`'s member
+  drawing in its ancestor card (3 to 14): `piece`'s line, its start circle
+  and its arrowhead, `second-half`'s child row likewise (line, start
+  circle, arrowhead), the wedges of `second-half`'s `origin` and `length`,
+  the names `Second half` and `Piece` and the two coordinate labels; the
+  frame's title is 16, and each card then draws what it draws without the
+  ancestor card (the 17 descriptors 19 to 35 of `second-half`'s, the
+  shadow and the card of `recording` before its own), every index 14
+  further than without it (the frame was 1, the cards' shadows 3 and 22).
+  With the cards hidden: the block, the ancestor card's shadow and
+  rectangle (1, 2) and the frame (15) only.
 - **What a press selects** is what it hit, inside what the level offers:
   on the arranger a card selects `{block: A, id: "recording", part:
   ["card"]}`, the frame `{block: A, id: "group_1"}`, the background
@@ -825,8 +872,8 @@ coordinates are layout's.
   `length`) with their coordinate labels.
 - **What the pointer highlights** is the box on top by its place key
   (`placeKeyText`), the boundary pressed and the band pressed by their
-  addresses' keys (`addressKey`): on `group_child_member` the line
-  `recording` highlights `{item: "group_1", member: "recording"}`, the
+  addresses' keys (`addressKey`): on `group_child_member` without its
+  ancestor card the line `recording` highlights `{item: "group_1", member: "recording"}`, the
   frame's corner `{item: "group_1"}`, the padding nothing.
 - **Enter's hit** of a selected address comes from the drawing alone: the
   block itself for `{block: A}`, a displayed frame or card itself, an
@@ -848,13 +895,21 @@ coordinates are layout's.
 holds the selection when an element of its range carries a selected
 address, the box's own rectangle excepted; the block holds every drawn
 address. Where a box lies plays no part. On `bundle_mixed` with a child
-`dlt_1` under `excerpt` and a region `region_3` on `excerpt` (holding
-boxes by place key, `G › T` written for `{item: G, member: T}`, `G` for `{item: G}`):
+`dlt_1` under `excerpt` and a region `region_3` on `excerpt`, as the
+defaults draw it (holding boxes by place key, `G › T` written for `{item:
+G, member: T}`, `G` for `{item: G}`; `recording`'s ancestor card behind
+`group_2`'s frame has the key `{item: "group_2", member: "recording"}`,
+written group_2 ⟵ recording). The ancestor card draws `recording`'s
+member drawing whole (section 8.8): `recording`'s line, the row of its
+child `excerpt` and the row of `excerpt`'s child `dlt_1`; a child's
+regions are drawn only where its own regions band is displayed, which the
+defaults hide (section 4), so `region_3` is not drawn there:
 
 | selected | holding boxes |
 |---|---|
 | `{id: "score"}`, or `{id: "timestamp_9"}` (the wedge of `score`'s `origin`) | group_1, group_1 › score |
-| `{id: "dlt_1"}`; `{id: "region_3", part: ["label"]}`; `{id: "excerpt"}`; `{id: "recording"}` (the ancestor line) | group_2, group_2 › excerpt |
+| `{id: "region_3", part: ["label"]}` | group_2, group_2 › excerpt |
+| `{id: "dlt_1"}`; `{id: "excerpt"}`; `{id: "recording"}` (the ancestor line on `excerpt`'s card, and `recording`'s own line in the ancestor card) | group_2, group_2 › excerpt, group_2 ⟵ recording |
 | `{id: "page", part: ["card"]}` | group_2 |
 | `{id: "group_1"}`; the title `{part: ["name"]}`; `{id: "annotations", part: ["card"]}` | none (the block alone) |
 | `{id: "group_1", part: ["name"]}` | group_1 |
@@ -868,7 +923,8 @@ nothing, the block neither. Without groups (`bundle_ungrouped`) `{id:
 "page_2", part: ["start"]}` by `{item: "pages"}`. With the cards hidden
 `{id: "score"}` is held by `{item: "group_1"}` alone; with the frames
 hidden by `{item: "group_1", member: "score"}`, and `{id: "group_1",
-part: ["name"]}` by none. **An item over another** (`over`):
+part: ["name"]}` by none. **An item over another** (`over`, drawn
+without `recording`'s ancestor card, which would move the place origin):
 `annotations`' card moved to (8, 60) lies inside `group_1`'s frame, each
 drawn as in the table above, and the middle of `score`'s line lies on the
 card on top, `{item: "annotations"}`; yet `{id: "annotations", part:
@@ -876,8 +932,11 @@ card on top, `{item: "annotations"}`; yet `{id: "annotations", part:
 `{item: "group_1"}` and `{item: "group_1", member: "score"}`, the card on
 top by none. **One element drawn twice** (`twice`, with `recording` a
 member of `group_1`): `excerpt`'s map `{id: "cmap_6"}` is drawn on both
-cards and held by group_1, group_1 › recording, group_2, group_2 › excerpt;
-hidden on `recording`'s card, by group_2 and group_2 › excerpt. **One
+cards and in `recording`'s ancestor card behind `group_2` (still drawn,
+`excerpt` being a child member of `group_2`), and held by group_1, group_1
+› recording, group_2, group_2 › excerpt and group_2 ⟵ recording; hidden
+inside children (`{element: map, inside: child}`), on `recording`'s card
+and in the ancestor card alike, by group_2 and group_2 › excerpt. **One
 address, two cards** (`bundle_shared_member`): `t`'s cards `{item: "g1",
 member: "t"}` and `{item: "g2", member: "t"}` share the address `{id:
 "t", part: ["card"]}`; selected, it is held by both frames `{item: "g1"}`
@@ -907,9 +966,8 @@ no place, so nothing on the canvas moves, resizes, nudges or reorders it;
 it is hit, selected and opened as a card. The views are
 `groups/group_parent_both` (the root `piece` behind `group_1`, aligned to
 `middle`) and `groups/group_parents_mixed` (`sonata`, `session`, `page`
-behind `group_1`), each with the workspace's `graphical` showing every
-ancestor card (`{element: ancestor_card}` `display: inline`); layout's
-README derives the geometry the points below are taken from.
+behind `group_1`), each as the defaults draw it, every ancestor card shown;
+layout's README derives the geometry the points below are taken from.
 
 1. **A record, no item.** `piece`'s card is recorded once, `ancestor
    {group: group_1, member: middle}`; `isAncestorCard` holds for it and
@@ -933,8 +991,9 @@ README derives the geometry the points below are taken from.
    the ancestor card's range (elements 1 to 9) follow every other
    descriptor, each part in its own order. In `group_parents_mixed` the
    editor of `session` raises `session`'s card alone, that of the member
-   `take` nothing. Without the layer (every ancestor card hidden) the
-   editor of `piece` raises nothing.
+   `take` nothing. With the workspace's rule `{element: ancestor_card}`
+   `display: none` (every ancestor card hidden) the editor of `piece`
+   raises nothing.
 5. **Delete leaves it alone** (`keys.test.ts`, the view `bundle_mixed`,
    `recording`'s ancestor card behind `group_2`): Delete with `{block: A,
    id: recording, part: [card]}` selected sends nothing, refuses nothing
@@ -1082,7 +1141,10 @@ drawn place, and the dragged edge's opposite edge keeps its position even
 when the box grows left or up. Whatever a gesture measures before release
 it measures on the view its command would leave, so a move's preview
 equals the drawing of the applied view by construction. A holds
-`bundle_mixed` at (40, 80), its items as in the fixture facts.
+`bundle_mixed` at (40, 80), its items as in the fixture facts; a place,
+a size and a travel are item and block values, which `recording`'s
+ancestor card does not change, and the one test reading the node's canvas
+position after a box grows left draws the block with the card hidden.
 563.9150390625 is a multiple of 1/2048, so a width quantized from it is
 itself.
 
@@ -1565,7 +1627,8 @@ marquee selects one.
 ## The editor's viewport (`focus.test.ts`)
 
 The rectangle an editor centres is its target's container on the canvas,
-read from the drawing's records: on `mixed` at (40, 80) the block `{block:
+read from the drawing's records: on `mixed` at (40, 80), its ancestor
+card hidden, the block `{block:
 A}` `{40, 80, 581.9150390625 × 491.62890625}`, `{block: A, id:
 "group_1"}`'s frame `{48, 108.8046875, 563.9150390625 × 169.234375}`,
 `{block: A, id: "annotations"}`'s card `{48, 489.7734375,
@@ -1588,8 +1651,11 @@ drawing states (a text's from its measured width, ascent and descent), and
 an address drawn more than once is taken only when every copy lies
 inside. On `mixed` with the region `region_3` (0 to 10 samples) on
 `excerpt` and the map `cmap_7` on `dlt_1` (`region_1` and `cmap_3` are
-taken: an ID is unique across the manifest), at (40, 80), each result an
-address in block A, written below by its element address:
+taken: an ID is unique across the manifest), at (40, 80), its ancestor
+card hidden (drawn, `recording`'s card would draw `excerpt`, `dlt_1` and
+their maps once more behind `group_2`'s frame, not wholly inside the
+rectangles below), each result an address in block A, written below by
+its element address:
 
 - The rectangle of `score`'s card gives, in drawing order, `{id:
   "cmap_1"}`, `{id: "cmap_2"}`, `{id: "jump_from_1"}`, `{id: "score"}`,
@@ -2424,9 +2490,19 @@ screen position chosen for the case or a value derived above.
    for the block and for `score`'s card, no drawn rectangle marked. On
    `nested`, the three descriptors of `{id: "clt_2"}` are `data-affected`
    beside the selected `{id: "clt_3"}`. On `bundle__bundle_shared_parent`,
-   `{id: "score"}` and `{id: "exposition", part: ["start"]}` mark all nine
-   descriptors drawing them, on both ancestor lines (`score`'s four in
-   each card, the start mark on the first). Nothing selected,
+   `{id: "score"}` and `{id: "exposition", part: ["start"]}` mark all
+   fifteen descriptors drawing them, in drawing order: `score`'s own line
+   in each of its two ancestor cards (section 8.8; behind `group_1`'s
+   frame, then `group_2`'s, both drawn before the frames), three each (its
+   line, its start circle, its arrowhead; `exposition` and
+   `recapitulation` are child rows there, whose starts are their own
+   lines' start circles, no `start` mark), then both ancestor lines
+   (`score`'s four in each member's card, the start mark on the first).
+   The holding marks are the block's, then each ancestor card's (`{id:
+   "score", part: ["card"]}` twice, each card holding `score`'s line,
+   recorded after the block and before every frame), then `group_1`,
+   `exposition`'s card, `group_2` and `recapitulation`'s card. Nothing
+   selected,
    nothing marked. Each time, the tree without the marks and those
    attributes still equals `figure.svg`.
 3. **Boxes are marked over the drawing**, in one vocabulary: every mark is
@@ -2448,7 +2524,8 @@ screen position chosen for the case or a value derived above.
    and both marks; moving onto the card removes one mark and changes no
    drawn element, which a mutation observer records. With a button held
    the drawing's matrix is not read; it is read once on the next move. On
-   `group_child_member`, the frame under the pointer is marked, a point on
+   `group_child_member`, its ancestor card hidden (the points are those
+   without it), the frame under the pointer is marked, a point on
    the line `recording` marks its card rather than the frame around it,
    and a selected frame shows its selection mark rather than a hover mark;
    the marks then are the block's holding mark (`data-marks="{}"`), the
@@ -2535,7 +2612,8 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    Shift and such a click leave it. A click inside still selects what it
    hits (`score`'s card, `{block: A, id: "score", part: ["card"]}`, in
    `group_1`'s editor). A marquee selects only elements inside the edited
-   element: in `dlt_1`'s editor on the marquee's view the rectangle of the
+   element: in `dlt_1`'s editor on the marquee's view (its ancestor card
+   hidden, as in the marquee section) the rectangle of the
    marquee section selects `{block: A, id: "cmap_7"}`, `{block: A, id:
    "dlt_1"}` and `{block: A, id: "dlt_1", part: ["name"]}`, in `group_1`'s
    nothing. A refusal of the store is shown in the status line with the
@@ -2627,7 +2705,8 @@ its drawing's origin times its scale), a frame's that node position plus
 the frame's rectangle in the block's drawing times the scale. The
 `handle-top-left` element sits at the bounds' top-left corner in canvas
 units (its `left` and `top`). Mounted on `bundle_mixed` alone at (40, 80)
-(no other block to snap to), with the canvas at (100, 100), zoom 1, and
+(no other block to snap to), its ancestor card hidden where a test
+compares a node position with the stored place, with the canvas at (100, 100), zoom 1, and
 the resize mode Box (8 handles: four corners, four sides).
 
 1. **A block dragged on the arranger.** `{block: A}` selected shows 8

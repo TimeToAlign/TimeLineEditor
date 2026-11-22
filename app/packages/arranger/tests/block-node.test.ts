@@ -62,7 +62,17 @@ import {
   withScreenMatrix,
 } from "./dom.ts";
 import NodeHarness from "./NodeHarness.svelte";
-import { A, B, blockIn, CHILD_MEMBER, changed, MIXED, metrics, viewOf } from "./support.ts";
+import {
+  A,
+  B,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  MIXED,
+  metrics,
+  viewOf,
+  withoutAncestorCards,
+} from "./support.ts";
 
 const VIEW = viewOf({ id: A, fixture: MIXED, x: 40, y: 80 }, { id: B, fixture: "bare", x: 2000 });
 
@@ -400,7 +410,7 @@ describe("the hover marks", () => {
   });
 
   it("marks a frame, the card rather than the frame around it, and a selected card by its selection", () => {
-    const view = viewOf({ id: A, fixture: CHILD_MEMBER });
+    const view = withoutAncestorCards(viewOf({ id: A, fixture: CHILD_MEMBER }));
     const { svg } = mountOn(view, A, null, { selection: selectedIn(idAddress("group_1")) });
     const frame = addressed(svg, idAddress("group_1"))[0];
     const line = addressed(svg, idAddress("recording")).find(
@@ -432,7 +442,11 @@ describe("the hover marks", () => {
   });
 
   it("marks the frame under the pointer when it is not selected", () => {
-    const { svg } = mountOn(viewOf({ id: A, fixture: CHILD_MEMBER }), A, null);
+    const { svg } = mountOn(
+      withoutAncestorCards(viewOf({ id: A, fixture: CHILD_MEMBER })),
+      A,
+      null,
+    );
     const frame = addressed(svg, idAddress("group_1"))[0];
     if (frame === undefined) throw new Error("no frame");
     move(frame, 12, 12);

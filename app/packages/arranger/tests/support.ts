@@ -142,6 +142,29 @@ export function blockIn(view: View, id: string): Block {
   return found;
 }
 
+/**
+ * The rule hiding every ancestor card (section 8.8), which the defaults show:
+ * `{select: {element: "ancestor_card"}, set: {display: "none"}}`.
+ */
+export const HIDDEN_ANCESTOR_CARDS = {
+  select: { element: "ancestor_card" },
+  set: { display: "none" },
+} as const;
+
+/**
+ * `view` with `HIDDEN_ANCESTOR_CARDS` appended to the workspace's rules by
+ * one `set` of its `graphical`: for a test whose subject is not the ancestor
+ * card, so that its values, derived without the cards, stand (the cards
+ * take no room, and the block's place origin does not move for them).
+ */
+export function withoutAncestorCards(view: View): View {
+  const rules = [...(view.graphical.rules ?? []), HIDDEN_ANCESTOR_CARDS];
+  return changed(view, {
+    type: "set",
+    changes: [{ target: WORKSPACE, values: { graphical: { ...view.graphical, rules } } }],
+  });
+}
+
 /** The fixture paths of the manifests with groups the tests use. */
 export const NUMBERS = "groups/group_number_types";
 export const CHILD_MEMBER = "groups/group_child_member";

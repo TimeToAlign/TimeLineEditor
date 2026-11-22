@@ -2,7 +2,17 @@ import { WORKSPACE } from "@timetoalign/tilie-core";
 import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
-import { A, blockIn, changed, metrics, mixedPlain, placed, viewOf, withGrid } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  metrics,
+  mixedPlain,
+  placed,
+  viewOf,
+  withGrid,
+  withoutAncestorCards,
+} from "./support.ts";
 
 describe("drawingOf", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
@@ -59,7 +69,8 @@ describe("drawingOf", () => {
   });
 
   it("draws a block's places, and overridden places", () => {
-    const moved = placed(mixedPlain(), A, "annotations", { x: -30 });
+    // Drawn without `recording`'s ancestor card, whose room would move the place origin.
+    const moved = placed(withoutAncestorCards(mixedPlain()), A, "annotations", { x: -30 });
     const mixed = blockIn(moved, A);
     const drawing = drawingOf(mixed, moved.graphical, metrics);
     expect(drawing).toEqual(
