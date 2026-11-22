@@ -8,12 +8,15 @@
  * shares. A commit that wrote something other than what was typed (a size
  * below its container's minimum) returns a notice saying so, which the form
  * posts as information. The name field's draft and refusal belong to the
- * target named in the manifest it was typed against, alike.
+ * target named in the manifest it was typed against, alike, and so do the
+ * drafts and refusals of a selected elision's fields (`elisions.ts`).
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
 import type { Address, BlockId, Manifest, Store } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
+import type { ElisionField, ElisionForm } from "./elisions.ts";
+import { fieldCommand } from "./elisions.ts";
 import type { Edit, Geometry, NameField, Role } from "./properties.ts";
 import {
   commonValue,
@@ -50,6 +53,14 @@ interface NameDraft {
   readonly manifest: Manifest | null;
   readonly text: string;
   readonly problem: string | undefined;
+}
+
+/** The texts typed into a selected elision's fields and their refusals, and what they belong to. */
+interface ElisionDraft {
+  readonly address: Address;
+  readonly manifest: Manifest;
+  readonly drafts: { readonly [field in ElisionField]?: string };
+  readonly problems: { readonly [field in ElisionField]?: string };
 }
 
 /** What dispatching an edit gave: the refusal's message, or the notice of what it wrote. */
@@ -98,6 +109,7 @@ function withText(texts: Texts, property: PlaceProperty, text: string | undefine
 export class PropertyDrafts {
   #entry: Entry = $state.raw(EMPTY);
   #name: NameDraft | null = $state.raw(null);
+  #elision: ElisionDraft | null = $state.raw(null);
 
   /** The drafts and refusals of `geometry`'s containers; none when they were typed for others. */
   #of(geometry: Geometry): Entry {
@@ -234,5 +246,67 @@ export class PropertyDrafts {
     const command = nameCommand(field, draft.text);
     const problem = command === null ? undefined : store.dispatch(command)?.message;
     this.#name = problem === undefined ? null : { ...draft, problem };
+  }
+
+  /** The drafts of `form`'s elision in its manifest; `null` when they were typed for another. */
+  #elisionOf(form: ElisionForm): ElisionDraft | null {
+    const draft = this.#elision;
+    return draft !== null &&
+      sameAddress(draft.address, form.address) &&
+      draft.manifest === form.block.manifest
+      ? draft
+      : null;
+  }
+
+  #writeElision(form: ElisionForm, field: ElisionField, text?: string, problem?: string): void {
+    const draft = this.#elisionOf(form);
+    const { [field]: _text, ...drafts } = draft?.drafts ?? {};
+    const { [field]: _problem, ...problems } = draft?.problems ?? {};
+    this.#elision = {
+      address: form.address,
+      manifest: form.block.manifest,
+      drafts: text === undefined ? drafts : { ...drafts, [field]: text },
+      problems: problem === undefined ? problems : { ...problems, [field]: problem },
+    };
+  }
+
+  /** What an elision's field shows: its draft, else its stored value (a width form's converted one). */
+  elisionValue(form: ElisionForm, field: ElisionField): string {
+    const draft = this.#elisionOf(form)?.drafts[field];
+    if (draft !== undefined) return draft;
+    return field === "start" || field === "end" ? form[field] : form.widths[field];
+  }
+
+  /** Why the last commit of an elision's field was refused; `undefined` while it was not. */
+  elisionProblem(form: ElisionForm, field: ElisionField): string | undefined {
+    return this.#elisionOf(form)?.problems[field];
+  }
+
+  /** Keep `text` as the draft of an elision's field; its refusal stays until the next commit. */
+  typeElision(form: ElisionForm, field: ElisionField, text: string): void {
+    this.#writeElision(form, field, text, this.elisionProblem(form, field));
+  }
+
+  /** Drop the draft of an elision's field and its refusal. */
+  discardElision(form: ElisionForm, field: ElisionField): void {
+    this.#writeElision(form, field);
+  }
+
+  /**
+   * Commit the draft of an elision's field as one command (`fieldCommand`):
+   * dropped once the store accepts it (a draft of the stored value
+   * dispatches nothing), kept with the refusal otherwise.
+   */
+  commitElision(form: ElisionForm, field: ElisionField, store: Store): void {
+    const draft = this.#elisionOf(form)?.drafts[field];
+    if (draft === undefined) return;
+    const edit = fieldCommand(form, field, draft);
+    const refusal = !edit.ok
+      ? edit.problems[0]?.message
+      : edit.value === null
+        ? undefined
+        : store.dispatch(edit.value)?.message;
+    if (refusal === undefined) this.#writeElision(form, field);
+    else this.#writeElision(form, field, draft, refusal);
   }
 }

@@ -886,94 +886,9 @@ ancestor, has no card).
    of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
-10. **The parent-timelines button** (`inspector-fields.test.ts`).
-    Showing the parent timelines is a property of the grouped child: one
-    button, on its own row directly under the Name field (before the
-    geometry form or hint, never in the row of the container size), hides
-    and shows the ancestor cards of the root `R` of a grouped child
-    (drawing.md §8.8), its text naming its action, "Hide parent
-    timelines" or "Show parent timelines", its title naming the root,
-    "The card of '<R's name, else its ID>' behind the frames of its
-    members' groups". It is offered when every inspected thing is a
-    timeline, a card or a part of either (a part counting as its owner),
-    all of them under one root that has an ancestor card; whichever of
-    them is selected, the button acts on that one root. In `bundle_mixed`
-    (`bmixed0000`) `R` is `recording` (Recording), the root of the member
-    `excerpt` of `group_2`; the four selections the grouped child's card
-    concerns each offer the same button and send the same command: the
-    member's card `{id: excerpt, part: [card]}`, the child timeline
-    `{id: excerpt}`, the parent timeline `{id: recording}` (its ancestor
-    line in `excerpt`'s card), the ancestor card `{id: recording, part:
-    [card]}`, and a part, `excerpt`'s start mark on that ancestor line
-    `{id: excerpt, part: [start]}`. A descendant drawn in that card: in
-    the Sonata bundle (`bshared000`), `recapitulation_first_1`, a
-    grandchild of the member `recapitulation`, drawn in its card, offers
-    the button of `score` (title "The card of 'Score' …"). No button for
-    `score`'s card (a root member with no grouped descendant: no ancestor
-    card), `group_1`, the block, a band of `excerpt` (`{id: excerpt,
-    facet: markers}`), or two roots (`excerpt` with `score`: `recording`
-    and `score`). *One rule, every frame*: `score` has members in two
-    groups, `exposition` in `group_1` and `recapitulation` in `group_2`,
-    so its drawing holds two ancestor cards of `score`, one per frame
-    (§8.8, "Which"); one click of Hide on `{id: recapitulation}` writes
-    the root's own rule once (one journal entry) and the drawing then
-    holds none of them; Show draws both again. *Undo*: after Hide, the
-    store's `undo` gives back the manifest's rules as they were, the
-    card drawn, and the button reading "Hide parent timelines" again.
-    What it offers is read from the drawing, never from the default
-    layer: each case states its layers, so it holds whatever the
-    defaults say of ancestor cards. The root's own rule is the one of the
-    selector `{element: ancestor_card, addresses: [{id: recording, part:
-    [card]}]}`; a rule of the manifest naming `addresses` outranks every
-    rule of a lower layer and every manifest rule naming none
-    (drawing.md §2.5). Each case below is shown by `{id: recording}`;
-    the first two also by `{id: recording, part: [card]}`.
-    - *Drawn, no own rule* (the workspace's `graphical` shows every
-      ancestor card): "Hide parent timelines", enabled; a click
-      sends exactly `{type: style, select: {element: ancestor_card,
-      addresses: [{id: recording, part: [card]}]}, set: {display: none},
-      blocks: [M]}`, one journal entry, after which the drawing records no
-      ancestor card of `recording`.
-    - *Hidden by its own rule* (that state): "Show parent
-      timelines", enabled; a click sends the same with `display: null`, which
-      removes the rule, leaving the manifest's rules as they were, and the
-      card is drawn again.
-    - *Hidden by a manifest-wide rule* (the workspace showing every
-      ancestor card, the manifest's rule `{element: ancestor_card}`
-      hiding every one): "Show parent timelines", enabled; a click
-      sends the own rule with `display: inline`, which outranks the
-      manifest-wide one, and the card is drawn; "Hide" then sends
-      `display: none` into that same own rule, and "Show" `display:
-      inline` again (removing it would leave the card hidden).
-    - *Hidden by a rule the own one cannot outrank* (the manifest's
-      `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
-      within: recording}` hiding it: a deeper `within` ranks higher):
-      "Show parent timelines", disabled; a click sends nothing.
-    - *Shown by a rule the own one cannot outrank* (the manifest's
-      `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
-      within: recording}` with `display: inline`): the Hide command is
-      tried as Show's are (applied by core's `preview`, the block drawn),
-      the card stays drawn, so "Hide parent timelines", disabled; a
-      click sends nothing and the journal keeps its length.
-    - *Disabled, yet reachable and explained*: a disabled button stays
-      focusable (`aria-disabled="true"`, never the `disabled` attribute,
-      which takes it out of the tab order and hides a tooltip in some
-      browsers); its accessible name is its text, and `aria-describedby`
-      names a visible hint paragraph holding the reason: "Hidden by
-      another style rule" for a disabled Show, "Shown by another style
-      rule" for a disabled Hide. An enabled button carries neither
-      `aria-disabled` nor the hint. Both disabled cases check the three.
-    - *Tried once per manifest and layer*: what a trial draws depends only
-      on the block's manifest and the workspace's `graphical`, so the
-      trials are kept per those two objects. Counting the calls of the
-      arranger's `drawingOf` (a pass-through spy of the module), a first
-      evaluation of the button for the hidden `recording` draws once, a
-      second with the same manifest and layer draws nothing, one after
-      a command that replaces the manifest draws again, and so does one
-      after a `set` of the workspace's `graphical` (a rule for frames that
-      leaves the card as it was) that keeps the manifest the same object;
-      a second after that draws nothing. Each key is proven alone. A
-      count, never a timing.
+10. **The elision section** stands where the name field ends, before the
+    geometry form or hint and outside the size row; what it offers is
+    proven in "The elision section" below (`inspector-elision.test.ts`).
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's
@@ -1008,20 +923,112 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept.
 
-## A selected elision (`inspector-elision.test.ts`)
+## The elision section (`inspector-elision.test.ts`)
 
-A stored elision has no name, no lock, no timeline membership and no
-statements of its own, and no section of the Properties tab yet; the
-inspector treats it as it treats an alignment anchor. The oracle is the
-`bundles` workspace's `bmixed0000` with one `add` of an elision into the
-timeline `score` (`{start: [1, 1], end: [2, 1]}`), which mints
-`elision_1`, selected alone at the arranger. Core resolves the address to
-the kind `elision`. The statements tab shows nothing, in the words "Elision
-'elision_1' in bundle 'Mixed' has no statements: a
-bundle, a timeline or a region has. Select its block, a timeline or a
-region." (the elision's words are core's `addressWords`). The name field,
-the lock and the Groups fieldset are absent (`null`), since an elision is
-no timeline, group or named element.
+Showing a root's elisions is a property of what lies under it (drawing.md
+§§2.4, 8.8, 8.9): one section, directly under the Name field, wherever
+every inspected thing is a timeline, a card, a part of either or an
+elision, all under one root `R` whose drawing can carry elisions, an
+ancestor card of `R` or `R`'s card as an ungrouped root. Every value is
+read from the manifest and from the drawing the canvas shows: a strip's
+drawn width is `x2 − x1`, its natural width its stretch at the card's full
+scale (a full run's `(xEnd − xStart) / (drawnEnd − start)`), the card's
+default proportion `r` the drawn over the natural width of a strip drawn
+without `width`; the section never lays anything out. A mode is tried
+before it is offered: the block drawn with its commands applied (core's
+`preview`), so a rule of any layer that keeps the drawing as it is shows
+in the offer, never in a guess about the defaults.
+
+The oracles are two fixtures whose numbers drawing.md derives by hand:
+`groups/group_elided_inside` (block `0000000000`, the root `piece` of 64
+♩ with `first` (32 at 0) and `second` (32 at 32), the member `excerpt` of
+8 at 8 in `first`, `r = 0.14285714285714285`, the default elisions `first`
+0–8 and 16–32 and `second` 0–32) and `bundles/bundle_elisions_stored`
+(block `0000000000`: `score` 64 ♩ behind the frame aligned to `theme` 8 at
+16, its stored `elision_4` 0–20 with ratio 0.5 clipped to 0–16, `elision_5`
+32–48 with span 4, `elision_6` 40–56 with canvas 30 clipped to 48–56, and
+`elision_1` on the hidden `coda`, drawn nowhere; `session` drawn whole by
+its own rule `{element: elision, within: session}`, its `elision_7` drawn
+nowhere; the ungrouped root `page` 1754 px with `elision_2` 600–1754
+without `width`, `r = 0.5199306759098787`).
+
+- **Where.** In `group_elided_inside` the section is offered for the
+  member card `{id: excerpt, part: [card]}`, the child `{id: first}`, the
+  root `{id: piece}` and the default elision `{id: second, part:
+  [elision]}`, always titled `Parent timeline "Piece"`; not for
+  `recording` (a root member: no ancestor card), the block, `group_1`, or
+  `excerpt` with `recording` (two roots). The ungrouped `page` is titled
+  `Elisions of "Page"` and offers two modes, Elided and Full.
+- **Read.** `piece`: mode Elided; status "automatic, 0.1429 of their
+  length" (r to four places); rows, in drawing order, one per address:
+  `First` `0–8 ♩, 16–32 ♩` automatic, `Second` `0–32 ♩` automatic; Root
+  left and right `{type: add, into: {block}, elision: [{timeline: piece,
+  start: [0, 1], end: [8, 1]}, {timeline: piece, start: [16, 1], end:
+  [64, 1]}]}` (the protected span 8 to 16); Reset none. `score`: mode
+  Elided, status "4 stored elisions", rows `Score` `0–16 ♩` "0.5 of its
+  length", `Score` `32–48 ♩` "as wide as 4 ♩", `Score` `48–56 ♩` "30 px";
+  Reset one `remove` of `elision_1`, `elision_4`, `elision_5` and
+  `elision_6`. `session`: mode Full by its own rule, status "1 stored
+  elision", no row, Elided offering exactly the own rule's `display:
+  null`. `page`: mode Elided, status "1 stored elision", one row `Page`
+  `600–1 754 px` automatic.
+- **The mode** is one `fieldset` of native radios sharing one name, so
+  the arrow keys move between them; each option sends its `style`
+  commands. On `piece`: Full sends exactly `{type: style, select:
+  {element: elision, within: piece}, set: {display: none}, blocks: [B]}`,
+  one entry, after which the drawing holds no strip, the mode reads Full
+  and the status still "automatic, 0.1429 of their length" (read from the
+  Elided option's trial); undo gives back the rules and the mode Elided.
+  Hidden sends `{element: ancestor_card, addresses: [{id: piece, part:
+  [card]}]}` with `display: none` (one entry; the drawing then records no
+  ancestor card of `piece`); from Hidden, Elided sends the card rule's
+  `display: null` alone (one entry, the strips drawn again), and Full the
+  card rule's `display: null` and then the elisions rule's `display: none`
+  (two entries: one command carries one rule). *Held*: with the Full view
+  in the workspace's layer (`withFullCards`), the mode reads Full and
+  Elided offers the own rule's `display: inline`, which outranks it; with
+  the manifest's `{element: ancestor_card, addresses: [{id: piece, part:
+  [card]}], within: piece}` showing the card, Hidden is held: the radio
+  stays focusable, `aria-disabled="true"`, described by the visible hint
+  "Hidden: Shown by another style rule", and choosing it sends nothing;
+  with that rule hiding the card, Elided and Full are held, "Hidden by
+  another style rule".
+- **Preset, reset, rows.** Root left and right on `piece` is one entry
+  storing `elision_1` (0–8) and `elision_2` (16–64), after which the
+  status reads "2 stored elisions"; Reset is one `remove` of both, the
+  defaults drawn again. A row's click selects its address alone. The
+  `[×]` of the default `Second` is one `add` into the block of `first`
+  0–8 and `first` 16–32 without `width` (the card's other defaults); one
+  undo gives back a manifest without stored elisions.
+- **A selected elision.** The default `{id: second, part: [elision]}`:
+  title `Elision of "Second"`, From `0`, To `32`, unit `♩`, share "0 % …
+  100 % of Second", width Automatic with `(0.1429)`, the other forms'
+  values converted from the drawn width so that it does not jump: ratio
+  `0.1429`, span `4.5714` (32 × r to four decimals), canvas `228.57`; all
+  three shown. To `16` and Enter is one `add` storing the card's three
+  defaults with `second` ending at `[16, 1]`. The stored `elision_5`:
+  From `32`, To `48`, width As wide as `4`; From `33.5` and Enter is one
+  `set` of `start: [67, 2]` (a decimal on a fraction axis means the value
+  it denotes); `x` is refused, kept with "\"x\" is no fraction value; write
+  an integer, n/d, a b/c or a decimal", `aria-invalid`; choosing Fixed is
+  one `set` of `width: {canvas: c}`, `c` the strip's drawn width `x2 − x1`
+  over its item's scale, to two decimals (a ratio and a span are converted
+  to four); unchecking name
+  one `set` of `display: [strip, coordinate]`; Delete one `remove`.
+  `elision_2` on `page` shows `(0.5199)`. A stored elision still has no
+  name field, no lock and no Groups fieldset, and its statements tab says
+  "Elision 'elision_1' in bundle 'Mixed' has no statements: a bundle, a
+  timeline or a region has. Select its block, a timeline or a region." (on
+  the `bundles` workspace's `bmixed0000` with one `add` of `{start: [1,
+  1], end: [2, 1]}` into `score`).
+- **Tried once per manifest and layer.** What a trial draws depends only
+  on the block's manifest and the workspace's `graphical`, so trials are
+  kept per those two objects: counting the arranger's `drawingOf` (a
+  pass-through spy), a second evaluation of `piece`'s section with the
+  same manifest and layer draws nothing, one after a `set` of the
+  manifest's name draws four times: the block as it is, with the elisions
+  rule `inline` and with it `none` (Elided and Full tried), and with the
+  card rule `none` (Hidden tried).
 
 ## Group memberships (`inspector-groups.test.ts`)
 

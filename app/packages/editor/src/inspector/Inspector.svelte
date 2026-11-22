@@ -15,7 +15,7 @@
  */
 import type { KnotsOf, LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
-import type { Pin } from "@timetoalign/tilie-core";
+import type { Address, Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
@@ -58,6 +58,7 @@ let {
   tables = new MatchClaimTables(null),
   indexesOf = () => null,
   knotsOf,
+  onselect = () => {},
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -86,6 +87,8 @@ let {
    * measure view gives a value.
    */
   knotsOf?: KnotsOf | undefined;
+  /** Select `address` alone on the canvas: a row of the Properties tab's elision section. */
+  onselect?: ((address: Address) => void) | undefined;
 } = $props();
 
 const uid = $props.id();
@@ -215,6 +218,7 @@ const hinted = $derived(block === null && !manifest.dirty);
             editing={innermost ?? null}
             {placement}
             {drafts}
+            {onselect}
           />
         {:else if hinted}
           <p class="hint">Select a block to inspect its manifest.</p>

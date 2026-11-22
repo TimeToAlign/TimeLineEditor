@@ -1,9 +1,12 @@
 /**
  * Ancestor cards (TimeToShare's drawing specification, section 8.8): a root
  * is drawn whole behind the frame of its member's group by default, beyond
- * the frame's borders; the Properties button "Hide parent timelines",
- * offered for the root and for its grouped child alike, hides it with one
- * style entry and "Show parent timelines" draws it again; a double-click on it opens the root's timeline editor and raises
+ * the frame's borders; the Properties section of its root, offered for the
+ * root and for its grouped child alike, hides it by its mode Hidden with
+ * one style entry and draws it again by Elided; its elisions switch to Full
+ * and back, are stored left and right of the member and reset, a default one
+ * is deleted by storing the others and restored by one undo, and a selected
+ * one's end is typed; a double-click on it opens the root's timeline editor and raises
  * it over the frame, unfolding it out of the member card and folding it back on Done, at once under
  * reduced motion; Show coordinates reads the card where it is seen and an
  * ancestor line as its ancestor's. The expected values are derived in
@@ -123,8 +126,19 @@ function cardCommand(block: string, display: "none" | null) {
   };
 }
 
-/** The button's title, naming the root. */
-const TITLE = "The card of 'Piece' behind the frames of its members' groups";
+/** The section's title, naming the root. */
+const TITLE = 'Parent timeline "Piece"';
+
+/** The radio of the mode `word` in the Properties section. */
+function mode(page: Page, word: "Elided" | "Full" | "Hidden"): Locator {
+  return page.getByTestId("elisions").getByRole("radio", { name: word, exact: true });
+}
+
+/** Open the inspector's Properties tab. */
+async function properties(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Open inspector" }).click();
+  await page.getByRole("tab", { name: "Properties", exact: true }).click();
+}
 
 test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 
@@ -161,14 +175,14 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   expect(await cardAfterFrame(page, block)).toBe(false);
 
   await select(page, [{ block, id: "piece" }]);
-  await page.getByRole("button", { name: "Open inspector" }).click();
-  await page.getByRole("tab", { name: "Properties", exact: true }).click();
-  const button = page.getByTestId("ancestor-card");
-  await expect(button).toHaveText("Hide parent timelines");
-  await expect(button).toHaveAttribute("title", TITLE);
-  await expect(button).not.toHaveAttribute("aria-disabled", "true");
+  await properties(page);
+  const section = page.getByTestId("elisions");
+  await expect(section.getByRole("heading")).toHaveText(TITLE);
+  await expect(mode(page, "Elided")).toBeChecked();
+  await expect(page.getByTestId("elision-status")).toHaveText("Elisions: automatic: drawn whole");
+  await expect(mode(page, "Hidden")).not.toHaveAttribute("aria-disabled", "true");
 
-  await button.click();
+  await mode(page, "Hidden").click();
   await expect.poll(() => journalLength(page)).toBe(2);
   expect(await newestCommand(page)).toEqual(cardCommand(block, "none"));
   await expect(element(page, block, PIECE_CARD)).toHaveCount(0);
@@ -177,20 +191,168 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   const kept = await placement(page, block);
   expect([kept.x, kept.y]).toEqual([x, y]);
 
-  await expect(button).toHaveText("Show parent timelines");
-  await expect(button).not.toHaveAttribute("aria-disabled", "true");
+  await expect(mode(page, "Hidden")).toBeChecked();
+  await expect(mode(page, "Elided")).not.toHaveAttribute("aria-disabled", "true");
 
   await select(page, [{ block, id: "middle" }]);
-  await expect(button).toHaveText("Show parent timelines");
-  await expect(button).toHaveAttribute("title", TITLE);
-  await button.click();
+  await expect(mode(page, "Hidden")).toBeChecked();
+  await expect(section.getByRole("heading")).toHaveText(TITLE);
+  await mode(page, "Elided").click();
   await expect.poll(() => journalLength(page)).toBe(3);
   expect(await newestCommand(page)).toEqual(cardCommand(block, null));
   await expect(element(page, block, PIECE_CARD)).toHaveCount(2);
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
   expect(await heldBoxes(page, block)).toEqual(HELD_BESIDE_CARD);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x - SHIFT, y));
-  await expect(button).toHaveText("Hide parent timelines");
+  await expect(mode(page, "Elided")).toBeChecked();
+});
+
+/** Import `group_elided_inside` as `imported` imports its fixture; the block's ID. */
+async function importedInside(page: Page): Promise<string> {
+  await withoutPickers(page);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__tilie !== undefined);
+  await pick(
+    page,
+    "Import manifest…",
+    "group_elided_inside.yaml",
+    manifestFixture("groups/group_elided_inside"),
+  );
+  await expect.poll(() => journalLength(page)).toBe(1);
+  const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
+  if (block === undefined) throw new Error("the import added no block");
+  return block;
+}
+
+/** The stored elisions of block `block`, as the store holds them. */
+function storedElisions(page: Page, block: string): Promise<unknown> {
+  return page.evaluate(
+    (id) =>
+      JSON.parse(
+        JSON.stringify(window.__tilie.store().view.blocks[id]?.manifest.graphical?.elisions ?? []),
+      ),
+    block,
+  );
+}
+
+const FIRST = { id: "first", part: ["elision"] } as ElementAddress;
+const SECOND = { id: "second", part: ["elision"] } as ElementAddress;
+
+test("the elisions switch to Full and back, and are stored left and right and reset", async ({
+  page,
+}) => {
+  const block = await importedInside(page);
+  await select(page, [{ block, id: "excerpt" }]);
+  await properties(page);
+  await expect(mode(page, "Elided")).toBeChecked();
+  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+
+  await mode(page, "Full").click();
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect(await newestCommand(page)).toEqual({
+    type: "style",
+    select: { element: "elision", within: "piece" },
+    set: { display: "none" },
+    blocks: [block],
+  });
+  await expect(element(page, block, SECOND)).toHaveCount(0);
+  await expect(mode(page, "Full")).toBeChecked();
+  // The arrow keys move between the options, choosing each as a click does.
+  await mode(page, "Full").focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(() => journalLength(page)).toBe(3);
+  expect(await newestCommand(page)).toEqual({
+    type: "style",
+    select: { element: "elision", within: "piece" },
+    set: { display: null },
+    blocks: [block],
+  });
+  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+
+  await page.getByRole("button", { name: "Root left and right" }).click();
+  await expect.poll(() => journalLength(page)).toBe(4);
+  expect(await storedElisions(page, block)).toEqual([
+    {
+      id: "elision_1",
+      timeline: "piece",
+      start: [0, 1],
+      end: [8, 1],
+      display: ["strip", "name", "coordinate"],
+    },
+    {
+      id: "elision_2",
+      timeline: "piece",
+      start: [16, 1],
+      end: [64, 1],
+      display: ["strip", "name", "coordinate"],
+    },
+  ]);
+  await expect(page.getByTestId("elision-status")).toHaveText("Elisions: 2 stored elisions");
+  await expect(element(page, block, SECOND)).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Reset to automatic" }).click();
+  await expect.poll(() => journalLength(page)).toBe(5);
+  expect(await storedElisions(page, block)).toEqual([]);
+  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+});
+
+test("a default elision deleted stores the others, and one undo restores them all", async ({
+  page,
+}) => {
+  const block = await importedInside(page);
+  await select(page, [{ block, id: "piece" }]);
+  await properties(page);
+  await page.getByRole("button", { name: "Delete the elision of Second, 0–32 ♩" }).click();
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect(await storedElisions(page, block)).toEqual([
+    {
+      id: "elision_1",
+      timeline: "first",
+      start: [0, 1],
+      end: [8, 1],
+      display: ["strip", "name", "coordinate"],
+    },
+    {
+      id: "elision_2",
+      timeline: "first",
+      start: [16, 1],
+      end: [32, 1],
+      display: ["strip", "name", "coordinate"],
+    },
+  ]);
+  await expect(element(page, block, SECOND)).toHaveCount(0);
+  await page.evaluate(() => window.__tilie.store().undo());
+  expect(await storedElisions(page, block)).toEqual([]);
+  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+  await expect(element(page, block, FIRST)).not.toHaveCount(0);
+});
+
+test("a selected elision's end is typed exactly and stores the card's defaults", async ({
+  page,
+}) => {
+  const block = await importedInside(page);
+  await select(page, [{ block, id: "piece" }]);
+  await properties(page);
+  await page.getByTestId("elisions").locator("button.row", { hasText: "Second" }).click();
+  await expect
+    .poll(() => page.evaluate(() => [...window.__tilie.selection()]))
+    .toEqual([{ block, ...SECOND }]);
+  const form = page.getByTestId("elision-form");
+  await expect(form.locator("legend").first()).toHaveText('Elision of "Second"');
+  const end = form.locator('input[name="end"]');
+  await expect(end).toHaveValue("32");
+  await end.fill("16");
+  await end.press("Enter");
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect(await newestCommand(page)).toEqual({
+    type: "add",
+    into: { block },
+    elision: [
+      { timeline: "first", start: [0, 1], end: [8, 1] },
+      { timeline: "first", start: [16, 1], end: [32, 1] },
+      { timeline: "second", start: [0, 1], end: [16, 1] },
+    ],
+  });
 });
 
 test("a double-click on an ancestor card opens its root's editor and raises it", async ({
