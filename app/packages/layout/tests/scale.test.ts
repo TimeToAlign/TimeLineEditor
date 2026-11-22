@@ -19,7 +19,7 @@ import {
 } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
-import { type Extent, Rows } from "../src/fit.ts";
+import { Rows } from "../src/fit.ts";
 import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw } from "../src/index.ts";
 import { at, load, metrics } from "./support.ts";
 
@@ -350,23 +350,27 @@ describe("work per timeline", () => {
 });
 
 describe("work per placement", () => {
-  /** `count` touching extents `[i, i + 1]` placed in order: each extent's start and end reads. */
-  const readsOf = (count: number) => {
-    const reads = Array.from({ length: count }, () => 0);
-    const rows = new Rows();
-    const placed = Array.from({ length: count }, (_, index) => {
-      const extent = new Proxy<Extent>([index, index + 1], {
-        get: (target, member, receiver) => {
-          if (member === "0" || member === "1") reads[index] = (reads[index] ?? 0) + 1;
-          return Reflect.get(target, member, receiver);
+  /**
+   * `count` touching extents `[i, i + 1]` placed in order, every end a value whose every
+   * conversion to a number (each side of each `<`, `<=`, `>` the row evaluates) is counted.
+   */
+  const placing = (count: number) => {
+    let conversions = 0;
+    const value = (number: number) =>
+      ({
+        valueOf: () => {
+          conversions += 1;
+          return number;
         },
-      });
-      return rows.place(extent);
-    });
-    return { reads, placed, count: rows.count };
+      }) as unknown as number;
+    const rows = new Rows();
+    const placed = Array.from({ length: count }, (_, index) =>
+      rows.place([value(index), value(index + 1)]),
+    );
+    return { conversions, placed, count: rows.count };
   };
-  const small = readsOf(300);
-  const large = readsOf(3000);
+  const small = placing(300);
+  const large = placing(3000);
 
   it("places 300 and 3,000 touching extents all in row 1", () => {
     expect([small.count, large.count]).toEqual([1, 1]);
@@ -376,11 +380,7 @@ describe("work per placement", () => {
     ]).toEqual([true, true]);
   });
 
-  it("reads the first and the last extent as often in the larger sequence as in the smaller", () => {
-    expect([large.reads[0], large.reads[2999]]).toEqual([small.reads[0], small.reads[299]]);
-  });
-
-  it("reads no extent more often in the larger sequence than the most-read of the smaller", () => {
-    expect(Math.max(...large.reads)).toBe(Math.max(...small.reads));
+  it("reads the ends 9,388 times for 300 extents and 133,664 times for 3,000", () => {
+    expect([small.conversions, large.conversions]).toEqual([9388, 133664]);
   });
 });
