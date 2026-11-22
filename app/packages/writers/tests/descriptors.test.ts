@@ -305,14 +305,23 @@ describe("descriptors", () => {
     expect(svg).toContain(
       '<text data-id="timestamp_1" data-part="name" x="124.9155" y="102.7837" text-anchor="middle" font-size="9" fill="#000000">Downbeat</text>',
     );
-    expect(svg.slice(-4)).toEqual([
+    for (const label of [
       '<text data-id="timestamp_3" data-part="name" x="199.9155" y="47.854" text-anchor="middle" font-size="9" fill="#000000">Entry</text>',
       '<text data-id="timestamp_3" data-part="id" x="199.9155" y="58.3306" text-anchor="middle" font-size="9" fill="#000000">timestamp_3</text>',
       '<text data-id="timestamp_3" data-part="coordinate" x="199.9155" y="68.8071" text-anchor="middle" font-size="9" fill="#000000">1 ♩</text>',
-      '<line data-id="timestamp_1" data-part="line" x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+    ]) {
+      expect(svg).toContain(label);
+    }
+    const line = (id: string, x: string, y1: string, y2: string) =>
+      `<line data-id="${id}" data-part="line" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>`;
+    expect(svg.slice(-4)).toEqual([
+      line("timestamp_1", "124.9155", "8", "79.4297"),
+      line("timestamp_1", "124.9155", "104.9062", "112.9062"),
+      line("timestamp_3", "199.9155", "8", "24.5"),
+      line("timestamp_3", "199.9155", "70.9297", "112.9062"),
     ]);
     expect(tikzBody(drawing).slice(-1)).toEqual([
-      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (124.9155,106.9062) -- (124.9155,44.9766);",
+      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (199.9155,51.9766) -- (199.9155,10);",
     ]);
     // An editor's wedge at the same position writes the same points.
     const key = placeKeyText({ item: "clt_1" }) + addressKey({ id: "clt_1" });
@@ -350,12 +359,12 @@ describe("descriptors", () => {
       fontMetrics,
     );
     expect(svgBody(drawing).slice(-3)).toEqual([
-      '<line data-id="anchor_1" x1="261.0928" y1="43.207" x2="161.0928" y2="100.5859" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
-      '<line data-id="anchor_2" x1="261.0928" y1="43.207" x2="161.0928" y2="157.9648" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
-      '<text data-id="anchor_1" data-part="name" x="211.0928" y="75.0122" text-anchor="middle" font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>',
+      '<line data-id="anchor_1" x1="261.0928" y1="78.1836" x2="161.0928" y2="86.1836" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+      '<line data-id="anchor_2" x1="261.0928" y1="78.1836" x2="161.0928" y2="143.5625" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+      '<text data-id="anchor_1" data-part="name" x="211.0928" y="85.2993" text-anchor="middle" font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>',
     ]);
     expect(tikzBody(drawing).slice(-3, -2)).toEqual([
-      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (261.0928,159.7344) -- (161.0928,102.3555);",
+      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);",
     ]);
   });
 
@@ -535,24 +544,24 @@ describe("descriptors", () => {
     const { points } = chevronsOf("groups/group_grandchild", "score");
     expect(points).toEqual([
       [
-        [96.70361328125, 63.28125],
-        [92.20361328125, 67.78125],
-        [96.70361328125, 72.28125],
+        [96.70361328125, 114.66015625],
+        [92.20361328125, 119.16015625],
+        [96.70361328125, 123.66015625],
       ],
       [
-        [92.20361328125, 63.28125],
-        [87.70361328125, 67.78125],
-        [92.20361328125, 72.28125],
+        [92.20361328125, 114.66015625],
+        [87.70361328125, 119.16015625],
+        [92.20361328125, 123.66015625],
       ],
       [
-        [526.70361328125, 63.28125],
-        [531.20361328125, 67.78125],
-        [526.70361328125, 72.28125],
+        [526.70361328125, 114.66015625],
+        [531.20361328125, 119.16015625],
+        [526.70361328125, 123.66015625],
       ],
       [
-        [531.20361328125, 63.28125],
-        [535.70361328125, 67.78125],
-        [531.20361328125, 72.28125],
+        [531.20361328125, 114.66015625],
+        [535.70361328125, 119.16015625],
+        [531.20361328125, 123.66015625],
       ],
     ]);
   });

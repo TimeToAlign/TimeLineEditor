@@ -288,3 +288,9 @@ export function child(parent: string, id: string, offset: number, length: number
     },
   };
 }
+
+/**
+ * The sine and cosine of 45° rounded to four places (section 6.6, Wedges), read as a double:
+ * written as a quotient, which rounds to the same double as the literal.
+ */
+export const SINE_45 = 7071 / 10_000;

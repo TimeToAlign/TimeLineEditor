@@ -119,7 +119,12 @@ a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
 `second-half` as the child row it is in `piece`'s ancestor card) and no
 band of a member drawing's root, a member that is a child included: every
 markers band is shown, so every named timestamp stays visible. It shows
-every ancestor card (section 8.8): no rule of it sets `display`.
+every ancestor card (section 8.8): no rule of it sets `display`. It hides
+every wedge and label of a secondary coordinate and turns its wedge −45
+(the last rule, `{coordinates: secondary}`), and keeps at opacity 1 the
+cross-section line and the primary wedge and labels of a timestamp named
+on an ancestor line (the two rules after the fading `{inside: ancestor}`,
+each outranking it by naming `element` or `coordinates`).
 
 ## The constants (`defaults.test.ts`)
 
@@ -146,9 +151,10 @@ text, with the text the layout's constants give it:
 Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
 = 4`", section 6.2), and the frame's, 8 ("`spacing`: 8 for a frame, 4 for a
-card", section 8.6, which states the card's 4 again); and the rotation of a
-groupstamp's wedge that no rule sets, −45 ("but −45 on the wedge of a
-groupstamp", section 2.5, its minus sign U+2212).
+card", section 8.6, which states the card's 4 again); and the initial
+`rotation`, 0, the last of section 2.5's initial values ("`max-width`
+`none`, `rotation` 0."): no wedge has another initial rotation, a
+secondary coordinate's −45 being a default rule's (section 4).
 
 ## The cascade (`cascade.test.ts`)
 
@@ -157,7 +163,12 @@ One key, the child `c` of a root `r`, exercises the eight ranks of section
 depth of `within`, class, element, `inside`, the count of domain and
 modality, then rule order; `facet` ranks exactly where class does (on
 the regions band of `c`, `{facet: regions}` outranks `{element: band,
-inside: child}` and is outranked by `{within: c}`). A missing named style
+inside: child}` and is outranked by `{within: c}`), and so does
+`coordinates` (on the wedge of a primary coordinate in `c`'s markers band,
+`{coordinates: primary}` outranks `{element: wedge, inside: band}` and is
+outranked by `{within: c}`; of it and `{class: …}`, both of rank 4, the
+one naming `element` too wins wherever it stands; `{coordinates:
+secondary}` sets nothing on that wedge). A missing named style
 sets nothing, a `within` outside the manifest matches nothing, and the
 block is never matched by domain, class, facet, an element's address or
 `within`. Recording which rules the cascade tests proves that it tests
@@ -175,12 +186,12 @@ own holders. Inheritance is a column of the property table: stroke,
 stroke-width, stroke-dasharray, fill and font-size inherit (a root's stroke
 reaches its grandchild, a region's font size its label), never `shadow`,
 `opacity`, `rx` or `rotation`. `rotation` is set by a rule alone: a wedge
-no rule turns reads it as its initial value, 0, but −45 on a groupstamp's
-wedge (section 2.5), and carries that number in its style; every other
+no rule turns reads it as its initial value, 0 (section 2.5), a
+groupstamp's too, and carries that number in its style; every other
 element keeps it unset (`null`). So, without layers, every element of
 `with_region` has the initial values but its wedges, whose `rotation` is
-0; in `groups/group_groupstamp`, the groupstamp `timestamp_1`'s wedge has
-−45 and every other wedge 0; an extra layer's rule `{element: wedge}`
+0; in `groups/group_groupstamp` every wedge, the groupstamp
+`timestamp_1`'s included, has 0; an extra layer's rule `{element: wedge}`
 setting 0 gives `timestamp_1`'s wedge 0, one setting 30 gives every wedge
 30; a rule setting 30 on `score`'s markers band (`{id: score, facet:
 markers}`) turns none of the wedges it holds. A map is drawn in the domain and modality it
@@ -192,14 +203,19 @@ no time axis (the ConstantMap `cmap_8`) taking its timeline's stroke, with
 its type as class (`ConstantMap` matches `cmap_8` alone). For every manifest fixture, every
 drawn element's address and type, the block's `{}` included, are among the
 element keys core enumerates, and no address is drawn more often than core
-enumerates it. A drawing is one element, but for the pieces a groupstamp's
-line is drawn in across a frame: they lie in no card (outside every card's
-range of elements), and those inside one frame's box are one drawing of
-that frame, which core enumerates once (held by the frame) beside the
+enumerates it. A drawing is one element, but for the pieces of a
+cross-section line: the up to two pieces in one card, on either side of
+its gap, are one drawing of that card, and the pieces a groupstamp's line
+is drawn in across a frame lie in no card (outside every card's range of
+elements), and those inside one frame's box are one drawing of that
+frame, which core enumerates once (held by the frame) beside the
 timestamp's own line in its card; the pieces themselves are counted under
 "Groupstamps". Without core's frame keys `groups/group_groupstamp` fails:
-`timestamp_1`'s line is drawn twice (its own line, `score` having a
-conversion maps band, and `group_1`'s pieces).
+`timestamp_1`'s line is drawn twice (its own line in `score`'s card and
+`group_1`'s pieces). A test of one address drawn twice without the
+default layer hides the secondary coordinates by a rule of its own
+(`{coordinates: secondary}`, `display: none`), so that it compares the
+primary ones, which the defaults alone show.
 
 ## Hand-derived drawings (`examples.test.ts`)
 
@@ -905,47 +921,68 @@ values are those of the drawing fixtures, which no side changes.
   that order, below): the band starts at `max(7, 8 + 4) = 12`, `piece` 19
   above the member at 67.78125, the member at 86.78125, the card 95.453125.
 
-**A member's cross-section lines cross its ancestor lines** (section 6.6):
-the extent of the cross-section lines of the root of a member drawing with
-ancestor bands reaches its outermost displayed ancestor line on each side,
-as it reaches its children and conversion maps bands, and stops there,
-short of their marks. What proves it: the ordinates are read off other
-records of the same drawing (the ancestor lines' `y`, the member's line
-`y`, the children band's edge), and agree with the values below.
+**A member's cross-section lines cross its whole card** (section 6.6):
+a named timestamp's line runs from its card's upper border to its lower
+border, the ancestor lines on either side included, less its gap, which
+a timestamp drawing its line alone does not have. What proves it: the
+ordinates are read off other records of the same drawing (the card boxes
+keyed by their place keys, the ancestor lines' `y`), and every drawn
+line's marker (`AxisMarker.crossSection.span`) is its card's span.
 
 - `group_parent_both` (`middle`, offset 4, length 8 in `piece` of 16) with
   the named timestamp `Here` at 2 on `middle`, `display` `[cross_section]`
-  (`timestamp_5`): `middle` has no band a cross-section crosses, so before
-  this rule its line had no length and was not drawn; now it runs at `x0 +
-  400 × 2 / 8 = 111.70361328125 + 100 = 211.70361328125` from `middle`'s
-  line, 47.20703125, down to `piece`'s ancestor line, 85.18359375, across
-  `middle`'s own markers band, and `middle`'s marker carries that extent.
-  `recording`, a root member without ancestors or bands, keeps no extent.
+  (`timestamp_5`): `middle` at 47.20703125, `piece`'s ancestor line below
+  at 85.18359375; one line at `x0 + 400 × 2 / 8 = 211.70361328125` from
+  the top of `middle`'s card to its bottom, across the ancestor line.
 - The same with a child `inner` of `middle` (offset 1, length 2) and a
-  named timestamp at 1 on `inner`, `display` `[cross_section]`: the
-  children band above `middle` (from 7 to 21) puts `middle` at `32.8046875
-  + 8 + 21 = 61.8046875` and `piece` at 99.78125; `middle`'s extent runs
-  from the band's outer edge, 40.8046875, to the ancestor line, 99.78125;
-  `inner`'s stays null, so its timestamp draws no line: a descendant of the
-  member never reaches the member's ancestors.
+  named timestamp at 1 on `inner`, `display` `[cross_section]`: its line
+  crosses `middle`'s whole card too, at the same abscissa (1 + 1 of
+  `middle`'s 8): a descendant's line is the card's, as the member's.
 - Hiding the ancestor line (`{addresses: [{id: piece}]}`, `display: none`)
-  removes the ancestor band, and `middle`'s extent is null again.
-- `group_grandchild_parent_on_top`: `theme`'s extent runs from `movement`'s
-  line above, 67.78125, to `score`'s below, 119.7578125, and the named
-  timestamp `Here` at 2 on `theme` (`timestamp_5`, `display`
-  `[cross_section]`) draws its line at 211.70361328125 between them: the
-  line reaches the ancestor lines on both sides.
+  leaves the line across the card.
+- `group_grandchild_parent_on_top`: `theme`'s marker spans its card, and
+  `Here` at 2 on `theme` (`timestamp_5`) draws its line at 211.70361328125
+  from the card's top, above `movement`'s line, to its bottom, below
+  `score`'s.
 - `data/clair-de-lune-session.yaml` (a session of a score image, its time
   axis, a six-measure excerpt drawn on it, a recording and the score's
   encoding; the grouped child `cgt_3` "mm. 1-6" in `cgt_2` in `cgt_1`, both
-  its ancestors displayed, every order the default): `cgt_3`'s card lies at
-  69.70703125 (below `dpt_1`'s, `32.8046875 + 28.90234375 + 8`), its map
-  band above (`y_root = 14.5`), so its line lies at 84.20703125; it has no
-  markers band, so its ancestor band starts at `max(7, 1.5 + 4) = 7`:
-  `cgt_2` at 98.20703125, `cgt_1` at `+ 33.9765625 = 132.18359375`.
-  `cgt_3`'s extent runs from its maps band's outer edge, 77.70703125, to
-  `cgt_1`'s line, crossing `cgt_2`'s; the root member `dpt_1` keeps
-  `{40.8046875, 47.3046875}`, its maps band.
+  its ancestors displayed, every order the default): every drawn line's
+  marker spans its card.
+
+**Named timestamps of an ancestor** (section 8.3): a timestamp named on an
+ancestor `A` of the member is drawn on `A`'s ancestor line in the member's
+card when its position lies within the member's span, `0 ≤ coordinate +
+ts ≤ λ` on the member's axis, exactly, both ends included; its wedge on
+the line's outer side as the marks', its stack after the marks' in one
+first fit (marks, then `A`'s timestamps in canonical order, then the
+secondary coordinates on `A`, hidden ones taking no room), tiers counted
+in lines; its cross-section line across the member's card, its gap
+measured out from the ancestor line on that side (`c` 0, `w` its stroke
+width 3); full opacity for its line, primary wedge and labels by the
+defaults, while the marks stay faded; and a cross-section segment in the
+member's card for an alignment anchor, never one in the ancestor card
+that draws `A` as a root (section 8.8). What proves it:
+`group_child_member` (`second-half` 8 at 8 in `piece` 16, the window 8 to
+16, the quantities above: `x0 = 120.61962890625`, `piece` at
+85.18359375) with four timestamps added on `piece` through commands,
+minted in this order: `timestamp_5` at 4 (wedge, name, line), outside, of
+which nothing is drawn; `timestamp_6` "B" at 8 (wedge, name), the start;
+`timestamp_7` "C" at 12 (wedge, name, line); `timestamp_8` at 16 (wedge),
+the end. The wedges lie at `x0`, `x0 + 200`, `x0 + 400`, tip `85.18359375
++ 1.5`, base `+ 14.5`. The first fit places the start mark's label `8 ♩`
+(tier 1, at `x0`), the end mark's `16 ♩` (tier 1), "B" at `x0`, which
+meets `8 ♩` and so takes tier 2, and "C" at `x0 + 200` in tier 1: "B"'s
+baseline `85.18359375 + (1.5 + 13 + 2 + h(9)) + a(9)`, "C"'s `85.18359375
++ (1.5 + 13 + 2) + a(9)`, and the card one `h(9)` higher than with one
+line of labels (87.35546875). Opacities: the three wedges, both name
+labels and "C"'s line 1, the start mark and its label 0.35. "C"'s line
+runs from the card's top to the tip, `85.18359375 + 1.5`, and from the end
+of its label, `85.18359375 + (1.5 + 13 + 2 + h(9))`, to the card's bottom.
+Drawn with the defaults (the ancestor card shown), "C"'s line is drawn in
+four pieces, two in the ancestor card and two in the member's, and
+`timestampSegments` gives the member card's span alone, at the member's
+`x0 + 200`.
 
 ## Ancestor cards (`ancestor-cards.test.ts`)
 
@@ -1080,29 +1117,30 @@ coordinate label at the root's end).
    groupstamp ignores the card. With `timestamp_1` of
    `group_child_member_stamps` ("Bar 2" at 2 on `middle`, its cross-section
    line alone) made a groupstamp, `groupstampElements` draws, with the
-   hiding layer, two pieces at `x0 + 100 = 211.70361328125`: from the top
-   of `middle`'s card, 32.8046875, to `middle`'s line, 47.20703125, and
-   from `piece`'s ancestor line below it, 85.18359375, to the bottom of
-   `recording`'s card, `128.16015625 + 49.37890625 = 177.5390625`
-   (TimeToShare's drawings README); with the card shown, the same two
-   pieces `148.6318359375`
-   further right, and none across the ancestor card.
+   hiding layer, one piece at `x0 + 100 = 211.70361328125`, the frame's
+   member cards less `middle`'s, which its own line crosses: from the
+   bottom of `middle`'s card to the bottom of `recording`'s (both read off
+   the card boxes, equal with the card shown); with the card shown, the
+   same piece `148.6318359375` further right, and none across the ancestor
+   card.
 10. **No segment for an alignment anchor.** An ancestor card gives no
    cross-section segment to an alignment anchor (sections 8.7, 8.8 point
    5), though the named timestamps of its drawing are marked on its lines.
    In `group_child_member_stamps` drawn with the defaults,
    `timestampSegments(axes, timestamp_2)` is `middle`'s segment in its own
    card alone, `{x: 311.70361328125 + 148.6318359375 = 460.33544921875,
-   y1: 47.20703125, y2: 85.18359375}` (TimeToShare's drawings README, moved by
-   the origin), though `middle`'s row in `piece`'s card holds `timestamp_2`
-   at 460.33544921875 too; the drawn `anchor_1` is the hiding layer's moved
-   by the origin. With `timestamp_2` moved onto the root `piece` at quarter
-   8 (the fixture with that one timestamp changed, validated), no line
-   drawn in a frame's card holds it (`piece` is there an ancestor line,
-   which has no segment), so `timestamp_2` has no segment and no
-   `alignment_anchor` element is drawn, with the defaults as with the
-   hiding layer: the ancestor card, which draws `piece`'s line and marks
-   `timestamp_2` on it, does not count.
+   y1, y2}` with `y1` and `y2` the top and bottom of `middle`'s member card
+   (its box; TimeToShare's drawings README, moved by the origin), though
+   `middle`'s row in `piece`'s card holds `timestamp_2` at 460.33544921875
+   too; the drawn `anchor_1` is the hiding layer's moved by the origin.
+   With `timestamp_2` moved onto the root `piece` at quarter 8 (the fixture
+   with that one timestamp changed, validated), the ancestor card, which
+   draws `piece`'s line and marks `timestamp_2` on it, still gives no
+   segment, but `middle`'s member card draws `timestamp_2` on `piece`'s
+   ancestor line (8 lies within `middle`'s span, section 8.3), and that
+   gives it the segment of the member card, the `x` and `segment` its axis
+   records: one `alignment_anchor` is drawn, the hiding layer's moved by
+   the origin.
 11. **`bundle_shared_parent`: one root behind two frames** (section 8.8,
    Which). `score` (32 quarters) holds the members `exposition` (12 at 0)
    of `group_1` and `recapitulation` (12 at 20) of `group_2`; no line runs
@@ -1159,19 +1197,19 @@ coordinate label at the root's end).
 12. **The hover readers answer for a card's line.** `crossSection`,
    `crossedLines` and `wedgeAt` read an ancestor card's lines by their
    keys as any card's. In `group_parent_both` (point 2), at `x =
-   460.33544921875`: `piece`'s line in the card crosses its children band,
-   from the row of `middle` less its half pitch, `51.20703125 − 7 =
-   44.20703125` (the card's top plus `P`), to its line, `85.18359375`, in the
-   style of the defaults' unnamed cross-section line (stroke `#1BA1E2`,
-   width 1, dashes `3 3`); `crossedLines` is `piece`'s key then `middle`'s
-   in the card; the wedge in `piece`'s markers band below the line, from
-   `c = 0`, its tip at `85.18359375 + 1.5 = 86.68359375`, its base corners
-   at `x ∓ 3` and `86.68359375 + 13 = 99.68359375`, styled as `middle`'s
-   wedge in its
+   460.33544921875`: `piece`'s unnamed cross-section line in the card runs
+   from the card's top down to the tip of the wedge, the wedge's base lying
+   past the card's bottom, so one piece is left, in the style of the
+   defaults' unnamed cross-section line (stroke `#1BA1E2`, width 1, dashes
+   `3 3`); `crossedLines` is `piece`'s key then `middle`'s in the card; the
+   wedge in `piece`'s markers band below the line, from `c = 0`, its tip at
+   `85.18359375 + 1.5 = 86.68359375`, its base corners at `x ∓ 3` and
+   `86.68359375 + 13 = 99.68359375`, styled as `middle`'s wedge in its
    member card (the same defaults and domain, turned 0). `middle`'s line in
-   the card has no band its cross-section line could cross: `crossSection`
-   is null there, `crossedLines` is its key alone, and `wedgeAt` has its
-   tip at `51.20703125 + 1.5 = 52.70703125` and its base at `65.70703125`.
+   the card crosses the card whole too, cut by its own wedge: from the
+   card's top to the wedge's tip, `51.20703125 + 1.5 = 52.70703125`, and
+   from its base, `65.70703125`, to the card's bottom; `crossedLines` is
+   its key alone.
 
 ## Named timestamps (`timestamps.test.ts`)
 
@@ -1180,7 +1218,11 @@ A named timestamp `X` of `graphical.timestamps` draws the elements its
 and its labels `{id: X, part: [name]}`, `{id: X, part: [id]}`, `{id: X,
 part: [coordinate]}`, all held by its timeline's markers band (the labels
 beside the wedge, never by it), and its cross-section line `{id: X, part:
-[line]}`, held by its timeline's line and drawn last, taking no room. The
+[line]}`, held by its timeline's line and drawn last, taking no room: from
+its card's upper border to its lower border, less one gap from the nearest
+to the farthest of its wedge (tip and corners, where the vertical meets
+its body) and its stack (where it lies across the line's `x`), up to two
+pieces from the top. The
 labels it draws form its **stack**, one per line, name, ID, coordinate
 outwards from the wedge's base; the stacks are placed by the band's one
 first fit, each as wide as its widest label; a tier is as many lines high as
@@ -1239,17 +1281,19 @@ axis. No rule.
   26.9765625 out) at 58.33056640625, `1 ♩` (line 3, 37.453125 out) at
   68.80712890625. The coordinate label carries the exact coordinate `1` in
   quarters, the timestamp's own, not the root's 3; the name label none.
-- Cross-section lines (section 6.6): `timestamp_1`'s spans `clt_1`'s line
-  and its children band, from 7 to 61.9296875 above; no conversion maps
-  band is present: the ordinates 77.9296875, 70.9296875 and 16 give `y1 =
-  16`, `y2 = 77.9296875`, at 124.91552734375, never reaching the wedges
-  below. `#1BA1E2`, width 1, dash `3 3`. `timestamp_2` does not list
-  `cross_section`; `timestamp_3`'s timeline `clt_2` has neither band, so
-  its line has no length: neither is drawn.
+- Cross-section lines (section 6.6): each across the card, 8 to
+  112.90625, less its gap: `timestamp_1`'s at 124.91552734375 from 8 to its
+  wedge's tip `77.9296875 + 1.5 = 79.4296875` and from the end of its name
+  label, `77.9296875 + (1.5 + 13 + 2 + h(9)) = 104.90625`, to 112.90625;
+  `timestamp_3`'s at 199.91552734375 from 8 to its tip `23 + 1.5 = 24.5`
+  and from the end of its three labels, `23 + (1.5 + 13 + 2 + 3 × h(9)) =
+  70.9296875`, to 112.90625. `#1BA1E2`, width 1, dash `3 3`. `timestamp_2`
+  does not list `cross_section`.
 - The elements, in order: the block; the card; `clt_1`'s line, `clt_2`'s;
   the wedges of `timestamp_1`, `timestamp_2`, `timestamp_3`; the names
   `clt_2` and `clt_1`; the labels `Downbeat`, `Climax`, `Entry`,
-  `timestamp_3`, `1 ♩`; last the cross-section line of `timestamp_1`.
+  `timestamp_3`, `1 ♩`; last the two pieces of `timestamp_1`'s line, then
+  the two of `timestamp_3`'s.
 
 **Display, each on its own** (section 2.4), on `timestamps` with its
 timestamps written again:
@@ -1257,14 +1301,16 @@ timestamps written again:
 - Hiding the wedge `{id: timestamp_3}` keeps its three labels at the same
   baselines and the band as wide (the room of the wedges lies between the
   line and the labels whether or not a wedge is drawn): the root's line
-  stays at 77.9296875.
+  stays at 77.9296875; its line keeps its two pieces.
 - Hiding `clt_2`'s markers band hides the wedge and all three labels; the
-  band is absent, the root's line lies at 37 and `clt_2`'s at 23, and
-  `timestamp_1`'s line runs from `37 − 21 = 16` to 37.
+  band is absent, the root's line lies at 37 and `clt_2`'s at 23;
+  `timestamp_3`'s line crosses the card whole, nothing of it standing on
+  the line to leave a gap, and `timestamp_1`'s runs from 8 to `37 + 1.5`
+  and from `37 + (1.5 + 13 + 2 + h(9))` to the card's bottom.
 - Hiding `clt_2`'s line hides its whole drawing: nothing of `timestamp_3`;
-  the root's children band is then absent, so `timestamp_1`'s line has no
-  length and is not drawn (its wedge and name label are); the root's line
-  lies at `8 + max(8, 8 + 6.40234375) = 22.40234375`.
+  `timestamp_1` draws its wedge, its name label and its line in two pieces
+  across the card; the root's line lies at `8 + max(8, 8 + 6.40234375) =
+  22.40234375`.
 - `timestamp_3` with `display` `[name, id]`: two labels, no wedge, the
   stack two lines: the band `16.5 + 2 × 10.4765625 = 37.453125` wide, `l1 =
   7 + 37.453125 = 44.453125`, the root's line at `8 + (8 + (7 + (37.453125
@@ -1274,6 +1320,37 @@ timestamps written again:
   1, the root's line at 77.9296875.
 - A rule setting `display: inline` on `timestamp_2`'s line and ID label
   draws neither: `timestamp_2` draws its wedge and name label only.
+
+**Secondary coordinates, shown by a rule** (sections 2, 2.3, 6.4 Markers,
+6.6). A named timestamp has a secondary coordinate on every other timeline
+its card draws whose span holds its position (core's `cardStamps`); the
+defaults hide them and turn their wedges −45. With an extra layer's rule
+`{coordinates: secondary}` setting `display: inline` on `timestamps`
+(written again with its own timestamps): `clt_2` (2 to 6) holds
+`timestamp_2` (6, its end), `clt_1` holds `timestamp_3` (3); each is drawn
+in that timeline's markers band at the primary's `X` (349.91552734375 and
+199.91552734375), its wedge turned −45 about its tip 1.5 below the line
+(corners `wedgeCorners(−45)` out from the tip, from `rotation.test.ts`),
+its stack the labels its `display` lists (`Climax`; `Entry`,
+`timestamp_3`, `3 ♩`) carried by that wedge as "Stacks carried by their
+wedges" derives, each stack in tier 1 of its band: `t = 15 + W / 2 ×
+0.7071 + H / 2 × 0.7071`, `W` the widest label at size 9, `H` its lines'
+height, the labels at `X + t × −0.7071` and line `i` starting `1.5 + t ×
+0.7071 − H / 2 + i × h(9)` out, baseline `a(9)` beyond. The root's markers
+band's elements come first, then the child's, so `timestamp_3`'s
+secondary wedge and labels precede its primary ones. Its coordinate
+label carries 3 quarters, its value on `clt_1`'s axis, its primary's 1 on
+`clt_2`'s. `timestamp_1` (3/2) lies on `clt_1` alone. The room: hidden
+(the defaults), nothing of them is drawn and the card keeps 104.90625
+(every number above holds with them listed); their wedges alone shown
+(`{element: wedge, coordinates: secondary}`) take none either, the band
+being `w / 2 + 13` deep without labels; all shown, `clt_1`'s band holds
+`timestamp_3`'s three lines in tier 1 beside `Downbeat` and `Climax`
+(extents apart), so the card grows by `2 × h(9)`; `clt_2`'s band keeps
+its three lines (`Climax` beside `Entry`'s stack), its line stays at 23
+and `clt_1`'s at 77.9296875. Each ordinate is summed in the order the
+specification gives: the distance out first, then the line's ordinate,
+then `a(9)`.
 
 **Stacks in tiers.** `bare` (`x0 = 49.5771484375`, line at 22.40234375)
 with `origin` (`timestamp_1`, 0) and `length` (`timestamp_2`, 8), each
@@ -1316,8 +1393,9 @@ as before, so the lines lie at 72.5 and 23.
 segment `b1` (at 0 in `b`, at 8 in `form`, so at 10 on `form`'s axis): its
 wedge joins `b`'s markers band and lies on `b`'s line at `X = form.xs + 400
 × 10 / 32 = form.xs + 125`, its tip 1.5 below that line and its base 14.5
-below. `b` has neither a children band nor a conversion maps band, so its
-cross-section line is not drawn.
+below. Its line crosses `form`'s whole card at that `X`, its gap from the
+tip, `y + 1.5`, to the end of its name label, `y + (1.5 + 13 + 2 +
+h(9))`, `y` `b`'s line.
 
 **The reach** (section 3.4). `unknown_length` with `timestamp_1` `Mark` at
 20 on `score`: `score`'s reach becomes 20 (it was 14, `coda`'s end), so
@@ -1336,10 +1414,12 @@ Below, the children band at level −1 from `max(1.5 + 4, 7) = 7`, `c`'s row
 with halves 7 and 7 (`c` follows `r`'s order and draws no band): `c`'s
 line at `22.5 + 14 = 36.5`, the band's edge 21; the markers band at level
 −2 from `21 + 4 = 25`, its wedges' tips at `22.5 + 26.5 = 49`, bases at 62.
-The cross-section line's ordinates are 22.5, `22.5 − 0`, `22.5 − 6.5 = 16`,
-`22.5 + 7 = 29.5` and `22.5 + 21 = 43.5`: it runs from 16 to 43.5 at `r.xs
-+ 150`, across both sides, short of the wedges; `crossSection` at any
-abscissa gives the same ordinates, and the line crosses `r` and `c`.
+The cross-section line runs at `r.xs + 150` across the card, from its top
+to the wedge's tip, 49, and from the end of its name label, `22.5 + (26.5
++ 13 + 2 + h(9))`, to its bottom; `crossSection` at any other abscissa,
+which no named timestamp holds, gives the card cut by the unnamed wedge
+alone, from the top to 49 and from its base 62 to the bottom, and the
+line crosses `r` and `c`.
 
 **The lines a cross-section line crosses** (`crossedLines`): the key of
 its own line first, then those of its timeline's displayed descendants
@@ -1357,26 +1437,29 @@ and a cross-section line of its timeline lie at any abscissa, drawn by the
 code that draws a named timestamp's; an editor draws its unnamed marks so.
 For a line keyed as `lineAxes` keys it, at the abscissa `x`:
 
-- in `timestamps`, on `clt_1` at 124.91552734375 the cross-section equals
-  `timestamp_1`'s drawn line and the wedge's points equal its wedge's tip
-  and base corners, with the same style; on `clt_2` at 199.91552734375 the
-  wedge equals `timestamp_3`'s and there is no cross-section, as
-  `timestamp_3` draws none;
+- in `timestamps`, on `clt_1` at 124.91552734375 the cross-section is
+  `timestamp_1`'s drawn line as it would be without labels, its gap the
+  wedge's alone (its upper piece as drawn, its lower piece from the
+  wedge's base), and the wedge's points equal its wedge's tip and base
+  corners, with the same style; on `clt_2` at 199.91552734375 likewise
+  with `timestamp_3`'s;
 - with a rule hiding `timestamp_1`'s line, that line is not drawn, but
   the unnamed cross-section on `clt_1` at 124.91552734375 still runs from
-  16 to 77.9296875 in the default style, displayed: a rule naming
-  addresses never styles an unnamed mark;
+  8 to 79.4296875 and from 92.4296875 to 112.90625 in the default style,
+  displayed: a rule naming addresses never styles an unnamed mark;
 - in `timestamps` with `places` `{clt_1: {scale: 2}}`, the same agreements
   hold with every drawn value scaled, the line's style width 2 and dash
   `6 6`;
 - in `nested`, whose child `clt_3` (line at 37, above the root's at 51,
   its children band holding `clt_2` from 7 to 21) has no markers band: at
   200 its wedge lies where that band would start, from 0 below its line,
-  `[[200, 38.5], [197, 51.5], [203, 51.5]]`, its cross-section from `37 −
-  21 = 16` to 37; the root's (children band from 7 to 35) from 16 to 51,
-  its wedge `[[200, 52.5], [197, 65.5], [203, 65.5]]` below, uncrossed;
-- an ancestor line, which draws no named timestamp, has no cross-section
-  line but the mark its marks are drawn as (section 8.3): on the line's
+  `[[200, 38.5], [197, 51.5], [203, 51.5]]`, its cross-section the card
+  less that wedge, from its top to 38.5 and from 51.5 to its bottom; the
+  root's from the top to 52.5 and from 65.5 to the bottom, its wedge
+  `[[200, 52.5], [197, 65.5], [203, 65.5]]` below;
+- an ancestor line has no unnamed cross-section line (`marksAt` gives no
+  piece there) but the mark its marks are drawn as (section 8.3): on the
+  line's
   side away from the member, its tip on the line's edge, `y ± w / 2`, `w`
   the drawn ancestor line's stroke width, its base 13 further out, turned
   by its style's
@@ -1391,8 +1474,8 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   the element; **opacity 0.35, `{inside: ancestor}`, the rule that decides**
   (opacity is not inherited, so the faded line alone would leave it 1);
   font size 9, rx 0, shadow `none`, display `inline`, content `none`,
-  max-width `none`, the initial values; rotation 0, a wedge's initial value
-  off a groupstamp. These are the values of the drawn marks of the member's
+  max-width `none`, the initial values; rotation 0, a wedge's initial
+  value. These are the values of the drawn marks of the member's
   start and end on the same line, which the same rules style, so the hover
   mark is faded as they are. In `group_child_member` `piece`'s ancestor line
   in `second-half`'s card lies below the member at 85.18359375 (`w` 3, the
@@ -1482,140 +1565,163 @@ the band's side. What proves it:
    wedge's base lies left of and below its tip on `melody`, left of and
    above it on `phrase`.
 
+## Stacks carried by their wedges (`carry.test.ts`)
+
+A named timestamp's labels stack at the thick end of its wedge, whether the
+wedge is drawn or not (sections 6.4 Markers, 6.6 Labels of named timestamps
+and Cross-section lines, 8.3); `stacks.ts` holds the four rules every band
+and ancestor line uses, each proved on its own here and in drawings
+elsewhere ("Named timestamps", "Ancestor lines", "Groupstamps"). The
+oracle is the specification's text and its check values for the figure
+`timestamp_wedge_rotation` (`t` as its own computation gives it in
+binary64); `s` and `k` are the four-place sine and cosine of "Wedge
+rotation", `h = h(9) = 10.4765625`.
+
+- **Tiers** (`tiersOf`, section 6.3): one first fit of the stacks in order,
+  each as wide as its widest label at its unturned place (`[x − w/2 − 1, x
+  + w/2 + 1]`), a tier as many lines high as its highest stack, a stack's
+  first line `n1 = m1 + … + m(k − 1) + 1`: stacks at 0 (one line, 10 wide),
+  5 (three lines) and 100 (two lines) give tiers {0, 100} and {5}, the
+  first lines 1, 3, 1 and `T = 5` lines; none gives none.
+- **Unturned** (`carried` at 0): line `n` starts `tip + 13 + 2 + (n − 1) ×
+  h` out, no carry across, outwards: a stack of two lines with `n1 = 2`
+  and the tip 1.5 out starts at `1.5 + 13 + 2 + h` and `+ 2h`, its box
+  from the first start to `+ 2h`.
+- **Turned** (`carried`): `t = D + W / 2 × |s| + H / 2 × |k|`, `D = 13 + 2
+  + (n1 − 1) × h`, `H` the stack's lines' height, `W` its widest label;
+  the labels centred `t × s` across, the box's centre `tip + t × k` out,
+  its lines from its side nearer the tip; for `k < 0` they start inwards.
+  The check values, each a stack of one label in tier 1 with the tip 1.5
+  out: `-45°` (`W = 19.19970703125`, the width the metrics give at size 9)
+  at −45, `t = 25.492045092773434`, across `t × −0.7071`, starting `1.5 +
+  t × 0.7071 − h / 2`; `180°` (`W = 21.67822265625`) at 180, `t =
+  20.23828125`, no carry across, starting inwards at `1.5 − t + h / 2 =
+  −13.5`; `135°` at 135, `t = 26.368324291992185`, across `t × 0.7071`,
+  starting inwards at `1.5 − t × 0.7071 + h / 2`. Drawn in the figure
+  (`melody`'s line at 56.9765625, its band below), the name labels lie at
+  `x` 145.5112, 363.5366 and 332.1817, baselines 79.6177, 41.354 and
+  42.9472, to four decimals.
+- **The gap** (`gapOf`, section 6.6): from the smallest to the largest of
+  the wedge's tip and corners out from the line, counted while it is drawn
+  and the vertical meets its body, `|r| ≤ 12` or `|r| ≥ 168` (so 12, −12,
+  168, −168 and 180 count, 13, −13, 167, −167 and 90 do not; the corners
+  from `wedgeCorners`), and the box of its stack, counted while the stack
+  lies across the tip's abscissa, `X + vx − W / 2 ≤ X ≤ X + vx + W / 2`.
+  Unturned with a stack of one line: `[1.5, 1.5 + 13 + 2 + h]`; the wedge
+  alone `[1.5, 14.5]`; the stack alone `[16.5, 16.5 + h]`; neither, none.
+  At −45 a stack 19.2 wide is carried 18.03 across, beyond its half width,
+  and the wedge's body leaves the vertical: no gap. At −20 a stack 40 wide
+  is carried 9.15 across, less than its half width: its box alone.
+- **The cut** (`cut`): the span less the gap as up to two pieces from the
+  top, none of no length: `[0, 100]` less `[10, 20]` is `[0, 10]`, `[20,
+  100]`; less `[−5, 10]`, `[10, 100]`; less `[90, 120]`, `[0, 90]`; less
+  `[0, 100]`, nothing; less a gap touching an end from outside (`[100,
+  120]`, `[−10, 0]`) or none, the span whole.
+
 ## Groupstamps (`groupstamps.test.ts`)
 
 A named timestamp with `groupstamp: true` lies on a group's member (a
 timeline the group's `members` list, or a descendant of one, drawn inside
-the listed member's card), and its line extends across every member of
+the listed member's card `M`), and its line extends across every member of
 each group whose frame draws it. The members of a frame share its start and
 its length (section 8), so the timestamp's abscissa is one proportion of
 every member's drawn length: the other members' coordinates and lines
-derive from the group and are never stored. The block draws, after every
-item and before the alignment anchors, for each groupstamp listing
-`cross_section` and each line drawn in a card of a frame that holds it,
+derive from the group and are never stored. Its own line crosses `M`'s
+card as every named timestamp's does ("Named timestamps"), cut by its gap.
+The block draws, after every item and before the alignment anchors, for
+each groupstamp listing `cross_section` and each frame that holds it,
 vertical `cross_section` elements at the timestamp's line address `{id: X,
 part: ["line"]}` and its abscissa there, spanning the frame's member cards
 from the upper border of the topmost to the lower border of the bottommost
-(the cards drawing each member card's own timeline's line; their boxes as
-drawn in that frame), less the timestamp's own cross-section line where
-that has a length, and less the lines its stack of labels lies on (from the
-first line's start to the last line's end, each `h(s)` high), so that the
-line passes behind its labels as behind an opaque background; in the
-timestamp's line style (its own line's, at the frame's scale), without a
-wedge or a label. What proves it: positions derived from the other records
-of the same drawing (the member lines' abscissas, the member cards' box
-records `{kind: card, key: {item: group_1, member: T}}` and their `y` and
-`y + height`, the primary's extent, its label's baseline less `a(9)`, the
-base ordinate of the line's unturned mark (`AxisMarker.wedge`) plus the
-label gap 2), never from the element itself; the
-element's absence whenever the timestamp is no groupstamp, its line is not
-listed or its line is hidden; and the order of elements. With `a(9) =
-8.35400390625` and `h(9) = 10.4765625` every number here is dyadic, so the
-sums are exact. A span read off the member lines instead of the cards (the
-former rule: from the topmost line or cross-section extent to the
-bottommost) fails cases 1, 2, 3 and 5, since each member card's border lies a
-padding beyond its line.
+(each card's box as drawn in that frame), less `M`'s card, which its own
+line crosses: up to two pieces, above `M`'s card and below it, without a
+gap, crossing the secondary coordinates and whatever else lies there; in
+the timestamp's line style, without a wedge or a label. Its own wedge
+marks its primary coordinate and is turned by 0 unless a rule sets its
+`rotation`. What proves it: positions derived from the other records of
+the same drawing (the member lines' abscissas and ordinates, the member
+cards' box records `{kind: card, key: {item: group_1, member: T}}` and
+their `y` and `y + height`), never from the element itself; the element's
+absence whenever the timestamp is no groupstamp, its line is not listed or
+its line is hidden; and the order of elements. With `a(9) =
+8.35400390625` and `h(9) = 10.4765625` every number but a turned wedge's
+is dyadic, so the sums are exact; an ordinate is summed in item
+coordinates, the distance out first, then the line's ordinate less the
+top of `score`'s card, then that top.
 
 The manifest is TimeToShare's `groups/group_groupstamp.yaml` with every
-conversion map removed (`remove`), so that neither member draws a
-cross-section extent until a case adds one: `group_1` ("Performance",
-display order `score`, `performance`), `score` quarters 8, `performance`
-seconds 4.0, the groupstamp `timestamp_1` "Bar 2" at 4 on `score`
-(`display` wedge, name, cross-section line); the four `origin` and
-`length` timestamps are no groupstamps. Below, `top(T)` and `bottom(T)` are
-the upper and lower borders of `T`'s card in `group_1`'s frame.
+conversion map removed (`remove`): `group_1` ("Performance", display order
+`score`, `performance`), `score` quarters 8, `performance` seconds 4.0,
+the groupstamp `timestamp_1` "Bar 2" at 4 on `score` (`display` wedge,
+name, cross-section line); the four `origin` and `length` timestamps are
+no groupstamps. Below, `top(T)` and `bottom(T)` are the upper and lower
+borders of `T`'s card in `group_1`'s frame; a stack of one label in tier 1
+ends `1.5 + 13 + 2 + h(9)` below its line.
 
-**Where the members' lines lie in their cards** (sections 6.5, 8.4, 8.6),
-with the values of "Hand-derived drawings": each member drawing lies in its
-card, `Hm = Hc` high, its root's line `y_root` below the card's top; the
-card margin `V` is 0 and the names are 11, so `h(11) / 2 = 6.40234375`.
-`performance` has nothing above its line and below it the markers band of
-its `origin` and `length` wedges and their coordinate labels, one line of
-labels at its two ends: `y_root = max(8 + 0, 8 + 6.40234375) =
-14.40234375` and `bottom(performance)` lies `Eb + P = 26.9765625 + 8 =
-34.9765625` below its line, in every case here. Without maps or children,
-`score` is drawn alike: its markers band holds `timestamp_1`'s wedge and
-its name label "Bar 2" in the middle besides the `origin` and `length`
-wedges and labels at the ends, one line of labels, so its line lies
-14.40234375 below `top(score)`, its card is `Hc = 14.40234375 + 26.9765625
-+ 8 = 49.37890625` high, the frame's spacing 8 separates the two cards, and
-`performance`'s line lies `(49.37890625 − 14.40234375) + 8 + 14.40234375 =
-57.37890625` below `score`'s. With a LinearMap on `score`, its conversion
-maps band (one slot) reaches `Ea = 1.5 + 5 = 6.5` above its line, more than
-6.40234375, so `y_root = 8 + 6.5`, and the cross-section extent, which
-reaches the band's outer edge, starts `P = 8` below `top(score)`. With the
-child `motif`, `score`'s children band reaches `Ea`, at least a row's pitch
-14 out, so again `y_root = 8 + Ea` and the extent, which reaches that
-band's outer edge, starts 8 below `top(score)`.
-
-1. **Neither member draws a cross-section extent** (no children band, no
-   conversion maps band): `timestamp_1`'s own line is not drawn (section
-   6.6), the group's is, in two pieces around its label "Bar 2" (one line
-   of labels, below `score`'s line): exactly two elements at `{id:
-   timestamp_1, part: [line]}`, the last two of the drawing, at `x` the
-   middle of `score`'s line (4 of 8: `xStart + (xEnd − xStart) / 2`), which
-   is the middle of `performance`'s too (2.0 of 4.0); the first from
-   `top(score)` to the label's top `b − a(9)` (`b` the label's baseline;
-   equal to the unturned mark's base plus 2), the second from that top plus
-   `h(9)` to `bottom(performance)` (`score`'s line 14.40234375 below
-   `top(score)`, `performance`'s 57.37890625 below `score`'s and
-   34.9765625 above `bottom(performance)`); style
-   stroke `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
-2. **The primary draws its own line**: with a LinearMap `tempo` added to
-   `score`, `score`'s cross-section extent `[y1, y2]` (its marker's) is
-   drawn by `timestamp_1`'s own line, the first element at its address
-   (`y1` 8 below `top(score)`, `bottom(performance)` 34.9765625 below
-   `performance`'s line); the
-   group's are the next, from `top(score)` to `y1`, then from `y2` down to
-   `bottom(performance)`, less the label's lines where they lie below `y2`,
-   at the same `x`, with the same style.
-3. **A member's descendant**: with a child `motif` (quarters, offset 2,
+1. **Its own card and the frame.** At `x` the middle of `score`'s line
+   (4 of 8), which is the middle of `performance`'s too (2.0 of 4.0):
+   `timestamp_1`'s own line from `top(score)` to its wedge's tip, 1.5
+   below `score`'s line, and from the end of its label "Bar 2" to
+   `bottom(score)`; then, the last element of the drawing, the frame's
+   line from `bottom(score)` to `bottom(performance)`; style stroke
+   `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
+2. **A member's descendant**: with a child `motif` (quarters, offset 2,
    length 4) added to `score` and a groupstamp `timestamp_6` "Motif" at 1
-   on it (`display` wedge, name, cross-section line), its group line lies at
-   the abscissa of 1 on `motif`'s line (`score`'s abscissa of 3), from
-   `top(score)` to `motif`'s label's top, then from that label's bottom to
-   `bottom(performance)`: `motif` draws no extent of its own, and no line
-   runs through its label (`score`'s extent starts 8 below `top(score)`,
-   `bottom(performance)` lies 34.9765625 below `performance`'s line).
-4. **None**: `set timestamp_1 {groupstamp: false}`, `{display: ["wedge",
-   "name"]}`, or a rule `{addresses: [{id: timestamp_1, part: [line]}]}`
-   setting `display: "none"` each leave no element at the address.
+   on it, its lines lie at the abscissa of 1 on `motif`'s line (`score`'s
+   abscissa of 3): from `top(score)` to the tip below `motif`'s line, from
+   the end of its label to `bottom(score)`, then from `bottom(score)` to
+   `bottom(performance)`.
+3. **None**: `set timestamp_1 {groupstamp: false}` leaves its own two
+   pieces alone; `{display: ["wedge", "name"]}`, or a rule `{addresses:
+   [{id: timestamp_1, part: [line]}]}` setting `display: "none"`, leaves
+   no element at the address.
+4. **Its wedge is not turned** where no rule sets its `rotation`: its tip
+   where the unturned mark of `score`'s line at its abscissa has it, its
+   corners `∓ 3` across and `1.5 + 13` below the line, its style's
+   `rotation` 0, its label's line starting at the mark's base plus 2; the
+   `origin` and `length` wedges 0 too. An extra layer's rule `{element:
+   wedge}` setting 0, and `set timestamp_1 {groupstamp: false}`, draw it
+   alike.
 5. **At any abscissa** (`groupCrossSections`, what the canvas marks for a
    position read across the group): at the abscissa of `timestamp_1` on
-   `score`'s line key, the same pieces as case 1 less the label cut, so one
-   line from `top(score)` to `bottom(performance)`, in the style of a
-   cross-section line of `score` that no named timestamp holds; on a line
-   in no frame (`nested`), none.
-6. **Its wedge is turned −45** where no rule sets its `rotation` (section
-   2.5): `timestamp_1`'s wedge has its tip where the unturned mark of
-   `score`'s line at its abscissa has it, and its corners at the offsets
-   across `13 × −0.7071 − 3 × 0.7071` and `13 × −0.7071 + 3 × 0.7071`
-   and the distances `1.5 + (13 × 0.7071 + 3 × −0.7071)` and `1.5 + (13 ×
-   0.7071 − 3 × −0.7071)` below `score`'s line (`c = 0`, `w = 3`; each
-   ordinate summed in item coordinates, the line's less the top of
-   `score`'s card, and drawn that top plus it), its style's `rotation` −45; both corners lie left of the tip, so the group
-   line, at the tip's abscissa, meets the wedge at its tip alone. Its label
-   lies where it lay unturned (case 1). An extra layer's rule `{element:
-   wedge}` setting 0 draws it unturned, its corners at `X ∓ 3` and `1.5 +
-   13` below the line; `set timestamp_1 {groupstamp: false}` draws it
-   unturned too; the `origin` and `length` wedges are unturned in every
-   case.
+   `score`'s line key, one piece from `bottom(score)` to
+   `bottom(performance)`, in the style of a cross-section line of `score`
+   that no named timestamp holds; on a line in no frame (`nested`), none.
+6. **Its secondary coordinates on the frame's other members** (section 2,
+   6.6), with `timestamp_1`'s `display` `[wedge, name, coordinate,
+   cross_section]`: by default only its primary wedge and its two labels
+   are drawn, and `performance`'s card is as high as without them. With an
+   extra layer's rule `{coordinates: secondary}` setting `display:
+   inline`, `performance`'s markers band draws a second wedge at
+   `timestamp_1`'s address at the same `x`, turned −45 (corners
+   `wedgeCorners(−45)` out from its tip 1.5 below `performance`'s line),
+   and its two labels, the coordinate label carrying 2 seconds, its value
+   on `performance`'s axis; the stack lies in tier 1 (the `origin` and
+   `length` labels lie at the ends), carried as "Stacks carried by their
+   wedges" derives: `t = 15 + W / 2 × 0.7071 + H / 2 × 0.7071` (`W` the
+   wider of the two labels, `H = 2 h(9)`), both labels at `x + t ×
+   −0.7071`, their baselines at `1.5 + t × 0.7071 − H / 2` and `h(9)`
+   further below `performance`'s line, plus `a(9)`. Shown, the stack takes
+   room: `performance`'s card grows by one `h(9)`. The frame's line still
+   runs uncut from `bottom(score)` to the new `bottom(performance)`.
 
 ## Alignment anchors (`anchors.test.ts`)
 
 A named MatchStamp's alignment anchor `A` joins the cross-section segments
 of its two match timestamps (section 8.7): a timestamp has one segment in
-every member drawing that draws its timeline's line (its segment line's
-for a segment without a line), the vertical extent of section 6.6 at its
-`X`, or the point `(X, y)` on the line where neither the children band nor
-the conversion maps band is present, whether or not its cross-section line
-is displayed. The line `{id: A}` is the shortest between one segment of
-each, the label `{id: A, part: [name]}` the MatchStamp's name centred on
-its midpoint, baseline `ym + (a(9) − d(9)) / 2 = ym + 3.11572265625`; both
-drawn after every item (lines, then labels), neither taking room. A match
-timestamp without a name draws no name label. Manifests are fixtures, or
-fixtures with match timestamps and one MatchStamp written onto them and
-validated (`matchstamp: true`, the complete form).
+every card that draws its timeline's line (its segment line's for a
+segment without a line), or its timeline as an ancestor line where its
+position lies within the member's span (section 8.3), never in an
+ancestor card (section 8.8): the card's span at its `X`, from its upper
+border to its lower border, its gap included, whether or not its
+cross-section line is displayed. The line `{id: A}` is the shortest between
+one segment of each, the label `{id: A, part: [name]}` the MatchStamp's
+name centred on its midpoint, baseline `ym + (a(9) − d(9)) / 2 = ym +
+3.11572265625`; both drawn after every item (lines, then labels), neither
+taking room. A match timestamp without a name draws no name label.
+Manifests are fixtures, or fixtures with match timestamps and one
+MatchStamp written onto them and validated (`matchstamp: true`, the
+complete form); card spans are read off the drawing's card boxes.
 
 - **`anchorLine` alone**, segments written `(x, [y1, y2])`: overlapping
   `(1, [0, 10])` and `(5, [4, 20])` give the horizontal line at `(4 + 10) /
@@ -1628,51 +1734,54 @@ validated (`matchstamp: true`, the complete form).
   `(10, 0)`: from `(0, 0)`), then of the second's (`(0, 0)` against `(10, 0)`,
   `(−10, 0)`: to `(10, 0)`). Two equal points give the line of no length;
   no segment on either side gives none.
-- **`bundle_matchstamps`**, three ungrouped roots, none with a band that a
-  cross-section crosses, so every segment is a point and no cross-section
-  line is drawn. The widest name `Take 1` (`A = 6906`, `N = 37.0927734375`)
-  puts `x0 = 16 + N + 8 = 61.0927734375` in every card. The title
-  `MatchStamps` puts the first card at `Pt = 8 + h(11) + 8 = 28.8046875`;
-  every card is `bare`'s, `Hc = 49.37890625` high, its line `14.40234375`
-  below its top: `score` at 43.20703125, `take_1` (card at `28.8046875 +
-  49.37890625 + 8 = 86.18359375`) at 100.5859375, `take_2` (card at
-  143.5625) at 157.96484375. `timestamp_1` lies at 4 of 8 quarters, `x0 +
-  200 = 261.0927734375`; `timestamp_2` at 88200 of 352800 samples and
-  `timestamp_3` at 99225 of 396900, both a quarter, `x0 + 100 =
-  161.0927734375`. `anchor_1` (`[line, name]`) runs from `(261.0927734375,
-  43.20703125)`, above, to `(161.0927734375, 100.5859375)`; `anchor_2`
-  (`[line]`) from the same point to `(161.0927734375, 157.96484375)`,
-  crossing `take_1`'s card. The label `Bar 2, downbeat (take 1)` lies at
-  `x = 211.0927734375`, `ym = 71.896484375`, baseline 75.01220703125. The
-  last three elements are the two lines and the label; the block's record
-  holds every element; the block stays `W = 8 + (8 + 490.71630859375 + 2)
-  = 508.71630859375` by `H = 8 + (143.5625 + 49.37890625 + 2) =
-  202.94140625`, as without them. The default rule (section 4) styles the
-  lines `#1BA1E2`, width 1, dash `3 3`; the label takes fill `#000000` and
-  size 9 from the label rule, the rest from its line. `timestamp_1`, listing
-  `cross_section` alone and nameless, draws nothing; the segments of
-  `timestamp_1` to `timestamp_3` are those three points;
-  `crossSectionSegment` at 100 on `score`'s line is `(100, 43.20703125)`, and
-  none for a key naming no line. Hiding `{id: anchor_1}` keeps its label
-  in place; hiding `{id: anchor_1, part: [name]}` keeps both lines.
+- **`bundle_matchstamps`**, three ungrouped roots. The widest name `Take 1`
+  (`A = 6906`, `N = 37.0927734375`) puts `x0 = 16 + N + 8 =
+  61.0927734375` in every card. The title `MatchStamps` puts the first
+  card at `Pt = 8 + h(11) + 8 = 28.8046875`; every card is `bare`'s, `Hc =
+  49.37890625` high, its line `14.40234375` below its top: `score`'s card
+  from 28.8046875 to 78.18359375 (line 43.20703125), `take_1`'s from
+  86.18359375 to 135.5625, `take_2`'s from 143.5625 to 192.94140625.
+  `timestamp_1` lies at 4 of 8 quarters, `x0 + 200 = 261.0927734375`;
+  `timestamp_2` at 88200 of 352800 samples and `timestamp_3` at 99225 of
+  396900, both a quarter, `x0 + 100 = 161.0927734375`. Each segment is its
+  card's span. `anchor_1` (`[line, name]`) runs from the bottom of
+  `score`'s card, `(261.0927734375, 78.18359375)`, to the top of
+  `take_1`'s, `(161.0927734375, 86.18359375)`; `anchor_2` (`[line]`) from
+  the same point to the top of `take_2`'s, `(161.0927734375, 143.5625)`.
+  The label `Bar 2, downbeat (take 1)` lies at `x = 211.0927734375`, `ym =
+  82.18359375`, baseline 85.29931640625. The last three elements are the
+  two lines and the label; the block's record holds every element; the
+  block stays `W = 8 + (8 + 490.71630859375 + 2) = 508.71630859375` by `H =
+  8 + (143.5625 + 49.37890625 + 2) = 202.94140625`, as without them. The
+  default rule (section 4) styles the lines `#1BA1E2`, width 1, dash `3
+  3`; the label takes fill `#000000` and size 9 from the label rule, the
+  rest from its line. The cross-section lines: `timestamp_1` and
+  `timestamp_2`, listing `cross_section` alone and nameless, cross their
+  cards whole; `timestamp_3` draws its name below `take_2`'s line in tier
+  1, its band starting at 0, so its line runs from the card's top to `1.5
+  + 13 + 2` below the line and from `h(9)` further to the card's bottom;
+  `timestamp_1` draws no name label. `crossSectionSegment` at 100 on
+  `score`'s line is `score`'s card span at 100, and none for a key naming
+  no line. Hiding `{id: anchor_1}` keeps its label in place; hiding `{id:
+  anchor_1, part: [name]}` keeps both lines.
 - **`nested`** with match timestamps on the root `clt_1` at 8 (`x0 + 25 × 8
   = 249.91552734375`) and on `clt_2` at 1 of its own axis, `3/2 + 4 + 1 =
-  13/2` of the root's (`212.41552734375`): the root's cross-section line
-  runs from 16 to 51 (as under "Named timestamps"), `clt_2` has neither band
-  and so the point at its line, 23. They overlap at `lo = hi = 23`: the line
-  is horizontal, `(249.91552734375, 23)` to `(212.41552734375, 23)`. Hiding
-  the root's cross-section line keeps the anchor.
+  13/2` of the root's (`212.41552734375`): both lines cross the one card
+  whole, so their segments are the same span and overlap: the anchor is
+  horizontal at the card's middle, `(top + bottom) / 2`, from
+  `249.91552734375` to `212.41552734375`. Hiding the root's cross-section
+  line leaves `clt_2`'s and keeps the anchor.
 - **`bundle_shared_member`**, `t` a member of `g1` and of `g2`, with match
   timestamps at the half of `t` (4 of 8), `u` (2.0 of 4.0) and `v` (400 of
   800), all at `x0 + 200 = 302.29150390625` (`x0 = 24 + N(Performance) + 8`,
-  `A = 13087`, `N = 70.29150390625`). The frames place the lines at 68.01171875
-  (`t` in `g1`), 125.390625 (`u`), 215.57421875 (`t` in `g2`) and
-  272.953125 (`v`): `t`'s two segments, in that order. `t`–`u` takes `t` in
-  `g1` (57.37890625 against 90.18359375), `v`–`t` takes `t` in `g2` (57.37890625
-  against 204.94140625), each from the first timestamp's point. An anchor
-  displaying `[name]` alone draws its label, `(68.01171875 + 125.390625) / 2
-  + 3.11572265625 = 99.81689453125`, and no line; `t`'s nameless match
-  timestamp listing `name` draws no name label.
+  `A = 13087`, `N = 70.29150390625`). `t`'s two segments are its cards'
+  spans in `g1` and in `g2`, in that order. `t`–`u` takes `t` in `g1`, from
+  the bottom of that card to the top of `u`'s; `v`–`t` takes `t` in `g2`,
+  from the top of `v`'s card to the bottom of `t`'s there, each from the
+  first timestamp's end. An anchor displaying `[name]` alone draws its
+  label, centred on the middle of the bottom of `t`'s card in `g1` and the
+  top of `u`'s, and no line; `t`'s nameless match timestamp listing `name`
+  draws no name label.
 
 ## Timelines of unknown length (`unknown.test.ts`)
 
@@ -2222,14 +2331,18 @@ starts where `[0, 2]` starts, `[1, 3]` starts inside `[0, 2]` and where
 
 ## Redraw operation counts (`scale.test.ts`)
 
-A synthetic manifest has exactly 1,000 element keys, as core enumerates
+A synthetic manifest has exactly 1,004 element keys, as core enumerates
 them: one root with its named timestamps `origin` and `length` (a wedge and
 a coordinate label each), 60 children with maps, regions, jump targets, flow
-markers and a jump origin, and a segment line of 40 segments. Every count comes from the inputs a
+markers and a jump origin, and a segment line of 40 segments; four of them
+are the secondary coordinates of `origin` (at 0) on `child_0` (its reach 1)
+and `nested_unknown` (its reach 0), a wedge and a coordinate label each
+(`length` at 200 lies on no child, each ending at its reach, nor on the
+segment line, 120 to 160). Every count comes from the inputs a
 draw is given, never from watching the code: each rule counts reads
 of its selector, the metrics table the code points asked, the manifest listings of
 its keys. The rule with no element, class or address is tested
-exactly `1,000 + 2 × 63 = 1,126` times: each key is resolved once, and
+exactly `1,004 + 2 × 63 = 1,130` times: each key is resolved once, and
 each of the 63 lines (the root, its 60 children, the nested child and the
 segment line, the keys of type `timeline` or `child`) resolves once each
 the wedge and the cross-section line of a position no named timestamp

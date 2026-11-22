@@ -279,13 +279,16 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   since the subject is the ancestor line on the member's card and the
   ancestor card the defaults show (section 8.8) would move the frame right:
   the ancestor `score` runs on at both sides
-  (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 67.78125`) and
-  writes exactly four polylines, two on each side: left `(96.70361328125,
-  63.28125) (92.20361328125, 67.78125) (96.70361328125, 72.28125)` and
-  `(92.20361328125, 63.28125) (87.70361328125, 67.78125) (92.20361328125,
-  72.28125)`; right `(526.70361328125, 63.28125) (531.20361328125,
-  67.78125) (526.70361328125, 72.28125)` and `(531.20361328125, 63.28125)
-  (535.70361328125, 67.78125) (531.20361328125, 72.28125)`, the outer tip
+  (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 119.16015625`, the
+  second ancestor row below the member, as the layout's README derives) and
+  writes exactly four polylines, two on each side, each from `y − 1.5w` to
+  `y + 1.5w`: left `(96.70361328125, 114.66015625) (92.20361328125,
+  119.16015625) (96.70361328125, 123.66015625)` and `(92.20361328125,
+  114.66015625) (87.70361328125, 119.16015625) (92.20361328125,
+  123.66015625)`; right `(526.70361328125, 114.66015625) (531.20361328125,
+  119.16015625) (526.70361328125, 123.66015625)` and `(531.20361328125,
+  114.66015625) (535.70361328125, 119.16015625) (531.20361328125,
+  123.66015625)`, the outer tip
   `Xr + 4w`, never `Xr + 5.5w`.
 
 **Other elements.**
@@ -435,10 +438,10 @@ below their line and −45, 45, 90 above it (the layout's README derives
 their corners); the three groupstamp figures (`group__group_groupstamp`,
 `group__group_groupstamp_child_member`,
 `bundle__bundle_groupstamp_shared_member`) draw the groupstamp's wedge
-turned −45 by default, `group__group_groupstamp`'s `timestamp_1` as
-`points="302.2915,48.8047 290.9779,55.8757 295.2205,60.1183"`: offsets
-`13 × −0.7071 ∓ 3 × 0.7071 = −11.3136, −7.071` and distances `1.5 + 7.071`
-and `1.5 + 11.3136` below the line at 47.3047, to four decimals. Among the
+unturned, as every primary coordinate's (drawing.md §2.5),
+`group__group_groupstamp`'s `timestamp_1` as `points="302.2915,48.8047
+299.2915,61.8047 305.2915,61.8047"`: corners `∓ 3` across and `1.5` and
+`1.5 + 13` below the line at 47.3047, to four decimals. Among the
 hand-derived figures, `map_row_siblings`, `map_row_subslots` and
 `map_row_moved` pin the slots that the conversion maps bands of one row
 share (two siblings with maps of two keys in different canonical orders, a
@@ -455,11 +458,13 @@ its six entries (`["markers", "line"]` on the root: its markers band
 against the line above, its map and its child beyond); and
 `group__group_child_member_stamps` the lines on a child member: the
 cross-section lines of a named timestamp and of a match timestamp on
-`middle` run from `middle`'s line at 47.207 down to `piece`'s ancestor line
-at 85.1836, which lies below it, and the anchor from that segment's lower
-end down to `recording`'s line, `<line data-id="anchor_1" x1="460.3354"
-y1="85.1836" x2="460.3354" y2="142.5625" …/>` (the ancestor card of `piece`
-moving the origin 148.6318 to the right); and
+`middle` run across each card drawing `middle`'s line, the ancestor card of
+`piece` (36.207 to 99.5859) and `middle`'s own card (32.8047 to 120.1602),
+and the anchor from the bottom of `middle`'s card to the top of
+`recording`'s (128.1602), `<line data-id="anchor_1" x1="460.3354"
+y1="120.1602" x2="460.3354" y2="128.1602" …/>` (the ancestor card of
+`piece` moving the origin 148.6318 to the right; TimeToShare's drawings
+README derives every number); and
 `group__group_grandchild_parent_on_top` an ancestor line on each side of
 a member: `movement`, whose band order lays its children below its line,
 above `theme`, and `score`, in the default order, below it. Every root of a non-corpus fixture carries the named timestamps
@@ -469,8 +474,8 @@ marked before: their figures keep every number and address the wedges
 `{id: timestamp_N}` and the labels `{id: timestamp_N, part: [coordinate]}`.
 `timestamps` draws named timestamps of every `display`, its geometry
 derived in the layout's README and in TimeToShare's drawings README: `x0 =
-49.91552734375`, the root's line at 77.9296875, `clt_2`'s at 23, `H =
-122.90625`. So, in block coordinates and to four decimals,
+49.91552734375`, the root's line at 77.9296875, `clt_2`'s at 23, the card
+from 8 to 112.90625, `H = 122.90625`. So, in block coordinates and to four decimals,
 `timestamp_1`'s wedge is `<polygon data-id="timestamp_1"
 points="124.9155,79.4297 121.9155,92.4297 127.9155,92.4297"
 fill="#000000"/>`, its name label `<text data-id="timestamp_1"
@@ -478,23 +483,35 @@ data-part="name" x="124.9155" y="102.7837" text-anchor="middle"
 font-size="9" fill="#000000">Downbeat</text>`, the stack of `timestamp_3`
 its labels `data-part="name"` (`Entry`, `y="47.854"`), `data-part="id"`
 (`timestamp_3`, `y="58.3306"`) and `data-part="coordinate"` (`1 ♩`,
-`y="68.8071"`), the last labels written, and the drawing ends with the one
-cross-section line, `<line data-id="timestamp_1" data-part="line"
-x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2"
-stroke-width="1" stroke-dasharray="3 3"/>`, in TikZ `(124.9155,106.9062) --
-(124.9155,44.9766)` (`122.90625 − y`, 106.90625 a tie to the even
-106.9062). `timestamp_2` lists no cross-section line and `timestamp_3`'s
-timeline has no band for one to cross. `bundle__bundle_matchstamps` draws
+`y="68.8071"`), and the drawing ends with the cross-section lines across
+the card, each less its gap (drawing.md §6.6), the upper piece first:
+`timestamp_1`'s from 8 to its wedge's tip 79.4297 (`77.9296875 + 1.5`) and
+from the outer edge of its name label 104.9062 (`77.9296875 + 1.5 + 13 + 2
++ h(9)`) to 112.9062, then `timestamp_3`'s from 8 to its wedge's tip 24.5
+(`23 + 1.5`, `clt_2`'s markers band below its line) and from the outer edge
+of its three labels 70.9297 (`23 + 1.5 + 13 + 2 + 3 × h(9)`) to 112.9062,
+written as the layout states them, `<line data-id="timestamp_1" data-part="line"
+x1="124.9155" y1="8" x2="124.9155" y2="79.4297" stroke="#1BA1E2"
+stroke-width="1" stroke-dasharray="3 3"/>`, `… y1="104.9062" …
+y2="112.9062"`, `<line data-id="timestamp_3" data-part="line"
+x1="199.9155" y1="8" x2="199.9155" y2="24.5" …/>` and `… y1="70.9297" …
+y2="112.9062"`; the last in TikZ `(199.9155,51.9766) -- (199.9155,10)`
+(`122.90625 − y`). `timestamp_2` lists no cross-section line. `bundle__bundle_matchstamps` draws
 named MatchStamps as stored (drawing.md §8.7, its numbers derived in the
 layout's README): the drawing ends with the lines of its two alignment
-anchors and the one label, `<line data-id="anchor_1" x1="261.0928"
-y1="43.207" x2="161.0928" y2="100.5859" stroke="#1BA1E2" stroke-width="1"
-stroke-dasharray="3 3"/>`, `<line data-id="anchor_2" x1="261.0928"
-y1="43.207" x2="161.0928" y2="157.9648" …/>` and `<text data-id="anchor_1"
-data-part="name" x="211.0928" y="75.0122" text-anchor="middle"
-font-size="9" fill="#000000">Bar 2, downbeat (take 1)</text>`, in TikZ
-`\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt]
-(261.0928,159.7344) -- (161.0928,102.3555);` (`H = 202.94140625`).
+anchors and the one label; each anchor joins the cross-section segments of
+its two match timestamps, the cards' spans (section 8.7), from the bottom
+of `score`'s card (28.8046875 + 49.37890625 = 78.18359375) to the top of
+`take_1`'s (86.18359375) and `take_2`'s (143.5625): `<line
+data-id="anchor_1" x1="261.0928" y1="78.1836" x2="161.0928" y2="86.1836"
+stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>`, `<line
+data-id="anchor_2" x1="261.0928" y1="78.1836" x2="161.0928"
+y2="143.5625" …/>` and `<text data-id="anchor_1" data-part="name"
+x="211.0928" y="85.2993" text-anchor="middle" font-size="9"
+fill="#000000">Bar 2, downbeat (take 1)</text>` (the middle 82.18359375
+plus `(a(9) − d(9)) / 2`), in TikZ `\path[draw=ts1BA1E2,line width=1pt,dash
+pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);` (`H =
+202.94140625`).
 There are 91 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no

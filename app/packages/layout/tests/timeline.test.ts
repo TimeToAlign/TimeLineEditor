@@ -64,6 +64,7 @@ function scopeOf(
     block,
     4,
     0,
+    null,
   );
 }
 

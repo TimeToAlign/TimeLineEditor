@@ -49,10 +49,19 @@ const EXCERPT_ROW = [
   ...bands("excerpt", ["cmap_6"], EXCERPT),
 ];
 
+/**
+ * The secondary coordinates of `excerpt`'s `origin` and `length` on `recording`, which spans
+ * them (`excerpt` lies at 44100 for 88200 samples of 441000): wedge and coordinate label each,
+ * held by `recording`'s markers band in the ancestor card and by its ancestor line in `excerpt`'s
+ * card, and contained where `excerpt` is, their timestamps being `excerpt`'s.
+ */
+const EXCERPT_ON_RECORDING = EXCERPT.flatMap((stamp) => [id(stamp), id(stamp, "coordinate")]);
+
 describe("contains", () => {
   it("holds a group's frame, title and what its members hold, never their ancestors", () => {
     expect(containedBy("group_2")).toEqual([
       ...EXCERPT_ROW,
+      ...EXCERPT_ON_RECORDING,
       id("group_2"),
       id("group_2", "name"),
       id("page", "card"),
@@ -61,6 +70,7 @@ describe("contains", () => {
       ...bands("page", ["cmap_4"], PAGE),
       id("excerpt", "card"),
       ...marks("excerpt"),
+      ...EXCERPT_ON_RECORDING,
       id("excerpt"),
       id("excerpt", "name"),
       ...bands("excerpt", ["cmap_6"], EXCERPT),
@@ -79,12 +89,14 @@ describe("contains", () => {
       band("recording", "conversion_maps"),
       id("cmap_5"),
       band("recording", "markers"),
+      ...EXCERPT_ON_RECORDING,
       band("recording", "regions"),
       band("recording", "flow_control"),
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
       ...marks("excerpt"),
+      ...EXCERPT_ON_RECORDING,
       id("excerpt"),
       id("excerpt", "name"),
       ...bands("excerpt", ["cmap_6"], EXCERPT),
@@ -94,8 +106,10 @@ describe("contains", () => {
   it("leaves an ancestor line and the ancestor's own map outside a child", () => {
     expect(containedBy("excerpt")).toEqual([
       ...EXCERPT_ROW,
+      ...EXCERPT_ON_RECORDING,
       id("excerpt", "card"),
       ...marks("excerpt"),
+      ...EXCERPT_ON_RECORDING,
       id("excerpt"),
       id("excerpt", "name"),
       ...bands("excerpt", ["cmap_6"], EXCERPT),

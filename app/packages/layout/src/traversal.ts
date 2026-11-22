@@ -20,6 +20,7 @@ import {
   bandKey,
   type ElementKey,
   elementKey,
+  type GroupFrame,
   type MemberDrawing,
   orderedChildren,
   reachOf,
@@ -108,6 +109,8 @@ export interface Context {
 /** One timeline drawn as a root, traversed, with the measures of its axis and its texts. */
 export interface Scope extends Context {
   readonly member: MemberDrawing;
+  /** The frame whose member card draws it, null for an ungrouped root's card and an ancestor card. */
+  readonly frame: GroupFrame | null;
   /** The timeline drawn as the root. */
   readonly root: TimelineManifest;
   /** Every timeline of its tree in traversal order, the root first. */
@@ -186,7 +189,7 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
 /**
  * Traverse one timeline drawn as a root (section 6.1), its line held by
  * `holder`, the block or its group's frame, in a card of spacing `S` and
- * margin `V`.
+ * margin `V`, a member card of `frame` where one is given.
  */
 export function traverse(
   context: Context,
@@ -194,6 +197,7 @@ export function traverse(
   holder: Holder,
   S: number,
   V: number,
+  frame: GroupFrame | null,
 ): Scope {
   const { manifest, placement, cascade, measure } = context;
   const root = member.timeline;
@@ -340,6 +344,7 @@ export function traverse(
     cascade,
     measure,
     member,
+    frame,
     root,
     entries,
     rootEntry,

@@ -640,7 +640,10 @@ check of who holds what.
    `{id: "flow_marker_1"}`, then the `jump_from`s `jump_from_1` and
    `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
    `jump_to_2`) is no element; in every one-root manifest fixture every
-   address is distinct (compared by `addressKey`). A named timestamp
+   address is distinct on the timeline it belongs to (compared by
+   `addressKey` beside the timeline's ID: a secondary coordinate's wedge
+   and labels carry its timestamp's addresses on the timeline they mark,
+   drawing.md §2.2, and a root's card draws each timeline once). A named timestamp
    (`timestamps.yaml`) lists exactly the elements its `display` names, in
    the order `wedge` `{id: "timestamp_N"}`, the `label`s `{id, part:
    ["name"]}`, `{id, part: ["id"]}`, `{id, part: ["coordinate"]}`, then
@@ -655,8 +658,14 @@ check of who holds what.
    root's children band, holding `clt_2`, precedes its markers band), then
    `timestamp_1` (the default: wedge, name label, line) and `timestamp_2`
    (wedge, name label) of `clt_1`, wedges and labels inside `[block,
-   timeline, band]`, the line inside `[block, timeline]`. `{inside: wedge}`
-   matches nothing in `map.yaml`.
+   timeline, band]`, the line inside `[block, timeline]`. Each markers band
+   lists its own timeline's timestamps, then the secondary coordinates on
+   it (11): `clt_2` (2 to 6 on `clt_1`'s axis) holds `timestamp_2` (6, its
+   end included) by its wedge and name label, `clt_1` holds `timestamp_3`
+   (2 + 1 = 3) by its wedge and three labels, and `timestamp_1` (3/2) lies
+   on `clt_1` alone; the `coordinates` member of each wedge and label says
+   `primary` or `secondary`, and no line is listed for a secondary
+   coordinate. `{inside: wedge}` matches nothing in `map.yaml`.
 4. **The title** `{part: ["name"]}` follows the block for a manifest with a
    `name` or an `id`, and is absent for an anonymous one.
 5. **Matching** over `map.yaml`, one selector per member (`element`,
@@ -684,7 +693,10 @@ check of who holds what.
    line is a `child` without a name, one that is not has type `null` (no
    selector naming `element` matches it, and it adds nothing to the chains
    below it); boundaries (`{id: "b", part: ["start"]}`) and labels are held
-   by the segment line directly, in no band. The full (type, address) list,
+   by the segment line directly, in no band. A segment without a line of
+   its own lists the secondary coordinates on it in its own markers band:
+   `origin` (0) on `a` and `a1`, `length` (32) on `c` and `c1`, each a
+   wedge and a coordinate label, none on `b` (8 to 20). The full (type, address) list,
    the boundary of `b`'s whole key and the chains of `b`'s label, `b2`'s
    marks and `a1` with its bands are pinned, and so are the matches of
    `{element: "boundary"}`, `{element: "child"}`, `{addresses: [{id:
@@ -729,6 +741,51 @@ check of who holds what.
     `groupstamp: false`, no key at the address remains. `{element:
     "cross_section", inside: "frame"}` matches both keys of
     `group_groupstamp`'s `timestamp_1`.
+11. **Secondary coordinates** (drawing.md §2, §6.4 Markers, §6.6, §8.3):
+    a named timestamp has a coordinate on every timeline its card draws
+    whose span holds its position, ends included (an ancestor line within
+    the member's span, a timeline of unknown length up to where it is
+    drawn, drawing.md §3.4), its primary on its own timeline and a
+    secondary one on every other; in a frame a groupstamp's line crosses
+    every other member's card at the same proportion of that member's drawn
+    length (§6.6), so it has secondary coordinates there too. What proves
+    the set: positions derived by hand on each axis and compared exactly
+    as values (an exact value stays exact, a float axis gives the binary64
+    product), and the keys listed in a card are exactly those, no other.
+    `cardStamps` (`window`, the positions and sources of `stamps`, the
+    `secondaries` by timeline) and the secondary keys of `manifestElements`
+    (type, address, timeline, `inside`, `coordinates`) are written out for:
+    `groups/group_groupstamp.yaml`: `timestamp_1` at 4 of `score`'s 8
+    quarters, a half, so on `performance` (4.0 seconds) at the float 2.0,
+    a secondary coordinate held by `performance`'s markers band in
+    `group_1` (wedge and name label, as its `display` lists); and none in
+    `score`'s card. `groups/group_groupstamp_child_member.yaml`:
+    `timestamp_1` at 2 on `second-half` (4 to 8 on `score`): in `score`'s
+    card secondary on `score` at 6, and `score`'s own `length` (8) secondary
+    on `second-half` (its end; `origin` at 0 lies before its start); in
+    `performance`'s card at 6/8 × 4.0 = 3.0.
+    `bundles/bundle_groupstamp_shared_member.yaml`: `timestamp_1` at 4 on
+    `t` (8): on `u` (4.0, `g1`) at 2.0, on `v` (800 pixels, `g2`) at the
+    exact 400, each only in its own frame's card, and none in `t`'s cards.
+    The same card drawn outside a frame (`cardStamps` without one) holds no
+    groupstamp of another member. A card in the frame of a group lists no
+    groupstamp of its own member twice.
+12. **The selector member `coordinates`** (drawing.md §2.3): it matches
+    the wedges of named timestamps and the labels of their stacks (parts
+    `name`, `id`, `coordinate`), primary or secondary, and nothing else.
+    The oracle is read off the addresses alone: over the enumerations of
+    every fixture (roots, groups, bundles), a key matches `{coordinates:
+    "primary"}` exactly when it is a `wedge` at `{id: X}` or a `label` at
+    `{id: X, part: [name|id|coordinate]}`, `X` a named timestamp's ID, and
+    it belongs to `X`'s timeline, and `{coordinates: "secondary"}` exactly
+    when it is such a key on another timeline; so a cross-section line, a
+    member's start or end mark on an ancestor line and its label, an
+    alignment anchor and its label, and every key of no named timestamp
+    match neither; both selectors match at least one key of some fixture
+    each, so neither side is vacuous. Combined with `element`, `{element:
+    "label", coordinates: "secondary"}` over `timestamps.yaml` matches
+    exactly `timestamp_2`'s name label on `clt_2` and `timestamp_3`'s three
+    labels on `clt_1`.
 
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
@@ -1573,12 +1630,19 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    exactly the card of `second-half`, the `piece` ancestor, its name, the
    four mark keys on it and every element of the line `second-half`, its
    timestamps' included (eighteen keys), after every key of the ancestor
-   card's nineteen (thirty-seven keys in all);
+   card's nineteen; four of each list are the secondary coordinates of
+   `origin` and `length` (`timestamp_3` 0 and `timestamp_4` 8 on
+   `second-half`, 8 and 16 on `piece`, which spans 0 to 16) on `piece`,
+   each a wedge and a coordinate label, held by `piece`'s markers band in
+   the ancestor card and by the ancestor line in the member card (forty-five
+   keys in all);
    `{element: "frame"}` only the frame; `{element: "card"}` exactly the
    cards of `second-half` and `recording`, `{element: "ancestor_card"}`
-   exactly the card of `piece`; `{inside: "ancestor"}` exactly the name of `piece` and the
-   four mark keys on the ancestor line; `{element: "wedge", inside:
-   "ancestor"}` the two marks; `{element: "name", inside: "ancestor"}` only
+   exactly the card of `piece`; `{inside: "ancestor"}` exactly the name of `piece`, the
+   four mark keys on the ancestor line and the four keys of the secondary
+   coordinates on it; `{element: "wedge", inside:
+   "ancestor"}` the two marks, then the wedges of `timestamp_3` and
+   `timestamp_4`; `{element: "name", inside: "ancestor"}` only
    the name of `piece`; `{inside: "frame"}` every key after the frame and
    its title's holder, the frame itself excepted.
 4. **Elements of a named manifest with two groups.** The addresses of
@@ -1596,7 +1660,11 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    in `score`'s; `cmap_3` in `performance`'s; `cmap_4` in `page`'s;
    `cmap_6` in `excerpt`'s), the wedges and coordinate labels of its
    `origin` and `length` (`annotations` `timestamp_1`, `timestamp_2`,
-   `excerpt` 3, 4, `page` 5, 6, `performance` 7, 8, `score` 9, 10) and its jump with
+   `excerpt` 3, 4, `page` 5, 6, `performance` 7, 8, `score` 9, 10), and
+   on `recording`, in the ancestor card's markers band and on `excerpt`'s
+   ancestor line, the secondary coordinates of `excerpt`'s `timestamp_3`
+   and `timestamp_4` (`excerpt` lies at 44100 for 88200 samples of
+   441000: both within), and its jump with
    its label (`{id: "jump_from_1"}`, `{id: "jump_from_1", part:
    ["label"]}`); then the ungrouped root `annotations` with its card, name
    and five bands, the regions band holding `region_1`, its label,
@@ -3254,7 +3322,12 @@ block alone).
    markers band, `timestamp_5`, `timestamp_6` of `page` and `timestamp_3`,
    `timestamp_4` of `excerpt`), and for `excerpt` the
    marks `{id: "excerpt", part: ["start"]}` and `["end"]` with their labels
-   on its ancestor line, never that line `{id: "recording"}` or its name. A
+   on its ancestor line, never that line `{id: "recording"}` or its name,
+   but the secondary coordinates of `excerpt`'s `timestamp_3` and
+   `timestamp_4` on it, which carry their timestamps' addresses and so
+   belong to `excerpt` (wedge and coordinate label each, after the marks,
+   and in the ancestor card's `recording` markers band after `excerpt`'s
+   row, which `group_2` contains too). A
    band belongs to its timeline, so a member's five bands are in, empty
    ones too. `group_1` contains neither `{id: "group_2"}` nor `{id:
    "annotations", part: ["card"]}`.

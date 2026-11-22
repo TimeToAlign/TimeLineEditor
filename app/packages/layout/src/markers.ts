@@ -14,13 +14,11 @@ import {
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
 import {
-  type CardStamps,
   cardStamps,
   type ElementKey,
   elementKey,
   namedTimestamps,
   type StampCoordinate,
-  spans,
   TIMESTAMP_LABELS,
   type TimestampLabel,
 } from "@timetoalign/tilie-core/drawing";
@@ -406,39 +404,20 @@ function rotated(wedge: Styled): Styled {
   return { ...wedge, style: rotatedStyle(wedge.style) };
 }
 
-const stampsOfCards = new WeakMap<Scope, CardStamps>();
-
-/** The named timestamps the card of `scope`'s member drawing draws (core's `cardStamps`), once per scope. */
-function cardOf(scope: Scope): CardStamps {
-  let card = stampsOfCards.get(scope);
-  if (card === undefined) {
-    card = cardStamps(scope.manifest, scope.member);
-    stampsOfCards.set(scope, card);
-  }
-  return card;
-}
-
 /**
  * The named timestamps with a secondary coordinate on the timeline of
- * `source` (section 2), each at its position on the root's axis: every
- * timestamp the card draws, its tree's and its ancestors', but those of
- * that timeline, whose position the timeline's span holds, its ends
- * included (its reach where its length is not known, section 3.4), in the
- * canonical order of `graphical.timestamps`.
+ * `source` (section 2, core's `cardStamps` of the card in its frame), each at
+ * its position on the root's axis, in the canonical order of
+ * `graphical.timestamps`.
  */
 function crossingStamps(
   scope: Scope,
   source: Entry,
 ): { readonly timestamp: NamedTimestamp; readonly at: Real }[] {
-  const card = cardOf(scope);
+  const card = cardStamps(scope.manifest, scope.member, scope.frame);
   const origin = negate(card.window[0]);
-  const order = scope.manifest.graphical?.timestamps ?? [];
-  return card.stamps
-    .flatMap(({ timestamp, position }) => {
-      const at = add(position, origin);
-      return timestamp.timeline !== source.manifest.id && spans(source.start, source.end, at)
-        ? [{ timestamp, at }]
-        : [];
-    })
-    .sort((left, right) => order.indexOf(left.timestamp) - order.indexOf(right.timestamp));
+  return (card.secondaries.get(source.manifest.id) ?? []).map(({ timestamp, position }) => ({
+    timestamp,
+    at: add(position, origin),
+  }));
 }

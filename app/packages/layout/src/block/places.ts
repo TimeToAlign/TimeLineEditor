@@ -22,6 +22,7 @@ import {
 import {
   BLOCK_KEY,
   elementKey,
+  type GroupFrame,
   type MemberDrawing,
   memberDrawings,
   unownedKey,
@@ -141,8 +142,8 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
 
 /**
  * The card of `member` whose place key is `key`, held by `holder` (the
- * frame of its group, or the block), its member drawing laid out at `L`,
- * spacing `S` and margin `V`.
+ * frame of its group, or the block), a member card of `frame` where one is
+ * given, its member drawing laid out at `L`, spacing `S` and margin `V`.
  */
 function cardOf(
   context: Context,
@@ -152,6 +153,7 @@ function cardOf(
   L: number,
   S: number,
   V: number,
+  frame: GroupFrame | null,
 ): Pick<Card, "member" | "ref" | "address" | "style" | "layout"> {
   const timeline = member.timeline;
   const ref = containerOf(context, key);
@@ -161,7 +163,13 @@ function cardOf(
     holder.style,
   );
   const laid: Context = { ...context, placement: { ...context.placement, length: L } };
-  return { member, ref, address, style, layout: layoutMember(laid, member, holder, key, S, V) };
+  return {
+    member,
+    ref,
+    address,
+    style,
+    layout: layoutMember(laid, member, holder, key, S, V, frame),
+  };
 }
 
 /**
@@ -209,7 +217,8 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
     return { key, frame, stated, x, y, length, scale, spacing, margin, height, cards };
   };
 
-  const framed = frames.map(({ group, members }) => {
+  const framed = frames.map((drawn) => {
+    const { group, members } = drawn;
     const item: PlaceKey = { item: group.id };
     const ref = containerOf(context, item);
     const address = idAddress(group.id);
@@ -230,7 +239,7 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
         const stated = requestOf(context, key);
         const spacing = stated.spacing ?? CARD_SPACING;
         const margin = stated.margin ?? 0;
-        const card = cardOf(context, member, holder, key, L, spacing, margin);
+        const card = cardOf(context, member, holder, key, L, spacing, margin, drawn);
         const height =
           stated.height === undefined
             ? card.layout.height
@@ -247,7 +256,7 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
   const loose = ungrouped.map((member) => {
     const key: PlaceKey = { item: member.timeline.id };
     return place(key, null, (L, spacing, margin) => {
-      const card = cardOf(context, member, block, key, L, spacing, margin);
+      const card = cardOf(context, member, block, key, L, spacing, margin, null);
       const height = card.layout.height;
       return { cards: [{ ...card, stated: {}, spacing, margin, top: 0, height }], height };
     });

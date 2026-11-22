@@ -21,6 +21,7 @@ import {
   type TextElement,
   TextMeasure,
 } from "../src/index.ts";
+import { wedgeCorners } from "../src/rotation.ts";
 import {
   at,
   child,
@@ -29,6 +30,7 @@ import {
   loadFile,
   metrics,
   quarters,
+  SINE_45,
   set,
   target,
 } from "./support.ts";
@@ -235,5 +237,80 @@ describe("the lines a position read across its group draws", () => {
     const drawing = drawFixture("nested");
     const keys = [...lineAxes(drawing).keys()];
     expect(keys.flatMap((key) => groupCrossSections(drawing, key, 100))).toEqual([]);
+  });
+});
+
+describe("a groupstamp's secondary coordinates on the frame's other members", () => {
+  // `timestamp_1` at 4 of `score`'s 8 quarters lies at the half of every member: on
+  // `performance` (4.0 seconds) at 2.0, where the frame's line crosses its card.
+  const SHOW: Rule = { select: { coordinates: "secondary" }, set: { display: "inline" } };
+  const manifest = plain(
+    set("timestamp_1", { display: ["wedge", "name", "coordinate", "cross_section"] }),
+  );
+  const wedges = (drawing: Drawing) =>
+    drawing.elements.filter(
+      (item): item is MarkerElement =>
+        item.type === "wedge" && sameAddress(item.address, at("timestamp_1")),
+    );
+  const stampLabels = (drawing: Drawing) =>
+    drawing.elements.filter(
+      (item): item is TextElement => item.type === "label" && item.address.id === "timestamp_1",
+    );
+  const height = (drawing: Drawing, member: string) => {
+    const { top, bottom } = card(drawing, member);
+    return bottom - top;
+  };
+
+  it("are not drawn by default and take no room", () => {
+    const drawing = drawn(manifest);
+    expect(wedges(drawing)).toHaveLength(1);
+    expect(stampLabels(drawing).map((label) => label.address.part)).toEqual([
+      ["name"],
+      ["coordinate"],
+    ]);
+    // `performance`'s markers band holds its `origin` and `length` labels in one line.
+    expect(height(drawing, "performance")).toBe(height(drawn(plain()), "performance"));
+  });
+
+  it("draw on the other member at the frame line's x, turned −45, read on that member's axis", () => {
+    const drawing = drawn(manifest, [SHOW]);
+    const [primary, secondary] = wedges(drawing);
+    if (primary === undefined || secondary === undefined) throw new Error("two wedges");
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    expect([primary.x, primary.style.rotation]).toEqual([middle, 0]);
+    expect([secondary.x, secondary.style.rotation]).toEqual([middle, -45]);
+    expect(secondary.yt).toBe(out(drawing, "performance", 1.5));
+    expect(secondary.corners).toEqual(
+      wedgeCorners(-45).map(({ dx, out: o }) => ({ dx, y: out(drawing, "performance", 1.5 + o) })),
+    );
+    const [, , name, coordinate] = stampLabels(drawing);
+    expect([name?.address.part, coordinate?.address.part]).toEqual([["name"], ["coordinate"]]);
+    expect(coordinate?.coordinate).toEqual({ unit: "seconds", value: 2 });
+    // Its stack of two labels in tier 1 of `performance`'s band, carried by the turned wedge
+    // (section 6.6): `t = 15 + W / 2 × 0.7071 + H / 2 × 0.7071`, across `t × −0.7071`, its box's
+    // centre `1.5 + t × 0.7071` out, its lines from `H / 2` before it.
+    const h = measure.lineHeight(9);
+    const W = Math.max(...[name, coordinate].map((label) => measure.width(label?.text ?? "", 9)));
+    const H = 2 * h;
+    const t = 15 + (W / 2) * SINE_45 + (H / 2) * SINE_45;
+    const first = 1.5 + t * SINE_45 - H / 2;
+    const origin = card(drawing, "score").top;
+    const baseline = (start: number) =>
+      origin + (axisOf(drawing, "performance").line - origin + start + measure.ascent(9));
+    expect([name?.x, name?.baseline, coordinate?.x, coordinate?.baseline]).toEqual([
+      middle + t * -SINE_45,
+      baseline(first),
+      middle + t * -SINE_45,
+      baseline(first + h),
+    ]);
+    // Shown, the stack takes room: `performance`'s band holds two lines, one more than before.
+    expect(height(drawing, "performance")).toBe(height(drawn(manifest), "performance") + h);
+    // The frame's line crosses them uncut.
+    expect(lines(drawing).at(-1)).toMatchObject({
+      x: middle,
+      y1: card(drawing, "score").bottom,
+      y2: card(drawing, "performance").bottom,
+    });
   });
 });

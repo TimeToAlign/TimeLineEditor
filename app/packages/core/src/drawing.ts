@@ -14,6 +14,7 @@ export type {
   ElementKey,
   Modality,
   StampCoordinate,
+  StampSource,
   TimestampLabel,
 } from "./manifest/elements.ts";
 export {
@@ -26,13 +27,11 @@ export {
   namedTimestamps,
   orderedChildren,
   reachOf,
-  secondaryTimelines,
   selectorMatches,
-  spans,
   TIMESTAMP_LABELS,
   textKey,
   timelineAncestry,
   unownedKey,
 } from "./manifest/elements.ts";
-export type { Ancestor, AncestorCard, MemberDrawing } from "./manifest/files.ts";
+export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
 export { memberDrawings } from "./manifest/files.ts";

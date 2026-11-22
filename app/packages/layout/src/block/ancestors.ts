@@ -135,7 +135,7 @@ export function ancestorCards(
     // `R` alone, as a block's one ungrouped root (sections 3 to 6, 8.2 and 8.4).
     const laid: Context = { ...context, placement: { ...placement, length: LA } };
     const key = ref.key ?? { item: group.id, member: R.id };
-    const layout = layoutMember(laid, root, block, key, CARD_SPACING, 0);
+    const layout = layoutMember(laid, root, block, key, CARD_SPACING, 0, null);
     const card: Card = {
       member: root,
       ref,

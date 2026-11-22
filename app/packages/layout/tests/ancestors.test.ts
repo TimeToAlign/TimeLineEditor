@@ -20,6 +20,8 @@ import {
   draw,
   manifestLayer,
   type Placement,
+  TextMeasure,
+  timestampSegments,
 } from "../src/index.ts";
 import {
   at,
@@ -766,5 +768,105 @@ describe("a member's cross-section lines cross its whole card", () => {
     const manifest = loadManifest(text);
     if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
     expect(spansCards(drawEdited(manifest))).toBe(true);
+  });
+});
+
+describe("named timestamps of an ancestor, on its line in the member's card", () => {
+  // `piece` (16 quarters) holds `second-half` at 8 for 8: the window on `piece`'s axis is 8 to 16,
+  // its ends included. Four timestamps of `piece`, minted in this order: `timestamp_5` at 4
+  // (outside), `timestamp_6` at 8 (the start: wedge and name), `timestamp_7` at 12 (wedge, name,
+  // line), `timestamp_8` at 16 (the end: wedge alone).
+  const stamp = (name: string, coordinate: number, display: readonly string[]) => ({
+    type: "add",
+    into: target("piece"),
+    timestamp: { name, coordinate: [coordinate, 1], display },
+  });
+  const manifest = edit(
+    "groups/group_child_member",
+    stamp("Before", 4, ["wedge", "name", "cross_section"]),
+    stamp("B", 8, ["wedge", "name"]),
+    stamp("C", 12, ["wedge", "name", "cross_section"]),
+    stamp("D", 16, ["wedge"]),
+  );
+  const layers = (extra: Graphical[]) => [DEFAULT_LAYER, ...extra, manifestLayer(manifest)];
+  const drawing = draw(manifest, DEFAULT_PLACEMENT, layers([HIDDEN_ANCESTOR_CARDS]), metrics);
+  const measure = new TextMeasure(metrics);
+  const h = measure.lineHeight(9);
+  const a = measure.ascent(9);
+  // The member's line at 47.20703125, `piece`'s line one ancestor row below at 85.18359375, the
+  // member drawn from x0 = 120.61962890625 to x0 + 400 (the fixture's quantities above).
+  const x0 = 120.61962890625;
+  const ya = 85.18359375;
+
+  it("draws those whose position lies within the member's span, its ends included", () => {
+    expect(all(drawing, at("timestamp_5"))).toEqual([]);
+    expect(all(drawing, at("timestamp_5", "line"))).toEqual([]);
+    expect(
+      ["timestamp_6", "timestamp_7", "timestamp_8"].map((id) => {
+        const wedge = element(drawing, at(id));
+        return wedge.type === "wedge" ? [wedge.x, wedge.yt, baseOf(wedge)] : [];
+      }),
+    ).toEqual([
+      [x0, ya + 1.5, ya + 14.5],
+      [x0 + 200, ya + 1.5, ya + 14.5],
+      [x0 + 400, ya + 1.5, ya + 14.5],
+    ]);
+  });
+
+  it("stacks their labels after the marks' in one first fit, tiers counted in lines", () => {
+    // The start mark's label `8 ♩` takes tier 1 at x0, the end mark's at x0 + 400; `B` at x0
+    // meets the first and goes to tier 2, `C` at x0 + 200 stays in tier 1.
+    expect(
+      ["timestamp_6", "timestamp_7"].map((id) => {
+        const label = element(drawing, at(id, "name"));
+        return label.type === "label" ? [label.text, label.x, label.baseline] : [];
+      }),
+    ).toEqual([
+      ["B", x0, ya + (1.5 + 13 + 2 + h) + a],
+      ["C", x0 + 200, ya + (1.5 + 13 + 2) + a],
+    ]);
+    // Two lines of labels on the row's outer side: the card grows by one h(9) (87.35546875
+    // with one line, as `group_child_member` draws it).
+    expect(card(drawing, "second-half").height).toBe(87.35546875 + h);
+  });
+
+  it("draws the line, the primary wedge and the labels at full opacity, the marks faded", () => {
+    const opacities = [
+      at("timestamp_6"),
+      at("timestamp_6", "name"),
+      at("timestamp_7"),
+      at("timestamp_7", "name"),
+      at("timestamp_7", "line"),
+      at("timestamp_8"),
+      at("second-half", "start"),
+      at("second-half", "start", "label"),
+    ].map((address) => element(drawing, address).style.opacity);
+    expect(opacities).toEqual([1, 1, 1, 1, 1, 1, 0.35, 0.35]);
+  });
+
+  it("runs the line across the member's card, its gap measured out from the ancestor line", () => {
+    // `C` draws its wedge (tip 1.5 below `piece`'s line) and its name in tier 1, which ends
+    // `1.5 + 13 + 2 + h(9)` below it.
+    const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "second-half" });
+    expect(
+      all(drawing, at("timestamp_7", "line")).map((item) =>
+        item.type === "cross_section" ? [item.x, item.y1, item.y2] : [],
+      ),
+    ).toEqual([
+      [x0 + 200, y1, ya + 1.5],
+      [x0 + 200, ya + (1.5 + 13 + 2 + h), y2],
+    ]);
+  });
+
+  it("gives the anchors a segment in the member's card, never in the ancestor card", () => {
+    const shown = draw(manifest, DEFAULT_PLACEMENT, layers([]), metrics);
+    const { y1, y2 } = cardSpan(shown, { item: "group_1", member: "second-half" });
+    // The ancestor card of `piece` draws `C` as `piece`'s own timestamp, its line across that
+    // card in two pieces too; its segment is the member card's alone (sections 8.7, 8.8). The
+    // ancestor card is aligned to the member, so its row `second-half` starts at the member's x0.
+    expect(all(shown, at("timestamp_7", "line")).length).toBe(4);
+    expect(timestampSegments(shown.axes, "timestamp_7")).toEqual([
+      { x: xOf(shown, "second-half") + 200, y1, y2 },
+    ]);
   });
 });

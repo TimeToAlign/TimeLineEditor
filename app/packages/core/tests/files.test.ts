@@ -189,6 +189,12 @@ describe("the elements of a group manifest", () => {
       band("second-half", "flow_control", row),
       band("piece", "conversion_maps", root),
       band("piece", "markers", root),
+      // `second-half` lies at 8 for 8 on `piece`: its `origin` and `length` lie on `piece` too,
+      // secondary coordinates there, in its markers band and on its ancestor line below.
+      ["wedge", id("timestamp_3"), ...piece, null, [...root, "band"]],
+      ["label", id("timestamp_3", "coordinate"), ...piece, null, [...root, "band"]],
+      ["wedge", id("timestamp_4"), ...piece, null, [...root, "band"]],
+      ["label", id("timestamp_4", "coordinate"), ...piece, null, [...root, "band"]],
       band("piece", "regions", root),
       band("piece", "flow_control", root),
       ["frame", id("group_1"), ...none, ["block"]],
@@ -200,6 +206,10 @@ describe("the elements of a group manifest", () => {
       ["label", id("second-half", "start", "label"), ...half, null, [...ancestor, "wedge"]],
       ["wedge", id("second-half", "end"), ...half, null, ancestor],
       ["label", id("second-half", "end", "label"), ...half, null, [...ancestor, "wedge"]],
+      ["wedge", id("timestamp_3"), ...piece, null, ancestor],
+      ["label", id("timestamp_3", "coordinate"), ...piece, null, ancestor],
+      ["wedge", id("timestamp_4"), ...piece, null, ancestor],
+      ["label", id("timestamp_4", "coordinate"), ...piece, null, ancestor],
       ["timeline", id("second-half"), ...half, null, frame],
       ["name", id("second-half", "name"), ...half, null, line],
       band("second-half", "children"),
@@ -237,6 +247,13 @@ describe("the elements of a group manifest", () => {
       id("second-half", "end"),
       id("second-half", "end", "label"),
     ];
+    // The wedges and coordinate labels of `second-half`'s `origin` and `length`.
+    const stamps = [
+      id("timestamp_3"),
+      id("timestamp_3", "coordinate"),
+      id("timestamp_4"),
+      id("timestamp_4", "coordinate"),
+    ];
     const rowOf = (timeline: string) => [
       bandOf(timeline, "children"),
       bandOf(timeline, "conversion_maps"),
@@ -257,12 +274,14 @@ describe("the elements of a group manifest", () => {
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
       ...rowOf("piece").slice(1),
+      ...stamps,
       bandOf("piece", "regions"),
       bandOf("piece", "flow_control"),
       id("second-half", "card"),
       id("piece"),
       id("piece", "name"),
       ...marks,
+      ...stamps,
       id("second-half"),
       id("second-half", "name"),
       bandOf("second-half", "children"),
@@ -275,7 +294,7 @@ describe("the elements of a group manifest", () => {
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
     ]);
-    expect(matched({ within: "piece" }).length).toBe(19 + 18);
+    expect(matched({ within: "piece" }).length).toBe(23 + 22);
     expect(matched({ element: "frame" })).toEqual([id("group_1")]);
     expect(matched({ element: "card" })).toEqual([
       id("second-half", "card"),
@@ -290,10 +309,13 @@ describe("the elements of a group manifest", () => {
       [id("second-half", "start", "label"), "block frame timeline ancestor wedge"],
       [id("second-half", "end"), "block frame timeline ancestor"],
       [id("second-half", "end", "label"), "block frame timeline ancestor wedge"],
+      ...stamps.map((address) => [address, "block frame timeline ancestor"]),
     ]);
     expect(matched({ element: "wedge", inside: "ancestor" })).toEqual([
       id("second-half", "start"),
       id("second-half", "end"),
+      id("timestamp_3"),
+      id("timestamp_4"),
     ]);
     expect(matched({ element: "name", inside: "ancestor" })).toEqual([id("piece", "name")]);
     const frame = keys.findIndex((key) => key.type === "frame");
@@ -332,6 +354,10 @@ describe("the elements of a named manifest with two groups", () => {
 
   it("list the title, the frames and the ungrouped roots", () => {
     const keys = manifestElements(manifest);
+    const onRecording = [3, 4].flatMap((n) => [
+      id(`timestamp_${n}`),
+      id(`timestamp_${n}`, "coordinate"),
+    ]);
     expect(keys.map((key) => key.address)).toEqual([
       {},
       { part: ["name"] },
@@ -345,6 +371,9 @@ describe("the elements of a named manifest with two groups", () => {
       bandOf("recording", "conversion_maps"),
       id("cmap_5"),
       bandOf("recording", "markers"),
+      // `excerpt`'s `origin` and `length` (3, 4) lie on `recording` too: secondary coordinates in
+      // its markers band here and on its ancestor line in `excerpt`'s card.
+      ...onRecording,
       bandOf("recording", "regions"),
       bandOf("recording", "flow_control"),
       id("group_1"),
@@ -367,6 +396,7 @@ describe("the elements of a named manifest with two groups", () => {
       id("excerpt", "start", "label"),
       id("excerpt", "end"),
       id("excerpt", "end", "label"),
+      ...onRecording,
       ...drawn("excerpt", 3, { maps: [id("cmap_6")] }),
       id("annotations", "card"),
       ...drawn("annotations", 1, {

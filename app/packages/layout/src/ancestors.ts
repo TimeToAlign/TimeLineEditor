@@ -15,7 +15,6 @@ import {
   cardStamps,
   type ElementKey,
   elementKey,
-  spans,
   TIMESTAMP_LABELS,
   type TimestampLabel,
 } from "@timetoalign/tilie-core/drawing";
@@ -186,9 +185,8 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       finish: end,
     };
   });
-  const card = cardStamps(manifest, member);
+  const card = cardStamps(manifest, member, scope.frame);
   const origin = negate(card.window[0]);
-  const order = manifest.graphical?.timestamps ?? [];
   return ancestors
     .filter((ancestor) => shown(ancestor.style))
     .map((ancestor) => {
@@ -240,20 +238,14 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
           line: primary && lists("cross_section") && shown(line.style) ? line : undefined,
         };
       };
-      const placed = card.stamps.map(({ timestamp, position }) => ({
-        timestamp,
-        at: add(position, origin),
-      }));
-      const own = placed
-        .filter(({ timestamp }) => timestamp.timeline === timeline.id)
-        .map(({ timestamp, at }) => stampStack(timestamp, at, true));
-      const secondary = placed
+      const own = card.stamps
         .filter(
-          ({ timestamp, at }) =>
-            timestamp.timeline !== timeline.id && spans(start, ancestor.finish, at),
+          ({ timestamp, source }) => source === "ancestor" && timestamp.timeline === timeline.id,
         )
-        .sort((left, right) => order.indexOf(left.timestamp) - order.indexOf(right.timestamp))
-        .map(({ timestamp, at }) => stampStack(timestamp, at, false))
+        .map(({ timestamp, position }) => stampStack(timestamp, add(position, origin), true));
+      // A hidden secondary coordinate takes no room.
+      const secondary = (card.secondaries.get(timeline.id) ?? [])
+        .map(({ timestamp, position }) => stampStack(timestamp, add(position, origin), false))
         .filter((stack) => stack.wedge !== undefined || stack.labels.length > 0);
       const markStacks: AncestorStack[] = marks.map((mark) => ({
         id: undefined,

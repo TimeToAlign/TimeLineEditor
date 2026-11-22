@@ -98,6 +98,35 @@ describe("rank", () => {
     );
   });
 
+  it("4. coordinates ranks where class does: it outranks element and inside, not within", () => {
+    // The wedge of a named timestamp's primary coordinate in the markers band of `c`.
+    const wedge: ElementKey = {
+      ...key,
+      type: "wedge",
+      address: at("timestamp_1"),
+      inside: [...key.inside, "child", "band"],
+      coordinates: "primary",
+    };
+    const strokeOf = (layers: Graphical[]) =>
+      new Cascade(layers, ancestry).resolve(wedge, undefined).stroke;
+    expect(
+      strokeOf(winnerFirst({ coordinates: "primary" }, { element: "wedge", inside: "band" })),
+    ).toBe("#111111");
+    expect(
+      strokeOf(winnerFirst({ within: "c" }, { coordinates: "primary", element: "wedge" })),
+    ).toBe("#111111");
+    // Of two rules of rank 4, the one naming `element` too wins; `secondary` matches nothing here.
+    expect(
+      strokeOf(
+        winnerFirst(
+          { coordinates: "primary", element: "wedge" },
+          { class: "ContinuousLogicalTimeline" },
+        ),
+      ),
+    ).toBe("#111111");
+    expect(strokeOf([{ rules: [rule({ coordinates: "secondary" }, "#111111")] }])).toBe("none");
+  });
+
   it("5. element outranks inside, domain and modality", () => {
     expect(
       stroke(

@@ -36,6 +36,7 @@ import {
   wedgeAt,
   wedgePoints,
 } from "../src/index.ts";
+import { wedgeCorners } from "../src/rotation.ts";
 import {
   at,
   bandOrder,
@@ -46,6 +47,7 @@ import {
   linearMap,
   loadFile,
   metrics,
+  SINE_45,
   set,
   target,
   unturned,
@@ -823,5 +825,99 @@ describe("the marks at any position", () => {
 
   it("are none where no line is keyed", () => {
     expect(marksAt(drawing, keyOf(CLT_1, "nothing"), 100)).toEqual({ line: [], wedge: null });
+  });
+});
+
+describe("secondary coordinates, shown by a rule selecting them", () => {
+  // `clt_2` spans 2 to 6 on `clt_1`'s axis: `timestamp_3` (1 on `clt_2`) lies at 3 on `clt_1`,
+  // `timestamp_2` (6 on `clt_1`) at `clt_2`'s end; `timestamp_1` (3/2) lies on `clt_1` alone.
+  const SHOW: Rule = { select: { coordinates: "secondary" }, set: { display: "inline" } };
+  const WEDGES: Rule = {
+    select: { element: "wedge", coordinates: "secondary" },
+    set: { display: "inline" },
+  };
+  const h = measure.lineHeight(9);
+  const a = measure.ascent(9);
+  const plain = drawn(stamped("timestamps", STAMPS));
+  const shown = drawn(stamped("timestamps", STAMPS, [SHOW]));
+  /** The drawings of the wedge `{id}` in `drawing`, as `[x, yt, corners, rotation]`. */
+  const wedgesOf = (drawing: Drawing, id: string) =>
+    drawing.elements.flatMap((item) =>
+      item.type === "wedge" && sameAddress(item.address, at(id))
+        ? [[item.x, item.yt, item.corners, item.style.rotation]]
+        : [],
+    );
+  /** The wedge of a secondary coordinate turned −45 on the line at `y`, its tip `1.5` out below. */
+  const turned = (x: number, y: number) => [
+    x,
+    y + 1.5,
+    wedgeCorners(-45).map(({ dx, out }) => ({ dx, y: y + (1.5 + out) })),
+    -45,
+  ];
+  /**
+   * The labels of a stack of `texts` in tier 1 of a band below the line at `y`, its wedge at `x`
+   * turned −45 (section 6.6): `t = 15 + W / 2 × 0.7071 + H / 2 × 0.7071`, centred `t × −0.7071`
+   * across, the box's centre `1.5 + t × 0.7071` out, line `i` starting `H / 2` before it plus
+   * `i × h(9)`, its baseline `a(9)` beyond.
+   */
+  const carriedStack = (x: number, y: number, texts: readonly string[]) => {
+    const W = Math.max(...texts.map((text) => measure.width(text, 9)));
+    const H = texts.length * h;
+    const t = 15 + (W / 2) * SINE_45 + (H / 2) * SINE_45;
+    const first = 1.5 + t * SINE_45 - H / 2;
+    return texts.map((text, index) => [text, x + t * -SINE_45, y + (first + index * h) + a]);
+  };
+
+  it("draws a wedge turned −45 and the stack its display lists on each timeline it crosses", () => {
+    const [y1, y2] = [lineY(shown, "clt_1"), lineY(shown, "clt_2")];
+    expect([y1, y2]).toEqual([77.9296875, 23]);
+    // The root's markers band's wedges are drawn first, then the child's (section 7.2).
+    expect(wedgesOf(shown, "timestamp_2")).toEqual([
+      [349.91552734375, 79.4296875, unturned(92.4296875), 0],
+      turned(349.91552734375, 23),
+    ]);
+    expect(wedgesOf(shown, "timestamp_3")).toEqual([
+      turned(199.91552734375, 77.9296875),
+      [199.91552734375, 24.5, unturned(37.5), 0],
+    ]);
+    expect(wedgesOf(shown, "timestamp_1")).toEqual([
+      [124.91552734375, 79.4296875, unturned(92.4296875), 0],
+    ]);
+    const labelsOf = (id: string) =>
+      labels(shown).filter(([address]) => (address as ElementAddress).id === id);
+    expect(labelsOf("timestamp_2").map(([, text, x, baseline]) => [text, x, baseline])).toEqual([
+      ["Climax", 349.91552734375, 102.78369140625],
+      ...carriedStack(349.91552734375, 23, ["Climax"]),
+    ]);
+    expect(labelsOf("timestamp_3").map(([, text, x, baseline]) => [text, x, baseline])).toEqual([
+      ...carriedStack(199.91552734375, 77.9296875, ["Entry", "timestamp_3", "3 ♩"]),
+      ["Entry", 199.91552734375, 47.85400390625],
+      ["timestamp_3", 199.91552734375, 58.33056640625],
+      ["1 ♩", 199.91552734375, 68.80712890625],
+    ]);
+  });
+
+  it("reads a secondary coordinate label on its own timeline's axis", () => {
+    const coordinates = shown.elements.flatMap((item) =>
+      item.type === "label" && sameAddress(item.address, at("timestamp_3", "coordinate"))
+        ? [item.coordinate]
+        : [],
+    );
+    expect(coordinates).toEqual([
+      { unit: "quarters", value: Rational.of(3) },
+      { unit: "quarters", value: Rational.of(1) },
+    ]);
+  });
+
+  it("takes room only for what is shown, its stack placed in the band's tiers", () => {
+    // Hidden by default, nothing of them is drawn and the card keeps its height; their wedges
+    // alone take none either (`w / 2 + 13` is the band's without labels); the three labels of
+    // `timestamp_3` on `clt_1` make its band three lines deep, two more than `Downbeat`'s.
+    const height = (drawing: Drawing) =>
+      cardOf(drawing, "clt_1").bottom - cardOf(drawing, "clt_1").top;
+    expect(wedgesOf(plain, "timestamp_3")).toHaveLength(1);
+    expect(height(plain)).toBe(104.90625);
+    expect(height(drawn(stamped("timestamps", STAMPS, [WEDGES])))).toBe(104.90625);
+    expect(height(shown)).toBe(104.90625 + 2 * h);
   });
 });

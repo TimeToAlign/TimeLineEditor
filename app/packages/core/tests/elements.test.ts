@@ -2,15 +2,19 @@ import { type Selector, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
 import { addressKey, FACETS } from "../src/manifest/address.ts";
-import type { ElementKey } from "../src/manifest/elements.ts";
+import type { CardStamps, ElementKey } from "../src/manifest/elements.ts";
 import {
+  cardStamps,
   manifestElements,
   selectorMatches,
   timelineAncestry,
   timelineClass,
   unitDomain,
 } from "../src/manifest/elements.ts";
+import { memberDrawings } from "../src/manifest/files.ts";
 import type { Manifest } from "../src/manifest/types.ts";
+import { Rational } from "../src/number/rational.ts";
+import type { Real } from "../src/number/real.ts";
 import { allFixtures, fileText, load, loadText, manifestValue } from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";
@@ -99,29 +103,58 @@ describe("the elements of a manifest", () => {
   it("lists what a named timestamp's display draws: wedge and labels in its band, its line on its line", () => {
     const root = ["block", "timeline"];
     const child = [...root, "band", "child"];
-    const stamp = (name: string, timeline: string, line: string[], words: readonly string[]) => [
-      ...(words.includes("wedge") ? [["wedge", id(name), timeline, CLT, [...line, "band"]]] : []),
+    // The wedge and labels `words` lists of a coordinate of `name` on `timeline`, primary or
+    // secondary, in the markers band of the line `line`; a primary one's line held by the line.
+    const stamp = (
+      name: string,
+      timeline: string,
+      line: string[],
+      words: readonly string[],
+      coordinates: "primary" | "secondary",
+    ) => [
+      ...(words.includes("wedge")
+        ? [["wedge", id(name), timeline, CLT, [...line, "band"], coordinates]]
+        : []),
       ...(["name", "id", "coordinate"] as const)
         .filter((word) => words.includes(word))
-        .map((word) => ["label", id(name, word), timeline, CLT, [...line, "band"]]),
-      ...(words.includes("cross_section")
-        ? [["cross_section", id(name, "line"), timeline, CLT, line]]
+        .map((word) => ["label", id(name, word), timeline, CLT, [...line, "band"], coordinates]),
+      ...(words.includes("cross_section") && coordinates === "primary"
+        ? [["cross_section", id(name, "line"), timeline, CLT, line, undefined]]
         : []),
     ];
+    // clt_1 (8 quarters) holds clt_2 at 2 (4 quarters, spanning 2 to 6 on clt_1's axis):
+    // timestamp_1 at 3/2 lies on clt_1 alone; timestamp_2 at 6 also on clt_2, at its end;
+    // timestamp_3 at 1 on clt_2 lies at 2 + 1 = 3 on clt_1. Each band lists its timeline's own
+    // timestamps, then the secondary coordinates on it, in the order of `timestamps`.
     expect(
       manifestElements(load("timestamps.yaml"))
         .filter((key) => key.address.id?.startsWith("timestamp_") === true)
-        .map((key) => [key.type, key.address, key.timeline, key.class, key.inside]),
+        .map((key) => [
+          key.type,
+          key.address,
+          key.timeline,
+          key.class,
+          key.inside,
+          key.coordinates,
+        ]),
     ).toEqual([
-      ...stamp("timestamp_3", "clt_2", child, [
-        "wedge",
-        "name",
-        "id",
-        "coordinate",
-        "cross_section",
-      ]),
-      ...stamp("timestamp_1", "clt_1", root, ["wedge", "name", "cross_section"]),
-      ...stamp("timestamp_2", "clt_1", root, ["wedge", "name"]),
+      ...stamp(
+        "timestamp_3",
+        "clt_2",
+        child,
+        ["wedge", "name", "id", "coordinate", "cross_section"],
+        "primary",
+      ),
+      ...stamp("timestamp_2", "clt_2", child, ["wedge", "name"], "secondary"),
+      ...stamp("timestamp_1", "clt_1", root, ["wedge", "name", "cross_section"], "primary"),
+      ...stamp("timestamp_2", "clt_1", root, ["wedge", "name"], "primary"),
+      ...stamp(
+        "timestamp_3",
+        "clt_1",
+        root,
+        ["wedge", "name", "id", "coordinate", "cross_section"],
+        "secondary",
+      ),
     ]);
   });
 
@@ -160,9 +193,13 @@ describe("the elements of a manifest", () => {
     ]);
   });
 
-  it("enumerates every manifest fixture of one root with unique addresses", () => {
+  it("enumerates every manifest fixture of one root with unique addresses on each timeline", () => {
+    // A secondary coordinate's wedge and labels carry its timestamp's addresses on the timeline
+    // they mark (section 2.2); a root's card draws each timeline once.
     for (const { name, text } of allFixtures.filter((item) => !item.name.includes("/"))) {
-      const addresses = manifestElements(loadText(text)).map((key) => addressKey(key.address));
+      const addresses = manifestElements(loadText(text)).map(
+        (key) => `${key.timeline} ${addressKey(key.address)}`,
+      );
       expect([name, new Set(addresses).size]).toEqual([name, addresses.length]);
     }
   });
@@ -460,6 +497,18 @@ describe("the elements of a segment line", () => {
     keys.find((key) => addressKey(key.address) === addressKey(address));
 
   it("enumerates segments in their children bands, boundaries and labels on their lines", () => {
+    // The secondary coordinates of `timestamp_N` in a markers band: `origin` at 0 lies on `a`
+    // (0 to 8) and its segment `a1`, `length` at 32 on `c` (20 to 32) and `c1`; `b` (8 to 20)
+    // holds neither.
+    const marked = (stamp: string) => [
+      ["wedge", id(stamp)],
+      ["label", id(stamp, "coordinate")],
+    ];
+    /** The rows of five bands with `held` after the markers band. */
+    const withMarks = (timeline: string, held: unknown[][]) => {
+      const rows = five(timeline);
+      return [...rows.slice(0, 3), ...held, ...rows.slice(3)];
+    };
     expect(keys.map((key) => [key.type, key.address])).toEqual([
       ["block", {}],
       ["card", id("form", "card")],
@@ -471,8 +520,8 @@ describe("the elements of a segment line", () => {
       row(band("a", "children")),
       [null, id("a1")],
       ["label", id("a1", "label")],
-      ...five("a1"),
-      ...four("a"),
+      ...withMarks("a1", marked("timestamp_1")),
+      ...withMarks("a", marked("timestamp_1")).slice(1),
       ["child", id("b")],
       ["boundary", id("b", "start")],
       ["label", id("b", "label")],
@@ -491,8 +540,8 @@ describe("the elements of a segment line", () => {
       row(band("c", "children")),
       [null, id("c1")],
       ["label", id("c1", "label")],
-      ...five("c1"),
-      ...four("c"),
+      ...withMarks("c1", marked("timestamp_2")),
+      ...withMarks("c", marked("timestamp_2")).slice(1),
       row(band("form", "conversion_maps")),
       row(band("form", "markers")),
       ["wedge", id("timestamp_1")],
@@ -585,5 +634,163 @@ describe("the elements of a segment line", () => {
     expect(keys.filter((key) => outside.includes(addressKey(key.address))).length).toBe(
       outside.length,
     );
+  });
+});
+
+/** A value as the test writes it: an exact one as `n/d`, a float as the number. */
+const shownValue = (value: Real): string | number =>
+  value instanceof Rational ? `${value.numerator}/${value.denominator}` : value;
+
+describe("the secondary coordinates of a card", () => {
+  /** The card of `member` in the frame of `group`, or outside every frame. */
+  const cardIn = (manifest: Manifest, member: string, group: string | null) => {
+    const { frames } = memberDrawings(manifest);
+    const frame = group === null ? null : frames.find((item) => item.group.id === group);
+    const drawing = frames
+      .flatMap((item) => item.members)
+      .find((item) => item.timeline.id === member);
+    if (frame === undefined || drawing === undefined) throw new Error(`no card of ${member}`);
+    return cardStamps(manifest, drawing, frame);
+  };
+  /** A card's stamps as `[timestamp, position, source]` and its secondaries by timeline. */
+  const written = (card: CardStamps) => ({
+    window: card.window.map(shownValue),
+    stamps: card.stamps.map((stamp) => [
+      stamp.timestamp.id,
+      shownValue(stamp.position),
+      stamp.source,
+    ]),
+    secondaries: [...card.secondaries].map(([timeline, stamps]) => [
+      timeline,
+      stamps.map((stamp) => [stamp.timestamp.id, shownValue(stamp.position)]),
+    ]),
+  });
+  /** The secondary keys of an enumeration: type, address, timeline and chain. */
+  const secondaryKeys = (manifest: Manifest) =>
+    manifestElements(manifest)
+      .filter((key) => key.coordinates === "secondary")
+      .map((key) => [key.type, key.address, key.timeline, key.inside.join(" ")]);
+
+  it("crosses another member's card at the same proportion of its drawn length", () => {
+    const manifest = load("groups/group_groupstamp.yaml");
+    // `timestamp_1` at 4 of `score`'s 8 quarters: a half, 2.0 of `performance`'s 4.0 seconds.
+    expect(written(cardIn(manifest, "performance", "group_1"))).toEqual({
+      window: [0, 4],
+      stamps: [
+        ["timestamp_2", 0, "member"],
+        ["timestamp_3", 4, "member"],
+        ["timestamp_1", 2, "frame"],
+      ],
+      secondaries: [["performance", [["timestamp_1", 2]]]],
+    });
+    expect(written(cardIn(manifest, "score", "group_1"))).toEqual({
+      window: ["0/1", "8/1"],
+      stamps: [
+        ["timestamp_4", "0/1", "member"],
+        ["timestamp_1", "4/1", "member"],
+        ["timestamp_5", "8/1", "member"],
+      ],
+      secondaries: [],
+    });
+    // Outside a frame no groupstamp of another member crosses the card.
+    expect(written(cardIn(manifest, "performance", null)).secondaries).toEqual([]);
+    expect(secondaryKeys(manifest)).toEqual([
+      ["wedge", id("timestamp_1"), "performance", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "performance", "block frame timeline band"],
+    ]);
+  });
+
+  it("reads a groupstamp on a child of a member on the member's drawn length", () => {
+    const manifest = load("groups/group_groupstamp_child_member.yaml");
+    // `timestamp_1` at 2 on `second-half`, 4 to 8 on `score` (8): at 6 on `score`, 6/8 of it,
+    // and so at 6/8 × 4.0 = 3.0 on `performance`; `score`'s `length` (8) lies on `second-half`'s
+    // end, its `origin` (0) before its start.
+    expect(written(cardIn(manifest, "score", "group_1")).secondaries).toEqual([
+      ["score", [["timestamp_1", "6/1"]]],
+      ["second-half", [["timestamp_5", "8/1"]]],
+    ]);
+    expect(written(cardIn(manifest, "performance", "group_1")).secondaries).toEqual([
+      ["performance", [["timestamp_1", 3]]],
+    ]);
+    expect(secondaryKeys(manifest)).toEqual([
+      // `score`'s children band, holding `second-half`, precedes its markers band.
+      ["wedge", id("timestamp_5"), "second-half", "block frame timeline band child band"],
+      [
+        "label",
+        id("timestamp_5", "coordinate"),
+        "second-half",
+        "block frame timeline band child band",
+      ],
+      ["wedge", id("timestamp_1"), "score", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "score", "block frame timeline band"],
+      ["wedge", id("timestamp_1"), "performance", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "performance", "block frame timeline band"],
+    ]);
+  });
+
+  it("crosses each member of a shared member's groups in its own frame only", () => {
+    const manifest = load("bundles/bundle_groupstamp_shared_member.yaml");
+    // `timestamp_1` at 4 of `t`'s 8: on `u` (4.0) at 2.0 in `g1`, on `v` (800) at 400 in `g2`.
+    expect(written(cardIn(manifest, "u", "g1")).secondaries).toEqual([["u", [["timestamp_1", 2]]]]);
+    expect(written(cardIn(manifest, "v", "g2")).secondaries).toEqual([
+      ["v", [["timestamp_1", "400/1"]]],
+    ]);
+    for (const group of ["g1", "g2"]) {
+      const card = cardIn(manifest, "t", group);
+      expect(card.secondaries.size).toBe(0);
+      expect(card.stamps.filter((stamp) => stamp.timestamp.id === "timestamp_1").length).toBe(1);
+    }
+    expect(secondaryKeys(manifest)).toEqual([
+      ["wedge", id("timestamp_1"), "u", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "u", "block frame timeline band"],
+      ["wedge", id("timestamp_1"), "v", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "v", "block frame timeline band"],
+    ]);
+  });
+});
+
+describe("the selector member coordinates", () => {
+  const LABELS = new Set(["name", "id", "coordinate"]);
+  /** What a key marks, read off its address: the timestamp's coordinate it is, or nothing. */
+  function marked(manifest: Manifest, key: ElementKey): "primary" | "secondary" | undefined {
+    const stamp = (manifest.graphical?.timestamps ?? []).find((item) => item.id === key.address.id);
+    if (stamp === undefined || key.address.facet !== undefined) return undefined;
+    const { part } = key.address;
+    const marks =
+      (key.type === "wedge" && part === undefined) ||
+      (key.type === "label" && part?.length === 1 && LABELS.has(part[0] ?? ""));
+    if (!marks) return undefined;
+    return key.timeline === stamp.timeline ? "primary" : "secondary";
+  }
+
+  it("matches the wedges and stack labels of named timestamps and nothing else", () => {
+    const seen = new Set<string>();
+    for (const { name, text } of allFixtures) {
+      const manifest = loadText(text);
+      const ancestry = timelineAncestry(manifest);
+      for (const key of manifestElements(manifest)) {
+        const expected = marked(manifest, key);
+        if (expected !== undefined) seen.add(expected);
+        expect([
+          name,
+          key.type,
+          key.address,
+          selectorMatches({ coordinates: "primary" }, key, ancestry),
+          selectorMatches({ coordinates: "secondary" }, key, ancestry),
+        ]).toEqual([name, key.type, key.address, expected === "primary", expected === "secondary"]);
+      }
+    }
+    expect([...seen].sort()).toEqual(["primary", "secondary"]);
+  });
+
+  it("narrows an element type to one kind of coordinate", () => {
+    const manifest = load("timestamps.yaml");
+    const matched = matcher(manifestElements(manifest), timelineAncestry(manifest));
+    expect(matched({ element: "label", coordinates: "secondary" })).toEqual([
+      id("timestamp_2", "name"),
+      id("timestamp_3", "name"),
+      id("timestamp_3", "id"),
+      id("timestamp_3", "coordinate"),
+    ]);
   });
 });
