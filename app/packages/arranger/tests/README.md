@@ -1637,7 +1637,28 @@ A}` `{40, 80, 581.9150390625 × 491.62890625}`, `{block: A, id:
 around its drawn elements, `{block: A, id: "dlt_1"}`'s line and name
 `{64, 414.89453125, 302.29150390625 × 12.8046875}`; at scale 2 the frame
 `{56, 137.609375, 1127.830078125 × 338.46875}`; a target in another
-block (`{block: "0000000009", id: "group_1"}`) throws. The viewport centres it in the pane less the drawer with 10 % free
+block (`{block: "0000000009", id: "group_1"}`) throws. What an ancestor
+card draws counts only while the card is raised, as for the marquee
+(below): on `mixed` drawn with the defaults, `recording`'s ancestor card
+shown behind `group_2`'s frame, `dlt_1`'s rectangle is the same `{64,
+414.89453125, 302.29150390625 × 12.8046875}` (every element outside the
+card keeps its canvas place), not one stretched over the copy of `dlt_1`
+the card draws; in `recording`'s own timeline editor, which raises the
+card, `recording`'s rectangle spans the card's drawings with the ones
+outside it: the node lies at 40 − 153.412109375 = −113.412109375 (the
+place origin moved by the card, "Snapping on a row" below), the card's
+left edge 8 right of that, its names 8 further, so x −97.412109375; the
+right end is the card's `recording` line's, −33.70849609375 + 2000 =
+1966.29150390625 (its start 200 left of `excerpt`'s at 166.29150390625,
+441000 samples over 2000), width 2063.70361328125; the top is the card's
+copy of `dlt_1`'s name, `dlt_1`'s name in `excerpt`'s card (414.89453125)
+moved up by the card's offset from that card (`excerpt`'s line at
+438.796875 there, 365.8203125 in the ancestor card: 72.9765625), so
+341.91796875; the bottom is that of the coordinate labels of
+`timestamp_3` and `timestamp_4` below `excerpt`'s line in its member card,
+465.7734375, height 123.85546875. The card's own rectangle and
+`excerpt`'s card are containers and do not count. What would be wrong: an
+editor fitting a child's view to a copy the user does not see. The viewport centres it in the pane less the drawer with 10 % free
 on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 400 drawer, `{100, 50, 320 × 160}` gives `{x: −120, y: 140, zoom: 2}`,
 `{100, 50, 10 × 10}` `{x: −20, y: 180, zoom: 4}`, `{100, 50, 100000 ×
@@ -1965,9 +1986,13 @@ pointer: beyond the frame's borders, never inside the frame or a member
 card, where only their own lines are read. While the card is raised (a
 timeline editor open on a timeline of its root that is no group member
 and lies in no member, the rule the block node raises the cards by:
-`raisedRoot` gives the root, else `null`), its lines are read everywhere,
-and every other line is covered inside the raised card's rectangle. A box
-whose rectangle is not drawn covers nothing. What would be wrong: the
+`raisedRoot` gives the root, else `null`), its lines are read everywhere
+but inside a raised card recorded after their own (the raised cards are
+drawn over every frame in record order, below), and every other line is
+covered inside the raised card's rectangle. A box whose rectangle is not
+drawn covers nothing. Items laid over one another by the user (a frame
+placed over another frame or card) are not covered by this rule: a
+member's line is read under a frame drawn over it. What would be wrong: the
 card's `middle` row read inside the frame, where the user sees the frame
 and `middle`'s card; the card not read beyond the
 frame; the card not read once raised. At the abscissa
@@ -2003,8 +2028,20 @@ in no frame or member card: the first card's `score` line (127.234375)
 lies inside the second card's rectangle and is **not read** (nothing
 else within 8); the second card's `exposition` row (160.953125) lies
 inside the first card's rectangle and **is read** (`exposition`, card
-`{item: group_2, member: score}`). What would be wrong: the earlier card
-read over the later, or the later covered by the earlier.
+`{item: group_2, member: score}`). With `score`'s timeline editor open,
+both cards raised, the same two answers: the raised cards are drawn in
+record order, so the later still lies over the earlier. `score` 45/4 (the
+first card's line runs 1066.6666666666665 for 32 quarters, 100 / 3 a
+quarter, so 375 right of a line's start) is placed on the arranger on
+`score`'s ancestor line in `exposition`'s member card at (542.41357421875,
+127.234375) (167.41357421875 + 375, the first card's line covered there by
+the second card) and on the second card's line at (1067.7469075520833,
+198.4296875) (its start 692.7469075520833 + 375, its ordinate 127.234375
+moved down by 71.1953125 with the card); raised, on the second card's
+line alone (the ancestor line now lies under the raised cards, and the
+first card's line under the second card). What would be wrong: the
+earlier card read over the later, or the later covered by the earlier,
+raised or not.
 
 **A coordinate's place: one rule** (`holdings`, `seenOn`, `placesAt`,
 `pinnedPlace`, `affordancesOf`, `namedPin`, `timelinePin`). The lines a
@@ -2028,10 +2065,15 @@ placed on the ancestor line inside the member's card where one runs at
 that abscissa, on the card's line where the card is visible, on the
 card's line everywhere while the card is raised, and **nowhere** where
 the card is covered and no ancestor line runs: no affordance, no pin
-mark, no screen place there. What would be wrong: a place on a line the
+mark, no screen place there. While a root's cards are raised, every
+timeline they draw (the root, a member, a member's descendant) is placed
+first on the raised card's line or row that holds it (its own there, else
+the line whose segment it is), then on its other lines where the raised
+cards leave them uncovered. What would be wrong: a place on a line the
 user does not see there (the card's line behind the frame), a reader
 with a rule of its own (the flag and the Timestamp tab disagreeing), or
-a member placed on the row an ancestor card draws of it.
+a member placed on the row an ancestor card draws of it, unless that card
+is raised.
 
 In `group_parent_both` `holdings` gives `middle` its member card's line
 alone (81.78125, offset 0), `piece` the card's line alone (67.78125), and
@@ -2061,6 +2103,38 @@ affordance, on `middle`'s member card's line at 360.33544921875
 ((360.33544921875, 83.28125), (357.33544921875, 96.28125),
 (363.33544921875, 96.28125)); none on the card's row of `middle`
 (33.8046875), which would lie over the frame.
+
+**A member in the raised card.** In `group_parent_both` with `piece`'s
+timeline editor open (its card raised), `middle` 4 has one place, the
+card's `middle` row at (460.33544921875, 33.8046875) (260.33544921875 + 4
+× 50; `middle`'s own line at 81.78125 lies inside the raised card, its
+bottom 82.18359375); on the arranger its one place is its own line at
+(460.33544921875, 81.78125). The flag read on that row (`middle` 4, then
+`piece` 8) and the pin `timelinePin` gives for `middle` 4 with the card
+raised list the same parts and values, and that pin is marked on the
+row at 460.33544921875. A named timestamp on `middle` at 4 displaying
+nothing has its affordance on `middle`'s own line on the arranger and on
+the card's row while the card is raised, its points `wedgeAt` on that
+line at 460.33544921875 each time. "Show matches" draws and hits `middle`
+there too (below, "Where a timeline is seen").
+
+**The pin's mark outside ancestor cards.** A timeline drawn neither in an
+ancestor card nor as an ancestor line keeps the mark rule of a pin before
+ancestor cards: it is marked only on a measurable line of its own (on the
+line it was pinned on while that is one, else at the first place on
+one), never on a line whose segment it is and never on a zero-length
+line, though its places lie there too. Every timeline's unnamed pin at 0
+(`timelinePin`, no preferred line) is marked or not, in pre-order:
+
+| Fixture | Marked | Not marked |
+|---|---|---|
+| `segment_line` | `form`, `a`, `b`, `c` | the segments `a1`, `b1`, `b2`, `c1` |
+| `segment_children` | `piece`, `intro`, `theme`, `coda` | the segments `i1`, `i2`, `t1`, `t2`, `t3`, `c1`, `c2` |
+| `unknown_length_empty` | none | `score`, of unknown length and without content: a zero-length line |
+| `bundles/bundle_ungrouped` | `pages`, `recording`, `score` | the segments `page_1`, `page_2`, `page_3` |
+
+What would be wrong: a mark on a segment line or a zero-length line, which
+the pin's mark never had.
 
 **The cross-section.** The spec of a hovered line names its timeline as
 the anchor with the maps drawn at the line for it, then as members the
@@ -2548,18 +2622,21 @@ the card's line twice (card `{item: group_1, member: piece}`,
 cross-section from 26.8046875 to 67.78125, its children band), from 0 to
 1.925927734375 and from 12.8 to 16; `middle` nowhere on the card's row
 (33.8046875). With `piece`'s timeline editor open (the card raised): the
-card's line alone, 0 to 16; `middle`'s own line lies inside the raised
+card's line, 0 to 16, then the card's `middle` row (y 33.8046875,
+260.33544921875 to 660.33544921875, 0 to 8, card `{item: group_1,
+member: piece}`, a cross-section of no extent: the point on the row, from
+33.8046875 to 33.8046875); `middle`'s own line lies inside the raised
 card (its bottom 82.18359375) and is not seen.
 
 | MatchStamp | Arranger: lines `[coordinate, x, y1, y2]`, connectors | Card raised |
 |---|---|---|
-| 0 | c0 [0, 260.33544921875, 67.78125, 81.78125], c4 [4, 110.33544921875, 26.8046875, 67.78125] (left of the frame); a0 from (260.33544921875, 67.78125) to (110.33544921875, 67.78125) (the extents meet at 67.78125) | c4 alone, no connector |
-| 1 | c1 [1, 310.33544921875, 67.78125, 81.78125] alone: c5 (`piece` 3, at 210.33544921875) lies in the gap | c5 [5, 210.33544921875, 26.8046875, 67.78125] alone |
-| 2 | c2 [2, 360.33544921875, 67.78125, 81.78125] on `middle`'s line and c6 [6, 360.33544921875, 67.78125, 81.78125] on the ancestor line; a2 has no length | c6 [6, 360.33544921875, 26.8046875, 67.78125] alone |
-| 3 | c3 [3, 660.33544921875, 67.78125, 81.78125], c7 [7, 760.33544921875, 26.8046875, 67.78125] (right of the frame); a3 from (660.33544921875, 67.78125) to (760.33544921875, 67.78125) | c7 alone |
+| 0 | c0 [0, 260.33544921875, 67.78125, 81.78125], c4 [4, 110.33544921875, 26.8046875, 67.78125] (left of the frame); a0 from (260.33544921875, 67.78125) to (110.33544921875, 67.78125) (the extents meet at 67.78125) | c0 [0, 260.33544921875, 33.8046875, 33.8046875] on the card's row, c4 as on the arranger; a0 from (260.33544921875, 33.8046875) to (110.33544921875, 33.8046875) (the row's point lies within c4's extent) |
+| 1 | c1 [1, 310.33544921875, 67.78125, 81.78125] alone: c5 (`piece` 3, at 210.33544921875) lies in the gap | c1 [1, 310.33544921875, 33.8046875, 33.8046875], c5 [5, 210.33544921875, 26.8046875, 67.78125]; a1 from (310.33544921875, 33.8046875) to (210.33544921875, 33.8046875) |
+| 2 | c2 [2, 360.33544921875, 67.78125, 81.78125] on `middle`'s line and c6 [6, 360.33544921875, 67.78125, 81.78125] on the ancestor line; a2 has no length | c2 [2, 360.33544921875, 33.8046875, 33.8046875], c6 [6, 360.33544921875, 26.8046875, 67.78125]; a2 has no length |
+| 3 | c3 [3, 660.33544921875, 67.78125, 81.78125], c7 [7, 760.33544921875, 26.8046875, 67.78125] (right of the frame); a3 from (660.33544921875, 67.78125) to (760.33544921875, 67.78125) | c3 [3, 660.33544921875, 33.8046875, 33.8046875], c7 as on the arranger; a3 from (660.33544921875, 33.8046875) to (760.33544921875, 33.8046875) |
 
 The hit test (tolerance 8, connectors those of the whole view's overlay,
-a0 and a3 on the arranger, none raised):
+a0 and a3 on the arranger, a0, a1 and a3 raised):
 
 | Point | Arranger | Card raised |
 |---|---|---|
@@ -2568,6 +2645,7 @@ a0 and a3 on the arranger, none raised):
 | (360.33544921875, 81.78125), `middle`'s own line | c6 on the ancestor line (its cross-section reaches 81.78125; tied with c2), MatchStamp 2 | nothing: `middle`'s line is not seen, the card's 14 away |
 | (210.33544921875, 40), `piece` 3 inside the frame | nothing: c5 lies in the gap, a0 lies 27.78125 below | c5, MatchStamp 1, distance 0, top 26.8046875 |
 | (760.33544921875, 67.78125), right of the frame | c7, MatchStamp 3, distance 0, top 26.8046875 | the same |
+| (310.33544921875, 33.8046875), the card's `middle` row at 1 | nothing: the row is covered by the frame, `middle`'s line and c5 lie further than 8 | c1, MatchStamp 1, distance 0, top 33.8046875 |
 
 With every ancestor card hidden (the workspace's rule) `piece` is drawn
 on no marked line, only as the ancestor line in `middle`'s card: it is
@@ -2699,7 +2777,11 @@ drawn top to bottom in `middle`'s card (by the topmost place over every
 line it would be [`middle` 4, `piece` 8]). `piece` 3, which lies in a gap
 (above, "Where a timeline is seen") and is drawn on no line, has no place
 on the arranger, and while the card is raised its place is
-(210.33544921875, 67.78125), the card's line over the frame. In
+(210.33544921875, 67.78125), the card's line over the frame. `middle` 1
+lies at (310.33544921875, 81.78125) on the arranger and at
+(310.33544921875, 33.8046875), the card's row, while the card is raised,
+so [`piece` 3, `middle` 1] is [`middle` 1, `piece` 3] in screen order on
+the arranger (`piece` 3 has no place) and raised alike. In
 `groups/group_grandchild` (above, "Show coordinates") `score` 28,
 `movement` 12 and `theme` 4 lie at x 1482.265625 on `theme`'s card:
 `score`'s ancestor line at 70.9765625, `movement`'s at 104.953125,
@@ -3273,14 +3355,17 @@ display: wedge, name label, cross-section line).
   timestamp and no cross-section line; the mark of a position on it is
   layout's `wedgeAt` there, the ancestor line's mark (layout's README,
   "The marks at any position": above the line, its tip on the line's
-  edge, in the style of the unnamed wedge of its member's line), so no
-  rule on the drawn marks of the member's start and end changes it. In
+  edge, in the style the cascade gives a wedge of the ancestor drawn on
+  that ancestor line, so the default rule that fades what lies inside an
+  ancestor line fades it too), so no rule on the drawn marks of the
+  member's start and end changes it. In
   `groups/group_parent_both` (above, "Show coordinates") the pointer on
   `piece`'s ancestor line at 8 (460.33544921875, 67.78125) draws one
   wedge, its tip half the line's stroke width 3 above the line, its base
   13 further up, `460.3354,66.2812 457.3354,53.2812 463.3354,53.2812` as
-  the writers write points, fill `#000000` and no opacity (`middle`'s
-  unnamed wedge: the defaults' wedge fill, opacity 1), and no
+  the writers write points, fill `#000000` (the defaults' wedge fill) and
+  opacity `0.35` (the defaults' rule for what lies inside an ancestor
+  line), and no
   `coordinate-line`; the drawn mark of `middle`'s start there keeps its
   own style (fill `#000000`, opacity `0.35`, faded inside the ancestor
   line); the flag lists `Piece` above `Middle`, `Piece`'s coordinate `8 ♩`
@@ -3413,14 +3498,18 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   (210.33544921875, 40), inside the frame over `piece` 3 (c5), on the
   arranger the pointer hovers nothing and no flag is shown (c5 lies in a
   gap); with `piece`'s timeline editor open (`store.open`, the card
-  raised) the potential path holds the card's lines alone, c4, c5, c6, c7
-  at 110.3354, 210.3354, 360.3354, 760.3354, each from 26.8047 to 67.7812
-  (the table "Card raised" above), and the same drawing point, taken
-  through the view and the node's place the editor shows, hovers
-  MatchStamp 1, whose flag lists `Piece` [`3 ♩`] then `Middle` [`1 ♩`]
-  (`middle`'s line lies inside the raised card, so `middle` 1 has no place
-  and comes last). What would be wrong: the canvas drawing as if nothing
-  were raised while the card is.
+  raised) the potential path holds the card's lines: c4, c5, c6, c7 at
+  110.3354, 210.3354, 360.3354, 760.3354, each from 26.8047 to 67.7812,
+  then on the card's `middle` row at 33.8047 c0, c1, c3 at 260.3354,
+  310.3354, 660.3354 (c2 shares c6's device column in the same card, so
+  the card draws one coordinate there, c6, as "What is drawn, in view"
+  below draws one per column of a card), then the connectors a0, a1, a3
+  along the row (the table "Card raised" above), and the same drawing
+  point, taken through the view and the node's place the editor shows,
+  hovers MatchStamp 1, whose flag lists `Middle` [`1 ♩`] then `Piece`
+  [`3 ♩`] (`middle` 1 on the card's row above `piece` 3 on its line).
+  What would be wrong: the canvas drawing as if nothing were raised while
+  the card is.
 - **Hover and flag.** At (364.0927734375, 40.20703125) of block A the
   hovered path (`stroke="#6E6E6E"`, no opacity) is MatchStamp 0's: its
   coordinates c0, c2, c4, c5 on their lines (c6 has none), then its

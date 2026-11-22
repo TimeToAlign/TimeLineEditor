@@ -38,6 +38,7 @@ import {
   MeasureKnotsSource,
   namedPin,
   pinnedPlace,
+  placesAt,
   placeText,
   raisedRoot,
   readingAt,
@@ -517,12 +518,31 @@ describe("a later ancestor card over an earlier one", () => {
     ]);
   });
 
+  /** The root `score`'s timeline editor raises both its cards. */
+  const raised = raisedRoot(blockIn(view, A), {
+    target: inBlock(A, idAddress("score")),
+    kind: "timeline",
+  });
+
   it.each([
     ["the first card's score line, inside the second card", 127.234375, null],
     ["the second card's exposition row, inside the first card", 160.953125, ["exposition", SECOND]],
-  ])("at x 900 on %s reads %j", (_, y, expected) => {
-    const hit = lineAt(axesOf(drawing), { x: 900, y }, 8, coveredIn(drawing, null));
-    expect(hit === null ? null : [hit.axis.timeline, hit.axis.card]).toEqual(expected);
+  ])("at x 900 on %s reads %j, the cards raised or not", (_, y, expected) => {
+    expect(raised).toBe("score");
+    for (const root of [null, raised]) {
+      const hit = lineAt(axesOf(drawing), { x: 900, y }, 8, coveredIn(drawing, root));
+      expect(hit === null ? null : [hit.axis.timeline, hit.axis.card]).toEqual(expected);
+    }
+  });
+
+  it("places the root on the later card where the cards meet, raised or not", () => {
+    const at = (root: string | null) =>
+      placesAt(drawing, "score", q(45, 4), root).map(({ axis, x }) => [axis.card, axis.y, x]);
+    expect(at(null)).toEqual([
+      [{ item: "group_1", member: "exposition" }, 127.234375, 542.41357421875],
+      [SECOND, 198.4296875, 1067.7469075520833],
+    ]);
+    expect(at(raised)).toEqual([[SECOND, 198.4296875, 1067.7469075520833]]);
   });
 });
 
@@ -729,6 +749,101 @@ describe("a timeline's place, its own card first", () => {
       x: 210.33544921875,
       group: false,
     });
+  });
+});
+
+describe("a member drawn in the raised card", () => {
+  const view = viewWith(PARENT_BOTH);
+  const block = blockIn(view, A);
+  const drawing = drawingIn(view);
+  const raised = raisedRoot(block, PIECE_EDITOR);
+  /** The key in `lineAxes` of the card's row of `middle`, and of `middle`'s own line. */
+  const [rowKey] = [...lineAxes(drawing)].find(
+    ([, line]) => line.timeline === "middle" && line.ancestor !== undefined,
+  ) ?? [undefined];
+  const [ownKey] = holdings(drawing, "middle").map(({ key }) => key);
+  /** A pin's parts as `[timeline, its rows' values]`. */
+  const partsOf = (pin: Pin) =>
+    flagParts(pin).map(({ timeline, rows }) => [timeline, rows.map((row) => rowValueText(row, 3))]);
+
+  it("is placed on the card's row of it, its own line lying under the card", () => {
+    expect(rowKey === undefined || ownKey === undefined).toBe(false);
+    const at = (root: string | null) =>
+      placesAt(drawing, "middle", q(4), root).map(({ key, x, axis }) => [key, x, axis.y]);
+    expect(at(null)).toEqual([[ownKey, AT_PIECE_8, MIDDLE_Y]]);
+    expect(at(raised)).toEqual([[rowKey, AT_PIECE_8, CARD_MIDDLE_Y]]);
+  });
+
+  it("reads back on the tab what the flag on the card's row reads", () => {
+    const reading = readWith(view, AT_PIECE_8, CARD_MIDDLE_Y, PIECE_EDITOR);
+    if (reading === null) throw new Error("the card's row of middle is not read");
+    const pin = timelinePin(
+      block.manifest,
+      A,
+      drawing,
+      "middle",
+      q(4),
+      DEFAULT_GRANULARITY,
+      "no_server",
+      false,
+      raised,
+    );
+    if (pin === null) throw new Error("no pin of middle");
+    expect(partsOf(reading.pin)).toEqual([
+      ["middle", ["4 ♩"]],
+      ["piece", ["8 ♩"]],
+    ]);
+    expect(partsOf(pin)).toEqual(partsOf(reading.pin));
+    expect(pinnedPlace(drawing, pin, null, raised)).toEqual({
+      key: rowKey,
+      x: AT_PIECE_8,
+      group: false,
+    });
+  });
+});
+
+describe("the pin's mark outside ancestor cards", () => {
+  /** Every timeline of `manifest`, in pre-order. */
+  const timelinesOf = (manifest: Manifest): string[] => {
+    const ids: string[] = [];
+    const walk = (list: Manifest["timelines"]) => {
+      for (const timeline of list) {
+        ids.push(timeline.id);
+        walk(timeline.children);
+      }
+    };
+    walk(manifest.timelines);
+    return ids;
+  };
+
+  it.each([
+    ["segment_line", ["form", "a", "b", "c"], ["a1", "b1", "b2", "c1"]],
+    [
+      "segment_children",
+      ["piece", "intro", "theme", "coda"],
+      ["i1", "i2", "t1", "t2", "t3", "c1", "c2"],
+    ],
+    ["unknown_length_empty", [], ["score"]],
+    ["bundles/bundle_ungrouped", ["pages", "recording", "score"], ["page_1", "page_2", "page_3"]],
+  ])("in %s marks a pin at 0 only on a measurable line of its own", (fixture, marked, unmarked) => {
+    const view = viewWith(fixture);
+    const block = blockIn(view, A);
+    const drawing = drawingIn(view);
+    const outcome = timelinesOf(block.manifest).map((timeline) => {
+      const pin = timelinePin(
+        block.manifest,
+        A,
+        drawing,
+        timeline,
+        q(0),
+        DEFAULT_GRANULARITY,
+        "no_server",
+      );
+      if (pin === null) throw new Error(`no pin of ${timeline}`);
+      return [timeline, pinnedPlace(drawing, pin, null) !== null];
+    });
+    expect(outcome.filter(([, mark]) => mark).map(([timeline]) => timeline)).toEqual(marked);
+    expect(outcome.filter(([, mark]) => !mark).map(([timeline]) => timeline)).toEqual(unmarked);
   });
 });
 
@@ -1514,6 +1629,23 @@ describe("the affordance of a named timestamp that draws nothing", () => {
           [213.33544921875, 82.28125],
         ],
       },
+    ]);
+  });
+
+  it("lies on a member's own line, and on the card's row of it while the card is raised", () => {
+    const [view, id] = blank(viewWith(PARENT_BOTH), "middle", [4, 1]);
+    const block = blockIn(view, A);
+    const drawing = drawingIn(view);
+    const [ownKey] = holdings(drawing, "middle").map(({ key }) => key);
+    const [rowKey] = [...lineAxes(drawing)].find(
+      ([, line]) => line.timeline === "middle" && line.ancestor !== undefined,
+    ) ?? [undefined];
+    if (ownKey === undefined || rowKey === undefined) throw new Error("no line of middle");
+    expect(affordancesOf(block.manifest, drawing)).toEqual([
+      expected(view, id, ownKey, AT_PIECE_8),
+    ]);
+    expect(affordancesOf(block.manifest, drawing, raisedRoot(block, PIECE_EDITOR))).toEqual([
+      expected(view, id, rowKey, AT_PIECE_8),
     ]);
   });
 

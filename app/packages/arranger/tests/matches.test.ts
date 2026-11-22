@@ -554,6 +554,10 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
   );
   const MIDDLE_CARD = placeKeyText({ item: "group_1", member: "middle" });
   const PIECE_CARD = placeKeyText({ item: "group_1", member: "piece" });
+  /** The key in `lineAxes` of the card's row of `middle`. */
+  const CARD_MIDDLE_ROW = [...lineAxes(drawn)].find(
+    ([, line]) => line.timeline === "middle" && line.ancestor !== undefined,
+  )?.[0];
   const LEFT = 156.6318359375;
   const RIGHT = 700.33544921875;
   const linesIn = (root: string | null) =>
@@ -589,7 +593,14 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     expect(seenOn(drawn, "piece", raised).map(({ xFrom, xTo }) => [xFrom, xTo])).toEqual([
       [60.33544921875, 860.33544921875],
     ]);
-    expect(seenOn(drawn, "middle", raised)).toEqual([]);
+    expect(
+      seenOn(drawn, "middle", raised).map(({ key, section, xFrom, xTo }) => [
+        key,
+        section,
+        xFrom,
+        xTo,
+      ]),
+    ).toEqual([[CARD_MIDDLE_ROW, CARD_MIDDLE_ROW, 260.33544921875, 660.33544921875]]);
   });
 
   it("draws a member on its own card's line, the root on its ancestor line and beyond the frame", () => {
@@ -601,9 +612,10 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     ]);
   });
 
-  it("draws the root on the card's line alone while the card is raised", () => {
+  it("draws the root on the card's line and the member on the card's row while the card is raised", () => {
     expect(linesIn(raised)).toEqual([
       [PIECE_CARD, 1, 67.78125, 26.8046875, 67.78125, 60.33544921875, 0, 16],
+      [PIECE_CARD, 0, 33.8046875, 33.8046875, 33.8046875, 260.33544921875, 0, 8],
     ]);
   });
 
@@ -636,11 +648,36 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
         connectors: [[3, 660.33544921875, 67.78125, 760.33544921875, 67.78125]],
       },
     ]);
+    const ON_ROW = [33.8046875, 33.8046875];
     expect(stamps(raised)).toEqual([
-      { lines: [[4, 110.33544921875, ...ON_CARD]], connectors: [] },
-      { lines: [[5, 210.33544921875, ...ON_CARD]], connectors: [] },
-      { lines: [[6, 360.33544921875, ...ON_CARD]], connectors: [] },
-      { lines: [[7, 760.33544921875, ...ON_CARD]], connectors: [] },
+      {
+        lines: [
+          [0, 260.33544921875, ...ON_ROW],
+          [4, 110.33544921875, ...ON_CARD],
+        ],
+        connectors: [[0, 260.33544921875, 33.8046875, 110.33544921875, 33.8046875]],
+      },
+      {
+        lines: [
+          [1, 310.33544921875, ...ON_ROW],
+          [5, 210.33544921875, ...ON_CARD],
+        ],
+        connectors: [[1, 310.33544921875, 33.8046875, 210.33544921875, 33.8046875]],
+      },
+      {
+        lines: [
+          [2, 360.33544921875, ...ON_ROW],
+          [6, 360.33544921875, ...ON_CARD],
+        ],
+        connectors: [],
+      },
+      {
+        lines: [
+          [3, 660.33544921875, ...ON_ROW],
+          [7, 760.33544921875, ...ON_CARD],
+        ],
+        connectors: [[3, 660.33544921875, 33.8046875, 760.33544921875, 33.8046875]],
+      },
     ]);
   });
 
@@ -654,6 +691,7 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
         { x: 360.33544921875, y: 81.78125 },
         { x: 210.33544921875, y: 40 },
         { x: 760.33544921875, y: 67.78125 },
+        { x: 310.33544921875, y: 33.8046875 },
       ].map((point) => {
         const hit = matchHitAt(P, lines, connectors, point, 8);
         return hit === null
@@ -667,6 +705,7 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
       [2, 6, null, 0, 360.33544921875, 67.78125, 67.78125],
       null,
       [3, 7, null, 0, 760.33544921875, 67.78125, 26.8046875],
+      null,
     ]);
     expect(hits(raised)).toEqual([
       [0, 4, null, 0, 110.33544921875, 67.78125, 26.8046875],
@@ -674,6 +713,7 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
       null,
       [1, 5, null, 0, 210.33544921875, 67.78125, 26.8046875],
       [3, 7, null, 0, 760.33544921875, 67.78125, 26.8046875],
+      [1, 1, null, 0, 310.33544921875, 33.8046875, 33.8046875],
     ]);
   });
 
@@ -682,10 +722,12 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     const middle1 = { timeline: "middle", value: fraction(1) };
     expect(screenPlace(drawn, piece3)).toBeNull();
     expect(screenPlace(drawn, piece3, raised)).toEqual({ x: 210.33544921875, y: 67.78125 });
+    expect(screenPlace(drawn, middle1)).toEqual({ x: 310.33544921875, y: 81.78125 });
+    expect(screenPlace(drawn, middle1, raised)).toEqual({ x: 310.33544921875, y: 33.8046875 });
     expect(inScreenOrder(drawn, [piece3, middle1], (item) => item)).toEqual([middle1, piece3]);
-    expect(inScreenOrder(drawn, [middle1, piece3], (item) => item, raised)).toEqual([
-      piece3,
+    expect(inScreenOrder(drawn, [piece3, middle1], (item) => item, raised)).toEqual([
       middle1,
+      piece3,
     ]);
   });
 
