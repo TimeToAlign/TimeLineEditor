@@ -65,10 +65,7 @@ const wedgeShown = $derived(displayOf(pin).includes("wedge"));
 const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics));
 /** What describes the rotation: the wedge turned off, the naming hint. */
 const rotationDescribed = $derived(
-  [
-    wedgeShown ? null : `${uid}-wedge-off`,
-    describedby ?? null,
-  ]
+  [wedgeShown ? null : `${uid}-wedge-off`, describedby ?? null]
     .filter((id) => id !== null)
     .join(" ") || undefined,
 );
