@@ -103,12 +103,14 @@ def manifest_bundle(manifest: Mapping[str, Any]) -> AlignmentBundle:
         manifest: The manifest as its file writes it (IDs ``#id``).
 
     Raises:
-        Refusal: 422 with timetoalign's message if it refuses the manifest.
+        Refusal: 422 with timetoalign's message if it refuses the manifest,
+            at the path the refusal names (a rule of TimeToShare's validators
+            names the place in the manifest it breaks), else at ``[]``.
     """
     try:
         return AlignmentBundle.from_dict(dict(manifest))
     except ValueError as error:
-        raise Refusal([], str(error)) from error
+        raise Refusal(list(getattr(error, "path", ())), str(error)) from error
 
 
 def actor_context(manifest: Mapping[str, Any]) -> dict[str, Any] | None:

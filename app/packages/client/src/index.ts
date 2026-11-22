@@ -50,6 +50,11 @@ export interface Health {
   readonly name: string;
   readonly version: string;
   readonly timetoalign: string;
+  /**
+   * The version of the timetoshare package the server imports, `null` when it
+   * imports none; absent from the answer of a server that does not name it.
+   */
+  readonly timetoshare?: string | null;
 }
 
 /** An exact quarter-note value: `[numerator, denominator]`, both safe integers. */
@@ -184,10 +189,16 @@ export interface Server extends FileServer {
   ): Promise<readonly ClaimEvents[]>;
 }
 
-/** The message of a health answer that is not `{name, version, timetoalign}`, each a string. */
+/**
+ * The message of a health answer that is not `{name, version, timetoalign}`, each a
+ * string, with a `timetoshare` string or `null` if any.
+ */
 const MALFORMED_HEALTH = "the health answer is not a name, a version and a timetoalign version";
 
-/** Whether `value` is a health answer: an object whose three members are strings. */
+/**
+ * Whether `value` is a health answer: an object whose three members are
+ * strings, and whose `timetoshare`, where it has one, is a string or `null`.
+ */
 function isHealth(value: unknown): value is Health {
   return (
     typeof value === "object" &&
@@ -197,7 +208,10 @@ function isHealth(value: unknown): value is Health {
     "version" in value &&
     typeof value.version === "string" &&
     "timetoalign" in value &&
-    typeof value.timetoalign === "string"
+    typeof value.timetoalign === "string" &&
+    (!("timetoshare" in value) ||
+      value.timetoshare === null ||
+      typeof value.timetoshare === "string")
   );
 }
 
@@ -362,7 +376,8 @@ export function connect({ url, token }: ConnectOptions): Server {
         (body) => {
           if (!isHealth(body)) return undefined;
           const { name, version, timetoalign } = body;
-          return { name, version, timetoalign };
+          if (body.timetoshare === undefined) return { name, version, timetoalign };
+          return { name, version, timetoalign, timetoshare: body.timetoshare };
         },
         MALFORMED_HEALTH,
       );

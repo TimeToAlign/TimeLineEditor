@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import json
-from importlib.metadata import version
+import struct
+import threading
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
+import tilie_server.routers.claim_events
+import tilie_server.routers.claim_provenance
+import tilie_server.routers.files
+import tilie_server.routers.match_claims
+import tilie_server.routers.measure_maps
 from tilie_server.app import create_app
+from tilie_server.manifests import Refusal
 from tilie_server.settings import ServerSettings
 
 TOKEN = "test-token-0123456789"
@@ -34,14 +43,12 @@ def built(tmp_path: Path) -> tuple[TestClient, str]:
     return client(tmp_path), html
 
 
-def test_health_answers_the_three_installed_versions(unbuilt: TestClient) -> None:
+def test_health_answers_the_installed_versions(
+    unbuilt: TestClient, installed_health: dict[str, str | None]
+) -> None:
     response = unbuilt.get("/api/health", headers=AUTH)
     assert response.status_code == 200
-    assert response.json() == {
-        "name": "tilie-server",
-        "version": version("tilie-server"),
-        "timetoalign": version("timetoalign"),
-    }
+    assert response.json() == installed_health
 
 
 def test_api_without_token_is_unauthorized(unbuilt: TestClient) -> None:
@@ -214,3 +221,116 @@ def test_every_response_sends_no_referrer(tmp_path: Path) -> None:
         kind: r.headers.get_list("referrer-policy") for kind, r in responses.items()
     }
     assert policies == {kind: ["no-referrer"] for kind in responses}
+
+
+HELD_TIMEOUT = 60.0
+"""A safety net only: how long a step may take before the test gives up
+instead of hanging. No duration is measured."""
+
+
+def parameters(value: dict[str, object]) -> bytes:
+    """Parameters behind their length, then an empty manifest and no table."""
+    text = json.dumps(value).encode()
+    return struct.pack("<I", len(text)) + text + struct.pack("<I", 0)
+
+
+BELIEF = {"claim": "c", "actor": "a", "belief": "true", "date": "2026-11-22"}
+
+HELD_ROUTES = [
+    (
+        tilie_server.routers.measure_maps,
+        "read_manifest",
+        "POST",
+        "/api/measure-maps",
+        b"",
+    ),
+    (
+        tilie_server.routers.match_claims,
+        "read_manifest",
+        "POST",
+        "/api/match-claims",
+        struct.pack("<I", 0),
+    ),
+    (
+        tilie_server.routers.claim_provenance,
+        "read_manifest",
+        "POST",
+        "/api/match-claims/provenance",
+        parameters({"claims": []}),
+    ),
+    (
+        tilie_server.routers.claim_provenance,
+        "read_manifest",
+        "POST",
+        "/api/match-claims/belief",
+        parameters(BELIEF),
+    ),
+    (
+        tilie_server.routers.claim_events,
+        "read_manifest",
+        "POST",
+        "/api/match-claims/events",
+        parameters({"claims": []}),
+    ),
+    (tilie_server.routers.files, "write", "PUT", "/api/files", b"{}"),
+]
+"""Each computing route: the module and the name of the function the route
+computes through, replaced by one that holds the request, and a request
+that reaches it. The holder ends with the route's own refusal, ``held``."""
+
+
+@pytest.mark.parametrize(
+    ("module", "name", "method", "path", "body"),
+    HELD_ROUTES,
+    ids=[f"{method} {path}" for _, _, method, path, _ in HELD_ROUTES],
+)
+def test_a_held_computation_leaves_the_other_routes_answering(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    module: Any,
+    name: str,
+    method: str,
+    path: str,
+    body: bytes,
+) -> None:
+    entered = threading.Event()
+    release = threading.Event()
+
+    files = module is tilie_server.routers.files
+
+    def held(*_args: Any, **_kwargs: Any) -> Any:
+        entered.set()
+        release.wait(HELD_TIMEOUT)
+        if files:
+            raise tilie_server.routers.files.Refused((409, "held"))
+        raise Refusal([], "held")
+
+    monkeypatch.setattr(module, name, held)
+    answers: dict[str, Any] = {}
+
+    def run(key: str, call: Callable[[], Any]) -> threading.Thread:
+        thread = threading.Thread(target=lambda: answers.__setitem__(key, call()))
+        thread.start()
+        return thread
+
+    # Inside the context, every request of the client runs on one event loop.
+    with client(tmp_path) as shared:
+        computing = run(
+            "held",
+            lambda: shared.request(method, path, headers=AUTH, content=body),
+        )
+        try:
+            assert entered.wait(HELD_TIMEOUT), "the request never reached the holder"
+            checking = run("health", lambda: shared.get("/api/health", headers=AUTH))
+            checking.join(HELD_TIMEOUT)
+            assert not checking.is_alive(), "the health request waited for the held one"
+            assert answers["health"].status_code == 200
+            assert "held" not in answers
+        finally:
+            release.set()
+            computing.join(HELD_TIMEOUT)
+    assert (answers["held"].status_code, answers["held"].json()) == (
+        (409, {"detail": {"path": ["path"], "message": "held"}})
+        if files
+        else (422, {"detail": {"path": [], "message": "held"}})
+    )

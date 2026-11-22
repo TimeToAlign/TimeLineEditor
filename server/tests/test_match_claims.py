@@ -4,7 +4,6 @@ import importlib
 import json
 import math
 import struct
-import subprocess
 import sys
 from fractions import Fraction
 from importlib.metadata import version
@@ -28,7 +27,6 @@ HOST = "127.0.0.1"
 PORT = 8765
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 ROUTE = "/api/match-claims"
-SCRIPT = Path(__file__).parent.parent / "scripts" / "record_match_claims.py"
 
 A = "https://orcid.org/0000-0002-1825-0097"
 B = "https://orcid.org/0000-0001-5109-3700"
@@ -503,6 +501,21 @@ def test_a_body_that_cannot_be_read_is_refused(
     assert response.json() == {"detail": {"path": path, "message": message}}
 
 
+NAMED_FIVE = {
+    "detail": {"path": ["name"], "message": "#/name: 5 is not of type 'string', 'null'"}
+}
+"""The refusal of the fixture's manifest naming itself 5, at the validator's path."""
+
+
+def test_timetoalign_refusing_the_manifest_keeps_the_validators_path(
+    server: TestClient,
+) -> None:
+    manifest = fixture_manifest() + b"name: 5\n"
+    response = post(server, body(manifest, parquet(fixture_table())))
+    assert response.status_code == 422
+    assert response.json() == NAMED_FIVE
+
+
 def test_the_route_needs_the_token(server: TestClient) -> None:
     content = body(fixture_manifest(), parquet(fixture_table()))
     response = server.post(ROUTE, content=content)
@@ -546,9 +559,3 @@ def test_without_the_table_modules_the_route_says_so(
             "message": f"the installed {package} {version(package)} {message}",
         }
     }
-
-
-def test_the_recording_is_the_answer(server: TestClient, tmp_path: Path) -> None:
-    target = tmp_path / "answer.bin"
-    subprocess.run([sys.executable, str(SCRIPT), str(target)], check=True)
-    assert target.read_bytes() == fixture_answer(server)

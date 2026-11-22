@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { connect, ServerError } from "../src/index.ts";
+import { recorded, recordedAnswer } from "./recordings.ts";
 
 const A = "https://orcid.org/0000-0002-1825-0097";
 const SERVICE = "https://example.org/aligner";
@@ -91,8 +92,8 @@ describe("matchClaimProvenance", () => {
     expect(init.headers).toEqual({ "Content-Type": "application/octet-stream" });
   });
 
-  it("answers the provenance of the claims asked for, in their order", async () => {
-    stubFetch(async () => Response.json(ANSWER));
+  it("reads the recorded answer: the provenance of the claims asked for, in order", async () => {
+    stubFetch(async () => recordedAnswer("match-claims-provenance"));
     expect(await call()).toEqual([
       { id: "claim_6", provenance: CLAIM_6 },
       { id: "claim_15", provenance: null },
@@ -176,6 +177,13 @@ describe("believeMatchClaim", () => {
     const file = await call(null);
     expect(file.type).toBe("application/vnd.apache.parquet");
     expect(Array.from(new Uint8Array(await file.arrayBuffer()))).toEqual(Array.from(believed));
+  });
+
+  it("hands on the recorded answer unchanged", async () => {
+    stubFetch(async () => recordedAnswer("match-claims-belief"));
+    const file = await call();
+    expect(file.type).toBe("application/vnd.apache.parquet");
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(recorded("match-claims-belief"));
   });
 
   it.each([

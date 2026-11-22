@@ -20,12 +20,12 @@ from __future__ import annotations
 
 from fractions import Fraction
 from importlib.metadata import version
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from tilie_server.manifests import Refusal, read_manifest
+from tilie_server.manifests import Refusal, posted_body, read_manifest
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -120,7 +120,7 @@ def expanded_measure_maps(manifest: Any, measure_map: Any) -> list[dict[str, Any
 
 
 @router.post(f"{API_PREFIX}measure-maps")
-async def measure_maps(request: Request) -> JSONResponse:
+def measure_maps(body: Annotated[bytes, Depends(posted_body)]) -> JSONResponse:
     """Answer the expanded rows of every measure map of the posted manifest.
 
     The body is a manifest file's text in any serialization. A body that
@@ -131,7 +131,7 @@ async def measure_maps(request: Request) -> JSONResponse:
     """
     try:
         measure_map = measure_map_class()
-        _, manifest = read_manifest(await request.body())
+        _, manifest = read_manifest(body)
         answer = {"measure_maps": expanded_measure_maps(manifest, measure_map)}
     except Refusal as refusal:
         return refusal.response()

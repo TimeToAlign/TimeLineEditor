@@ -1,10 +1,15 @@
-"""Reading the manifest a request posts, and refusing a request.
+"""Reading what a request posts, the manifest in it, and refusing a request.
 
 The editor posts a manifest file's text, in any serialization timetoshare
 reads, with every ID written ``#id``. timetoshare's reader is imported when
 a request needs it, so a server whose installed timetoshare lacks it still
 starts and answers every other route; a route needing it then answers 501.
 timetoshare is no direct requirement of the server: timetoalign requires it.
+
+The routes that compute their answer from a posted body are plain functions,
+which the framework runs on its thread pool, so that a long computation
+leaves the event loop free for every other request; they take the body
+through :func:`posted_body`, which reads it on the event loop.
 """
 
 from __future__ import annotations
@@ -13,6 +18,7 @@ from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
+from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
@@ -40,6 +46,12 @@ class Refusal(Exception):
         if self.problems is not None:
             detail["problems"] = self.problems
         return JSONResponse({"detail": detail}, status_code=self.status_code)
+
+
+async def posted_body(request: Request) -> bytes:
+    """The request's body, exactly as sent: the dependency through which a
+    plain route function takes it."""
+    return await request.body()
 
 
 def manifest_reader() -> tuple[Callable[[str], Any], Callable[[Any], Any]]:

@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { connect, ServerError } from "../src/index.ts";
+import { recordedAnswer } from "./recordings.ts";
 
 const manifest = "name: Café\n";
 const parquet = Uint8Array.of(80, 65, 82, 49, 0, 80, 65, 82, 49);
@@ -102,8 +103,8 @@ describe("matchClaimEvents", () => {
     expect(await sent(init)).toEqual(expectedBody('{"claims":[]}'));
   });
 
-  it("answers the events of the claims asked for, in their order", async () => {
-    stubFetch(async () => Response.json(ANSWER));
+  it("reads the recorded answer: the events of the claims asked for, in their order", async () => {
+    stubFetch(async () => recordedAnswer("match-claims-events"));
     expect(await call()).toEqual([CLAIM_1, CLAIM_11, CLAIM_12]);
   });
 

@@ -300,7 +300,10 @@ def test_the_route_needs_the_token(server: TestClient) -> None:
     ids=["empty", "no JSON", "list"],
 )
 def test_without_the_expansion_the_server_starts_and_the_route_says_so(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, body: bytes
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    body: bytes,
+    installed_health: dict[str, str | None],
 ) -> None:
     # A None entry makes every import of the module raise ImportError.
     monkeypatch.setitem(sys.modules, EXPANSION, None)
@@ -312,11 +315,7 @@ def test_without_the_expansion_the_server_starts_and_the_route_says_so(
 
     health = server.get("/api/health", headers=AUTH)
     assert health.status_code == 200
-    assert health.json() == {
-        "name": "tilie-server",
-        "version": version("tilie-server"),
-        "timetoalign": version("timetoalign"),
-    }
+    assert health.json() == installed_health
     headers = {**AUTH, "Content-Type": "application/json"}
     response = server.post(ROUTE, headers=headers, content=body)
     assert response.status_code == 501
@@ -346,16 +345,15 @@ def without_the_reader(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestC
     ids=["empty", "no JSON", "list"],
 )
 def test_without_the_reader_the_server_starts_and_the_route_says_so(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, body: bytes
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    body: bytes,
+    installed_health: dict[str, str | None],
 ) -> None:
     server = without_the_reader(monkeypatch, tmp_path)
     health = server.get("/api/health", headers=AUTH)
     assert health.status_code == 200
-    assert health.json() == {
-        "name": "tilie-server",
-        "version": version("tilie-server"),
-        "timetoalign": version("timetoalign"),
-    }
+    assert health.json() == {**installed_health, "timetoshare": None}
     response = post(server, body)
     assert response.status_code == 501
     assert response.json() == {

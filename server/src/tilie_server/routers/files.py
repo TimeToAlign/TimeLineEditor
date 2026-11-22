@@ -17,11 +17,12 @@ import os
 import secrets
 import stat
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Annotated
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
-from starlette.concurrency import run_in_threadpool
 
+from tilie_server.manifests import posted_body
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -266,11 +267,12 @@ def get_file(request: Request, path: str = "") -> Response:
 
 
 @router.put(f"{API_PREFIX}files")
-async def put_file(request: Request, path: str = "") -> Response:
+def put_file(
+    request: Request, body: Annotated[bytes, Depends(posted_body)], path: str = ""
+) -> Response:
     """Write the request's body into the file ``path``."""
-    body = await request.body()
     try:
-        written = await run_in_threadpool(write, root_of(request), path, body)
+        written = write(root_of(request), path, body)
     except Refused as refusal:
         return refusal.response()
     return JSONResponse(written)

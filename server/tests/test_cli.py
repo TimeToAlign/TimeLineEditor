@@ -7,7 +7,6 @@ import socket
 import subprocess
 import sys
 import urllib.request
-from importlib.metadata import version
 from pathlib import Path
 from subprocess import Popen
 
@@ -38,16 +37,14 @@ def run_tilie(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_check_succeeds_with_a_built_app(tmp_path: Path) -> None:
+def test_check_succeeds_with_a_built_app(
+    tmp_path: Path, installed_health: dict[str, str | None]
+) -> None:
     (tmp_path / "index.html").write_text("<!doctype html><title>TimeLineEditor</title>")
     port = free_port()
     result = run_tilie("--check", "--port", str(port), "--static-dir", str(tmp_path))
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
-        "name": "tilie-server",
-        "version": version("tilie-server"),
-        "timetoalign": version("timetoalign"),
-    }
+    assert json.loads(result.stdout) == installed_health
     assert result.stderr == ""
 
 
@@ -100,7 +97,7 @@ def test_a_requested_port_is_kept_even_while_it_is_in_use() -> None:
 
 
 def test_without_a_port_the_command_falls_back_while_8000_is_in_use(
-    tmp_path: Path,
+    tmp_path: Path, installed_health: dict[str, str | None]
 ) -> None:
     (tmp_path / "index.html").write_text("<!doctype html>")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -111,11 +108,7 @@ def test_without_a_port_the_command_falls_back_while_8000_is_in_use(
             pass  # another process holds the port: it is in use either way
         result = run_tilie("--check", "--static-dir", str(tmp_path))
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
-        "name": "tilie-server",
-        "version": version("tilie-server"),
-        "timetoalign": version("timetoalign"),
-    }
+    assert json.loads(result.stdout) == installed_health
     before, after = (re.escape(part) for part in NOTICE.split("{port}"))
     pattern = before.replace(re.escape("{default}"), str(DEFAULT_PORT))
     match = re.fullmatch(rf"{pattern}(?P<port>\d+){after}\n", result.stderr)

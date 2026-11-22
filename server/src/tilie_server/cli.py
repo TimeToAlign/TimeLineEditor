@@ -23,7 +23,7 @@ from tilie_server.app import create_app
 from tilie_server.settings import ServerSettings
 
 HOST = "127.0.0.1"
-HEALTH_KEYS = frozenset({"name", "version", "timetoalign"})
+HEALTH_KEYS = frozenset({"name", "version", "timetoalign", "timetoshare"})
 STARTUP_TIMEOUT = 15.0
 # The port `tilie` listens on unless told otherwise. A browser keeps what a
 # page stores (the identity that asserts the viewer's links, for one) for its
