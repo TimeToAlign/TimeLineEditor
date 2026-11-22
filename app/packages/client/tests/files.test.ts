@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fileCalls, type Transport } from "../src/files.ts";
 import { connect, ServerError } from "../src/index.ts";
+import { recordedAnswer } from "./recordings.ts";
 
 const HEADERS = { Authorization: "Bearer t" } as const;
 const MALFORMED_LISTING = "the folder answer is not a listing of the folder asked for";
@@ -81,7 +82,7 @@ describe("listFolder", () => {
   };
 
   it("asks for the path as one query parameter and reads the listing", async () => {
-    const { calls, requests, fetched } = transport(() => Response.json(LISTING));
+    const { calls, requests, fetched } = transport(() => recordedAnswer("folders"));
     expect(await calls.listFolder("sub dir/ä")).toEqual(LISTING);
     expect(requests).toEqual([["folders?path=sub+dir%2F%C3%A4", { headers: HEADERS }, true]]);
     expect(fetched.mock.calls).toEqual([
@@ -126,7 +127,7 @@ describe("listFolder", () => {
 
 describe("readFile", () => {
   it("asks for the file and resolves to its bytes", async () => {
-    const { calls, requests } = transport(() => new Response(new TextEncoder().encode("x: 1\n")));
+    const { calls, requests } = transport(() => recordedAnswer("files-get"));
     const file = await calls.readFile("a.yaml");
     expect(Array.from(new Uint8Array(await file.arrayBuffer()))).toEqual([120, 58, 32, 49, 10]);
     expect(requests).toEqual([["files?path=a.yaml", { headers: HEADERS }, true]]);
@@ -146,9 +147,7 @@ describe("writeFile", () => {
   };
 
   it("puts a string as its UTF-8 bytes and reads the file written", async () => {
-    const { calls, requests, fetched } = transport(() =>
-      Response.json({ path: "sub/new.tle.json", size: 6 }),
-    );
+    const { calls, requests, fetched } = transport(() => recordedAnswer("files-put"));
     expect(await calls.writeFile("sub/new.tle.json", "y: ä\n")).toEqual({
       path: "sub/new.tle.json",
       size: 6,

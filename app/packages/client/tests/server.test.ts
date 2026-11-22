@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { anchorIndexOf, beliefMask, DEFAULT_BELIEFS } from "@timetoalign/tilie-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { connect, ServerError } from "../src/index.ts";
+import { recorded, recordedAnswer } from "./recordings.ts";
 
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 
@@ -62,6 +62,7 @@ describe("health", () => {
     ["a member missing", JSON.stringify({ name: "tilie-server", version: "0.1.0" })],
     ["a member no string", JSON.stringify({ ...health, version: 1 })],
     ["a list", JSON.stringify([health])],
+    ["a timetoshare no string", JSON.stringify({ ...health, timetoshare: 2 })],
     ["null", "null"],
     ["no JSON", "tilie-server 0.1.0"],
   ])("rejects a body with %s as malformed, with its status", async (_case, body) => {
@@ -77,6 +78,29 @@ describe("health", () => {
   it("answers the three members alone", async () => {
     stubFetch(async () => Response.json({ ...health, extra: true }));
     expect(await connect({ url: "api/", token: "" }).health()).toStrictEqual(health);
+  });
+
+  it.each([
+    ["a version", "0.2.0"],
+    ["null", null],
+  ])("answers a timetoshare of %s with the three", async (_case, timetoshare) => {
+    stubFetch(async () => Response.json({ ...health, timetoshare, extra: true }));
+    expect(await connect({ url: "api/", token: "" }).health()).toStrictEqual({
+      ...health,
+      timetoshare,
+    });
+  });
+
+  it("reads the recorded answer: four members, each a string", async () => {
+    stubFetch(async () => recordedAnswer("health"));
+    const answer = await connect({ url: "api/", token: "" }).health();
+    expect(answer).toStrictEqual(JSON.parse(new TextDecoder().decode(recorded("health"))));
+    expect(Object.entries(answer).map(([key, value]) => [key, typeof value])).toEqual([
+      ["name", "string"],
+      ["version", "string"],
+      ["timetoalign", "string"],
+      ["timetoshare", "string"],
+    ]);
   });
 
   it("rejects a request that fails as unreachable", async () => {
@@ -175,6 +199,13 @@ describe("measureMaps", () => {
     ]);
   });
 
+  it("reads the recorded answer to the fixture group_measure_map", async () => {
+    stubFetch(async () => recordedAnswer("measure-maps"));
+    expect(await connect({ url: "api/", token: "" }).measureMaps(manifestText)).toStrictEqual(
+      expanded.measure_maps,
+    );
+  });
+
   it("answers no measure maps", async () => {
     stubFetch(async () => Response.json({ measure_maps: [] }));
     expect(await connect({ url: "api/", token: "" }).measureMaps(manifestText)).toEqual([]);
@@ -234,7 +265,7 @@ describe("measureMaps", () => {
 
 describe("matchClaims", () => {
   /** The server's answer to TimeToShare's table fixture, recorded by its script. */
-  const recording = readFileSync(new URL("./data/match-claims.answer.bin", import.meta.url));
+  const recording = recorded("match-claims");
   const manifest = "name: Café\n";
   const parquet = Uint8Array.of(80, 65, 82, 49, 0, 80, 65, 82, 49);
   const A = "https://orcid.org/0000-0002-1825-0097";

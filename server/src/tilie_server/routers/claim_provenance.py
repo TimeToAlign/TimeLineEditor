@@ -20,12 +20,12 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from importlib.metadata import version
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse, Response
 
-from tilie_server.manifests import Refusal, read_manifest
+from tilie_server.manifests import Refusal, posted_body, read_manifest
 from tilie_server.routers.match_claims import (
     PREFIX,
     checked_table,
@@ -298,7 +298,7 @@ def belief_answer(body: bytes) -> bytes:
 
     from tilie_server.claim_columns import manifest_bundle
 
-    provenance_model()  # 501 before the body is read
+    provenance_model()  # 501 before the body is split
     parameters, table, manifest, tables, field_class, checked = read_request(
         body, BELIEF_PARAMETERS
     )
@@ -318,7 +318,7 @@ def belief_answer(body: bytes) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims/provenance")
-async def match_claim_provenance(request: Request) -> Response:
+def match_claim_provenance(body: Annotated[bytes, Depends(posted_body)]) -> Response:
     """Answer the provenance of the MatchClaims named, of the posted table.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -328,14 +328,14 @@ async def match_claim_provenance(request: Request) -> Response:
     the parameters' at their name.
     """
     try:
-        answer = provenance_answer(await request.body())
+        answer = provenance_answer(body)
     except Refusal as refusal:
         return refusal.response()
     return JSONResponse(answer)
 
 
 @router.post(f"{API_PREFIX}match-claims/belief")
-async def match_claim_belief(request: Request) -> Response:
+def match_claim_belief(body: Annotated[bytes, Depends(posted_body)]) -> Response:
     """Answer the posted table with an actor's belief in one MatchClaim.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -345,7 +345,7 @@ async def match_claim_belief(request: Request) -> Response:
     Refusals answer as that route's, the parameters' at their name.
     """
     try:
-        answer = belief_answer(await request.body())
+        answer = belief_answer(body)
     except Refusal as refusal:
         return refusal.response()
     return Response(answer, media_type=PARQUET_MEDIA_TYPE)

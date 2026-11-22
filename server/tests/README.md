@@ -3,9 +3,13 @@
 HTTP status, JSON bodies, headers, process output and exit codes are exact.
 Application tests use an in-process client at the configured loopback
 origin; command tests run the installed `tilie` script on a free loopback
-port. Installed package metadata is the oracle for versions, uvicorn's own
-log lines for the access log and a graceful shutdown, and temporary
-directories stand in for built and missing editors.
+port. Installed package metadata is the oracle for the server's and
+timetoalign's versions; timetoshare's is the version marker its bundled
+schema demands of a manifest (`$defs.Manifest.properties.timetoshare.const`),
+since an editable install keeps the metadata of the version it was
+installed at. uvicorn's own log lines are the oracle for the access log and
+a graceful shutdown, and temporary directories stand in for built and
+missing editors.
 
 ## Security and routes
 
@@ -14,7 +18,7 @@ directories stand in for built and missing editors.
 | `/api/` path without exactly `Authorization: Bearer <run token>` (missing, wrong, `Basic`, `bearer`, a doubled space, a trailing space, an unknown path) | 401 `{"detail": "missing or invalid token"}`, before routing |
 | foreign `Host` (also absent, sent through raw ASGI since the test client always supplies one) | 403 `{"detail": "forbidden host"}` |
 | foreign `Origin` | 403 `{"detail": "forbidden origin"}` |
-| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …}`, the installed versions |
+| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the version of the timetoshare imported; `"timetoshare": null` where timetoshare cannot be imported |
 | authorized `GET /api/openapi.json` | 404 `{"detail": "Not Found"}`; a generated document is no part of the interface |
 | `GET /` without a built editor | 503 `{"detail": "app not built"}` |
 | `GET /` and assets of a built editor | 200, byte for byte, `index.html` as `text/html; charset=utf-8` |
@@ -23,6 +27,18 @@ The configured host and its `localhost` alias are accepted as `Host` and as
 `Origin`, and the host and origin checks hold for the editor's files as for
 the API. Every answer above, success or rejection, carries exactly one
 `Referrer-Policy: no-referrer` header.
+
+**A long computation holds no other route.** The routes that compute their
+answer from a posted body (measure maps, the four MatchClaim routes, the
+file write) run on the framework's thread pool, so that the event loop
+stays free while they compute. Proved without a clock: through one client
+whose requests share one event loop, a request to each of those routes is
+held inside its computation (the manifest reader, or the file writer,
+replaced by one that announces it was entered and then waits for a
+release), and while it is held `GET /api/health` answers 200; then the held
+request is released and answers. Run inside the event loop, the held
+request would keep the health request from ever being read, and the test
+fails at its safety timeout instead of hanging.
 
 ## Measure maps
 
@@ -77,7 +93,7 @@ manifest, and two requests with one manifest answer the same.
 `timetoalign.timelines.structure`, which a released timetoalign may lack;
 the server is still started then, and only this route says so. With that
 module made unimportable, the server's modules import and the app is built
-anew from them: `GET /api/health` still answers 200 with its three
+anew from them: `GET /api/health` still answers 200 with its four
 versions, and every authorized `POST /api/measure-maps`, whatever its body,
 answers 501 `{"detail": {"path": [], "message": "the installed timetoalign
 <version> cannot expand measure maps"}}`, the version being the installed
@@ -90,7 +106,7 @@ through timetoshare's `loads` and `with_bare_ids`, which timetoshare 0.2.0
 holds and timetoalign brings in (the server requires timetoshare only
 through timetoalign); a released timetoshare may lack them, and the server
 is still started then. With `timetoshare` made unimportable, the app built
-anew answers `GET /api/health` 200 and every authorized `POST
+anew answers `GET /api/health` 200, its `timetoshare` `null`, and every authorized `POST
 /api/measure-maps`, whatever its body, 501 `{"detail": {"path": [],
 "message": "the installed timetoshare <version> cannot read manifest
 files"}}`, the version being the installed package's; when no timetoshare
@@ -164,6 +180,7 @@ anchor are zero.
 | a prefix stating 100 bytes before 10 | 422 message `the body states a manifest of 100 bytes and holds 10` |
 | a manifest that is no UTF-8 (`0xff`) | 422 message `the manifest is not UTF-8 text` |
 | a manifest whose first timeline's ID is bare (`clt_1`) | 422 `{"detail": {"path": ["timelines", 0, "id"], "message": "'clt_1' is not written as an ID: it does not start with '#'"}}`, timetoshare's |
+| the fixture with its manifest naming itself `5`, which TimeToShare's checks of the table accept and timetoalign's reading of the manifest refuses through TimeToShare's validator | 422 `{"detail": {"path": ["name"], "message": "#/name: 5 is not of type 'string', 'null'"}}`: the refusal keeps the validator's path; the provenance and the belief routes answer the same |
 | table bytes that are no Parquet file (`not parquet`, or none) | 422 message `the MatchClaim table is no Parquet file` |
 | without the bearer token | 401 `{"detail": "missing or invalid token"}` |
 
@@ -175,11 +192,6 @@ timetoshare <version> cannot check MatchClaim tables"}}`; with
 timetoalign <version> cannot read MatchClaim tables`; both whatever the
 body, each version the installed package's.
 
-**The recording.** `scripts/record_match_claims.py <file>` writes the
-answer to the fixture, which the client package's tests decode; the
-script calls the route's own function, so the recording is this answer
-byte for byte, proved by a test that runs the script into a temporary
-directory and compares the file with the route's answer.
 
 ## MatchClaim provenance and beliefs
 
@@ -557,6 +569,36 @@ interface against a server the test runs: an answer 200 and an answer 503
 are returned with their status and body, the request carries the given
 User-Agent, and a port nothing listens on raises `OSError`. The app built
 without a client holds a `MusicBrainz` of its own.
+
+## Recorded answers
+
+The client package's tests replay the server's answers instead of a
+running server: `scripts/record_answers.py [folder]` sends every route the
+client calls one fixed request through the application, in process, and
+writes each answer's body byte for byte to
+`app/packages/client/tests/data/<name>.answer.bin` (or into the folder
+given). The requests are the cases the client's tests README derives:
+`GET /api/health`; `POST /api/measure-maps` with `data/`'s copy of
+`group_measure_map.minimal.yaml`; with TimeToShare's table fixture as it
+is, `POST /api/match-claims`, the provenance of `claim_6`, `claim_15`,
+`claim_1`, A's belief `false` in `claim_6` on 2026-11-22, the events of
+`claim_1`, `claim_11`, `claim_12`; and below a root made for the run, the
+listing of `sub dir/ä` (a folder `d`, a file `a.yaml`), the file `a.yaml`
+holding `x: 1` and the write of `y: ä` into `sub/new.tle.json`. A route that
+does not answer 200 stops the script. The MusicBrainz routes are the
+editor's lookup, not the client's, and replay their own recordings.
+
+Two facts are proved. **Every recording is the route's answer:** the test
+runs the script into a temporary folder and compares each file with the
+committed one byte for byte, so a change of an answer fails until it is
+recorded again; the one exception is the health answer, whose values are
+the installed versions, compared by its member names and the JSON type of
+each value (every one a string), since a version moves with every release
+and the answer's form does not. The folder holds exactly the recordings
+the script writes, no stale file. **Every route the client calls is
+recorded:** the methods and paths of the application's routes below
+`/api/`, the MusicBrainz ones aside, are exactly the recordings' methods
+and paths, so a new route without a recording fails.
 
 ## The command
 

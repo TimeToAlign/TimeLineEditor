@@ -24,12 +24,12 @@ import json
 import struct
 from collections.abc import Callable, Mapping
 from importlib.metadata import version
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from tilie_server.manifests import Refusal, read_manifest
+from tilie_server.manifests import Refusal, posted_body, read_manifest
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -191,7 +191,7 @@ def match_claims_answer(body: bytes) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims")
-async def match_claims(request: Request) -> Response:
+def match_claims(body: Annotated[bytes, Depends(posted_body)]) -> Response:
     """Answer the columns of the posted MatchClaim table, checked against the
     posted manifest.
 
@@ -204,7 +204,7 @@ async def match_claims(request: Request) -> Response:
     MatchClaim tables, or read manifest files, 501.
     """
     try:
-        answer = match_claims_answer(await request.body())
+        answer = match_claims_answer(body)
     except Refusal as refusal:
         return refusal.response()
     return Response(answer, media_type=MEDIA_TYPE)

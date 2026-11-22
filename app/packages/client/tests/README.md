@@ -13,16 +13,22 @@ call or the exact result.
    `Bearer <token>` for a token, `Bearer ` for the empty token, and absent
    for `null`.
 2. **The answer.** A 2xx answer resolves to its three members, `name`,
-   `version` and `timetoalign`, compared whole; an extra member is
-   dropped.
+   `version` and `timetoalign`, compared whole, and to `timetoshare` where
+   the answer has one, a version string or `null` (the server imports no
+   timetoshare), kept as it is; an extra member is dropped. The server's
+   recorded answer (item 9) resolves to exactly its four members, each a
+   string; its values are the versions of the server that recorded it, so
+   the test compares the answer with the recording and the members' types,
+   never a version written out.
 3. **The two failures.** A `fetch` that rejects rejects with a
    `ServerError` of code `unreachable`, status `null`, the cause's message
    and the cause itself; an answer outside 2xx rejects with code `status`,
    the HTTP status and the message `<status> <status text>` (`502 Bad
    Gateway`, or `401` when the text is empty). A 2xx body that is not those
    three strings (a member missing or no string, a list, `null`, text that
-   is no JSON) rejects with code `status`, its status and the message "the
-   health answer is not a name, a version and a timetoalign version".
+   is no JSON), or whose `timetoshare` is neither a string nor `null` (2),
+   rejects with code `status`, its status and the message "the health
+   answer is not a name, a version and a timetoalign version".
 
 4. **Measure maps.** `measureMaps(manifest)` takes a manifest's JSON text,
    as the schema package's writer spells it, and sends it unchanged as the
@@ -33,7 +39,9 @@ call or the exact result.
    caller's, and nothing is kept between calls. A 2xx answer of the route's
    form (the server's tests README, "Measure maps") resolves to its
    `measure_maps` list compared whole, rows included (the answer to the
-   TimeToShare fixture `group_measure_map`, four rows, is the case); an
+   TimeToShare fixture `group_measure_map`, four rows, is the case, and
+   the server's recorded answer to that fixture resolves to the same
+   list); an
    answer outside 2xx rejects as for `health()`, so a server whose
    timetoalign cannot expand measure maps (501) rejects with code `status`
    and status 501, which the editor tells apart from an unreachable server;
@@ -58,9 +66,7 @@ call or the exact result.
    The oracle of the answer is TimeToShare's table fixture `tables/0.2.0`,
    fifteen MatchClaims read off by hand (the server's tests README,
    "MatchClaims", has the table): `data/match-claims.answer.bin` is the
-   server's answer to it, written by the server's
-   `scripts/record_match_claims.py`, whose own test proves the recording
-   is the route's answer. Decoded, it resolves to `rows` 15, the claim IDs
+   server's recorded answer to it (item 9). Decoded, it resolves to `rows` 15, the claim IDs
    `claim_1` to `claim_15`, the timelines `clt_1` (fraction), `clt_2`
    (fraction), `cpt_1` (float), `dpt_1` (int), and every array compared
    whole with the values written in the test: the timeline numbers, the
@@ -109,8 +115,9 @@ call or the exact result.
 
    The provenance answer's oracle is the server's (its tests README,
    "MatchClaim provenance and beliefs"): the answer to `claim_6`,
-   `claim_15`, `claim_1` of TimeToShare's table fixture, written in the test
-   as that README lists it, resolves to the three entries compared whole,
+   `claim_15`, `claim_1` of TimeToShare's table fixture, the server's
+   recorded answer (item 9), resolves to the three entries written in the
+   test as that README lists them, compared whole,
    `claim_15`'s `null`, absent members absent. A 2xx body not of the
    route's form rejects with code `status` and the message "the provenance
    answer is not the provenance of the MatchClaims asked for": an answer
@@ -123,7 +130,8 @@ call or the exact result.
    The belief answer is a Parquet file, which the client checks only for
    the four bytes `PAR1` at its start and at its end and hands on
    unchanged: the answer's bytes come back as a `Blob` of type
-   `application/vnd.apache.parquet` holding exactly those bytes. Fewer
+   `application/vnd.apache.parquet` holding exactly those bytes, the
+   server's recorded answer (A's `false` in `claim_6`, item 9) among them. Fewer
    than eight bytes, or bytes without `PAR1` at either end, reject with
    code `status` and the message "the belief answer is not a Parquet
    file"; a refusal rejects with the server's message, path and problems
@@ -140,8 +148,9 @@ call or the exact result.
 
    The answer's oracle is the server's (its tests README, "MatchClaim
    events"): the answer to `claim_1`, `claim_11`, `claim_12` of
-   TimeToShare's table fixture, written in the test from that README,
-   resolves to the three MatchClaims compared whole, each of exactly the
+   TimeToShare's table fixture, the server's recorded answer (item 9),
+   resolves to the three MatchClaims written in the test from that README,
+   compared whole, each of exactly the
    nine members `id`, the two sides' `timeline_*_id`, `event_*_id`,
    `event_*_name`, `certainty`, `is_synchronous`: `claim_1` `clt_1`
    `note_1` "C4" against `dpt_1` `projection_1` without a name,
@@ -171,16 +180,18 @@ call or the exact result.
      path as one form-encoded query parameter, with the transport's headers
      and no other member of the request; `listFolder("")` asks
      `folders?path=`. The answer `{"path": "sub dir/ä", "entries":
-     [{"name": "d", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`
-     resolves to exactly that listing.
+     [{"name": "d", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`,
+     the server's recorded answer (item 9), resolves to exactly that
+     listing.
    - `readFile("a.yaml")` asks `files?path=a.yaml` and resolves to a `Blob`
-     holding exactly the answer's bytes (`x: 1\n`).
+     holding exactly the answer's bytes (`x: 1\n`, the recorded answer).
    - `writeFile("sub/new.tle.json", "y: ä\n")` asks
      `files?path=sub%2Fnew.tle.json` with method `PUT`, the transport's
      headers and `Content-Type: application/octet-stream`, and the string
      as its body, sent as UTF-8
      (six bytes); a `Blob` is sent unchanged. The answer `{"path":
-     "sub/new.tle.json", "size": 6}` resolves to exactly that. The calls
+     "sub/new.tle.json", "size": 6}`, the recorded answer, resolves to
+     exactly that. The calls
      check no kind: the server reads only workspace, manifest and table
      files and writes only workspace files (`.tle.json`), which is why the
      cases name those.
@@ -202,6 +213,20 @@ call or the exact result.
      outside the root"}}` rejects with a `ServerError` whose code, status and
      message are `status`, 400 and "path outside the root" and whose
      `refusal.path` is `["path"]`.
+
+9. **Recorded answers.** The recorded answer an item above names is
+   `data/<name>.answer.bin`, the body of the route's answer to one fixed
+   request, byte for byte, written by the server's
+   `scripts/record_answers.py`: `health`, `measure-maps`, `match-claims`,
+   `match-claims-provenance`, `match-claims-belief`, `match-claims-events`,
+   `folders`, `files-get` and `files-put`, the requests being the cases of
+   items 2 and 4 to 8. The server's tests prove that each recording is
+   still its route's answer and that every route the client calls has one
+   (its tests README, "Recorded answers"); these tests prove the client
+   reads each into the value its item writes out. A recorded answer the
+   client's type disagrees with fails here, never quietly: no recording is
+   edited by hand, and none is read through anything but the call it
+   answers.
 
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or

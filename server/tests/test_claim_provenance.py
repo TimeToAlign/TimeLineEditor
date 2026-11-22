@@ -549,8 +549,8 @@ def test_an_actor_that_is_no_iri_reference_makes_a_table_the_checks_refuse(
     response = post(server, BELIEF, body(belief("claim_6", "not an iri", "true")))
     assert response.status_code == 422
     message = (
-        "the provenance #/beliefs/1/actor: 'not an iri' holds U+0020: no whitespace and no "
-        "control character is admitted here"
+        "the provenance #/beliefs/1/actor: 'not an iri' holds U+0020: "
+        "no whitespace and no control character is admitted here"
     )
     assert response.json() == {
         "detail": {
@@ -682,3 +682,22 @@ def test_a_table_changing_a_claim_does_not_succeed() -> None:
 def test_a_believed_table_succeeds(server: TestClient) -> None:
     new = believed(server, body(belief("claim_6", A, "false")))
     assert refusal_of(fixture_table(), new) is None
+
+
+@pytest.mark.parametrize(
+    ("route", "parameters"),
+    [(PROVENANCE, {"claims": ["claim_1"]}), (BELIEF, belief("claim_1", A, "false"))],
+    ids=["provenance", "belief"],
+)
+def test_timetoalign_refusing_the_manifest_keeps_the_validators_path(
+    server: TestClient, route: str, parameters: dict[str, Any]
+) -> None:
+    manifest = fixture_manifest() + b"name: 5\n"
+    response = post(server, route, body(parameters, manifest=manifest))
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": {
+            "path": ["name"],
+            "message": "#/name: 5 is not of type 'string', 'null'",
+        }
+    }
