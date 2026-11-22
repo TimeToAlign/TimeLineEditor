@@ -10,7 +10,7 @@ import {
 import { isCommandError } from "../src/errors.ts";
 import { addressKey } from "../src/manifest/address.ts";
 import { contains } from "../src/manifest/contains.ts";
-import { groupsHolding } from "../src/manifest/elements.ts";
+import { groupsHolding } from "../src/manifest/tree.ts";
 import type { Manifest, ManifestGraphical, NamedTimestamp } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
@@ -762,5 +762,71 @@ describe("groupstamps", () => {
       ids(child, "piece"),
       ids(child, "nope"),
     ]).toEqual([["group_1"], ["group_1"], [], []]);
+  });
+
+  it("are given to a child joining a group, as its origin and length", () => {
+    const store = storeOf(viewOf([A, "nested.yaml"]));
+    const stamps = () => block(store.view).manifest.graphical?.timestamps ?? [];
+    expect(
+      store.dispatch(add("clt_2", { name: "origin", coordinate: [0, 1], display: ["wedge"] })),
+    ).toBeNull();
+    const before = store.view;
+    const own = stamps();
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A },
+        group: { id: "group_1", members: ["clt_3"] },
+      }),
+    ).toBeNull();
+    const given = (id: string, timeline: string, coordinate: unknown, name: string) => ({
+      id,
+      timeline,
+      coordinate,
+      name,
+      display: ["wedge", "coordinate", "cross_section"],
+      matchstamp: false,
+      groupstamp: true,
+    });
+    expect(stamps()).toEqual([
+      ...own,
+      given("timestamp_4", "clt_3", [0, 1], "origin"),
+      given("timestamp_5", "clt_3", [8, 1], "length"),
+    ]);
+    store.undo();
+    expect(store.view).toBe(before);
+    store.redo();
+    expect(
+      store.dispatch({ type: "add", into: { block: A }, group: { id: "group_2", members: [] } }),
+    ).toBeNull();
+    const joined = stamps();
+    expect(store.dispatch(set(at("clt_2"), { groups: ["group_2"] }))).toBeNull();
+    // In canonical order: by timeline, then coordinate.
+    const [first, second, origin, ...onClt3] = joined;
+    expect(stamps()).toEqual([
+      first,
+      second,
+      { ...origin, display: ["wedge", "cross_section"], groupstamp: true },
+      given("timestamp_6", "clt_2", [2, 1], "length"),
+      ...onClt3,
+    ]);
+    expect(origin?.id).toBe("timestamp_3");
+    expect(store.dispatch(remove(at("timestamp_4")))).toBeNull();
+    const removed = stamps();
+    expect(store.dispatch(set(at("clt_3"), { name: "Inner" }))).toBeNull();
+    expect(stamps()).toEqual(removed);
+  });
+
+  it("are not given to a root joining a group", () => {
+    const rooted = viewOf([A, "groups/group_grandchild.yaml"]);
+    const joined = changed(rooted, {
+      type: "add",
+      into: { block: A },
+      group: { id: "group_2", members: ["recording"] },
+    });
+    expect(block(joined).manifest.groups.map((group) => group.id)).toEqual(["group_1", "group_2"]);
+    expect(block(joined).manifest.graphical?.timestamps).toEqual(
+      block(rooted).manifest.graphical?.timestamps,
+    );
   });
 });

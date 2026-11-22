@@ -4,9 +4,11 @@ import { apply } from "../src/commands/apply.ts";
 import { isCommandError } from "../src/errors.ts";
 import type { ElementAddress } from "../src/manifest/address.ts";
 import { contains } from "../src/manifest/contains.ts";
-import { manifestElements, selectorMatches, timelineAncestry } from "../src/manifest/elements.ts";
-import { elisionsUnder } from "../src/manifest/elisions.ts";
+import type { ElementKey } from "../src/manifest/elements.ts";
+import { manifestElements, selectorMatches } from "../src/manifest/elements.ts";
+import { elisionsUnder, groupElisions } from "../src/manifest/elisions.ts";
 import { removedBy } from "../src/manifest/remove.ts";
+import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import type { Address, ResolvedAddress } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
@@ -22,6 +24,7 @@ import {
   changed,
   fileText,
   key,
+  load,
   loadText,
   manifestValue,
   storeOf,
@@ -33,6 +36,7 @@ interface Stated {
   readonly timeline: string;
   readonly start: unknown;
   readonly end: unknown;
+  readonly name?: string;
   readonly display?: readonly string[];
 }
 
@@ -44,7 +48,7 @@ const elision = (
   display?: readonly string[],
 ): Stated => ({ id, timeline, start, end, ...(display === undefined ? {} : { display }) });
 
-const DEFAULT_DISPLAY = ["strip", "name", "coordinate"];
+const DEFAULT_DISPLAY = ["ellipsis"];
 
 /** An elision as core reads it: complete, its `display` the default unless stated. */
 const complete = (stated: Stated) => ({ display: DEFAULT_DISPLAY, ...stated });
@@ -210,15 +214,21 @@ describe("add kind elision into a timeline", () => {
     ]);
     const sized = changed(
       view,
-      add({ ...stretch, width: { ratio: 0.25 }, display: ["name", "strip"] }),
+      add({
+        ...stretch,
+        name: "Development",
+        width: { ratio: 0.25 },
+        display: ["coordinate", "name", "ellipsis"],
+      }),
     );
     expect(elisionsOf(sized)?.[1]).toEqual({
       id: "elision_2",
       timeline: "bare",
       start: [3, 1],
       end: [5, 1],
+      name: "Development",
       width: { ratio: 0.25 },
-      display: ["strip", "name"],
+      display: ["ellipsis", "name", "coordinate"],
     });
     expect(elisionsOf(changed(view, add({ ...stretch, width: { ratio: 1 } })))?.[1]?.width).toEqual(
       { ratio: 1 },
@@ -262,6 +272,14 @@ describe("add kind elision into a timeline", () => {
           path: path("end"),
           message: "end [2, 1] of 'elision_2' does not lie after its start [2, 1]",
         },
+      ],
+      [
+        { ...stretch, name: "" },
+        { code: "invalid_value", path: path("name"), message: "a name is a non-empty string" },
+      ],
+      [
+        { ...stretch, name: 3 },
+        { code: "invalid_value", path: path("name"), message: "a name is a non-empty string" },
       ],
       [
         { ...stretch, width: { ratio: 0.5, canvas: 10 } },
@@ -316,8 +334,12 @@ describe("add kind elision into a timeline", () => {
         { code: "unknown_property", path: path("width", "x"), message: "unknown member x" },
       ],
       [
-        { ...stretch, display: ["strip", "strip"] },
-        { code: "invalid_value", path: path("display"), message: "'strip' is given twice" },
+        { ...stretch, display: ["ellipsis", "ellipsis"] },
+        { code: "invalid_value", path: path("display"), message: "'ellipsis' is given twice" },
+      ],
+      [
+        { ...stretch, display: ["strip"] },
+        { code: "invalid_value", path: path("display"), message: "'strip' is no display word" },
       ],
     ];
     for (const [value, expected] of cases) {
@@ -357,6 +379,26 @@ describe("set and remove on a stored elision", () => {
     );
   });
 
+  it("takes a name, and null deletes it", () => {
+    const named = changed(view, set("elision_1", { name: "Development" }));
+    expect(elisionsOf(named)).toEqual([complete({ ...first, name: "Development" })]);
+    expect(addressWords(named, element("elision_1"))).toBe("elision 'Development'");
+    const unnamed = changed(named, set("elision_1", { name: null }));
+    expect(elisionsOf(unnamed)).toEqual([complete(first)]);
+    const nothing = {
+      code: "invalid_value",
+      path: path("name"),
+      message: "the command changes nothing",
+    };
+    expect(refused(apply(view, set("elision_1", { name: null })))).toEqual(nothing);
+    expect(refused(apply(named, set("elision_1", { name: "Development" })))).toEqual(nothing);
+    expect(refused(apply(view, set("elision_1", { name: "" })))).toEqual({
+      code: "invalid_value",
+      path: path("name"),
+      message: "a name is a non-empty string",
+    });
+  });
+
   it("takes every form of its width, and null deletes it", () => {
     for (const width of [{ ratio: 0.25 }, { span: [1, 2] }, { canvas: 160 }]) {
       const sized = changed(view, set("elision_1", { width }));
@@ -372,9 +414,9 @@ describe("set and remove on a stored elision", () => {
   });
 
   it("stores its display in canonical order", () => {
-    const shown = changed(view, set("elision_1", { display: ["coordinate", "strip"] }));
-    expect(elisionsOf(shown)?.[0]?.display).toEqual(["strip", "coordinate"]);
-    const again = apply(shown, set("elision_1", { display: ["coordinate", "strip"] }));
+    const shown = changed(view, set("elision_1", { display: ["coordinate", "ellipsis"] }));
+    expect(elisionsOf(shown)?.[0]?.display).toEqual(["ellipsis", "coordinate"]);
+    const again = apply(shown, set("elision_1", { display: ["coordinate", "ellipsis"] }));
     expect(refused(again).code).toBe("invalid_value");
     expect(refused(again).message).toBe("the command changes nothing");
   });
@@ -415,13 +457,15 @@ describe("many elisions in one journal entry", () => {
       complete(elision("elision_3", "score", [32, 1], [64, 1])),
     ];
     expect(elisionsOf(store.view)).toEqual(stored);
-    expect(
-      store.dispatch({
-        type: "add",
-        into: at("recording"),
-        elision: { start: 1, end: 2 },
-      }),
-    ).toBeNull();
+    // Group elisions of `group_1`: on its member root and on its child member.
+    for (const [timeline, start, end] of [
+      ["recording", 1, 2],
+      ["theme", [1, 1], [2, 1]],
+    ] as const) {
+      expect(
+        store.dispatch({ type: "add", into: at(timeline), elision: { start, end } }),
+      ).toBeNull();
+    }
     const manifest = block(store.view).manifest;
     const under = elisionsUnder(manifest, "score");
     expect(under.map((item) => item.id)).toEqual(["elision_1", "elision_2", "elision_3"]);
@@ -430,7 +474,14 @@ describe("many elisions in one journal entry", () => {
       store.dispatch({ type: "remove", targets: under.map((item) => at(item.id)) }),
     ).toBeNull();
     expect(store.journal.length).toBe(before + 1);
-    expect(elisionsOf(store.view)?.map((item) => item.id)).toEqual(["elision_4"]);
+    expect(elisionsOf(store.view)?.map((item) => item.id)).toEqual(["elision_4", "elision_5"]);
+  });
+
+  it("store the name an item gives", () => {
+    const named = changed(view, addAll([{ ...defaults[0], name: "Exposition" }]));
+    expect(elisionsOf(named)).toEqual([
+      complete({ ...elision("elision_1", "movement", [0, 1], [8, 1]), name: "Exposition" }),
+    ]);
   });
 
   it("refuses what is no list of elisions, at the item at fault", () => {
@@ -475,22 +526,58 @@ describe("many elisions in one journal entry", () => {
   });
 });
 
+describe("card and group elisions", () => {
+  const stored = load("bundles/bundle_elisions_stored.yaml");
+  const ids = (elisions: readonly { readonly id: string }[]) => elisions.map((item) => item.id);
+
+  it("tell an elision on a timeline lying in a group from one in no group", () => {
+    expect(
+      ["score", "page", "session", "recording", "nowhere"].map((root) =>
+        ids(elisionsUnder(stored, root)),
+      ),
+    ).toEqual([
+      ["elision_1", "elision_4", "elision_5", "elision_6"],
+      ["elision_2"],
+      ["elision_7"],
+      [],
+      [],
+    ]);
+    expect(ids(groupElisions(stored, "group_1"))).toEqual(["elision_3"]);
+    expect(ids(groupElisions(stored, "nowhere"))).toEqual([]);
+    const onTheme = changed(viewWith(stored), {
+      type: "add",
+      into: at("theme"),
+      elision: { start: [1, 1], end: [2, 1] },
+    });
+    const manifest = block(onTheme).manifest;
+    expect(ids(groupElisions(manifest, "group_1"))).toEqual(["elision_3", "elision_8"]);
+    expect(ids(elisionsUnder(manifest, "score"))).toEqual(ids(elisionsUnder(stored, "score")));
+  });
+
+  it("make an elision on a member of two groups a group elision of each", () => {
+    const shared = load("bundles/bundle_groupstamp_shared_member.yaml");
+    expect([ids(groupElisions(shared, "g1")), ids(groupElisions(shared, "g2"))]).toEqual([
+      ["elision_1"],
+      ["elision_1"],
+    ]);
+    expect(ids(elisionsUnder(shared, "t"))).toEqual([]);
+  });
+});
+
 describe("elision addresses", () => {
   const view = viewWith(withElisions("groups/group_grandchild.yaml"));
 
-  it("resolve a default elision as a part of its timeline, where one may be drawn", () => {
+  it("resolve a derived elision as a part of its timeline, where one may be derived", () => {
     expect(shape(resolved(view, element("score", ["elision"])))).toEqual({
       part: "elision",
       of: { timeline: "score" },
     });
-    expect(shape(resolved(view, element("movement", ["elision", "coordinate"])))).toEqual({
-      part: "coordinate",
-      of: { part: "elision", of: { timeline: "movement" } },
-    });
-    expect(shape(resolved(view, element("movement", ["elision", "name"])))).toEqual({
-      part: "name",
-      of: { part: "elision", of: { timeline: "movement" } },
-    });
+    for (const word of ["coordinate", "name", "ellipsis"]) {
+      expect(shape(resolved(view, element("movement", ["elision", word])))).toEqual({
+        part: word,
+        of: { part: "elision", of: { timeline: "movement" } },
+      });
+    }
     for (const address of [
       element("theme", ["elision"]),
       element("recording", ["elision"]),
@@ -508,22 +595,25 @@ describe("elision addresses", () => {
     expect(refused(setPart).code).toBe("unknown_target");
   });
 
-  it("resolve a stored elision by its ID, its labels where a card draws them", () => {
-    const stored = elision("elision_1", "movement", [0, 1], [8, 1]);
+  it("resolve a stored card elision by its ID, its parts where its display draws them", () => {
+    const shown = ["ellipsis", "name", "coordinate"];
+    const stored = elision("elision_1", "movement", [0, 1], [8, 1], shown);
     const manifest = withElisions("groups/group_grandchild.yaml", stored);
     const holding = viewWith(manifest);
-    expect(namesNothing(holding, element("score", ["elision"]))).toBe("unknown_target");
+    // A rule may still state `proportional`, which derives elisions beside the stored one.
+    expect(namesNothing(holding, element("score", ["elision"]))).toBeNull();
     expect(shape(resolved(holding, element("elision_1")))).toEqual({
       elision: "elision_1",
       on: "movement",
       index: 0,
     });
-    for (const word of ["name", "coordinate"]) {
+    for (const word of shown) {
       expect(shape(resolved(holding, element("elision_1", [word])))).toEqual({
         part: word,
         of: { elision: "elision_1", on: "movement", index: 0 },
       });
     }
+    expect(namesNothing(holding, element("elision_1", ["id"]))).toBe("unknown_target");
     expect(addressWords(holding, element("elision_1"))).toBe("elision 'elision_1'");
     expect(refused(editorKindOf(holding, element("elision_1"))).code).toBe("no_editor");
     const address: ElementAddress = { id: "elision_1" };
@@ -533,7 +623,7 @@ describe("elision addresses", () => {
     expect(contains(manifest, "movement", { id: "movement", part: ["elision"] })).toBe(true);
   });
 
-  it("resolve a stored elision drawn nowhere, but none of its labels", () => {
+  it("resolve a group elision with the parts its frame draws, and a bare gap without parts", () => {
     const onMember = elision("elision_1", "recording", 1, 2);
     const holding = viewWith(withElisions("groups/group_grandchild.yaml", onMember));
     expect(shape(resolved(holding, element("elision_1")))).toEqual({
@@ -541,66 +631,150 @@ describe("elision addresses", () => {
       on: "recording",
       index: 0,
     });
+    expect(namesNothing(holding, element("elision_1", ["ellipsis"]))).toBeNull();
     expect(namesNothing(holding, element("elision_1", ["name"]))).toBe("unknown_target");
-    const strip = elision("elision_1", "bare", [1, 1], [2, 1], ["strip"]);
-    const bare = viewWith(withElisions("bare.yaml", strip));
+    const named = elision("elision_1", "recording", 1, 2, ["ellipsis", "name"]);
+    const labelled = viewWith(withElisions("groups/group_grandchild.yaml", named));
+    expect(namesNothing(labelled, element("elision_1", ["name"]))).toBeNull();
+    const gap = elision("elision_1", "bare", [1, 1], [2, 1], []);
+    const bare = viewWith(withElisions("bare.yaml", gap));
     expect(namesNothing(bare, element("elision_1"))).toBeNull();
+    expect(namesNothing(bare, element("elision_1", ["ellipsis"]))).toBe("unknown_target");
     expect(namesNothing(bare, element("elision_1", ["name"]))).toBe("unknown_target");
     expect(namesNothing(bare, element("bare", ["elision"]))).toBe("unknown_target");
   });
 });
 
 describe("elision elements", () => {
-  it("are listed in the cards drawing a timeline whole outside a frame", () => {
-    const manifest = withElisions(
-      "groups/group_grandchild.yaml",
-      elision("elision_1", "movement", [0, 1], [8, 1]),
-      elision("elision_2", "theme", [1, 1], [2, 1], ["strip"]),
-      elision("elision_3", "recording", 1, 2),
-    );
+  /** The keys of a manifest's gaps and what they hold, as type and address. */
+  const gapsOf = (keys: readonly ElementKey[]) =>
+    keys
+      .filter(
+        (item) =>
+          item.type === "elision" ||
+          item.type === "ellipsis" ||
+          (item.type === "label" && item.inside.at(-1) === "elision"),
+      )
+      .map((item) => [item.type, item.address]);
+  const gap = (id: string) => ["elision", { id }];
+  const ellipsis = (id: string) => ["ellipsis", { id, part: ["ellipsis"] }];
+  const label = (id: string, word: string) => ["label", { id, part: [word] }];
+
+  it("are listed in the cards drawing a root whole and across the frames", () => {
+    const manifest = load("bundles/bundle_elisions_stored.yaml");
     const keys = manifestElements(manifest);
-    const strips = keys.filter((item) => item.type === "elision");
-    expect(strips.map((item) => item.address)).toEqual([{ id: "elision_2" }, { id: "elision_1" }]);
-    const strip = {
+    expect(gapsOf(keys)).toEqual([
+      // The ancestor card of `score`: `coda`'s, held inside the children band, then `score`'s.
+      gap("elision_1"),
+      ellipsis("elision_1"),
+      gap("elision_4"),
+      ellipsis("elision_4"),
+      label("elision_4", "id"),
+      gap("elision_5"),
+      label("elision_5", "name"),
+      gap("elision_6"),
+      // The gap of `group_1`'s frame carried into it, without labels.
+      gap("elision_3"),
+      ellipsis("elision_3"),
+      // The ancestor card of `session`, whose `elision-mode` the cascade reads.
+      gap("elision_7"),
+      ellipsis("elision_7"),
+      gap("elision_3"),
+      ellipsis("elision_3"),
+      // The ungrouped root `page`'s card.
+      gap("elision_2"),
+      ellipsis("elision_2"),
+      label("elision_2", "name"),
+      label("elision_2", "coordinate"),
+      // After every item, the frame's own gap of its group elision.
+      gap("elision_3"),
+      ellipsis("elision_3"),
+      label("elision_3", "coordinate"),
+    ]);
+    const score = keys.find((item) => item.address.id === "elision_4" && item.type === "elision");
+    const own = {
       type: "elision",
-      address: { id: "elision_1" },
-      timeline: "movement",
+      address: { id: "elision_4" },
+      timeline: "score",
       domain: "logical",
       modality: "continuous",
       class: "ContinuousLogicalTimeline",
       facet: null,
-      inside: ["block", "timeline", "band", "child"],
+      inside: ["block", "timeline"],
     };
-    const index = keys.findIndex((item) => item.address.id === "elision_1");
-    expect(keys[index - 1]?.address).toEqual({ id: "movement", facet: "flow_control" });
-    expect(keys.slice(index, index + 3)).toEqual([
-      strip,
-      {
-        ...strip,
-        type: "label",
-        address: { id: "elision_1", part: ["name"] },
-        inside: [...strip.inside, "elision"],
-      },
-      {
-        ...strip,
-        type: "label",
-        address: { id: "elision_1", part: ["coordinate"] },
-        inside: [...strip.inside, "elision"],
-      },
-    ]);
-    expect(keys.filter((item) => item.address.id === "elision_2")).toHaveLength(1);
+    expect(score).toEqual(own);
+    expect(
+      keys.find((item) => item.address.id === "elision_4" && item.type === "ellipsis"),
+    ).toEqual({
+      ...own,
+      type: "ellipsis",
+      address: { id: "elision_4", part: ["ellipsis"] },
+      inside: ["block", "timeline", "elision"],
+    });
+    const index = keys.indexOf(score as ElementKey);
+    expect(keys[index - 1]?.address).toEqual({ id: "score", facet: "flow_control" });
+    const recording = keys.filter((item) => item.address.id === "elision_3");
+    expect(
+      recording
+        .filter((item) => item.type === "elision")
+        .map((item) => [item.timeline, item.domain, item.modality, item.class, item.inside]),
+    ).toEqual(
+      Array(3).fill([
+        "recording",
+        "physical",
+        "continuous",
+        "ContinuousPhysicalTimeline",
+        ["block", "frame"],
+      ]),
+    );
     const ancestry = timelineAncestry(manifest);
     const matching = (select: Selector) =>
       keys.filter((item) => selectorMatches(select, item, ancestry)).map((item) => item.address);
     expect(matching({ element: "elision", within: "score" })).toEqual([
-      { id: "elision_2" },
       { id: "elision_1" },
+      { id: "elision_4" },
+      { id: "elision_5" },
+      { id: "elision_6" },
     ]);
-    expect(matching({ element: "elision", within: "recording" })).toEqual([]);
+    expect(matching({ element: "elision", inside: "frame" })).toEqual(
+      Array(3).fill({ id: "elision_3" }),
+    );
+    expect(matching({ element: "ellipsis" })).toEqual(
+      [
+        "elision_1",
+        "elision_4",
+        "elision_3",
+        "elision_7",
+        "elision_3",
+        "elision_2",
+        "elision_3",
+      ].map((id) => ({ id, part: ["ellipsis"] })),
+    );
     expect(matching({ element: "label", inside: "elision" })).toEqual([
-      { id: "elision_1", part: ["name"] },
-      { id: "elision_1", part: ["coordinate"] },
+      { id: "elision_4", part: ["id"] },
+      { id: "elision_5", part: ["name"] },
+      { id: "elision_2", part: ["name"] },
+      { id: "elision_2", part: ["coordinate"] },
+      { id: "elision_3", part: ["coordinate"] },
     ]);
+  });
+
+  it("list a shared member's group elision once in each frame", () => {
+    const keys = manifestElements(load("bundles/bundle_groupstamp_shared_member.yaml"));
+    expect(
+      keys
+        .filter((item) => item.address.id === "elision_1")
+        .map((item) => [item.type, item.inside]),
+    ).toEqual([
+      ["elision", ["block", "frame"]],
+      ["ellipsis", ["block", "frame", "elision"]],
+      ["elision", ["block", "frame"]],
+      ["ellipsis", ["block", "frame", "elision"]],
+    ]);
+    // Both after every item: the last frame's member drawings come first.
+    const lastCard = keys.findLastIndex((item) => item.type === "card");
+    const first = keys.findIndex((item) => item.type === "elision");
+    expect(first).toBeGreaterThan(lastCard);
   });
 
   it("are listed in an ungrouped root's card", () => {

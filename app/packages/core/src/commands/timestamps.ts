@@ -4,15 +4,16 @@
  * a groupstamp), the groupstamp's default and its rule, and the two
  * timestamps every new root is given, `origin` and `length`, which the
  * editor also gives every root of a manifest it imports without a
- * `graphical` object. Once made they are like any other named timestamp.
+ * `graphical` object, and which a child timeline joining a group is given
+ * as groupstamps. Once made they are like any other named timestamp.
  */
 
-import { canonicalOrder, complete } from "@timetoalign/timetoshare";
+import { canonicalOrder, complete, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { groupsHolding } from "../manifest/elements.ts";
 import { lengthOf, readOnAxis } from "../manifest/invariants.ts";
+import { groupsHolding } from "../manifest/tree.ts";
 import type {
   AxisValue,
   Manifest,
@@ -20,7 +21,7 @@ import type {
   TimelineManifest,
   TimestampDisplay,
 } from "../manifest/types.ts";
-import { toAxisValue } from "../number/coordinate.ts";
+import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
 import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import { toJson } from "../values.ts";
@@ -157,33 +158,64 @@ export function withGroupstampsOnMembers(manifest: Manifest): Manifest {
 /** What the timestamps a new root is given show: a wedge and the coordinate. */
 const DEFAULT_TIMESTAMP_DISPLAY: readonly TimestampDisplay[] = ["wedge", "coordinate"];
 
+/** What the groupstamps a child joining a group is given show: the root's two words and the line. */
+const GROUPSTAMP_DISPLAY: readonly TimestampDisplay[] = ["wedge", "coordinate", "cross_section"];
+
 /**
- * `manifest` with the default timestamps of the root `timeline`: `origin`
- * at the zero of its number type and, where its length is known, `length`
- * at its length, each showing its wedge and coordinate, each given the next
- * free `timestamp_N` of the manifest, appended to its named timestamps.
+ * `manifest` with the default timestamps of `timeline`: `origin` at the
+ * zero of its number type and, where its length is known, `length` at its
+ * length, each given the next free `timestamp_N` of the manifest and
+ * appended to its named timestamps. A new root's (`groupstamp` false) show
+ * their wedge and coordinate. A child timeline joining a group is given
+ * them as groupstamps (`groupstamp` true), which also show their line
+ * across the frame (`cross_section`); a timestamp of the timeline already
+ * named `origin` or `length` at that coordinate (compared by value) is made
+ * a groupstamp instead, `cross_section` added to its `display`, and none is
+ * added for it.
  */
-export function withDefaultTimestamps(manifest: Manifest, timeline: TimelineManifest): Manifest {
+export function withDefaultTimestamps(
+  manifest: Manifest,
+  timeline: TimelineManifest,
+  groupstamp: boolean,
+): Manifest {
   const zero = exactCoordinate(Rational.of(0n), timeline.unit, timeline.number_type);
   if (zero === undefined) throw new Error("every number type holds zero");
   const places: (readonly [string, AxisValue])[] = [["origin", toAxisValue(zero)]];
   if (timeline.length !== null) places.push(["length", timeline.length]);
+  const exact = (coordinate: AxisValue) => realOf(axisCoordinate(coordinate, timeline));
+  const timestamps = [...(manifest.graphical?.timestamps ?? [])];
   const taken = new Set(manifestIds(manifest));
-  const added = places.map(([name, coordinate]): NamedTimestamp => {
+  for (const [name, coordinate] of places) {
+    const at = exact(coordinate);
+    const named = groupstamp
+      ? timestamps.findIndex(
+          (item) =>
+            item.timeline === timeline.id &&
+            item.name === name &&
+            compareReal(exact(item.coordinate), at) === 0,
+        )
+      : -1;
+    const found = timestamps[named];
+    if (found !== undefined) {
+      const display = TIMESTAMP_DISPLAY.filter(
+        (word) => word === "cross_section" || found.display.includes(word),
+      );
+      timestamps[named] = { ...found, display, groupstamp: true };
+      continue;
+    }
     const id = nextId(TIMESTAMP_PREFIX, taken);
     taken.add(id);
-    const display = [...DEFAULT_TIMESTAMP_DISPLAY];
-    return {
+    timestamps.push({
       id,
       timeline: timeline.id,
       coordinate,
       name,
-      display,
+      display: [...(groupstamp ? GROUPSTAMP_DISPLAY : DEFAULT_TIMESTAMP_DISPLAY)],
       matchstamp: false,
-      groupstamp: false,
-    };
-  });
-  return withTimestamps(manifest, [...(manifest.graphical?.timestamps ?? []), ...added]);
+      groupstamp,
+    });
+  }
+  return withTimestamps(manifest, timestamps);
 }
 
 /**
@@ -195,5 +227,9 @@ export function withDefaultTimestamps(manifest: Manifest, timeline: TimelineMani
  */
 export function importedManifest(manifest: Manifest): Manifest {
   if (manifest.graphical !== undefined) return manifest;
-  return canonicalOrder(complete(manifest.timelines.reduce(withDefaultTimestamps, manifest)));
+  const given = manifest.timelines.reduce(
+    (result, root) => withDefaultTimestamps(result, root, false),
+    manifest,
+  );
+  return canonicalOrder(complete(given));
 }

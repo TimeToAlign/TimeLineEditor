@@ -16,29 +16,35 @@ const id = (value: string, ...part: Part[]): ElementAddress =>
   part.length === 0 ? { id: value } : { id: value, part };
 const band = (timeline: string, facet: Facet): ElementAddress => ({ id: timeline, facet });
 
-/** The marks of a member's start and end on an ancestor line, each with its label. */
-const marks = (timeline: string) => [
-  id(timeline, "start"),
-  id(timeline, "start", "label"),
-  id(timeline, "end"),
-  id(timeline, "end", "label"),
-];
-
 /**
  * The five bands of the timeline `timeline`, each followed by what it holds: its maps; the
- * wedges and coordinate labels of its named timestamps `origin` and `length`, `stamps`.
+ * wedges and coordinate labels of its named timestamps `origin` and `length`, `stamps`, each
+ * followed by its line where they are groupstamps (`lined`), then the secondary coordinates
+ * `crossing`.
  */
-const bands = (timeline: string, maps: readonly string[], stamps: readonly string[]) => [
+const bands = (
+  timeline: string,
+  maps: readonly string[],
+  stamps: readonly string[],
+  lined = false,
+  crossing: readonly ElementAddress[] = [],
+) => [
   band(timeline, "children"),
   band(timeline, "conversion_maps"),
   ...maps.map((map) => id(map)),
   band(timeline, "markers"),
-  ...stamps.flatMap((stamp) => [id(stamp), id(stamp, "coordinate")]),
+  ...stamps.flatMap((stamp) => [
+    id(stamp),
+    id(stamp, "coordinate"),
+    ...(lined ? [id(stamp, "line")] : []),
+  ]),
+  ...crossing,
   band(timeline, "regions"),
   band(timeline, "flow_control"),
 ];
 
-// The named timestamps `origin` and `length` of `excerpt` and `page`.
+// The named timestamps `origin` and `length` of `excerpt`, groupstamps (a child member's), and
+// of `page`.
 const EXCERPT = ["timestamp_3", "timestamp_4"];
 const PAGE = ["timestamp_5", "timestamp_6"];
 
@@ -46,16 +52,25 @@ const PAGE = ["timestamp_5", "timestamp_6"];
 const EXCERPT_ROW = [
   id("excerpt"),
   id("excerpt", "name"),
-  ...bands("excerpt", ["cmap_6"], EXCERPT),
+  ...bands("excerpt", ["cmap_6"], EXCERPT, true),
 ];
 
 /**
  * The secondary coordinates of `excerpt`'s `origin` and `length` on `recording`, which spans
  * them (`excerpt` lies at 44100 for 88200 samples of 441000): wedge and coordinate label each,
  * held by `recording`'s markers band in the ancestor card and by its ancestor line in `excerpt`'s
- * card, and contained where `excerpt` is, their timestamps being `excerpt`'s.
+ * card, and contained where `excerpt` is, their timestamps being `excerpt`'s. The same keys mark
+ * them on `page`, whose card in `group_2`'s frame the groupstamps cross.
  */
 const EXCERPT_ON_RECORDING = EXCERPT.flatMap((stamp) => [id(stamp), id(stamp, "coordinate")]);
+
+/** `excerpt` in its own card, then the lines of its groupstamps across `group_2`'s frame. */
+const EXCERPT_CARD = [
+  id("excerpt"),
+  id("excerpt", "name"),
+  ...bands("excerpt", ["cmap_6"], EXCERPT, true),
+];
+const EXCERPT_FRAME_LINES = EXCERPT.map((stamp) => id(stamp, "line"));
 
 describe("contains", () => {
   it("holds a group's frame, title and what its members hold, never their ancestors", () => {
@@ -67,13 +82,11 @@ describe("contains", () => {
       id("page", "card"),
       id("page"),
       id("page", "name"),
-      ...bands("page", ["cmap_4"], PAGE),
+      ...bands("page", ["cmap_4"], PAGE, false, EXCERPT_ON_RECORDING),
       id("excerpt", "card"),
-      ...marks("excerpt"),
       ...EXCERPT_ON_RECORDING,
-      id("excerpt"),
-      id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"], EXCERPT),
+      ...EXCERPT_CARD,
+      ...EXCERPT_FRAME_LINES,
     ]);
     expect(contains(mixed, "group_1", id("group_2"))).toBe(false);
     expect(contains(mixed, "group_1", id("annotations", "card"))).toBe(false);
@@ -92,14 +105,13 @@ describe("contains", () => {
       ...EXCERPT_ON_RECORDING,
       band("recording", "regions"),
       band("recording", "flow_control"),
+      ...EXCERPT_ON_RECORDING,
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
-      ...marks("excerpt"),
       ...EXCERPT_ON_RECORDING,
-      id("excerpt"),
-      id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"], EXCERPT),
+      ...EXCERPT_CARD,
+      ...EXCERPT_FRAME_LINES,
     ]);
   });
 
@@ -107,12 +119,11 @@ describe("contains", () => {
     expect(containedBy("excerpt")).toEqual([
       ...EXCERPT_ROW,
       ...EXCERPT_ON_RECORDING,
-      id("excerpt", "card"),
-      ...marks("excerpt"),
       ...EXCERPT_ON_RECORDING,
-      id("excerpt"),
-      id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"], EXCERPT),
+      id("excerpt", "card"),
+      ...EXCERPT_ON_RECORDING,
+      ...EXCERPT_CARD,
+      ...EXCERPT_FRAME_LINES,
     ]);
     expect(contains(mixed, "excerpt", id("cmap_5"))).toBe(false);
     expect(contains(mixed, "recording", id("cmap_5"))).toBe(true);

@@ -1028,6 +1028,19 @@ function elisionChange(
 
 const ELISION_SET: Setters<ElisionTarget> = {
   /**
+   * The elision's name, which its name label shows: a non-empty string;
+   * `null` deletes it, so that the label shows the name of the timeline it
+   * lies on.
+   */
+  name: (view, target, value, path, changes) => {
+    const name = value === null ? null : readName(value, path);
+    if (isCommandError(name)) return name;
+    const { elision } = target;
+    const { name: stored = null, ...unnamed } = elision;
+    const next = name === null ? unnamed : { ...elision, name };
+    return elisionChange(view, target, path, changes, stored, name, next);
+  },
+  /**
    * Where the elided stretch starts on its timeline's own axis, at or after 0
    * (`readElisionStart`); that it lies before the end is checked once the
    * change is made (`elisionProblem`).
@@ -1049,9 +1062,9 @@ const ELISION_SET: Setters<ElisionTarget> = {
     return elisionChange(view, target, path, changes, elision.end, end, { ...elision, end });
   },
   /**
-   * How wide its strip is drawn: one of the three forms (`readElisionWidth`),
-   * or `null`, which deletes the width so that the strip takes its card's
-   * default proportion.
+   * How wide its gap is drawn: one of the three forms (`readElisionWidth`),
+   * or `null`, which deletes the width so that the gap takes the standard
+   * width.
    */
   width: (view, target, value, path, changes) => {
     const { at, elision } = target;

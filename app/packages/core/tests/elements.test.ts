@@ -7,11 +7,11 @@ import {
   cardStamps,
   manifestElements,
   selectorMatches,
-  timelineAncestry,
   timelineClass,
   unitDomain,
 } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
+import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import { Rational } from "../src/number/rational.ts";
 import type { Real } from "../src/number/real.ts";

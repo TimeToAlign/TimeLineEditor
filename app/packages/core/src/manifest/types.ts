@@ -125,12 +125,12 @@ export type AnchorDisplay = AlignmentAnchor["display"][number];
 export type TimestampDisplay = NamedTimestamp["display"][number];
 
 /**
- * An elision of a manifest, `{id, timeline, start, end, width?, display}`:
- * a stretch of the timeline it names, its `start` and `end` (and a `width`'s
- * `span`) bare values on that timeline's own axis as the reader returns
- * them, its `display` always stated, in the schema package's canonical
- * order (`ELISION_DISPLAY`). It is carried through unchanged and drawn as
- * nothing.
+ * An elision of a manifest, `{id, timeline, start, end, name?, width?,
+ * display}`: a stretch of the timeline it names, its `start` and `end` (and
+ * a `width`'s `span`) bare values on that timeline's own axis as the reader
+ * returns them, its `display` always stated, in the schema package's
+ * canonical order (`ELISION_DISPLAY`). It is carried through unchanged; the
+ * drawing leaves its stretch out (`docs/drawing.md` sections 2 and 8.9).
  */
 export type Elision = ReadonlyView<CompleteElision>;
 

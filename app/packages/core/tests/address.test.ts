@@ -14,9 +14,9 @@ import {
 } from "../src/manifest/address.ts";
 import { containersOf } from "../src/manifest/containers.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
-import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
+import { manifestElements } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
-import type { TimelineManifest } from "../src/manifest/types.ts";
+import { timelineAncestry } from "../src/manifest/tree.ts";
 import type { Address, ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
 import {
   addressWords,
@@ -161,6 +161,7 @@ describe("the shape of an address", () => {
       "id",
       "coordinate",
       "elision",
+      "ellipsis",
     ]);
   });
 
@@ -288,15 +289,11 @@ describe("resolving an address", () => {
       ["part", "label", ["entry", "annotations", "region", 0, "region_1"]],
     ],
     [
-      inA({ id: "excerpt", part: ["end"] }),
-      ["part", "end", ["timeline", "excerpt", [{ item: "group_2", member: "excerpt" }]]],
-    ],
-    [
-      inA({ id: "excerpt", part: ["end", "label"] }),
+      inA({ id: "recording", part: ["elision", "coordinate"] }),
       [
         "part",
-        "label",
-        ["part", "end", ["timeline", "excerpt", [{ item: "group_2", member: "excerpt" }]]],
+        "coordinate",
+        ["part", "elision", ["timeline", "recording", [{ item: "group_2", member: "recording" }]]],
       ],
     ],
     [
@@ -343,7 +340,7 @@ describe("resolving an address", () => {
   });
 
   it("carries the block of its manifest at every level", () => {
-    const found = resolveAddress(view, inA({ id: "excerpt", part: ["end", "label"] }));
+    const found = resolveAddress(view, inA({ id: "recording", part: ["elision", "coordinate"] }));
     expect(found).toMatchObject({ block: block(view, A), owner: { block: block(view, A) } });
   });
 
@@ -388,6 +385,8 @@ describe("resolving an address", () => {
       inA({ id: "recording", part: ["end", "label"] }),
       "the label of the end of timeline 'Recording' in bundle 'Mixed'",
     ],
+    // No mark of a member's start or end is drawn on its ancestor lines.
+    [inA({ id: "excerpt", part: ["end"] }), "the end of timeline 'Excerpt' in bundle 'Mixed'"],
     [inA({ id: "score", part: ["label"] }), "the label of timeline 'Score' in bundle 'Mixed'"],
     [inA({ id: "region_1", part: ["name"] }), "the name of region 'Verse' in bundle 'Mixed'"],
     [
@@ -549,6 +548,7 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
     case "label":
     case "boundary":
     case "cross_section":
+    case "ellipsis":
       return "part";
     case "alignment_anchor":
       return "anchor";
@@ -601,26 +601,18 @@ describe("every resolvable part", () => {
       );
       const defaulted = (address: ElementAddress) => address.part?.[0] === "elision";
       expect(new Set(resolvable.filter((item) => !defaulted(item)).map(addressKey))).toEqual(drawn);
-      // The default elisions: an ancestor card may draw them on its root and on the children of
-      // its member's ancestors above the member's parent, unless a stored elision lies on a
-      // timeline of its root's tree (section 8.9), which then draws none.
-      const stored = new Set((manifest.graphical?.elisions ?? []).map(({ timeline }) => timeline));
-      const treeOf = (timeline: TimelineManifest): string[] => [
-        timeline.id,
-        ...timeline.children.flatMap(treeOf),
-      ];
-      const carrying = memberDrawings(manifest).ancestorCards.flatMap(({ member, root }) =>
-        treeOf(root.timeline).some((id) => stored.has(id))
-          ? []
-          : [
-              root.timeline.id,
-              ...member.ancestors
-                .slice(0, -1)
-                .flatMap(({ timeline }) => timeline.children.map((child) => child.id)),
-            ],
-      );
+      // The derived elisions: an ancestor card may derive them on its root and on the children
+      // of its member's ancestors above the member's parent (section 8.9), whatever is stored,
+      // since a rule may state `elision-mode: proportional`; a derived elision has no ID label.
+      const carrying = memberDrawings(manifest).ancestorCards.flatMap(({ member, root }) => [
+        root.timeline.id,
+        ...member.ancestors
+          .slice(0, -1)
+          .flatMap(({ timeline }) => timeline.children.map((child) => child.id)),
+      ]);
       const words: readonly (readonly Part[])[] = [
         ["elision"],
+        ["elision", "ellipsis"],
         ["elision", "name"],
         ["elision", "coordinate"],
       ];

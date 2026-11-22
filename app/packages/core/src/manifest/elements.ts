@@ -22,13 +22,14 @@ import {
   sameAddress,
   TITLE_ADDRESS,
 } from "./address.ts";
-import { ELISION_LABELS, elisionsOn } from "./elisions.ts";
+import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
-import { findTimeline } from "./tree.ts";
+import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
   ConversionMap,
+  Elision,
   Manifest,
   NamedTimestamp,
   TimelineManifest,
@@ -244,39 +245,6 @@ export function namedTimestamps(manifest: Manifest, timeline: string): readonly 
 }
 
 /**
- * Every timeline id mapped to the ids from its root down to it, for every
- * root of the manifest; the length of the list is the timeline's depth.
- */
-export function timelineAncestry(manifest: Manifest): Map<string, readonly string[]> {
-  const ancestry = new Map<string, readonly string[]>();
-  const collect = (timeline: TimelineManifest, path: readonly string[]) => {
-    const own = [...path, timeline.id];
-    ancestry.set(timeline.id, own);
-    for (const child of timeline.children) collect(child, own);
-  };
-  for (const root of manifest.timelines) collect(root, []);
-  return ancestry;
-}
-
-/**
- * The groups of `manifest` having the timeline `timeline` as a member, in
- * the order of `groups`: those whose `members` list it or one of its
- * ancestors, since a member's descendants are drawn inside the member's
- * card in the group's frame. An ancestor of a listed member is in none of
- * them; a timeline the manifest does not hold is in none. `ancestry` is
- * the manifest's `timelineAncestry`, given where the caller holds it.
- */
-export function groupsHolding(
-  manifest: Manifest,
-  timeline: string,
-  ancestry: ReadonlyMap<string, readonly string[]> = timelineAncestry(manifest),
-): Manifest["groups"] {
-  const lineage = ancestry.get(timeline);
-  if (lineage === undefined) return [];
-  return manifest.groups.filter((group) => lineage.some((id) => group.members.includes(id)));
-}
-
-/**
  * Whether an element matches every member present in a selector:
  * `addresses` by whole address, `class` a timeline's class or a map's type,
  * `facet` a band's facet, `coordinates` a named timestamp's wedge or label of
@@ -314,10 +282,39 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
 }
 
 /**
+ * The gap of the stored elision `elision` lying on `timeline`, held by
+ * `holder` (section 2.1), and what the gap holds: one `ellipsis` key at `{id:
+ * E, part: ["ellipsis"]}` where its `display` lists `ellipsis`, standing for
+ * its ellipses on every row that crosses it, which share that key; then,
+ * where `labels` holds, the labels its `display` lists, `{id: E, part:
+ * [word]}` in the order of `ELISION_LABELS`.
+ */
+function gapElements(
+  elision: Elision,
+  timeline: TimelineManifest,
+  holder: ElementKey,
+  keys: ElementKey[],
+  labels: boolean,
+): void {
+  const at = idAddress(elision.id);
+  const gap = elementKey("elision", at, timeline, holder);
+  keys.push(gap);
+  const { display } = elision;
+  if (display.includes("ellipsis")) {
+    keys.push(elementKey("ellipsis", partAddress(at, "ellipsis"), timeline, gap));
+  }
+  if (!labels) return;
+  for (const word of ELISION_LABELS) {
+    if (display.includes(word)) {
+      keys.push(elementKey("label", partAddress(at, word), timeline, gap));
+    }
+  }
+}
+
+/**
  * The elements of one member drawing (section 8.1) held by `holder`, the
  * block or a group's frame: its card, of type `card` (an `ancestor_card` for
- * a root drawn behind a frame, section 8.8); its ancestor lines, each with its name
- * and its marks of the member's start and end, each mark with its label,
+ * a root drawn behind a frame, section 8.8); its ancestor lines, each with its name,
  * then the ancestor's own named timestamps within the member's span, of
  * each what its `display` lists as in a markers band (below), its
  * cross-section line held by the ancestor line, then the secondary
@@ -340,13 +337,14 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * primary or a secondary one; the regions band its
  * regions, and the flow control band its flow markers, then its jump origins,
  * each with its label (a jump target draws nothing of its own). In a card
- * drawing a timeline whole outside a frame (`elides`: an ungrouped root's
- * card or an ancestor card, section 8.9), each timeline's line (or node)
- * then holds, after its five bands, the stored elisions lying on it in
- * canonical order whose `display` lists `strip`: its strip `{id: E}`, of
- * type `elision`, holding its labels `{id: E, part: [word]}` in the order of
- * `ELISION_LABELS` that its `display` lists; a member's card in a frame
- * draws none.
+ * drawing a root whole (`elides`: an ungrouped root's card or an ancestor
+ * card, section 8.9), each timeline's line (or node) then holds, after its
+ * five bands, the gaps of the stored card elisions lying on it
+ * (`elisionsUnder` the root) in canonical order, each `{id: E}` of type
+ * `elision` with its ellipses and labels (`gapElements`), whatever the
+ * card's `elision-mode`, which the cascade decides as it decides `display`;
+ * a member's card in a frame draws none, nor does any card draw a group
+ * elision on a timeline of its own (`manifestElements` lists those).
  */
 function memberElements(
   manifest: Manifest,
@@ -361,6 +359,7 @@ function memberElements(
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
+  const cardElisions = elides ? new Set(elisionsUnder(manifest, root.id)) : undefined;
   // The wedge and the labels its `display` lists of a coordinate of `timestamp` on `timeline`,
   // held by `band` (a markers band or an ancestor line); no `coordinate` label where the
   // coordinate has no value (a secondary coordinate of the frame, section 6.6).
@@ -391,10 +390,6 @@ function memberElements(
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", idAddress(timeline.id), timeline, line);
     keys.push(ancestor, textKey(ancestor, "name"));
-    for (const end of ["start", "end"] as const) {
-      const mark = elementKey("wedge", partAddress(idAddress(root.id), end), root, ancestor);
-      keys.push(mark, textKey(mark, "label"));
-    }
     // The timestamps of the ancestor within the member's span, drawn on its line (section 8.3).
     for (const { timestamp, source } of drawn.stamps) {
       if (source !== "ancestor" || timestamp.timeline !== timeline.id) continue;
@@ -472,16 +467,9 @@ function memberElements(
       keys.push(band);
       held[facet](band);
     }
-    if (!elides) return;
-    for (const { id, display } of elisionsOn(manifest, timeline.id)) {
-      if (!display.includes("strip")) continue;
-      const strip = elementKey("elision", idAddress(id), timeline, key);
-      keys.push(strip);
-      for (const word of ELISION_LABELS) {
-        if (display.includes(word)) {
-          keys.push(elementKey("label", partAddress(idAddress(id), word), timeline, strip));
-        }
-      }
+    if (cardElisions === undefined) return;
+    for (const elision of elisionsOn(manifest, timeline.id)) {
+      if (cardElisions.has(elision)) gapElements(elision, timeline, key, keys, true);
     }
   };
   keys.push(line, textKey(line, "name"));
@@ -494,12 +482,18 @@ function memberElements(
  * or a `name`), addressed `{part: ["name"]}`; the ancestor cards behind the
  * frames (section 8.8), each an `ancestor_card` at `{id: R, part: ["card"]}`
  * followed by the member drawing of its root `R`, all held by the block,
- * whether a rule displays them or not; each group's frame, its title
+ * whether a rule displays them or not, each followed by the gaps carried
+ * into it from the frame `G` it stands behind (section 8.9), one per group
+ * elision of `G` (`groupElisions`) in canonical order, each with its
+ * ellipses and no label, keyed as the frame's own gap of it (held by the
+ * frame), whose cascaded values it takes; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
  * frame; the cards of the ancestor cards and of those roots holding the
- * stored elisions of their timelines (`memberElements`), which no member's
- * card in a frame holds, so a stored elision lying only on timelines drawn
- * in member cards is listed nowhere; then, after every item, the lines of the groupstamps across their
+ * gaps of the stored card elisions of their timelines (`memberElements`);
+ * then, after every item, the gaps of the frames' group elisions, frame by
+ * frame in drawing order and each frame's in canonical order, each `{id:
+ * E}` of type `elision` held by the frame with its ellipses and its labels
+ * (`gapElements`), belonging to the elision's timeline; then the lines of the groupstamps across their
  * groups' frames (section 6.6), so that every drawn line has an address:
  * timestamp by timestamp in the order of `graphical.timestamps`, for each
  * groupstamp whose `display` lists `cross_section`, one `cross_section` at
@@ -513,8 +507,9 @@ function memberElements(
  * MatchStamp's name at it, a `label` addressed `{id: A, part: ["name"]}`
  * that the line holds. A timeline drawn more than once, as an ancestor
  * line and as a line of its own, or as a member of several groups, is
- * listed at each drawing with the same address, cards included, and so are
- * the marks of a member's start and end on each of its ancestor lines.
+ * listed at each drawing with the same address, cards included; so is an
+ * elision drawn in several cards or frames. The elisions a card derives
+ * (section 8.9) depend on the drawing's geometry and are listed nowhere.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);
@@ -523,19 +518,28 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     keys.push(unownedKey("name", TITLE_ADDRESS, BLOCK_KEY));
   }
   const { frames, ungrouped, ancestorCards } = memberDrawings(ordered);
-  for (const { root } of ancestorCards) {
+  const frameOf = (group: string) => unownedKey("frame", idAddress(group), BLOCK_KEY);
+  // The gaps of the group elisions of `group`, held by its frame `frame`, labelled or not.
+  const groupGaps = (group: string, frame: ElementKey, labels: boolean) => {
+    for (const elision of groupElisions(ordered, group)) {
+      const timeline = findTimeline(ordered, elision.timeline);
+      if (timeline !== undefined) gapElements(elision, timeline, frame, keys, labels);
+    }
+  };
+  for (const { group, root } of ancestorCards) {
     memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card", null, true);
+    groupGaps(group.id, frameOf(group.id), false);
   }
   const drawnFrames = frames.map((drawn) => {
     const { group, members } = drawn;
-    const address = idAddress(group.id);
-    const frame = unownedKey("frame", address, BLOCK_KEY);
-    keys.push(frame, unownedKey("name", partAddress(address, "name"), frame));
+    const frame = frameOf(group.id);
+    keys.push(frame, unownedKey("name", partAddress(idAddress(group.id), "name"), frame));
     for (const member of members) memberElements(ordered, member, frame, keys, "card", drawn);
     return { group, frame };
   });
   for (const member of ungrouped)
     memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true);
+  for (const { group, frame } of drawnFrames) groupGaps(group.id, frame, true);
   const ancestry = timelineAncestry(ordered);
   for (const timestamp of ordered.graphical?.timestamps ?? []) {
     if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;

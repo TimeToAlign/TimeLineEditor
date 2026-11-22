@@ -18,7 +18,14 @@ import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
 import { compareReal, realOf } from "../number/real.ts";
-import { readFinite, readObject, readPositive, toJson, unknownMember } from "../values.ts";
+import {
+  readFinite,
+  readName,
+  readObject,
+  readPositive,
+  toJson,
+  unknownMember,
+} from "../values.ts";
 import { readDisplay } from "./timestamps.ts";
 
 /** The width of an elision as stored: exactly one of its three forms. */
@@ -161,16 +168,18 @@ export function readElisionWidth(
 const ELISION_REQUIRED = ["start", "end"];
 
 /** Every member an elision given to `add` into a timeline may have. */
-const ELISION_VALUE = [...ELISION_REQUIRED, "width", "display"];
+const ELISION_VALUE = [...ELISION_REQUIRED, "name", "width", "display"];
 
 /**
  * An elision given to `add`, lying on `timeline` and given the ID `id`:
- * `{start, end, width?, display?}` at `path`, start and end required
- * (`invalid_value`), no other member (`unknown_property`), its start and end read (`readElisionStart`,
- * `readElisionEnd`) and its stretch checked (`stretchProblem` at `end`),
- * its width read by `readElisionWidth` and left out where it is not given,
- * its display read by `readDisplay` over `ELISION_DISPLAY`, the schema's
- * default where it is not given.
+ * `{start, end, name?, width?, display?}` at `path`, start and end
+ * required (`invalid_value`), no other member (`unknown_property`), its
+ * start and end read (`readElisionStart`, `readElisionEnd`) and its stretch
+ * checked (`stretchProblem` at `end`), its name a non-empty string
+ * (`invalid_value`) and its width read by `readElisionWidth`, each left out
+ * where it is not given, its display read by `readDisplay` over
+ * `ELISION_DISPLAY`, the schema's default (`["ellipsis"]`) where it is not
+ * given.
  */
 export function readElision(
   object: JsonObject,
@@ -191,6 +200,8 @@ export function readElision(
   if (isCommandError(end)) return end;
   const refused = stretchProblem({ id, start, end }, timeline, [...path, "end"]);
   if (refused !== undefined) return refused;
+  const name = object.name === undefined ? undefined : readName(object.name, [...path, "name"]);
+  if (isCommandError(name)) return name;
   const width =
     object.width === undefined
       ? undefined
@@ -206,6 +217,7 @@ export function readElision(
     timeline: timeline.id,
     start,
     end,
+    ...(name === undefined ? {} : { name }),
     ...(width === undefined ? {} : { width }),
     display,
   };

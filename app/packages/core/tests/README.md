@@ -350,7 +350,10 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     is `invalid_value` "9007199254740993 has no exact double" at its member.
     The nine `rotation`s of `timestamp_wedge_rotation.yaml` (90, −135, −45,
     0, 45, 135, 180, −45, 45, in rule order) read as doubles, and spelled
-    `90.0`, `-135.0`, … read equal to the fixture and save to its text.
+    `90.0`, `-135.0`, … read equal to the fixture and save to its text. A
+    card rule's `elision-proportion` `1.0` reads as the double 1, `0.05` as
+    0.05, and the word `auto` as itself, the rule's other elision
+    properties unchanged.
 18. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
 19. **Elisions are carried through unchanged.** Core holds what the
@@ -358,13 +361,14 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `bare`, 8 quarters, fraction) given `graphical.elisions` holding
     `{id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1], width:
     {ratio: 0.25}}` (no `display`) reads with exactly that elision plus the
-    default `display: ["strip", "name", "coordinate"]`, the values kept as
+    default `display: ["ellipsis"]`, the values kept as
     the Fraction pairs they are; the complete form written by
     `saveManifest` reads back equal. Added as a block, renamed by a `set`
     of the root's `name`, the block's manifest still holds the same
     elision, and core's element list (`manifestElements`) names one element
-    of type `elision`, at `{id: "elision_1"}` (the root's card draws it;
-    "Elisions", item 8).
+    of type `elision`, at `{id: "elision_1"}`, and one of type `ellipsis`,
+    at `{id: "elision_1", part: ["ellipsis"]}` (the root's card draws it;
+    "Elisions", item 9).
 
 ## A manifest file written back as it came (`manifest-file.test.ts`)
 
@@ -838,8 +842,7 @@ check of who holds what.
     "primary"}` exactly when it is a `wedge` at `{id: X}` or a `label` at
     `{id: X, part: [name|id|coordinate]}`, `X` a named timestamp's ID, and
     it belongs to `X`'s timeline, and `{coordinates: "secondary"}` exactly
-    when it is such a key on another timeline; so a cross-section line, a
-    member's start or end mark on an ancestor line and its label, an
+    when it is such a key on another timeline; so a cross-section line, an
     alignment anchor and its label, and every key of no named timestamp
     match neither; both selectors match at least one key of some fixture
     each, so neither side is vacuous. Combined with `element`, `{element:
@@ -1042,7 +1045,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
    ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
    `block`, and refuses a band's address as its owner at the type level (a
-   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, the schema's order.
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, `ellipsis`, the schema's order.
    `inBlock(A, element)` puts an element address into block `A`,
    `elementAddressOf` takes the block off again (`{}` for a block), and
    `isElementAddress` holds for an address stating `id`, `facet` or `part`
@@ -1079,8 +1082,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    facet: "regions"}` with the card holding it, an entry of each list by its
    ID alone (`region_2`, index 1 of `annotations`' regions; `cmap_6`, the
    map of the child `excerpt`; `jump_from_1`), and parts nested two deep
-   (`{id: "excerpt", part: ["end", "label"]}`, the label of the mark of
-   `excerpt`'s end on its ancestor line `recording`). Each part carries its owner,
+   (`{id: "recording", part: ["elision", "coordinate"]}`, the coordinate
+   label of an elision the ancestor card of `recording` may derive on its
+   root, section 8.9). Each part carries its owner,
    and every level its block. The manifest's own ID names nothing: on a
    manifest with the id `takes`, `{block: A, id: "takes"}` is
    `unknown_target`, message `'takes' in bundle 'Mixed' names nothing` at
@@ -1100,7 +1104,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    block): a title exists only for a named manifest, and every part nothing
    draws (drawing.md §2.2): the start and end of `recording`, drawn only as
    an ancestor line (`{id: "recording", part: ["start"]}`, `["end",
-   "label"]`; no line marks its own start or end), a label of a timeline that is no segment (`{id: "score",
+   "label"]`; no line marks its own start or end), and of the child member
+   `excerpt` (`{id: "excerpt", part: ["end"]}`: no mark of a member's start
+   or end is drawn on its ancestor lines), a label of a timeline that is no segment (`{id: "score",
    part: ["label"]}`), the name of a region and of a jump origin, and a
    map's label and name. A malformed address is
    `invalid_address` at `[address]` with the reader's message (`{block:
@@ -1120,8 +1126,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    drawn in no card but an ancestor card, which has no container and
    resolves to nothing, a frame a frame, a map, region, flow marker or jump
    origin an entry, a label, wedge or boundary a part, the title the title,
-   an alignment anchor's line its anchor, a stored elision's strip its
-   elision, every other line a timeline;
+   an alignment anchor's line its anchor, a stored elision's gap its
+   elision (in a card, across a frame and carried into an ancestor card
+   alike), its ellipses and labels a part, every other line a timeline;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -1130,16 +1137,16 @@ string form is `addressKey`, and nothing splits or composes an ID.
    built from no ID or one of `manifestIds` with a part of one or two part
    words that `resolveElement` resolves is exactly, as a set of
    `addressKey`s, the addresses with a part of the drawing's elements
-   (`indexOf(manifest).elements`), but the default elisions' addresses
+   (`indexOf(manifest).elements`), but the derived elisions' addresses
    (`part` beginning with `elision`), which the drawing derives from the
    view and core's elements do not list: those are exactly `{id: T, part:
-   ["elision"]}`, `["elision", "name"]` and `["elision", "coordinate"]`
-   for every `T` the drawing specification lets an ancestor card draw one
-   on (section 8.9: the card's root and the children of its member's
-   ancestors above the member's parent, none at all for a card whose
-   root's tree holds a stored elision, as in
-   `bundles/bundle_elisions_stored.yaml`, where `score`'s and `session`'s
-   cards draw no default). The
+   ["elision"]}`, `["elision", "ellipsis"]`, `["elision", "name"]` and
+   `["elision", "coordinate"]` (a derived elision has no ID, so no `id`
+   label) for every `T` the drawing specification lets an ancestor card
+   derive one on under some `elision-mode` (section 8.9: the card's root
+   and the children of its member's ancestors above the member's parent,
+   whatever elisions are stored, since a rule stating `proportional`
+   derives them beside stored ones and core reads no cascade). The
    candidates are built without the resolver, so a part the resolver names
    that nothing draws fails here.
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
@@ -1674,48 +1681,52 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    line `timeline` `{id: "piece"}` (`[block]`), its name, its children band
    holding `second-half` as a `child` row with its name and five bands
    (`[block, timeline, band]` for the row, `[…, band, child]` for its
-   bands), the markers band of the row holding `timestamp_3` and
-   `timestamp_4`, then `piece`'s four other bands; then the frame `{id:
+   bands), the markers band of the row holding the wedges and coordinate
+   labels of `timestamp_3` and `timestamp_4`, each followed by its line `{id:
+   X, part: ["line"]}` held by the row itself (both are groupstamps, the
+   `origin` and `length` a child member is given, so each draws its
+   `cross_section`), then `piece`'s four other bands; then the frame `{id:
    "group_1"}` (type `frame`, chain `[block]`) and its title `{id:
    "group_1", part: ["name"]}` (`[block, frame]`), both belonging to no
    timeline, so timeline, domain, modality, class and facet are null; then
    each member in display order, `second-half` first: its card `{id:
    "second-half", part: ["card"]}` (`[block, frame]`), its ancestor line
    `piece` (type `ancestor`, `[block, frame, timeline]`) with its name and
-   the member's two marks `{id: "second-half", part: ["start"]}` and
-   `["end"]` (`[block, frame, timeline, ancestor]`), each followed by its
-   label (`[…, ancestor, wedge]`); then the member's own line as a root's:
-   `timeline` `{id: "second-half"}` (`[block, frame]`), its name and its
-   five bands (`[block, frame, timeline]`), the markers band holding the
-   wedges and coordinate labels of its named timestamps `origin` and
-   `length` (`timestamp_3`, `timestamp_4`; both `[…, timeline, band]`);
-   then `recording` the same way without ancestors (`timestamp_1`,
-   `timestamp_2`). A timeline's
+   no mark of the member's start or end (drawing.md §8.3 draws none); then
+   the member's own line as a root's: `timeline` `{id: "second-half"}`
+   (`[block, frame]`), its name and its five bands (`[block, frame,
+   timeline]`), the markers band holding the wedges and coordinate labels
+   of its named timestamps `origin` and `length` (`timestamp_3`,
+   `timestamp_4`; both `[…, timeline, band]`), each followed by its line
+   (`[…, timeline]`); then `recording` the same way without ancestors
+   (`timestamp_1`, `timestamp_2`), its markers band also holding the
+   secondary coordinates of the groupstamps `timestamp_3` and
+   `timestamp_4`, which cross its card; last, after every item, the lines
+   of `timestamp_3` and `timestamp_4` across the frame, held by it
+   (`[block, frame]`) and belonging to `second-half`. A timeline's
    keys carry its domain, modality and class (`second-half` and `piece`
    logical, continuous, `ContinuousLogicalTimeline`; `recording` physical,
    continuous, `ContinuousPhysicalTimeline`), a band its timeline, null
    domain, modality and class, and its facet. So an ancestor line holds no
-   band, a member that is a child in `timelines` is a `timeline` element in
-   its drawing whose bands are held by no band, and the mark addresses and
-   their labels lie on the ancestor line alone. `{within: "piece"}` matches
-   exactly the card of `second-half`, the `piece` ancestor, its name, the
-   four mark keys on it and every element of the line `second-half`, its
-   timestamps' included (eighteen keys), after every key of the ancestor
-   card's nineteen; four of each list are the secondary coordinates of
-   `origin` and `length` (`timestamp_3` 0 and `timestamp_4` 8 on
-   `second-half`, 8 and 16 on `piece`, which spans 0 to 16) on `piece`,
-   each a wedge and a coordinate label, held by `piece`'s markers band in
-   the ancestor card and by the ancestor line in the member card (forty-five
-   keys in all);
-   `{element: "frame"}` only the frame; `{element: "card"}` exactly the
-   cards of `second-half` and `recording`, `{element: "ancestor_card"}`
-   exactly the card of `piece`; `{inside: "ancestor"}` exactly the name of `piece`, the
-   four mark keys on the ancestor line and the four keys of the secondary
-   coordinates on it; `{element: "wedge", inside:
-   "ancestor"}` the two marks, then the wedges of `timestamp_3` and
-   `timestamp_4`; `{element: "name", inside: "ancestor"}` only
-   the name of `piece`; `{inside: "frame"}` every key after the frame and
-   its title's holder, the frame itself excepted.
+   band, and a member that is a child in `timelines` is a `timeline`
+   element in its drawing whose bands are held by no band. `{within:
+   "piece"}` matches exactly the card of `second-half`, the `piece`
+   ancestor, its name and every element of the line `second-half`, its
+   timestamps' included, and their two lines across the frame (twenty-two
+   keys), after every key of the ancestor card's twenty-five; four of each
+   list are the secondary coordinates of `origin` and `length`
+   (`timestamp_3` 0 and `timestamp_4` 8 on `second-half`, 8 and 16 on
+   `piece`, which spans 0 to 16) on `piece`, each a wedge and a coordinate
+   label, held by `piece`'s markers band in the ancestor card and by the
+   ancestor line in the member card (forty-seven keys in all); `{element:
+   "frame"}` only the frame; `{element: "card"}` exactly the cards of
+   `second-half` and `recording`, `{element: "ancestor_card"}` exactly the
+   card of `piece`; `{inside: "ancestor"}` exactly the name of `piece` and
+   the four keys of the secondary coordinates on it; `{element: "wedge",
+   inside: "ancestor"}` the wedges of `timestamp_3` and `timestamp_4`;
+   `{element: "name", inside: "ancestor"}` only the name of `piece`;
+   `{inside: "frame"}` every key after the frame and its title's holder,
+   the frame itself excepted.
 4. **Elements of a named manifest with two groups.** The addresses of
    `bundle_mixed.yaml`'s enumeration are written out whole: the block `{}`;
    the title `{part: ["name"]}` (whether the manifest is named, as here, or
@@ -1725,8 +1736,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    band holding `cmap_5`); per frame in group order the frame, its title and its
    members' cards in display order (`group_1`: `score`, `performance`;
    `group_2`: `page`, `excerpt`), each card followed by the member's
-   ancestor lines (for `excerpt`, `{id: "recording"}`, its name and the
-   marks of `excerpt`'s start and end with their labels) and its line with
+   ancestor lines (for `excerpt`, `{id: "recording"}` and its name, no
+   mark of `excerpt`'s start or end) and its line with
    its name and five bands, the bands holding its maps (`cmap_1`, `cmap_2`
    in `score`'s; `cmap_3` in `performance`'s; `cmap_4` in `page`'s;
    `cmap_6` in `excerpt`'s), the wedges and coordinate labels of its
@@ -1735,11 +1746,15 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    on `recording`, in the ancestor card's markers band and on `excerpt`'s
    ancestor line, the secondary coordinates of `excerpt`'s `timestamp_3`
    and `timestamp_4` (`excerpt` lies at 44100 for 88200 samples of
-   441000: both within), and its jump with
+   441000: both within), which are groupstamps, so each is followed by its
+   line on `excerpt` (in the ancestor card's row and in its member card)
+   and they cross `page`'s card in `group_2`'s frame, secondary
+   coordinates in its markers band after its own, and its jump with
    its label (`{id: "jump_from_1"}`, `{id: "jump_from_1", part:
    ["label"]}`); then the ungrouped root `annotations` with its card, name
    and five bands, the regions band holding `region_1`, its label,
-   `region_2`, its label. Nothing of `recording`'s own is drawn on an
+   `region_2`, its label; last the lines of `timestamp_3` and
+   `timestamp_4` across `group_2`'s frame. Nothing of `recording`'s own is drawn on an
    ancestor line (its map `cmap_5` is drawn only in the ancestor card,
    drawing.md §8.3); the first key at `{id: "recording"}` is the ancestor
    card's `timeline`, the second the ancestor line. A line's
@@ -2373,7 +2388,8 @@ three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
 
 **Default timestamps.** A root a command adds, and every root of a
 manifest the editor imports without a `graphical` object, are given two
-timestamps, `origin` at the zero of the root's number type and `length` at
+timestamps (a child joining a group is given them as groupstamps, item
+25), `origin` at the zero of the root's number type and `length` at
 its length when the length is known, each with `display: ["wedge",
 "coordinate"]`, its ID the next free `timestamp_N`. What proves it: the
 exact timestamps, per number type and with an unknown length; their
@@ -2505,18 +2521,45 @@ complete form).
     listed member. `groupsHolding` gives the groups themselves: `group_1`
     for `motif` and for `second-half`, none for `piece` and for an ID no
     timeline carries.
+25. A child joining a group is given its `origin` and `length` as
+    groupstamps (drawing.md §6.6 draws their lines across the frame, so
+    the frame marks the member's start and end): on `nested.yaml` (`clt_1`
+    16 quarters ⊃ `clt_3` 8 at 4 ⊃ `clt_2` 2 at 3/2; `clt_1`'s
+    `timestamp_1`, `timestamp_2`), `add {into: clt_2, timestamp: {name:
+    "origin", coordinate: [0, 1], display: ["wedge"]}}` gives
+    `timestamp_3`; then `add {into: {block: A}, group: {id: "group_1",
+    members: ["clt_3"]}}` adds exactly `{id: "timestamp_4", timeline:
+    "clt_3", coordinate: [0, 1], name: "origin", display: ["wedge",
+    "coordinate", "cross_section"], matchstamp: false, groupstamp: true}`
+    and `{id: "timestamp_5", …, coordinate: [8, 1], name: "length", …}`,
+    in one journal entry, which one `undo` takes back whole. An empty
+    group `group_2` added, `set {clt_2: {groups: ["group_2"]}}` makes
+    `timestamp_3`, already named `origin` at `clt_2`'s zero, a groupstamp
+    with `display: ["wedge", "cross_section"]` and adds only `length`,
+    `timestamp_6` at `[2, 1]`. Removing `timestamp_4`, then `set {clt_3:
+    {name: "Inner"}}` gives it no new `origin`: only joining gives them. A
+    root joining a group is given nothing: on
+    `groups/group_grandchild.yaml`, `add` of `group_2` with the member
+    `recording` (already a member of `group_1`) leaves the timestamps as
+    they were.
 
 ## Elisions (`elisions.test.ts`)
 
-An elision is `{id, timeline, start, end, width?, display}` in its
+An elision is `{id, timeline, start, end, name?, width?, display}` in its
 manifest's `graphical.elisions`: a stretch of one timeline's own axis, the
-timeline it lies on, with an ID unique across the manifest. TimeToShare's
-validators refuse one naming no timeline (`elision_timeline`) and one whose
-stretch leaves its timeline or does not run forwards (`elision_stretch`);
-core must refuse what it is given with those codes and TimeToShare's
-messages itself, so a command never reaches the schema check at settle with
-a broken elision (a `schema_violation` there would mean core let it
-through). What proves each part:
+timeline it lies on, with an ID unique across the manifest, its `display`
+words `ellipsis`, `name`, `id`, `coordinate`, `continuation` (default
+`[ellipsis]`). TimeToShare's validators refuse one naming no timeline
+(`elision_timeline`) and one whose stretch leaves its timeline or does not
+run forwards (`elision_stretch`); core must refuse what it is given with
+those codes and TimeToShare's messages itself, so a command never reaches
+the schema check at settle with a broken elision (a `schema_violation`
+there would mean core let it through). An elision on a timeline that lies
+in a group (the timeline or an ancestor is a member, the groupstamp's
+rule) is a **group elision** of each such group, drawn across its frame
+and carried into the ancestor cards behind it; every other one is a
+**card elision** of its root's cards (drawing.md section 8.9). What proves
+each part:
 
 - **Commands** are proven by the outcome of each command: the exact
   `graphical.elisions` a command leaves (complete, in canonical order: by
@@ -2525,26 +2568,41 @@ through). What proves each part:
   `[<address key of into>, "elision", …]`, a `set` at `[<address key of the
   elision>, <property>]`, a length at `[<address key of the timeline>,
   "length"]`.
+- **Card and group elisions** are proven by `elisionsUnder` and
+  `groupElisions` over manifests whose elisions lie on each kind of
+  timeline (an ungrouped root, an ancestor's child in no group, a member
+  root, a member's descendant, a member of two groups), the expected lists
+  read off the specification's rule (a timeline lies in a group when it or
+  an ancestor is a member), never off the code.
 - **Addresses** are proven by `resolveAddress`: what each address of the
   drawing specification (section 2.2) resolves to, and which name nothing.
-  The oracle for a default elision is the specification's rule of where
-  default elisions may be drawn (section 8.9: an ancestor card's root and
-  the children of the member's ancestors above its parent, while no stored
-  elision lies on the root's tree), never a list derived from the code.
+  The oracle for a derived elision is the specification's rule of where an
+  ancestor card may derive one under some `elision-mode` (section 8.9: its
+  root and the children of the member's ancestors above its parent; a
+  rule stating `proportional` derives them whatever is stored, and core
+  reads no cascade), never a list derived from the code.
 - **Elements** are proven by `manifestElements`: the exact keys listed for
   stored elisions, read against the specification's tree (section 2.1: a
-  strip held by its timeline's line, its labels by the strip) and its rule
-  of where elisions are drawn (section 8.9: ungrouped root's cards and
-  ancestor cards, never a member's card), and the selectors of the
-  specification's examples matched over them (`selectorMatches`).
+  card elision's gap held by its timeline's line, a group elision's by the
+  frame, each gap holding its ellipses and its labels) and its rule of
+  where elisions are drawn (section 8.9: a card elision in its root's
+  ungrouped card and ancestor cards, never in a member's card; a group
+  elision across each frame of a group its timeline lies in, with its
+  labels, and carried into each ancestor card behind that frame, without
+  them), and the selectors of the specification's examples matched over
+  them (`selectorMatches`). The ellipses of one gap share one key, so one
+  `ellipsis` key per gap stands for all of them (which rows a gap crosses
+  is the drawing's geometry).
 - **One journal entry** is proven by the store: the journal grows by
   exactly one entry for a list of elisions added, and one for all of a
-  root's elisions removed.
+  root's card elisions removed.
 
 The manifests are fixtures given `graphical.elisions` before they are read
-(no fixture holds an elision), each elision stated without `display`, so
-read with the default `[strip, name, coordinate]`. Fraction pairs are
-written `[n, d]`; a message spells a value as canonical YAML does.
+(those that state elisions of their own, `group_elided_members.yaml`,
+`bundle_elisions_stored.yaml`, `bundle_groupstamp_shared_member.yaml`, are
+read as they are), each elision stated without `display`, so read with
+the default `[ellipsis]`. Fraction pairs are written `[n, d]`; a message
+spells a value as canonical YAML does.
 
 1. **Minting skips an elision's ID.** `bare.yaml` (root `bare`, 8
    quarters; timestamps `timestamp_1`, `timestamp_2`) with `elision_1` on
@@ -2582,10 +2640,11 @@ written `[n, d]`; a message spells a value as canonical YAML does.
 4. **`add` kind `elision` into a timeline.** On `bare.yaml` with
    `elision_1` from 1 to 2: `add {into: bare, elision: {start: [3, 1], end:
    [5, 1]}}` adds `{id: "elision_2", timeline: "bare", start: [3, 1], end:
-   [5, 1], display: [strip, name, coordinate]}` after `elision_1`; with
-   `width: {ratio: 0.25}` and `display: [name, strip]` the new elision
-   holds that width and `display: [strip, name]`. Each refusal, at `[bare's
-   key, "elision", …]` with `elision_2` the ID it would be given:
+   [5, 1], display: [ellipsis]}` after `elision_1`; with `name:
+   "Development"`, `width: {ratio: 0.25}` and `display: [coordinate, name,
+   ellipsis]` the new elision holds that name and width and `display:
+   [ellipsis, name, coordinate]`. Each refusal, at `[bare's key, "elision",
+   …]` with `elision_2` the ID it would be given:
    - no `end`: `invalid_value` at `end`, "a new elision needs end";
    - a `timeline` member: `unknown_property` at `timeline`, "unknown
      member timeline" (the target names the timeline);
@@ -2595,6 +2654,8 @@ written `[n, d]`; a message spells a value as canonical YAML does.
      is beyond the length [8, 1] of its timeline 'bare'";
    - start and end `[2, 1]`: `elision_stretch` at `end`, "end [2, 1] of
      'elision_2' does not lie after its start [2, 1]";
+   - name `""`: `invalid_value` at `name`, "a name is a non-empty string",
+     and `3` the same;
    - width `{ratio: 0.5, canvas: 10}`: `invalid_value` at `width`, "a width
      is exactly one of ratio, span and canvas", and `{}` the same;
    - width `{ratio: 0}` and `{ratio: 1.5}`: `invalid_value` at `width`,
@@ -2606,8 +2667,9 @@ written `[n, d]`; a message spells a value as canonical YAML does.
      number must be positive";
    - width `{ratio: 0.5, x: 1}`: `unknown_property` at `width`, `x`,
      "unknown member x";
-   - display `[strip, strip]`: `invalid_value` at `display`, "'strip' is
-     given twice".
+   - display `[ellipsis, ellipsis]`: `invalid_value` at `display`,
+     "'ellipsis' is given twice"; `[strip]` (a word elisions no longer
+     have) `invalid_value` at `display`, "'strip' is no display word".
 5. **`set` and `remove` on a stored elision.** On `bare.yaml` with
    `elision_1` from 1 to 2, at `{block: A, id: "elision_1"}`:
    - `{start: [3, 1], end: [5, 1]}` in one change is accepted (both ends
@@ -2621,79 +2683,119 @@ written `[n, d]`; a message spells a value as canonical YAML does.
      'elision_1' is beyond the length [8, 1] of its timeline 'bare'";
      `{start: [-1, 1]}` at `start`, "start [-1, 1] of 'elision_1' lies
      before the start of its timeline 'bare'";
+   - `name: "Development"` is stored, after which the elision is worded
+     "elision 'Development'"; `null` deletes it again, the elision then
+     equal to the one before; `null` on an elision without one and the
+     stored name again change nothing (`invalid_value` "the command
+     changes nothing" at `name`); `""` is `invalid_value` "a name is a
+     non-empty string" at `name`;
    - `width` takes each of its forms, `{ratio: 0.25}`, `{span: [1, 2]}`,
      `{canvas: 160}`, stored as given, and `null` deletes it again; `null`
      on an elision without one changes nothing (`invalid_value` "the
      command changes nothing" at `width`);
-   - `display: [coordinate, strip]` is stored `[strip, coordinate]`; the
-     stored display in another order changes nothing;
+   - `display: [coordinate, ellipsis]` is stored `[ellipsis, coordinate]`;
+     the stored display in another order changes nothing;
    - `timeline` is `unknown_property` "elision has no property timeline";
      `id` is `id_not_settable`;
    - `remove {targets: [elision_1]}` leaves no elision.
 6. **Many elisions in one journal entry.** `groups/group_grandchild.yaml`
    (`score` 64 quarters ⊃ `movement` 16 at 16 ⊃ `theme` 8 at 8; `group_1`
-   of the member `theme` and the root `recording`, 12 seconds), the card's
-   default elisions as the drawing derives them (drawing.md section 8.9):
-   `add {into: {block: A}, elision: [{timeline: "movement", start: [0, 1],
-   end: [8, 1]}, {timeline: "score", start: [0, 1], end: [16, 1]},
-   {timeline: "score", start: [32, 1], end: [64, 1]}]}` through the store
-   adds `elision_1`, `elision_2`, `elision_3` in that order (so stored
-   `movement`'s, then `score`'s two by start) and grows the journal by one
-   entry. With one more elision `elision_4` on `recording` from 1 to 2
-   seconds, `elisionsUnder(manifest, "score")` is `elision_1` to
-   `elision_3`, and one `remove` of their three addresses grows the
-   journal by one entry and leaves `elision_4` alone. Refusals at `[A's
-   key, "elision", …]`: an object, not a list, `invalid_value` "a block
-   takes a list of elisions"; `[]` `invalid_value` "a list of elisions
-   holds at least one"; an item without `timeline` `invalid_value` at
-   `0, timeline`, "a new elision needs timeline"; an item on `nowhere`
-   `elision_timeline` at `0, timeline`, "'nowhere' names no timeline of
-   this manifest"; a second item from 4 to 2 on `movement`
-   `elision_stretch` at `1, end`, "end [2, 1] of 'elision_2' does not lie
-   after its start [4, 1]" (the first item took `elision_1`).
-7. **Addresses.** On `group_grandchild.yaml`, the ancestor card of `score`
+   of the member `theme` and the root `recording`, 12 seconds), elisions as
+   a card derives them (drawing.md section 8.9): `add {into: {block: A},
+   elision: [{timeline: "movement", start: [0, 1], end: [8, 1]}, {timeline:
+   "score", start: [0, 1], end: [16, 1]}, {timeline: "score", start: [32,
+   1], end: [64, 1]}]}` through the store adds `elision_1`, `elision_2`,
+   `elision_3` in that order (so stored `movement`'s, then `score`'s two by
+   start) and grows the journal by one entry. With `elision_4` on
+   `recording` from 1 to 2 seconds and `elision_5` on `theme` from 1 to 2
+   added (both group elisions of `group_1`), `elisionsUnder(manifest,
+   "score")` is `elision_1` to `elision_3`, and one `remove` of their three
+   addresses grows the journal by one entry and leaves `elision_4` and
+   `elision_5` alone. Refusals at `[A's key, "elision", …]`: an object, not
+   a list, `invalid_value` "a block takes a list of elisions"; `[]`
+   `invalid_value` "a list of elisions holds at least one"; an item without
+   `timeline` `invalid_value` at `0, timeline`, "a new elision needs
+   timeline"; an item on `nowhere` `elision_timeline` at `0, timeline`,
+   "'nowhere' names no timeline of this manifest"; a second item from 4 to 2
+   on `movement` `elision_stretch` at `1, end`, "end [2, 1] of 'elision_2'
+   does not lie after its start [4, 1]" (the first item took `elision_1`);
+   an item with `name: "Exposition"` stores it.
+7. **Card and group elisions.** `bundles/bundle_elisions_stored.yaml`
+   (`group_1` of the root `recording`, of `take`, the child of `session`,
+   and of `theme`, a child of `score`; `coda` the other child of `score`;
+   `page` an ungrouped root), elisions
+   `elision_1` on `coda`, `elision_2` on `page`, `elision_3` on
+   `recording`, `elision_4`, `elision_5`, `elision_6` on `score`,
+   `elision_7` on `session`: `elisionsUnder` gives `score` `elision_1`,
+   `elision_4`, `elision_5`, `elision_6` (its tree's elisions on
+   timelines in no group), `page` `elision_2`, `session` `elision_7`,
+   `recording` none (a member: `elision_3` is a group elision) and
+   `nowhere` none; `groupElisions(manifest, "group_1")` is `elision_3`
+   alone, `groupElisions(manifest, "nowhere")` none. With `elision_8` on
+   `theme` from 1 to 2 added, `groupElisions` gives `elision_3`,
+   `elision_8` and `elisionsUnder("score")` is unchanged.
+   `bundles/bundle_groupstamp_shared_member.yaml` (`g1` of `t`, `u`; `g2`
+   of `t`, `v`; `elision_1` on `t`): `groupElisions` gives `elision_1` for
+   `g1` and for `g2`, `elisionsUnder("t")` none.
+8. **Addresses.** On `group_grandchild.yaml`, the ancestor card of `score`
    is aligned to `theme`, whose ancestors are `score` and `movement`, so
-   default elisions may lie on `score` and on the children of `score`:
+   derived elisions may lie on `score` and on the children of `score`:
    `{id: "score", part: ["elision"]}` resolves to the part `elision` of the
    timeline `score`, `{id: "movement", part: ["elision", "coordinate"]}`
    to the part `coordinate` of the part `elision` of `movement`, and
-   `["elision", "name"]` likewise; `{id: "theme", part: ["elision"]}` (the
-   member), `{id: "recording", part: ["elision"]}` (a root with no
-   ancestor card) and `{id: "score", part: ["elision", "id"]}` name
-   nothing (`unknown_target`); `addressWords` says "the elision of
-   timeline 'Score'". A part is no target: `set` on `{id: "score", part:
-   ["elision"]}` is `unknown_target`. Once a stored elision lies on
-   `movement` (from 0 to 8), the card draws no default elision, and
-   `{id: "score", part: ["elision"]}` names nothing; the stored one,
-   `{id: "elision_1"}`, resolves to kind `elision` with its timeline
-   `movement` and index 0, its `name` and `coordinate` parts resolve (the
-   ancestor card draws it), it is worded "elision 'elision_1'", has no
-   editor (`no_editor`), and lies inside the timeline editor of `movement`
-   and of `score`, not of `theme` (`contains`); the default address of
-   `movement` lies inside `movement`. A stored elision on `recording`,
-   drawn in its member card only, resolves itself, while its `name` part
-   names nothing. On `bare.yaml` an elision with `display: [strip]`
-   resolves, its `name` part names nothing; `{id: "bare", part:
-   ["elision"]}` names nothing (an ungrouped root's card draws no
-   default).
-8. **Elements.** On `group_grandchild.yaml` with `elision_1` on
-   `movement` (display default), `elision_2` on `theme` (`display:
-   [strip]`) and `elision_3` on `recording`, `manifestElements` lists
-   exactly two `elision` keys, in the order of the tree, `{id:
-   "elision_2"}` (held by `theme`, inside `movement`'s children band) and
-   `{id: "elision_1"}` (the ancestor card of `score` draws both;
-   `recording` lies in a member card only), the latter `{type: "elision", timeline: "movement", domain:
-   "logical", modality: "continuous", class: "ContinuousLogicalTimeline",
-   facet: null, inside: [block, timeline, band, child]}` right after
-   `movement`'s `flow_control` band (its line holds it after its five
-   bands), followed by its labels `{id: "elision_1", part: ["name"]}` and
-   `["coordinate"]`, `inside` the strip's chain plus `elision`; `elision_2`
-   has no label. The selector `{element: "elision", within: "score"}`
-   matches the keys of `elision_2` and `elision_1`, `{element: "elision",
-   within: "recording"}` none, and `{element: "label", inside: "elision"}`
-   exactly the two labels of `elision_1`. On `bare.yaml` an elision
-   `elision_1` on `bare` is listed with `inside: [block, timeline]` (the
-   ungrouped root's card draws it).
+   `["elision", "name"]` and `["elision", "ellipsis"]` likewise; `{id:
+   "theme", part: ["elision"]}` (the member), `{id: "recording", part:
+   ["elision"]}` (a root with no ancestor card) and `{id: "score", part:
+   ["elision", "id"]}` (a derived elision has no ID) name nothing
+   (`unknown_target`); `addressWords` says "the elision of timeline
+   'Score'". A part is no target: `set` on `{id: "score", part:
+   ["elision"]}` is `unknown_target`. With a stored card elision on
+   `movement` (from 0 to 8), `{id: "score", part: ["elision"]}` still
+   resolves (a rule may state `proportional`); the stored one, `{id:
+   "elision_1"}`, resolves to kind `elision` with its timeline `movement`
+   and index 0, its `ellipsis`, `name` and `coordinate` parts resolve
+   (the ancestor card draws it; its display then `[ellipsis, name,
+   coordinate]`), its `id` part does not (its display lacks the word), it
+   is worded "elision 'elision_1'", has no editor (`no_editor`), and lies
+   inside the timeline editor of `movement` and of `score`, not of `theme`
+   (`contains`); the derived address of `movement` lies inside `movement`.
+   A stored group elision on `recording` resolves itself and its ellipses
+   (drawn across `group_1`'s frame and carried into `score`'s ancestor
+   card), and its `name` label where its display lists it. On `bare.yaml`
+   an elision with `display: []` resolves, its `ellipsis` and `name`
+   parts name nothing; `{id: "bare", part: ["elision"]}` names nothing (an
+   ungrouped root's card derives no elision).
+9. **Elements.** On `bundles/bundle_elisions_stored.yaml`, the `elision`
+   and `ellipsis` keys and the labels held by a gap are, in order (each
+   gap followed by what it holds): in the ancestor card of `score` (behind
+   `group_1`), the gap of `elision_1` with its ellipsis, held by `coda`'s
+   line inside `score`'s children band, then the gaps of `elision_4` (with
+   its ellipsis and its `id` label), `elision_5` (its `name` label) and
+   `elision_6` (nothing), held by `score`'s line after its five bands; then
+   the gap carried into that card of `elision_3` with its ellipsis and no
+   label, keyed as in the frame; in the ancestor card of `session`,
+   `elision_7` with its ellipsis (listed whatever the card's
+   `elision-mode`, here `full`, which the cascade reads as it reads
+   `display`), then `elision_3` carried; in `page`'s ungrouped card
+   `elision_2` with its ellipsis and its `name` and `coordinate` labels;
+   then, after every item, `group_1`'s frame's gap of `elision_3` with its
+   ellipsis and its `coordinate` label. The card elision `elision_4`'s gap
+   is `{type: "elision", timeline: "score", domain: "logical", modality:
+   "continuous", class: "ContinuousLogicalTimeline", facet: null, inside:
+   [block, timeline]}`, its ellipsis `{id: "elision_4", part:
+   ["ellipsis"]}` of type `ellipsis` inside `[block, timeline, elision]`;
+   the group elision `elision_3`'s gap belongs to `recording` (physical,
+   continuous, `ContinuousPhysicalTimeline`) inside `[block, frame]`, all
+   three times it is listed. No member card lists a gap. The selector
+   `{element: "elision", within: "score"}` matches the gaps of
+   `elision_1`, `elision_4`, `elision_5` and `elision_6`; `{element:
+   "elision", inside: "frame"}` the three keys of `elision_3`; `{element:
+   "ellipsis"}` one key per listed gap whose display lists `ellipsis`;
+   `{element: "label", inside: "elision"}` exactly the labels listed. On
+   `bundle_groupstamp_shared_member.yaml` `elision_1` on the shared member
+   `t` is listed once per frame, held by `g1`'s and then `g2`'s, each with
+   its ellipsis. On `bare.yaml` an elision `elision_1` on `bare` is listed
+   with `inside: [block, timeline]` (the ungrouped root's card draws it).
 
 ## Arrangements (`arrangement.test.ts`)
 
@@ -3773,23 +3875,27 @@ block alone).
    everything they hold (`cmap_4` in `page`'s, `cmap_6` in `excerpt`'s, the
    wedges and coordinate labels of its `origin` and `length` in each
    markers band, `timestamp_5`, `timestamp_6` of `page` and `timestamp_3`,
-   `timestamp_4` of `excerpt`), and for `excerpt` the
-   marks `{id: "excerpt", part: ["start"]}` and `["end"]` with their labels
-   on its ancestor line, never that line `{id: "recording"}` or its name,
-   but the secondary coordinates of `excerpt`'s `timestamp_3` and
-   `timestamp_4` on it, which carry their timestamps' addresses and so
-   belong to `excerpt` (wedge and coordinate label each, after the marks,
-   and in the ancestor card's `recording` markers band after `excerpt`'s
-   row, which `group_2` contains too). A
-   band belongs to its timeline, so a member's five bands are in, empty
-   ones too. `group_1` contains neither `{id: "group_2"}` nor `{id:
-   "annotations", part: ["card"]}`.
+   `timestamp_4` of `excerpt`, the latter two groupstamps, each followed by
+   its line, and in `page`'s markers band also their secondary
+   coordinates, which carry their timestamps' addresses and so belong to
+   `excerpt`), and for `excerpt` no mark of its start or end on its
+   ancestor line, never that line `{id: "recording"}` or its name, but the
+   secondary coordinates of `excerpt`'s `timestamp_3` and `timestamp_4` on
+   it (wedge and coordinate label each, and in the ancestor card's
+   `recording` markers band after `excerpt`'s row, which `group_2`
+   contains too); last the lines of `timestamp_3` and `timestamp_4` across
+   the frame. A band belongs to its timeline, so a member's five bands are
+   in, empty ones too. `group_1` contains neither `{id: "group_2"}` nor
+   `{id: "annotations", part: ["card"]}`.
 2. **A root holding a member.** `recording` contains exactly the elements
-   of `excerpt`'s card: its card, `{id: "recording"}`, its name, the marks
-   on that line with their labels, `{id: "excerpt"}`, its name, and the
-   bands of `excerpt` with what they hold, as in 1.
-3. **A child.** `excerpt` contains exactly 2's list without `recording` and
-   its name. The ancestor's own map `cmap_5` and its band `{id:
+   of the ancestor card, the secondary coordinates of `excerpt`'s
+   groupstamps on `page`, and the elements of `excerpt`'s card: its card,
+   `{id: "recording"}`, its name, the secondary coordinates on that line,
+   `{id: "excerpt"}`, its name, and the bands of `excerpt` with what they
+   hold, then the groupstamps' lines across the frame, as in 1.
+3. **A child.** `excerpt` contains exactly 2's list without `recording`'s
+   own elements (its card, both its lines, their names, its bands, its map
+   `cmap_5`). The ancestor's own map `cmap_5` and its band `{id:
    "recording", facet: "regions"}` lie outside it: `excerpt` contains
    neither and `recording` both. That map is not drawn in `excerpt`'s card
    (drawing.md §8.3), so the enumeration cannot show it; the second answer

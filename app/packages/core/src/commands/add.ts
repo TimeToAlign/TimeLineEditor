@@ -362,7 +362,7 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
   const added = { ...manifest, timelines: [...manifest.timelines, timeline] };
-  return withBlock(view, { ...block, manifest: withDefaultTimestamps(added, timeline) });
+  return withBlock(view, { ...block, manifest: withDefaultTimestamps(added, timeline, false) });
 }
 
 /**
@@ -546,7 +546,7 @@ function addTimestamp(
 }
 
 /**
- * Add an elision into a timeline: `{start, end, width?, display?}`, read by
+ * Add an elision into a timeline: `{start, end, name?, width?, display?}`, read by
  * `readElision` on the target timeline, which it lies on. It is given the
  * smallest free `elision_N` of the manifest and written into its
  * `graphical` object's `elisions`, which `settle` puts in canonical order.
@@ -572,13 +572,13 @@ function addElision(
 
 /**
  * Add a list of elisions into a block's manifest in one command: a
- * non-empty list (`invalid_value`) of `{timeline, start, end, width?,
+ * non-empty list (`invalid_value`) of `{timeline, start, end, name?, width?,
  * display?}`, each lying on the timeline its `timeline` names
  * (`elision_timeline` at its `timeline` for an ID naming no timeline of the
  * manifest) and read there by `readElision`, each given the smallest
  * `elision_N` free in the manifest and among those given before it, in list
- * order. What the editor stores of a card's default elisions, the drawing
- * deriving them, goes in this way, as one journal entry. A problem of the
+ * order. What the editor stores of the elisions a card derives, the
+ * drawing deriving them, goes in this way, as one journal entry. A problem of the
  * `i`-th lies at `[<address key of into>, "elision", i, …]`.
  */
 function addElisions(

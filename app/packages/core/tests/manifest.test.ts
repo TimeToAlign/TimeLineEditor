@@ -190,9 +190,7 @@ describe("elisions", () => {
     const given = { id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1] };
     const graphical = { elisions: [{ ...given, width: { ratio: 0.25 } }] };
     const manifest = loadText(fileText({ ...value, graphical }));
-    const expected = [
-      { ...given, width: { ratio: 0.25 }, display: ["strip", "name", "coordinate"] },
-    ];
+    const expected = [{ ...given, width: { ratio: 0.25 }, display: ["ellipsis"] }];
     expect(manifest.graphical?.elisions).toEqual(expected);
     expect(loadText(saveManifest(manifest, COMPLETE)).graphical?.elisions).toEqual(expected);
     let view = changed(createView(), {
@@ -207,8 +205,13 @@ describe("elisions", () => {
     const edited = block(view).manifest;
     expect(edited.timelines[0]?.name).toBe("B");
     expect(edited.graphical?.elisions).toEqual(expected);
-    const strips = manifestElements(edited).filter((key) => key.type === "elision");
-    expect(strips.map((key) => key.address)).toEqual([{ id: "elision_1" }]);
+    const gaps = manifestElements(edited).filter(
+      (key) => key.type === "elision" || key.type === "ellipsis",
+    );
+    expect(gaps.map((key) => key.address)).toEqual([
+      { id: "elision_1" },
+      { id: "elision_1", part: ["ellipsis"] },
+    ]);
   });
 });
 
@@ -278,6 +281,22 @@ describe("graphical styles", () => {
     const manifest = loadText(floats);
     expect(manifest).toEqual(read);
     expect(saveManifest(manifest, COMPLETE)).toBe(text);
+  });
+
+  it("reads an elision proportion as a double and its word as written", () => {
+    const value = manifestValue("bare.yaml");
+    const declared = (proportion: unknown) => ({
+      "elision-depths": "1",
+      "elision-mode": "proportional",
+      "elision-proportion": proportion,
+    });
+    const read = (proportion: unknown) => {
+      const rules = [{ select: { element: "card" }, set: declared(proportion) }];
+      return loadText(fileText({ ...value, graphical: { rules } })).graphical?.rules?.[0]?.set;
+    };
+    expect(read(new JsonFloat(1))).toEqual(declared(1));
+    expect(read(0.05)).toEqual(declared(0.05));
+    expect(read("auto")).toEqual(declared("auto"));
   });
 
   it("reads an integer beyond 2^53 only where a double holds it exactly", () => {

@@ -242,8 +242,9 @@ function declarationNumber(value: JsonNumber, path: readonly PathSegment[]): num
 /**
  * A declaration with its numbers as doubles (`declarationNumber`), its other
  * members, unknown keys included, kept, every key where it was. The members
- * that are numbers are listed here; a numeric member the schema adds fails
- * to compile in `rest`.
+ * that may be numbers are listed here, with their words (`max-width`'s
+ * `none`, `elision-proportion`'s `auto`); a numeric member the schema adds
+ * fails to compile in `rest`.
  */
 export function plainDeclaration(
   declaration: Lossless<Declaration>,
@@ -256,6 +257,7 @@ export function plainDeclaration(
     rx,
     "max-width": maxWidth,
     rotation,
+    "elision-proportion": proportion,
     ...rest
   } = declaration;
   // The whole declaration in its key order, typed by its members that are no number:
@@ -269,11 +271,16 @@ export function plainDeclaration(
     ["rx", rx],
     ["max-width", maxWidth],
     ["rotation", rotation],
+    ["elision-proportion", proportion],
   ] as const;
   for (const [member, value] of numbers) {
     if (value === undefined) continue;
     if (value === "none") {
       result["max-width"] = value;
+      continue;
+    }
+    if (value === "auto") {
+      result["elision-proportion"] = value;
       continue;
     }
     const double = declarationNumber(value, [...path, member]);

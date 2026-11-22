@@ -18,12 +18,12 @@ import { addressKey, isFacet, isPart } from "../manifest/address.ts";
 import type { ContainerRef, Containers } from "../manifest/containers.ts";
 import { containersOf } from "../manifest/containers.ts";
 import type { ElementKey } from "../manifest/elements.ts";
-import { manifestElements, timelineAncestry } from "../manifest/elements.ts";
-import { defaultElisionTimelines, ELISION_LABELS } from "../manifest/elisions.ts";
+import { manifestElements } from "../manifest/elements.ts";
+import { defaultElisionTimelines } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
 import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import { timelinesInOrder } from "../manifest/tree.ts";
+import { timelineAncestry, timelinesInOrder } from "../manifest/tree.ts";
 import type {
   AlignmentAnchor,
   ConversionMap,
@@ -459,17 +459,18 @@ function baseOf(
  * entry, or a part that the manifest's drawing draws (`ManifestIndex.drawn`,
  * `docs/drawing.md` section 2.2): the manifest's title (of a named
  * manifest), a group's title, the name of a timeline drawn with one, the
- * wedges and marks of a member drawing's root with their labels, a
+ * wedges of a member drawing's named timestamps with their labels, a
  * segment's boundary (of every segment but the first) and label, the label
  * of a region, a flow marker or a jump origin, a named timestamp's label
- * and cross-section line (`line`), a stored elision's labels, and the
- * cards. A named timestamp and a stored elision themselves resolve with the
- * timeline they lie on, drawn or not; a named MatchStamp and an alignment
- * anchor, which belong to no timeline, resolve by their IDs, the anchor with
- * the MatchStamp holding it. A default elision, which the drawing derives
- * and which has no ID, resolves as the part `elision` of the timeline `T`
- * it lies on (`{id: T, part: ["elision"]}`, its labels `["elision", "name"]`
- * and `["elision", "coordinate"]`) wherever `T` may carry one
+ * and cross-section line (`line`), a stored elision's ellipses and labels,
+ * and the cards. A named timestamp and a stored elision themselves resolve
+ * with the timeline they lie on, drawn or not; a named MatchStamp and an
+ * alignment anchor, which belong to no timeline, resolve by their IDs, the
+ * anchor with the MatchStamp holding it. A derived elision, which the
+ * drawing derives and which has no ID, resolves as the part `elision` of
+ * the timeline `T` it lies on (`{id: T, part: ["elision"]}`, its ellipses
+ * `["elision", "ellipsis"]`, its labels `["elision", "name"]` and
+ * `["elision", "coordinate"]`) wherever `T` may carry one
  * (`defaultElisionTimelines`), never as an invented ID. `undefined` for
  * anything else, the bundle's address `{}` included (the workspace resolver
  * reads it as the block).
@@ -495,16 +496,23 @@ export function resolveElement(
 }
 
 /**
- * Whether `element` addresses a default elision or one of its labels on a
+ * The words below `elision` in the address of a derived elision's parts:
+ * its ellipses and its labels but the ID, which it does not have.
+ */
+const DERIVED_ELISION_PARTS: readonly Part[] = ["ellipsis", "name", "coordinate"];
+
+/**
+ * Whether `element` addresses a derived elision or one of its parts on a
  * timeline that may carry one (`defaultElisionTimelines`): `{id: T, part:
- * ["elision"]}`, `["elision", "name"]` or `["elision", "coordinate"]`.
+ * ["elision"]}`, `["elision", "ellipsis"]`, `["elision", "name"]` or
+ * `["elision", "coordinate"]`.
  */
 function namesDefaultElision(manifest: Manifest, { id, facet, part = [] }: ElementAddress) {
   if (id === undefined || facet !== undefined || part[0] !== "elision" || part.length > 2) {
     return false;
   }
-  const [, label] = part;
-  if (label !== undefined && !ELISION_LABELS.some((word) => word === label)) return false;
+  const [, word] = part;
+  if (word !== undefined && !DERIVED_ELISION_PARTS.includes(word)) return false;
   return defaultElisionTimelines(manifest).has(id);
 }
 
@@ -644,8 +652,10 @@ function elementWords(resolved: ResolvedAddress): {
       const { name, id } = resolved.timestamp;
       return { words: `timestamp ${quoted(name ?? id)}`, bundled: false };
     }
-    case "elision":
-      return { words: `elision ${quoted(resolved.elision.id)}`, bundled: false };
+    case "elision": {
+      const { name, id } = resolved.elision;
+      return { words: `elision ${quoted(name ?? id)}`, bundled: false };
+    }
     case "matchstamp":
       return { words: `MatchStamp ${quoted(resolved.matchstamp.name)}`, bundled: false };
     case "anchor":

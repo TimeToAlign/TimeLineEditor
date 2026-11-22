@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError } from "../src/errors.ts";
 import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
-import { manifestElements, selectorMatches, timelineAncestry } from "../src/manifest/elements.ts";
+import { manifestElements, selectorMatches } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
 import { loadManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
-import { findTimeline } from "../src/manifest/tree.ts";
+import { findTimeline, timelineAncestry } from "../src/manifest/tree.ts";
 import type { Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { manifestIds, resolveElement } from "../src/workspace/address.ts";
@@ -181,10 +181,13 @@ describe("the elements of a group manifest", () => {
       band("second-half", "children", row),
       band("second-half", "conversion_maps", row),
       band("second-half", "markers", row),
+      // Its `origin` and `length` are groupstamps: each line is held by the row's own line.
       ["wedge", id("timestamp_3"), ...half, null, rowMarker],
       ["label", id("timestamp_3", "coordinate"), ...half, null, rowMarker],
+      ["cross_section", id("timestamp_3", "line"), ...half, null, row],
       ["wedge", id("timestamp_4"), ...half, null, rowMarker],
       ["label", id("timestamp_4", "coordinate"), ...half, null, rowMarker],
+      ["cross_section", id("timestamp_4", "line"), ...half, null, row],
       band("second-half", "regions", row),
       band("second-half", "flow_control", row),
       band("piece", "conversion_maps", root),
@@ -202,10 +205,6 @@ describe("the elements of a group manifest", () => {
       ["card", id("second-half", "card"), ...half, null, frame],
       ["ancestor", id("piece"), ...piece, null, line],
       ["name", id("piece", "name"), ...piece, null, ancestor],
-      ["wedge", id("second-half", "start"), ...half, null, ancestor],
-      ["label", id("second-half", "start", "label"), ...half, null, [...ancestor, "wedge"]],
-      ["wedge", id("second-half", "end"), ...half, null, ancestor],
-      ["label", id("second-half", "end", "label"), ...half, null, [...ancestor, "wedge"]],
       ["wedge", id("timestamp_3"), ...piece, null, ancestor],
       ["label", id("timestamp_3", "coordinate"), ...piece, null, ancestor],
       ["wedge", id("timestamp_4"), ...piece, null, ancestor],
@@ -215,11 +214,14 @@ describe("the elements of a group manifest", () => {
       band("second-half", "children"),
       band("second-half", "conversion_maps"),
       band("second-half", "markers"),
-      // Its own named timestamps `origin` and `length`, wedges and labels held by the band.
+      // Its own named timestamps `origin` and `length`, wedges and labels held by the band, each
+      // line by the line.
       ["wedge", id("timestamp_3"), ...half, null, marker],
       ["label", id("timestamp_3", "coordinate"), ...half, null, marker],
+      ["cross_section", id("timestamp_3", "line"), ...half, null, line],
       ["wedge", id("timestamp_4"), ...half, null, marker],
       ["label", id("timestamp_4", "coordinate"), ...half, null, marker],
+      ["cross_section", id("timestamp_4", "line"), ...half, null, line],
       band("second-half", "regions"),
       band("second-half", "flow_control"),
       ["card", id("recording", "card"), ...recording, null, frame],
@@ -232,8 +234,16 @@ describe("the elements of a group manifest", () => {
       ["label", id("timestamp_1", "coordinate"), ...recording, null, marker],
       ["wedge", id("timestamp_2"), ...recording, null, marker],
       ["label", id("timestamp_2", "coordinate"), ...recording, null, marker],
+      // The groupstamps of `second-half` cross `recording`'s card: secondary coordinates there.
+      ["wedge", id("timestamp_3"), ...recording, null, marker],
+      ["label", id("timestamp_3", "coordinate"), ...recording, null, marker],
+      ["wedge", id("timestamp_4"), ...recording, null, marker],
+      ["label", id("timestamp_4", "coordinate"), ...recording, null, marker],
       band("recording", "regions"),
       band("recording", "flow_control"),
+      // Their lines across the frame, held by it.
+      ["cross_section", id("timestamp_3", "line"), ...half, null, frame],
+      ["cross_section", id("timestamp_4", "line"), ...half, null, frame],
     ]);
   });
 
@@ -241,18 +251,21 @@ describe("the elements of a group manifest", () => {
     const matching = (select: object) =>
       keys.filter((key) => selectorMatches(select, key, ancestry));
     const matched = (select: object) => matching(select).map((key) => key.address);
-    const marks = [
-      id("second-half", "start"),
-      id("second-half", "start", "label"),
-      id("second-half", "end"),
-      id("second-half", "end", "label"),
-    ];
     // The wedges and coordinate labels of `second-half`'s `origin` and `length`.
     const stamps = [
       id("timestamp_3"),
       id("timestamp_3", "coordinate"),
       id("timestamp_4"),
       id("timestamp_4", "coordinate"),
+    ];
+    // The same on `second-half` itself, primary coordinates, each followed by its line.
+    const lined = [
+      id("timestamp_3"),
+      id("timestamp_3", "coordinate"),
+      id("timestamp_3", "line"),
+      id("timestamp_4"),
+      id("timestamp_4", "coordinate"),
+      id("timestamp_4", "line"),
     ];
     const rowOf = (timeline: string) => [
       bandOf(timeline, "children"),
@@ -267,10 +280,7 @@ describe("the elements of a group manifest", () => {
       id("second-half"),
       id("second-half", "name"),
       ...rowOf("second-half"),
-      id("timestamp_3"),
-      id("timestamp_3", "coordinate"),
-      id("timestamp_4"),
-      id("timestamp_4", "coordinate"),
+      ...lined,
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
       ...rowOf("piece").slice(1),
@@ -280,21 +290,19 @@ describe("the elements of a group manifest", () => {
       id("second-half", "card"),
       id("piece"),
       id("piece", "name"),
-      ...marks,
       ...stamps,
       id("second-half"),
       id("second-half", "name"),
       bandOf("second-half", "children"),
       bandOf("second-half", "conversion_maps"),
       bandOf("second-half", "markers"),
-      id("timestamp_3"),
-      id("timestamp_3", "coordinate"),
-      id("timestamp_4"),
-      id("timestamp_4", "coordinate"),
+      ...lined,
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
+      id("timestamp_3", "line"),
+      id("timestamp_4", "line"),
     ]);
-    expect(matched({ within: "piece" }).length).toBe(23 + 22);
+    expect(matched({ within: "piece" }).length).toBe(25 + 22);
     expect(matched({ element: "frame" })).toEqual([id("group_1")]);
     expect(matched({ element: "card" })).toEqual([
       id("second-half", "card"),
@@ -305,15 +313,9 @@ describe("the elements of a group manifest", () => {
       matching({ inside: "ancestor" }).map((key) => [key.address, key.inside.join(" ")]),
     ).toEqual([
       [id("piece", "name"), "block frame timeline ancestor"],
-      [id("second-half", "start"), "block frame timeline ancestor"],
-      [id("second-half", "start", "label"), "block frame timeline ancestor wedge"],
-      [id("second-half", "end"), "block frame timeline ancestor"],
-      [id("second-half", "end", "label"), "block frame timeline ancestor wedge"],
       ...stamps.map((address) => [address, "block frame timeline ancestor"]),
     ]);
     expect(matched({ element: "wedge", inside: "ancestor" })).toEqual([
-      id("second-half", "start"),
-      id("second-half", "end"),
       id("timestamp_3"),
       id("timestamp_4"),
     ]);
@@ -329,12 +331,20 @@ describe("the elements of a named manifest with two groups", () => {
    * A line drawn as a root: its name, then its five bands, each followed by
    * what it holds (none of these lines draws a child): `maps`, the wedges
    * and coordinate labels of its named timestamps `origin` and `length`
-   * (`timestamp_N` and `timestamp_N+1`, `N` its `origin`), `regions` and `flow`.
+   * (`timestamp_N` and `timestamp_N+1`, `N` its `origin`), each followed by
+   * its line where they are groupstamps (`lined`), then the secondary
+   * coordinates `crossing`, `regions` and `flow`.
    */
   const drawn = (
     timeline: string,
     origin: number,
-    { maps = [], regions = [], flow = [] }: { [band: string]: ElementAddress[] } = {},
+    {
+      maps = [],
+      crossing = [],
+      regions = [],
+      flow = [],
+    }: { [band: string]: ElementAddress[] } = {},
+    lined = false,
   ) => [
     id(timeline),
     id(timeline, "name"),
@@ -345,7 +355,9 @@ describe("the elements of a named manifest with two groups", () => {
     ...[origin, origin + 1].flatMap((n) => [
       id(`timestamp_${n}`),
       id(`timestamp_${n}`, "coordinate"),
+      ...(lined ? [id(`timestamp_${n}`, "line")] : []),
     ]),
+    ...crossing,
     bandOf(timeline, "regions"),
     ...regions,
     bandOf(timeline, "flow_control"),
@@ -354,7 +366,9 @@ describe("the elements of a named manifest with two groups", () => {
 
   it("list the title, the frames and the ungrouped roots", () => {
     const keys = manifestElements(manifest);
-    const onRecording = [3, 4].flatMap((n) => [
+    // The wedges and coordinate labels of `excerpt`'s `origin` and `length` where they mark
+    // another timeline: secondary coordinates.
+    const ofExcerpt = [3, 4].flatMap((n) => [
       id(`timestamp_${n}`),
       id(`timestamp_${n}`, "coordinate"),
     ]);
@@ -367,13 +381,13 @@ describe("the elements of a named manifest with two groups", () => {
       bandOf("recording", "children"),
       id("excerpt"),
       id("excerpt", "name"),
-      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }).slice(2),
+      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }, true).slice(2),
       bandOf("recording", "conversion_maps"),
       id("cmap_5"),
       bandOf("recording", "markers"),
       // `excerpt`'s `origin` and `length` (3, 4) lie on `recording` too: secondary coordinates in
       // its markers band here and on its ancestor line in `excerpt`'s card.
-      ...onRecording,
+      ...ofExcerpt,
       bandOf("recording", "regions"),
       bandOf("recording", "flow_control"),
       id("group_1"),
@@ -388,20 +402,19 @@ describe("the elements of a named manifest with two groups", () => {
       id("group_2"),
       id("group_2", "name"),
       id("page", "card"),
-      ...drawn("page", 5, { maps: [id("cmap_4")] }),
+      // `excerpt`'s `origin` and `length` are groupstamps: they cross `page`'s card too.
+      ...drawn("page", 5, { maps: [id("cmap_4")], crossing: ofExcerpt }),
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
-      id("excerpt", "start"),
-      id("excerpt", "start", "label"),
-      id("excerpt", "end"),
-      id("excerpt", "end", "label"),
-      ...onRecording,
-      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }),
+      ...ofExcerpt,
+      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }, true),
       id("annotations", "card"),
       ...drawn("annotations", 1, {
         regions: [id("region_1"), id("region_1", "label"), id("region_2"), id("region_2", "label")],
       }),
+      id("timestamp_3", "line"),
+      id("timestamp_4", "line"),
     ]);
     const same = (address: ElementAddress) => (item: { readonly address: ElementAddress }) =>
       JSON.stringify(item.address) === JSON.stringify(address);

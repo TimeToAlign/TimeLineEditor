@@ -130,7 +130,7 @@ export interface TargetOfKind {
 
 /**
  * The target an address names in `view`: `unknown_target` for a title,
- * cards, a band and a part, a default elision included (it is a part of its
+ * cards, a band and a part, a derived elision included (it is a part of its
  * timeline and has no stored object to change).
  */
 export function targetOf(view: View, address: Address): Target | CommandError {

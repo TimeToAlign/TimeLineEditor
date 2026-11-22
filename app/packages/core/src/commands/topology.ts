@@ -34,6 +34,7 @@ import {
   withKey,
 } from "./mutations.ts";
 import type { TimelineTarget } from "./targets.ts";
+import { withDefaultTimestamps } from "./timestamps.ts";
 
 /** The refusal of a child reaching past its parent's known length. */
 function exceedsParent(
@@ -377,7 +378,10 @@ function withGroup(manifest: Manifest, group: Group, next: Group): Manifest {
  * group holds or lies inside another (`nested_member`). A display order a
  * group states lists the member it gains last and loses the one that
  * leaves. The lock its new place decides is applied (a segment line that
- * becomes a member is locked).
+ * becomes a member is locked). A child timeline joining a group is given
+ * its `origin` and `length` as groupstamps (`withDefaultTimestamps`), so
+ * that their lines mark its start and end across the frame; only on
+ * joining, so one deleted later stays deleted.
  */
 export function setGroups(
   view: View,
@@ -408,6 +412,7 @@ export function setGroups(
   }
   const { ancestry } = indexOf(manifest);
   let next = manifest;
+  let joins = false;
   for (const group of manifest.groups) {
     const listed = named.includes(group.id);
     if (group.members.includes(id) === listed) continue;
@@ -416,6 +421,7 @@ export function setGroups(
       const nested = nestingProblem(group, [id], (member) => ancestry.get(member) ?? [], where);
       if (nested !== undefined) return nested;
     }
+    joins ||= listed;
     const members = listed
       ? [...group.members, id]
       : group.members.filter((member) => member !== id);
@@ -428,6 +434,7 @@ export function setGroups(
     const located = locateTimeline(next, id);
     if (located !== undefined) next = replaceTimeline(next, located, locked);
   }
+  if (joins && at.parent !== undefined) next = withDefaultTimestamps(next, locked, true);
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: next });
 }

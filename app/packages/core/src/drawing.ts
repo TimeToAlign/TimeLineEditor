@@ -41,10 +41,15 @@ export {
   selectorMatches,
   TIMESTAMP_LABELS,
   textKey,
-  timelineAncestry,
   unownedKey,
 } from "./manifest/elements.ts";
 export type { ElisionLabel } from "./manifest/elisions.ts";
-export { ELISION_LABELS, elisionsOn } from "./manifest/elisions.ts";
+export {
+  ELISION_LABELS,
+  elisionsOn,
+  elisionsUnder,
+  groupElisions,
+} from "./manifest/elisions.ts";
 export type { Ancestor, AncestorCard, GroupFrame, MemberDrawing } from "./manifest/files.ts";
 export { memberDrawings } from "./manifest/files.ts";
+export { timelineAncestry } from "./manifest/tree.ts";

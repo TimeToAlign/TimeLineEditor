@@ -1,7 +1,7 @@
 /**
  * The tree of a manifest's timelines: its roots and their descendants, the
  * one search through them, and what a timeline's place in it makes it (a
- * segment).
+ * segment, its ancestry, the groups it lies in).
  */
 
 import type { PathSegment } from "../json.ts";
@@ -91,4 +91,37 @@ export function isSegment(manifest: Manifest, id: string): boolean {
  */
 export function findTimeline(manifest: Roots, id: string): TimelineManifest | undefined {
   return locateTimeline(manifest, id)?.timeline;
+}
+
+/**
+ * Every timeline id mapped to the ids from its root down to it, for every
+ * root of the manifest; the length of the list is the timeline's depth.
+ */
+export function timelineAncestry(manifest: Manifest): Map<string, readonly string[]> {
+  const ancestry = new Map<string, readonly string[]>();
+  const collect = (timeline: TimelineManifest, path: readonly string[]) => {
+    const own = [...path, timeline.id];
+    ancestry.set(timeline.id, own);
+    for (const child of timeline.children) collect(child, own);
+  };
+  for (const root of manifest.timelines) collect(root, []);
+  return ancestry;
+}
+
+/**
+ * The groups of `manifest` having the timeline `timeline` as a member, in
+ * the order of `groups`: those whose `members` list it or one of its
+ * ancestors, since a member's descendants are drawn inside the member's
+ * card in the group's frame. An ancestor of a listed member is in none of
+ * them; a timeline the manifest does not hold is in none. `ancestry` is
+ * the manifest's `timelineAncestry`, given where the caller holds it.
+ */
+export function groupsHolding(
+  manifest: Manifest,
+  timeline: string,
+  ancestry: ReadonlyMap<string, readonly string[]> = timelineAncestry(manifest),
+): Manifest["groups"] {
+  const lineage = ancestry.get(timeline);
+  if (lineage === undefined) return [];
+  return manifest.groups.filter((group) => lineage.some((id) => group.members.includes(id)));
 }
