@@ -955,6 +955,85 @@ coordinate label at the root's end).
    `124.7578125 + 49.37890625 = 174.13671875` (TimeToShare's drawings
    README); with the card shown, the same two pieces `148.6318359375`
    further right, and none across the ancestor card.
+10. **No segment for an alignment anchor.** An ancestor card gives no
+   cross-section segment to an alignment anchor (sections 8.7, 8.8 point
+   5), though the named timestamps of its drawing are marked on its lines.
+   In `group_child_member_stamps` drawn with the defaults,
+   `timestampSegments(axes, timestamp_2)` is `middle`'s segment in its own
+   card alone, `{x: 311.70361328125 + 148.6318359375 = 460.33544921875,
+   y1: 67.78125, y2: 81.78125}` (TimeToShare's drawings README, moved by
+   the origin), though `middle`'s row in `piece`'s card holds `timestamp_2`
+   at 460.33544921875 too; the drawn `anchor_1` is the hiding layer's moved
+   by the origin. With `timestamp_2` moved onto the root `piece` at quarter
+   8 (the fixture with that one timestamp changed, validated), no line
+   drawn in a frame's card holds it (`piece` is there an ancestor line,
+   which has no segment), so `timestamp_2` has no segment and no
+   `alignment_anchor` element is drawn, with the defaults as with the
+   hiding layer: the ancestor card, which draws `piece`'s line and marks
+   `timestamp_2` on it, does not count.
+11. **`bundle_shared_parent`: one root behind two frames** (section 8.8,
+   Which). `score` (32 quarters) holds the members `exposition` (12 at 0)
+   of `group_1` and `recapitulation` (12 at 20) of `group_2`; no line runs
+   on to the left of `exposition`, but `score` does to the left of
+   `recapitulation`, so the block's one horizontal layout has the chevron
+   term: `N = w("Recapitulation", 11) = 14781 × 11 / 2048 =
+   79.39013671875`, `x0 = 16 + 79.39013671875 + 8 + 24 =
+   127.39013671875`, the frames at `x = P = 8`. The card's own name
+   column holds the row of `exposition` and `recapitulation`, named
+   together: `N' = w("Exposition, Recapitulation", 11) = 26701 × 11 /
+   2048 = 143.41357421875`, `s0' = 159.41357421875`; its right margin is
+   the half of `w("12 ♩", 9) = 18.55810546875` centred at
+   `recapitulation`'s end, which is `score`'s, `Mr = 9.279052734375`. In
+   binary64:
+   - behind `group_1` (aligned to `exposition`): `ts = 0`, `λ = 12`, `te =
+     32`, `us = 0`, `ue = 32 / 12 = 2.6666666666666665`, `xs = x0`, `xe =
+     x0 + 400 × ue = 1194.0568033854165`, `LA = 1066.6666666666665`; left
+     `8 + (xs − s0') = −24.0234375` (place), width `s0' + LA + Mr + 8 =
+     1243.3592936197915`;
+   - behind `group_2` (aligned to `recapitulation`): `ts = −20`, `te = 12`,
+     `us = −20 / 12 = −1.6666666666666667`, `ue = 1`, `xs = x0 + 400 × us
+     = −539.2765299479167`, `xe = 527.39013671875`, `LA =
+     1066.6666666666667`; left `8 + (xs − s0') = −690.6901041666667`, width
+     `1243.3592936197917`: the two widths differ in their last bit, each
+     card laid out with its own frame's proportions.
+   Vertically each card is `score` as the one ungrouped root of a block
+   holding nothing else (the fixture after core's `remove` of both groups,
+   both takes and `page`, at `L = LA`): `154.8828125` high, its line
+   `98.4296875` below its top; its line lies on `score`'s ancestor row in
+   its member's card, at `88.5859375` (`exposition`'s card) and
+   `305.7734375` (`recapitulation`'s), the ordinates of the drawing with the
+   hiding layer, whose place origin is the block's corner; so the tops lie
+   at `−9.84375` and `207.34375`. The block grows left to the second card,
+   `Xl = −698.6901041666667`, and up to the first, `Yt = −9.84375 − Pt =
+   −38.6484375` with `Pt = 28.8046875`, the first frame's top in the
+   drawing with the hiding layer: origin `(698.6901041666667,
+   38.6484375)`, `W = (8 + (−24.0234375 + 1243.3592936197915 + 2)) −
+   Xl = 1928.0259602864583`, `H = 537.4609375 + 38.6484375 = 576.109375`
+   (the hiding layer's height, its bottom unchanged). Records: two cards,
+   both addressed `{id: score, part: [card]}`, keyed `{item: group_1,
+   member: score}` at `(674.6666666666667, 28.8046875)` and `{item:
+   group_2, member: score}` at `(8, 245.9921875)`, carrying `ancestor
+   {group: group_1, member: exposition}` and `{group: group_2, member:
+   recapitulation}`. `lineAxes` lists `score`'s line in each, keyed by its
+   card: at `127.234375` from `834.0802408854167` to
+   `1900.7469075520833` and at `344.421875` from `167.41357421875` to
+   `1234.0802408854167` (`8 + xs` and `8 + xe` plus the origin), drawn
+   length 32 both.
+12. **The hover readers answer for a card's line.** `crossSection`,
+   `crossedLines` and `wedgeAt` read an ancestor card's lines by their
+   keys as any card's. In `group_parent_both` (point 2), at `x =
+   460.33544921875`: `piece`'s line in the card crosses its children band,
+   from the row of `middle` less its half pitch, `33.8046875 − 7 =
+   26.8046875` (the card's top plus `P`), to its line, `67.78125`, in the
+   style of the defaults' unnamed cross-section line (stroke `#1BA1E2`,
+   width 1, dashes `3 3`); `crossedLines` is `piece`'s key then `middle`'s
+   in the card; the wedge in `piece`'s markers band below the line, from
+   `c = 0`, its tip at `67.78125 + 1.5 = 69.28125`, its base corners at `x
+   ∓ 3` and `69.28125 + 13 = 82.28125`, styled as `middle`'s wedge in its
+   member card (the same defaults and domain, turned 0). `middle`'s line in
+   the card has no band its cross-section line could cross: `crossSection`
+   is null there, `crossedLines` is its key alone, and `wedgeAt` has its
+   tip at `33.8046875 + 1.5 = 35.3046875` and its base at `48.3046875`.
 
 ## Named timestamps (`timestamps.test.ts`)
 

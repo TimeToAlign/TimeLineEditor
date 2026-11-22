@@ -214,12 +214,13 @@ export function crossSectionSegment(
  * lines `axes` (section 8.7): one in every member drawing that draws its
  * timeline's line, or its segment line's for a segment without a line of its
  * own, in the order of the lines, which is the order of their descriptors;
- * none where no line drawn holds it.
+ * none in an ancestor card, which gives an alignment anchor no segment
+ * (section 8.8), and none where no other line drawn holds it.
  */
 export function timestampSegments(axes: readonly DrawnAxis[], id: string): CrossSectionSegment[] {
   return axes.flatMap((axis) => {
     const { marker } = axis;
-    if (marker === null) return [];
+    if (marker === null || axis.ancestor !== undefined) return [];
     return marker.timestamps.flatMap((timestamp) =>
       timestamp.id === id ? [segmentAt(axis, marker, timestamp.x)] : [],
     );
