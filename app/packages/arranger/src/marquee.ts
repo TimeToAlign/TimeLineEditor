@@ -166,7 +166,7 @@ export function elementsInRect(
     if (!counted(index) || isContainerAddress(drawing, address)) return;
     if (inside.has(addressKey(address))) take(address, elementBounds(element, measure));
   });
-  const affordances = affordancesOf(block.manifest, drawing);
+  const affordances = affordancesOf(block.manifest, drawing, raised);
   const lines = affordances.length === 0 || behind.length === 0 ? null : lineAxes(drawing);
   for (const { address, line, points } of affordances) {
     const axis = lines?.get(line);

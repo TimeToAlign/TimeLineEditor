@@ -1726,7 +1726,13 @@ each result an address in block A, written below by its element address:
   affordance lies there, behind the frame. A rectangle over the whole
   drawing takes the ten timestamps `timestamp_1` to `timestamp_10` and not
   `timestamp_11`; in `recording`'s editor it takes `timestamp_3`,
-  `timestamp_4` and `timestamp_11`.
+  `timestamp_4` and `timestamp_11`. The node's `inside` (the projection's
+  `insideOf`) and the marquee read the affordances with the root the
+  node's editor raises, as the block node draws them, so what the marquee
+  can take is what is drawn: `timestamp_11` is inside the node only in
+  `recording`'s editor. What would be wrong: the marquee reading the
+  affordances of nothing raised while the node draws the raised ones (an
+  affordance drawn on the raised card that no marquee takes).
 - A named timestamp that draws nothing is taken by its affordance (its
   bounds those of the affordance's three points, `affordancesOf`), whole,
   as one address: on `timestamps`
@@ -2994,7 +3000,22 @@ screen position chosen for the case or a value derived above.
    under reduced motion; the dragged card's own elements, hidden under its
    copy, never slide (the 15 of `score`'s card), so the card always lies
    where it drops.
-8. **The toolbars' keys.** On a toolbar of `a`, `b` (disabled) and `c`,
+8. **An affordance follows the raised card.** The node draws the
+   affordances of the named timestamps displaying nothing at their places
+   with the root its editor raises (`affordancesOf` with `raisedRoot` of
+   its block and editor), the one rule the pin mark, Show matches and the
+   marquee read. On `group_parent_both` with a named timestamp `Blank` on
+   `piece` at 3 quarters displaying nothing (its place lies where
+   `group_1`'s frame covers `piece`'s ancestor card and no ancestor line
+   runs: "Show coordinates", the place rule): on the arranger the node
+   draws no `.tilie-timestamp-affordance`; with `piece`'s timeline editor
+   open (its card raised) it draws exactly one, `data-affordance` the
+   timestamp's key, on the card's line at the points `wedgeAt` gives
+   there, `210.3354,69.2812 207.3354,82.2812 213.3354,82.2812`, not
+   `data-outside` (it belongs to `piece`). What would be wrong: no
+   affordance on the raised card, or one drawn on the covered card on the
+   arranger.
+9. **The toolbars' keys.** On a toolbar of `a`, `b` (disabled) and `c`,
    the arrows move the focus and the tab stop past `b` and wrap, Home and
    End go to the ends, a vertical toolbar uses Up and Down instead, and a
    disabled or detached button hands the tab stop on.

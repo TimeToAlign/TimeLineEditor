@@ -251,26 +251,34 @@ function sameCoordinate(left: StampCoordinate, right: StampCoordinate): boolean 
 
 type Pair = readonly [StampCoordinate, StampCoordinate];
 
-/** `pair` in screen order (the arranger's `screenOrder` in `drawing`): its upper coordinate first, the left one on one line. */
-function pairInScreenOrder(drawing: Drawing, [left, right]: Pair): Pair {
-  return screenOrder(screenPlace(drawing, right), screenPlace(drawing, left)) < 0
-    ? [right, left]
-    : [left, right];
+/**
+ * `pair` in screen order (the arranger's `screenOrder` in `drawing`, `raised`
+ * naming the root whose ancestor cards are raised, `raisedRoot`, else
+ * `null`): its upper coordinate first, the left one on one line.
+ */
+function pairInScreenOrder(drawing: Drawing, [left, right]: Pair, raised: string | null): Pair {
+  const place = (coordinate: StampCoordinate) => screenPlace(drawing, coordinate, raised);
+  return screenOrder(place(right), place(left)) < 0 ? [right, left] : [left, right];
 }
 
 /**
- * `pairs` in screen order in `drawing`: each pair its upper coordinate
- * first (the left one on one line), the pairs by their first coordinate,
- * then their second; pairs at one place keep the given order.
+ * `pairs` in screen order in `drawing` under `raised` (`pairInScreenOrder`):
+ * each pair its upper coordinate first (the left one on one line), the
+ * pairs by their first coordinate, then their second; pairs at one place
+ * keep the given order.
  */
-function pairsInScreenOrder(drawing: Drawing, pairs: readonly Pair[]): Pair[] {
+function pairsInScreenOrder(
+  drawing: Drawing,
+  pairs: readonly Pair[],
+  raised: string | null,
+): Pair[] {
   return pairs
     .map((given) => {
-      const pair = pairInScreenOrder(drawing, given);
+      const pair = pairInScreenOrder(drawing, given, raised);
       return {
         pair,
-        first: screenPlace(drawing, pair[0]),
-        second: screenPlace(drawing, pair[1]),
+        first: screenPlace(drawing, pair[0], raised),
+        second: screenPlace(drawing, pair[1], raised),
       };
     })
     .sort(
@@ -327,12 +335,18 @@ function claimIds(index: AnchorIndex, anchors: ArrayLike<number>): string[] {
   return Array.from(claimRowsOf(index, anchors), (row) => index.columns.claimIds[row] as string);
 }
 
-/** The potential MatchStamp `matchStamp` of `index`, in block `block` drawn as `drawing`. */
+/**
+ * The potential MatchStamp `matchStamp` of `index`, in block `block` drawn
+ * as `drawing`, in screen order there, `raised` naming the root whose
+ * ancestor cards the open editor raises (the arranger's `raisedRoot`), else
+ * `null`.
+ */
 export function potentialStamp(
   block: string,
   index: AnchorIndex,
   matchStamp: number,
   drawing: Drawing,
+  raised: string | null = null,
 ): ShownStamp {
   const anchors = matchStampAnchors(index, matchStamp);
   const members = Array.from(matchStampMembers(index, matchStamp), (c) =>
@@ -342,8 +356,8 @@ export function potentialStamp(
     block,
     id: null,
     name: null,
-    coordinates: inScreenOrder(drawing, members, (coordinate) => coordinate),
-    anchors: pairsInScreenOrder(drawing, indexPairs(index, anchors)).map((coordinates) => ({
+    coordinates: inScreenOrder(drawing, members, (coordinate) => coordinate, raised),
+    anchors: pairsInScreenOrder(drawing, indexPairs(index, anchors), raised).map((coordinates) => ({
       key: JSON.stringify(coordinates.map((c) => [c.timeline, String(c.value)])),
       id: null,
       coordinates,
@@ -356,8 +370,9 @@ export function potentialStamp(
 
 /**
  * The named MatchStamp `matchstamp` of `manifest`, in block `block` drawn
- * as `drawing`, its anchors in the manifest's order, each stated or not as
- * `comparison` (the current table's) says; `null` without a table.
+ * as `drawing` (in screen order under `raised`, as `potentialStamp`), its
+ * anchors in the manifest's order, each stated or not as `comparison` (the
+ * current table's) says; `null` without a table.
  */
 export function namedStamp(
   block: string,
@@ -365,6 +380,7 @@ export function namedStamp(
   matchstamp: NamedMatchStamp,
   comparison: MatchStampCheck | null,
   drawing: Drawing,
+  raised: string | null = null,
 ): ShownStamp {
   const spec = matchStampSpec(manifest, matchstamp);
   const anchors = matchstamp.alignment_anchors.map((anchor, at): StampAnchor => {
@@ -373,7 +389,7 @@ export function namedStamp(
     return {
       key: anchor.id,
       id: anchor.id,
-      coordinates: pairInScreenOrder(drawing, coordinates),
+      coordinates: pairInScreenOrder(drawing, coordinates, raised),
       display: anchor.display,
       stated: comparison === null ? null : comparison.stated[at] !== null,
     };
@@ -388,7 +404,7 @@ export function namedStamp(
     block,
     id: matchstamp.id,
     name: matchstamp.name,
-    coordinates: inScreenOrder(drawing, unique, (coordinate) => coordinate),
+    coordinates: inScreenOrder(drawing, unique, (coordinate) => coordinate, raised),
     anchors,
     claims: matchstamp.match_claims,
   };
@@ -401,12 +417,14 @@ export function namedStamp(
  * whole MatchStamp the table states and is not out of date the moment it
  * is named (the timelines filter limits what is shown, never what is
  * stated). `stamp` itself where both indexes are one, or where the compared
- * index does not hold its coordinate.
+ * index does not hold its coordinate; in screen order under `raised`, as
+ * `potentialStamp`.
  */
 export function stampToName(
   stamp: ShownStamp,
   indexes: MatchIndexes,
   drawing: Drawing,
+  raised: string | null = null,
 ): ShownStamp {
   const [first] = stamp.coordinates;
   if (indexes.shown === indexes.compared || first === undefined) return stamp;
@@ -415,7 +433,7 @@ export function stampToName(
   const matchStamp = coordinate < 0 ? undefined : compared.matchStamps.of[coordinate];
   return matchStamp === undefined
     ? stamp
-    : potentialStamp(stamp.block, compared, matchStamp, drawing);
+    : potentialStamp(stamp.block, compared, matchStamp, drawing, raised);
 }
 
 /**
@@ -702,7 +720,8 @@ export function anchorDisplayCommand(
 /**
  * The `set` updating the named MatchStamp `id` of block `block` from the
  * current potential MatchStamp `update` of `index` (core's comparison): its
- * anchors in screen order and the MatchClaims behind them, in one entry.
+ * anchors in screen order (under `raised`, as `potentialStamp`) and the
+ * MatchClaims behind them, in one entry.
  */
 export function updateCommand(
   block: string,
@@ -710,8 +729,9 @@ export function updateCommand(
   update: MatchStampUpdate,
   index: AnchorIndex,
   drawing: Drawing,
+  raised: string | null = null,
 ): Command {
-  const anchors = pairsInScreenOrder(drawing, indexPairs(index, update.anchors));
+  const anchors = pairsInScreenOrder(drawing, indexPairs(index, update.anchors), raised);
   return {
     type: "set",
     changes: [

@@ -5,7 +5,7 @@ import { addressKey, contains } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { affectedBy } from "./affected.ts";
-import { affordancesOf } from "./coordinates.ts";
+import { affordancesOf, raisedRoot } from "./coordinates.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts, sameEditing } from "./editing.ts";
@@ -16,38 +16,46 @@ const NO_ELEMENTS: ReadonlySet<string> = new Set();
 
 const NOTHING: ReadonlyMap<string, ElementAddress> = new Map();
 
-const insides = new WeakMap<Drawing, Map<string | null, ReadonlySet<string>>>();
+const insides = new WeakMap<Drawing, Map<string | null, Map<string | null, ReadonlySet<string>>>>();
 
 /**
  * The keys of the element addresses `drawing` draws inside `element`, the ID
  * of a group or a timeline of `manifest` (core's `contains`), or of every
  * address it draws but the block's background when `element` is `null`, the
  * whole block; a named timestamp that draws nothing counts as drawn where
- * the canvas shows it in its place (`affordancesOf`). Memoized by the
- * drawing and the element, so an unchanged node keeps the identical set.
+ * the canvas shows it in its place (`affordancesOf`, `raised` naming the
+ * root whose ancestor cards are raised, `raisedRoot`, else `null`, as the
+ * block node draws them). Memoized by the drawing, the element and the
+ * root, so an unchanged node keeps the identical set.
  */
 export function insideOf(
   manifest: Manifest,
   drawing: Drawing,
   element: string | null,
+  raised: string | null = null,
 ): ReadonlySet<string> {
   let byElement = insides.get(drawing);
   if (byElement === undefined) {
     byElement = new Map();
     insides.set(drawing, byElement);
   }
-  let found = byElement.get(element);
+  let byRoot = byElement.get(element);
+  if (byRoot === undefined) {
+    byRoot = new Map();
+    byElement.set(element, byRoot);
+  }
+  let found = byRoot.get(raised);
   if (found === undefined) {
     const shown = [
       ...drawing.elements.flatMap((drawn) => (drawn.type === "block" ? [] : [drawn.address])),
-      ...affordancesOf(manifest, drawing).map(({ address }) => address),
+      ...affordancesOf(manifest, drawing, raised).map(({ address }) => address),
     ];
     found = new Set(
       shown
         .filter((address) => element === null || contains(manifest, element, address))
         .map(addressKey),
     );
-    byElement.set(element, found);
+    byRoot.set(raised, found);
   }
   return found;
 }
@@ -106,7 +114,8 @@ function elementsByBlock(selection: Selection): Map<string, Map<string, ElementA
  * `editing`, the innermost open editor, every node of another block is
  * outside it: not selectable, not draggable and of class `tilie-outside`;
  * the edited block's node is not draggable either, its `inside` naming what
- * the editor edits. A node of `previous` whose block, drawing, position,
+ * the editor edits, read with the root the editor raises (`raisedRoot`), so
+ * it names what the node draws. A node of `previous` whose block, drawing, position,
  * rank, selection and editor are unchanged is returned as the same object,
  * so Svelte Flow skips it.
  */
@@ -130,7 +139,12 @@ export function project(
     const outside = edited !== null && edited.block !== block.id;
     const inside = outside
       ? NO_ELEMENTS
-      : insideOf(block.manifest, drawing, edited === null ? null : (edited.element?.id ?? null));
+      : insideOf(
+          block.manifest,
+          drawing,
+          edited === null ? null : (edited.element?.id ?? null),
+          raisedRoot(block, editing),
+        );
     const selected = isSelected(selection, { block: block.id });
     const selectedElements = elements.get(block.id) ?? NOTHING;
     const prior = before.get(block.id);

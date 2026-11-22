@@ -1072,3 +1072,31 @@ describe("bands in the timeline editor", () => {
     }
   });
 });
+
+describe("an affordance in a stretch the frames cover", () => {
+  /** `group_parent_both` with a named timestamp `Blank` on `piece` at 3 quarters displaying nothing. */
+  const view = changed(viewOf({ id: A, fixture: "groups/group_parent_both" }), {
+    type: "add",
+    into: inA(idAddress("piece")),
+    timestamp: { name: "Blank", coordinate: [3, 1], display: [] },
+  });
+  const PIECE: Editing = { target: inA(idAddress("piece")), kind: "timeline" };
+  const affordances = (svg: SVGSVGElement) =>
+    Array.from(svg.querySelectorAll(".tilie-timestamp-affordance"), (polygon) => [
+      polygon.getAttribute("data-affordance"),
+      polygon.getAttribute("points"),
+      polygon.hasAttribute("data-outside"),
+    ]);
+
+  it("is drawn on the ancestor card's line only while the card is raised", () => {
+    const id = blockIn(view, A).manifest.graphical?.timestamps?.find(
+      (item) => item.name === "Blank",
+    )?.id;
+    if (id === undefined) throw new Error("no timestamp named");
+    expect(affordances(mountOn(view, A, null).svg)).toEqual([]);
+    clear();
+    expect(affordances(mountOn(view, A, PIECE).svg)).toEqual([
+      [addressKey(idAddress(id)), "210.3354,69.2812 207.3354,82.2812 213.3354,82.2812", false],
+    ]);
+  });
+});
