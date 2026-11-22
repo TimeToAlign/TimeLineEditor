@@ -342,7 +342,10 @@ export function heldPinOf(
  * arranger's `timelinePin`: its ancestors and the timelines its line
  * crosses), the block drawn with `metrics` under the view's granularity and
  * with the MeasureMap rows `knotsOf` gives (no server without it), on the
- * lines the canvas shows while `editing` is open, as `namedPinOf` reads.
+ * lines the canvas shows while `editing` is open, as `namedPinOf` reads, and
+ * by the group where a fresh reading there reads one (core's
+ * `groupstampByDefault`: a group member's above a timeline editor), so the
+ * pin reads alike whichever editors were open before.
  * `null` for any other address, a timeline the manifest does not hold, and
  * the end of a timeline whose length is not known.
  */
@@ -372,8 +375,9 @@ export function boundaryPinOf(
     position,
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
-    false,
+    groupstampByDefault(block.manifest, timeline.id, editing?.kind ?? null),
     raisedRoot(block, editing),
+    null,
   );
 }
 

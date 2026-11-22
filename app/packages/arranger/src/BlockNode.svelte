@@ -20,13 +20,14 @@ import {
   keyedBox,
   NO_HOVER,
   offeredBands,
+  raisedRoot,
   roleOf,
   shapeBox,
   showsContainedSelection,
   showsSelection,
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
-import { affordancesOf, raisedRoot } from "./coordinates.ts";
+import { affordancesOf } from "./coordinates.ts";
 import { raisedEntries } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import type { GestureOptions } from "./gesture.ts";

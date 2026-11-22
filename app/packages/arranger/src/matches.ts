@@ -20,6 +20,7 @@
 import type {
   AnchorBelief,
   AnchorIndex,
+  Granularity,
   Manifest,
   MatchStampCheck,
   TimelineManifest,
@@ -49,7 +50,7 @@ import {
   lineAxes,
 } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
-import { placesAt, seenOn } from "./coordinates.ts";
+import { placesAt, seenOn, timelinePin } from "./coordinates.ts";
 import type { Point } from "./gesture.ts";
 
 /**
@@ -204,10 +205,10 @@ const linesByDrawing = new WeakMap<
  * The lines of `drawing` holding a timeline of `index` (matched by ID), once
  * per drawing, index and raised root: for every timeline the parts of the
  * lines it is seen on (`seenOn`, `raised` the root whose ancestor cards are
- * raised, `raisedRoot` of the block's editor, none by default: an
- * ancestor card's line only for a timeline no other line holds, and there
- * only beyond the frames and member cards drawn over it, its ancestor lines
- * in its members' cards in between), in the drawing's order of its lines, a
+ * raised, `raisedRoot` of the block's editor, none by default: every line
+ * of the timeline, an ancestor card's below the frames only beyond the
+ * frames and cards drawn over it, its ancestor lines in its members' cards
+ * in between), in the drawing's order of its lines, a
  * timeline of the index before a later one on one line, the parts of one
  * line left to right. A line of its own draws its drawn span; a segment's
  * line the part of it the segment covers; a part of a line the positions
@@ -567,9 +568,14 @@ export function matchHitAt(
   return best;
 }
 
-/** One timestamp of a MatchStamp's flag: its coordinate's number and value as the flag writes it. */
+/**
+ * One timestamp of a MatchStamp's flag: its key among the rows, its
+ * coordinate's number in the index (`null` for a coordinate a groupstamp
+ * reads on another member of its group) and its value as the flag writes it.
+ */
 export interface MatchFlagRow {
-  readonly coordinate: number;
+  readonly key: string;
+  readonly coordinate: number | null;
   readonly text: string;
 }
 
@@ -578,6 +584,17 @@ export interface MatchFlagGroup {
   readonly timeline: string;
   readonly name: string;
   readonly rows: readonly MatchFlagRow[];
+}
+
+/**
+ * How a MatchStamp's flag reads its groupstamps: in block `block`, read
+ * with `granularity`, each coordinate `groupstampAt` says naming would
+ * store as a groupstamp (`namedGroupstamps`) read across its groups.
+ */
+export interface FlagGroups {
+  readonly block: string;
+  readonly granularity: Granularity;
+  readonly groupstampAt: GroupstampAt;
 }
 
 /** A coordinate as screen order reads it: a timeline's ID and a value on that timeline's own axis. */
@@ -642,13 +659,20 @@ export function inScreenOrder<T>(
 }
 
 /**
- * The flag of the potential MatchStamp `stamp`: one group per timeline,
- * named as `manifest` names it (its ID where it holds none), each of its
- * coordinates a row written as core's `prettyText` with `decimals` places,
- * in the timeline's unit; groups and rows in screen order (`inScreenOrder`
- * over the drawing `lines` were read from, with the root raised as they
- * were read, a group by its first row), what
- * the block does not draw last, in the index's order.
+ * The flag of the potential MatchStamp `stamp`: every coordinate of it, and
+ * with `groups` (above a timeline editor) every coordinate its groupstamps
+ * read on the other members of their groups (`groups.groupstampAt`: the
+ * scaled members of the coordinate's GroupStamp pin, the arranger's
+ * `timelinePin` read by the group, as the Matchstamp tab's Coordinates
+ * read it), each value once per timeline. One group per timeline, named as
+ * `manifest` names it (its ID where it holds none), each coordinate a row
+ * written as core's `prettyText` with `decimals` places, in the timeline's
+ * unit; rows in the order they are drawn, top to bottom, then left to right
+ * (a coordinate of the stamp at its `screenPlace` over the drawing `lines`
+ * were read from, with the root raised as they were read; a groupstamp's at
+ * the ordinate its pin reads the member at, on its coordinate's abscissa),
+ * what the block does not draw last, in the index's order; groups by their
+ * first row.
  */
 export function matchFlag(
   index: AnchorIndex,
@@ -656,34 +680,83 @@ export function matchFlag(
   lines: MatchLines,
   stamp: number,
   decimals: number,
+  groups: FlagGroups | null = null,
 ): MatchFlagGroup[] {
-  const members = inScreenOrder(
-    lines.drawing,
-    [...matchStampMembers(index, stamp)],
-    (c) => ({
-      timeline: index.columns.timelines[index.coordinates.timeline[c] as number]?.id ?? "",
-      value: coordinateValue(index, c),
-    }),
-    lines.raised,
-  );
-  const groups = new Map<number, MatchFlagRow[]>();
+  const { drawing, raised } = lines;
+  const rows: { timeline: string; row: MatchFlagRow; place: Point | null }[] = [];
+  const known = new Set<string>();
+  const add = (
+    timeline: string,
+    value: CoordinateValue,
+    row: MatchFlagRow,
+    place: Point | null,
+  ) => {
+    const key = JSON.stringify([timeline, toRational(value).toString()]);
+    if (known.has(key)) return;
+    known.add(key);
+    rows.push({ timeline, row, place });
+  };
+  const members = [...matchStampMembers(index, stamp)];
+  const reads: (() => void)[] = [];
   for (const coordinate of members) {
-    const timeline = index.coordinates.timeline[coordinate] as number;
-    const claimed = index.columns.timelines[timeline];
-    const found: TimelineManifest | undefined =
-      claimed === undefined ? undefined : findTimeline(manifest, claimed.id);
+    const claimed = index.columns.timelines[index.coordinates.timeline[coordinate] as number];
+    const timeline = claimed?.id ?? "";
+    const found: TimelineManifest | undefined = findTimeline(manifest, timeline);
+    const value = coordinateValue(index, coordinate);
+    const place = screenPlace(drawing, { timeline, value }, raised);
     const text = prettyText(
-      coordinateValue(index, coordinate),
+      value,
       found?.number_type ?? claimed?.numberType ?? "float",
       found?.unit ?? null,
       decimals,
     );
-    groups.set(timeline, [...(groups.get(timeline) ?? []), { coordinate, text }]);
+    add(timeline, value, { key: String(coordinate), coordinate, text }, place);
+    if (groups === null || !groups.groupstampAt(coordinate)) continue;
+    reads.push(() => {
+      const pin = timelinePin(
+        manifest,
+        groups.block,
+        drawing,
+        timeline,
+        toRational(value),
+        groups.granularity,
+        "no_server",
+        true,
+        raised,
+        null,
+      );
+      const scaled = new Map(
+        (pin?.spec.members ?? []).flatMap((member) =>
+          member.scale === undefined ? [] : [[member.timeline, member] as const],
+        ),
+      );
+      for (const part of pin?.timestamp.parts ?? []) {
+        const member = scaled.get(part.timeline);
+        if (member === undefined) continue;
+        const at =
+          place === null || member.ordinate === undefined
+            ? null
+            : { x: place.x, y: member.ordinate };
+        const row = {
+          key: `${part.timeline} ${toRational(part.position).toString()}`,
+          coordinate: null,
+          text: prettyText(part.position, part.numberType, part.unit, decimals),
+        };
+        add(part.timeline, part.position, row, at);
+      }
+    });
   }
-  return [...groups].map(([timeline, rows]) => {
-    const id = index.columns.timelines[timeline]?.id ?? "";
-    return { timeline: id, name: findTimeline(manifest, id)?.name ?? id, rows };
-  });
+  for (const read of reads) read();
+  rows.sort((left, right) => screenOrder(left.place, right.place));
+  const byTimeline = new Map<string, MatchFlagRow[]>();
+  for (const { timeline, row } of rows) {
+    byTimeline.set(timeline, [...(byTimeline.get(timeline) ?? []), row]);
+  }
+  return [...byTimeline].map(([timeline, found]) => ({
+    timeline,
+    name: findTimeline(manifest, timeline)?.name ?? timeline,
+    rows: found,
+  }));
 }
 
 /** A part of a MatchStamp shown in one colour: its connectors by belief, with the lines in blue. */

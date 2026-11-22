@@ -9,6 +9,7 @@ import type { AnchorIndex, Manifest } from "@timetoalign/tilie-core";
 import {
   addressKey,
   anchorIndexOf,
+  DEFAULT_GRANULARITY,
   idAddress,
   inBlock,
   matchClaimColumns,
@@ -20,7 +21,8 @@ import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
 import { groupCrossSections, lineAxes } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { raisedRoot, seenOn } from "../src/coordinates.ts";
+import { raisedRoot } from "../src/boxes.ts";
+import { seenOn } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { MatchLines, MatchOverlay, Screen, ScreenCoordinate } from "../src/matches.ts";
 import {
@@ -757,24 +759,77 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
 });
 
 describe("the flag", () => {
+  /** A row of a coordinate of the index. */
+  const row = (coordinate: number, text: string) => ({ key: String(coordinate), coordinate, text });
+
   it("groups by timeline in screen order, what is not drawn last", () => {
     expect(matchFlag(T, manifest, linesOf(T), 0, 3)).toEqual([
-      { timeline: "score", name: "Score", rows: [{ coordinate: 2, text: "6 ♩" }] },
+      { timeline: "score", name: "Score", rows: [row(2, "6 ♩")] },
       {
         timeline: "take_1",
         name: "Take 1",
-        rows: [
-          { coordinate: 4, text: "176 400 smp" },
-          { coordinate: 5, text: "264 600 smp" },
-        ],
+        rows: [row(4, "176 400 smp"), row(5, "264 600 smp")],
       },
-      { timeline: "take_2", name: "Take 2", rows: [{ coordinate: 0, text: "297 675 smp" }] },
-      { timeline: "other", name: "other", rows: [{ coordinate: 6, text: "0.5" }] },
+      { timeline: "take_2", name: "Take 2", rows: [row(0, "297 675 smp")] },
+      { timeline: "other", name: "other", rows: [row(6, "0.5")] },
     ]);
     expect(matchFlag(T, manifest, linesOf(T), 1, 3)).toEqual([
-      { timeline: "score", name: "Score", rows: [{ coordinate: 1, text: "4 ♩" }] },
-      { timeline: "take_1", name: "Take 1", rows: [{ coordinate: 3, text: "88 200 smp" }] },
+      { timeline: "score", name: "Score", rows: [row(1, "4 ♩")] },
+      { timeline: "take_1", name: "Take 1", rows: [row(3, "88 200 smp")] },
     ]);
+  });
+
+  describe("of a MatchStamp crossing groupstamps", () => {
+    const grouped = viewOf({ id: A, fixture: GROUPSTAMP_FIXTURE, x: 40, y: 80 });
+    const block = blockIn(grouped, A);
+    const drawing = drawingOf(block, grouped.graphical, metrics);
+    const lines = matchLinesOf(drawing, G);
+    const groups = {
+      block: A,
+      granularity: DEFAULT_GRANULARITY,
+      groupstampAt: namedGroupstamps(block.manifest, G),
+    };
+    /** A row a groupstamp reads on another member: its timeline and exact value as its key. */
+    const read = (timeline: string, value: string, text: string) => ({
+      key: `${timeline} ${value}`,
+      coordinate: null,
+      text,
+    });
+    const flagOf = (stamp: number, reading: typeof groups | null) =>
+      matchFlag(G, block.manifest, lines, stamp, 3, reading).map(({ timeline, rows }) => [
+        timeline,
+        rows,
+      ]);
+
+    it("lists every coordinate its groupstamps read, in the order they are drawn", () => {
+      expect(flagOf(0, groups)).toEqual([
+        ["score", [row(0, "4 ♩")]],
+        ["performance", [row(2, "1″"), read("performance", "2", "2″")]],
+        ["page", [read("page", "400", "400 px")]],
+      ]);
+      expect(flagOf(1, groups)).toEqual([
+        ["score", [row(1, "6 ♩"), read("score", "4", "4 ♩")]],
+        ["performance", [read("performance", "3", "3″")]],
+        ["second-half", [read("second-half", "0", "0 ♩")]],
+        ["page", [row(5, "400 px"), read("page", "600", "600 px")]],
+      ]);
+      expect(flagOf(2, groups)).toEqual([
+        ["second-half", [row(4, "2 ♩")]],
+        ["score", [read("score", "6", "6 ♩")]],
+        ["performance", [row(3, "3″")]],
+      ]);
+    });
+
+    it("lists the MatchStamp's own coordinates alone inside a timeline editor", () => {
+      expect(flagOf(0, null)).toEqual([
+        ["score", [row(0, "4 ♩")]],
+        ["performance", [row(2, "1″")]],
+      ]);
+      expect(flagOf(1, null)).toEqual([
+        ["score", [row(1, "6 ♩")]],
+        ["page", [row(5, "400 px")]],
+      ]);
+    });
   });
 });
 

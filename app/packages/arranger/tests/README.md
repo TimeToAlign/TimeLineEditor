@@ -840,21 +840,17 @@ coordinates are layout's.
 - **What each descriptor draws** comes from its source alone: on
   `segment_line` the block (address `{}`), the card's shadow, the card and
   the three boundaries; on `group_child_member`, as the defaults draw it,
-  the block (descriptor 0), the ancestor card of `piece` `{id: "piece",
+  the roles of the descriptors 0, 1, 2, 15, 17, 18, 36 and 37 are
+  asserted: the block (0), the ancestor card of `piece` `{id: "piece",
   part: ["card"]}`, its shadow (1) and its own rectangle (2), drawn after
   the block's background and before the frame (section 8.8), then the
   frame (15), `second-half`'s shadow and card (17, 18) and `recording`'s
-  (36, 37). Between them, the twelve descriptors of `piece`'s member
-  drawing in its ancestor card (3 to 14): `piece`'s line, its start circle
-  and its arrowhead, `second-half`'s child row likewise (line, start
-  circle, arrowhead), the wedges of `second-half`'s `origin` and `length`,
-  the names `Second half` and `Piece` and the two coordinate labels; the
-  frame's title is 16, and each card then draws what it draws without the
-  ancestor card (the 17 descriptors 19 to 35 of `second-half`'s, the
-  shadow and the card of `recording` before its own), every index 14
-  further than without it (the frame was 1, the cards' shadows 3 and 22).
-  With the cards hidden: the block, the ancestor card's shadow and
-  rectangle (1, 2) and the frame (15) only.
+  (36, 37). These indices follow from what lies between, which is not
+  asserted descriptor by descriptor: the twelve descriptors of `piece`'s
+  member drawing in its ancestor card (3 to 14), the frame's title (16),
+  the 17 descriptors of `second-half`'s card (19 to 35). With the cards
+  hidden: the block, the ancestor card's shadow and rectangle (1, 2) and
+  the frame (15) only.
 - **What a press selects** is what it hit, inside what the level offers:
   on the arranger a card selects `{block: A, id: "recording", part:
   ["card"]}`, the frame `{block: A, id: "group_1"}`, the background
@@ -1690,8 +1686,15 @@ raised, that is while the timeline editor of its root is open (the
 canvas then shows it over every frame): otherwise it lies behind the
 frames, and the marquee reads the drawings outside ancestor cards alone,
 so an address drawn there and in the card is taken by its drawings
-outside, and one drawn only in the card is never taken. While the card is
-raised, its drawings count as any other, inside the edited element. On
+outside, and one drawn only in the card is never taken (an affordance on
+the card's lines included). This is the one stated exception to "a
+coordinate is placed wherever it is seen" (above, "Show coordinates"): a
+marquee selects addresses, not places, and what an unraised card alone
+shows beside the frames is taken once the card is raised; which drawings
+lie below the frames is the stacking's (`stackingOf`, the order the
+block node shows them in), read for elements and affordance lines alike.
+While the card is raised, its drawings count as any other, inside the
+edited element. On
 `mixed` with the region `region_3` (0 to 10 samples) on `excerpt` and the
 map `cmap_7` on `dlt_1` (`region_1` and `cmap_3` are taken: an ID is
 unique across the manifest), at (40, 80), drawn with the defaults, so
@@ -1939,9 +1942,8 @@ card. The timestamp is the ancestor's, so a click pins and naming names
 what they do on the ancestor's own line; and as there, the reading holds
 no group (the ancestor is no member: a group is read only from the lines
 of its members, `holds` naming the hovered timeline). What would be
-wrong: nothing read there (the former rule, under which a name label
-lying on such a line silenced the reading), the member's timestamp
-instead of the ancestor's, or the ancestor read without the member. On
+wrong: nothing read there (a name label lying on such a line silencing
+the reading), the member's timestamp instead of the ancestor's, or the ancestor read without the member. On
 `group_parent_both`'s ancestor line at a quarter, the middle and three
 quarters of its span (x 360.33544921875, 460.33544921875,
 560.33544921875, y 67.78125, the arranger, nothing raised): `p` = 4 +
@@ -2000,20 +2002,27 @@ grandchild's two lines confused), the parts in another order than the
 lines lie in the card, the covered card row read through the frame, an
 unknown length or a scale breaking the abscissas.
 
-**A covered line is not read** (`coveredIn`, `raisedRoot`). An ancestor
-card is drawn first, behind every frame and every card the block holds,
-so a line of it is read only where no such box drawn above it holds the
-pointer: beyond the frame's borders, never inside the frame or a member
-card, where only their own lines are read. While the card is raised (a
-timeline editor open on a timeline of its root that is no group member
-and lies in no member, the rule the block node raises the cards by:
-`raisedRoot` gives the root, else `null`), its lines are read everywhere
-but inside a raised card recorded after their own (the raised cards are
-drawn over every frame in record order, below), and every other line is
-covered inside the raised card's rectangle. A box whose rectangle is not
-drawn covers nothing. Items laid over one another by the user (a frame
-placed over another frame or card) are not covered by this rule: a
-member's line is read under a frame drawn over it. What would be wrong: the
+**A covered line is not read** (`stackingOf`, `raisedRoot`). One
+stacking order says what lies over what, the order the block node shows
+its drawing in (`raisedEntries`): from the bottom, the ancestor cards
+that are not raised, in record order (a later one over an earlier one),
+then every frame and card the block holds (one level), then the raised
+ancestor cards, in record order. A root's cards are raised while a
+timeline editor is open on a timeline of that root that is no group
+member and lies in no member (`raisedRoot` gives the root, else `null`).
+A line takes the level of the card drawing it, and it is covered at a
+point where a displayed frame or card of a higher level holds the point;
+a box whose rectangle is not drawn covers nothing. The pointer reads a
+line only where it is not covered at the abscissa the reading lands on,
+on the line itself (the pointer's abscissa held to what is hovered, at
+the line's ordinate), so it reads a line exactly where that line is a
+place (below, "A coordinate's place"). So an unraised ancestor card's
+lines are read beyond the frame's borders, never inside the frame or a
+member card; raised, they are read everywhere but inside a raised card
+recorded after their own, and every other line is covered inside a raised
+card's rectangle. Items laid over one another by the user (a frame placed
+over another frame or card) lie on one level: a member's line is read
+under a frame drawn over it. What would be wrong: the
 card's `middle` row read inside the frame, where the user sees the frame
 and `middle`'s card; the card not read beyond the
 frame; the card not read once raised. At the abscissa
@@ -2032,7 +2041,7 @@ borders, on the arranger and with `piece`'s timeline editor open:
 the arranger, in the group editor of `group_1`, in `middle`'s timeline
 editor (a member) and in `recording`'s.
 
-**A later ancestor card covers an earlier one** (`coveredIn`; drawing
+**A later ancestor card covers an earlier one** (`stackingOf`; drawing
 specification section 8.8 point 4: ancestor cards are written in record
 order, a later one over an earlier one where they meet). In
 `bundles/bundle_shared_parent` (block A at (0, 0)) with `group_2`'s frame
@@ -2064,48 +2073,63 @@ first card's line under the second card). What would be wrong: the
 earlier card read over the later, or the later covered by the earlier,
 raised or not.
 
-**A coordinate's place: one rule** (`holdings`, `seenOn`, `placesAt`,
-`pinnedPlace`, `affordancesOf`, `namedPin`, `timelinePin`). The lines a
-timeline is drawn on are its marked lines, a line of an ancestor card
-among them only for a timeline that no other marked line holds (the
-member's own card wins over the row an ancestor card draws of it behind
-the frame), and for such a timeline also its ancestor lines; each is
-kept where the user sees it (`seenOn`: below, "Show matches", "Where a
-timeline is seen", with the raised root as above). A value of the
-timeline has its **places** on those parts (`placesAt`): wherever a
+**A coordinate is placed wherever it is seen, without exception**
+(`linesOf`, `seenOn`, `placesAt`, `placeOf`, `pinnedPlace`,
+`affordancesOf`, `namedPin`, `timelinePin`). The lines a timeline is
+drawn on are every marked line of its own, in any card (an ancestor
+card's row of it included), else every marked line whose segment it is,
+and every ancestor line of it in a member's card; the topmost in the
+stacking first (a raised card's line, then a frame's or card's, then an
+unraised ancestor card's), else in the drawing's order of lines. Each is
+kept where the user sees it, the parts not covered (`seenOn`, cut at the
+borders of every displayed frame and card, each part tested at its
+middle; below, "Show matches", "Where a timeline is seen"). A value of
+the timeline has its **places** on those parts (`placesAt`): wherever a
 part's drawn span holds it (from 0, up to a segment's length). Every
-reader of a coordinate's place reads them and nothing else: screen order
-(the topmost, then leftmost place), the affordance of a named timestamp
-displaying nothing (one at each place), the mark of a pin (on the line
-it was pinned on while that line draws its anchor there uncovered, else
-at its first place), and the cross-section a named timestamp or a
-position on a timeline is read with (the line it was read on while that
-is one of its places, else the line of its first place; where it has
-none, the first line `holdings` gives, else its own axis). So a
-timeline drawn only in an ancestor card and as an ancestor line is
-placed on the ancestor line inside the member's card where one runs at
-that abscissa, on the card's line where the card is visible, on the
-card's line everywhere while the card is raised, and **nowhere** where
-the card is covered and no ancestor line runs: no affordance, no pin
-mark, no screen place there. While a root's cards are raised, every
-timeline they draw (the root, a member, a member's descendant) is placed
-first on the raised card's line or row that holds it (its own there, else
-the line whose segment it is), then on its other lines where the raised
-cards leave them uncovered. What would be wrong: a place on a line the
-user does not see there (the card's line behind the frame), a reader
-with a rule of its own (the flag and the Timestamp tab disagreeing), or
-a member placed on the row an ancestor card draws of it, unless that card
-is raised.
+reader of a coordinate's place reads them and nothing else, and every
+reader of one place takes the place on the line it was read on while
+that is one, else the first (`placeOf`): screen order (the topmost, then
+leftmost place), the affordance of a named timestamp displaying nothing
+(one at each place), the mark of a pin (on any line where its value lies,
+a segment line and a zero-length line included), and the cross-section a
+named timestamp or a position on a timeline is read with (where the value
+has no place, on its own axis with all its maps and its ancestors alone:
+nothing seen is read). The pointer reads a line exactly where it is not
+covered (above), so a reading's line is always a place of its position.
+So a member drawn in its own card and as a row of an ancestor card is
+placed on both where each is seen (the row beyond the frames: in
+`bundles/bundle_shared_parent` `recapitulation`, `recapitulation_first`
+and `recapitulation_second` on `{group_1, score}`'s card right of
+`group_1`'s frame, `exposition` on `{group_2, score}`'s left of
+`group_2`'s); a timeline drawn only in an ancestor card and as an
+ancestor line is placed on the ancestor line inside the member's card
+where one runs at that abscissa, on the card's line where the card is
+visible, on the card's line everywhere while the card is raised, and
+**nowhere** where the card is covered and no ancestor line runs: no
+affordance, no pin mark, no screen place there. While a root's cards are
+raised, every timeline they draw is placed first on the raised card's
+line that holds it, then on its other lines where the raised cards leave
+them uncovered. What would be wrong: a place on a line the user does not
+see there (the card's line behind the frame), a line the user sees and
+the pointer reads that is no place (the flag and the Timestamp tab
+disagreeing), or a reader with a rule of its own.
 
-In `group_parent_both` `holdings` gives `middle` its member card's line
-alone (81.78125, offset 0), `piece` the card's line alone (67.78125), and
-`recording` its member card's line (139.16015625). A pin of `piece` at 8
-without a preferred line is marked on `piece`'s ancestor line in
-`middle`'s card at 460.33544921875 (the card's line is covered there),
-and on the card's line at the same abscissa while the card is raised;
-pinned on the ancestor line, it is marked there. A pin of `piece` at 3
-(210.33544921875, in a gap) has no mark on the arranger and is marked on
-the card's line while the card is raised. A named timestamp on `piece`
+In `group_parent_both` `linesOf` gives `middle` its member card's line
+(81.78125, offset 0), then the card's row of it (33.8046875); `piece` its
+ancestor line in `middle`'s card, then the card's line (both 67.78125);
+`recording` its member card's line (139.16015625); with `piece`'s card
+raised the card's line or row first. A pin of `piece` at 8 is marked on
+`piece`'s ancestor line in `middle`'s card at 460.33544921875 without a
+preferred line and with the card's line preferred (that line is covered
+there, so it is no place), and on the card's line at the same abscissa
+while the card is raised, whichever line is preferred (the ancestor line
+lies under the raised card). A pin of `piece` at 3 (210.33544921875, in a
+gap) has no mark on the arranger and is marked on the card's line while
+the card is raised. A timestamp read there on the arranger, having no
+place, is read on `piece`'s own axis: the anchor `piece` with all its own
+maps and no ordinate, no members; raised, on the card's line (ordinate
+67.78125). What would be wrong: the covered card's line read (its
+cross-section would add `middle`). A named timestamp on `piece`
 at 3 displaying nothing has no affordance on the arranger and one while
 the card is raised, on the card's line, at the points `wedgeAt` gives
 there: (210.33544921875, 69.28125), (207.33544921875, 82.28125),
@@ -2190,23 +2214,32 @@ piece 8 ♩ / middle 4 ♩ / recording 5″, as read. Once `middle` is removed
 it is `null`. What would be wrong: a group read kept where no fresh
 reading reads one, so rows naming the pin does not store.
 
-**The pin's mark outside ancestor cards.** A timeline drawn neither in an
-ancestor card nor as an ancestor line keeps the mark rule of a pin before
-ancestor cards: it is marked only on a measurable line of its own (on the
-line it was pinned on while that is one, else at the first place on
-one), never on a line whose segment it is and never on a zero-length
-line, though its places lie there too. Every timeline's unnamed pin at 0
-(`timelinePin`, no preferred line) is marked or not, in pre-order:
+**A pin stays on the card it was pinned on.** A timeline drawn in
+several cards has a place in each, and its pin is marked on the line it
+was pinned on, never moved to the first place. In
+`bundles/bundle_shared_member` (`t` a member of `g1` and `g2`) the value
+half of `t`'s length has two places, `t`'s card in `g1`'s frame, then in
+`g2`'s; the reading there on the second place hovers that line, and its
+pin is marked there with that line preferred (across the group, the
+reading holding it), on the first place without a preferred line; the
+same with every ancestor card hidden. What would be wrong: the mark
+jumping to `g1`'s card.
 
-| Fixture | Marked | Not marked |
-|---|---|---|
-| `segment_line` | `form`, `a`, `b`, `c` | the segments `a1`, `b1`, `b2`, `c1` |
-| `segment_children` | `piece`, `intro`, `theme`, `coda` | the segments `i1`, `i2`, `t1`, `t2`, `t3`, `c1`, `c2` |
-| `unknown_length_empty` | none | `score`, of unknown length and without content: a zero-length line |
-| `bundles/bundle_ungrouped` | `pages`, `recording`, `score` | the segments `page_1`, `page_2`, `page_3` |
+**The pin's mark on segment lines and zero-length lines.** A pin is
+marked at its place like any reader's: every timeline's unnamed pin at 0
+(`timelinePin`, no preferred line) is marked at the first place of 0, in
+pre-order:
 
-What would be wrong: a mark on a segment line or a zero-length line, which
-the pin's mark never had.
+| Fixture | Marked |
+|---|---|
+| `segment_line` | `form`, `a`, `a1`, `b`, `b1`, `b2`, `c`, `c1` |
+| `segment_children` | `piece`, `intro`, `i1`, `i2`, `theme`, `t1`, `t2`, `t3`, `coda`, `c1`, `c2` |
+| `unknown_length_empty` | `score`, of unknown length and without content: a zero-length line |
+| `bundles/bundle_ungrouped` | `pages`, `page_1`, `page_2`, `page_3`, `recording`, `score` |
+
+The segments are marked on their segment line at their offset, a
+zero-length line at its start. What would be wrong: a pin whose value is
+seen left unmarked, or marked elsewhere than at its first place.
 
 **The cross-section.** The spec of a hovered line names its timeline as
 the anchor with the maps drawn at the line for it, then as members the
@@ -2275,7 +2308,7 @@ for the right row, `p` and `h`.
   480·x onto ticks at 67.609375, `cmap_2` x/2 onto seconds at 62.609375).
   The abscissas: with no ancestor card every line runs from `8 + s0 =
   126.29150390625` (above, "Fixture facts"). `recording`'s ancestor card,
-  now drawn by default behind `group_2`'s frame, is aligned to `excerpt`
+  drawn by default behind `group_2`'s frame, is aligned to `excerpt`
   (88200 samples at 44100 in `recording`'s 441000, drawn over 400), so
   `recording`'s line in it starts `400 × 44100 / 88200 = 200` left of
   `excerpt`'s, at −73.70849609375, and the card's left edge lies its name
@@ -2354,8 +2387,8 @@ at a quarter it reads `performance` 1.0 and `score` 2 alone, since
 `second-half` (`(1 − 2) × 2 = −2`) lies outside its span. On `score`'s
 line the same: at three quarters `score` 6, `second-half` 2 (its own
 cross-section), `performance` 3.0; at a quarter `score` 2, `performance`
-1.0. Read without the descendants (the member's own line alone, the
-former reading) the first case lacks `second-half`.
+1.0. What would be wrong: the member's own line read alone, without the
+descendants, so the first case lacking `second-half`.
 
 **A reading across the group holds each other member's ancestors**, which
 the member's card draws as ancestor lines and the reading's cross-section
@@ -2370,9 +2403,9 @@ ordinate in that card. In `groups/group_parent_both` (`group_1` lists
 members `middle` at 0, scale 8/10 = 4/5, and `piece` at `0 + (−4) / (4/5)
 = −5`, scale 4/5, and the parts `recording` the float 5.0, `middle` 4,
 `piece` `(5 + 5) × 4/5 = 8`; the anchor stays the timestamp's first part.
-Without the ancestors (the former reading) `piece` is missing, although
-its line is drawn in `middle`'s card and the group's line crosses it.
- The flag shows what
+What would be wrong: the ancestors left out, so `piece` missing, although
+its line is drawn in `middle`'s card and the group's line crosses it. The
+flag shows what
 the reading's pin holds, so the timelines of `flagParts` of the reading at
 `timestamp_1`'s place on `performance`'s line are, as a set, those of
 `timestamp_1`'s named pin, which the Timestamp tab shows (`second-half`,
@@ -2456,10 +2489,10 @@ covers there. The reading at the ancestor line's middle
 coordinate 44 100 smp]; a timestamp named there (`add` on `recording` at
 88200) gives `namedPin` the same `flagParts`, and the same with every
 ancestor card hidden (the ancestor line then from 126.29150390625 to
-526.29150390625, read at 326.29150390625; before, the tab listed
-`recording` alone, `excerpt` missing). What would be wrong:
+526.29150390625, read at 326.29150390625). What would be wrong:
 `excerpt` above `recording` (the card's ordinates), `recording`'s
-`cmap_5` listed (the card's line), or `excerpt` missing.
+`cmap_5` listed (the card's line), or `excerpt` missing (the tab
+listing `recording` alone).
 
 **A position's pin on a timeline** (`timelinePin`, the Matchstamp tab's
 coordinates) is read with the one spec a named timestamp's pin is read
@@ -2571,17 +2604,41 @@ not expanded`, `failed` `the server did not expand its measure map`.
 **One reading per frame.** Pointer moves are coalesced: three moves
 before an animation frame run one reading, with the last point.
 
+**The cross-section of a hovered line, made once.** What a reading on a
+line is read with (its cross-section, with the group where the reading
+reads one) depends on the drawing, the block, the line, the raised root,
+the group reading, the manifest and the granularity, never on where the
+pointer lies on the line, so it is made once and every later reading on
+the line takes the same object. In `groups/group_groupstamp` the readings
+at a quarter and three quarters of `score`'s line on the arranger hold
+the identical spec (`toBe`), its members `performance` (the group); with
+another granularity object (equal values) another spec, holding that
+granularity; in `score`'s timeline editor one without members. What
+would be wrong: the spec made again on every pointer frame, which the
+budget below would also show.
+
+**Budget** (`coordinates-budget.test.ts`, run alone by `pnpm
+test:budget`). `bundles/bundle_shared_parent` (block A at (40, 80),
+nothing open, the cards shown: 19 lines the pointer reads) read at 64
+points along every one of those lines, each a pointer frame (the
+reading and its flag's rows, `flagParts`), zoom 1, ratio 2: the fastest
+of five sweeps after one warm-up, divided by the 1,216 points, is a
+pointer frame and stays below 0.15 ms. Measured 0.062 ms; with the spec
+made on every frame 0.232 ms, which the bound fails. The figure is
+printed with the number of points read.
+
 ## A reading and the pin made from it (`reading-places.test.ts`)
 
-The rule the Timestamp tab rests on: for every place of every value, the
-flag a reading there shows (`readingAt`) and the pin made from it list
-the same rows (`flagParts`, each row's value compared exactly, never as a
-rounded text). The pin made from
-it is `timelinePin` of the reading's anchor at the reading's position,
-reading a group where the reading does (`groupScoped` of the editor
-open), under the same raised root, the read line preferred: what the
-drawer holds for a canvas pin and what `namedPin` reads after naming,
-both through the one `timelineSpec`. A test of the suite, not a probe:
+The rule the Timestamp tab rests on: a coordinate is placed wherever it
+is seen, so every point the pointer reads lies on a place of the value
+read, and the flag a reading shows (`readingAt`) and the pin made from it
+list the same rows (`flagParts`, each row's value compared exactly, never
+as a rounded text). The pin made from it is `timelinePin` of the
+reading's anchor at the reading's position, reading a group where the
+reading does (`groupScoped` of the editor open), under the same raised
+root, the read line preferred: what the drawer holds for a canvas pin and
+what `namedPin` reads after naming, both through the one `timelineSpec`.
+Two passes prove it, one from the places and one from the points read:
 
 - **Subjects**: the fixtures holding a grouped child, the ones drawing
   ancestor cards: `groups/group_parent_both`, `group_parent_right`,
@@ -2593,47 +2650,69 @@ both through the one `timelineSpec`. A test of the suite, not a probe:
 - **States**: nothing open, then for each root an ancestor card draws
   its timeline editor, kept where `raisedRoot` gives that root (a root
   in a group raises nothing).
-- **Positions**: every timeline in pre-order, of known length `L`, at
-  `k × L / 8` for `k` from 0 to 8 on its own axis (an int axis floored,
-  a float axis rounded to three decimals, a fraction exact); every place
-  of each (`placesAt` under the state's root).
-- **The reading** at a place is `readingAt` at the place's abscissa on
-  its line's ordinate, at zoom 2^20 and ratio 1: half a device pixel
-  there spans less than the gap between the value and any simpler value
-  the snap would prefer (two fractions of denominators up to 2520 lie at
-  least 1/2520² apart; an int axis's value is the integer nearest), so
-  the reading reads the value itself. That is checked at every place,
-  whatever the reading's anchor: the sampled value plus the offsets of the
-  timeline and its ancestors below their root (read from the manifest)
-  equals the reading's position plus those of its anchor, on the same
-  root. 274 places are read with another anchor than the sampled
-  timeline, all in `bundle_shared_parent`: 266 segments read on their
-  segment line (`take_1_first`, `take_1_second`, `exposition_first`,
-  `exposition_second`, `recapitulation_first_1`, `recapitulation_first_2`,
-  `recapitulation_second_1`, `recapitulation_second_2`), and the eight
-  boundary places below, read on `recapitulation_first`. A place whose
-  anchor lies under another root could not be checked; their list is
-  asserted empty, so none can appear unnoticed.
-- **Exact outcome** per fixture: the number of places compared, cards
-  shown then hidden: `group_parent_both` 53, 23; `group_parent_right`
-  54, 23; `group_parent_exact` 54, 27; `group_child_member` 53, 23;
-  `group_child_member_stamps` 53, 23; `group_grandchild` 85, 25;
-  `group_parents_mixed` 252, 47; `bundle_mixed` 117, 47;
-  `bundle_shared_parent` 405, 143: 1,507 places, none differing.
-  Where two lines lie at one point the reading hovers the earlier
-  (`lineAt`'s tie): only in `bundle_shared_parent`, the segments
-  `recapitulation_second` and `recapitulation_second_1` at 0, which lie
-  where `recapitulation_first` ends, are read on `recapitulation_first`'s
-  line: with the cards shown twice on the arranger (`group_2`'s
-  `recapitulation` card) and four times with `score` raised (its two
-  cards in `group_1` and `group_2`), hidden twice on the arranger. Then
-  the reading's own anchor and line are compared, which agree too.
-- **Time**: the nine cases run in about one second together.
+- **The readings** are `readingAt` at zoom 2^20 and ratio 1: half a
+  device pixel there spans less than the gap between the value and any
+  simpler value the snap would prefer (two fractions of denominators up
+  to 2520 lie at least 1/2520² apart; an int axis's value is the integer
+  nearest), so a reading at a place reads its value itself.
 
-What would be wrong: any place whose flag and pin differ. Without the
-read line (the first place always) 49 places differ: 14 in
-`group_grandchild`, 9 in `group_parents_mixed`, 9 in `bundle_mixed`, 17
-in `bundle_shared_parent`, all with the cards shown.
+**From the places.** Every timeline in pre-order, of known length `L`, at
+`k × L / 8` for `k` from 0 to 8 on its own axis (an int axis floored, a
+float axis rounded to three decimals, a fraction exact); every place of
+each (`placesAt` under the state's root), read at the place's abscissa on
+its line's ordinate. At every place the value read is the value sampled,
+whatever the reading's anchor: the sampled value plus the offsets of the
+timeline and its ancestors below their root (read from the manifest)
+equals the reading's position plus those of its anchor, on the same root.
+A place whose anchor lies under another root could not be checked; their
+list is asserted empty, so none can appear unnoticed. The places read
+with another anchor than the timeline sampled are counted per timeline
+and asserted: all in `bundle_shared_parent`, the segments read on their
+segment line, cards shown 36 places each of `exposition_first`,
+`exposition_second`, `recapitulation_first_1`, `recapitulation_first_2`,
+`recapitulation_second_1`, `recapitulation_second_2`, 18 each of
+`take_1_first` and `take_1_second`, and 4 of `recapitulation_second`
+(the boundary below); cards hidden 9 each of the eight and 1 of
+`recapitulation_second`. The places compared, cards shown then hidden:
+`group_parent_both` 53, 23; `group_parent_right` 54, 23;
+`group_parent_exact` 54, 27; `group_child_member` 53, 23;
+`group_child_member_stamps` 53, 23; `group_grandchild` 85, 25;
+`group_parents_mixed` 252, 47; `bundle_mixed` 117, 47;
+`bundle_shared_parent` 495, 143: 1,597 places, none differing (the 90
+places beyond the 405 a place rule excluding a member's ancestor-card
+rows gives in `bundle_shared_parent` lie on the rows named above, "A
+coordinate is placed wherever it is seen"). Where two lines lie at one
+point the reading hovers the earlier (`lineAt`'s tie): only in
+`bundle_shared_parent`, the segments `recapitulation_second` and
+`recapitulation_second_1` at 0, which lie where `recapitulation_first`
+ends, are read on `recapitulation_first`'s line: with the cards shown
+twice each on the arranger (`group_2`'s `recapitulation` card and the
+card's row of it) and twice each with `score` raised, hidden once each
+on the arranger. Then the reading's own anchor and line are compared,
+which agree too.
+
+**From the points read.** Every line the pointer reads (`axesOf`), at 65
+abscissas from its start to its end (both ends included, evenly spaced),
+on its ordinate: each point reads nothing (the line is covered there, or
+a nearer line is read) or a line that is a place of the reading's
+position on its anchor's timeline (`placesAt` holds a place on the read
+line), and the pin made there lists the flag's rows. The points read and
+those reading nothing, cards shown then hidden: `group_parent_both` 509
+and 141, 195 and 0; `group_parent_right` 517 and 133, 195 and 0;
+`group_parent_exact` 520 and 130, 195 and 0; `group_child_member` 511 and
+139, 195 and 0; `group_child_member_stamps` 509 and 141, 195 and 0;
+`group_grandchild` 802 and 108, 260 and 0; `group_parents_mixed` 2,602
+and 778, 455 and 0; `bundle_mixed` 970 and 70, 390 and 0;
+`bundle_shared_parent` 2,006 and 464, 585 and 0; none differing. With the
+cards hidden no line is covered, so every point reads. What would be
+wrong: a point read on a line that is no place there, as a place rule
+dropping a member's ancestor-card rows gives in `bundle_shared_parent`
+(this pass then fails there, and the first pass counts 405 places).
+
+What would be wrong in either: any place or point whose flag and pin
+differ. Without the read line (the first place always) places differ in
+`group_grandchild`, `group_parents_mixed`, `bundle_mixed` and
+`bundle_shared_parent`, and points in the same four.
 
 ## Show matches (`matches.test.ts`, `matches-budget.test.ts`)
 
@@ -2694,19 +2773,20 @@ MatchStamp 1 = {c1, c3}.
 and `take_2`'s, in the drawing's order; `other` has none. Each line's
 card is the one layout's line record names (`LineAxis.card`): the three
 ungrouped roots' own cards, `{item: score}`, `{item: take_1}`, `{item:
-take_2}`. They are the lines `holdings` gives (above, "Show
-coordinates": a line of an ancestor card only for a timeline no other
-line holds), so a member's coordinates are never drawn on the row an
-ancestor card draws of it behind the frame; a coordinate is drawn, and
-hit, only where the user sees its line (below).
+take_2}`. They are the lines `linesOf` gives (above, "Show
+coordinates", "A coordinate is placed wherever it is seen"): every line
+of a timeline, an ancestor card's row of a member included, so a
+member's coordinates are drawn twice where the user sees both its own
+card and the row an ancestor card draws of it beside the frame; a
+coordinate is drawn, and hit, only where the user sees its line (below).
 
 **Where a timeline is seen** (`seenOn`, `matchLinesOf`). A coordinate is
 drawn where the user sees a line of its timeline, and the pointer hits it
-there and nowhere else: its lines are those of `holdings`, and for a
-timeline drawn on no line but an ancestor card's (or on none), also its
-ancestor lines in its descendants' member cards; each line is
-kept where it is not covered (the rule the pointer reads lines by,
-`coveredIn` with the raised root, `raisedRoot`, above): an ancestor
+there and nowhere else: its lines are those of `linesOf`, its own lines
+(else its segment lines) and its ancestor lines in its descendants'
+member cards; each line is kept where it is not covered (the stacking
+the pointer reads lines by, `stackingOf` with the raised root,
+`raisedRoot`, above): an ancestor
 card's line beyond the frames, member cards and later ancestor cards
 drawn over it, everywhere
 while the card is raised, and every other line nowhere inside a raised
@@ -2789,8 +2869,8 @@ on no marked line, only as the ancestor line in `middle`'s card: it is
 seen there, the whole line, the positions 4 to 12 (layout's record gives
 its place: start 4, drawn length 8 over 400 units), so P's `piece` 6 is
 drawn on it 100 right of its start, from its ordinate down to `middle`'s
-line, and its screen place is that point, where before it was drawn
-nowhere.
+line, and its screen place is that point. What would be wrong: `piece`
+drawn nowhere, its ancestor line not taken for a line it is seen on.
 
 **What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
 per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
@@ -2930,8 +3010,11 @@ order, the lines then at 67.78125, 101.7578125 and 115.7578125.
 
 **The flag** (`matchFlag`, 3 decimals). One group per timeline, named as
 the manifest names it, each coordinate a row in core's `prettyText` with
-the timeline's unit; groups and rows in screen order (above); what the
-block does not draw last. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1`
+the timeline's unit, keyed by its number; rows in screen order (above),
+groups by their first row; what the block does not draw last. Read
+without groups (no table here has a group; inside a timeline editor
+every flag is read so) the flag lists the MatchStamp's own coordinates
+alone. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1`
 [`176 400 smp`, `264 600 smp`] (176400 at 261.09… left of 264600 at
 361.09…), `Take 2` [`297 675 smp`], `other` [`0.5`] (no line, the table's
 number type, no unit); the table's order (take_2 first) is not the
@@ -3017,6 +3100,45 @@ on G its lines are c0 and c1 on `group_1`'s `score`, c2 and c3 on
 `performance`, c0 and c1 on `group_2`'s `score`, c5 on `page`, each its
 segment piece alone (c4 shares its device column on `score`'s card with
 c1, which `score`'s line, earlier in the drawing's order, took).
+
+**The flag of a MatchStamp crossing groupstamps** (`matchFlag` with the
+groups read, `namedGroupstamps`, as the canvas reads it above a timeline
+editor). A flag lists every coordinate the MatchStamp's lines show: its
+own, and for each where naming would store a groupstamp, the coordinates
+its groupstamp reads on the other members of its groups (the members its
+GroupStamp pin reads by the group, scaled: `timelinePin` with the group,
+as the Matchstamp tab's Coordinates read it), each value once per
+timeline, an own coordinate before an equal one read by a group; rows in
+the order they are drawn, top to bottom, then left to right (an own
+coordinate at its screen place, a groupstamp's at the ordinate its pin
+reads the member at, on its coordinate's abscissa), groups by their first
+row. A row read by a group is keyed by its timeline and exact value and
+has no coordinate number. On G (above; `score` 8 quarters,
+`performance` 4.0 s and `page` 800 px start and end together, so a
+member's value is `score`'s × 1/2, resp. × 100; `second-half` 4 quarters
+at `score`'s 4):
+
+| MatchStamp | Groups and rows |
+|---|---|
+| 0 | `score` [c0 `4 ♩`]; `performance` [c2 `1″`, read `2″`]; `page` [read `400 px`] |
+| 1 | `score` [c1 `6 ♩`, read `4 ♩`]; `performance` [read `3″`]; `second-half` [read `0 ♩`]; `page` [c5 `400 px`, read `600 px`] |
+| 2 | `second-half` [c4 `2 ♩`]; `score` [read `6 ♩`]; `performance` [c3 `3″`] |
+
+MatchStamp 0: c0 `score` 4 is a groupstamp (`timestamp_1`), read on
+`performance` 4 / 2 = 2 (its card's line, 139.98828125, at 302.29…, right
+of c2 at 202.29…) and on `page` 4 × 100 = 400 (302.1484375); c2 is none.
+MatchStamp 1: c1 `score` 6 reads `performance` 3 and `page` 600; c5
+`page` 400 reads `score` 4 in `group_2`'s card (244.76953125) with its
+crossed child `second-half` at 4 − 4 = 0 (230.76953125, above it). So
+by ordinate `score` 6 (82.609375), `performance` 3 (139.98828125),
+`second-half` 0, `score` 4, then `page` 400 and 600 on one line, left to
+right. MatchStamp 2: c3 `performance` 3 reads `score` 6 (82.609375) and
+its crossed child `second-half` 2, equal to c4 and so listed once, as c4
+(68.609375, the topmost); c4 is none. Without the groups read the flags
+are MatchStamp 0 `score` [`4 ♩`], `performance` [`1″`] and MatchStamp 1
+`score` [`6 ♩`], `page` [`400 px`]. What would be wrong: a groupstamp's
+coordinates missing above a timeline editor, listed inside one, listed
+twice, or listed in another order than drawn.
 
 **Named MatchStamps painted** (`namedPaint`). The named MatchStamps
 compared with T by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`,
@@ -3262,9 +3384,9 @@ screen position chosen for the case or a value derived above.
     node is mounted with a paint stroking `anchor_1` `#E51400`, and 5 and
     40 of a new paint stroking it `#E07000` once the paint changes, the
     first paint read no more and `anchor_1`'s line now `#E07000` (the
-    change reached the parts that read it). Read by every drawn element,
-    as before the reading was confined, the counts are 37 and 72 on both
-    paints.
+    change reached the parts that read it). What would be wrong: every
+    drawn element reading the paint, which makes every command mark every
+    element of the node dirty.
 
 ### The canvas in an editor (`canvas-editors.test.ts`)
 

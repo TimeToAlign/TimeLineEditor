@@ -10,6 +10,7 @@ import { untrack } from "svelte";
 import { createSubscriber, MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
 import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
+import { raisedRoot } from "./boxes.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import CoordinateFlag from "./CoordinateFlag.svelte";
 import CoordinateMarks from "./CoordinateMarks.svelte";
@@ -19,11 +20,11 @@ import { levelOf, rulesOf } from "./containers.ts";
 import type { KnotsOf, MarkPlace, MeasureMapsAnswer, PlacedMarks } from "./coordinates.ts";
 import {
   FrameCoalescer,
+  groupScoped,
   HIT_TOLERANCE,
   MeasureKnotsSource,
   pinnedPlace,
   placeText,
-  raisedRoot,
   readingAt,
   readsGroup,
 } from "./coordinates.ts";
@@ -772,14 +773,26 @@ const matchLayers: readonly MatchLayer[] = $derived.by(() =>
   }),
 );
 
-/** The hovered MatchStamp's flag groups, made again only when another MatchStamp is hovered. */
+/**
+ * The hovered MatchStamp's flag groups, made again only when another
+ * MatchStamp is hovered: its groupstamps read across their groups above a
+ * timeline editor (`groupScoped`), its own coordinates alone inside one.
+ */
 const matchFlagGroups = $derived.by(() => {
   if (hoveredBlock === null || hoveredStamp === null) return null;
   const shown = matchBlocks.find(({ node }) => node.data.block.id === hoveredBlock);
   if (shown === undefined) return null;
   const { node, index, lines } = shown;
-  const decimals = (granularity ?? view.settings.granularity).decimals;
-  return matchFlag(index, node.data.block.manifest, lines, hoveredStamp, decimals);
+  const { block, editing } = node.data;
+  const read = granularity ?? view.settings.granularity;
+  const groups = groupScoped(editing)
+    ? {
+        block: block.id,
+        granularity: read,
+        groupstampAt: namedGroupstamps(block.manifest, index),
+      }
+    : null;
+  return matchFlag(index, block.manifest, lines, hoveredStamp, read.decimals, groups);
 });
 
 /** The hovered MatchStamp's flag: its groups and its place in canvas pixels, which follows the pointer. */

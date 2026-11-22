@@ -17,10 +17,9 @@ import {
 } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { CanvasSource, Hit } from "./boxes.ts";
-import { hitForAddress, hitOf, pressSelection, workedBox } from "./boxes.ts";
+import { hitForAddress, hitOf, pressSelection, raisedRoot, workedBox } from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
-import { raisedRoot } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { editorTargetOf } from "./editors.ts";

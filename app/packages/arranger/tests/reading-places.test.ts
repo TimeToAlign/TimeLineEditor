@@ -11,12 +11,13 @@ import type { Manifest, TimelineManifest, View } from "@timetoalign/tilie-core";
 import { DEFAULT_GRANULARITY, idAddress, inBlock } from "@timetoalign/tilie-core";
 import { axisCoordinate, Rational, realOf, toRational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
+import { raisedRoot } from "../src/boxes.ts";
 import type { FlagPart } from "../src/coordinates.ts";
 import {
+  axesOf,
   flagParts,
   groupScoped,
   placesAt,
-  raisedRoot,
   readingAt,
   timelinePin,
 } from "../src/coordinates.ts";
@@ -153,6 +154,8 @@ interface Outcome {
   readonly elsewhere: readonly unknown[];
   /** The places whose reading's anchor lies under another root than the timeline, so no value is checked. */
   readonly unchecked: readonly unknown[];
+  /** How many places are read with another anchor than the timeline sampled, by that timeline. */
+  readonly anchored: Readonly<Record<string, number>>;
 }
 
 /** Every place of every sampled value of every timeline of `view`'s block A, read in every editor state. */
@@ -162,6 +165,7 @@ function compareAll(view: View): Outcome {
   const differing: unknown[] = [];
   const elsewhere: unknown[] = [];
   const unchecked: unknown[] = [];
+  const anchored: Record<string, number> = {};
   for (const editing of editorsOf(view)) {
     const nodes: BlockNode[] = project(view, NOTHING_SELECTED, [], metrics, editing);
     const [node] = nodes;
@@ -191,6 +195,7 @@ function compareAll(view: View): Outcome {
             elsewhere.push([raised, timeline.id, value.toString(), reading.hit.axis.timeline]);
           }
           const anchor = reading.pin.spec.anchor.timeline;
+          if (anchor !== timeline.id) anchored[timeline.id] = (anchored[timeline.id] ?? 0) + 1;
           const pin = timelinePin(
             block.manifest,
             A,
@@ -217,7 +222,82 @@ function compareAll(view: View): Outcome {
       }
     }
   }
-  return { compared, differing, elsewhere, unchecked };
+  return { compared, differing, elsewhere, unchecked, anchored };
+}
+
+/** How many abscissas each line is read at: its ends and the 63 points between, evenly spaced. */
+const SAMPLES = 65;
+
+interface Readable {
+  /** How many points read a line. */
+  readonly read: number;
+  /** How many points read nothing: the line is covered there. */
+  readonly covered: number;
+  /** The points whose reading's line is no place of its position, or whose pin lists other rows. */
+  readonly differing: readonly unknown[];
+}
+
+/**
+ * Every line of `view`'s block A that the pointer reads (`axesOf`), at
+ * `SAMPLES` abscissas from its start to its end, on its ordinate, read in
+ * every editor state: each reading's line is a place of the reading's
+ * position on its anchor's timeline, and the pin made there lists the
+ * flag's rows.
+ */
+function readAll(view: View): Readable {
+  const block = blockIn(view, A);
+  let read = 0;
+  let covered = 0;
+  const differing: unknown[] = [];
+  for (const editing of editorsOf(view)) {
+    const nodes: BlockNode[] = project(view, NOTHING_SELECTED, [], metrics, editing);
+    const [node] = nodes;
+    if (node === undefined) throw new Error("no node");
+    const { drawing } = node.data;
+    const raised = raisedRoot(block, editing);
+    for (const [key, axis] of axesOf(drawing)) {
+      for (let k = 0; k < SAMPLES; k += 1) {
+        const x = axis.xStart + ((axis.xEnd - axis.xStart) * k) / (SAMPLES - 1);
+        const point = {
+          x: node.position.x + x * block.scale,
+          y: node.position.y + axis.y * block.scale,
+        };
+        const reading = readingAt(nodes, point, {
+          zoom: ZOOM,
+          ratio: 1,
+          granularity: DEFAULT_GRANULARITY,
+        });
+        if (reading === null) {
+          covered += 1;
+          continue;
+        }
+        read += 1;
+        const anchor = reading.pin.spec.anchor.timeline;
+        const line = reading.hit.key;
+        const placed = placesAt(drawing, anchor, reading.position, raised).some(
+          (place) => place.key === line,
+        );
+        const pin = timelinePin(
+          block.manifest,
+          A,
+          drawing,
+          anchor,
+          reading.position,
+          DEFAULT_GRANULARITY,
+          "no_server",
+          groupScoped(editing),
+          raised,
+          line,
+        );
+        const flag = shown(flagParts(reading.pin));
+        const made = pin === null ? null : shown(flagParts(pin));
+        if (!placed || flag !== made) {
+          differing.push([raised, key, k, line, reading.position.toString(), placed, flag, made]);
+        }
+      }
+    }
+  }
+  return { read, covered, differing };
 }
 
 /** Where a recapitulation segment at 0 is read on the segment ending there: `[raised, timeline, value, line read]`. */
@@ -228,53 +308,153 @@ const boundary = (raised: string | null, timeline: string) => [
   "recapitulation_first",
 ];
 
-/**
- * Per fixture: the places compared with the ancestor cards shown, then
- * hidden, and where the reading hovers another line than the place's,
- * shown, then hidden (`README.md`).
- */
-const EXPECTED: readonly (readonly [string, number, number, unknown[], unknown[]])[] = [
-  ["groups/group_parent_both", 53, 23, [], []],
-  ["groups/group_parent_right", 54, 23, [], []],
-  ["groups/group_parent_exact", 54, 27, [], []],
-  ["groups/group_child_member", 53, 23, [], []],
-  ["groups/group_child_member_stamps", 53, 23, [], []],
-  ["groups/group_grandchild", 85, 25, [], []],
-  ["groups/group_parents_mixed", 252, 47, [], []],
-  ["bundles/bundle_mixed", 117, 47, [], []],
-  [
-    "bundles/bundle_shared_parent",
-    405,
-    143,
-    [
-      boundary(null, "recapitulation_second"),
-      boundary(null, "recapitulation_second_1"),
-      boundary("score", "recapitulation_second"),
-      boundary("score", "recapitulation_second"),
-      boundary("score", "recapitulation_second_1"),
-      boundary("score", "recapitulation_second_1"),
+/** The segments of `bundle_shared_parent` read on their segment lines, each `count` times. */
+const segments = (count: number, rest: Record<string, number>) => ({
+  exposition_first: count,
+  exposition_second: count,
+  recapitulation_first_1: count,
+  recapitulation_first_2: count,
+  ...rest,
+  recapitulation_second_1: count,
+  recapitulation_second_2: count,
+});
+
+/** One fixture's outcome: its places compared, cards shown then hidden, and its readable points. */
+interface Expected {
+  readonly fixture: string;
+  readonly places: readonly [Outcome, Outcome];
+  /** Points read and covered, cards shown then hidden. */
+  readonly points: readonly [readonly [number, number], readonly [number, number]];
+}
+
+/** An outcome where no place differs and every reading's anchor lies under the timeline's root. */
+const outcome = (
+  compared: number,
+  elsewhere: unknown[] = [],
+  anchored: Record<string, number> = {},
+): Outcome => ({ compared, differing: [], elsewhere, unchecked: [], anchored });
+
+/** Per fixture, the places and the points (`README.md`). */
+const EXPECTED: readonly Expected[] = [
+  {
+    fixture: "groups/group_parent_both",
+    places: [outcome(53), outcome(23)],
+    points: [
+      [509, 141],
+      [195, 0],
     ],
-    [boundary(null, "recapitulation_second"), boundary(null, "recapitulation_second_1")],
-  ],
+  },
+  {
+    fixture: "groups/group_parent_right",
+    places: [outcome(54), outcome(23)],
+    points: [
+      [517, 133],
+      [195, 0],
+    ],
+  },
+  {
+    fixture: "groups/group_parent_exact",
+    places: [outcome(54), outcome(27)],
+    points: [
+      [520, 130],
+      [195, 0],
+    ],
+  },
+  {
+    fixture: "groups/group_child_member",
+    places: [outcome(53), outcome(23)],
+    points: [
+      [511, 139],
+      [195, 0],
+    ],
+  },
+  {
+    fixture: "groups/group_child_member_stamps",
+    places: [outcome(53), outcome(23)],
+    points: [
+      [509, 141],
+      [195, 0],
+    ],
+  },
+  {
+    fixture: "groups/group_grandchild",
+    places: [outcome(85), outcome(25)],
+    points: [
+      [802, 108],
+      [260, 0],
+    ],
+  },
+  {
+    fixture: "groups/group_parents_mixed",
+    places: [outcome(252), outcome(47)],
+    points: [
+      [2602, 778],
+      [455, 0],
+    ],
+  },
+  {
+    fixture: "bundles/bundle_mixed",
+    places: [outcome(117), outcome(47)],
+    points: [
+      [970, 70],
+      [390, 0],
+    ],
+  },
+  {
+    fixture: "bundles/bundle_shared_parent",
+    places: [
+      outcome(
+        495,
+        [
+          boundary(null, "recapitulation_second"),
+          boundary(null, "recapitulation_second"),
+          boundary(null, "recapitulation_second_1"),
+          boundary(null, "recapitulation_second_1"),
+          boundary("score", "recapitulation_second"),
+          boundary("score", "recapitulation_second"),
+          boundary("score", "recapitulation_second_1"),
+          boundary("score", "recapitulation_second_1"),
+        ],
+        segments(36, { recapitulation_second: 4, take_1_first: 18, take_1_second: 18 }),
+      ),
+      outcome(
+        143,
+        [boundary(null, "recapitulation_second"), boundary(null, "recapitulation_second_1")],
+        segments(9, { recapitulation_second: 1, take_1_first: 9, take_1_second: 9 }),
+      ),
+    ],
+    points: [
+      [2006, 464],
+      [585, 0],
+    ],
+  },
 ];
 
 describe("a reading at every place and the pin made from it", () => {
   it("cover the fixtures holding a grouped child", () => {
-    expect(EXPECTED.map(([fixture]) => fixture)).toEqual(FIXTURES);
-    expect(EXPECTED.reduce((sum, [, shownCount, hidden]) => sum + shownCount + hidden, 0)).toBe(
-      1507,
-    );
+    expect(EXPECTED.map(({ fixture }) => fixture)).toEqual(FIXTURES);
+    expect(
+      EXPECTED.reduce((sum, { places }) => sum + places[0].compared + places[1].compared, 0),
+    ).toBe(1597);
   });
 
   it.each(EXPECTED)(
-    "list the same rows in %s, with its ancestor cards shown (%i places) and hidden (%i)",
-    (fixture, shownCount, hidden, shownElsewhere, hiddenElsewhere) => {
+    "list the same rows in $fixture, cards shown and hidden",
+    ({ fixture, places }) => {
       const view = viewOf({ id: A, fixture, x: 40, y: 80 });
-      const outcomes = [compareAll(view), compareAll(withoutAncestorCards(view))];
-      expect(outcomes).toEqual([
-        { compared: shownCount, differing: [], elsewhere: shownElsewhere, unchecked: [] },
-        { compared: hidden, differing: [], elsewhere: hiddenElsewhere, unchecked: [] },
-      ]);
+      expect([compareAll(view), compareAll(withoutAncestorCards(view))]).toEqual(places);
+    },
+  );
+});
+
+describe("a reading at every point of every line read", () => {
+  it.each(EXPECTED)(
+    "lies on a place of its position in $fixture, the pin listing the flag's rows",
+    ({ fixture, points }) => {
+      const view = viewOf({ id: A, fixture, x: 40, y: 80 });
+      expect([readAll(view), readAll(withoutAncestorCards(view))]).toEqual(
+        points.map(([read, covered]) => ({ read, covered, differing: [] })),
+      );
     },
   );
 });

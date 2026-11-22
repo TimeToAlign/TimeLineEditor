@@ -1225,13 +1225,22 @@ which no position solves).
    member's marks on its ancestor lines, a segment's boundary) opens the
    drawer on Timestamp with an unnamed pin of `T` at its zero or at its
    length, read as any position on `T` is (the arranger's `timelinePin`),
-   no name given. In `groups/group_parent_both` (`middle`, offset 4,
-   length 8, in `piece` of 16), the start of `middle` shows the groups
-   Piece [coordinate `4` ♩], Middle [coordinate `0` ♩], top to bottom as
-   `piece`'s ancestor line lies above `middle`'s line, `shownPin()` the
-   arranger's `timelinePin` of `middle` at 0; its end Piece `12` ♩, Middle
-   `8` ♩. Selecting the block afterwards keeps that pin, as any unnamed
-   pin is kept. The end of `unknown_length`'s root `score` (length not
+   no name given, and by the group exactly where a fresh reading there
+   reads one (core's `groupstampByDefault`: on a group member above a
+   timeline editor), so the pin never depends on which editors were open
+   before. In `groups/group_parent_both` (`middle`, offset 4, length 8, in
+   `piece` of 16, a member of `group_1` with `recording`, 10.0 seconds), on
+   the arranger the start of `middle` shows the groups Piece [coordinate
+   `4` ♩], Middle [coordinate `0` ♩], Recording [coordinate `0.0` s], top
+   to bottom as `piece`'s ancestor line lies above `middle`'s line and
+   `recording`'s card below `middle`'s, `shownPin()` the arranger's
+   `timelinePin` of `middle` at 0 read by the group; its end Piece `12` ♩,
+   Middle `8` ♩, Recording `10.0` s. With `middle`'s own timeline editor
+   open its start shows Piece and Middle alone, `shownPin()` that pin read
+   without the group, as a reading in that editor reads it. Selecting the
+   block afterwards keeps that pin, as any unnamed pin is kept. What would
+   be wrong: the start of a member pinned without its group on the
+   arranger, which it gained only once an editor raising a card opened. The end of `unknown_length`'s root `score` (length not
    known), a mark's label (`["start", "label"]`) and two addresses pin
    nothing: the tab stays as it was.
    **The tab reads the lines the canvas shows**: a named timestamp is

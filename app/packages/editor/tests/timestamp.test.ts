@@ -98,6 +98,8 @@ function named(store: Store, address: Address, knots: MeasureKnots[] | "no_serve
     address.id,
     store.view.settings.granularity,
     knots,
+    null,
+    null,
   );
   if (pin === null) throw new Error(`no timestamp ${address.id}`);
   return pin;
@@ -548,16 +550,30 @@ describe("a timeline's start or end mark, selected", () => {
   const MIDDLE_START: Address = { block: A, id: "middle", part: ["start"] };
   const MIDDLE_END: Address = { block: A, id: "middle", part: ["end"] };
 
-  /** The arranger's pin of `timeline` in block A of `store` at `position`, read without a server. */
-  function onTimeline(store: Store, timeline: string, position: Rational): Pin | null {
+  /**
+   * The arranger's pin of `timeline` in block A of `store` at `position`, read without a server,
+   * by the group where `group`.
+   */
+  function onTimeline(store: Store, timeline: string, position: Rational, group: boolean) {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
     const drawing = drawingOf(block, store.view.graphical, fontMetrics);
     const granularity = store.view.settings.granularity;
-    return timelinePin(block.manifest, A, drawing, timeline, position, granularity, "no_server");
+    return timelinePin(
+      block.manifest,
+      A,
+      drawing,
+      timeline,
+      position,
+      granularity,
+      "no_server",
+      group,
+      null,
+      null,
+    );
   }
 
-  it("pins the member's start and end, its ancestor above it", () => {
+  it("pins the member's start and end, its ancestor above it, its group below", () => {
     const store = storeOf("groups/group_parent_both");
     const inspector = drawer(store, false);
     inspector.selected([MIDDLE_START]);
@@ -573,8 +589,9 @@ describe("a timeline's start or end mark, selected", () => {
       [
         ["Piece", [row("coordinate", "4", "♩")]],
         ["Middle", [row("coordinate", "0", "♩")]],
+        ["Recording", [row("coordinate", "0.0", "s")]],
       ],
-      onTimeline(store, "middle", q(0)),
+      onTimeline(store, "middle", q(0), true),
       null,
     ]);
     inspector.selected([MIDDLE_END]);
@@ -582,13 +599,29 @@ describe("a timeline's start or end mark, selected", () => {
       [
         ["Piece", [row("coordinate", "12", "♩")]],
         ["Middle", [row("coordinate", "8", "♩")]],
+        ["Recording", [row("coordinate", "10.0", "s")]],
       ],
-      onTimeline(store, "middle", q(8)),
+      onTimeline(store, "middle", q(8), true),
     ]);
     inspector.selected([{ block: A }]);
     expect([selected(), inspector.shownPin()]).toEqual([
       "Timestamp",
-      onTimeline(store, "middle", q(8)),
+      onTimeline(store, "middle", q(8), true),
+    ]);
+  });
+
+  it("pins the member's start in its own timeline editor without its group, as a reading there", () => {
+    const store = storeOf("groups/group_parent_both");
+    const inspector = drawer(store, false);
+    expect(store.open({ block: A, id: "middle" })).toBeNull();
+    flushSync();
+    inspector.selected([MIDDLE_START]);
+    expect([groups(), inspector.shownPin()]).toEqual([
+      [
+        ["Piece", [row("coordinate", "4", "♩")]],
+        ["Middle", [row("coordinate", "0", "♩")]],
+      ],
+      onTimeline(store, "middle", q(0), false),
     ]);
   });
 

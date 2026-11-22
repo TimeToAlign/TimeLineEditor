@@ -3,7 +3,10 @@ import Flag from "./Flag.svelte";
 import type { MatchFlagGroup } from "./matches.ts";
 
 interface Props {
-  /** The hovered MatchStamp's timestamps, one group per timeline, in screen order (`matchFlag`). */
+  /**
+   * The hovered MatchStamp's coordinates, its groupstamps' included above a timeline editor,
+   * one group per timeline, in the order they are drawn (`matchFlag`).
+   */
   groups: readonly MatchFlagGroup[];
   /** Where the hovered line or connector is, in pixels from the canvas's top-left corner. */
   x: number;
@@ -17,12 +20,12 @@ interface Props {
 let { groups, x, y, top, width }: Props = $props();
 </script>
 
-<!-- The Timestamp flag's look and place, with two timestamps or more. -->
+<!-- The Timestamp flag's look and place, with every coordinate of the MatchStamp. -->
 <Flag kind="match" label="MatchStamp" {x} {y} {top} {width}>
   {#each groups as group (group.timeline)}
     <div class="tilie-coordinates-part" data-timeline={group.timeline}>
       <div class="tilie-coordinates-head">{group.name}</div>
-      {#each group.rows as row (row.coordinate)}
+      {#each group.rows as row (row.key)}
         <div class="tilie-coordinates-row">
           <span class="tilie-coordinates-name">coordinate</span>
           <span class="tilie-coordinates-value" data-testid="match-coordinate">{row.text}</span>

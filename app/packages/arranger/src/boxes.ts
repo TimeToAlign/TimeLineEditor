@@ -19,6 +19,7 @@
 
 import type {
   Address,
+  Block,
   BlockId,
   ContainerKind,
   ElementAddress,
@@ -28,12 +29,14 @@ import {
   addressKey,
   assertNever,
   BUNDLE_ADDRESS,
+  groupsHolding,
   idAddress,
   inBlock,
+  indexOf as manifestIndex,
   placeKeyText,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox, DrawnElement, LineAxis } from "@timetoalign/tilie-layout";
 import type { Descriptor, DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Editing } from "./editing.ts";
 import { addressParts, bandTimelineOf, frameGroupOf } from "./editing.ts";
@@ -101,18 +104,126 @@ export function isAncestorCard(box: DrawnBox): boolean {
 }
 
 /**
- * Whether the element at index `index` of `drawing.elements` lies behind the frames: drawn in
- * an ancestor card whose root is not `raised` (`raisedRoot` of the node's block and editor, else
- * `null`). The user sees such a copy only where the card shows beside the frames, and what it
- * draws is drawn again outside the card, so a reader of the elements a box or an address spans
- * (the marquee, an editor's focus) leaves it out; once raised, the card is drawn over every
- * frame and its elements count as any other.
+ * The root whose ancestor cards block `block` shows raised over every
+ * frame while `editing`, the innermost open editor, is open: the root of
+ * the timeline a timeline editor in this block edits, where that timeline
+ * is no group member and lies in no member (core's `groupsHolding` is
+ * empty); `null` for any other editor, none, or another block's. The one
+ * decision of the raise, which the stacking (`stackingOf`) is read with.
  */
-export function drawnBehind(drawing: Drawing, raised: string | null): (index: number) => boolean {
-  const behind = drawing.boxes.flatMap((box) =>
-    isAncestorCard(box) && box.address.id !== raised ? [box.range] : [],
+export function raisedRoot(
+  block: Pick<Block, "id" | "manifest">,
+  editing: Editing | null,
+): string | null {
+  if (editing === null || editing.kind !== "timeline") return null;
+  const { block: id, element } = addressParts(editing.target);
+  const timeline = element?.id;
+  if (id !== block.id || timeline === undefined) return null;
+  const { ancestry } = manifestIndex(block.manifest);
+  const root = ancestry.get(timeline)?.[0];
+  if (root === undefined || groupsHolding(block.manifest, timeline, ancestry).length > 0) {
+    return null;
+  }
+  return root;
+}
+
+/** Whether a line of a drawing is covered at a point (block-local canvas units): a box stacked above it holds the point. */
+export type Covered = (axis: LineAxis, point: DrawingPoint) => boolean;
+
+/**
+ * The order a block node shows its drawing in, from bottom to top, with the
+ * ancestor cards of the root `raised` raised (`raisedRoot`, else `null`):
+ * the ancestor cards that are not raised (`docs/drawing.md` in TimeToShare,
+ * section 8.8, in record order, a later one over an earlier one), then
+ * every other frame and card (one level: a member's card lies in its
+ * frame, and items laid over one another by the user cover nothing here),
+ * then the raised ancestor cards, in record order. The one statement of
+ * that order: the block node draws by it (`raisedEntries`), the pointer and
+ * every place of a coordinate read lines by `covered`, the marquee and an
+ * editor's focus leave out what lies `behind`.
+ */
+export interface Stacking {
+  /** The root whose ancestor cards are raised, else `null`. */
+  readonly raised: string | null;
+  /** How high a line lies: the rank of the card drawing it. */
+  readonly rankOf: (axis: LineAxis) => number;
+  /** Whether a line lies in a raised card, above every frame. */
+  readonly lifted: (axis: LineAxis) => boolean;
+  /** Whether a line lies in an ancestor card below the frames. */
+  readonly sunk: (axis: LineAxis) => boolean;
+  /** Whether a line is covered at a point: a displayed frame or card of a higher rank holds the point. */
+  readonly covered: Covered;
+  /** Whether the element at an index of `drawing.elements` lies in an ancestor card below the frames. */
+  readonly behind: (index: number) => boolean;
+  /** Whether the element at an index of `drawing.elements` lies in a raised card. */
+  readonly above: (index: number) => boolean;
+}
+
+const stackings = new WeakMap<Drawing, Map<string | null, Stacking>>();
+
+/** The box `box` holds the point `point` (both in block-local canvas units): its rectangle, edges included. */
+function holdsPoint(box: DrawnBox, point: DrawingPoint): boolean {
+  return (
+    point.x >= box.x &&
+    point.x <= box.x + box.width &&
+    point.y >= box.y &&
+    point.y <= box.y + box.height
   );
-  return (index) => behind.some(({ start, end }) => start <= index && index < end);
+}
+
+/**
+ * The stacking of `drawing` with the ancestor cards of `raised` raised
+ * (`Stacking`), once per drawing and root. Ranks: the `n` ancestor cards
+ * not raised 0 to `n − 1` by record order, every other frame and card `n`,
+ * a raised one `n + 1` plus its record index. A line takes the rank of the
+ * card drawing it (an ancestor card's lines carry `LineAxis.ancestor`, its
+ * key the card's); a box whose rectangle is not drawn covers nothing.
+ */
+export function stackingOf(drawing: Drawing, raised: string | null): Stacking {
+  let byRoot = stackings.get(drawing);
+  if (byRoot === undefined) {
+    byRoot = new Map();
+    stackings.set(drawing, byRoot);
+  }
+  const known = byRoot.get(raised);
+  if (known !== undefined) return known;
+  const cards = drawing.boxes.filter(isAncestorCard);
+  const level = cards.length;
+  const rankOfCard = (box: DrawnBox, at: number) =>
+    raised !== null && box.address.id === raised ? level + 1 + at : at;
+  const cardRanks = new Map(
+    cards.map((box, at) => [box.key === null ? "" : placeKeyText(box.key), rankOfCard(box, at)]),
+  );
+  const ranked = drawing.boxes.flatMap((box): { box: DrawnBox; rank: number }[] => {
+    if (!box.displayed || (box.kind !== "frame" && box.kind !== "card")) return [];
+    const at = cards.indexOf(box);
+    return [{ box, rank: at < 0 ? level : rankOfCard(box, at) }];
+  });
+  const ranges = cards.map((box, at) => ({ range: box.range, rank: rankOfCard(box, at) }));
+  const rankOf = (axis: LineAxis) =>
+    axis.ancestor === undefined ? level : (cardRanks.get(placeKeyText(axis.card)) ?? level);
+  const coverers = new Map<number, readonly DrawnBox[]>();
+  const coveringAbove = (rank: number) => {
+    let found = coverers.get(rank);
+    if (found === undefined) {
+      found = ranked.filter((item) => item.rank > rank).map(({ box }) => box);
+      coverers.set(rank, found);
+    }
+    return found;
+  };
+  const inRange = (index: number, test: (rank: number) => boolean) =>
+    ranges.some(({ range, rank }) => test(rank) && range.start <= index && index < range.end);
+  const stacking: Stacking = {
+    raised,
+    rankOf,
+    lifted: (axis) => rankOf(axis) > level,
+    sunk: (axis) => rankOf(axis) < level,
+    covered: (axis, point) => coveringAbove(rankOf(axis)).some((box) => holdsPoint(box, point)),
+    behind: (index) => inRange(index, (rank) => rank < level),
+    above: (index) => inRange(index, (rank) => rank > level),
+  };
+  byRoot.set(raised, stacking);
+  return stacking;
 }
 
 /** Whether `box` is a band. */
