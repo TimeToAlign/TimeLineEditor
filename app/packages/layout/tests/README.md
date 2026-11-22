@@ -2141,17 +2141,35 @@ searches it per question: the draw asks the band order of every timeline
 drawn with a line, so the counts guard core's lookup as much as the
 layout's own walk.
 
-**Work per placement.** A first fit's work per item does not grow with the
-number of items a row already holds: no item is compared again with every
-item placed after it, as a scan of the whole row per placement would. The
-case is the one a timeline with thousands of short children gives, every
-child in one row: 300 and 3,000 extents `[i, i + 1]`, placed in that
-order, each touching the one before it, so first fit puts all of them in
-row 1 (the rows are checked too). Every extent is wrapped so that each read
-of its start or its end is counted. The oracle is the smaller sequence:
-the read counts of the first and the last extent are equal in both, and
-the most-read extent of each is read equally often. A scan of the row
-compares each extent with every other extent of the row, reading both ends
-of both each time: the first and the last extent are read 598 times each
-in the smaller sequence and 5,998 times in the larger, which fails every
-equality.
+**Work per placement.** A first fit's work per item grows no faster than
+the logarithm of the number of items a row already holds: no item is
+compared again with every item placed before it, as a scan of the whole
+row per placement would. The case is the one a timeline with thousands of
+short children gives, every child in one row: 300 and 3,000 extents `[i,
+i + 1]`, placed in that order, each touching the one before it, so first
+fit puts all of them in row 1 (the rows are checked too). The work that
+grows when placement goes quadratic is the comparisons between ends, so
+those are what is counted, wherever the row keeps the ends: every end is a
+value that counts each conversion to a number, and a comparison of two
+ends (`<`, `<=`, `>`) converts both. The starts are distinct, so the
+identity comparison of two starts (`===` on the counting values) answers
+as their values would; it converts nothing.
+
+The counts, derived for a row that keeps its ordered extents sorted by
+start and checks a new one against its neighbours found by binary search:
+the first extent meets no row and is only added, 1 comparison (whether it
+is ordered, `a <= b`). An extent `k` (from 1) placed among `k` others is
+checked (whether it is ordered, 1; a binary search for the last start at
+or before its own, `⌊log₂(k + 1)⌋` comparisons, since every start held is
+smaller; the one neighbour before it, `a1 < b2`, false since it touches,
+1) and added (whether it is ordered, 1; the same search again). That is
+`3 + 2⌊log₂(k + 1)⌋` comparisons, so `1 + Σₖ₌₁ⁿ⁻¹ (3 + 2⌊log₂(k + 1)⌋)`
+in all, twice that in conversions: 9,388 for 300 extents (4,694
+comparisons) and 133,664 for 3,000 (66,832), both below `2 + 6(n − 1) +
+4n·log₂ n`. A scan of the row compares a new extent with every extent of
+the row, `n(n − 1)/2` comparisons: the literal reading of section 6.3
+(`fit.test.ts`'s reference) converts 89,700 and 8,997,000 times, and a
+row that scans every extent besides its binary search converts 99,088 and
+9,130,664 times, so either fails the counts. The counts are exact: a
+change that alters how many comparisons a placement makes, even within
+`n log n`, is re-derived here before the test changes.
