@@ -500,6 +500,24 @@ describe("the marks at any position", () => {
     line: crossSection(from, key, x),
     wedge: wedgeAt(from, key, x),
   });
+  /**
+   * The style of an ancestor line's mark under the defaults, property by property as README.md
+   * derives it (a wedge held by a logical ancestor line, faded by `{inside: ancestor}`).
+   */
+  const ANCESTOR_MARK_STYLE = {
+    stroke: "#00CC00",
+    "stroke-width": 3,
+    "stroke-dasharray": "none",
+    fill: "#000000",
+    opacity: 0.35,
+    "font-size": 9,
+    rx: 0,
+    shadow: "none",
+    display: "inline",
+    content: "none",
+    "max-width": "none",
+    rotation: 0,
+  };
 
   it("agree exactly with the named timestamps drawn", () => {
     expect(marksAt(drawing, keyOf(CLT_1, "clt_1"), 124.91552734375)).toEqual(
@@ -627,9 +645,9 @@ describe("the marks at any position", () => {
         [97, 67.78125 - 1.5 - 13],
         [103, 67.78125 - 1.5 - 13],
       ],
-      style: { fill: "#000000", opacity: 0.35, stroke: "#00CC00", rotation: 0 },
+      style: ANCESTOR_MARK_STYLE,
     };
-    expect(marksAt(member, key, 100)).toMatchObject({ line: null, wedge: mark });
+    expect(marksAt(member, key, 100)).toEqual({ line: null, wedge: mark });
     expect(mark.points).toEqual([
       [100, 66.28125],
       [97, 53.28125],
@@ -647,9 +665,9 @@ describe("the marks at any position", () => {
     ]);
     expect(wedgeAt(restyled, key, 100)).toEqual(wedgeAt(member, key, 100));
     const everyWedge = layered([{ select: { element: "wedge" }, set: { fill: "#123456" } }]);
-    expect(wedgeAt(everyWedge, key, 100)).toMatchObject({
+    expect(wedgeAt(everyWedge, key, 100)).toEqual({
       points: mark.points,
-      style: { fill: "#123456" },
+      style: { ...ANCESTOR_MARK_STYLE, fill: "#123456" },
     });
   });
 
@@ -684,31 +702,17 @@ describe("the marks at any position", () => {
       67.78125,
       null,
     ]);
-    const style = {
-      stroke: "#00CC00",
-      "stroke-width": 3,
-      "stroke-dasharray": "none",
-      fill: "#000000",
-      opacity: 0.35,
-      "font-size": 9,
-      rx: 0,
-      shadow: "none",
-      display: "inline",
-      content: "none",
-      "max-width": "none",
-      rotation: 0,
-    };
     const mark = {
       points: [
         [200, 66.28125],
         [197, 53.28125],
         [203, 53.28125],
       ],
-      style,
+      style: ANCESTOR_MARK_STYLE,
     };
     expect(wedgeAt(plain, key, 200)).toEqual(mark);
     const start = wedge(plain, at("middle", "start"));
-    expect(start.style).toEqual(style);
+    expect(start.style).toEqual(ANCESTOR_MARK_STYLE);
 
     const startRecoloured = layered([
       {
@@ -724,10 +728,10 @@ describe("the marks at any position", () => {
     ]);
     expect(wedgeAt(ancestorWedges, key, 200)).toEqual({
       ...mark,
-      style: { ...style, fill: "#123456", opacity: 1 },
+      style: { ...ANCESTOR_MARK_STYLE, fill: "#123456", opacity: 1 },
     });
-    expect(wedgeAt(ancestorWedges, keyIn(ancestorWedges, "middle"), 200)?.style).toMatchObject({
-      fill: "#000000",
+    expect(wedgeAt(ancestorWedges, keyIn(ancestorWedges, "middle"), 200)?.style).toEqual({
+      ...ANCESTOR_MARK_STYLE,
       opacity: 1,
     });
 
@@ -740,7 +744,7 @@ describe("the marks at any position", () => {
         [x - 6, y - 3 - 26],
         [x + 6, y - 3 - 26],
       ],
-      style: { ...style, "stroke-width": 6, "font-size": 18 },
+      style: { ...ANCESTOR_MARK_STYLE, "stroke-width": 6, "font-size": 18 },
     });
   });
 

@@ -88,16 +88,14 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
 }
 
 /**
- * How far right of its node's left edge block `block`'s place origin lies in its drawing (layout's
- * record): `bmixed0000`'s ancestor card of `recording` reaches that far left of its items.
+ * How far right of its node's left edge `bmixed0000`'s place origin lies in its drawing: its
+ * ancestor card of `recording` reaches that far left of its items. Derived, never read from the
+ * layout under test: `recording`'s line in the card starts 200 left of `excerpt`'s, at
+ * −73.70849609375; the card's edge lies its name column `8 + w("Recording", 11) + 8 =
+ * 71.70361328125` further left, at −145.412109375, and the block's edge the padding 8 beyond it
+ * (the arranger's tests README, "`bundle_mixed`'s `score`"; README.md here, `editors.spec.ts`).
  */
-function originShift(block: string): number {
-  const workspace = readWorkspace(fixtureText("bundles"));
-  if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
-  const found = workspace.view.blocks[block];
-  if (found === undefined) throw new Error(`block ${block} is missing`);
-  return drawingOf(found, workspace.view.graphical, FONT_METRICS).origin.x;
-}
+const MIXED_SHIFT = 153.412109375;
 
 /** A drawing abscissa as a drawn `rect`'s `x` attribute reads back: the writer's text, as a number. */
 function drawnX(value: number): number {
@@ -535,7 +533,7 @@ test.describe("on bundles", () => {
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
     // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
-    const shift = originShift(MIXED);
+    const shift = MIXED_SHIFT;
     const grown = 192 - (shift - 8);
 
     // The view leaves room left of the block for the drag.
@@ -570,7 +568,7 @@ test.describe("on bundles", () => {
     expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     expect([first.x, annotations.x]).toEqual([8, 8]);
     // Drawn right of the place origin by `recording`'s ancestor card, which stays the leftmost.
-    const shift = originShift(MIXED);
+    const shift = MIXED_SHIFT;
 
     await enter(page, BUNDLE, VIEW);
     const view = await storeText(page, "view");
@@ -985,7 +983,7 @@ test.describe("resizing in an editor", () => {
       element(page, MIXED, cardAddress(id))
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    const x = attributeText(16 + originShift(MIXED));
+    const x = attributeText(16 + MIXED_SHIFT);
     expect(await drawn("score")).toEqual([x, "567.915"]);
     expect(await drawn("performance")).toEqual([x, "567.915"]);
   });

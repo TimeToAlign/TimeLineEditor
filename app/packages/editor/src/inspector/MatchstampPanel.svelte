@@ -106,7 +106,8 @@ const drawing = $derived(
 /**
  * The root whose ancestor cards the innermost open editor raises over the
  * block's frames (`raisedRoot`), else `null`: the tab reads places, and so
- * screen order and cross-sections, on the lines the canvas shows.
+ * screen order and cross-sections, on the lines the canvas shows. What
+ * naming and Update store is read without it (`naming`, `updateCommand`).
  */
 const raised = $derived(
   shownBlock === undefined ? null : raisedRoot(shownBlock, live.editing.at(-1) ?? null),
@@ -136,11 +137,16 @@ const stamp: ShownStamp | null = $derived.by(() => {
 /**
  * What naming the potential MatchStamp shown stores: the whole MatchStamp
  * the table states under the belief filter (`stampToName`), which a
- * timelines filter only shows a part of; `null` for a named one.
+ * timelines filter only shows a part of; `null` for a named one. It is read
+ * with nothing raised: what is shown follows the raised card, what is
+ * stored never depends on the open editor.
  */
 const naming: ShownStamp | null = $derived.by(() => {
-  if (stamp === null || stamp.id !== null || drawing === null) return null;
-  return indexes === null ? stamp : stampToName(stamp, indexes, drawing, raised);
+  if (match === null || match.kind !== "potential" || stamp === null || drawing === null) {
+    return null;
+  }
+  const stored = potentialStamp(match.block, match.index, match.matchStamp, drawing);
+  return indexes === null ? stored : stampToName(stored, indexes, drawing);
 });
 /** Why naming stores more anchors than are shown; `null` when it stores what is shown. */
 const hidden = $derived(
@@ -255,7 +261,6 @@ function commitName(): void {
         {differences}
         {indexes}
         {drawing}
-        {raised}
         {drafts}
         {onmatch}
       />
