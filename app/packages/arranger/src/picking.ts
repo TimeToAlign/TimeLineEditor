@@ -8,6 +8,7 @@ import type { Address, Manifest, ResolvedElement } from "@timetoalign/tilie-core
 import { resolveElement } from "@timetoalign/tilie-core";
 import type { Hit } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
+import { assertNever } from "./never.ts";
 
 /** The ID of the timeline or region a resolved element stands for, or `null`. */
 function pickedId(resolved: ResolvedElement | undefined): string | null {
@@ -20,8 +21,16 @@ function pickedId(resolved: ResolvedElement | undefined): string | null {
       return resolved.entry === "region" ? resolved.element.id : null;
     case "part":
       return pickedId(resolved.owner);
-    default:
+    case undefined:
+    case "title":
+    case "frame":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 

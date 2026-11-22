@@ -26,6 +26,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { blockBox, boxOf, isAncestorCard, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
+import { assertNever } from "./never.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 
@@ -302,8 +303,16 @@ function boxFor(
     }
     case "part":
       return boxFor(drawing, resolved.owner, editing);
-    default:
+    case "workspace":
+    case "title":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 

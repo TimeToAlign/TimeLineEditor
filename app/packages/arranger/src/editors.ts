@@ -13,6 +13,7 @@ import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { type Hit, isAncestorCard } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
+import { assertNever } from "./never.ts";
 
 /**
  * The editor target a double-click, a double tap or Enter on `hit` opens, by
@@ -73,5 +74,7 @@ function openedBy(hit: Hit, manifest: Manifest): string | null | undefined {
       if (line && findTimeline(manifest, element.id) !== undefined) return element.id;
       return standsFor(hit.within);
     }
+    default:
+      return assertNever(hit.kind);
   }
 }
