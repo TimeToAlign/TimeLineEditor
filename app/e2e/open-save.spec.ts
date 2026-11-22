@@ -1,16 +1,26 @@
 /**
  * Open… with a manifest, Save into the file a workspace was opened from, a
  * renamed workspace's Save, and opening and saving through the server's
- * files. Derivation in `README.md` ("open-save.spec.ts").
+ * files: Save as… and Save by path, and the accessibility of the file
+ * dialog and of the workspace's title. Derivation in `README.md`
+ * ("open-save.spec.ts").
  */
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { createStore, emptyWorkspace, writeWorkspace } from "../packages/core/src/index.ts";
 import { manifestFixture, packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, downloaded, journalLength, pick, withoutPickers } from "./support.ts";
+import {
+  chooseItem,
+  dispatch,
+  downloaded,
+  journalLength,
+  pick,
+  withoutPickers,
+} from "./support.ts";
 
 const QUESTION = "Add bare.yaml to the open workspace, or open it in a new, empty workspace?";
 
@@ -305,4 +315,197 @@ test.describe("Through the server's files", () => {
     expect(reads).toEqual(["story/step1.match_claims.parquet"]);
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
+
+  test("Save as… writes the chosen path, the title following; Save writes there again without asking", async ({
+    page,
+  }) => {
+    const { writes } = await withServerFiles(page);
+    await page.goto("/");
+    await page.waitForFunction(() => window.__tilie?.health() !== null);
+    await chooseItem(page, "Import manifest…");
+    const open = page.getByRole("dialog", { name: "Open" });
+    await open.getByRole("option", { name: "story/" }).dblclick();
+    await open.getByRole("option", { name: "step1.yaml" }).dblclick();
+    await expect.poll(() => blockCount(page)).toBe(1);
+    const [block = ""] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
+    const text = () => page.evaluate(() => window.__tilie.text());
+    const style = async (stroke: string) => {
+      const rules = [{ select: { element: "timeline" }, set: { stroke } }];
+      expect(
+        await dispatch(page, {
+          type: "set",
+          changes: [{ target: {}, values: { graphical: { rules } } }],
+        }),
+      ).toBeNull();
+    };
+    const save = page.getByRole("dialog", { name: "Save as" });
+    const fileName = save.getByRole("textbox", { name: "File name" });
+    const saveItem = async () => {
+      await page.getByRole("button", { name: "File" }).click();
+      await page.getByRole("menuitem", { name: /^Save(?! as)/u }).click();
+    };
+
+    // Save as…: the dialog starts in the folder of the last file chosen.
+    await chooseItem(page, "Save as…");
+    await expect(save.getByRole("listbox", { name: "Contents of story" })).toBeVisible();
+    await expect(fileName).toHaveValue("untitled.tle.json");
+    await fileName.fill("first");
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect.poll(() => writes.map(([at]) => at)).toEqual(["story/first.tle.json"]);
+    expect(writes[0]?.[1]).toBe(await text());
+    expect(JSON.parse(writes[0]?.[1] ?? "").settings.manifests[block].location).toBe("step1.yaml");
+    await expect(page).toHaveTitle("first.tle.json – TimeLineEditor");
+
+    // Save writes the same path again, asking nothing.
+    await style("#0000FF");
+    await expect(page).toHaveTitle("• first.tle.json – TimeLineEditor");
+    await saveItem();
+    await expect.poll(() => writes.length).toBe(2);
+    expect(writes[1]).toEqual(["story/first.tle.json", await text()]);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page).toHaveTitle("first.tle.json – TimeLineEditor");
+
+    // Save as… onto the same file asks once whether to replace it; Save then asks nothing.
+    await style("#FF0000");
+    await chooseItem(page, "Save as…");
+    await expect(fileName).toHaveValue("first.tle.json");
+    await save.getByRole("button", { name: "Save" }).click();
+    const replace = page.getByRole("dialog", { name: "Replace first.tle.json?" });
+    await replace.getByRole("button", { name: "Replace" }).click();
+    await expect.poll(() => writes.length).toBe(3);
+    expect(writes[2]).toEqual(["story/first.tle.json", await text()]);
+    await style("#00FF00");
+    await saveItem();
+    await expect.poll(() => writes.length).toBe(4);
+    expect(writes[3]).toEqual(["story/first.tle.json", await text()]);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // Renamed, Save opens Save as under the new name; saved, the title follows.
+    await page.getByTestId("file-name").click();
+    const field = page.getByRole("textbox", { name: "Workspace name" });
+    await field.fill("Second");
+    await field.press("Enter");
+    await expect(page).toHaveTitle("• first.tle.json – TimeLineEditor");
+    await saveItem();
+    await expect(fileName).toHaveValue("Second.tle.json");
+    expect(writes.length).toBe(4);
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect.poll(() => writes.length).toBe(5);
+    expect(writes[4]).toEqual(["story/Second.tle.json", await text()]);
+    await expect(page).toHaveTitle("Second.tle.json – TimeLineEditor");
+  });
+
+  test("axe-core reports no violation in the file dialog opening a file", async ({ page }) => {
+    await openServerPage(page);
+    await chooseItem(page, "Import manifest…");
+    const open = page.getByRole("dialog", { name: "Open" });
+    await expect(open.getByRole("listbox", { name: "Contents of the root folder" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(open.getByRole("option", { name: "story/" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(await violations(page)).toEqual([]);
+    await page.keyboard.press("Enter");
+    await expect(open.getByRole("option", { name: "step1.yaml" })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation in the file dialog saving, with a refused name", async ({
+    page,
+  }) => {
+    await openServerPage(page);
+    await chooseItem(page, "Save as…");
+    const save = page.getByRole("dialog", { name: "Save as" });
+    await expect(save.getByRole("option", { name: "work/" })).toBeVisible();
+    await save.getByRole("textbox", { name: "File name" }).fill("a/b");
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect(save.getByText("A file name holds no /.")).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation in the file dialog showing a folder without files of the kind", async ({
+    page,
+  }) => {
+    await openServerPage(page);
+    await chooseItem(page, "Save as…");
+    const save = page.getByRole("dialog", { name: "Save as" });
+    await save.getByRole("option", { name: "story/" }).dblclick();
+    await expect(save.getByRole("listbox", { name: "Contents of story" })).toBeVisible();
+    await expect(save.getByRole("option")).toHaveCount(0);
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation in the Replace question", async ({ page }) => {
+    await openServerPage(page);
+    await chooseItem(page, "Save as…");
+    const save = page.getByRole("dialog", { name: "Save as" });
+    await save.getByRole("textbox", { name: "File name" }).fill("first");
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect(page).toHaveTitle("first.tle.json – TimeLineEditor");
+    await chooseItem(page, "Save as…");
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("dialog", { name: "Replace first.tle.json?" })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation in the tables dialog asking where a missing table lies", async ({
+    page,
+  }) => {
+    await withServerFiles(page);
+    await page.route("**/api/files?*", (route) =>
+      new URL(route.request().url()).searchParams.get("path") === "story/step1.match_claims.parquet"
+        ? route.fulfill({ status: 404, json: { detail: "no such file" } })
+        : route.fallback(),
+    );
+    await page.goto("/");
+    await page.waitForFunction(() => window.__tilie?.health() !== null);
+    await chooseItem(page, "Import manifest…");
+    const open = page.getByRole("dialog", { name: "Open" });
+    await open.getByRole("option", { name: "story/" }).dblclick();
+    await open.getByRole("option", { name: "step1.yaml" }).dblclick();
+    await expect.poll(() => blockCount(page)).toBe(1);
+    await page.getByTestId("matches").click();
+    const dialog = page.getByRole("dialog", {
+      name: /^step1\.match_claims\.parquet is not beside/u,
+    });
+    await expect(dialog.getByRole("button", { name: "Locate…" })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation on the workspace's title, renamed and refusing a name", async ({
+    page,
+  }) => {
+    await openServerPage(page);
+    await chooseItem(page, "Save as…");
+    const save = page.getByRole("dialog", { name: "Save as" });
+    await save.getByRole("textbox", { name: "File name" }).fill("first");
+    await save.getByRole("button", { name: "Save" }).click();
+    await expect(page).toHaveTitle("first.tle.json – TimeLineEditor");
+    await page.getByTestId("file-name").click();
+    const field = page.getByRole("textbox", { name: "Workspace name" });
+    await field.fill("Second");
+    await field.press("Enter");
+    await expect(page.getByTestId("file-name")).toHaveText("• Second");
+    await expect(page.getByText("— first.tle.json", { exact: true })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+
+    await page.getByTestId("file-name").click();
+    await field.fill("");
+    await field.press("Enter");
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(await violations(page)).toEqual([]);
+  });
 });
+
+/** A new page whose server answers its health and serves `withServerFiles`' files. */
+async function openServerPage(page: Page): Promise<void> {
+  await withServerFiles(page);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__tilie?.health() !== null);
+}
+
+/** axe-core's violations on the whole page. */
+async function violations(page: Page): Promise<unknown[]> {
+  return (await new AxeBuilder({ page }).analyze()).violations;
+}

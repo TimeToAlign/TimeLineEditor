@@ -482,6 +482,38 @@ opened through Open… (a double-click on `story/`, then on
 `layerit.tle.json`), the toolbar's Show matches reads exactly one file,
 `story/step1.match_claims.parquet`, sends one table request and opens no
 dialog.
+**Save as… and Save by path** (the same server): `step1.yaml` imported from
+`story`, the File menu's "Save as…" opens "Save as" in `story` (the folder
+of the last file chosen) offering `untitled.tle.json`; the name `first`
+and Save write exactly `story/first.tle.json`, holding the hook's `text()`
+and the block's location `step1.yaml` (the manifest beside it), and the
+page's title becomes "first.tle.json – TimeLineEditor". A change (the
+workspace's rules) marks the title "• first.tle.json"; the File menu's
+Save then writes `story/first.tle.json` again with the new `text()`,
+opens no dialog and clears the mark. "Save as…" again offers
+`first.tle.json`; Save asks "Replace first.tle.json?" once, Replace
+writes the same path, and the next change's Save writes it once more,
+asking nothing. Renamed "Second" in the header, the File menu's Save
+writes nothing but opens "Save as" offering `Second.tle.json`, whose Save
+writes `story/Second.tle.json`, the title then "Second.tle.json –
+TimeLineEditor".
+**Accessibility of the file dialog and the title** (the same server, a
+fresh page each, an empty workspace): axe-core reports no violation in
+"Open" with `story/` chosen by ArrowDown in the root's list and, after
+Enter, in the list of `story`; in "Save as" at the root with the name
+`a/b` refused ("A file name holds no /."); in "Save as" showing `story`,
+which holds no workspace file, so its list has no option; in the
+question "Replace first.tle.json?" asked when "Save as…" offers the file
+just saved at the root; in the tables dialog asking where the MatchClaim
+table lies (`step1.yaml` imported, the read of
+`story/step1.match_claims.parquet` answered 404, Show matches turned on:
+the dialog "step1.match_claims.parquet is not beside …" with its
+"Locate…" button); and on the header's title after the rename "Second"
+(the button "• Second" followed by the muted "— first.tle.json") and with
+its field refusing an empty name (`aria-invalid`). The folder without an
+option fails on the present editor (`aria-required-children`: the list
+holds only its presentational "Nothing to show here." item); the case
+stays failing until the dialog is fixed, never silenced.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
 the MatchClaim table a manifest names, the table route replayed from the
@@ -594,6 +626,40 @@ profiles" dialog (File, "Type profiles…") after "Add profile" and "Add
 service" (the profile's editor shown), with the File menu,
 the About dialog and the discard question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
+
+**`a11y-panels.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on
+the whole page in the states a user meets the later panels in and
+requires an empty violation list in each. On `small`: the Timestamp tab
+showing `bare`'s named `timestamp_1` (the selection opens the tab; its
+"Wedge rotation" slider and an enabled Delete shown); the Timestamp tab
+showing the unnamed pin a selected start mark gives (`{block:
+"map0000000", id: "phrase", part: ["start"]}`, its "coordinate of
+Phrase" field shown, Delete disabled); the Journal tab after a closed
+bundle editor session on `bare` (one rename, "Plain") and a set of `x`
+that is undone, the session's disclosure ("… (1 change)") expanded and
+the undone entry listed (`[data-undone]`). On `bundles`: the Timestamp
+tab of `bmixed0000`'s `timestamp_7`, on the group member `performance`,
+showing the group "Group" with its GroupStamp toggle. With TimeToShare's
+table fixture imported with its MatchClaim table (the user `Ana` with
+the ORCID iD the fixture's `claim_1` belief names; the table route
+replayed from the client's recording, after a belief from the same
+recording with `claim_1`'s belief `false`, as `matchclaim-beliefs.spec.ts`
+does; the provenance and events of `claim_1` as there; the belief route
+answered by Parquet bytes): the block selected on the Matchstamp tab
+(status "match_claims.parquet: 15 MatchClaims", the hint, the filter's
+four timeline checkboxes); the named MatchStamp "Downbeat" (`claim_1`)
+selected under Show matches, `claim_1` expanded (events "note_1 “C4”",
+"onset_1", "0.75"), its provenance open ("Ana", "manual",
+"2026-11-20"), the user's belief True pressed; then, after False, the
+table changed ("…, changed", "Save MatchClaims…" shown, the difference
+"MatchClaims the belief filter leaves out"). With the manifest imported
+alone (no server for the user's files): the tables dialog "Load the
+MatchClaim table of The manifest" with Load disabled, and again once a
+file is chosen. Two cases fail on the present editor, each left failing
+until the editor is fixed: the unnamed pin (`color-contrast`: the
+rotation's degree readout, faded with its disabled slider, 3.31:1) and
+the Journal tab (`color-contrast`: the undone entry's text, time and
+author at opacity 0.5, 2.27:1).
 
 **`metadata.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording
 (`statements/layerit_recording.yaml` through Import manifest…) into a
