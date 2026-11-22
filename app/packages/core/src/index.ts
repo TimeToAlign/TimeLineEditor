@@ -255,6 +255,7 @@ export type {
 } from "./workspace/address.ts";
 export {
   addressWords,
+  bundleWords,
   elementAddressOf,
   entryWord,
   facetWord,

@@ -20,6 +20,7 @@ import type {
 import {
   ADD_KINDS,
   addressWords,
+  bundleWords,
   editorKindOf,
   inBlock,
   isCommandError,
@@ -89,8 +90,7 @@ function carriedBundleWords(value: unknown): string | null {
   if (typeof value !== "object" || value === null) return null;
   const manifest: unknown = Reflect.get(value, "manifest");
   if (typeof manifest !== "object" || manifest === null) return null;
-  const name = addedMember(manifest, "name") ?? addedMember(manifest, "id");
-  return name === null ? "the anonymous bundle" : `bundle '${name}'`;
+  return bundleWords({ name: addedMember(manifest, "name"), id: addedMember(manifest, "id") });
 }
 
 /**
