@@ -14,6 +14,16 @@ fixtures, one block per manifest journalled as one `add` (blocks
 `0000000000`, `0000000001`, … side by side), or are the committed
 end-to-end workspaces.
 
+Vitest leaves components' stylesheets out of jsdom, and jsdom computes no
+contrast. Where a test proves how text looks (`dom.ts` `addStylesOf`), it
+adds the component's own `<style>` to the document, unscoped, and reads
+`getComputedStyle`: jsdom resolves which of the component's rules apply
+and inherits the colour, so the test pins the colour a rule gives the text
+(`rgb(89, 89, 89)`, the editor's muted `#595959`, 7.0:1 on the panels'
+white; jsdom's black where the component sets none) and that no `opacity`
+below 1 applies to it or to an ancestor (`fadingsOf`, empty). The ratio
+itself is the end-to-end suite's (axe-core's `color-contrast`, 4.5:1).
+
 The editor owns what it shows, when, and in which words; the rest is read
 from its owner, never re-derived: what a command, an opening, Done and
 Cancel do, and whether a command is accepted, from core's store; a written
@@ -322,6 +332,16 @@ is read by role and name, and driven by keys as a keyboard user would:
   `"a.tle.json"`. A click on `a.tle.json` in the list fills the field. The
   name `archive` refuses "archive.tle.json is a folder." and a name
   holding `/` "A file name holds no /.", the dialog staying open.
+- The list box owns options only (`aria-required-children`): what stands
+  in for its entries is a note beside it, a polite status (`role="status"`)
+  that describes the list after the hint. `open(…, "work")` (an empty
+  folder) shows while it is asked for a list box with no child,
+  `aria-busy="true"`, the note "Loading…"; then no child, not busy, the
+  note "Nothing to show here.", described by the hint ("TimeToShare
+  manifest: the files on the server.") and the note. ArrowDown, ArrowUp,
+  Home, End and Enter there choose and open nothing (no
+  `aria-activedescendant`, no other listing); Backspace goes up, and the
+  root's five entries are five options with the note empty.
 
 ## The workspace's title (`workspace-title.test.ts`)
 
@@ -1112,7 +1132,11 @@ closing and reopening, nothing journalled.
 
 **The Journal panel** lists the rows of "Words" in an ordered list
 "Journal", each item with its time, author and text, newest first; an
-undone item carries `data-undone` and a hidden word "undone", the earlier
+undone item carries `data-undone` and a hidden word "undone" and is
+shown muted (time, author and sentence `rgb(89, 89, 89)`) with its
+sentence struck through (`line-through`), none of them faded (no opacity
+below 1), so the undone state is told by more than colour; a new change
+clears it (the sentence in its own colour, not struck); the earlier
 session's items `data-earlier`; an item stays the same element when rows
 are added around it; an empty level reads "No changes yet."; a session row
 has a disclosure button labelled by its text that lists its changes,
@@ -1455,7 +1479,9 @@ which no position solves).
    minus sign U+2212 for a negative value), its value shown beside it as
    "<n>°", and seven stop buttons −180, −135, −45, 0, 45, 135, 180, each
    named "<n> degrees" and pressed exactly while the value is its stop.
-   Specimens: the example "Timestamps" (no rule sets a rotation; Theme
+   Disabled, the slider is faded (opacity 0.5) but the value beside it is
+   text, not a control: it is muted (`rgb(89, 89, 89)`) and faded by no
+   opacity; enabled, it keeps its own colour, unfaded. Specimens: the example "Timestamps" (no rule sets a rotation; Theme
    `timestamp_5` displays its wedge, Silent `timestamp_7` displays
    nothing); `bundle_mixed`'s `score`, a member of "Performance" (item
    7a).

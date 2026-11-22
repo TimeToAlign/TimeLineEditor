@@ -48,6 +48,7 @@ import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
 import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
+import { addStylesOf, fadingsOf } from "./dom.ts";
 import { informing, noMatchClaims, providing, storeOf } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
@@ -1526,6 +1527,41 @@ describe("the wedge's rotation", () => {
       ["45", "45 degrees", "45°", ["45"], true, true],
       WEDGE_OFF,
     ]);
+  });
+
+  it("shows its value muted beside a disabled slider, never faded, the controls greyed", () => {
+    const style = addStylesOf("inspector/stamps/WedgeRotation.svelte");
+    try {
+      /** The value shown and the slider as [color, fadings applying] each. */
+      const looks = () => {
+        const shown = find<HTMLElement>("output", field());
+        return [
+          [getComputedStyle(shown).color, fadingsOf(shown)],
+          [getComputedStyle(slider()).color, fadingsOf(slider())],
+        ];
+      };
+      const store = example();
+      const inspector = drawer(store, true, T);
+      inspector.selected([SILENT]);
+      expect([slider().disabled, looks()]).toEqual([
+        true,
+        [
+          ["rgb(89, 89, 89)", []],
+          ["rgb(0, 0, 0)", ["0.5"]],
+        ],
+      ]);
+      inspector.selected([THEME]);
+      // The value's own colour, inherited: jsdom's black, no page stylesheet being loaded.
+      expect([slider().disabled, looks()]).toEqual([
+        false,
+        [
+          ["rgb(0, 0, 0)", []],
+          ["rgb(0, 0, 0)", []],
+        ],
+      ]);
+    } finally {
+      style.remove();
+    }
   });
 
   it("shows an unnamed groupstamp's initial value, then a named one's, which a stated 0 overrides", () => {

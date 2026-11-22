@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { IDBFactory } from "fake-indexeddb";
+import { parse } from "svelte/compiler";
 import { vi } from "vitest";
 
 /**
@@ -53,4 +56,35 @@ export function stubEditor(): void {
     this.dispatchEvent(new Event("close"));
   };
   Element.prototype.getAnimations ??= () => [];
+}
+
+/**
+ * Add the stylesheet of the component `file` (a path under the package's
+ * `src/`) to the document as its
+ * source writes it, unscoped, and return the `<style>` element for the
+ * test to remove: Vitest leaves components' styles out of jsdom, so a test
+ * reading what a component's own rules give an element
+ * (`getComputedStyle`) adds them itself. The rules match the classes the
+ * component's elements carry; jsdom resolves the cascade, not layout.
+ */
+export function addStylesOf(file: string): HTMLStyleElement {
+  const source = readFileSync(path.join(import.meta.dirname, "..", "src", file), "utf8");
+  const styles = parse(source, { modern: true }).css?.content.styles ?? "";
+  const element = document.createElement("style");
+  element.textContent = styles;
+  document.head.append(element);
+  return element;
+}
+
+/**
+ * Each computed `opacity` below 1 of `element` and of its ancestors,
+ * innermost first: the fading that applies to its text, none when empty.
+ */
+export function fadingsOf(element: Element): string[] {
+  const found: string[] = [];
+  for (let at: Element | null = element; at !== null; at = at.parentElement) {
+    const opacity = getComputedStyle(at).opacity;
+    if (opacity !== "" && Number(opacity) < 1) found.push(opacity);
+  }
+  return found;
 }
