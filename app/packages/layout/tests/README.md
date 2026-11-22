@@ -1751,6 +1751,17 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
    one and two secondary ones); with it `null` (its reach 10.0, its
    `length` timestamp's) the same wedges at the same places, both secondary
    ones at 0.35, and its primary coordinate label alone.
+10. **At any abscissa, a length not known** (section 6.6; a coordinate
+    is placed wherever it is seen): the lines `groupCrossSections` gives
+    at `timestamp_1`'s abscissa on `score`'s line key are the pieces the
+    frame's line of item 8 draws there, piece for piece: the same `x`,
+    `y1`, `y2` and opacity. With `performance`'s length `null`, two
+    pieces, from `bottom(score)` to `top(performance)` at opacity 1 and
+    from `top(performance)` to `bottom(performance)` at 0.35; with
+    `score`'s `null`, one piece from `bottom(score)` to
+    `bottom(performance)` at 0.35. The oracle is the card records of the
+    same drawing; both readers are compared with it, so neither is read
+    off the other.
 
 ## Alignment anchors (`anchors.test.ts`)
 

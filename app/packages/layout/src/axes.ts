@@ -18,7 +18,7 @@ import type { AxisMap, AxisMarker, AxisSegment, DrawnAxis } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import type { Drawing, Point } from "./elements.ts";
 import { wedgePoints } from "./geometry.ts";
-import { groupSpans } from "./groupstamps.ts";
+import { groupLinePieces } from "./groupstamps.ts";
 import { add, negate } from "./numbers.ts";
 import { cut } from "./stacks.ts";
 
@@ -159,22 +159,21 @@ export function crossSection(drawing: Drawing, lineKey: string, x: number): Cros
  * The lines a groupstamp lying at the abscissa `x` of the line keyed
  * `lineKey` in `drawing` (a key of `lineAxes`) draws across the frame
  * holding that line's card, as a named groupstamp of its timeline lying there
- * draws them (`groupstampElements`): over the frame's spans (`groupSpans`),
- * which leave out the line's own card, with the style of a cross-section
- * line of that timeline that no named timestamp holds; none where the line's
- * card is held by no frame, and where the key names no line, or an ancestor
- * line.
+ * draws them (`groupstampElements`): the pieces of `groupLinePieces`, which
+ * leave out the line's own card and fade the pieces over a member card where
+ * the group gives no coordinate, with the style of a cross-section line of
+ * that timeline that no named timestamp holds; none where the line's card is
+ * held by no frame, and where the key names no line, or an ancestor line.
  */
 export function groupCrossSections(drawing: Drawing, lineKey: string, x: number): CrossSection[] {
   const marked = markedLine(drawing, lineKey);
   if (marked === null) return [];
-  const { style } = marked.marker.crossSection;
-  return groupSpans(drawing.axes, drawing.boxes, marked.axis).map(([y1, y2]) => ({
-    x,
-    y1,
-    y2,
-    style,
-  }));
+  return groupLinePieces(
+    drawing.axes,
+    drawing.boxes,
+    marked.axis,
+    marked.marker.crossSection.style,
+  ).map(({ y1, y2, style }) => ({ x, y1, y2, style }));
 }
 
 /**

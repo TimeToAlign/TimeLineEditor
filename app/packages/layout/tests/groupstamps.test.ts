@@ -20,8 +20,10 @@ import {
   lineAxes,
   type MarkerElement,
   manifestLayer,
+  type Style,
   type TextElement,
   TextMeasure,
+  type VerticalLineElement,
 } from "../src/index.ts";
 import { wedgeCorners } from "../src/rotation.ts";
 import {
@@ -389,6 +391,57 @@ describe("a groupstamp where a length of the group is not known", () => {
         y2: card(drawing, "performance").bottom,
       },
     ]);
+  });
+
+  /** The lines a position read across the group at `timestamp_1`'s abscissa on `score` draws. */
+  const readAcross = (drawing: Drawing) => {
+    const score = axisOf(drawing, "score");
+    const key = [...lineAxes(drawing)].find(([, axis]) => axis.timeline === "score")?.[0] ?? "";
+    return groupCrossSections(drawing, key, score.xStart + (score.xEnd - score.xStart) / 2);
+  };
+  const frameLines = (drawing: Drawing) =>
+    framePieces(drawing).filter(
+      (item): item is VerticalLineElement => item.type === "cross_section",
+    );
+  const piecesOf = (items: readonly { x: number; y1: number; y2: number; style: Style }[]) =>
+    items.map(({ x, y1, y2, style }) => ({ x, y1, y2, opacity: style.opacity }));
+
+  it("marks a position read across the group with the pieces the frame's line draws", () => {
+    const drawing = drawn(plain(set("performance", { length: null })));
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    const expected = [
+      {
+        x: middle,
+        y1: card(drawing, "score").bottom,
+        y2: card(drawing, "performance").top,
+        opacity: 1,
+      },
+      {
+        x: middle,
+        y1: card(drawing, "performance").top,
+        y2: card(drawing, "performance").bottom,
+        opacity: FADED_OPACITY,
+      },
+    ];
+    expect(piecesOf(readAcross(drawing))).toEqual(expected);
+    expect(piecesOf(frameLines(drawing))).toEqual(expected);
+  });
+
+  it("marks a position read across the group from a member of unknown length faded whole", () => {
+    const drawing = drawn(plain(set("score", { length: null })));
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    const expected = [
+      {
+        x: middle,
+        y1: card(drawing, "score").bottom,
+        y2: card(drawing, "performance").bottom,
+        opacity: FADED_OPACITY,
+      },
+    ];
+    expect(piecesOf(readAcross(drawing))).toEqual(expected);
+    expect(piecesOf(frameLines(drawing))).toEqual(expected);
   });
 
   it("fades a line of a cascaded opacity to the fading opacity, not by it", () => {

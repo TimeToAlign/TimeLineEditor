@@ -17,6 +17,7 @@
 import type { Manifest } from "@timetoalign/tilie-core";
 import { idAddress, partAddress, samePlaceKey } from "@timetoalign/tilie-core";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
+import type { Style } from "./cascade.ts";
 import type { VerticalLineElement } from "./elements.ts";
 import { fadedStyle } from "./markers.ts";
 import { cut, type Span } from "./stacks.ts";
@@ -142,20 +143,49 @@ export function groupSpans(
 }
 
 /**
+ * The pieces of a groupstamp's line in the frame drawing the line `primary`
+ * (a line drawn in a card of a group's frame), among the drawn lines `axes`
+ * and the drawn boxes `boxes`, given the style `style` of the line's own
+ * cross-section line: over the frame's spans (`groupSpans`: from the upper
+ * border of its topmost member card to the lower border of its bottommost,
+ * less the card the timestamp's own line crosses), cut at the borders of
+ * each member card over which the timestamp has no coordinate
+ * (`readsAcrossGroup`), in order from the top. Each piece takes `style`,
+ * faded (`fadedStyle`) over such a card, and every piece is faded and uncut
+ * where the timestamp's own member has an unknown length (section 6.6).
+ * None where `primary` is drawn in no frame. The one rule of the frame's
+ * line, which a named groupstamp draws (`groupstampElements`) and a position
+ * read across a group marks (`groupCrossSections` in `axes.ts`).
+ */
+export function groupLinePieces(
+  axes: readonly DrawnAxis[],
+  boxes: readonly DrawnBox[],
+  primary: DrawnAxis,
+  style: Style,
+): { readonly y1: number; readonly y2: number; readonly style: Style }[] {
+  const valueless = valuelessCards(axes, boxes, primary);
+  return groupSpans(axes, boxes, primary).flatMap((whole) =>
+    (valueless === "everywhere"
+      ? [{ span: whole, faded: true }]
+      : fadedPieces(whole, valueless)
+    ).map(({ span, faded }) => ({
+      y1: span[0],
+      y2: span[1],
+      style: faded ? fadedStyle(style) : style,
+    })),
+  );
+}
+
+/**
  * The lines of `manifest`'s groupstamps among the drawn lines `axes` and the
  * drawn boxes `boxes`, in block coordinates: timestamp by timestamp in the
  * order of `graphical.timestamps`, frame by frame in the order of the lines,
  * for each groupstamp whose cross-section line is listed and displayed (its
  * `AxisTimestamp.line`) and for each line drawn in a card of a group's frame
  * that holds it, vertical `cross_section` elements at the timestamp's
- * abscissa there over the frame's spans (`groupSpans`: from the upper border
- * of its topmost member card to the lower border of its bottommost, less the
- * card the timestamp's own line crosses), cut at the borders of each member
- * card over which the timestamp has no coordinate (`readsAcrossGroup`). Their
- * address is the timestamp's line's, `{id, part: ["line"]}`, and their style
- * that line's, at the frame's scale, faded (`fadedStyle`) over such a card,
- * and whole and uncut where the timestamp's own member has an unknown length.
- * They take no room.
+ * abscissa there, one per piece of `groupLinePieces` in that line's style at
+ * the frame's scale. Their address is the timestamp's line's, `{id, part:
+ * ["line"]}`. They take no room.
  */
 export function groupstampElements(
   manifest: Manifest,
@@ -170,23 +200,8 @@ export function groupstampElements(
       if (!inFrame(axis)) continue;
       const held = axis.timestamps.find((item) => item.id === timestamp.id);
       if (held === undefined || held.line === null) continue;
-      const valueless = valuelessCards(axes, boxes, axis);
-      for (const whole of groupSpans(axes, boxes, axis)) {
-        const pieces =
-          valueless === "everywhere"
-            ? [{ span: whole, faded: true }]
-            : fadedPieces(whole, valueless);
-        for (const { span, faded } of pieces) {
-          const style = faded ? fadedStyle(held.line) : held.line;
-          lines.push({
-            type: "cross_section",
-            address,
-            style,
-            x: held.x,
-            y1: span[0],
-            y2: span[1],
-          });
-        }
+      for (const { y1, y2, style } of groupLinePieces(axes, boxes, axis, held.line)) {
+        lines.push({ type: "cross_section", address, style, x: held.x, y1, y2 });
       }
     }
   }
