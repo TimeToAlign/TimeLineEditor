@@ -260,6 +260,74 @@ describe("the hovered position", () => {
   });
 });
 
+describe("a position on an ancestor line", () => {
+  /** `piece`'s ancestor line in `middle`'s card, and 8 quarters of `piece` on it (`README.md`). */
+  const PIECE_Y = 67.78125;
+  const AT_PIECE_8 = 460.33544921875;
+  const parentView = (): View =>
+    viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
+
+  /** The wedge of the marks of `kind` as attributes, and whether a cross-section line is drawn. */
+  function wedgeMarks(kind: "hover" | "pin") {
+    const svg = document.querySelector(`.tilie-coordinate-marks[data-mark="${kind}"]`);
+    if (svg === null) return null;
+    return {
+      wedge: attributes(one('[data-testid="coordinate-wedge"]', svg), WEDGE),
+      line: svg.querySelector('[data-testid="coordinate-line"]') !== null,
+    };
+  }
+
+  const MARK = {
+    wedge: {
+      points: "460.3354,66.2812 457.3354,53.2812 463.3354,53.2812",
+      fill: "#000000",
+      opacity: "0.35",
+    },
+    line: false,
+  };
+
+  it("is marked by its member's start mark moved there, and flags the ancestor", async () => {
+    await show(parentView());
+    await toggleCoordinates();
+    await hoverAt(client(AT_PIECE_8, PIECE_Y));
+    const node = one(".svelte-flow__node[data-id] svg");
+    expect(attributes(one('polygon[data-id="middle"][data-part="start"]', node), WEDGE)).toEqual({
+      points: "260.3354,66.2812 257.3354,53.2812 263.3354,53.2812",
+      fill: "#000000",
+      opacity: "0.35",
+    });
+    expect(wedgeMarks("hover")).toEqual(MARK);
+    expect(
+      [...document.querySelectorAll(".tilie-coordinates-part")].map((part) => [
+        part.querySelector(".tilie-coordinates-head")?.textContent,
+        [...part.querySelectorAll(".tilie-coordinates-row")].map((row) => [
+          row.querySelector(".tilie-coordinates-value")?.textContent,
+          row.getAttribute("data-hovered"),
+        ]),
+      ]),
+    ).toEqual([
+      ["Piece", [["8 ♩", "true"]]],
+      ["Middle", [["4 ♩", "false"]]],
+    ]);
+  });
+
+  it("pins the ancestor's timestamp, marked at the same place", async () => {
+    await show(parentView());
+    await toggleCoordinates();
+    await clickAt(client(AT_PIECE_8, PIECE_Y));
+    const [pin] = pins;
+    expect([pin?.named, pin?.spec.anchor.timeline, pin?.timestamp.parts[0]?.position]).toEqual([
+      null,
+      "piece",
+      Rational.of([8, 1]),
+    ]);
+    if (pin === undefined || pin === null) throw new Error("nothing pinned");
+    harness.pin(pin);
+    await settle();
+    expect(wedgeMarks("pin")).toEqual(MARK);
+  });
+});
+
 describe("the pinned timestamp", () => {
   it("is marked at its position and follows a replaced pin; a named one or none is not", async () => {
     await show(mapView());

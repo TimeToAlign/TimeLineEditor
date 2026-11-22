@@ -24,10 +24,13 @@ import {
   FrameCoalescer,
   flagParts,
   flagPlace,
+  holdings,
   lineAt,
   MeasureKnotsSource,
   namedPin,
+  pinnedPlace,
   placeText,
+  raisedRoot,
   readingAt,
   readsGroup,
   rowValueText,
@@ -244,12 +247,246 @@ describe("hovering", () => {
     expect([...axes(view).values()].some((line) => line.timeline === "late")).toBe(false);
     expect(hovered(view, 263.53662109375, 22.40234375)).toBeNull();
   });
+});
 
-  it("never hovers an ancestor line", () => {
-    const view = viewWith(MIXED);
-    expect(axis(view, "excerpt")).toMatchObject({ y: 340.796875 });
-    expect([...axes(view).values()].some((line) => line.timeline === "recording")).toBe(false);
-    expect(hovered(view, 326.29150390625, 323.296875)).toBeNull();
+/** `groups/group_parent_both` in block A, its frame's and its ancestor card's numbers (`README.md`). */
+const PARENT_BOTH = "groups/group_parent_both";
+const MIDDLE_CARD = { item: "group_1", member: "middle" };
+const PIECE_CARD = { item: "group_1", member: "piece" };
+/** The abscissa of 8 quarters of `piece` (4 of `middle`), inside the frame and both cards. */
+const AT_PIECE_8 = 460.33544921875;
+const PIECE_Y = 67.78125;
+const MIDDLE_Y = 81.78125;
+const CARD_MIDDLE_Y = 33.8046875;
+
+/** The reading at block A's local point `(x, y)` with the editor `editing` open. */
+function readWith(view: View, x: number, y: number, editing: Editing | null) {
+  const shown = project(view, NOTHING_SELECTED, [], metrics, editing);
+  const [node] = shown;
+  if (node === undefined) throw new Error("no node");
+  const point = { x: node.position.x + x, y: node.position.y + y };
+  return readingAt(shown, point, { zoom: 1, ratio: 1, granularity: DEFAULT_GRANULARITY });
+}
+
+/** A reading as `[hovered timeline, its card, its parts as [timeline, position]]`; `null` for none. */
+function readShape(reading: ReturnType<typeof readingAt>) {
+  return reading === null
+    ? null
+    : [
+        reading.hit.axis.timeline,
+        reading.hit.axis.card,
+        reading.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+      ];
+}
+
+const PIECE_EDITOR: Editing = { target: inBlock(A, idAddress("piece")), kind: "timeline" };
+
+describe("an ancestor line, read as its ancestor's", () => {
+  const view = viewWith(PARENT_BOTH);
+  const drawing = drawingIn(view);
+
+  it("is a line the pointer reads, the drawing's record", () => {
+    const lines = [...axes(view)].filter(([, line]) => line.timeline === "piece");
+    expect(
+      lines.map(([, { card, y, xStart, xEnd, start, drawnLength, ancestor }]) => [
+        card,
+        y,
+        xStart,
+        xEnd,
+        start,
+        drawnLength,
+        ancestor,
+      ]),
+    ).toEqual([
+      [MIDDLE_CARD, PIECE_Y, 260.33544921875, 660.33544921875, q(4), q(8), undefined],
+      [
+        PIECE_CARD,
+        PIECE_Y,
+        60.33544921875,
+        860.33544921875,
+        q(0),
+        q(16),
+        { group: "group_1", member: "middle" },
+      ],
+    ]);
+    expect(drawing.boxes.find((box) => box.kind === "frame")).toMatchObject({
+      x: 156.6318359375,
+      y: 8,
+      width: 543.70361328125,
+      height: 174.13671875,
+    });
+  });
+
+  it.each([
+    [360.33544921875, q(6), q(2)],
+    [AT_PIECE_8, q(8), q(4)],
+    [560.33544921875, q(10), q(6)],
+  ])("at %d reads piece at %s across middle's line, middle at %s", (x, piece, middle) => {
+    const reading = readAt(view, x, PIECE_Y);
+    expect(readShape(reading)).toEqual([
+      "piece",
+      MIDDLE_CARD,
+      [
+        ["piece", piece],
+        ["middle", middle],
+      ],
+    ]);
+    expect([reading?.row, reading?.position]).toEqual([{ timeline: "piece", map: null }, piece]);
+    const spec = reading?.pin.spec;
+    expect(
+      spec && [
+        [spec.anchor.timeline, spec.anchor.ordinate],
+        ...spec.members.map(({ timeline, offset, ordinate }) => [timeline, offset, ordinate]),
+      ],
+    ).toEqual([
+      ["piece", PIECE_Y],
+      ["middle", q(4), MIDDLE_Y],
+    ]);
+    expect(reading === null ? null : readsGroup(reading.pin)).toBe(false);
+    expect(reading?.at).toEqual({ x, y: PIECE_Y });
+  });
+
+  it("lists in the flag the ancestor above the member, its coordinate hovered", () => {
+    const reading = readAt(view, AT_PIECE_8, PIECE_Y);
+    expect(
+      reading &&
+        flagParts(reading.pin).map(({ timeline, name, rows }) => [
+          timeline,
+          name,
+          rows.map((row) => rowValueText(row, 3)),
+        ]),
+    ).toEqual([
+      ["piece", "Piece", ["8 ♩"]],
+      ["middle", "Middle", ["4 ♩"]],
+    ]);
+  });
+});
+
+describe("a covered line, not read", () => {
+  const view = viewWith(PARENT_BOTH);
+
+  it.each([
+    [
+      "the card's middle row inside the frame",
+      AT_PIECE_8,
+      CARD_MIDDLE_Y,
+      null,
+      [
+        "middle",
+        PIECE_CARD,
+        [
+          ["middle", q(4)],
+          ["piece", q(8)],
+        ],
+      ],
+    ],
+    [
+      "the card's piece line inside the frame",
+      AT_PIECE_8,
+      PIECE_Y,
+      [
+        "piece",
+        MIDDLE_CARD,
+        [
+          ["piece", q(8)],
+          ["middle", q(4)],
+        ],
+      ],
+      [
+        "piece",
+        PIECE_CARD,
+        [
+          ["piece", q(8)],
+          ["middle", q(4)],
+        ],
+      ],
+    ],
+    [
+      "middle's own line, inside the raised card",
+      AT_PIECE_8,
+      MIDDLE_Y,
+      [
+        "middle",
+        MIDDLE_CARD,
+        [
+          ["middle", q(4)],
+          ["piece", q(8)],
+          ["recording", 5.0],
+        ],
+      ],
+      null,
+    ],
+    [
+      "the card's piece line left of the frame",
+      110.33544921875,
+      PIECE_Y,
+      ["piece", PIECE_CARD, [["piece", q(1)]]],
+      ["piece", PIECE_CARD, [["piece", q(1)]]],
+    ],
+    [
+      "the card's piece line right of the frame",
+      760.33544921875,
+      PIECE_Y,
+      ["piece", PIECE_CARD, [["piece", q(14)]]],
+      ["piece", PIECE_CARD, [["piece", q(14)]]],
+    ],
+  ])("at %s reads on the arranger and with the card raised", (_, x, y, arranger, raised) => {
+    expect(readShape(readWith(view, x, y, null))).toEqual(arranger);
+    expect(readShape(readWith(view, x, y, PIECE_EDITOR))).toEqual(raised);
+  });
+
+  it("raises the root of a timeline edited in no group, and no other", () => {
+    const block = blockIn(view, A);
+    const editor = (id: string, kind: Editing["kind"]): Editing => ({
+      target: inBlock(A, idAddress(id)),
+      kind,
+    });
+    expect(
+      [
+        PIECE_EDITOR,
+        null,
+        { target: { block: A }, kind: "bundle" } as Editing,
+        editor("group_1", "group"),
+        editor("middle", "timeline"),
+        editor("recording", "timeline"),
+      ].map((editing) => raisedRoot(block, editing)),
+    ).toEqual(["piece", null, null, null, null, null]);
+  });
+});
+
+describe("a timeline's place, its own card first", () => {
+  const view = viewWith(PARENT_BOTH);
+  const drawing = drawingIn(view);
+  const placesOf = (timeline: string) =>
+    holdings(drawing, timeline).map(({ axis, offset, length }) => [
+      axis.card,
+      axis.y,
+      offset,
+      length,
+    ]);
+
+  it("holds a member on its member card's line, a timeline no other line holds on the card's", () => {
+    expect(placesOf("middle")).toEqual([[MIDDLE_CARD, MIDDLE_Y, q(0), null]]);
+    expect(placesOf("piece")).toEqual([[PIECE_CARD, PIECE_Y, q(0), null]]);
+    expect(placesOf("recording")).toEqual([
+      [{ item: "group_1", member: "recording" }, 139.16015625, q(0), null],
+    ]);
+  });
+
+  it("marks a pin of the ancestor on the card's line, or on the ancestor line it was pinned on", () => {
+    const pin = readAt(view, AT_PIECE_8, PIECE_Y)?.pin;
+    if (pin === undefined) throw new Error("piece is not read there");
+    const ancestorKey = [...axes(view)].find(
+      ([, line]) => line.timeline === "piece" && line.ancestor === undefined,
+    )?.[0];
+    const [cardKey] = holdings(drawing, "piece").map(({ key }) => key);
+    if (ancestorKey === undefined) throw new Error("no ancestor line of piece");
+    expect(pinnedPlace(drawing, pin, null)).toEqual({ key: cardKey, x: AT_PIECE_8, group: false });
+    expect(pinnedPlace(drawing, pin, ancestorKey)).toEqual({
+      key: ancestorKey,
+      x: AT_PIECE_8,
+      group: false,
+    });
   });
 });
 
@@ -338,8 +575,8 @@ describe("the position, snapped on the hovered row", () => {
     const view = viewWith(MIXED);
     const score = axis(view, "score");
     expect([score.xStart, score.xEnd, score.y, score.maps.map((map) => map.yc)]).toEqual([
-      126.29150390625,
-      526.29150390625,
+      279.70361328125,
+      679.70361328125,
       73.109375,
       [67.609375, 62.609375],
     ]);

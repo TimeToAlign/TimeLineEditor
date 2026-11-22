@@ -1672,9 +1672,11 @@ layout's: the tests read the lines and maps of a drawing from layout's
 every point from them; the numbers quoted below are that record's for
 block A holding the fixture at (40, 80), scale 1.
 
-**Hovering.** A line is read only where it draws coordinate markers (a
-line `crossedLines` crosses): never an ancestor line, which draws none.
-It is read over its drawn span, from `xStart` to `xEnd`, which stands for
+**Hovering.** A line is read where it draws coordinate markers (a line
+`crossedLines` crosses), and an ancestor line, which draws none, is read
+as its ancestor's (below, "An ancestor line"); a line covered where the
+pointer is (below, "A covered line") is not read. Each is read over its
+drawn span, from `xStart` to `xEnd`, which stands for
 the coordinates of layout's record `drawnLength`: its length where known,
 else up to its reach (section 3.2), on the scale every line of its card
 shares; a line whose drawn length is 0 (a zero-length line, or one of
@@ -1718,11 +1720,7 @@ length added to `map` without content, `late` (block A, `add {into:
 length: null}}`, which brings its `origin` `timestamp_3` at 0), reaches 0:
 its line is drawn (y 22.40234375 from 63.53662109375 to 463.53662109375)
 but its drawn length is 0, so it is not among the lines read and nothing
-is hovered on it. In `bundle_mixed` the card of `excerpt`
-draws the ancestor line of `recording` at y 323.296875 and `excerpt`'s
-line at 340.796875 with `cmap_6` at 335.296875 (126.29150390625 to
-526.29150390625): exactly on the ancestor line at 326.29150390625 nothing
-is hovered (`excerpt`'s zone begins at 327.296875).
+is hovered on it.
 
 At zoom 2 on device-pixel ratio 2 (tolerance 2), with a second map
 `tempo_2` (`tempo` under another ID) added to `melody`, the line lies at
@@ -1740,6 +1738,102 @@ record), so the zone runs from 33 to 47.5. At the abscissa
 | 32.984375 | nothing | 2.015625 beyond it |
 | 47.5 | `melody`'s line | 2 below the line, the bound included |
 | 47.515625 | nothing | 2.015625 below it |
+
+The three rules below are proven on `groups/group_parent_both` (block A at
+(40, 80), scale 1), whose `group_1` lists `middle` (`piece`'s child at
+offset 4, 8 of `piece`'s 16 quarters, fraction) and `recording` (10.0
+seconds). Its drawing shows `piece`'s **ancestor card** behind the frame
+(drawn by default; layout's README, "Ancestor cards", point 2), which
+moves every item right by 148.6318359375. Layout's record, the oracle:
+the frame from (156.6318359375, 8), 543.70361328125 × 174.13671875, so
+its borders lie at x 156.6318359375 and 700.33544921875; `middle`'s card
+from (164.6318359375, 32.8046875), 527.70361328125 × 83.953125, holding
+`piece`'s ancestor line at y 67.78125 (from 260.33544921875 to
+660.33544921875, start 4, drawn length 8: clipped to `middle`) above
+`middle`'s own line at 81.78125 (same span, 0 to 8); the ancestor card
+from (8, 18.8046875), 869.33544921875 × 63.37890625 (its bottom at
+82.18359375), keyed `{item: group_1, member: piece}`, its lines (each
+carrying `ancestor {group: group_1, member: middle}`, listed after every
+item's) `piece` at 67.78125 from 60.33544921875 to 860.33544921875 (0 to
+16, 50 units a quarter) and `middle`'s row at 33.8046875 from
+260.33544921875 to 660.33544921875 (0 to 8). The card lies on `piece`'s
+ancestor row and is aligned to `middle`, so a coordinate of `piece` has
+the same abscissa on both of its lines.
+
+**An ancestor line is read as its ancestor's** (`axesOf`,
+`crossSectionSpec`). A child member's card draws its ancestors' lines
+above its own; they draw no markers, but the pointer reads them as any
+line over their drawn span: the position is picked on the ancestor's own
+axis (`p` from the line's `start` and drawn length as on any line), the
+hovered row is the ancestor's coordinate, and the cross-section is the
+one the member's line gives at the same abscissa, anchored on the
+ancestor: the ancestor at the ordinate of its ancestor line, its own
+ancestors, then the member (and any timeline between the two) and what
+the member's cross-section line crosses, each at its offset from the
+ancestor's zero summed down the manifest, at its line's ordinate in that
+card. The timestamp is the ancestor's, so a click pins and naming names
+what they do on the ancestor's own line; and as there, the reading holds
+no group (the ancestor is no member: a group is read only from the lines
+of its members, `holds` naming the hovered timeline). What would be
+wrong: nothing read there (the former rule, under which a name label
+lying on such a line silenced the reading), the member's timestamp
+instead of the ancestor's, or the ancestor read without the member. On
+`group_parent_both`'s ancestor line at a quarter, the middle and three
+quarters of its span (x 360.33544921875, 460.33544921875,
+560.33544921875, y 67.78125, the arranger, nothing raised): `p` = 4 +
+share × 8 = 6, 8, 10 and `h` = 8 / 400 / 2 = 0.01, so the positions are
+**6, 8, 10** (integers); the hovered timeline `piece`, the row `{timeline:
+piece, map: null}`, the line's card `{item: group_1, member: middle}`;
+the spec's anchor `piece` (ordinate 67.78125) and its one member
+`middle` at offset 4 (ordinate 81.78125); the parts `piece` 6, 8, 10 and
+`middle` 6 − 4 = 2, 4, 6; `readsGroup` false. The flag lists `Piece`
+(its coordinate the hovered row) above `Middle`.
+
+**A covered line is not read** (`coveredIn`, `raisedRoot`). An ancestor
+card is drawn first, behind every frame and every card the block holds,
+so a line of it is read only where no such box drawn above it holds the
+pointer: beyond the frame's borders, never inside the frame or a member
+card, where only their own lines are read. While the card is raised (a
+timeline editor open on a timeline of its root that is no group member
+and lies in no member, the rule the block node raises the cards by:
+`raisedRoot` gives the root, else `null`), its lines are read everywhere,
+and every other line is covered inside the raised card's rectangle. A box
+whose rectangle is not drawn covers nothing. What would be wrong: the
+card's `middle` row read inside the frame, where the user sees the frame
+and `middle`'s card; the card not read beyond the
+frame; the card not read once raised. At the abscissa
+460.33544921875 (inside the frame and both cards) and beyond the frame's
+borders, on the arranger and with `piece`'s timeline editor open:
+
+| Point | Arranger | `piece`'s editor open, its card raised |
+|---|---|---|
+| (460.33544921875, 33.8046875), the card's `middle` row | nothing: covered by the frame; the nearest uncovered line, `piece`'s ancestor line, lies 33.9765625 away | the card's `middle` row: `middle` **4** (`p` = 200 / 400 × 8), then its ancestor `piece` 8 at the card's `piece` line (67.78125) |
+| (460.33544921875, 67.78125), the card's `piece` line | `piece`'s ancestor line in `middle`'s card (above): `piece` **8**, `middle` 4 | the card's `piece` line, card `{item: group_1, member: piece}`: `piece` **8**, `middle` 4 (its row in the card, 33.8046875); the ancestor line under the card is covered |
+| (460.33544921875, 81.78125), `middle`'s own line | `middle` **4**, `piece` 8, `recording` 5.0 (the group, above) | nothing: the line lies inside the raised card (its bottom 82.18359375), the card's lines 14 and 47.9765625 away |
+| (110.33544921875, 67.78125), left of the frame | the card's `piece` line: `piece` **1** (50 / 800 × 16) alone, `middle` starting at 4 | the same |
+| (760.33544921875, 67.78125), right of the frame | the card's `piece` line: `piece` **14** (700 / 800 × 16) alone, `middle` ending at 12 | the same |
+
+`raisedRoot` gives `piece` in `piece`'s timeline editor, and `null` on
+the arranger, in the group editor of `group_1`, in `middle`'s timeline
+editor (a member) and in `recording`'s.
+
+**A timeline's place: its own card wins** (`holdings`, `pinnedPlace`).
+The lines a timeline has its place on, where a named timestamp's pin and
+its affordance are read, where Show matches draws a coordinate and screen
+order places it (below, "Show matches"), are its marked lines, a line of
+an ancestor card among them only for a timeline that no other marked line
+holds: the member's own card wins over the row an ancestor card draws of
+it behind the frame. `pinnedPlace` marks a pin on the line it was pinned
+on while that line draws its anchor, else on the first of those lines
+that is read, else on an ancestor line of it. In `group_parent_both`
+`middle` is drawn on its member card's line (81.78125) and as the card's
+row (33.8046875): `holdings` gives the member card's line alone, at
+offset 0; `piece` is drawn as the card's line and as an ancestor line,
+which draws no markers, so `holdings` gives the card's line alone, and
+`recording` its member card's line. A pin of `piece` at 8 without a
+preferred line is marked on the card's line at 460.33544921875 (the same
+abscissa as on its ancestor line), pinned on the ancestor line it is
+marked there, at the same abscissa.
 
 **The cross-section.** The spec of a hovered line names its timeline as
 the anchor with the maps drawn at the line for it, then as members the
@@ -1803,11 +1897,26 @@ ratio, halved. Core proves the rule on these very rows (its README, "Snapping on
 a row"); here the inputs are proven, by positions the rule gives only
 for the right row, `p` and `h`.
 
-- **`bundle_mixed`'s `score`** (y 73.109375 from 126.29150390625 to
-  526.29150390625, 12 quarters over 400, so 0.03 a canvas unit; `cmap_1`
+- **`bundle_mixed`'s `score`** (y 73.109375 from 279.70361328125 to
+  679.70361328125, 12 quarters over 400, so 0.03 a canvas unit; `cmap_1`
   480·x onto ticks at 67.609375, `cmap_2` x/2 onto seconds at 62.609375).
+  The abscissas: with no ancestor card every line runs from `8 + s0 =
+  126.29150390625` (above, "Fixture facts"). `recording`'s ancestor card,
+  now drawn by default behind `group_2`'s frame, is aligned to `excerpt`
+  (88200 samples at 44100 in `recording`'s 441000, drawn over 400), so
+  `recording`'s line in it starts `400 × 44100 / 88200 = 200` left of
+  `excerpt`'s, at −73.70849609375, and the card's left edge lies its name
+  column `s0' = 8 + w("Recording", 11) + 8` further left (layout's README,
+  "Ancestor cards"); `w("Recording", 11) = (1423 + 1260 + 1126 + 1253 +
+  842 + 1300 + 569 + 1298 + 1300) × 11 / 2048 = 10371 × 11 / 2048 =
+  55.70361328125` (DejaVu Sans advances of R, e, c, o, r, d, i, n, g), so
+  `s0' = 71.70361328125` and the edge lies at −145.412109375, left of every
+  item. The block grows left to that edge less its padding `P = 8`,
+  −153.412109375, and every item moves right by 153.412109375, nothing
+  vertically: `score`'s line runs from `126.29150390625 + 153.412109375 =
+  279.70361328125`, its ordinates unchanged.
   At zoom 3.75, ratio 1, `h` = 0.03 / 3.75 / 2 = 0.004, and the abscissa
-  126.29150390625 + 3.13 / 0.03 gives `p` = 3.13 (the doubles nearest,
+  279.70361328125 + 3.13 / 0.03 gives `p` = 3.13 (the doubles nearest,
   within 10⁻¹⁴, where every margin below is at least 0.001), core's own
   pointer. On the line (y 73.109375) the position is **47/15**; on
   `cmap_1` (y 67.609375) **751/240**; on `cmap_2` (y 62.609375) with
@@ -2124,7 +2233,16 @@ MatchStamp 1 = {c1, c3}.
 and `take_2`'s, in the drawing's order; `other` has none. Each line's
 card is the one layout's line record names (`LineAxis.card`): the three
 ungrouped roots' own cards, `{item: score}`, `{item: take_1}`, `{item:
-take_2}`.
+take_2}`. They are the lines `holdings` gives (above, "Show
+coordinates": a line of an ancestor card only for a timeline no other
+line holds), so a member's coordinates are never drawn on the row an
+ancestor card draws of it behind the frame: in `groups/group_parent_both`
+a table over `middle` and `piece` (one MatchClaim, `middle` 2 ↔ `piece`
+6) has `middle` on its member card's line alone (y 81.78125, card
+`{item: group_1, member: middle}`), not also on the card's row at
+33.8046875, and `piece`, which no member card holds, on the ancestor
+card's line (y 67.78125 from 60.33544921875 to 860.33544921875, card
+`{item: group_1, member: piece}`).
 
 **What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
 per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
@@ -2191,7 +2309,9 @@ of its places on the lines holding its timeline (the lines "Show matches"
 draws it on: its own lines, else the segment line holding it), a place
 counted only where the line's drawn part holds the value exactly (from 0,
 up to a segment's length, within the line's drawn span, both ends
-included), its abscissa layout's `abscissaOf`; coordinates top to bottom,
+included), its abscissa layout's `abscissaOf` (a line of an ancestor card counts
+only for a timeline no other line holds, `holdings`: the member's own
+card wins); coordinates top to bottom,
 then left to right, those the block draws nowhere last; equal places, and
 the undrawn, keep their given order. What would be wrong: the first line in
 drawing order taken for a timeline drawn in several cards (so the flag and
@@ -2234,6 +2354,16 @@ record, 7016 pixels over 400 units), its segments `page_1` … `page_4` of
 its own: `page_2` 0 is at (156.85498046875, 36.4765625) (1754 / 7016 × 400
 = 100 right of the start), `page_2` 1754 at (256.85498046875, 36.4765625),
 its end; `page_2` 1755 is beyond the segment: none.
+
+In `groups/group_parent_both` (block A at (40, 80); above, "Show
+coordinates") `middle` 4 is at (460.33544921875, 81.78125), its member
+card's line, not at the topmost (460.33544921875, 33.8046875) the
+ancestor card's row of it would give; `piece` 8 at (460.33544921875,
+67.78125), on the card's line, the point of its ancestor line above
+`middle`; `piece` 1 at (110.33544921875, 67.78125), beyond the frame. So
+[`middle` 4, `piece` 8] in screen order is [`piece` 8, `middle` 4], as
+drawn top to bottom in `middle`'s card (by the topmost place over every
+line it would be [`middle` 4, `piece` 8]).
 
 **The flag** (`matchFlag`, 3 decimals). One group per timeline, named as
 the manifest names it, each coordinate a row in core's `prettyText` with
@@ -2759,6 +2889,24 @@ display: wedge, name label, cross-section line).
   `score`'s cross-section extent (its conversion maps band) and from
   `score`'s line to the lower border of `performance`'s card; on `melody`
   of a block without groups, none.
+- **Hover and pin on an ancestor line.** An ancestor line draws no
+  timestamp, so layout gives it no wedge and no cross-section line; the
+  mark of a position on it is the mark the drawing draws of its member's
+  start there (`markWedgeAt`): the wedge `{id: M, part: ["start"]}` whose
+  tip lies at the line's start, nearest above the line, moved to the
+  position's abscissa, with its own style; no cross-section line. In
+  `groups/group_parent_both` (above, "Show coordinates") `middle`'s start
+  mark on `piece`'s ancestor line has its tip at (260.33544921875,
+  66.28125), half the line's stroke width 3 above it, its base corners at
+  (257.33544921875, 53.28125) and (263.33544921875, 53.28125), fill
+  `#000000`, opacity 0.35; the pointer on the ancestor line at 8
+  (460.33544921875, 67.78125) draws one wedge, its points those three
+  moved right by 200, `460.3354,66.2812 457.3354,53.2812 463.3354,53.2812`
+  as the writers write points, fill `#000000`, opacity `0.35`, and no
+  `coordinate-line`; the flag lists `Piece` above `Middle`, `Piece`'s
+  coordinate `8 ♩` the hovered row. A click there pins `piece` at 8
+  (`oncoordinatepin`, the anchor `piece`), and the pin's mark is the same
+  wedge at the same place.
 - **The flag on the canvas.** The flag's place is `flagPlace` (above) of
   the reading turned into canvas pixels: the node's position plus the
   drawing point, times the zoom, plus the view's offset. Hovering
