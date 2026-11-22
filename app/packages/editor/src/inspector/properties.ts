@@ -641,8 +641,8 @@ export interface AncestorCardShown {
   /** The drawing draws an ancestor card of the root: the button hides it, else shows it. */
   readonly drawn: boolean;
   /**
-   * The `style` command the button sends; `null` where the card is hidden by a rule the root's
-   * own rule cannot outrank, and the button is disabled.
+   * The `style` command the button sends; `null` where a rule the root's own rule cannot outrank
+   * keeps the card as it is drawn (hidden or shown), and the button is disabled.
    */
   readonly command: StyleCommand | null;
 }
@@ -652,12 +652,11 @@ function ancestorCardSelector(root: string): Selector {
   return { element: "ancestor_card", addresses: [{ id: root, part: ["card"] }] };
 }
 
+/** A `display` the button may give the root's own rule; `null` removes the member. */
+type OwnDisplay = "none" | "inline" | null;
+
 /** The `style` command setting the `display` of the root `root`'s own rule in `block`. */
-function ancestorCardCommand(
-  block: Block,
-  root: string,
-  display: "none" | "inline" | null,
-): StyleCommand {
+function ancestorCardCommand(block: Block, root: string, display: OwnDisplay): StyleCommand {
   return {
     type: "style",
     select: ancestorCardSelector(root),
@@ -672,18 +671,61 @@ function drawsAncestorCard(drawing: Drawing, root: string): boolean {
 }
 
 /**
+ * The outcome of each trial already made, by the block's manifest, then the
+ * workspace's `graphical`, then root and `display`: a `style` command of a
+ * block changes that block's manifest alone, and whether its drawing draws
+ * an ancestor card is read from the manifest and the workspace's layer
+ * alone, so a store change that replaces neither draws nothing again.
+ */
+const trials = new WeakMap<Manifest, WeakMap<View["graphical"], Map<string, boolean>>>();
+
+/**
+ * Whether `block` of `view`, the root's own rule given `display` (the
+ * command applied by core's `preview`), draws an ancestor card of `root`;
+ * a refused command draws none.
+ */
+function drawsWith(view: View, block: Block, root: string, display: OwnDisplay): boolean {
+  let layers = trials.get(block.manifest);
+  if (layers === undefined) {
+    layers = new WeakMap();
+    trials.set(block.manifest, layers);
+  }
+  let outcomes = layers.get(view.graphical);
+  if (outcomes === undefined) {
+    outcomes = new Map();
+    layers.set(view.graphical, outcomes);
+  }
+  const key = JSON.stringify([root, display]);
+  const known = outcomes.get(key);
+  if (known !== undefined) return known;
+  const shown = preview(view, ancestorCardCommand(block, root, display));
+  let draws = false;
+  if (!isCommandError(shown)) {
+    const shownBlock = shown.blocks[block.id];
+    draws =
+      shownBlock !== undefined &&
+      drawsAncestorCard(drawingOf(shownBlock, shown.graphical, fontMetrics), root);
+  }
+  outcomes.set(key, draws);
+  return draws;
+}
+
+/**
  * The ancestor-card button of the inspected subjects, all in `block` of
  * `view`, drawn as `drawing`: offered when every subject is one root that
  * contains a group member (the root, its card, its ancestor line, or a part
- * of either), `null` otherwise. Where the drawing draws an ancestor card of
- * the root, it hides it: `display: none` in the root's own rule (selector
- * `{element: ancestor_card, addresses: [{id: R, part: [card]}]}`). Where
- * not, it shows it by the first of these that the block, the command
- * applied (core's `preview`), draws with the card: the own rule's `display`
- * removed (only where the own rule hides it), else the own rule's `display:
- * inline`; neither (a rule outranking the root's own hides it) leaves it
- * disabled. So what it offers is read from the drawing, never from the
- * default layer.
+ * of either), `null` otherwise. Every command it offers is tried first: the
+ * block, the command applied (core's `preview`), must draw the card as the
+ * click promises. Where the drawing draws an ancestor card of the root, it
+ * hides it: `display: none` in the root's own rule (selector `{element:
+ * ancestor_card, addresses: [{id: R, part: [card]}]}`), disabled where the
+ * card stays drawn (a rule outranking the own one shows it). Where not, it
+ * shows it by the first of these that draws the card: the own rule's
+ * `display` removed (only where the own rule hides it), else the own rule's
+ * `display: inline`; neither (a rule outranking the own one hides it)
+ * leaves it disabled. So what it offers is read from the drawing, never
+ * from the default layer. The trials are kept per manifest and workspace
+ * layer (`drawsWith`).
  */
 export function ancestorCardOf(
   view: View,
@@ -702,27 +744,21 @@ export function ancestorCardOf(
   const cards = containersOf(block.manifest).cards.get(root) ?? [];
   if (!cards.some((card) => holdingOf(card) === "ancestor")) return null;
   if (drawsAncestorCard(drawing, root)) {
-    return { root, drawn: true, command: ancestorCardCommand(block, root, "none") };
+    const hides = !drawsWith(view, block, root, "none");
+    return { root, drawn: true, command: hides ? ancestorCardCommand(block, root, "none") : null };
   }
   const key = canonicalText(ancestorCardSelector(root));
   const graphical = block.manifest.graphical;
   const own = (graphical?.rules ?? []).find((rule) => canonicalText(rule.select) === key);
   const set = typeof own?.set === "string" ? graphical?.styles?.[own.set] : own?.set;
-  const trials: ("inline" | null)[] = [
+  const offered: ("inline" | null)[] = [
     ...(set?.display === "none" ? [null] : []),
     ...(set?.display === "inline" ? [] : ["inline" as const]),
   ];
-  const command =
-    trials
-      .map((display) => ancestorCardCommand(block, root, display))
-      .find((trial) => {
-        const shown = preview(view, trial);
-        if (isCommandError(shown)) return false;
-        const shownBlock = shown.blocks[block.id];
-        return (
-          shownBlock !== undefined &&
-          drawsAncestorCard(drawingOf(shownBlock, shown.graphical, fontMetrics), root)
-        );
-      }) ?? null;
-  return { root, drawn: false, command };
+  const display = offered.find((trial) => drawsWith(view, block, root, trial));
+  return {
+    root,
+    drawn: false,
+    command: display === undefined ? null : ancestorCardCommand(block, root, display),
+  };
 }

@@ -19,12 +19,18 @@ import type { Block, CommandEntry, ElementAddress, Store } from "@timetoalign/ti
 import { createStore, isLoadError, readWorkspace, sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
-import { nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
+import { ancestorCardOf, nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { blockId, editorAt, storeOf as fixtureStore, informing } from "./support.ts";
+
+// The arranger itself, its `drawingOf` counted: the ancestor-card trials are counted through it.
+vi.mock("@timetoalign/tilie-arranger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@timetoalign/tilie-arranger")>();
+  return { ...actual, drawingOf: vi.fn(actual.drawingOf) };
+});
 
 const M = "bmixed0000";
 
@@ -433,10 +439,35 @@ describe("the Properties panel", () => {
     });
   }
 
-  /** The button's text, whether it is disabled, and its title. */
+  /** The button's text, whether it is disabled (`aria-disabled`), and its title. */
   const button = () => {
     const found = ancestorCard();
-    return [found?.textContent?.trim(), found?.disabled, found?.title];
+    return [
+      found?.textContent?.trim(),
+      found?.getAttribute("aria-disabled") === "true",
+      found?.title,
+    ];
+  };
+
+  /**
+   * What assistive technology reads of the button: its name (its text, no `aria-label`), its
+   * `aria-disabled`, the text of the elements `aria-describedby` names, and whether it takes the
+   * focus (never the `disabled` attribute, which would take it out of the tab order).
+   */
+  const reachable = () => {
+    const found = ancestorCard();
+    found?.focus();
+    const described = (found?.getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .filter((id) => id !== "")
+      .map((id) => document.getElementById(id)?.textContent?.trim());
+    return {
+      name: found?.textContent?.trim(),
+      label: found?.getAttribute("aria-label"),
+      disabled: found?.getAttribute("aria-disabled"),
+      described,
+      focused: found !== null && document.activeElement === found && !found.disabled,
+    };
   };
   const TITLE = "The timeline drawn whole behind the frames of its members' groups";
 
@@ -520,10 +551,83 @@ describe("the Properties panel", () => {
     });
     expect(recordingCards(store)).toBe(0);
     show(store, [{ id: "recording" }]);
-    expect(button()).toEqual(["Show card behind its groups", true, "Hidden by another style rule"]);
+    expect(button()).toEqual(["Show card behind its groups", true, TITLE]);
+    expect(reachable()).toEqual({
+      name: "Show card behind its groups",
+      label: null,
+      disabled: "true",
+      described: ["Hidden by another style rule"],
+      focused: true,
+    });
     const before = store.journal.length;
     click();
     expect(store.journal.length).toBe(before);
+    expect(recordingCards(store)).toBe(0);
+  });
+
+  it("disables Hide where a rule the own one cannot outrank shows the card", () => {
+    const store = storeOf();
+    showAll(store);
+    dispatched(store, {
+      type: "style",
+      select: {
+        element: "ancestor_card",
+        addresses: [{ id: "recording", part: ["card"] }],
+        within: "recording",
+      },
+      set: { display: "inline" },
+      blocks: [M],
+    });
+    expect(recordingCards(store)).toBe(1);
+    show(store, [{ id: "recording" }]);
+    expect(button()).toEqual(["Hide card behind its groups", true, TITLE]);
+    expect(reachable()).toEqual({
+      name: "Hide card behind its groups",
+      label: null,
+      disabled: "true",
+      described: ["Shown by another style rule"],
+      focused: true,
+    });
+    const journal = store.journal;
+    click();
+    expect(store.journal).toBe(journal);
+    expect(store.journal.length).toBe(journal.length);
+    expect(recordingCards(store)).toBe(1);
+  });
+
+  it("describes an enabled button by nothing and sets no aria-disabled", () => {
+    const store = storeOf();
+    showAll(store);
+    show(store, [{ id: "recording" }]);
+    expect(reachable()).toEqual({
+      name: "Hide card behind its groups",
+      label: null,
+      disabled: null,
+      described: [],
+      focused: true,
+    });
+  });
+
+  it("tries the button's commands once per manifest and workspace layer", () => {
+    const store = storeOf();
+    showAll(store);
+    dispatched(store, ownCommand("none"));
+    const evaluate = () => {
+      const view = store.view;
+      const block = blockOf(store);
+      const drawing = drawingOf(block, view.graphical, fontMetrics);
+      const subjects = resolveSelection(view, addresses({ id: "recording" }), null, fontMetrics);
+      const draws = vi.mocked(drawingOf).mock.calls.length;
+      const shown = ancestorCardOf(view, block, subjects, drawing);
+      return [shown?.drawn, shown?.command?.set, vi.mocked(drawingOf).mock.calls.length - draws];
+    };
+    expect(evaluate()).toEqual([false, { display: null }, 1]);
+    expect(evaluate()).toEqual([false, { display: null }, 0]);
+    dispatched(store, {
+      type: "set",
+      changes: [{ target: { block: M }, values: { name: "Op. 35" } }],
+    });
+    expect(evaluate()).toEqual([false, { display: null }, 1]);
   });
 
   /** The notice a size below `minimum` gives. */

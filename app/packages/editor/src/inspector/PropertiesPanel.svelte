@@ -8,7 +8,9 @@
  * timelines stands right of the container size, read-only, and beside it,
  * for a root that contains a group member, a button that hides or shows the
  * root's ancestor cards by one `style` command, its text naming what it
- * does ("Hide card behind its groups", "Show card behind its groups"). Typed text is
+ * does ("Hide card behind its groups", "Show card behind its groups"); where
+ * another style rule keeps the card as drawn, the button stays focusable with
+ * `aria-disabled` and a visible hint saying why describes it. Typed text is
  * the inspector's `PropertyDrafts`; a commit or a step is one `set`. Below,
  * the group memberships of the selected timelines or group, and the New
  * group button (`groups.ts`), each click one command.
@@ -150,9 +152,12 @@ const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.prop
 /** What the Locked checkbox's tooltip says. */
 const LOCK_TITLE = "Whether the timeline's length is fixed";
 
-/** What the ancestor-card button's tooltip says, enabled and disabled. */
+/** What the ancestor-card button's tooltip says. */
 const ANCESTOR_CARD_TITLE = "The timeline drawn whole behind the frames of its members' groups";
-const ANCESTOR_CARD_RULED = "Hidden by another style rule";
+
+/** Why the ancestor-card button is disabled: another rule shows the card it would hide, or hides the card it would show. */
+const ANCESTOR_CARD_SHOWN = "Shown by another style rule";
+const ANCESTOR_CARD_HIDDEN = "Hidden by another style rule";
 
 /** What the tab shows for a selection without one role of geometry. */
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
@@ -270,17 +275,26 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
   {#if ancestorCard !== null}
     {@const card = ancestorCard}
+    {@const reason =
+      card.command !== null ? null : card.drawn ? ANCESTOR_CARD_SHOWN : ANCESTOR_CARD_HIDDEN}
+    {@const described = [
+      reason === null ? null : `${uid}-ancestor-card-reason`,
+      ancestorCardProblem === null ? null : `${uid}-problem-ancestor-card`,
+    ].filter((id) => id !== null)}
     <button
       type="button"
       class="ancestor-card"
-      title={card.command === null ? ANCESTOR_CARD_RULED : ANCESTOR_CARD_TITLE}
+      title={ANCESTOR_CARD_TITLE}
       data-testid="ancestor-card"
-      disabled={card.command === null}
-      aria-describedby={ancestorCardProblem === null ? undefined : `${uid}-problem-ancestor-card`}
+      aria-disabled={reason === null ? undefined : "true"}
+      aria-describedby={described.length === 0 ? undefined : described.join(" ")}
       onclick={toggleAncestorCard}
     >
       {card.drawn ? "Hide card behind its groups" : "Show card behind its groups"}
     </button>
+    {#if reason !== null}
+      <p class="hint" id="{uid}-ancestor-card-reason">{reason}</p>
+    {/if}
     {#if ancestorCardProblem !== null}
       <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
     {/if}
@@ -441,7 +455,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     align-items: end;
   }
 
-  .size .problem {
+  .size .problem,
+  .size .hint {
     grid-column: 1 / -1;
   }
 
@@ -474,7 +489,9 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     white-space: nowrap;
   }
 
-  .ancestor-card:disabled {
+  /* Disabled yet focusable (`aria-disabled`): greyed, its reason in the hint below it. */
+  .ancestor-card[aria-disabled="true"] {
+    color: #595959;
     cursor: not-allowed;
   }
 
