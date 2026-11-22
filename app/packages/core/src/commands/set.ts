@@ -8,7 +8,7 @@
 
 import { ANCHOR_DISPLAY, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError, Problem } from "../errors.ts";
-import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
 import { addressKey } from "../manifest/address.ts";
@@ -1095,8 +1095,12 @@ function setterOf(
       return bind(SETTABLE.matchstamp[property], target);
     case "anchor":
       return bind(SETTABLE.anchor[property], target);
-    default:
+    case "map":
+    case "region":
+    case "flow_control":
       return bind(SETTABLE[target.kind][property], target);
+    default:
+      return assertNever(target);
   }
 }
 

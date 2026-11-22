@@ -1,8 +1,6 @@
 import * as timetoshare from "@timetoalign/timetoshare";
-import { JsonFloat } from "@timetoalign/timetoshare";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { anchorValues } from "../src/commands/matchstamps.ts";
 import type { AnchorIndex } from "../src/matches/anchors.ts";
 import {
   anchorIndexOf,
@@ -739,19 +737,6 @@ describe("a named MatchStamp against the index", () => {
       claims: ["claim_4", "claim_5", "claim_6"],
       nameAnchor: null,
     });
-  });
-
-  it("gives an index's anchors as a command gives them", () => {
-    expect(anchorValues(index, [6, 11])).toEqual([
-      [
-        { timeline: "clt_1", coordinate: [3, 1] },
-        { timeline: "dpt_1", coordinate: 132300 },
-      ],
-      [
-        { timeline: "dpt_1", coordinate: 132300 },
-        { timeline: "cpt_1", coordinate: new JsonFloat(3) },
-      ],
-    ]);
   });
 
   it("offers no Update when no anchor is stated", () => {

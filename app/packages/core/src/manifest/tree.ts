@@ -26,30 +26,51 @@ export interface Located extends RootPath {
   readonly parent: Located | undefined;
 }
 
-/**
- * The first value `pick` gives for `here` or a timeline of its subtree,
- * searched depth first in `children` order.
- */
-export function searchTree<T>(here: Located, pick: (at: Located) => T | undefined): T | undefined {
-  const own = pick(here);
-  if (own !== undefined) return own;
-  for (const [index, timeline] of here.timeline.children.entries()) {
-    const child = { timeline, path: [...here.path, "children", index], parent: here };
-    const found = searchTree(child, pick);
-    if (found !== undefined) return found;
-  }
-  return undefined;
+/** Every timeline of a manifest located once: in pre-order, and by ID. */
+interface LocatedTimelines {
+  readonly inOrder: readonly Located[];
+  readonly byId: ReadonlyMap<string, Located>;
 }
 
-/** The timeline carrying `id` among a manifest's roots and their descendants, located. */
+const locatedTimelines = new WeakMap<Roots, LocatedTimelines>();
+
+/**
+ * Every timeline of a manifest, located, built in one walk and memoised by
+ * identity: `inOrder` root by root, each timeline before its children in
+ * `children` order; `byId` the first of them carrying each ID.
+ */
+function locatedOf(manifest: Roots): LocatedTimelines {
+  const known = locatedTimelines.get(manifest);
+  if (known !== undefined) return known;
+  const inOrder: Located[] = [];
+  const byId = new Map<string, Located>();
+  const visit = (at: Located) => {
+    inOrder.push(at);
+    if (!byId.has(at.timeline.id)) byId.set(at.timeline.id, at);
+    at.timeline.children.forEach((timeline, index) => {
+      visit({ timeline, path: [...at.path, "children", index], parent: at });
+    });
+  };
+  for (const root of rootPaths(manifest)) visit({ ...root, parent: undefined });
+  const located = { inOrder, byId };
+  locatedTimelines.set(manifest, located);
+  return located;
+}
+
+/**
+ * Every timeline of a manifest, located: root by root, each timeline before
+ * its children, in `children` order.
+ */
+export function timelinesInOrder(manifest: Roots): readonly Located[] {
+  return locatedOf(manifest).inOrder;
+}
+
+/**
+ * The timeline carrying `id` among a manifest's roots and their
+ * descendants, located: the first in `timelinesInOrder`.
+ */
 export function locateTimeline(manifest: Roots, id: string): Located | undefined {
-  for (const root of rootPaths(manifest)) {
-    const found = searchTree({ ...root, parent: undefined }, (at) =>
-      at.timeline.id === id ? at : undefined,
-    );
-    if (found !== undefined) return found;
-  }
-  return undefined;
+  return locatedOf(manifest).byId.get(id);
 }
 
 /** Whether the timeline at `at` is a segment: a child of a segment line. */

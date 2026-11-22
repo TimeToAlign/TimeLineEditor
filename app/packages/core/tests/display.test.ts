@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import {
   coordinateDict,
   copyValue,
-  exactDecimal,
   prettyText,
   prettyUnit,
   rawText,
@@ -238,13 +237,5 @@ describe("a value of another kind than the number type", () => {
     expect(() => copyValue(0.5, "fraction")).toThrow(TypeError);
     expect(() => rawText(q(1, 2), "int", "samples")).toThrow(TypeError);
     expect(() => coordinateDict(q(1, 2), "samples", "int")).toThrow(TypeError);
-  });
-});
-
-describe("exactDecimal", () => {
-  it("writes a terminating decimal exactly and gives none for any other", () => {
-    expect(
-      [q(1, 200), q(-3, 8), q(3), q(27, 2048), q(1, 3)].map((value) => exactDecimal(value)),
-    ).toEqual(["0.005", "-0.375", "3", "0.01318359375", undefined]);
   });
 });

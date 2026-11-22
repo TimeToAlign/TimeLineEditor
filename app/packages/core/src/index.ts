@@ -17,7 +17,7 @@ export const name = "@timetoalign/tilie-core" as const;
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export type { AnchorValue } from "./commands/matchstamps.ts";
-export { anchorValues, matchStampSpec, namedAsGroupstamp } from "./commands/matchstamps.ts";
+export { matchStampSpec, namedAsGroupstamp } from "./commands/matchstamps.ts";
 export { preview } from "./commands/preview.ts";
 export {
   groupstampByDefault,
@@ -36,6 +36,7 @@ export type {
 export { ADD_KINDS } from "./commands/types.ts";
 export type { CommandError, LoadError, Problem } from "./errors.ts";
 export {
+  assertNever,
   ErrorCode,
   InvalidManifestError,
   isCommandError,
@@ -53,7 +54,6 @@ export {
   FACETS,
   idAddress,
   isFacet,
-  PART_WORDS,
   partAddress,
   sameAddress,
   TITLE_ADDRESS,
@@ -74,8 +74,6 @@ export type {
 } from "./manifest/containers.ts";
 export {
   CARD_PLACE_MEMBERS,
-  CONTAINER_KINDS,
-  CONTAINER_LEVELS,
   CONTAINERS,
   containersOf,
   holdingOf,
@@ -131,7 +129,7 @@ export {
   withoutReferencesTo,
   withStatementContext,
 } from "./manifest/statements.ts";
-export { findTimeline, isSegment } from "./manifest/tree.ts";
+export { findTimeline } from "./manifest/tree.ts";
 export type {
   AlignmentAnchor,
   AnchorDisplay,
@@ -154,7 +152,7 @@ export type {
 export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
 export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
-export { express, expressAs } from "./maps/express.ts";
+export { express } from "./maps/express.ts";
 export type { InversionContext } from "./maps/invert.ts";
 export { invert, invertible } from "./maps/invert.ts";
 export type {
@@ -202,7 +200,6 @@ export type {
 } from "./matches/anchors.ts";
 export {
   anchorIndexOf,
-  anchorOf,
   claimRowsOf,
   coordinateNear,
   coordinateOf,
@@ -228,10 +225,9 @@ export type {
   ClaimTimeline,
   ClaimValues,
   MatchClaimColumns,
-  ValueCell,
   ValueColumn,
 } from "./matches/columns.ts";
-export { checkColumns, claimRowOf, matchClaimColumns, valueCell } from "./matches/columns.ts";
+export { checkColumns, claimRowOf, matchClaimColumns } from "./matches/columns.ts";
 export type {
   MatchStampCheck,
   MatchStampUpdate,
@@ -245,7 +241,6 @@ export type { CoordinateDict } from "./number/display.ts";
 export {
   coordinateDict,
   copyValue,
-  exactDecimal,
   prettyText,
   prettyUnit,
   rawText,
@@ -300,9 +295,7 @@ export {
   createView,
   DEFAULT_GRANULARITY,
   DEFAULT_MATCH_CLAIM_FILTER,
-  DEFAULT_SETTINGS,
   isRelativeLocation,
-  MAX_DECIMALS,
   manifestFileOf,
   matchClaimFilterOf,
   UNTITLED_WORKSPACE,

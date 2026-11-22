@@ -8,7 +8,7 @@
 
 import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, problem } from "../errors.ts";
 import { addressKey, sameAddress } from "../manifest/address.ts";
 import { contains } from "../manifest/contains.ts";
 import type { Address } from "./address.ts";
@@ -211,11 +211,21 @@ export function editorKindOf(view: View, address: Address): EditorKind | Command
       return "group";
     case "timeline":
       return "timeline";
-    default: {
+    case "workspace":
+    case "title":
+    case "card":
+    case "band":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
+    case "part":
       return problem(ErrorCode.noEditor, `${addressWords(view, address)} has no editor`, [
         addressKey(address),
       ]);
-    }
+    default:
+      return assertNever(resolved);
   }
 }
 

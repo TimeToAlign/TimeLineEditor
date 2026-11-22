@@ -28,11 +28,9 @@ import type {
   NamedTimestamp,
   TimelineManifest,
 } from "../manifest/types.ts";
-import type { AnchorIndex } from "../matches/anchors.ts";
-import { coordinateValue } from "../matches/anchors.ts";
 import type { NamedMatchStampSpec } from "../matches/compare.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { axisCoordinate, axisValueOf } from "../number/coordinate.ts";
+import { axisCoordinate } from "../number/coordinate.ts";
 import type { Real } from "../number/real.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import { readObject, unknownMember } from "../values.ts";
@@ -309,28 +307,6 @@ export function rewrittenMatchStamp(
 export interface AnchorValue {
   readonly timeline: string;
   readonly coordinate: AxisValue;
-}
-
-/**
- * The anchors `anchors` of the index as a command gives them (`add
- * matchstamp`, `set anchors`), in the order given, each its lower
- * coordinate first: the pairs a potential MatchStamp or an Update result
- * (`MatchStampUpdate.anchors`) names, which the caller puts in screen order.
- */
-export function anchorValues(
-  index: AnchorIndex,
-  anchors: ArrayLike<number>,
-): (readonly [AnchorValue, AnchorValue])[] {
-  const anchorValue = (coordinate: number): AnchorValue => {
-    const number = index.coordinates.timeline[coordinate] as number;
-    const timeline = index.columns.timelines[number]?.id;
-    if (timeline === undefined) throw new Error(`coordinate ${coordinate} lies on a timeline`);
-    return { timeline, coordinate: axisValueOf(coordinateValue(index, coordinate)) };
-  };
-  return Array.from(anchors, (anchor) => [
-    anchorValue(index.anchors.low[anchor] as number),
-    anchorValue(index.anchors.high[anchor] as number),
-  ]);
 }
 
 /**
