@@ -268,3 +268,72 @@ export interface AxisTimestamp {
   /** Its cross-section segment's ordinates: the card's top and bottom, its gap included. */
   readonly segment: { readonly y1: number; readonly y2: number };
 }
+
+/**
+ * One run of an elided axis (section 3.2): the stretch of positions drawn at
+ * full scale between two gaps, from the proportion `u0` to `u1` (of the root
+ * of a card, or of its frame), each at `x = x0 + (L × u − D)` with the run's
+ * own scale `L` and shrink `D`, `x0` the start of the axis's member drawings.
+ */
+export interface Run {
+  readonly u0: number;
+  readonly u1: number;
+  readonly L: number;
+  readonly D: number;
+}
+
+/** One gap of a container's axis as an application reads it (sections 3.2 and 8.9). */
+export interface ExposedGap {
+  /** Its elision's address: `{id: E}` for a stored elision, `{id: T, part: ["elision"]}` for a derived one. */
+  readonly address: ElementAddress;
+  /** A stored elision's gap, a derived one's, or a group elision's carried into an ancestor card. */
+  readonly origin: "stored" | "default" | "carried";
+  /** The timeline the elision lies on, and the elided coordinates of the gap on its own axis. */
+  readonly timeline: string;
+  readonly start: Real;
+  readonly end: Real;
+  /** Its natural width `n`, its drawn width `g`, and its edges `x(a)` and `x(b)`, in block coordinates. */
+  readonly natural: number;
+  readonly drawn: number;
+  readonly x1: number;
+  readonly x2: number;
+  /**
+   * Across a frame, the elided coordinates of the gap on every member, top first, each on the
+   * member's own axis, null without a value (section 8.9, Group elisions); none in a card.
+   */
+  readonly members: readonly {
+    readonly timeline: string;
+    readonly start: Real | null;
+    readonly end: Real | null;
+  }[];
+}
+
+/**
+ * What a container decides of its elisions (section 8.9): an ungrouped
+ * root's card, an ancestor card or a frame. Its cascaded `elision-mode` and
+ * the mode it draws by (`auto` resolved); for an ancestor card the
+ * proportion `r` its derived elisions take, whether it is computed
+ * (`elision-proportion: auto`), the depths it may choose from (its member's
+ * ancestors `A1 … Ak`, by ID) and those chosen, and the `display` of its
+ * derived elisions; its gaps from the left and its runs, at `x0` of its
+ * member drawings in its item coordinates, the item placed at `place` in
+ * block coordinates (`x = place.x + place.scale × (x0 + (L × u − D))`).
+ */
+export interface ElisionExposure {
+  readonly kind: "card" | "ancestor_card" | "frame";
+  /** The container's place key: a card's, an ancestor card's `{item: G, member: R}`, a frame's `{item: G}`. */
+  readonly key: PlaceKey;
+  readonly address: ElementAddress;
+  readonly mode: "auto" | "full" | "proportional" | "custom";
+  readonly drawn: "full" | "proportional" | "custom";
+  /** The proportion of its derived elisions; 1 where it derives none, null for any but an ancestor card. */
+  readonly proportion: number | null;
+  readonly automatic: boolean;
+  readonly chain: readonly string[];
+  readonly depths: readonly number[];
+  readonly display: readonly ("ellipsis" | "name" | "id" | "coordinate" | "continuation")[];
+  readonly gaps: readonly ExposedGap[];
+  readonly runs: readonly Run[];
+  readonly x0: number;
+  readonly place: { readonly x: number; readonly y: number; readonly scale: number };
+}

@@ -9,20 +9,21 @@ import { type MemberDrawing, orderedChildren, reachOf } from "@timetoalign/tilie
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { AxisMap, AxisSegment, DrawnAxis } from "../boxes.ts";
 import type { LineElement } from "../elements.ts";
-import { type ElidedAxis, outside, type Stretch } from "../elisions.ts";
+import { type CardAxis, outside, type Stretch } from "../elisions.ts";
 import type { MemberDrawn } from "../member.ts";
 import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../numbers.ts";
 
 /**
  * The full runs of a line spanning `start` to `end` on its root's axis, the
- * stretches elided: what `outside` leaves of the span, or, for a line of drawn
- * length 0, the point itself where no strip holds it, its ends excluded (as
- * `ElidedAxis.stripOf` reads a position), and nothing where one does.
+ * stretches of the gaps of `axis` elided: what `outside` leaves of the span,
+ * or, for a line of drawn length 0, the point itself where no gap holds it
+ * (`CardAxis.gapOf`), and nothing where one does.
  */
-function runsOf(start: Real, end: Real, stretches: readonly Stretch[]): Stretch[] {
-  if (compareReal(start, end) !== 0) return outside(start, end, stretches);
-  const held = stretches.some(([a, b]) => compareReal(a, start) < 0 && compareReal(start, b) < 0);
-  return held ? [] : [[start, end]];
+function runsOf(start: Real, end: Real, axis: CardAxis | undefined): Stretch[] {
+  if (axis === undefined) return [[start, end]];
+  if (compareReal(start, end) === 0) return axis.gapOf(start) === undefined ? [[start, end]] : [];
+  const stretches = axis.gaps.map((gap): Stretch => [gap.a, gap.b]);
+  return outside(start, end, stretches);
 }
 
 /** Where a timeline of a member drawing lies on its root's axis (sections 3.1 and 3.4). */
@@ -96,8 +97,8 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  * its segments without a line (section 6.4, Segments without a line), in
  * the order they are drawn, each with the timeline it spans.
  *
- * On the elided axis `elided` of a card drawing strips (sections 3.2 and
- * 8.9), a line is drawn in full runs between its strips, and has one axis
+ * On the elided axis `elided` of a card drawing gaps (sections 3.2 and
+ * 8.9), a line is drawn in full runs between its gaps, and has one axis
  * per run, each linear, from the run's start to its end at their elided x,
  * with the coordinates there, every one with the timeline's address (`run`
  * telling them apart from the second on) and the named timestamps whose
@@ -110,7 +111,7 @@ export function axesOf(
   drawn: MemberDrawn,
   x0: number,
   L: number,
-  elided?: ElidedAxis,
+  elided: CardAxis | undefined,
 ): DrawnAxis[] {
   const root = member.timeline;
   // The root's length `λ`, or its reach when its length is not known (section 3.2).
@@ -118,9 +119,8 @@ export function axesOf(
   const relativeX = (value: Real) =>
     elided === undefined ? L * proportion(value, lambda) : elided.relative(value);
   // `Xe` of a span's end: `x0 + L` at the root's open end, less every shrink on an elided axis.
-  const endX = (span: Span) =>
+  const endX = (span: Pick<Span, "rootEnd" | "end">) =>
     x0 + (span.rootEnd ? (elided === undefined ? L : L - elided.total) : relativeX(span.end));
-  const stretches = (elided?.strips ?? []).map((strip): Stretch => [strip.a, strip.b]);
   const spans = spansOf(manifest, root, lambda);
   const rootOpen = spans.get(root.id)?.open === true;
   // The timeline each map spans, by the map's ID, and the line each timeline's maps are drawn
@@ -183,7 +183,7 @@ export function axesOf(
       mark: null,
       timestamps: drawn.timestamps.get(element) ?? [],
     };
-    const runs = runsOf(span.start, span.end, stretches);
+    const runs = runsOf(span.start, span.end, elided);
     const [first] = runs;
     if (
       runs.length === 1 &&
@@ -211,11 +211,11 @@ export function axesOf(
       };
     });
   };
-  const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
+  const ancestorAxes = (element: LineElement): DrawnAxis[] => {
     const { id } = element.address;
     const index = (id === undefined ? undefined : ancestorIndex.get(id)) ?? member.ancestors.length;
     const [ancestor, ...lower] = member.ancestors.slice(index);
-    if (ancestor === undefined) return undefined;
+    if (ancestor === undefined) return [];
     const { timeline } = ancestor;
     // The member's start on the ancestor's axis: the offsets from the ancestor down, summed.
     let start = coordinateValue(ancestor.offset, timeline.number_type);
@@ -226,12 +226,12 @@ export function axesOf(
     // Where it does not run on, its end `te` on the member's axis lies at or short of `λ`.
     const te = element.end === "chevrons" || length === null ? null : add(negate(start), length);
     const short = te !== null && compareReal(te, lambda) < 0;
-    return {
+    const whole: DrawnAxis = {
       address: element.address,
       card,
       line: element.y,
       xStart: x0,
-      xEnd: short && te !== null ? x0 + relativeX(te) : x0 + L,
+      xEnd: short && te !== null ? x0 + relativeX(te) : endX({ rootEnd: true, end: lambda }),
       unit: timeline.unit,
       numberType: timeline.number_type,
       start,
@@ -244,13 +244,32 @@ export function axesOf(
       mark: drawn.marks.get(element) ?? null,
       timestamps: drawn.timestamps.get(element) ?? [],
     };
+    // On its frame's elided axis, one axis per full run, as a line's (section 3.2).
+    const reach = short && te !== null ? te : lambda;
+    const runs = runsOf(zero(root.number_type), reach, elided);
+    if (elided === undefined || runs.length <= 1) return [whole];
+    return runs.map(([from, to], run): DrawnAxis => {
+      const opening = compareReal(from, 0) === 0;
+      const closing = compareReal(to, reach) === 0;
+      const xStart = opening ? whole.xStart : x0 + relativeX(from);
+      const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
+      return {
+        ...whole,
+        xStart,
+        xEnd,
+        start: opening ? whole.start : add(start, from),
+        end: closing ? whole.end : add(start, to),
+        drawnEnd: closing ? whole.drawnEnd : add(start, to),
+        timestamps: whole.timestamps.filter(({ x }) => xStart <= x && x <= xEnd),
+        ...(run === 0 ? {} : { run }),
+      };
+    });
   };
   return drawn.elements.flatMap((element) => {
     if (element.type !== "timeline" && element.type !== "child" && element.type !== "ancestor") {
       return [];
     }
     if (element.type !== "ancestor") return lineAxes(element);
-    const axis = ancestorAxis(element);
-    return axis === undefined ? [] : [axis];
+    return ancestorAxes(element);
   });
 }

@@ -56,41 +56,29 @@ interface StackLabel extends Styled, Measured {
 }
 
 /**
- * A stack on an ancestor line (section 8.3): a mark of the member's start or
- * end with its label, or a named timestamp's coordinate there, its primary
- * one when the timestamp is the ancestor's own, else a secondary one; with
- * its wedge where drawn, its `rotation`, its drawn labels and, for a
- * primary coordinate, its cross-section line where drawn.
+ * A stack on an ancestor line (section 8.3): a named timestamp's coordinate
+ * there, its primary one when the timestamp is the ancestor's own, else a
+ * secondary one; with its wedge where drawn, its `rotation`, its drawn
+ * labels and, for a primary coordinate, its cross-section line where drawn.
  */
 interface AncestorStack {
-  /** The timestamp's ID; none for a mark. */
-  readonly id: string | undefined;
+  /** The timestamp's ID. */
+  readonly id: string;
   /** It marks the ancestor's own timestamp's primary coordinate. */
   readonly primary: boolean;
-  /** Its abscissa from the member's start `x0`, unturned: `L × u`. */
+  /** Its position on the member's axis. */
+  readonly at: Real;
+  /** Its abscissa from the member's start `x0` at full scale, unturned: `L × u`, which its first fit reads. */
   readonly x: number;
-  /** The proportion it is centred on. */
-  readonly u: number;
   readonly wedge: Styled | undefined;
   readonly rotation: number;
   readonly labels: readonly StackLabel[];
   readonly line: Styled | undefined;
 }
 
-/** A mark of the member's start or end on an ancestor's axis. */
-interface AncestorMark extends Measured {
-  readonly address: ElementAddress;
-  readonly style: Style;
-  readonly label: Styled;
-  /** The proportion the mark is centred on: 0 at the member's start, 1 at its end. */
-  readonly u: number;
-  /** The coordinate it marks in the ancestor's unit. */
-  readonly value: Real;
-}
-
 /**
  * An ancestor drawn as a line beside the member, on the side opposite to where its own band order
- * puts its children band, with its marks of the member's start and end.
+ * puts its children band.
  */
 interface AncestorLine {
   readonly timeline: TimelineManifest;
@@ -112,16 +100,14 @@ interface AncestorLine {
   readonly te: Real;
   /** How it ends where it does not run on. */
   readonly end: LineEnd;
-  /** Its drawn marks, start before end. */
-  readonly marks: readonly AncestorMark[];
-  /** Its key, which holds its marks, its timestamps and their cross-section lines. */
+  /** Its key, which holds its timestamps and their cross-section lines. */
   readonly key: ElementKey;
   /** Its start `ts` and its end `te` on the member's axis, null where its length is not known. */
   readonly start: Real;
   readonly finish: Real | null;
   /**
-   * Its stacks in the order of its first fit (section 8.3): its marks of the member's start and
-   * end, then its own named timestamps within the member's span, in canonical order, then the
+   * Its stacks in the order of its first fit (section 8.3): its own named timestamps within the
+   * member's span, in canonical order, then the
    * secondary coordinates on it, in canonical order of their timestamps; each drawing a wedge or
    * a label.
    */
@@ -136,7 +122,7 @@ interface AncestorLine {
 
 /** The drawn ancestor lines, from the root A1 down to the parent Ak, at the member's scale. */
 export function ancestorLines(scope: Scope): AncestorLine[] {
-  const { manifest, member, root, rootEntry, lambda, L, cascade, textOf, measured } = scope;
+  const { manifest, member, root, rootEntry, lambda, cascade, textOf, measured } = scope;
   const ancestors = member.ancestors.map((ancestor, index) => {
     const timeline = ancestor.timeline;
     let below: Real = coordinateValue(ancestor.offset, timeline.number_type);
@@ -150,24 +136,6 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     const style = cascade.resolve(key, rootEntry.style);
     const line = { key, style };
     const unnamedKey = elementKey("wedge", idAddress(timeline.id), timeline, key);
-    // A member whose end is not known has no end to mark.
-    const parts = rootEntry.open ? (["start"] as const) : (["start", "end"] as const);
-    const marks = parts.map((part) => {
-      const address = partAddress(idAddress(root.id), part);
-      const markKey = elementKey("wedge", address, root, key);
-      const markStyle = cascade.resolve(markKey, style);
-      const label = textOf({ key: markKey, style: markStyle }, "label");
-      // The member's start and end on the ancestor's axis: −ts and −ts + λ.
-      const value = part === "start" ? negate(start) : add(negate(start), lambda);
-      return {
-        address,
-        style: markStyle,
-        label,
-        u: part === "start" ? 0 : 1,
-        value,
-        ...measured(label, coordinateText(value, timeline.number_type, timeline.unit)),
-      };
-    });
     // Its children band's side in its own completed band order (core's `bandOrderOf`).
     const children = bandSides(bandOrderOf(manifest, timeline.id)).children;
     return {
@@ -182,7 +150,6 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       right: end === null || rootEntry.open || compareReal(end, lambda) > 0,
       te: end ?? lambda,
       end: endOf(timeline, index === 0),
-      marks,
       key,
       start,
       finish: end,
@@ -194,7 +161,6 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     .filter((ancestor) => shown(ancestor.style))
     .map((ancestor) => {
       const { timeline, start, key, style } = ancestor;
-      const marks = ancestor.marks.filter((mark) => shown(mark.style));
       // A label of a stack of `timestamp` at `at` on the member's axis, read on the ancestor's: a
       // secondary coordinate's `secondary.value`, as core's `cardStamps` writes it in the
       // ancestor's number type; one without a value (section 6.6) draws no coordinate label and
@@ -243,8 +209,8 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
         return {
           id: timestamp.id,
           primary,
+          at,
           x: scope.relativeX(at),
-          u: scope.u(at),
           wedge: lists("wedge") && shown(wedge.style) ? turned : undefined,
           rotation: turned.style.rotation ?? 0,
           labels,
@@ -262,26 +228,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
           stampStack(timestamp, add(position, origin), { value }),
         )
         .filter((stack) => stack.wedge !== undefined || stack.labels.length > 0);
-      const markStacks: AncestorStack[] = marks.map((mark) => ({
-        id: undefined,
-        primary: false,
-        x: L * mark.u,
-        u: mark.u,
-        wedge: { address: mark.address, style: rotatedStyle(mark.style) },
-        rotation: rotatedStyle(mark.style).rotation ?? 0,
-        labels: shown(mark.label.style)
-          ? [
-              {
-                ...mark.label,
-                clean: mark.clean,
-                width: mark.width,
-                coordinate: { unit: timeline.unit, value: mark.value },
-              },
-            ]
-          : [],
-        line: undefined,
-      }));
-      const stacks = [...markStacks, ...own, ...secondary];
+      const stacks = [...own, ...secondary];
       const labelled = stacks.filter((stack) => stack.labels.length > 0);
       const widest = (stack: AncestorStack) =>
         Math.max(...stack.labels.map((label) => label.width));
@@ -291,7 +238,6 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       const size = maxSize(labelled.flatMap((stack) => stack.labels));
       return {
         ...ancestor,
-        marks,
         stacks,
         first: new Map(labelled.map((stack, index) => [stack, nth(tiers.first, index)])),
         lines: tiers.lines,
@@ -309,12 +255,14 @@ function carriedOn(ancestor: AncestorLine, stack: AncestorStack, h: number): Car
   return carried(stack.rotation, w / 2, n1, stack.labels.length, W, h);
 }
 
-/** The centred labels of the ancestor lines (section 6.7), each with its carry. */
+/** The drawn centred labels of the ancestor lines (section 6.7), each with its carry. */
 export function ancestorCentred(scope: Scope, ancestors: readonly AncestorLine[]): Centred[] {
   return ancestors.flatMap((ancestor) =>
     ancestor.stacks.flatMap((stack) => {
+      const x = scope.drawnX(stack.at);
+      if (x === undefined) return [];
       const v = carriedOn(ancestor, stack, scope.h(ancestor.size))?.vx ?? 0;
-      return stack.labels.map((label) => ({ width: label.width, u: stack.u, v }));
+      return stack.labels.map((label) => ({ width: label.width, x, v }));
     }),
   );
 }
@@ -337,22 +285,30 @@ export interface AncestorBands {
 /**
  * The ancestor bands (section 8.3), one on each side holding an ancestor line, each the outermost
  * band of its side. On a side whose outer edge is `E` (`Ea` above, `Eb` below), the band starts at
- * `max(p0 / 2, max(E, wm / 2) + S)`, `S` the card spacing and `wm` the stroke width of the member's
- * line, or 0 when that line is not displayed (section 6.5), and holds one row per drawn ancestor
- * line of that side, the nearest first, each with the pitch `qj` of its name's font size, an inner
- * half `qj / 2` and an outer half the larger of `qj / 2` and its marks' reach, its marks lying on
- * the side of its line away from the member. A side without a drawn ancestor line has no band,
- * and its edge stays `E`.
+ * `c0 = max(p0 / 2, max(E, wm / 2) + S)`, `S` the card spacing and `wm` the stroke width of the
+ * member's line, or 0 when that line is not displayed (section 6.5), and holds one row per drawn
+ * ancestor line of that side, the nearest first, each with the pitch `q` of its name's font size,
+ * an inner half `q / 2` and an outer half the larger of `q / 2` and the reach of the wedges and
+ * labels of its named timestamps, on the side of its line away from the member. Row 1 lies at `c0
+ * + i1`, row `r + 1` the distance `Δr = or + i(r + 1)` beyond row `r`; on the side of the root's
+ * ancestor line where its ancestor card is drawn, `Δr = max(dr, or + i(r + 1))`, `dr` the
+ * distance of the two rows' ancestors' lines in the root's drawing alone, `aligned` holding their
+ * ordinates there by timeline ID. The band is `i1 + Δ1 + … + Δ(C − 1) + oC` wide. A side without
+ * a drawn ancestor line has no band, and its edge stays `E`.
  */
 export function ancestorBands(
   scope: Scope,
   ancestors: readonly AncestorLine[],
   p0: number,
   edges: Readonly<Record<Side, number>>,
+  aligned: ReadonlyMap<string, number> | undefined,
 ): AncestorBands {
   const { rootEntry, S } = scope;
   const wm = rootEntry.drawn ? rootEntry.style["stroke-width"] : 0;
   const distances = new Map<AncestorLine, number>();
+  const rootSide = ancestors.find(
+    (ancestor) => ancestor.timeline.id === scope.member.ancestors[0]?.timeline.id,
+  )?.side;
   const side = (which: Side): { edge: number; outermost: number | undefined } => {
     const E = edges[which];
     // One row per drawn ancestor line of the side, the nearest first.
@@ -367,15 +323,25 @@ export function ancestorBands(
       const reach = drawing ? Math.max(q / 2, marks) : q / 2;
       return { inner: q / 2, outer: reach };
     });
+    const ordinates = which === rootSide ? aligned : undefined;
     const c0 = Math.max(p0 / 2, Math.max(E, wm / 2) + S);
-    let width = 0;
-    for (const row of rows) width = width + row.inner + row.outer;
-    let line = c0 + nth(rows, 0).inner;
+    const first = nth(rows, 0);
+    let width = first.inner;
+    let line = c0 + first.inner;
     distances.set(nth(nearestFirst, 0), line);
     for (let index = 1; index < rows.length; index += 1) {
-      line = line + (nth(rows, index - 1).outer + nth(rows, index).inner);
+      const own = nth(rows, index - 1).outer + nth(rows, index).inner;
+      const near = ordinates?.get(nth(nearestFirst, index - 1).timeline.id);
+      const far = ordinates?.get(nth(nearestFirst, index).timeline.id);
+      const delta =
+        near === undefined || far === undefined
+          ? own
+          : Math.max(Math.max(near, far) - Math.min(near, far), own);
+      width = width + delta;
+      line = line + delta;
       distances.set(nth(nearestFirst, index), line);
     }
+    width = width + nth(rows, rows.length - 1).outer;
     return { edge: c0 + width, outermost: line };
   };
   const above = side("above");
@@ -408,7 +374,12 @@ export const ancestorY = (
 export const chevrons = (ancestors: readonly AncestorLine[]): number[] =>
   ancestors.filter((ancestor) => ancestor.left).map((ancestor) => ancestor.style["stroke-width"]);
 
-/** The ancestor lines, from A1 to Ak, each running on in chevrons or ending at the member's ends. */
+/**
+ * The ancestor lines, from A1 to Ak, each running on in chevrons or ending at the member's ends,
+ * `x0 + L'` with `L' = L − DG` the drawn length of its frame's members (section 8.2); on the
+ * frame's elided axis, an end short of the member's lying in a gap ends at the gap's left edge
+ * without its mark, and each is cut at every gap it crosses (section 6.6, Elisions).
+ */
 export function ancestorLineElements(
   scope: Scope,
   ancestors: readonly AncestorLine[],
@@ -416,21 +387,32 @@ export function ancestorLineElements(
   x0: number,
   yRoot: number,
 ): LineElement[] {
-  const { L, lambda, relativeX } = scope;
-  const x = (value: Real) => x0 + relativeX(value);
+  const { L, lambda, axis } = scope;
+  const drawn = L - (axis?.total ?? 0);
   return ancestors.map((ancestor, index) => {
     const w = ancestor.style["stroke-width"];
     // Short of the member's end (`te < λ`), the line ends at `x(te)` with its own end.
-    const end = compareReal(ancestor.te, lambda) < 0 ? x(ancestor.te) : x0 + L * 1;
+    const short = compareReal(ancestor.te, lambda) < 0;
+    const inGap = short ? axis?.gapOf(ancestor.te) : undefined;
+    const end =
+      inGap !== undefined
+        ? x0 + inGap.left
+        : short
+          ? x0 + (axis === undefined ? scope.relativeX(ancestor.te) : axis.relative(ancestor.te))
+          : x0 + drawn;
+    const y = ancestorY(bands, index, ancestor.side, yRoot);
     return {
       type: "ancestor",
       address: ancestor.address,
       style: ancestor.style,
       xs: ancestor.left ? x0 - 4 * w : x0 + L * 0,
-      xe: ancestor.right ? x0 + L + 4 * w : end,
-      y: ancestorY(bands, index, ancestor.side, yRoot),
+      xe: ancestor.right ? x0 + drawn + 4 * w : end,
+      y,
       start: ancestor.left ? "chevrons" : "circle",
-      end: ancestor.right ? "chevrons" : ancestor.end,
+      end: ancestor.right ? "chevrons" : inGap !== undefined ? "none" : ancestor.end,
+      cuts: (axis?.gaps ?? [])
+        .filter((gap) => axis?.crosses(gap, ancestor.start, ancestor.right ? null : ancestor.te))
+        .map((gap) => [x0 + gap.left, x0 + gap.right] as const),
     };
   });
 }
@@ -457,9 +439,9 @@ function markOn(style: Style, y: number, w: number, outwards: Side): AxisWedge {
 
 /**
  * The mark an editor shows at a position on each drawn ancestor line, `lines` the elements of
- * `ancestors` in their order (`ancestorLineElements`): drawn as the marks of the member's start
- * and end are (`ancestorMarkElements`), in the style of a wedge held by the line that no named
- * timestamp holds, so that no rule on those marks changes it; by its line's element.
+ * `ancestors` in their order (`ancestorLineElements`): drawn as a named timestamp's wedge on it is
+ * (`ancestorWedgeElements`), in the style of a wedge held by the line that no named timestamp
+ * holds, so that no rule naming an address changes it; by its line's element.
  */
 export function ancestorLineMarks(
   ancestors: readonly AncestorLine[],
@@ -478,10 +460,11 @@ export function ancestorLineMarks(
 
 /**
  * The wedges of each ancestor line, from A1 to Ak, each's in the order of its first fit (its
- * marks of the member's start and end, then its timestamps' coordinates), on its side away from
- * the member, turned by each one's `rotation` (`markOn`).
+ * timestamps' coordinates), on its side away from the member, turned by each one's `rotation`
+ * (`markOn`); none at a position in a gap (section 6.6, Elisions).
  */
-export function ancestorMarkElements(
+export function ancestorWedgeElements(
+  scope: Scope,
   ancestors: readonly AncestorLine[],
   bands: AncestorBands,
   x0: number,
@@ -491,9 +474,10 @@ export function ancestorMarkElements(
     const y = ancestorY(bands, index, ancestor.side, yRoot);
     const w = ancestor.style["stroke-width"];
     return ancestor.stacks.flatMap((stack): MarkerElement[] => {
-      if (stack.wedge === undefined) return [];
+      const x = scope.drawnX(stack.at);
+      if (stack.wedge === undefined || x === undefined) return [];
       const { yt, corners, style } = markOn(stack.wedge.style, y, w, ancestor.side);
-      return [{ type: "wedge", address: stack.wedge.address, style, x: x0 + stack.x, yt, corners }];
+      return [{ type: "wedge", address: stack.wedge.address, style, x: x0 + x, yt, corners }];
     });
   });
 }
@@ -515,14 +499,15 @@ export function ancestorLabelElements(
     const size = ancestor.size;
     return ancestor.stacks.flatMap((stack) => {
       const placed = carriedOn(ancestor, stack, h(size));
-      if (placed === undefined) return [];
+      const x = scope.drawnX(stack.at);
+      if (placed === undefined || x === undefined) return [];
       const towards = placed.inwards ? opposite(ancestor.side) : ancestor.side;
       return stack.labels.map((label, line) => {
         const start = nth(placed.starts, line);
         const from = ancestor.side === "above" ? y - start : y + start;
         // The baseline beyond the line's start: its descent above it, its ascent below.
         const baseline = towards === "above" ? from - d(size) : from + a(size);
-        return centredLabel(label, x0 + stack.x + placed.vx, baseline, label, label.coordinate);
+        return centredLabel(label, x0 + x + placed.vx, baseline, label, label.coordinate);
       });
     });
   });
@@ -573,8 +558,9 @@ export function ancestorCrossSections(
     const y = ancestorY(bands, index, ancestor.side, yRoot);
     return ancestor.stacks.flatMap((stack) => {
       const line = stack.line;
-      if (line === undefined) return [];
-      const x = x0 + stack.x;
+      const drawn = scope.drawnX(stack.at);
+      if (line === undefined || drawn === undefined) return [];
+      const x = x0 + drawn;
       return cut(span, ancestorGap(scope, ancestor, stack, x, y)).map((piece) =>
         crossSectionElement(line.address, line.style, x, piece),
       );
@@ -582,19 +568,24 @@ export function ancestorCrossSections(
   });
 }
 
-/** The named timestamps each ancestor line holds (`DrawnAxis.timestamps`), from A1 to Ak. */
+/**
+ * The named timestamps each ancestor line holds (`DrawnAxis.timestamps`), from A1 to Ak; none at
+ * a position in a gap, which has no abscissa.
+ */
 export function ancestorTimestamps(
+  scope: Scope,
   ancestors: readonly AncestorLine[],
   x0: number,
   span: Span,
 ): AxisTimestamp[][] {
   return ancestors.map((ancestor) =>
     ancestor.stacks.flatMap((stack) => {
-      if (stack.id === undefined || !stack.primary) return [];
+      const x = scope.drawnX(stack.at);
+      if (!stack.primary || x === undefined) return [];
       return [
         {
           id: stack.id,
-          x: x0 + stack.x,
+          x: x0 + x,
           line: stack.line?.style ?? null,
           segment: { y1: span[0], y2: span[1] },
         },

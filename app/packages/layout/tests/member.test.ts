@@ -31,8 +31,8 @@ const placedAt = (length: number, places: Placement["places"] = {}): Placement =
   places,
 });
 const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
-const root = { type: "timeline", start: "circle", end: "arrowhead" } as const;
-const child = { type: "child", start: "circle", end: "diamond" } as const;
+const root = { type: "timeline", start: "circle", end: "arrowhead", cuts: [] } as const;
+const child = { type: "child", start: "circle", end: "diamond", cuts: [] } as const;
 const name = (address: ElementAddress, baseline: number, text: string) => ({
   type: "name",
   address,
@@ -72,7 +72,7 @@ describe("styled__score", () => {
   type JumpPoints = Record<"c1" | "c2" | "base" | "left" | "right", [number, number]>;
   /** The member drawing at card spacing `S`, its ordinates given (README). */
   const expected = (y: Ordinates, jump: JumpPoints) => [
-    { type: "map", address: at("ticks"), xs: x0, xe, yc: y.map, spacing: 2 },
+    { type: "map", address: at("ticks"), xs: x0, xe, yc: y.map, spacing: 2, cuts: [] },
     {
       type: "region",
       address: at("intro"),

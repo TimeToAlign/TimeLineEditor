@@ -14,6 +14,9 @@ import {
   BOUNDARY,
   BRACE,
   CARD_SPACING,
+  ELLIPSIS_GAP,
+  ELLIPSIS_RADIUS,
+  ELLIPSIS_SPACING,
   F,
   FLOW_MARKER_LABEL_OFFSET,
   FRAME_SPACING,
@@ -30,6 +33,7 @@ import {
   Q,
   ROW_PITCH,
   SHADOW_OFFSET,
+  STANDARD_GAP,
   TITLE_GAP,
 } from "../src/constants.ts";
 import { labelExtent } from "../src/fit.ts";
@@ -110,6 +114,11 @@ describe("the constants", () => {
     ["gap after the manifest's title `F`", `${F}`],
     ["gap after a frame's title", `${TITLE_GAP}`],
     ["card shadow offset", `${SHADOW_OFFSET}`],
+    ["standard gap of an elision", `${STANDARD_GAP}`],
+    [
+      "ellipsis: dot radius, dot spacing, narrowest gap drawing one",
+      `${ELLIPSIS_RADIUS}, ${ELLIPSIS_SPACING}, ${ELLIPSIS_GAP}`,
+    ],
   ];
 
   it("give every row of the table of section 6.2 its value", () => {
@@ -129,9 +138,9 @@ describe("the constants", () => {
     );
   });
 
-  it("give no wedge an initial rotation but 0, as section 2.5 states it", () => {
+  it("give no wedge an initial rotation but 0, and the elision properties theirs, as section 2.5 states them", () => {
     expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
-      "`max-width` `none`, `rotation` 0.",
+      "`max-width` `none`, `rotation` 0, `elision-mode` `auto`, `elision-proportion` `auto`, `elision-depths` `auto`, `elision-display` `ellipsis`.",
     );
   });
 });
@@ -163,7 +172,7 @@ describe("the default layer resolved", () => {
     expect(styles(drawing, at("bare"), ["rx", "shadow"])).toEqual([[0, "none"]]);
   });
 
-  it("fades an ancestor line, its marks and their labels, not its name, nor the ancestor card", () => {
+  it("fades an ancestor line, not its name, nor the ancestor card, and marks no member's ends there", () => {
     const drawing = drawn("groups/group_child_member");
     expect(styles(drawing, at("group_1"), ["fill", "stroke", "stroke-width", "rx"])).toEqual([
       ["#FFFFFF", "#D1D5DB", 1, 6],
@@ -186,21 +195,20 @@ describe("the default layer resolved", () => {
       ["#000000", 11, 160, 1],
       ["#000000", 11, 160, 1],
     ]);
-    // The marks on the ancestor line fade; the member's own `origin` and `length` do not.
+    // No mark of the member's start or end on the ancestor line (section 8.3); the member's own
+    // `origin` and `length` are not faded.
     for (const [end, own] of [
       ["start", "timestamp_3"],
       ["end", "timestamp_4"],
     ] as const) {
-      expect(styles(drawing, at("second-half", end), ["fill", "opacity"])).toEqual([
-        ["#000000", 0.35],
-      ]);
+      expect(styles(drawing, at("second-half", end), ["fill", "opacity"])).toEqual([]);
       expect(styles(drawing, at(own), ["fill", "opacity"])).toEqual([
         ["#000000", 1],
         ["#000000", 1],
       ]);
       expect(
         styles(drawing, at("second-half", end, "label"), ["fill", "font-size", "opacity"]),
-      ).toEqual([["#000000", 9, 0.35]]);
+      ).toEqual([]);
       expect(styles(drawing, at(own, "coordinate"), ["fill", "font-size", "opacity"])).toEqual([
         ["#000000", 9, 1],
         ["#000000", 9, 1],

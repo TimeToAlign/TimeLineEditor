@@ -11,7 +11,7 @@ import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/til
 import { BLOCK_KEY } from "@timetoalign/tilie-core/drawing";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { anchorElements } from "./anchors.ts";
-import { ancestorCards } from "./block/ancestors.ts";
+import { alignedRows, ancestorCards } from "./block/ancestors.ts";
 import { emitDrawing } from "./block/emit.ts";
 import { columnsOf, horizontalOf } from "./block/horizontal.ts";
 import { drawItem, layoutItem } from "./block/items.ts";
@@ -60,19 +60,33 @@ export function draw(
   const margin = placement.margin ?? 0;
   const Pt = (title === undefined ? P : P + measure.lineHeight(title.size) + F) + margin;
 
-  const items = placeItems(context, block, Pt);
+  // The member cards whose ancestor rows lie at their roots' heights (section 8.3) are laid out
+  // again once the block's columns place the ancestor cards behind them; nothing else moves.
+  const placed = placeItems(context, block, Pt);
+  const { aligned, alone } = alignedRows(context, block, placed, columnsOf(placed));
+  const items = aligned.size === 0 ? placed : placeItems(context, block, Pt, aligned, placed);
   const columns = columnsOf(items);
   const drawings = items.map((item) => drawItem(manifest, item, columns));
+  // A frame with group elisions is drawn shorter by its gaps' shrinks (section 8.2).
   const horizontal = horizontalOf(
     columns,
     items,
     drawings.flatMap(({ item, drawn }) =>
-      drawn.map(({ elements }) => ({ elements, L: item.length })),
+      drawn.map(({ elements }) => ({ elements, L: item.length - item.DG })),
     ),
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  const ancestors = ancestorCards(context, block, items, drawings, laid, horizontal, measure);
+  const ancestors = ancestorCards(
+    context,
+    block,
+    items,
+    drawings,
+    laid,
+    horizontal,
+    measure,
+    alone,
+  );
   const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
     ...groupstampElements(manifest, axes, boxes),
     ...anchorElements(manifest, axes, cascade, block.style, measure),

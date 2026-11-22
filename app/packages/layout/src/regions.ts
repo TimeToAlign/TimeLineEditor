@@ -28,7 +28,7 @@ import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
  * 6.6, Elisions).
  */
 export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
-  const { owned, measured, relativeX, u, S, h } = scope;
+  const { owned, measured, relativeX, S, h } = scope;
   const regions = sources.flatMap((source) =>
     shown(source.bands.regions.style)
       ? source.manifest.regions
@@ -64,14 +64,21 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
     elements: regions.length,
     width: rows.count === 0 ? 0 : rows.count * pr - S,
     extents: placed.map((item) => item.extent),
-    centred: placed.flatMap((item) =>
-      item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],
-    ),
+    centred: placed.flatMap((item) => {
+      // A region marking a position in a gap is not drawn, nor is its label (section 6.6).
+      const x = scope.drawnX(item.middle);
+      const elided = [item.region.start, item.region.end].some(
+        (value) => scope.drawnX(value) === undefined,
+      );
+      return item.label === undefined || x === undefined || elided
+        ? []
+        : [{ width: item.label.width, x }];
+    }),
     draw: (start, side, at) => {
       const arms = (index: number) => start + (nth(row, index) - 1) * pr;
       const drawn = placed.flatMap((item, index) =>
         [item.region.start, item.region.end, item.middle].some(
-          (value) => at.strip(value) !== undefined,
+          (value) => at.gap(value) !== undefined,
         )
           ? []
           : [{ ...item, index }],

@@ -16,22 +16,30 @@ import {
   ancestorLineElements,
   ancestorLineMarks,
   ancestorLines,
-  ancestorMarkElements,
   ancestorNames,
   ancestorTimestamps,
+  ancestorWedgeElements,
   ancestorY,
   chevrons,
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
-import type { DrawnElement } from "./elements.ts";
-import { type CardElisions, cardElisions, type ElidedAxis, stripElements } from "./elisions.ts";
+import type { DrawnElement, TextElement } from "./elements.ts";
+import { type CrossingRow, crossingRows, type Gap, gapElements } from "./elisions.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
 import { rowSlots } from "./slots.ts";
-import { type Context, type Entry, type Holder, known, nth, traverse } from "./traversal.ts";
+import {
+  type Context,
+  type Entry,
+  type Holder,
+  known,
+  nth,
+  type Scope,
+  traverse,
+} from "./traversal.ts";
 
 /**
  * One member drawing laid out before its horizontal start and its top are
@@ -52,23 +60,32 @@ export interface MemberLayout {
    * its ancestor bands, one on each side holding an ancestor line.
    */
   readonly contentCount: number;
-  /** The elisions its card may draw (section 8.9), an ungrouped root's card or an ancestor card. */
-  readonly elisions: CardElisions;
+  /** The timeline drawn as a root, traversed, on its card's elided axis where it has one. */
+  readonly scope: Scope;
   /**
    * It drawn with the shared start `x0`, the name column `n`, its top `top` and its card's bottom
-   * `bottom`, in item coordinates; on the elided axis `elided` where its card draws strips
-   * (sections 3.2 and 8.9), which are then drawn after it.
+   * `bottom`, in item coordinates; on its scope's elided axis where its card draws gaps (sections
+   * 3.2 and 8.9), the card's own gaps then drawn after it.
    */
-  drawAt(x0: number, n: number, top: number, bottom: number, elided?: ElidedAxis): MemberDrawn;
+  drawAt(x0: number, n: number, top: number, bottom: number): MemberDrawn;
+}
+
+/** A gap of a frame drawn across a member card: the ordinates of the card's rows it crosses, and its labels there. */
+export interface FramedGap {
+  readonly gap: Gap;
+  readonly rows: readonly number[];
+  readonly labels: readonly TextElement[];
 }
 
 /** A member drawing drawn in its item, in item coordinates. */
 export interface MemberDrawn {
   /**
-   * Its elements in descriptor order (sections 7.2 and 8.5), its card excluded, its strips and
-   * their labels last.
+   * Its elements in descriptor order (sections 7.2 and 8.5), its card excluded, its card's own
+   * gaps last, each with its continuations, ellipses and labels.
    */
   readonly elements: DrawnElement[];
+  /** The gaps of its frame it draws rows of, from the left, which the frame draws (section 8.5). */
+  readonly framed: readonly FramedGap[];
   /**
    * The records of its present bands, its timelines in traversal order, each one's top to
    * bottom, held by its card; each range is empty at the end of `elements`, counted from its
@@ -88,12 +105,7 @@ export interface MemberDrawn {
  * ancestors) in the card whose place key is `card`, of spacing `S` and
  * margin `V`, a member card of `frame` where one is given, so that the
  * groupstamps of the frame's other members cross it (section 6.6), its
- * line held by `holder`, the block or its group's frame, by
- * the three passes of section 6.4: every first fit, every row, and the slots
- * of the conversion maps bands of each row's lines; the
- * distances, from the deepest rows up, then the ancestor bands and the
- * heights; the ordinates, from the root's line down, once `drawAt` gives the
- * member drawing's start and top.
+ * line held by `holder`, the block or its group's frame (`layoutScope`).
  */
 export function layoutMember(
   context: Context,
@@ -104,7 +116,24 @@ export function layoutMember(
   V: number,
   frame: GroupFrame | null,
 ): MemberLayout {
-  const scope = traverse(context, member, holder, S, V, frame);
+  return layoutScope(traverse(context, member, holder, S, V, frame), card, undefined);
+}
+
+/**
+ * Lay out the timeline traversed as `scope`, on its elided axis where it
+ * has one, in the card whose place key is `card`, by the three passes of
+ * section 6.4: every first fit, every row, and the slots of the conversion
+ * maps bands of each row's lines; the distances, from the deepest rows up,
+ * then the ancestor bands, their rows on the root's side at least as far
+ * apart as the ordinates `aligned` of their timelines' lines in the root's
+ * drawing alone (section 8.3), and the heights; the ordinates, from the
+ * root's line down, once `drawAt` gives the member drawing's start and top.
+ */
+export function layoutScope(
+  scope: Scope,
+  card: PlaceKey,
+  aligned: ReadonlyMap<string, number> | undefined,
+): MemberLayout {
   const { rootEntry } = scope;
 
   const fitted = fitTimelines(scope);
@@ -112,7 +141,7 @@ export function layoutMember(
   const slots = rowSlots(rootRow, fitted);
   const root = known(layoutRow(rootRow, fitted, slots), rootEntry);
   const ancestors = ancestorLines(scope);
-  const bands = ancestorBands(scope, ancestors, rootRow.pitch, root.edges);
+  const bands = ancestorBands(scope, ancestors, rootRow.pitch, root.edges, aligned);
   const { yLocal, Hc } = heights(scope, bands.edges.above, bands.edges.below);
 
   // One text per row (section 6.6): each ancestor's, then the rows of lines, whose order from
@@ -132,23 +161,9 @@ export function layoutMember(
     ...[...fitted.values()].flatMap((line) => line.prepared.centred),
   ];
 
-  const drawAt = (
-    x0: number,
-    n: number,
-    top: number,
-    bottom: number,
-    elided?: ElidedAxis,
-  ): MemberDrawn => {
+  const drawAt = (x0: number, n: number, top: number, bottom: number): MemberDrawn => {
     const yRoot = top + yLocal;
-    const placed = placeLines(root, rootRow, {
-      x0,
-      y: yRoot,
-      size: rootRow.size,
-      top,
-      Hc,
-      bottom,
-      ...(elided === undefined ? {} : { elided }),
-    });
+    const placed = placeLines(root, rootRow, { x0, y: yRoot, size: rootRow.size, top, Hc, bottom });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
       drawn.flatMap((elements) => [...elements[key]]);
@@ -187,7 +202,7 @@ export function layoutMember(
       ...ancestorLinesDrawn,
       ...each("line"),
       ...bySegment(each("boundaries")),
-      ...ancestorMarkElements(ancestors, bands, x0, yRoot),
+      ...ancestorWedgeElements(scope, ancestors, bands, x0, yRoot),
       ...each("wedges"),
       ...names,
       ...ancestorLabelElements(scope, ancestors, bands, x0, yRoot),
@@ -199,32 +214,61 @@ export function layoutMember(
       ...ancestorCrossSections(scope, ancestors, bands, x0, yRoot, [top, bottom]),
       ...each("crossSections"),
     ];
-    if (elided !== undefined) {
-      // The lines drawn, in traversal order, which a strip continues, and the line each
-      // timeline's labels stand on: its own, or its segment line's for a segment without one.
-      const lines = placed.flatMap((line, index) =>
-        nth(drawn, index).line.length === 0
-          ? []
-          : [{ entry: line.drawing.prepared.line, y: line.place.y }],
-      );
-      const lineOf = (entry: Entry) => {
-        const own = entry.line ? entry : entry.parent;
-        const at = lines.find((line) => line.entry === own);
-        return at === undefined ? undefined : { y: at.y, w: at.entry.style["stroke-width"] };
-      };
-      const { strips, labels } = stripElements(scope, elided, x0, top, bottom, lines, lineOf);
-      elements.push(...strips, ...labels);
+    // The gaps of its card's axis (sections 6.6 and 8.5): the rows each crosses, the ancestor
+    // lines first, then each line followed by its maps, in the order their descriptors are
+    // written; its own gaps drawn after it, its frame's handed to the frame.
+    const framed: FramedGap[] = [];
+    const { axis } = scope;
+    if (axis !== undefined) {
+      const rows: CrossingRow[] = [
+        ...ancestors.flatMap((ancestor, index) => {
+          const line = ancestorLinesDrawn[index];
+          return line === undefined
+            ? []
+            : [{ y: line.y, start: ancestor.start, end: ancestor.right ? null : ancestor.te }];
+        }),
+        ...placed.flatMap((line, index) => {
+          const own = nth(drawn, index);
+          const entry = line.drawing.prepared.line;
+          const lineRows: CrossingRow[] =
+            own.line.length === 0
+              ? []
+              : [{ y: line.place.y, start: entry.start, end: entry.rootEnd ? null : entry.end }];
+          const mapRows = own.maps.flatMap((map): CrossingRow[] => {
+            const member = line.drawing.prepared.maps.find(
+              (each) => each.map.address.id === map.address.id,
+            );
+            if (member === undefined) return [];
+            const { entry: spanned } = member;
+            return [{ y: map.yc, start: spanned.start, end: spanned.rootEnd ? null : spanned.end }];
+          });
+          return [...lineRows, ...mapRows];
+        }),
+      ];
+      const labelsOf = new Map(each("gapLabels"));
+      for (const gap of axis.gaps) {
+        const crossing = crossingRows(axis, gap, rows);
+        const labels = labelsOf.get(gap) ?? [];
+        if (gap.source.framed) {
+          framed.push({ gap, rows: crossing, labels });
+          continue;
+        }
+        elements.push(
+          ...gapElements(gap, x0 + gap.left, x0 + gap.right, top, bottom, crossing, labels),
+        );
+      }
     }
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
     const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
-    const held = ancestorTimestamps(ancestors, x0, [top, bottom]);
+    const held = ancestorTimestamps(scope, ancestors, x0, [top, bottom]);
     const timestamps = new Map<DrawnElement, readonly AxisTimestamp[]>([
       ...each("markers").map((item) => [item.line, item.timestamps] as const),
       ...ancestorLinesDrawn.map((line, index) => [line, nth(held, index)] as const),
     ]);
     return {
       elements,
+      framed,
       bands: bandRecords(placed, fitted, card, end),
       markers,
       marks,
@@ -232,13 +276,8 @@ export function layoutMember(
     };
   };
 
-  // Read only by the cards that may draw strips, so made on first read.
-  let elisions: CardElisions | undefined;
   return {
-    get elisions() {
-      elisions ??= cardElisions(scope);
-      return elisions;
-    },
+    scope,
     names: drawnNames.map((item) => item.width),
     centred,
     chevrons: chevrons(ancestors),

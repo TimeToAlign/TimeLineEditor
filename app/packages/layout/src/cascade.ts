@@ -49,6 +49,14 @@ export interface Style {
    * which the wedge reads as its initial value: −45 on a groupstamp's wedge, 0 on any other.
    */
   readonly rotation: number | null;
+  /** Which elisions a card or a frame draws (section 8.9), read by `card`, `ancestor_card` and `frame`. */
+  readonly "elision-mode": "auto" | "full" | "proportional" | "custom";
+  /** The proportion of the elisions an ancestor card derives, or `auto` (section 8.9). */
+  readonly "elision-proportion": number | "auto";
+  /** The depths an ancestor card derives its elisions on, `auto` or positive integers (section 8.9). */
+  readonly "elision-depths": string;
+  /** The `display` of every elision a card derives: `none`, or elision display words (section 8.9). */
+  readonly "elision-display": string;
 }
 
 export const INITIAL_STYLE: Style = {
@@ -64,6 +72,10 @@ export const INITIAL_STYLE: Style = {
   content: "none",
   "max-width": "none",
   rotation: null,
+  "elision-mode": "auto",
+  "elision-proportion": "auto",
+  "elision-depths": "auto",
+  "elision-display": "ellipsis",
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
@@ -153,6 +165,34 @@ const STYLE_PROPERTIES = {
     inherits: false,
     set: (values, declaration) => {
       if (declaration.rotation !== undefined) values.rotation = declaration.rotation;
+    },
+  },
+  "elision-mode": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["elision-mode"] !== undefined)
+        values["elision-mode"] = declaration["elision-mode"];
+    },
+  },
+  "elision-proportion": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["elision-proportion"] !== undefined)
+        values["elision-proportion"] = declaration["elision-proportion"];
+    },
+  },
+  "elision-depths": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["elision-depths"] !== undefined)
+        values["elision-depths"] = declaration["elision-depths"];
+    },
+  },
+  "elision-display": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["elision-display"] !== undefined)
+        values["elision-display"] = declaration["elision-display"];
     },
   },
 } satisfies Record<keyof Style, StyleProperty>;

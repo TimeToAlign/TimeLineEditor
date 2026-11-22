@@ -18,6 +18,7 @@ import {
   partAddress,
   placeAt,
   placeKeyText,
+  samePlaceKey,
 } from "@timetoalign/tilie-core";
 import {
   BLOCK_KEY,
@@ -29,10 +30,26 @@ import {
 } from "@timetoalign/tilie-core/drawing";
 import type { Style } from "../cascade.ts";
 import { CARD_SPACING, FRAME_SPACING, P, Q, TITLE_GAP } from "../constants.ts";
-import { layoutMember, type MemberLayout } from "../member.ts";
+import {
+  cardElisionsOf,
+  type DrawnMode,
+  drawnMode,
+  type FrameElisions,
+  frameElisions,
+  ungroupedAxis,
+} from "../elisions.ts";
+import { layoutScope, type MemberLayout } from "../member.ts";
 import { cleanText } from "../metrics.ts";
 import { cutText } from "../names.ts";
-import { type Context, type Holder, known, shown } from "../traversal.ts";
+import {
+  type Context,
+  type Holder,
+  known,
+  type Scope,
+  shown,
+  traverse,
+  withAxis,
+} from "../traversal.ts";
 
 /** A title (section 8.1): its address, style and font size, and its text cut to its `max-width`. */
 export interface Title {
@@ -77,6 +94,8 @@ export interface Card {
   readonly top: number;
   readonly height: number;
   readonly layout: MemberLayout;
+  /** A block-held card's elision mode, `auto` resolved (section 8.9); null for a member's card. */
+  readonly mode: DrawnMode | null;
 }
 
 /**
@@ -96,7 +115,20 @@ export interface Item {
   readonly margin: number;
   readonly height: number;
   readonly cards: readonly Card[];
+  /** The height of its content before its request, which a later layout of it reuses. */
+  readonly content: number;
+  /** A frame's group elisions (section 8.9): its elided axis; none where it draws no gap. */
+  readonly elisions: FrameElisions | undefined;
+  /** `DG`, the sum of the shrinks of a frame's gaps, which shortens its members (section 8.2); 0 otherwise. */
+  readonly DG: number;
 }
+
+/**
+ * The ordinates of the lines of a root's timelines in its drawing alone (section 8.8, step 1), by
+ * timeline ID, for each member card on whose root's side the ancestor card behind its frame is
+ * drawn, by the card's place key text (section 8.3).
+ */
+export type AlignedRows = ReadonlyMap<string, ReadonlyMap<string, number>>;
 
 /**
  * The title at `address` of a group or the manifest named `name`, held by
@@ -142,8 +174,9 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
 
 /**
  * The card of `member` whose place key is `key`, held by `holder` (the
- * frame of its group, or the block), a member card of `frame` where one is
- * given, its member drawing laid out at `L`, spacing `S` and margin `V`.
+ * frame of its group, or the block): its container, address and style, and
+ * its member drawing traversed at `L`, spacing `S` and margin `V`, a member
+ * card of `frame` where one is given.
  */
 function cardOf(
   context: Context,
@@ -154,7 +187,7 @@ function cardOf(
   S: number,
   V: number,
   frame: GroupFrame | null,
-): Pick<Card, "member" | "ref" | "address" | "style" | "layout"> {
+): Pick<Card, "member" | "ref" | "address" | "style"> & { readonly scope: Scope } {
   const timeline = member.timeline;
   const ref = containerOf(context, key);
   const { address } = ref;
@@ -163,13 +196,7 @@ function cardOf(
     holder.style,
   );
   const laid: Context = { ...context, placement: { ...context.placement, length: L } };
-  return {
-    member,
-    ref,
-    address,
-    style,
-    layout: layoutMember(laid, member, holder, key, S, V, frame),
-  };
+  return { member, ref, address, style, scope: traverse(laid, member, holder, S, V, frame) };
 }
 
 /**
@@ -187,26 +214,43 @@ function cardOf(
  * place `x` and `y` what is stated, else `P` and, for `y`, the first item at
  * `top`, each further one the placement's `spacing` below the largest drawn
  * bottom edge, after the scale, of the items before it.
+ *
+ * A frame's member drawings are traversed first and laid out on its elided
+ * axis where its group elisions draw gaps (section 8.9), a block-held card's
+ * on its own where its mode draws its stored card elisions. Each member card
+ * of `aligned` places its ancestor rows on its root's side at the distances
+ * its ordinates give (section 8.3); an item none of whose cards it names is
+ * taken from `previous` where that holds it, its content kept.
  */
-export function placeItems(context: Context, block: Holder, top: number): Item[] {
+export function placeItems(
+  context: Context,
+  block: Holder,
+  top: number,
+  aligned: AlignedRows = new Map(),
+  previous: readonly Item[] = [],
+): Item[] {
   const { placement, measure } = context;
   const { frames, ungrouped } = memberDrawings(context.manifest);
   let lowest: number | undefined;
+  type Content = Pick<Item, "cards" | "elisions" | "DG"> & { readonly height: number };
   const place = (
     key: PlaceKey,
     frame: Frame | null,
-    content: (
-      L: number,
-      spacing: number,
-      margin: number,
-    ) => { readonly height: number; readonly cards: Card[] },
+    content: (L: number, spacing: number, margin: number) => Content,
   ): Item => {
     const stated = statedOf(context, key);
     const length = stated.length ?? placement.length;
     const scale = stated.scale ?? 1;
     const spacing = stated.spacing ?? (frame === null ? CARD_SPACING : FRAME_SPACING);
     const margin = stated.margin ?? 0;
-    const laid = content(length, spacing, margin);
+    const before = previous.find((item) => samePlaceKey(item.key, key));
+    const kept = before?.cards.every(
+      (card) => card.ref.key === null || !aligned.has(placeKeyText(card.ref.key)),
+    );
+    const laid: Content =
+      kept === true && before !== undefined
+        ? { cards: before.cards, height: before.content, elisions: before.elisions, DG: before.DG }
+        : content(length, spacing, margin);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
     const x = stated.x ?? P;
     const y = stated.y ?? (lowest === undefined ? top : lowest + placement.spacing);
@@ -214,7 +258,22 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
     lowest = lowest === undefined ? bottom : Math.max(lowest, bottom);
     // A block-held card is as high as its item.
     const cards = frame === null ? laid.cards.map((card) => ({ ...card, height })) : laid.cards;
-    return { key, frame, stated, x, y, length, scale, spacing, margin, height, cards };
+    return {
+      key,
+      frame,
+      stated,
+      x,
+      y,
+      length,
+      scale,
+      spacing,
+      margin,
+      height,
+      cards,
+      content: laid.height,
+      elisions: laid.elisions,
+      DG: laid.DG,
+    };
   };
 
   const framed = frames.map((drawn) => {
@@ -227,38 +286,74 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
     const title = titleOf(context, partAddress(address, "name"), group.id, group.name, holder);
     const frame: Frame = { ref, address, holder, title };
     return place(item, frame, (L, Sf, Vf) => {
-      // The title's slot, the frame's margin `Vf`, then the cards the frame's spacing `Sf` apart,
-      // each the larger of its member drawing's height and the height its own request asks, and
-      // `Vf` again after the last (section 8.4); a frame without cards draws no margin. Each
-      // member drawing is laid out at its card's own spacing and margin.
-      let y = Q;
-      if (title !== undefined) y = y + measure.lineHeight(title.size) + TITLE_GAP;
-      if (members.length > 0) y = y + Vf;
-      const cards = members.map((member, index): Card => {
+      // Each member drawing is traversed at its card's own spacing and margin, then laid out on
+      // the frame's elided axis where its group elisions draw gaps (section 8.9).
+      const traversed = members.map((member) => {
         const key: PlaceKey = { item: group.id, member: member.timeline.id };
         const stated = requestOf(context, key);
         const spacing = stated.spacing ?? CARD_SPACING;
         const margin = stated.margin ?? 0;
         const card = cardOf(context, member, holder, key, L, spacing, margin, drawn);
+        return { key, stated, spacing, margin, card };
+      });
+      const elisions = frameElisions(
+        traversed.map(({ card }) => ({ scope: card.scope })),
+        group.id,
+        holder,
+        L,
+      );
+      // The title's slot, the frame's margin `Vf`, then the cards the frame's spacing `Sf` apart,
+      // each the larger of its member drawing's height and the height its own request asks, and
+      // `Vf` again after the last (section 8.4); a frame without cards draws no margin.
+      let y = Q;
+      if (title !== undefined) y = y + measure.lineHeight(title.size) + TITLE_GAP;
+      if (members.length > 0) y = y + Vf;
+      const cards = traversed.map(({ key, stated, spacing, margin, card }, index): Card => {
+        const { scope, ...rest } = card;
+        const layout = layoutScope(
+          elisions === undefined ? scope : withAxis(scope, elisions.viewOf(scope)),
+          key,
+          aligned.get(placeKeyText(key)),
+        );
         const height =
-          stated.height === undefined
-            ? card.layout.height
-            : Math.max(card.layout.height, stated.height);
+          stated.height === undefined ? layout.height : Math.max(layout.height, stated.height);
         if (index > 0) y = y + Sf;
         const cardTop = y;
         y = y + height;
-        return { ...card, stated, spacing, margin, top: cardTop, height };
+        return {
+          ...rest,
+          layout,
+          stated,
+          spacing,
+          margin,
+          top: cardTop,
+          height,
+          mode: null,
+        };
       });
       if (members.length > 0) y = y + Vf;
-      return { cards, height: y + Q };
+      return { cards, height: y + Q, elisions, DG: elisions?.total ?? 0 };
     });
   });
   const loose = ungrouped.map((member) => {
     const key: PlaceKey = { item: member.timeline.id };
     return place(key, null, (L, spacing, margin) => {
-      const card = cardOf(context, member, block, key, L, spacing, margin, null);
-      const height = card.layout.height;
-      return { cards: [{ ...card, stated: {}, spacing, margin, top: 0, height }], height };
+      const { scope, ...card } = cardOf(context, member, block, key, L, spacing, margin, null);
+      // Its stored card elisions where its mode draws them (section 8.9).
+      const mode = drawnMode(card.style, cardElisionsOf(scope).length > 0);
+      const axis = ungroupedAxis(scope, mode);
+      const layout = layoutScope(
+        axis === undefined ? scope : withAxis(scope, axis),
+        key,
+        undefined,
+      );
+      const height = layout.height;
+      return {
+        cards: [{ ...card, layout, stated: {}, spacing, margin, top: 0, height, mode }],
+        height,
+        elisions: undefined,
+        DG: 0,
+      };
     });
   });
   return [...framed, ...loose];

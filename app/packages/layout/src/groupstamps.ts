@@ -34,18 +34,23 @@ const inFrame = (axis: DrawnAxis): boolean =>
  * `axes`, in their order: the line of each member card's own timeline (the
  * timeline the group lists), never an ancestor line drawn above it nor a
  * descendant's line drawn in its children band, nor a line of an ancestor
- * card behind the frame (section 8.8). The one statement of which
+ * card behind the frame (section 8.8); one axis per card, the last run of a
+ * line drawn in runs between its frame's gaps (sections 3.2 and 8.9), whose
+ * end and drawn end are the line's. The one statement of which
  * lines a group's frame holds, whose cards a groupstamp spans and whose
  * timelines (each with the descendants its cross-section line crosses) a
  * groupstamp's timestamp reads.
  */
 export function frameMemberLines(axes: readonly DrawnAxis[], group: string): DrawnAxis[] {
-  return axes.filter(
+  const lines = axes.filter(
     (axis) =>
       inFrame(axis) &&
       axis.card.item === group &&
       axis.address.id === axis.card.member &&
       axis.marker !== null,
+  );
+  return lines.filter(
+    (axis, index) => !lines.slice(index + 1).some((later) => samePlaceKey(later.card, axis.card)),
   );
 }
 

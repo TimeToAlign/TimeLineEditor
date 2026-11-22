@@ -31,6 +31,7 @@ import type { ElementType } from "@timetoalign/timetoshare";
 import type { Cascade, Style } from "./cascade.ts";
 import { ROW_PITCH } from "./constants.ts";
 import type { LineEnd, Placement } from "./elements.ts";
+import type { CardAxis } from "./elisions.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, zero } from "./numbers.ts";
 
@@ -130,8 +131,21 @@ export interface Scope extends Context {
   readonly V: number;
   /** The proportion `u` of an exact position on the root's axis (section 3.2). */
   readonly u: (value: Real) => number;
-  /** `L × u`: an exact position's distance from the root's start. */
+  /**
+   * `L × u`: an exact position's distance from the root's start at full scale, which every first
+   * fit measures (section 3.2).
+   */
   readonly relativeX: (value: Real) => number;
+  /**
+   * The elided axis of the card drawing it (sections 3.2 and 8.9), where that card draws gaps:
+   * its own, or its frame's read on its member's proportions.
+   */
+  readonly axis: CardAxis | undefined;
+  /**
+   * The distance of a drawn position from the root's start: `L × u − D` on the elided axis, `L ×
+   * u` without one; undefined for a position in a gap, which has no x.
+   */
+  readonly drawnX: (value: Real) => number | undefined;
   /** The distance of a timeline's end `Xe` from the root's start: `L` for the root's open end. */
   readonly relativeEnd: (entry: Entry) => number;
   readonly h: (size: number) => number;
@@ -356,6 +370,8 @@ export function traverse(
     V,
     u,
     relativeX,
+    axis: undefined,
+    drawnX: relativeX,
     relativeEnd,
     h,
     a,
@@ -365,5 +381,14 @@ export function traverse(
     measured,
     mapped,
     owned,
+  };
+}
+
+/** `scope` drawn on the elided axis `axis` of its card (sections 3.2 and 8.9). */
+export function withAxis(scope: Scope, axis: CardAxis): Scope {
+  return {
+    ...scope,
+    axis,
+    drawnX: (value) => (axis.gapOf(value) === undefined ? axis.relative(value) : undefined),
   };
 }

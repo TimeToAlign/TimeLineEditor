@@ -34,6 +34,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
+import type { Gap } from "./elisions.ts";
 import { type Extent, labelExtent } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue, negate } from "./numbers.ts";
@@ -189,6 +190,13 @@ export interface MarkersBand extends PreparedBand {
    * line, without the rules naming `addresses` (`Cascade.resolveUnaddressed`).
    */
   readonly unnamed: { readonly wedge: Style; readonly crossSection: Style };
+  /**
+   * The labels of the label stacks of the gaps it places (section 6.4, Markers), each gap's in
+   * stack order, the band drawn from `start` on `side` of the line placed at `at`: centred on the
+   * gap's middle `xm`, each at its line of the band's tiers at its unturned place. A gap's labels
+   * are held by the gap and written with its other descriptors (section 8.5).
+   */
+  elisionLabels(at: LinePosition, start: number, side: Side): Map<Gap, TextElement[]>;
 }
 
 /**
@@ -221,7 +229,7 @@ export interface MarkersBand extends PreparedBand {
  * same.
  */
 export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]): MarkersBand {
-  const { relativeX, u, h, cascade, styled, measured } = scope;
+  const { relativeX, h, cascade, styled, measured } = scope;
   const stampOf = (
     source: Entry,
     timeline: TimelineManifest,
@@ -298,12 +306,26 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const stamps = [...primaries, ...secondaries];
   const widest = (stamp: Stamp) => Math.max(...stamp.labels.map((label) => label.width));
   const withStacks = stamps.filter((stamp) => stamp.labels.length > 0);
-  const tiers = tiersOf(
-    withStacks.map((stamp) => ({
+  // After the coordinates' stacks, the stacks of the gaps of the elisions lying on its sources, in
+  // the order of the gaps from the left, each centred on its piece's midpoint at full scale.
+  const gaps = (scope.axis?.gaps ?? []).filter(
+    (gap) => gap.entry !== undefined && sources.includes(gap.entry) && gap.source.labels.length > 0,
+  );
+  const gapWidest = (gap: Gap) => Math.max(...gap.source.labels.map((label) => label.width));
+  const tiers = tiersOf([
+    ...withStacks.map((stamp) => ({
       x: relativeX(stamp.at),
       lines: stamp.labels.length,
       width: widest(stamp),
     })),
+    ...gaps.map((gap) => ({
+      x: scope.L * gap.source.um,
+      lines: gap.source.labels.length,
+      width: gapWidest(gap),
+    })),
+  ]);
+  const gapFirst = new Map(
+    gaps.map((gap, index) => [gap, nth(tiers.first, withStacks.length + index)]),
   );
   const stacks = new Map<Stamp, Stacked>(
     withStacks.map((stamp, index) => [
@@ -312,7 +334,8 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     ]),
   );
   const labels = withStacks.flatMap((stamp) => stamp.labels);
-  const size = maxSize(labels);
+  const gapLabels = gaps.flatMap((gap) => gap.source.labels);
+  const size = maxSize([...labels, ...gapLabels]);
   const wedges = stamps.filter((stamp) => stamp.wedge !== undefined);
   const w = line.style["stroke-width"];
   // Where its wedge carries the stack of `stamp`, the band starting at `start` (0 for the carry
@@ -333,7 +356,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   };
   const unnamedKey = (type: "wedge" | "cross_section", holder: ElementKey) =>
     elementKey(type, idAddress(line.manifest.id), line.manifest, holder);
-  const count = wedges.length + labels.length;
+  const count = wedges.length + labels.length + gapLabels.length;
   // The gap of the cross-section line of `stamp` in a band drawn from `start` (section 6.6).
   const gap = (stamp: Stamp, at: LinePosition, start: number, side: Side): Span | null => {
     const stacked = stacks.get(stamp);
@@ -357,22 +380,28 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       ...withStacks.map((stamp) =>
         labelExtent(relativeX(stamp.at) + (vxOf.get(stamp) ?? 0), widest(stamp)),
       ),
+      ...gaps.map((gap) => labelExtent(scope.L * gap.source.um, gapWidest(gap))),
     ],
-    centred: withStacks.flatMap((stamp) =>
-      stamp.labels.map((label) => ({
-        width: label.width,
-        u: u(stamp.at),
-        v: vxOf.get(stamp) ?? 0,
-      })),
-    ),
+    centred: [
+      ...withStacks.flatMap((stamp) => {
+        const x = scope.drawnX(stamp.at);
+        if (x === undefined) return [];
+        return stamp.labels.map((label) => ({ width: label.width, x, v: vxOf.get(stamp) ?? 0 }));
+      }),
+      // An elision's label is centred on its gap's middle `xm`, for which `L × u` stands for
+      // `xm − x0` (section 6.7).
+      ...gaps.flatMap((gap) =>
+        gap.source.labels.map((label) => ({ width: label.width, x: (gap.left + gap.right) / 2 })),
+      ),
+    ],
     draw: (start, side, at) => ({
       wedges: wedges.flatMap(({ wedge, at: position }) =>
-        wedge === undefined || at.strip(position) !== undefined
+        wedge === undefined || at.gap(position) !== undefined
           ? []
           : [wedgeElement(wedge.address, wedge.style, at.x(position), at, side, start, w)],
       ),
       wedgeLabels: withStacks.flatMap((stamp) => {
-        if (at.strip(stamp.at) !== undefined) return [];
+        if (at.gap(stamp.at) !== undefined) return [];
         const placed = carry(known(stacks, stamp), start);
         const towards = placed.inwards ? opposite(side) : side;
         return stamp.labels.map(
@@ -390,14 +419,14 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     crossSections: (at, start, side, span) =>
       primaries.flatMap((stamp) => {
         const drawn = stamp.line;
-        if (drawn === undefined || at.strip(stamp.at) !== undefined) return [];
+        if (drawn === undefined || at.gap(stamp.at) !== undefined) return [];
         return cut(span, gap(stamp, at, start, side)).map((piece) =>
           crossSectionElement(drawn.address, drawn.style, at.x(stamp.at), piece),
         );
       }),
     timestamps: (at, span) =>
       primaries.flatMap((stamp) =>
-        at.strip(stamp.at) !== undefined
+        at.gap(stamp.at) !== undefined
           ? []
           : [
               {
@@ -407,6 +436,28 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
                 segment: { y1: span[0], y2: span[1] },
               },
             ],
+      ),
+    elisionLabels: (at, start, side) =>
+      new Map(
+        gaps.map((gap) => {
+          const n1 = gapFirst.get(gap) ?? 1;
+          const placed = carried(0, start + w / 2, n1, gap.source.labels.length, 0, h(size));
+          const xm = (at.x0 + gap.left + (at.x0 + gap.right)) / 2;
+          return [
+            gap,
+            gap.source.labels.map(
+              (label, index): TextElement => ({
+                type: "label",
+                address: label.address,
+                style: label.style,
+                x: xm,
+                baseline: at.beyond(side, at.yAt(side, nth(placed.starts, index)), size),
+                anchor: "middle",
+                text: label.text,
+              }),
+            ),
+          ];
+        }),
       ),
     unnamed: {
       wedge: cascade.resolveUnaddressed(

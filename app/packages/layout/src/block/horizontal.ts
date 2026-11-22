@@ -41,14 +41,14 @@ export interface DrawnAt {
  */
 export function columnsOf(items: readonly Item[]): Columns {
   const n = items.some((item) => item.frame !== null) ? Q + K : K;
-  const laid = items.flatMap((item) => item.cards.map((card) => ({ card, L: item.length })));
+  const laid = items.flatMap((item) => item.cards.map((card) => ({ card })));
   const names = laid.flatMap(({ card }) => card.layout.names);
   const N = names.length === 0 ? 0 : Math.max(...names);
   const gap = names.length === 0 ? 0 : G;
   let s0 = n + N + gap;
-  for (const { card, L } of laid) {
+  for (const { card } of laid) {
     for (const item of card.layout.centred) {
-      s0 = Math.max(s0, n + item.width / 2 - (L * item.u + (item.v ?? 0)));
+      s0 = Math.max(s0, n + item.width / 2 - (item.x + (item.v ?? 0)));
     }
   }
   for (const wa of laid.flatMap(({ card }) => card.layout.chevrons)) {

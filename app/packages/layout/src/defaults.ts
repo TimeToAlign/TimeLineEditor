@@ -103,8 +103,9 @@ export const DEFAULT_LAYER: Graphical = {
     },
     {
       select: { element: "elision" },
-      set: { fill: "#F2F2F2", stroke: "#9CA3AF", "stroke-width": 1, "stroke-dasharray": "2 2" },
+      set: { fill: "none", stroke: "#9CA3AF", "stroke-width": 1, "stroke-dasharray": "2 2" },
     },
+    { select: { element: "ellipsis" }, set: { fill: "#000000" } },
     { select: { inside: "ancestor" }, set: { opacity: FADED_OPACITY } },
     { select: { element: "cross_section", inside: "ancestor" }, set: { opacity: 1 } },
     { select: { coordinates: "primary", inside: "ancestor" }, set: { opacity: 1 } },

@@ -152,9 +152,13 @@ Three numbers the constants hold are stated outside the table, each read
 from its sentence: the card spacing `S`'s default, 4 ("With the default `S
 = 4`", section 6.2), and the frame's, 8 ("`spacing`: 8 for a frame, 4 for a
 card", section 8.6, which states the card's 4 again); and the initial
-`rotation`, 0, the last of section 2.5's initial values ("`max-width`
-`none`, `rotation` 0."): no wedge has another initial rotation, a
-secondary coordinate's −45 being a default rule's (section 4).
+`rotation`, 0, and the four elision properties' initial values, the last of
+section 2.5's ("`rotation` 0, `elision-mode` `auto`, `elision-proportion`
+`auto`, `elision-depths` `auto`, `elision-display` `ellipsis`."): no wedge
+has another initial rotation, a secondary coordinate's −45 being a default
+rule's (section 4). The table's last two rows are the standard gap of an
+elision, 32, and an ellipsis's dot radius 2, dot spacing 6 and narrowest
+gap 20.
 
 ## The cascade (`cascade.test.ts`)
 
@@ -1232,159 +1236,100 @@ coordinate label at the root's end).
 
 ## Elisions (`elisions.test.ts`)
 
-Sections 3.2 (the elided axis), 6.6 (Elisions), 7.2, 8.5, 8.8 and 8.9 are
-the oracle, at the default placement and view (`1280 × 720`, so `0.8 ×
-VW = 1024`, `0.8 × VH = 576`, `Z` the double nearest 5/7 and `B = 716.8`
-wherever `zG` exceeds `Z`). Every number is derived in binary64 in the
-order the specification writes it: a strip's natural width `n = LA × ub −
-LA × ua`, its drawn width `w = r × n` (or its stored form), its shrink `n −
-w`, `x(t) = s0' + (LA × u − D)` in the root's own drawing, `D` the shrinks
-of the strips ending at or before `t` summed from the left, then the card
-moved by `dx = (xs + DL) − s0'`, drawn at its frame's place `8` and moved
-by the origin: a drawn abscissa is `Ox + (8 + (dx + x))`. The same chain,
-computed apart from the layout (in Python's floats, exact proportions by
-`Fraction`), gave every abscissa below. Ordinates are those of the card
-drawn whole (strips move x only, section 3.2): a strip spans its card's
-rectangle, a continuation lies at its line's ordinate, a `name` label's
-baseline is `y − (w / 2 + 2) − d(9) = y − 5.62255859375` and a `coordinate`
-label's `y + (w / 2 + 2) + a(9) = y + 11.85400390625` (`w = 3`).
+Sections 2, 2.4, 3.2 (the elided axis, the frame's elided axis), 5.3, 6.4
+(Markers), 6.6 (Elisions), 7.2, 8.2, 8.3, 8.5, 8.8 and 8.9 are the oracle,
+at the default placement and view (`1280 × 720`). The worked examples of
+section 8.9 give the numbers; each is derived there in binary64 in the
+order the specification writes it, and the tests compare them exactly. What
+a container decides of its elisions is read from the drawing's
+`elisions` (one record per ungrouped root's card, drawn ancestor card and
+frame: its cascaded and resolved mode, its proportion and depths, its gaps
+with their origin, elided coordinates and widths, and its runs); what it
+draws, from the elements: a gap writes an `elision` element, its rows'
+ellipses `ellipsis` elements and its labels `label` elements, the gap's
+rectangle being its extent whether it is filled or not.
 
-1. **`group_grandchild`** (`theme` 8 at 8 in `movement` 16 at 16 in
-   `score` 64; the frame `543.70361328125 × 211.515625`, `x0 =
-   103.70361328125`, `σ = 8 + w("Movement", 11) + 8 = 74.265625`): `ts =
-   −24`, `EL = 24`, `ER = 32`; `zG = 1024 / 543.70361328125`, `zb = Z`,
-   `c = 271.851806640625`, `dl = 242.413818359375`, `dr =
-   239.851806640625`; the terms `λ / E = 8 / 56 = 0.14285714285714285`,
-   left `(716.8 − dl) / (400 × 3) = 0.39532181803385413`, right `(716.8 −
-   dr) / (400 × 4) = 0.29809262084960936`: `r = 0.14285714285714285`, set
-   by (a). Generation 2 holds `movement`, generation 1 `score`; the
-   protected span is 24 to 32. Three default elisions, from the left:
-   `{id: score, part: [elision]}` over 0–16, `{id: movement, part:
-   [elision]}` over 16–24 (0–8 on its own axis), `{id: score, part:
-   [elision]}` over 32–64; at `LA = 3200` natural widths 800, 400, 1600,
-   drawn `800 / 7`, `400 / 7`, `1600 / 7` in binary64, `DL =
-   1028.5714285714287`, `dx = −141.99058314732133`. Drawn: the origin
-   `(141.99058314732133, 0)`, the block `909.265625 × 227.515625`, the
-   card at `(8, 56.18359375)`, `891.265625 × 77.37890625` (`s0' + LA + Mr +
-   K` with `Mr = −2391`, the arrowhead past the elided end); the strips from
-   `x1` to `x2`: `82.265625` to `196.55133928571422`,
-   `196.55133928571422` to `253.69419642857133` and `653.6941964285713`
-   to `882.265625`, each from `56.18359375` to `133.5625`; only the second
-   has a rule (it starts where the first ends); the continuations `[119.16015625]`
-   (`score`), `[119.16015625, 105.16015625]` (`score`, then `movement`,
-   traversal order), `[119.16015625]`; each carries its stretch on its own
-   timeline: `score` 0–16, `movement` 0–8, `score` 32–64. Labels, strip by
-   strip, name then coordinate, centred on `(x1 + x2) / 2`
-   (`139.4084821428571`, `225.12276785714278`, `767.9799107142857`):
-   `Score` and `0–16 ♩` at `113.53759765625` and `131.01416015625`,
-   `Movement` and `0–8 ♩` at `99.53759765625` and `117.01416015625`,
-   `Score` and `32–64 ♩` as the first; addressed `{id: T, part: [elision,
-   name]}` and `[elision, coordinate]`. `score`'s line runs from
-   `82.265625` to `882.265625` (`800 = L + 400`, the frame's length and
-   the strips' widths), `movement`'s from `196.55133928571422` and
-   `theme`'s row from `253.69419642857133`, the frame's `x0` drawn.
-2. **Order** (section 8.5). In the card's range the strips follow the
-   last element of its member drawing, and their six labels follow the
-   strips; the frame comes after all of them.
-3. **`group_grandchild_parent_on_top`**: the same abscissas; the card at
-   `y = 56.78125`, the continuations at `119.7578125` (`score`) and
-   `71.78125` (`movement`), the labels of the `score` strips at
-   `114.13525390625` and `131.61181640625`, of the `movement` strip at
-   `66.15869140625` and `83.63525390625`.
-4. **`group_parents_mixed`**. `sonata` has `λ / E = 2`, `r = 1`: no
-   strip, its card drawn whole (`690.309326171875` wide). `session`:
-   `r = 25.5 / 64.5 = 0.3953488372093023`, strips 0.0–30.0 from
-   `94.98376180959303` to `281.0302734375` and 55.5–90.0 from
-   `681.0302734375001` to `894.9837618095931`, labelled `Session` and
-   `0″–30″`, `Session` and `55.5″–1′30″` (seconds are clocks at both
-   ends), no rule (they do not touch), each continuing `session`'s line at
-   `180.63671875`; its card at `x = 37.014035247093034`, `874.9697265625001`
-   wide. `page`: `r = 600 / 1154 = 0.5199306759098787`, one strip
-   600–1754 from `681.0302734375` to `1081.0302734375`, labelled `Page`
-   and `600–1 754 px`; its card at `224.01123046875`, `874.01904296875`
-   wide. The origin `(168, 0)` (`sonata`'s card is now the leftmost), the
-   block `1108.0302734375 × 384.4453125`.
-5. **`group_elided_inside`** (`excerpt` 8 at 8 in `first` 32 at 0 in
-   `piece` 64, beside `second` 32 at 32): generation 2 holds `first` and
-   `second`, which leave generation 1 nothing: three default elisions,
-   `first` 0–8, `first` 16–32, `second` 0–32, none on `piece`; `r = 1 / 7`
-   by (a); strips from `95.4248046875` to `152.5676618303571`, from
-   `552.5676618303571` to `666.8533761160713` and from there to
-   `895.4248046875`, the third with a rule, each continuing `piece`'s line
-   at `119.16015625` and its own row at `105.16015625`. The origin
-   `(40.86404854910711, 0)`, the block `922.4248046875 × 227.515625`, the
-   card `904.4248046875` wide.
-6. **Stored elisions** (`bundle_elisions_stored`). In `score`'s ancestor
-   card (`LA = 3200`, protected span 16–24): `elision_4` (0–20, `{ratio:
-   0.5}`) clipped to 0–16, 400 of 800 wide; `elision_5` (32–48, `{span: 4}`)
-   200 wide (`3200 × 4 / 64`); `elision_6` (40–56, `{canvas: 30}`) clipped
-   by `elision_5` to 48–56, 30 wide, with a rule; their labels `Score` and
-   `0–16 ♩`, `Score` and `32–48 ♩`, `Score` (25.40478515625, within the
-   26 left) and `48–…` (`48–56 ♩` cut to the strip less 2 on either side).
-   The strips' widths, `x2 − x1`, are 400, 200 and 30 exactly (dyadic). No
-   default elision is drawn anywhere (stored elisions lie on `score`), no
-   `elision_1` (its timeline `coda` is hidden), no `elision_3` (on
-   `recording`, a member: drawn nowhere), no `elision_7` (hidden by the rule
-   `{element: elision, within: session}`, so `session`'s card is whole,
-   `1486.7344324448532` wide, as before strips existed). On `page`'s
-   ungrouped card (`L = 400`, `λR = 1754`), `elision_2` (600–1754, no
-   width): `E = 1154`, `Rf = 600`, `r = 0.5199306759098787`, `n = 400 −
-   400 × 0.34207525655644244 = 263.169897377423`, the strip from
-   `673.3880644791947` to `810.2181671017717`, where `page`'s line ends,
-   the line from `536.5579618566177`.
-7. **One axis per full run.** `score`'s line in its card of
-   `bundle_elisions_stored` is drawn in two runs, 16–32 and 56–64, and has
-   two axes, both addressed `{id: score}` and keyed by the card, the second
-   carrying `run: 1`: from `elision_4`'s right edge to `elision_5`'s left
-   edge, coordinates 16 to 32 (end known), and from `elision_6`'s right edge
-   to the line's end, 56 to 64; `lineAxes` lists both, drawn lengths 16
-   and 8. In `group_grandchild` `score`'s card line has one run, 24–32, its
-   axis from the strip edge `253.69419642857133` to `653.6941964285713`,
-   coordinates 24 to 32, without `run`.
-8. **What lies in a strip is not drawn.** `group_grandchild` with a named
-   timestamp `Here` added on `score` at 4 (in the strip 0–16): no element
-   carries its address, and no axis lists it; with `FULL_CARDS` its wedge is
-   drawn in the card. `bundle_elisions_stored` with a child `inner` (16
-   quarters at 8) added to `score`: its start lies in `elision_4`'s strip,
-   so its line starts at that strip's right edge without a circle
-   (`start: none`) and ends at 24, where `theme`'s line ends, with its
-   diamond.
-9. **Elided and full.** With `FULL_CARDS` no `elision` element is drawn
-   and `group_grandchild`'s card is `74.265625 + 3200 + 9 + 8 =
-   3291.265625` wide; with `{element: elision, within: score}` hidden
-   alone, the same (the rule reaches `movement`'s default elision, a
-   descendant's). A `display` without `strip` draws nothing: with
-   `elision_4`'s `display` `[name, coordinate]` (the fixture changed,
-   validated) no `elision_4` element is drawn and `elision_5` is the first
-   strip; with `[strip]` the strip is drawn without labels.
-10. **The view.** `group_grandchild` drawn for the view `640 × 360`: `zG =
-   512 / 543.70361328125 = 0.9416895299078136`, `zb = Z`, `B = 358.4`;
-   left `(358.4 − dl) / 1200 = 0.09665515136718748`, right `(358.4 − dr) /
-   1600 = 0.07409262084960937`, so (b) binds: `r =
-   0.07409262084960937`, `dx` follows, and the origin is
-   `(59.47315673828143, 0)`; the strips run from `82.265625` to
-   `141.53972167968755`, on to `171.17677001953143`, and from
-   `571.1767700195314` to `689.7249633789065`.
-11. **Other ancestor cards.** `bundle_shared_parent`'s `score` (its
-   members its own children, so generation 1 alone) draws one strip in
-   each of its two cards, on the side of `score` beyond the member;
-   `bundle_mixed` two; the cards whose default proportion is 1
-   (`group_parent_both`, `group_parent_right`, `group_parent_exact`,
-   `group_child_member`, `group_child_member_stamps`) draw none.
-12. **A line of drawn length 0.** A line whose span is one point (unknown
-   length, nothing in it) has one run where no strip holds that point, a
-   strip's ends excluded, as for a named timestamp (section 6.6): a strip
-   elsewhere on the card takes nothing from it. Proven on
-   `bundle_elisions_stored` with a child `late` of `page` (pixels, int,
-   `length: null`, no children) added at an offset: at 100 (left of
-   `elision_2`'s 600–1754) and at 600 (the strip's left end) its line is
-   drawn and it has exactly one axis, without `run`, from `xStart = xEnd`
-   = the abscissa of its drawn line's start, `start` 0, `end` null (open),
-   drawn end 0; the same at 100 with `elision_2` removed (no strip on the
-   card), where that abscissa is `page`'s line start plus `400 × 100 /
-   1754` (`L = 400`, `λR = 1754`, the card whole); at 1000 (inside the
-   strip) no line of `late` is drawn and it has no axis. A line whose
-   drawn length is 0 is never an empty run list where no strip holds it.
+1. **Derived elisions with their middles left out** (`group_elided_inside`,
+   `auto` read as `proportional`): `r = 0.14285714285714285`, set by (a);
+   depths `1 2` (`piece`, then `first` and `second`); three gaps from the
+   left, each a derived elision `{id: T, part: [elision]}`: `first` 0–8 and
+   16–32, whole (their `h / k`, `0.2514285714285714` and
+   `0.8228571428571427`, round outwards to their own ends), natural 400 and
+   800, drawn `57.14285714285714` and `114.28571428571428`; `second` 1–31,
+   its natural width `1500` (30 quarters at 50 canvas units each), drawn
+   `128.57142857142856` = `W − 50 − 50`. Each gap draws one ellipsis on each
+   row crossing it, `piece`'s and its own timeline's (two each), no label
+   (`elision-display` `ellipsis`), no continuation; it writes no rectangle
+   (its `fill` is `none`). `piece`'s line in the card is cut at all three
+   gaps, `first`'s at its two (it starts at the first's edge and ends at the
+   second's), `second`'s at its one.
+2. **Middles on a fraction axis** (`bundle_elided_layerit`, the card of
+   `clt_1` behind `group_3`): `r = 0.016991818753933293`; the gaps leave out
+   Prelude 1–355, Menuet 1–311, Clair de Lune 28–323 and Passepied 4–620,
+   drawn `59.986481131855626`, `48.91033261077412`, `45.13437288767693` and
+   `38.561405962287324` wide.
+3. **Group elisions** (`group_elided_members`). The frame draws two gaps:
+   `elision_1` (natural 150, drawn the standard 32) and `elision_2`
+   (`66.66666666666666`, drawn `33.33333333333333`); its last run's shrink
+   is `DG = 151.33333333333331`, so `voice`'s line ends at `x0 + (400 −
+   DG)`, `x0` the exposure's start. The elided coordinates on every member:
+   `elision_1` `excerpt` 2–8, `voice` 3–12, `sketch` none (unknown
+   length); `elision_2` `excerpt` 28/3–12, `voice` 14–18 (exact: `7/12` and
+   `3/4` of 24), `sketch` none. `elision_1`'s label stack, `Development`
+   and `2–8 ♩`, is drawn once (in `excerpt`'s markers band of the frame);
+   `elision_2` draws no label. Its gap's ellipses lie on every row of the
+   three cards that crosses it: `elision_1` on `piece`'s ancestor line and
+   `excerpt`'s line (its card), `voice` and `sketch`, four; `elision_2` on
+   those and `phrase`, five. The groupstamp `timestamp_1` at 15 of `voice`
+   lies in the second gap: no element carries its address; `timestamp_2` at
+   21 is drawn, its frame line over `sketch` faded (opacity 0.35).
+4. **The ancestor card behind a frame with group elisions** (`piece` in
+   `group_elided_members`): `r = 0.31083333333333335` (`0.5 × (L' / L)`,
+   set by (a)), depths `1` (`piece` is the member's parent); its gaps from
+   the left: `piece` 1–15 (drawn `74.33333333333334`), the carried
+   `elision_1` and `elision_2` (origin `carried`, the frame's natural and
+   drawn widths taken: 150 and 32, `66.66666666666666` and
+   `33.33333333333333`), `piece` 33–47; the carried gaps draw no label.
+5. **Stored elisions** (`bundle_elisions_stored`). `score`'s ancestor card
+   draws, under `auto` read as `custom`: `elision_4` clipped to 0–16
+   (natural 800, drawn 400, `{ratio: 0.5}`), the carried `elision_3`
+   (natural 80, drawn 32), `elision_5` (800, 200 by `{span: 4}`) and
+   `elision_6` clipped to 48–56 (400, 30 by `{canvas: 30}`); `elision_1`
+   (on `coda`, whose line a rule hides) is not drawn. `elision_4` draws its
+   ellipsis, its `id` label `elision_4` and a continuation on each of its
+   rows; `elision_5` its `name` label `Development` alone; `elision_6`
+   nothing but its gap. `session`'s card (`full`) draws the carried
+   `elision_3` alone, `elision_7` kept. The frame's gap of `elision_3`:
+   natural 80, drawn 32, on `theme` 0–8/5. `page`'s ungrouped card draws
+   `elision_2` (natural `263.169897377423`, the standard 32) with its labels
+   `Appendix` and `600–1 754 px`. `score`'s line in its card is drawn in two
+   runs, from 17.6 (the carried gap's end) to 32 and from 56 to 64.
+6. **Modes** (section 8.9, Modes), by a layer of one rule on `{id: piece,
+   part: [card]}` over `group_elided_inside`: `elision-mode: full` draws no
+   gap (resolved `full`); `custom` none, no card elision being stored;
+   `proportional` with `elision-proportion: 0.05` takes `r = 0.05` (not
+   automatic): the pieces' `W` 20, 40 and 80 round to their own ends, three
+   whole gaps 20, 40 and 80 wide; `elision-depths: "1"` derives on `piece`
+   alone at `r = 1/7`: 0–8 whole (`57.14285714285714`) and 19–61 (of the
+   piece 16–64: `W = r × 2400`, `h / k = (W − 32) / 2 / 50`, 150 at full
+   scale on either side, the gap `W − 150 − 150`); `elision-display:
+   "ellipsis name coordinate"` labels every derived gap with its
+   timeline's name and its elided coordinates (`First`, `0–8 ♩`; `First`,
+   `16–32 ♩`; `Second`, `1–31 ♩`); `display: none` hides the card and
+   records no exposure. A rule `{addresses: [{id: group_1}]}`
+   `elision-mode: full` over `group_elided_members` leaves the frame
+   without gaps and the card behind without carried gaps, at `r = 0.5`.
+7. **Widths written back** (`widthAs`, section 8.9, Widths): of
+   `elision_5`'s gap (drawn 200 of 800, `L = 3200`, `λ = 64`, fraction):
+   `{ratio: 0.25}`, `{span: 4}` exact, `{canvas: 200}`, the standard gap
+   `null`; of `elision_2`'s gap on `page` (int, `L = 400`, `λ = 1754`, drawn
+   32): `{span: 140}`, `32 × 1754 / 400 = 140.32` to the nearest integer.
+8. **No marks of a member's start and end** (section 8.3): no element of
+   `group_child_member` is addressed `{id: M, part: [start]}` or `[end]`.
+9. **Rows at the heights of the card behind** (section 8.3): in
+   `group_elided_inside`, the member card's ancestor lines of `first` and
+   `piece` lie at the ordinates of `first`'s and `piece`'s lines in the
+   ancestor card behind.
 
 ## Named timestamps (`timestamps.test.ts`)
 

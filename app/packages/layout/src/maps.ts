@@ -148,10 +148,10 @@ export function drawMaps(
       const j = slots.slot.get(member);
       if (j === undefined) throw new Error("a map is drawn without its slot");
       const { entry } = member;
-      const first = at.strip(entry.start);
-      const last = entry.rootEnd ? undefined : at.strip(entry.end);
-      const xs = first === undefined ? at.x(entry.start) : first.right;
-      const xe = last === undefined ? at.xEnd(entry) : last.left;
+      const first = at.gap(entry.start);
+      const last = entry.rootEnd ? undefined : at.gap(entry.end);
+      const xs = first === undefined ? at.x(entry.start) : first[1];
+      const xe = last === undefined ? at.xEnd(entry) : last[0];
       if ((first !== undefined || last !== undefined) && xs >= xe) return [];
       return [
         {
@@ -162,6 +162,7 @@ export function drawMaps(
           xe,
           yc: at.yAt(side, start + w / 2 + j * (MAP_GAP + MAP_SPACING) - MAP_SPACING / 2),
           spacing: MAP_SPACING,
+          cuts: at.cuts(entry.start, entry.rootEnd ? null : entry.end),
         },
       ];
     }),

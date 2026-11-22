@@ -6,7 +6,13 @@
  */
 
 import { BUNDLE_ADDRESS } from "@timetoalign/tilie-core";
-import { type DrawnAxis, type DrawnBox, type ElementRange, identityOf } from "../boxes.ts";
+import {
+  type DrawnAxis,
+  type DrawnBox,
+  type ElementRange,
+  type ElisionExposure,
+  identityOf,
+} from "../boxes.ts";
 import { placedAt, placedAxis, placedBox } from "../canvas.ts";
 import type { Style } from "../cascade.ts";
 import { K, P } from "../constants.ts";
@@ -129,6 +135,11 @@ export function emitDrawing(
     for (const right of local.rights) rights.push(x + scale * right);
     for (const bottom of local.bottoms) bottoms.push(y + scale * bottom);
   }
+  // The gaps of the frames' group elisions after every item, frame by frame (section 8.5).
+  for (const { item, trailing } of laid) {
+    const { x, y, scale } = item;
+    for (const element of trailing) elements.push(placedAt(element, x, y, scale));
+  }
   // The ancestor cards' axes after every item's, so that a timeline's first drawn line is always
   // a line of a card of an item.
   for (const card of block.ancestors) {
@@ -168,6 +179,12 @@ export function emitDrawing(
     displayed: true,
     contentCount: laid.length,
   };
+  // What each container decides of its elisions, in drawing order: the ancestor cards, then the
+  // items, each placed into the block.
+  const exposures = [
+    ...block.ancestors.map((card) => card.exposure),
+    ...laid.flatMap((item) => item.exposures),
+  ].map((exposure) => placedExposure(exposure, Ox, Oy));
   return {
     width: W,
     height: H,
@@ -175,6 +192,25 @@ export function emitDrawing(
     boxes: [own, ...blockBoxes],
     axes: blockAxes,
     elements: inBlock,
+    elisions: exposures,
     unmapped: [...measure.unmapped].sort((left, right) => left - right),
+  };
+}
+
+/**
+ * An exposure in its item's coordinates placed into the block, the place origin at `(Ox, Oy)`:
+ * its item's place shifted by it, each gap's edges taken to `x + scale × x1`.
+ */
+function placedExposure(exposure: ElisionExposure, Ox: number, Oy: number): ElisionExposure {
+  const { x, y, scale } = exposure.place;
+  const left = Ox + x;
+  return {
+    ...exposure,
+    place: { x: left, y: Oy + y, scale },
+    gaps: exposure.gaps.map((gap) => ({
+      ...gap,
+      x1: Ox + (x + scale * gap.x1),
+      x2: Ox + (x + scale * gap.x2),
+    })),
   };
 }

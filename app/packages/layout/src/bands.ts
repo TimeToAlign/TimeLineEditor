@@ -11,6 +11,7 @@ import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import type {
+  Cut,
   JumpElement,
   LineElement,
   MapElement,
@@ -19,7 +20,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import type { StripEdges } from "./elisions.ts";
+import type { Gap } from "./elisions.ts";
 import type { Extent } from "./fit.ts";
 import type { Entry } from "./traversal.ts";
 
@@ -28,10 +29,14 @@ export type Side = "above" | "below";
 
 export const opposite = (side: Side): Side => (side === "above" ? "below" : "above");
 
-/** A centred label (section 6.7): its width and the proportion `u` of the position it is centred on. */
+/**
+ * A drawn centred label (section 6.7): its width and the distance `L × u` from
+ * the root's start of the position it is centred on, `L × u − D` in a card
+ * with gaps (section 3.2), `xm − x0` for an elision's label.
+ */
 export interface Centred {
   readonly width: number;
-  readonly u: number;
+  readonly x: number;
   /** Its carry `v`, by which a turned wedge moves it across (section 6.7); 0 where absent. */
   readonly v?: number;
 }
@@ -55,11 +60,16 @@ export interface LinePosition {
    */
   readonly xEnd: (entry: Entry) => number;
   /**
-   * The edges `x(a)` and `x(b)` of the strip a position lies in on an elided axis (sections 3.2
-   * and 6.6, Elisions), its ends excluded; undefined for a position in no strip. An element
-   * marking a position in a strip is not drawn.
+   * The edges `x(a)` and `x(b)` of the gap a position lies in on an elided axis (sections 3.2
+   * and 6.6, Elisions), its ends excluded; undefined for a position in no gap. An element
+   * marking a position in a gap is not drawn.
    */
-  readonly strip: (value: Real) => StripEdges | undefined;
+  readonly gap: (value: Real) => Cut | undefined;
+  /**
+   * The edges of the gaps a row spanning `start` to `end` crosses, from the left (`end` null: open
+   * to the right), where its line or outline stops and resumes (section 6.6, Elisions).
+   */
+  readonly cuts: (start: Real, end: Real | null) => Cut[];
   /** The ordinate `yl` of the line. */
   readonly y: number;
   /**
@@ -133,6 +143,11 @@ export interface LineElements {
   readonly flowMarkerLabels: readonly TextElement[];
   /** The cross-section lines its line holds, in the order its markers band places their timestamps. */
   readonly crossSections: readonly VerticalLineElement[];
+  /**
+   * The labels of the gaps whose label stacks its markers band places (section 6.4, Markers), by
+   * gap, each gap's in stack order: written with the gap, not with the band (section 8.5).
+   */
+  readonly gapLabels: readonly (readonly [Gap, readonly TextElement[]])[];
   /**
    * Where a coordinate marker of its line lies, with its line (one, when its line is drawn): what
    * the line's axis carries for an editor's marks (`DrawnAxis.marker`).

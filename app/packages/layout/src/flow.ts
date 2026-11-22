@@ -42,7 +42,7 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * 6.6, Elisions).
  */
 export function flowControlBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
-  const { owned, measured, relativeX, u, S, h, a, d } = scope;
+  const { owned, measured, relativeX, S, h, a, d } = scope;
   const held = sources.filter((source) => shown(source.bands.flow_control.style));
   const own = (source: Entry, value: Parameters<typeof coordinateValue>[0]) =>
     add(source.start, coordinateValue(value, source.manifest.number_type));
@@ -118,11 +118,18 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
       ...labelledMarkers.map((item) => item.extent),
       ...placedJumps.map((item) => item.extent),
     ],
-    centred: placedJumps.flatMap((item) =>
-      item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],
-    ),
+    centred: placedJumps.flatMap((item) => {
+      // A jump origin marking a position in a gap is not drawn, nor is its label (section 6.6).
+      const x = scope.drawnX(item.middle);
+      const elided = [item.jump.from, item.jump.to].some(
+        (value) => scope.drawnX(value) === undefined,
+      );
+      return item.label === undefined || x === undefined || elided
+        ? []
+        : [{ width: item.label.width, x }];
+    }),
     draw: (start, side, at) => {
-      const elided = (...values: Real[]) => values.some((value) => at.strip(value) !== undefined);
+      const elided = (...values: Real[]) => values.some((value) => at.gap(value) !== undefined);
       const shownMarkers = markers.filter((item) => !elided(item.at));
       const shownLabels = labelledMarkers.filter(({ item }) => !elided(item.at));
       const shownJumps = placedJumps.filter(

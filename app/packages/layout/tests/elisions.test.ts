@@ -1,5 +1,6 @@
 import { type ElementAddress, type Manifest, sameAddress } from "@timetoalign/tilie-core";
-import { canonicalOrder, type Graphical, validate, withFileIds } from "@timetoalign/timetoshare";
+import { Rational } from "@timetoalign/tilie-core/numbers";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -7,528 +8,379 @@ import {
   type Drawing,
   type DrawnElement,
   draw,
+  type ElisionExposure,
+  type ExposedGap,
   type LineElement,
-  lineAxes,
   manifestLayer,
-  type Placement,
+  widthAs,
 } from "../src/index.ts";
-import { at, child, drawFixture, edit, FULL_CARDS, loadFile, metrics, target } from "./support.ts";
+import { at, loadFile, metrics } from "./support.ts";
 
-type Strip = Extract<DrawnElement, { type: "elision" }>;
+/** A fixture drawn at the default placement and view, under `extra` layers. */
+function drawn(name: string, extra: readonly Graphical[] = []): Drawing {
+  const manifest: Manifest = loadFile(name);
+  return draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, ...extra, manifestLayer(manifest)],
+    metrics,
+  );
+}
 
-/** The strips of a drawing, in drawing order. */
-const stripsOf = (drawing: Drawing): Strip[] =>
-  drawing.elements.filter((item): item is Strip => item.type === "elision");
-
-/** A strip's geometry and what it carries, its stretch's bounds as text. */
-const shape = (strip: Strip) => [
-  strip.address,
-  strip.x1,
-  strip.x2,
-  strip.yt,
-  strip.yb,
-  strip.rule,
-  strip.continuations,
-  [strip.elided.timeline, String(strip.elided.start), String(strip.elided.end)],
+/** A layer of one rule setting `set` on the cards of the root `root`. */
+const onCards = (root: string, set: Record<string, string | number>): Graphical[] => [
+  { rules: [{ select: { addresses: [{ id: root, part: ["card"] }] }, set }] },
 ];
 
-/** The labels of the strips: address, text, centre and baseline. */
-const labelsOf = (drawing: Drawing) =>
-  drawing.elements.flatMap((item) =>
-    item.type === "label" &&
-    (item.address.part?.includes("elision") === true ||
-      (item.address.id?.startsWith("elision_") === true && item.address.part !== undefined))
-      ? [[item.address, item.text, item.x, item.baseline]]
-      : [],
-  );
-
-/** The first line element at `address` drawn in the elements `range` of `drawing`. */
-function lineIn(drawing: Drawing, address: ElementAddress, from = 0): LineElement {
-  const found = drawing.elements
-    .slice(from)
-    .find(
-      (item): item is LineElement =>
-        (item.type === "timeline" || item.type === "child") && sameAddress(item.address, address),
-    );
-  if (found === undefined) throw new Error(`no line at ${JSON.stringify(address)}`);
+/** The exposure of the container keyed `key`. */
+function exposureOf(drawing: Drawing, key: object): ElisionExposure {
+  const found = drawing.elisions.find((each) => JSON.stringify(each.key) === JSON.stringify(key));
+  if (found === undefined) throw new Error(`no exposure at ${JSON.stringify(key)}`);
   return found;
 }
 
-/** The index of the ancestor card of `root` among the drawing's elements. */
-const cardIndex = (drawing: Drawing, root: string) =>
-  drawing.elements.findIndex((item) => item.type === "ancestor_card" && item.address.id === root);
+/** A gap's address, origin, timeline, elided coordinates as text, natural and drawn widths. */
+const gapShape = (gap: ExposedGap) => [
+  gap.address,
+  gap.origin,
+  gap.timeline,
+  String(gap.start),
+  String(gap.end),
+  gap.natural,
+  gap.drawn,
+];
 
-const SCORE = { id: "score", part: ["elision"] } as const;
-const MOVEMENT = { id: "movement", part: ["elision"] } as const;
+const of = (drawing: Drawing, type: DrawnElement["type"], address: ElementAddress) =>
+  drawing.elements.filter(
+    (element) => element.type === type && sameAddress(element.address, address),
+  );
 
-describe("group_grandchild's default elisions", () => {
-  const drawing = drawFixture("groups/group_grandchild");
+const derived = (id: string): ElementAddress => ({ id, part: ["elision"] });
 
-  it("take r = 1/7, set by the member's line", () => {
-    expect(drawing.origin).toEqual({ x: 141.99058314732133, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([909.265625, 227.515625]);
-    const card = drawing.elements[cardIndex(drawing, "score")];
-    expect(card?.type === "ancestor_card" && [card.x, card.y, card.width, card.height]).toEqual([
-      8, 56.18359375, 891.265625, 77.37890625,
-    ]);
-    expect(stripsOf(drawing).map(shape)).toEqual([
-      [
-        SCORE,
-        82.265625,
-        196.55133928571422,
-        56.18359375,
-        133.5625,
-        false,
-        [119.16015625],
-        ["score", "0", "16"],
-      ],
-      [
-        MOVEMENT,
-        196.55133928571422,
-        253.69419642857133,
-        56.18359375,
-        133.5625,
-        true,
-        [119.16015625, 105.16015625],
-        ["movement", "0", "8"],
-      ],
-      [
-        SCORE,
-        653.6941964285713,
-        882.265625,
-        56.18359375,
-        133.5625,
-        false,
-        [119.16015625],
-        ["score", "32", "64"],
-      ],
-    ]);
-  });
+/** The text labels drawn at the parts of an elision's address. */
+const labelTexts = (drawing: Drawing, address: ElementAddress) =>
+  drawing.elements.flatMap((element) =>
+    element.type === "label" &&
+    element.address.id === address.id &&
+    JSON.stringify(element.address.part?.slice(0, -1) ?? []) === JSON.stringify(address.part ?? [])
+      ? [element.text]
+      : [],
+  );
 
-  it("label each strip with its timeline's name and its stretch", () => {
-    const name = (id: string) => ({ id, part: ["elision", "name"] });
-    const coordinate = (id: string) => ({ id, part: ["elision", "coordinate"] });
-    expect(labelsOf(drawing)).toEqual([
-      [name("score"), "Score", 139.4084821428571, 113.53759765625],
-      [coordinate("score"), "0–16 ♩", 139.4084821428571, 131.01416015625],
-      [name("movement"), "Movement", 225.12276785714278, 99.53759765625],
-      [coordinate("movement"), "0–8 ♩", 225.12276785714278, 117.01416015625],
-      [name("score"), "Score", 767.9799107142857, 113.53759765625],
-      [coordinate("score"), "32–64 ♩", 767.9799107142857, 131.01416015625],
-    ]);
-  });
-
-  it("draw the elided lines", () => {
-    const from = cardIndex(drawing, "score");
-    const lines = ["score", "movement", "theme"].map((id) => lineIn(drawing, at(id), from));
-    expect(lines.map((line) => [line.xs, line.xe, line.start, line.end])).toEqual([
-      [82.265625, 882.265625, "circle", "arrowhead"],
-      [196.55133928571422, 653.6941964285713, "circle", "diamond"],
-      [253.69419642857133, 653.6941964285713, "circle", "diamond"],
-    ]);
-  });
-
-  it("write the strips after the card's member drawing, then their labels", () => {
-    const card = drawing.boxes.find((box) => box.ancestor !== undefined);
-    if (card === undefined) throw new Error("no ancestor card");
-    const types = drawing.elements.slice(card.range.start, card.range.end).map((item) => item.type);
-    const first = types.indexOf("elision");
-    expect(types.slice(first)).toEqual([
-      "elision",
-      "elision",
-      "elision",
-      "label",
-      "label",
-      "label",
-      "label",
-      "label",
-      "label",
-    ]);
-    expect(types.slice(0, first)).not.toContain("elision");
-    expect(drawing.elements.findIndex((item) => item.type === "frame")).toBe(card.range.end);
-  });
-});
-
-describe("group_grandchild_parent_on_top's default elisions", () => {
-  it("lie as group_grandchild's, at the card's own ordinates", () => {
-    const drawing = drawFixture("groups/group_grandchild_parent_on_top");
-    const strips = stripsOf(drawing);
-    expect(strips.map((strip) => [strip.x1, strip.x2, strip.yt, strip.continuations])).toEqual([
-      [82.265625, 196.55133928571422, 56.78125, [119.7578125]],
-      [196.55133928571422, 253.69419642857133, 56.78125, [119.7578125, 71.78125]],
-      [653.6941964285713, 882.265625, 56.78125, [119.7578125]],
-    ]);
-    expect(labelsOf(drawing).map(([, text, , baseline]) => [text, baseline])).toEqual([
-      ["Score", 114.13525390625],
-      ["0–16 ♩", 131.61181640625],
-      ["Movement", 66.15869140625],
-      ["0–8 ♩", 83.63525390625],
-      ["Score", 114.13525390625],
-      ["32–64 ♩", 131.61181640625],
-    ]);
-  });
-});
-
-describe("group_parents_mixed's default elisions", () => {
-  const drawing = drawFixture("groups/group_parents_mixed");
-
-  it("leave sonata whole and elide session and page", () => {
-    expect(drawing.origin).toEqual({ x: 168, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([1108.0302734375, 384.4453125]);
-    const cards = drawing.elements.flatMap((item) =>
-      item.type === "ancestor_card" ? [[item.address.id, item.x, item.width]] : [],
+/** The first line element at `address` of `type`. */
+function lineOf(
+  drawing: Drawing,
+  type: LineElement["type"],
+  address: ElementAddress,
+  from = 0,
+): LineElement {
+  const found = drawing.elements
+    .slice(from)
+    .find(
+      (element): element is LineElement =>
+        element.type === type && sameAddress(element.address, address),
     );
-    expect(cards).toEqual([
-      ["sonata", 8, 690.309326171875],
-      ["session", 37.014035247093034, 874.9697265625001],
-      ["page", 224.01123046875, 874.01904296875],
-    ]);
-    expect(
-      stripsOf(drawing).map((strip) => [strip.address.id, strip.x1, strip.x2, strip.rule]),
-    ).toEqual([
-      ["session", 94.98376180959303, 281.0302734375, false],
-      ["session", 681.0302734375001, 894.9837618095931, false],
-      ["page", 681.0302734375, 1081.0302734375, false],
-    ]);
-    expect(labelsOf(drawing).map(([, text]) => text)).toEqual([
-      "Session",
-      "0″–30″",
-      "Session",
-      "55.5″–1′30″",
-      "Page",
-      "600–1 754 px",
-    ]);
-  });
-});
+  if (found === undefined) throw new Error(`no ${type} at ${JSON.stringify(address)}`);
+  return found;
+}
 
-describe("group_elided_inside's default elisions", () => {
-  it("fall to the member's parent and its sibling, none to the root", () => {
-    const drawing = drawFixture("groups/group_elided_inside");
-    expect(drawing.origin).toEqual({ x: 40.86404854910711, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([922.4248046875, 227.515625]);
-    expect(
-      stripsOf(drawing).map((strip) => [
-        strip.address,
-        strip.x1,
-        strip.x2,
-        strip.rule,
-        strip.continuations,
-        String(strip.elided.start),
-        String(strip.elided.end),
-      ]),
-    ).toEqual([
-      [
-        { id: "first", part: ["elision"] },
-        95.4248046875,
-        152.5676618303571,
-        false,
-        [119.16015625, 105.16015625],
-        "0",
-        "8",
-      ],
-      [
-        { id: "first", part: ["elision"] },
-        552.5676618303571,
-        666.8533761160713,
-        false,
-        [119.16015625, 105.16015625],
-        "16",
-        "32",
-      ],
-      [
-        { id: "second", part: ["elision"] },
-        666.8533761160713,
-        895.4248046875,
-        true,
-        [119.16015625, 105.16015625],
-        "0",
-        "32",
-      ],
-    ]);
-  });
-});
+const cardAt = (drawing: Drawing, root: string) =>
+  drawing.elements.findIndex(
+    (element) => element.type === "ancestor_card" && element.address.id === root,
+  );
 
-describe("bundle_elisions_stored", () => {
-  const drawing = drawFixture("bundles/bundle_elisions_stored");
+describe("derived elisions with their middles left out", () => {
+  const drawing = drawn("groups/group_elided_inside");
+  const card = exposureOf(drawing, { item: "group_1", member: "piece" });
 
-  it("draws the stored elisions of score's card, clipped, in their four widths", () => {
-    const score = stripsOf(drawing).filter((strip) => strip.elided.timeline === "score");
-    expect(
-      score.map((strip) => [
-        strip.address,
-        strip.x2 - strip.x1,
-        strip.rule,
-        String(strip.elided.start),
-        String(strip.elided.end),
-      ]),
-    ).toEqual([
-      [{ id: "elision_4" }, 400, false, "0", "16"],
-      [{ id: "elision_5" }, 200, false, "32", "48"],
-      [{ id: "elision_6" }, 30, true, "48", "56"],
+  it("take r = 1/7 on depths 1 and 2", () => {
+    expect([card.kind, card.mode, card.drawn, card.proportion, card.automatic]).toEqual([
+      "ancestor_card",
+      "auto",
+      "proportional",
+      0.14285714285714285,
+      true,
     ]);
-    expect(labelsOf(drawing).map(([address, text]) => [address, text])).toEqual([
-      [{ id: "elision_4", part: ["name"] }, "Score"],
-      [{ id: "elision_4", part: ["coordinate"] }, "0–16 ♩"],
-      [{ id: "elision_5", part: ["name"] }, "Score"],
-      [{ id: "elision_5", part: ["coordinate"] }, "32–48 ♩"],
-      [{ id: "elision_6", part: ["name"] }, "Score"],
-      [{ id: "elision_6", part: ["coordinate"] }, "48–…"],
-      [{ id: "elision_2", part: ["name"] }, "Page"],
-      [{ id: "elision_2", part: ["coordinate"] }, "600–1 754 px"],
+    expect([card.chain, card.depths, card.display]).toEqual([
+      ["piece", "first"],
+      [1, 2],
+      ["ellipsis"],
+    ]);
+    expect(card.gaps.map(gapShape)).toEqual([
+      [derived("first"), "default", "first", "0", "8", 400, 57.14285714285714],
+      [derived("first"), "default", "first", "16", "32", 800, 114.28571428571428],
+      [derived("second"), "default", "second", "1", "31", 1500, 128.57142857142856],
     ]);
   });
 
-  it("draws no default, nothing on a hidden timeline, a member or under the Full rule", () => {
-    expect(stripsOf(drawing).map((strip) => strip.address.id)).toEqual([
-      "elision_4",
-      "elision_5",
-      "elision_6",
-      "elision_2",
-    ]);
-    const session = drawing.elements.find(
-      (item) => item.type === "ancestor_card" && item.address.id === "session",
+  it("draw an ellipsis on each row crossing a gap, no label, no rectangle", () => {
+    expect(of(drawing, "ellipsis", { id: "first", part: ["elision", "ellipsis"] })).toHaveLength(4);
+    expect(of(drawing, "ellipsis", { id: "second", part: ["elision", "ellipsis"] })).toHaveLength(
+      2,
     );
-    expect(session?.type === "ancestor_card" && session.width).toBe(1486.7344324448532);
-  });
-
-  it("draws page's stored elision on its ungrouped card at its own proportion", () => {
-    const [page] = stripsOf(drawing).filter((strip) => strip.elided.timeline === "page");
-    expect(page && [page.x1, page.x2, String(page.elided.start), String(page.elided.end)]).toEqual([
-      673.3880644791947,
-      810.2181671017717,
-      "600",
-      "1754",
-    ]);
-    const line = lineIn(drawing, at("page"));
-    expect([line.xs, line.xe]).toEqual([536.5579618566177, 810.2181671017717]);
-  });
-
-  it("gives score's line one axis per full run", () => {
-    const [first, , third] = stripsOf(drawing);
-    const runs = [...lineAxes(drawing).entries()].filter(
-      ([, line]) => line.timeline === "score" && line.ancestor !== undefined,
-    );
-    const end = lineIn(drawing, at("score")).xe;
+    expect(labelTexts(drawing, derived("first"))).toEqual([]);
+    const gaps = drawing.elements.filter((element) => element.type === "elision");
     expect(
-      runs.map(([, line]) => [
-        line.xStart,
-        line.xEnd,
-        String(line.start),
-        String(line.length),
-        String(line.drawnLength),
-      ]),
+      gaps.map((gap) => gap.type === "elision" && [gap.style.fill, gap.continuations]),
     ).toEqual([
-      [first?.x2, stripsOf(drawing)[1]?.x1, "16", "16", "16"],
-      [third?.x2, end, "56", "8", "8"],
+      ["none", []],
+      ["none", []],
+      ["none", []],
     ]);
-    expect(new Set(runs.map(([key]) => key)).size).toBe(2);
-    expect(
-      drawing.axes
-        .filter((axis) => axis.address.id === "score" && axis.ancestor !== undefined)
-        .map((axis) => axis.run),
-    ).toEqual([undefined, 1]);
+  });
+
+  it("cut every row at the gaps it crosses", () => {
+    const from = cardAt(drawing, "piece");
+    expect(lineOf(drawing, "timeline", at("piece"), from).cuts).toHaveLength(3);
+    expect(lineOf(drawing, "child", at("first"), from).cuts).toHaveLength(2);
+    expect(lineOf(drawing, "child", at("second"), from).cuts).toHaveLength(1);
+  });
+
+  it("leave the member card's ancestor rows at the heights of the card behind", () => {
+    const from = cardAt(drawing, "piece");
+    for (const id of ["piece", "first"]) {
+      const behind = lineOf(drawing, id === "piece" ? "timeline" : "child", at(id), from);
+      expect(lineOf(drawing, "ancestor", at(id)).y).toBe(behind.y);
+    }
   });
 });
 
-describe("a line in one run", () => {
-  it("has one axis without a run", () => {
-    const drawing = drawFixture("groups/group_grandchild");
-    const axes = drawing.axes.filter(
+describe("derived elisions on a fraction axis", () => {
+  it("leave out each movement's middle", () => {
+    const card = exposureOf(drawn("bundles/bundle_elided_layerit"), {
+      item: "group_3",
+      member: "clt_1",
+    });
+    expect(card.proportion).toBe(0.016991818753933293);
+    expect(
+      card.gaps.map((gap) => [gap.timeline, String(gap.start), String(gap.end), gap.drawn]),
+    ).toEqual([
+      ["clt_2", "1", "355", 59.986481131855626],
+      ["clt_3", "1", "311", 48.91033261077412],
+      ["clt_4", "28", "323", 45.13437288767693],
+      ["clt_5", "4", "620", 38.561405962287324],
+    ]);
+  });
+});
+
+describe("group elisions", () => {
+  const drawing = drawn("groups/group_elided_members");
+  const frame = exposureOf(drawing, { item: "group_1" });
+
+  it("are drawn across the frame, which shortens by their shrinks", () => {
+    expect([frame.kind, frame.mode, frame.drawn]).toEqual(["frame", "auto", "custom"]);
+    expect(frame.gaps.map(gapShape)).toEqual([
+      [at("elision_1"), "stored", "excerpt", "2", "8", 150, 32],
+      [at("elision_2"), "stored", "phrase", "2", "6", 66.66666666666666, 33.33333333333333],
+    ]);
+    const DG = 151.33333333333331;
+    expect(frame.runs.at(-1)?.D).toBe(DG);
+    const voice = lineOf(drawing, "timeline", at("voice"));
+    expect(voice.xe).toBe(frame.place.x + (frame.x0 + (400 - DG)));
+  });
+
+  it("give every member its elided coordinates, none on an unknown length", () => {
+    const members = (gap: ExposedGap) =>
+      gap.members.map(({ timeline, start, end }) => [timeline, String(start), String(end)]);
+    expect(frame.gaps.map(members)).toEqual([
+      [
+        ["excerpt", "2", "8"],
+        ["voice", "3", "12"],
+        ["sketch", "null", "null"],
+      ],
+      [
+        ["excerpt", "28/3", "12"],
+        ["voice", "14", "18"],
+        ["sketch", "null", "null"],
+      ],
+    ]);
+  });
+
+  it("draw their labels once and an ellipsis on every crossing row", () => {
+    expect(labelTexts(drawing, at("elision_1"))).toEqual(["Development", "2–8 ♩"]);
+    expect(labelTexts(drawing, at("elision_2"))).toEqual([]);
+    const ys = (id: string) =>
+      of(drawing, "ellipsis", { id, part: ["ellipsis"] }).map(
+        (element) => element.type === "ellipsis" && element.y,
+      );
+    const y = (type: LineElement["type"], id: string) => lineOf(drawing, type, at(id)).y;
+    const frameGaps = ys("elision_1").slice(-4);
+    expect(frameGaps).toEqual([
+      y("ancestor", "piece"),
+      y("timeline", "excerpt"),
+      y("timeline", "voice"),
+      y("timeline", "sketch"),
+    ]);
+    expect(ys("elision_2").slice(-5)).toEqual([
+      y("ancestor", "piece"),
+      y("timeline", "excerpt"),
+      y("timeline", "voice"),
+      y("child", "phrase"),
+      y("timeline", "sketch"),
+    ]);
+  });
+
+  it("leave out what marks a position in a gap", () => {
+    const climax = drawing.elements.filter((element) => element.address.id === "timestamp_1");
+    expect(climax).toEqual([]);
+    const returned = drawing.elements.filter(
+      (element) =>
+        element.type === "cross_section" && sameAddress(element.address, at("timestamp_2", "line")),
+    );
+    expect(returned.some((element) => element.style.opacity === 0.35)).toBe(true);
+  });
+
+  it("are carried into the ancestor card behind the frame", () => {
+    const card = exposureOf(drawing, { item: "group_1", member: "piece" });
+    expect([card.proportion, card.depths]).toEqual([0.31083333333333335, [1]]);
+    expect(card.gaps.map(gapShape)).toEqual([
+      [derived("piece"), "default", "piece", "1", "15", 350, 74.33333333333334],
+      [at("elision_1"), "carried", "excerpt", "2", "8", 150, 32],
+      [at("elision_2"), "carried", "phrase", "2", "6", 66.66666666666666, 33.33333333333333],
+      [derived("piece"), "default", "piece", "33", "47", 350, 74.33333333333334],
+    ]);
+  });
+
+  it("are left out under the frame's mode full", () => {
+    const full = drawn("groups/group_elided_members", [
+      { rules: [{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }] },
+    ]);
+    expect(exposureOf(full, { item: "group_1" }).gaps).toEqual([]);
+    const card = exposureOf(full, { item: "group_1", member: "piece" });
+    expect(card.proportion).toBe(0.5);
+    expect(card.gaps.map((gap) => gap.origin)).toEqual(["default", "default"]);
+  });
+});
+
+describe("stored elisions", () => {
+  const drawing = drawn("bundles/bundle_elisions_stored");
+
+  it("are drawn clipped in their four widths, a group's carried", () => {
+    const score = exposureOf(drawing, { item: "group_1", member: "score" });
+    expect([score.drawn, score.gaps.map(gapShape)]).toEqual([
+      "custom",
+      [
+        [at("elision_4"), "stored", "score", "0", "16", 800, 400],
+        [at("elision_3"), "carried", "recording", "0", "2", 80, 32],
+        [at("elision_5"), "stored", "score", "32", "48", 800, 200],
+        [at("elision_6"), "stored", "score", "48", "56", 400, 30],
+      ],
+    ]);
+    const session = exposureOf(drawing, { item: "group_1", member: "session" });
+    expect([session.drawn, session.gaps.map((gap) => gap.address)]).toEqual([
+      "full",
+      [at("elision_3")],
+    ]);
+    const frame = exposureOf(drawing, { item: "group_1" });
+    expect(frame.gaps.map(gapShape)).toEqual([
+      [at("elision_3"), "stored", "recording", "0", "2", 80, 32],
+    ]);
+    expect(frame.gaps[0]?.members[0]).toEqual({
+      timeline: "theme",
+      start: Rational.of(0n),
+      end: Rational.of([8n, 5n]),
+    });
+    const page = exposureOf(drawing, { item: "page" });
+    expect(page.gaps.map(gapShape)).toEqual([
+      [at("elision_2"), "stored", "page", "600", "1754", 263.169897377423, 32],
+    ]);
+  });
+
+  it("draw what their display lists", () => {
+    expect(labelTexts(drawing, at("elision_4"))).toEqual(["elision_4"]);
+    expect(labelTexts(drawing, at("elision_5"))).toEqual(["Development"]);
+    expect(labelTexts(drawing, at("elision_6"))).toEqual([]);
+    expect(labelTexts(drawing, at("elision_2"))).toEqual(["Appendix", "600–1 754 px"]);
+    expect(of(drawing, "ellipsis", at("elision_6", "ellipsis"))).toEqual([]);
+    expect(of(drawing, "elision", at("elision_1"))).toEqual([]);
+    const fourth = of(drawing, "elision", at("elision_4"))[0];
+    const rows = of(drawing, "ellipsis", at("elision_4", "ellipsis")).map(
+      (element) => element.type === "ellipsis" && element.y,
+    );
+    expect(fourth?.type === "elision" && fourth.continuations).toEqual(rows);
+  });
+
+  it("give score's line one axis per full run", () => {
+    const runs = drawing.axes.filter(
       (axis) => axis.address.id === "score" && axis.ancestor !== undefined,
     );
-    expect(
-      axes.map((axis) => [axis.xStart, axis.xEnd, String(axis.start), String(axis.end), axis.run]),
-    ).toEqual([[253.69419642857133, 653.6941964285713, "24", "32", undefined]]);
-  });
-});
-
-describe("what lies in a strip", () => {
-  it("is not drawn: a named timestamp", () => {
-    const manifest = edit("groups/group_grandchild", {
-      type: "add",
-      into: target("score"),
-      timestamp: { name: "Here", coordinate: [4, 1] },
-    });
-    const drawn = (extra: Graphical[]) =>
-      draw(
-        manifest,
-        DEFAULT_PLACEMENT,
-        [DEFAULT_LAYER, ...extra, manifestLayer(manifest)],
-        metrics,
-      );
-    const id = manifest.graphical?.timestamps?.find((item) => item.name === "Here")?.id;
-    if (id === undefined) throw new Error("no timestamp named");
-    const elided = drawn([]);
-    expect(elided.elements.filter((item) => item.address.id === id)).toEqual([]);
-    expect(elided.axes.flatMap((axis) => axis.timestamps).map((item) => item.id)).not.toContain(id);
-    const full = drawn([FULL_CARDS]);
-    expect(
-      full.elements.filter((item) => item.address.id === id).map((item) => item.type),
-    ).toContain("wedge");
-  });
-
-  it("cuts a line starting in a strip at the strip's right edge", () => {
-    const manifest = edit("bundles/bundle_elisions_stored", child("score", "inner", 8, 16));
-    const drawing = draw(
-      manifest,
-      DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
-      metrics,
-    );
-    const [first] = stripsOf(drawing);
-    const from = cardIndex(drawing, "score");
-    const inner = lineIn(drawing, at("inner"), from);
-    const theme = lineIn(drawing, at("theme"), from);
-    expect([inner.xs, inner.xe, inner.start, inner.end]).toEqual([
-      first?.x2,
-      theme.xe,
-      "none",
-      "diamond",
+    expect(runs.map((axis) => [String(axis.start), String(axis.end)])).toEqual([
+      ["17.6", "32"],
+      ["56", "64"],
     ]);
   });
+
+  it("write their widths back in each form", () => {
+    const score = exposureOf(drawing, { item: "group_1", member: "score" });
+    const fifth = score.gaps[2];
+    if (fifth === undefined) throw new Error("no gap of elision_5");
+    const lambda = Rational.of(64n);
+    expect(widthAs("standard", fifth, 3200, lambda, "fraction")).toBeNull();
+    expect(widthAs("ratio", fifth, 3200, lambda, "fraction")).toEqual({ ratio: 0.25 });
+    expect(widthAs("span", fifth, 3200, lambda, "fraction")).toEqual({ span: Rational.of(4n) });
+    expect(widthAs("canvas", fifth, 3200, lambda, "fraction")).toEqual({ canvas: 200 });
+    const page = exposureOf(drawing, { item: "page" }).gaps[0];
+    if (page === undefined) throw new Error("no gap of elision_2");
+    expect(widthAs("span", page, 400, Rational.of(1754n), "int")).toEqual({
+      span: Rational.of(140n),
+    });
+  });
 });
 
-describe("elided and full", () => {
-  const widthOf = (drawing: Drawing) =>
-    drawing.elements.find((item) => item.type === "ancestor_card");
+describe("modes", () => {
+  const card = (extra: Graphical[]) =>
+    exposureOf(drawn("groups/group_elided_inside", extra), { item: "group_1", member: "piece" });
 
-  it("draws every card whole under the Full rule, or one root's within it", () => {
-    for (const layer of [
-      FULL_CARDS,
-      { rules: [{ select: { element: "elision", within: "score" }, set: { display: "none" } }] },
-    ] satisfies Graphical[]) {
-      const drawing = drawFixture("groups/group_grandchild", [layer]);
-      expect(stripsOf(drawing)).toEqual([]);
-      const card = widthOf(drawing);
-      expect(card?.type === "ancestor_card" && card.width).toBe(3291.265625);
+  it("full and custom draw no gap where nothing is stored", () => {
+    for (const mode of ["full", "custom"]) {
+      const exposure = card(onCards("piece", { "elision-mode": mode }));
+      expect([exposure.drawn, exposure.gaps]).toEqual([mode, []]);
     }
   });
 
-  /** `bundle_elisions_stored` with `elision_4`'s `display` replaced, validated. */
-  function withDisplay(display: ("strip" | "name" | "coordinate")[]): Manifest {
-    const source = loadFile("bundles/bundle_elisions_stored");
-    const graphical = source.graphical ?? {};
-    const manifest: Manifest = canonicalOrder({
-      ...source,
-      graphical: {
-        ...graphical,
-        elisions: (graphical.elisions ?? []).map((item) =>
-          item.id === "elision_4" ? { ...item, display } : item,
-        ),
-      },
-    });
-    validate(withFileIds(manifest));
-    return manifest;
-  }
-
-  it("draws an elision whose display leaves out its strip nowhere", () => {
-    const manifest = withDisplay(["name", "coordinate"]);
-    const drawing = draw(
-      manifest,
-      DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
-      metrics,
+  it("a stated proportion", () => {
+    const exposure = card(
+      onCards("piece", { "elision-mode": "proportional", "elision-proportion": 0.05 }),
     );
-    expect(stripsOf(drawing).map((strip) => strip.address.id)).toEqual([
-      "elision_5",
-      "elision_6",
-      "elision_2",
+    expect([exposure.proportion, exposure.automatic]).toEqual([0.05, false]);
+    expect(exposure.gaps.map((gap) => [String(gap.start), String(gap.end), gap.drawn])).toEqual([
+      ["0", "8", 20],
+      ["16", "32", 40],
+      ["0", "32", 80],
     ]);
   });
 
-  it("draws a strip without the labels its display leaves out", () => {
-    const manifest = withDisplay(["strip"]);
-    const drawing = draw(
-      manifest,
-      DEFAULT_PLACEMENT,
-      [DEFAULT_LAYER, manifestLayer(manifest)],
-      metrics,
-    );
-    expect(stripsOf(drawing).map((strip) => strip.address.id)).toEqual([
-      "elision_4",
-      "elision_5",
-      "elision_6",
-      "elision_2",
-    ]);
-    expect(
-      labelsOf(drawing).filter(([address]) => (address as ElementAddress).id === "elision_4"),
-    ).toEqual([]);
-  });
-});
-
-describe("the view", () => {
-  it("sets the default proportion where the elided card must lie within it", () => {
-    const placement: Placement = { ...DEFAULT_PLACEMENT, view: { width: 640, height: 360 } };
-    const drawing = drawFixture("groups/group_grandchild", [], placement);
-    expect(drawing.origin).toEqual({ x: 59.47315673828143, y: 0 });
-    expect(stripsOf(drawing).map((strip) => [strip.x1, strip.x2])).toEqual([
-      [82.265625, 141.53972167968755],
-      [141.53972167968755, 171.17677001953143],
-      [571.1767700195314, 689.7249633789065],
+  it("the root's row alone", () => {
+    const exposure = card(onCards("piece", { "elision-depths": "1" }));
+    const r = 0.14285714285714285;
+    const W = r * 2400;
+    expect(exposure.depths).toEqual([1]);
+    expect(exposure.gaps.map((gap) => [String(gap.start), String(gap.end), gap.drawn])).toEqual([
+      ["0", "8", r * 400],
+      ["19", "61", W - 150 - 150],
     ]);
   });
-});
 
-describe("other ancestor cards", () => {
-  it.each([
-    ["bundles/bundle_shared_parent", 2],
-    ["bundles/bundle_mixed", 2],
-    ["groups/group_parent_both", 0],
-    ["groups/group_parent_right", 0],
-    ["groups/group_parent_exact", 0],
-    ["groups/group_child_member", 0],
-    ["groups/group_child_member_stamps", 0],
-  ])("%s draws %i strips", (name, count) => {
-    expect(stripsOf(drawFixture(name))).toHaveLength(count);
-  });
-});
-
-describe("a line of drawn length 0", () => {
-  /** `bundle_elisions_stored` with `late` (no length, nothing in it) added to `page` at `offset`. */
-  const withLate = (offset: number, ...commands: object[]) => {
-    const manifest = edit("bundles/bundle_elisions_stored", ...commands, {
-      type: "add",
-      into: target("page"),
-      child: { id: "late", unit: "pixels", number_type: "int", offset, length: null },
-    });
-    return draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
-  };
-  const lateLines = (drawing: Drawing) =>
-    drawing.elements.filter(
-      (item): item is LineElement =>
-        (item.type === "timeline" || item.type === "child") && item.address.id === "late",
+  it("labels on the derived elisions", () => {
+    const drawing = drawn(
+      "groups/group_elided_inside",
+      onCards("piece", { "elision-display": "ellipsis name coordinate" }),
     );
-  const lateAxes = (drawing: Drawing) =>
-    drawing.axes
-      .filter((axis) => axis.address.id === "late")
-      .map((axis) => [
-        axis.xStart,
-        axis.xEnd,
-        String(axis.start),
-        axis.end,
-        String(axis.drawnEnd),
-        axis.run,
-      ]);
-
-  it.each([100, 600])("keeps its whole axis at %i, beside page's strip", (offset) => {
-    const drawing = withLate(offset);
-    const [line, ...more] = lateLines(drawing);
-    expect(more).toEqual([]);
-    expect(lateAxes(drawing)).toEqual([[line?.xs, line?.xs, "0", null, "0", undefined]]);
+    expect(labelTexts(drawing, derived("first"))).toEqual(["First", "0–8 ♩", "First", "16–32 ♩"]);
+    expect(labelTexts(drawing, derived("second"))).toEqual(["Second", "1–31 ♩"]);
   });
 
-  it("keeps its whole axis on a card without strips", () => {
-    const drawing = withLate(100, { type: "remove", targets: [target("elision_2")] });
-    const page = lineIn(drawing, at("page"));
-    const [line, ...more] = lateLines(drawing);
-    expect(more).toEqual([]);
-    expect(line?.xs).toBe(page.xs + (400 * 100) / 1754);
-    expect(lateAxes(drawing)).toEqual([[line?.xs, line?.xs, "0", null, "0", undefined]]);
+  it("a hidden card draws and records nothing", () => {
+    const drawing = drawn("groups/group_elided_inside", onCards("piece", { display: "none" }));
+    expect(drawing.elisions.map((each) => each.kind)).toEqual(["frame"]);
+    expect(drawing.elements.filter((element) => element.type === "elision")).toEqual([]);
   });
+});
 
-  it("has no axis inside a strip", () => {
-    const drawing = withLate(1000);
-    expect(lateLines(drawing)).toEqual([]);
-    expect(lateAxes(drawing)).toEqual([]);
+describe("a member's start and end", () => {
+  it("are marked on no ancestor line", () => {
+    const drawing = drawn("groups/group_child_member");
+    const parts = drawing.elements.flatMap((element) => element.address.part ?? []);
+    expect(parts.filter((part) => part === "start" || part === "end")).toEqual([]);
   });
 });

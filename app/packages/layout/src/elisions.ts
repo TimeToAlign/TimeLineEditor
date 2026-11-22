@@ -1,23 +1,43 @@
 /**
- * Elisions (`docs/drawing.md` in TimeToShare, sections 2, 3.2, 6.6 and
- * 8.9): the pieces of the elisions a card draws, stored or default, their
- * widths, the elided axis they make, linear piece by piece, and their strips
- * with their labels.
+ * Elisions (`docs/drawing.md` in TimeToShare, sections 2, 3.2, 6.4, 6.6 and
+ * 8.9): which elisions a card or a frame draws, their pieces and widths, the
+ * middle a derived elision leaves out, the elided axis their gaps make,
+ * linear run by run, and the gaps drawn with their ellipses, continuations
+ * and labels.
  */
 
 import {
+  type ElementAddress,
+  groupsHolding,
   idAddress,
+  indexOf,
   type ManifestGraphical,
   type OwnerAddress,
   partAddress,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
 import { type ElementKey, elementKey } from "@timetoalign/tilie-core/drawing";
-import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
+import {
+  compareReal,
+  fromFloat,
+  Rational,
+  type Real,
+  toFloat,
+} from "@timetoalign/tilie-core/numbers";
+import type { NumberType } from "@timetoalign/timetoshare";
 import { isJsonFloat } from "@timetoalign/timetoshare";
+import type { ExposedGap, Run } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import { K, LABEL_GAP } from "./constants.ts";
-import type { ElisionElement, TextElement, View } from "./elements.ts";
+import {
+  ELLIPSIS_GAP,
+  ELLIPSIS_RADIUS,
+  ELLIPSIS_SPACING,
+  K,
+  LABEL_GAP,
+  MARKER_HEIGHT,
+  STANDARD_GAP,
+} from "./constants.ts";
+import type { DrawnElement, EllipsisElement, GapOrigin, TextElement, View } from "./elements.ts";
 import { cleanText } from "./metrics.ts";
 import { cutText, nameOf } from "./names.ts";
 import {
@@ -29,17 +49,25 @@ import {
   times,
   zero,
 } from "./numbers.ts";
-import { type Entry, type Scope, shown } from "./traversal.ts";
+import { type Entry, type Holder, type Scope, shown } from "./traversal.ts";
 
-/** The words an elision's `display` lists: its strip and its two labels (section 2). */
-export type ElisionWord = "strip" | "name" | "coordinate";
+/** The words of an elision's `display`, in their canonical order (section 2). */
+export const ELISION_WORDS = ["ellipsis", "name", "id", "coordinate", "continuation"] as const;
 
-const EVERY_WORD: readonly ElisionWord[] = ["strip", "name", "coordinate"];
+export type ElisionWord = (typeof ELISION_WORDS)[number];
+
+/** The three labels of an elision, in the order of their stack (section 5.3). */
+const LABEL_WORDS = ["name", "id", "coordinate"] as const;
+
+type LabelWord = (typeof LABEL_WORDS)[number];
 
 /** `Z`, the double nearest 5/7: the zoom at which a row of the default pitch 14 lies 10 from the next. */
 const LEGIBLE_ZOOM = 5 / 7;
 
-/** A stretch `[a, b]` of the root's axis, `a < b`. */
+/** A stored elision as the manifest holds it. */
+export type StoredElision = NonNullable<ManifestGraphical["elisions"]>[number];
+
+/** A stretch `[a, b]` of an axis, `a < b`. */
 export type Stretch = readonly [Real, Real];
 
 /** An elision's `width` (section 2), each number read as the form states it. */
@@ -48,87 +76,25 @@ export type ElisionWidth =
   | { readonly span: Real }
   | { readonly canvas: number };
 
-/**
- * One piece of an elision a card draws (section 8.9): a stretch `[a, b]` of
- * the card's root axis lying on the timeline `entry`, drawn as one strip.
- */
-export interface Piece {
-  readonly entry: Entry;
-  /** Its address: `{id: E}` for a stored elision `E`, `{id: T, part: ["elision"]}` for a default one. */
-  readonly address: OwnerAddress;
-  /** The elision's key, held by the line of `entry` (its node, for a segment without a line). */
-  readonly key: ElementKey;
-  readonly style: Style;
-  readonly a: Real;
-  readonly b: Real;
-  /** Its elision's `width`; null for none, a default elision's included. */
-  readonly width: ElisionWidth | null;
-  readonly display: readonly ElisionWord[];
-}
-
-/** A piece with its widths (sections 3.2 and 8.9). */
-export interface Strip extends Piece {
-  /** Its natural width `n = L × ub − L × ua`. */
-  readonly n: number;
-  /** Its drawn width `w`, at most `n`. */
-  readonly w: number;
-  /** Its shrink `n − w`. */
-  readonly shrink: number;
-  /** `L × u − D` at its start and its end: its edges from the root's start. */
-  readonly left: number;
-  readonly right: number;
-}
-
-/** A strip's edges `x(a)` and `x(b)` in item coordinates. */
-export interface StripEdges {
-  readonly left: number;
-  readonly right: number;
+/** The words of `display` in canonical order, each once; a word that is no elision word left out. */
+export function elisionWords(display: readonly string[]): ElisionWord[] {
+  return ELISION_WORDS.filter((word) => display.includes(word));
 }
 
 /**
- * The elided axis of a card (section 3.2): its strips from the left, and the
- * distance `L × u − D` of a position from the root's start, `D` the shrinks
- * of the strips ending at or before it, summed from the left.
+ * The `display` of the elisions a card derives (section 8.9): the words of its
+ * `elision-display`, `none` none, their order and repetition meaning nothing.
  */
-export interface ElidedAxis {
-  readonly strips: readonly Strip[];
-  /** `L × u − D` of a position in no strip. */
-  relative(value: Real): number;
-  /** The strip a position lies in, its ends excluded; undefined for a position in no strip. */
-  stripOf(value: Real): Strip | undefined;
-  /** The sum of every shrink, `D` at the root's end. */
-  readonly total: number;
-  /** `D` at a position: the shrinks of the strips ending at or before it, summed from the left. */
-  shrinkBefore(value: Real): number;
+export function derivedDisplay(style: Style): ElisionWord[] {
+  const value = style["elision-display"];
+  return value === "none" ? [] : elisionWords(value.split(" "));
 }
 
-/** What a card's elisions are, before its default proportion is known. */
-export interface CardElisions {
-  /**
-   * A stored elision, displayed or not, lies on the card's root or on a descendant of it: the
-   * card then draws no default elisions (section 8.9, Defaults).
-   */
-  readonly stored: boolean;
-  /**
-   * The pieces of the stored elisions the card draws, in canonical order, each clipped to the
-   * root, to what lies outside `protect` (an ancestor card's protected span) and outside every
-   * piece taken before it.
-   */
-  storedPieces(protect: Stretch | null): readonly Piece[];
-  /**
-   * The default elisions of an ancestor card whose member's ancestors are `chain` (`A1` the
-   * root to `Ak` the member's parent, by ID), outside the protected span `protect`, generation
-   * by generation from `k` up to 1 (section 8.9, Defaults).
-   */
-  defaultPieces(protect: Stretch, chain: readonly string[]): readonly Piece[];
-  /** The elided axis of `pieces`, the pieces without `width` drawn at `r` times their natural width. */
-  axis(pieces: readonly Piece[], r: number): ElidedAxis;
-  /**
-   * The default proportion of an ungrouped root's card drawing `pieces` (section 8.9): `min(1,
-   * Rf / E)`, `E` the summed lengths of its pieces and `Rf` what remains of the root; 1 when
-   * either is 0.
-   */
-  ungroupedProportion(pieces: readonly Piece[]): number;
+/** The depths of `elision-depths`: `auto`, or its positive integers ascending, each once. */
+export function depthsOf(style: Style): "auto" | number[] {
+  const value = style["elision-depths"];
+  if (value === "auto") return "auto";
+  return [...new Set(value.split(" ").map(Number))].sort((left, right) => left - right);
 }
 
 /** A JSON number of the manifest as a double. */
@@ -136,13 +102,12 @@ function jsonNumber(value: unknown): number {
   return isJsonFloat(value) ? value.value : Number(value);
 }
 
-const isZero = (value: Real): boolean => compareReal(value, 0) === 0;
+const difference = (left: Real, right: Real): Real => add(left, negate(right));
 
-/** The stretch `[a, b]` no further than the root's start and end `root`, ends compared exactly. */
+/** The stretch `[a, b]` no further than `[start, end]`, ends compared exactly. */
 function clipped(a: Real, b: Real, [start, end]: Stretch): Stretch {
   return [compareReal(a, start) < 0 ? start : a, compareReal(b, end) > 0 ? end : b];
 }
-const difference = (left: Real, right: Real): Real => add(left, negate(right));
 
 /**
  * What of the stretch `[a, b]` lies outside every one of `covered`: none,
@@ -163,126 +128,254 @@ export function outside(a: Real, b: Real, covered: readonly Stretch[]): Stretch[
   return left.sort(([p], [q]) => compareReal(p, q));
 }
 
+/** What of `[p, q]` lies outside every one of `covered`, proportions compared as doubles. */
+function outsideProportions(
+  p: number,
+  q: number,
+  covered: readonly (readonly [number, number])[],
+): [number, number][] {
+  let left: [number, number][] = p < q ? [[p, q]] : [];
+  for (const [c, d] of covered) {
+    left = left.flatMap(([from, to]): [number, number][] => {
+      if (d <= from || to <= c) return [[from, to]];
+      const kept: [number, number][] = [];
+      if (from < c) kept.push([from, c]);
+      if (d < to) kept.push([d, to]);
+      return kept;
+    });
+  }
+  return left.sort(([a], [b]) => a - b);
+}
+
 /**
- * The elisions of the card drawing the member drawing `scope` (section 8.9),
- * an ungrouped root's card or an ancestor card.
+ * The position at the proportion `p` of `lambda`, exact where `lambda` is (the
+ * double `p` at its exact binary value), as a groupstamp's coordinates are
+ * read (section 2).
  */
-export function cardElisions(scope: Scope): CardElisions {
-  const { manifest, entries, rootEntry, lambda, L, u, cascade } = scope;
-  const byId = new Map(entries.map((entry) => [entry.manifest.id, entry]));
-  const elisions = (manifest.graphical?.elisions ?? []).filter((elision) =>
-    byId.has(elision.timeline),
-  );
-  const root: Stretch = [zero(rootEntry.manifest.number_type), lambda];
-  const styleOf = (entry: Entry, address: OwnerAddress) => {
-    const key = elementKey("elision", address, entry.manifest, entry.key);
-    return { address, key, style: cascade.resolve(key, entry.style) };
-  };
-  // A piece is drawn where its timeline is drawn and it is displayed with its strip.
-  const drawn = (entry: Entry, style: Style, display: readonly ElisionWord[]) =>
-    entry.drawn && shown(style) && display.includes("strip");
+export function atProportion(p: number, lambda: Real): Real {
+  return typeof lambda === "number" ? p * lambda : fromFloat(p).multiply(lambda);
+}
 
-  const storedPieces = (protect: Stretch | null): Piece[] => {
-    const taken: Stretch[] = protect === null ? [] : [protect];
-    const pieces: Piece[] = [];
-    for (const elision of elisions) {
-      const entry = byId.get(elision.timeline);
-      if (entry === undefined) continue;
-      const display = EVERY_WORD.filter((word) => elision.display.includes(word));
-      const { address, key, style } = styleOf(entry, idAddress(elision.id));
-      if (!drawn(entry, style, display)) continue;
-      const own = (value: Parameters<typeof coordinateValue>[0]) =>
-        add(entry.start, coordinateValue(value, entry.manifest.number_type));
-      const [from, to] = clipped(own(elision.start), own(elision.end), root);
-      const width = widthOf(elision.width, entry.manifest);
-      for (const [a, b] of outside(from, to, taken)) {
-        pieces.push({ entry, address, key, style, a, b, width, display });
-        taken.push([a, b]);
-      }
-    }
-    return pieces;
-  };
+/** A label of a gap: its element's key, style and text, measured and cut to its `max-width`. */
+export interface GapLabel {
+  readonly word: LabelWord;
+  readonly address: ElementAddress;
+  readonly style: Style;
+  readonly text: string;
+  readonly width: number;
+}
 
-  const defaultPieces = (protect: Stretch, chain: readonly string[]): Piece[] => {
-    // Generation 1 holds the root; generation j the drawn children of `A(j − 1)`, `Aj` among them.
-    const generations: Entry[][] = [
-      rootEntry.drawn ? [rootEntry] : [],
-      ...chain
-        .slice(0, -1)
-        .map((parent) =>
-          (scope.index.childrenByParent.get(parent) ?? []).filter((entry) => entry.drawn),
-        ),
-    ];
-    const covered: Stretch[] = [protect];
-    const found: Piece[] = [];
-    for (const generation of generations.toReversed()) {
-      for (const entry of generation) {
-        const [start, end] = clipped(entry.start, entry.end, root);
-        const address = partAddress(idAddress(entry.manifest.id), "elision");
-        const { key, style } = styleOf(entry, address);
-        for (const [a, b] of outside(start, end, covered)) {
-          found.push({ entry, address, key, style, a, b, width: null, display: EVERY_WORD });
-          covered.push([a, b]);
-        }
-      }
-    }
-    return found.filter((piece) => drawn(piece.entry, piece.style, piece.display));
-  };
+/**
+ * What a gap draws, shared by every drawing of it (sections 2.4, 6.6 and
+ * 8.9): its address and key, its cascaded style and its ellipses' (null
+ * where it draws none), whether it draws continuations, its displayed
+ * labels, the timeline it lies on with the elided coordinates of its piece
+ * on that timeline's own axis, and the proportion its label stack is
+ * centred on at full scale.
+ */
+export interface GapSource {
+  readonly origin: GapOrigin;
+  readonly address: OwnerAddress;
+  readonly key: ElementKey;
+  readonly style: Style;
+  readonly ellipsis: Style | null;
+  readonly continuation: boolean;
+  readonly labels: readonly GapLabel[];
+  readonly timeline: TimelineManifest;
+  readonly start: Real;
+  readonly end: Real;
+  readonly um: number;
+  /** It belongs to a frame: drawn across it after every item, never by a card (section 8.5). */
+  readonly framed: boolean;
+}
 
-  const axis = (pieces: readonly Piece[], r: number): ElidedAxis => {
-    const ordered = [...pieces].sort((left, right) => compareReal(left.a, right.a));
-    const strips: Strip[] = [];
-    let D = 0;
-    for (const piece of ordered) {
-      const n = L * u(piece.b) - L * u(piece.a);
-      const wanted = drawnWidth(piece.width, n, r, L, lambda);
-      const w = wanted > n ? n : wanted;
-      const shrink = n - w;
-      const left = L * u(piece.a) - D;
-      D = D + shrink;
-      strips.push({ ...piece, n, w, shrink, left, right: L * u(piece.b) - D });
-    }
-    const shrinkBefore = (value: Real): number => {
-      let before = 0;
-      strips.forEach((strip) => {
-        if (compareReal(strip.b, value) <= 0) before = before + strip.shrink;
-      });
-      return before;
-    };
-    return {
-      strips,
-      relative: (value) => L * u(value) - shrinkBefore(value),
-      stripOf: (value) =>
-        strips.find((strip) => compareReal(strip.a, value) < 0 && compareReal(value, strip.b) < 0),
-      total: D,
-      shrinkBefore,
-    };
-  };
+/** A gap of an elided axis (section 3.2), with its widths and its edges. */
+export interface Gap {
+  readonly source: GapSource;
+  /** Its stretch on the axis of the card's root: exact for a card's gap, `p × λ` for a frame's. */
+  readonly a: Real;
+  readonly b: Real;
+  /** The proportions of its ends. */
+  readonly ua: number;
+  readonly ub: number;
+  /** Its natural width `n`, drawn width `g` and shrink `n − g`. */
+  readonly n: number;
+  readonly g: number;
+  readonly shrink: number;
+  /** `L × u − D` at its two ends: its edges `x(a)` and `x(b)` less `x0`. */
+  readonly left: number;
+  readonly right: number;
+  /** The timeline in the card whose markers band holds its label stack; none where it has none there. */
+  readonly entry: Entry | undefined;
+}
 
-  const ungroupedProportion = (pieces: readonly Piece[]): number => {
-    const ordered = [...pieces].sort((left, right) => compareReal(left.a, right.a));
-    let E: Real | undefined;
-    for (const piece of ordered) {
-      const length = difference(piece.b, piece.a);
-      E = E === undefined ? length : add(E, length);
-    }
-    if (E === undefined || isZero(E)) return 1;
-    const Rf = difference(lambda, E);
-    if (isZero(Rf)) return 1;
-    return Math.min(1, proportion(Rf, E));
-  };
+/**
+ * The elided axis of a card (section 3.2): its gaps from the left, its runs,
+ * and the distance `L × u − D` of a position from the root's start, `D` the
+ * shrinks of the gaps ending at or before it, summed from the left.
+ */
+export interface CardAxis {
+  readonly gaps: readonly Gap[];
+  readonly runs: readonly Run[];
+  /** The sum of every shrink: `D` at the root's end, `DG` of a frame. */
+  readonly total: number;
+  /** `L × u − D` of a position in no gap. */
+  relative(value: Real): number;
+  /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
+  gapOf(value: Real): Gap | undefined;
+  /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
+  shrinkBefore(value: Real): number;
+  /**
+   * Whether a row spanning `start` to `end` (`null`: open, as the root's open end or an ancestor
+   * line running on to the right) crosses `gap`: its span holds the whole gap (section 6.6).
+   */
+  crosses(gap: Gap, start: Real, end: Real | null): boolean;
+}
 
+/** A gap to place on an axis: its stretch, its widths, what it draws. */
+interface Placing {
+  readonly source: GapSource;
+  readonly a: Real;
+  readonly b: Real;
+  readonly ua: number;
+  readonly ub: number;
+  readonly n: number;
+  readonly g: number;
+  readonly entry: Entry | undefined;
+}
+
+/** How positions compare with gaps on an axis: exactly on a card, by proportion on a frame. */
+interface Comparing {
+  /** The position lies in the gap, its ends excluded. */
+  readonly inside: (gap: Placing, value: Real) => boolean;
+  /** The gap ends at or before the position. */
+  readonly before: (gap: Placing, value: Real) => boolean;
+  /** A row from `start` to `end` holds the whole gap. */
+  readonly holds: (gap: Placing, start: Real, end: Real | null) => boolean;
+}
+
+/** The axis of `placing`, sorted from the left, at the graphical length `L` and proportions `u`. */
+function axisOf(
+  L: number,
+  u: (value: Real) => number,
+  placing: readonly Placing[],
+  comparing: Comparing,
+): CardAxis {
+  const ordered = [...placing].sort((left, right) => left.ua - right.ua);
+  const gaps: Gap[] = [];
+  const runs: Run[] = [];
+  let D = 0;
+  let from = 0;
+  for (const gap of ordered) {
+    runs.push({ u0: from, u1: gap.ua, L, D });
+    const shrink = gap.n - gap.g;
+    const left = L * gap.ua - D;
+    D = D + shrink;
+    gaps.push({ ...gap, shrink, left, right: L * gap.ub - D });
+    from = gap.ub;
+  }
+  runs.push({ u0: from, u1: 1, L, D });
+  const shrinkBefore = (value: Real): number => {
+    let before = 0;
+    gaps.forEach((gap) => {
+      if (comparing.before(gap, value)) before = before + gap.shrink;
+    });
+    return before;
+  };
   return {
-    stored: elisions.length > 0,
-    storedPieces,
-    defaultPieces,
-    axis,
-    ungroupedProportion,
+    gaps,
+    runs,
+    total: D,
+    relative: (value) => L * u(value) - shrinkBefore(value),
+    gapOf: (value) => gaps.find((gap) => comparing.inside(gap, value)),
+    shrinkBefore,
+    crosses: (gap, start, end) => comparing.holds(gap, start, end),
   };
 }
 
-/** An elision's `width` read on the axis of the timeline it lies on; null without one. */
-function widthOf(width: StoredWidth, timeline: TimelineManifest): ElisionWidth | null {
+/** Comparisons on a card's root axis: exact. */
+const EXACT: Comparing = {
+  inside: (gap, value) => compareReal(gap.a, value) < 0 && compareReal(value, gap.b) < 0,
+  before: (gap, value) => compareReal(gap.b, value) <= 0,
+  holds: (gap, start, end) =>
+    compareReal(start, gap.a) <= 0 && (end === null || compareReal(end, gap.b) >= 0),
+};
+
+/** The words of a gap's labels with their texts, in stack order. */
+type LabelTexts = Readonly<Partial<Record<LabelWord, string>>>;
+
+/**
+ * What a gap of the elision at `address` lying on `entry` draws, held by
+ * `holder` (the line of `entry`, or a frame), its words `display`: its style,
+ * its ellipses' where `display` lists `ellipsis` and they are displayed, its
+ * labels in stack order where listed and displayed, each cut to its
+ * `max-width` (section 6.6).
+ */
+function sourceOf(
+  scope: Pick<Scope, "cascade" | "measure">,
+  timeline: TimelineManifest,
+  address: OwnerAddress,
+  holder: Holder,
+  display: readonly ElisionWord[],
+  texts: LabelTexts,
+  rest: Pick<GapSource, "origin" | "start" | "end" | "um" | "framed">,
+): GapSource {
+  const { cascade, measure } = scope;
+  const key = elementKey("elision", address, timeline, holder.key);
+  const style = cascade.resolve(key, holder.style);
+  const ellipsisStyle = cascade.resolve(
+    elementKey("ellipsis", partAddress(address, "ellipsis"), timeline, key),
+    style,
+  );
+  const labels = LABEL_WORDS.flatMap((word): GapLabel[] => {
+    const text = texts[word];
+    if (!display.includes(word) || text === undefined) return [];
+    const at = partAddress(address, word);
+    const labelStyle = cascade.resolve(elementKey("label", at, timeline, key), style);
+    if (!shown(labelStyle)) return [];
+    const size = labelStyle["font-size"];
+    const cut = cutText(measure, cleanText(text), size, labelStyle["max-width"]);
+    return [{ word, address: at, style: labelStyle, text: cut.text, width: cut.width }];
+  });
+  return {
+    ...rest,
+    address,
+    key,
+    style,
+    ellipsis: display.includes("ellipsis") && shown(ellipsisStyle) ? ellipsisStyle : null,
+    continuation: display.includes("continuation"),
+    labels,
+    timeline,
+  };
+}
+
+/**
+ * The coordinate label of a gap (section 5.3): the pretty text of the start
+ * of its elided coordinates without its pretty unit (with it in seconds,
+ * where both are clocks), `–`, and the pretty text of its end.
+ */
+function stretchText(timeline: TimelineManifest, start: Real, end: Real): string {
+  const { number_type: numberType, unit } = timeline;
+  return `${coordinateText(start, numberType, unit === "seconds" ? unit : null)}–${coordinateText(end, numberType, unit)}`;
+}
+
+/** The texts of a stored elision's labels: its name, else its timeline's; its ID; its stretch. */
+function storedTexts(
+  elision: StoredElision,
+  timeline: TimelineManifest,
+  start: Real,
+  end: Real,
+): LabelTexts {
+  return {
+    name: elision.name ?? nameOf(timeline),
+    id: elision.id,
+    coordinate: stretchText(timeline, start, end),
+  };
+}
+
+/** An elision's `width` read on the axis of the timeline it lies on; null for the standard gap. */
+function widthOf(elision: StoredElision, timeline: TimelineManifest): ElisionWidth | null {
+  const { width } = elision;
   if (width === undefined) return null;
   if (width.ratio !== undefined) return { ratio: jsonNumber(width.ratio) };
   if (width.canvas !== undefined) return { canvas: jsonNumber(width.canvas) };
@@ -290,121 +383,366 @@ function widthOf(width: StoredWidth, timeline: TimelineManifest): ElisionWidth |
   return null;
 }
 
-/** A stored elision's `width`, as the manifest holds it. */
-type StoredWidth = NonNullable<ManifestGraphical["elisions"]>[number]["width"];
-
 /**
- * A strip's drawn width before it is capped at its natural width `n`
- * (section 8.9): `r × n` without a `width`, `q × n` for a ratio, `L × uv`
- * for a span `v` (`uv = v / λR`), `c` for a canvas width.
+ * A stored gap's drawn width (section 8.9): the standard gap 32 without a
+ * `width`, `q × n` for a ratio, `L × uv` for a span `v` (`uv = v / λ`), `c`
+ * for a canvas width; `n` where it is larger than `n`.
  */
-function drawnWidth(
-  width: ElisionWidth | null,
-  n: number,
-  r: number,
-  L: number,
-  lambda: Real,
-): number {
-  if (width === null) return r * n;
-  if ("ratio" in width) return width.ratio * n;
-  if ("span" in width) return L * proportion(width.span, lambda);
-  return width.canvas;
+function drawnWidth(width: ElisionWidth | null, n: number, L: number, lambda: Real): number {
+  const wanted =
+    width === null
+      ? STANDARD_GAP
+      : "ratio" in width
+        ? width.ratio * n
+        : "span" in width
+          ? L * proportion(width.span, lambda)
+          : width.canvas;
+  return wanted > n ? n : wanted;
 }
 
-/** The line a strip's labels stand on: its timeline's own, or its segment line's. */
-export interface LabelLine {
-  readonly y: number;
-  readonly w: number;
+/** The mode a card or frame draws by: `auto` read as `custom` where it has stored ones (section 8.9). */
+export type DrawnMode = "full" | "proportional" | "custom";
+
+/** A stored card elision of a root's tree: the elision, its timeline's entry, its stretch on the root's axis. */
+export interface CardElision {
+  readonly elision: StoredElision;
+  readonly entry: Entry;
+  readonly a: Real;
+  readonly b: Real;
 }
 
 /**
- * The strips of `axis` drawn in a card from `yt` to `yb`, their member
- * drawing started at `x0` (sections 6.6, 7.2 and 8.5): every strip's element
- * from the left, each with its rule where it starts at the end of the strip
- * before it and its continuations, the lines `lines` whose span holds its
- * whole stretch, at their ordinates, in their order; then their labels,
- * strip by strip, the name label before the coordinate label, each on the
- * line `lineOf` gives its timeline, cut to the strip less 2 on either side
- * and left out where not even `…` fits.
+ * The stored card elisions of the root of `scope` (section 8.9, Where): those
+ * lying on the root or a descendant of it that lies in no group, displayed or
+ * not, in canonical order, each with its stretch carried to the root's axis
+ * and clipped to the root's start and end.
  */
-export function stripElements(
-  scope: Scope,
-  axis: ElidedAxis,
-  x0: number,
-  yt: number,
-  yb: number,
-  lines: readonly { readonly entry: Entry; readonly y: number }[],
-  lineOf: (entry: Entry) => LabelLine | undefined,
-): { readonly strips: ElisionElement[]; readonly labels: TextElement[] } {
-  const strips: ElisionElement[] = [];
-  const labels: TextElement[] = [];
-  axis.strips.forEach((strip, index) => {
-    const before = axis.strips[index - 1];
-    const x1 = x0 + strip.left;
-    const x2 = x0 + strip.right;
-    const timeline = strip.entry.manifest;
-    const start = difference(strip.a, strip.entry.start);
-    const end = difference(strip.b, strip.entry.start);
-    strips.push({
-      type: "elision",
-      address: strip.address,
-      style: strip.style,
-      x1,
-      x2,
-      yt,
-      yb,
-      rule: before !== undefined && compareReal(before.b, strip.a) === 0,
-      continuations: lines
-        .filter(
-          ({ entry }) =>
-            compareReal(entry.start, strip.a) <= 0 && compareReal(strip.b, entry.end) <= 0,
-        )
-        .map(({ y }) => y),
-      elided: { timeline: timeline.id, start, end },
-    });
-    const line = lineOf(strip.entry);
-    if (line === undefined) return;
-    const available = x2 - x1 - 2 * LABEL_GAP;
-    const xm = (x1 + x2) / 2;
-    const outwards = line.w / 2 + LABEL_GAP;
-    const label = (word: "name" | "coordinate", text: string) => {
-      if (!strip.display.includes(word)) return;
-      const key = elementKey("label", partAddress(strip.address, word), timeline, strip.key);
-      const style = scope.cascade.resolve(key, strip.style);
-      if (!shown(style)) return;
-      const size = style["font-size"];
-      const cut = cutText(scope.measure, cleanText(text), size, available);
-      if (cut.width > available) return;
-      labels.push({
-        type: "label",
-        address: key.address,
-        style,
-        x: xm,
-        baseline:
-          word === "name" ? line.y - outwards - scope.d(size) : line.y + outwards + scope.a(size),
-        anchor: "middle",
-        text: cut.text,
-      });
-    };
-    const { number_type: numberType, unit } = timeline;
-    label("name", nameOf(timeline));
-    label(
-      "coordinate",
-      `${coordinateText(start, numberType, unit === "seconds" ? unit : null)}–${coordinateText(end, numberType, unit)}`,
-    );
+export function cardElisionsOf(scope: Scope): CardElision[] {
+  const { manifest, entries, rootEntry, lambda } = scope;
+  const byId = new Map(entries.map((entry) => [entry.manifest.id, entry]));
+  const { ancestry } = indexOf(manifest);
+  const root: Stretch = [zero(rootEntry.manifest.number_type), lambda];
+  return (manifest.graphical?.elisions ?? []).flatMap((elision) => {
+    const entry = byId.get(elision.timeline);
+    if (entry === undefined) return [];
+    if ((groupsHolding(manifest, elision.timeline, ancestry) ?? []).length > 0) return [];
+    const own = (value: StoredElision["start"]) =>
+      add(entry.start, coordinateValue(value, entry.manifest.number_type));
+    const [a, b] = clipped(own(elision.start), own(elision.end), root);
+    return [{ elision, entry, a, b }];
   });
-  return { strips, labels };
 }
 
-/** What the default proportion of an ancestor card reads (section 8.9), in its frame's item coordinates. */
+/** `auto` read as `custom` where the root has stored card elisions, else as `proportional`. */
+export function drawnMode(style: Style, stored: boolean): DrawnMode {
+  const mode = style["elision-mode"];
+  if (mode === "auto") return stored ? "custom" : "proportional";
+  return mode;
+}
+
+/** A piece of a card's gap before it is placed on the axis. */
+interface CardPiece {
+  readonly source: GapSource;
+  readonly a: Real;
+  readonly b: Real;
+  /** Its drawn width from its natural one. */
+  readonly width: (n: number) => number;
+  readonly entry: Entry | undefined;
+}
+
+/**
+ * The pieces of the stored card elisions a card draws under `custom` (section
+ * 8.9, Pieces), in canonical order: each drawn where its gap is displayed and
+ * its timeline is drawn, what of its stretch lies outside the protected span
+ * `protect` and outside every piece taken before it, each at the width its
+ * `width` sets as if whole.
+ */
+function storedPieces(
+  scope: Scope,
+  stored: readonly CardElision[],
+  protect: Stretch | null,
+): CardPiece[] {
+  const { L, lambda } = scope;
+  const taken: Stretch[] = protect === null ? [] : [protect];
+  const pieces: CardPiece[] = [];
+  for (const { elision, entry, a: from, b: to } of stored) {
+    const timeline = entry.manifest;
+    const own = (value: Real) => difference(value, entry.start);
+    const width = widthOf(elision, timeline);
+    for (const [a, b] of outside(from, to, taken)) {
+      const start = own(a);
+      const end = own(b);
+      const source = sourceOf(
+        scope,
+        timeline,
+        idAddress(elision.id),
+        entry,
+        elisionWords(elision.display),
+        storedTexts(elision, timeline, start, end),
+        { origin: "stored", start, end, um: scope.u(midpointOf(a, b)), framed: false },
+      );
+      taken.push([a, b]);
+      if (!entry.drawn || !shown(source.style)) continue;
+      pieces.push({ source, a, b, width: (n) => drawnWidth(width, n, L, lambda), entry });
+    }
+  }
+  return pieces;
+}
+
+/** `(a + b) / 2` in the tower (section 3.1). */
+function midpointOf(a: Real, b: Real): Real {
+  const sum = add(a, b);
+  return typeof sum === "number" ? sum / 2 : sum.multiply(Rational.of([1n, 2n]));
+}
+
+/** The card's axis of `pieces` and the carried gaps `carried`, exact on its root's axis. */
+function cardAxisOf(
+  scope: Scope,
+  pieces: readonly CardPiece[],
+  carried: readonly Placing[],
+): CardAxis {
+  const { L, u } = scope;
+  const placing = pieces.map((piece): Placing => {
+    const ua = u(piece.a);
+    const ub = u(piece.b);
+    const n = L * ub - L * ua;
+    return { ...piece, ua, ub, n, g: piece.width(n) };
+  });
+  return axisOf(L, u, [...placing, ...carried], EXACT);
+}
+
+/**
+ * The axis of an ungrouped root's card (section 8.9): under `custom`, its
+ * stored card elisions; none otherwise, its card having no protected span
+ * and deriving nothing. Undefined where it draws no gap.
+ */
+export function ungroupedAxis(scope: Scope, mode: DrawnMode): CardAxis | undefined {
+  if (mode !== "custom") return undefined;
+  const pieces = storedPieces(scope, cardElisionsOf(scope), null);
+  return pieces.length === 0 ? undefined : cardAxisOf(scope, pieces, []);
+}
+
+/** A stretch of a timeline at one depth, before it is drawn with its middle left out. */
+interface DerivedPiece {
+  readonly entry: Entry;
+  readonly a: Real;
+  readonly b: Real;
+}
+
+/**
+ * The pieces an ancestor card derives (section 8.9, Derived elisions): for
+ * the member's ancestors `chain` (`A1` the root to `Ak`, by ID), depth `j`
+ * holds `Aj` and every other child of `A(j − 1)` the card draws, depth 1 the
+ * root alone; from the deepest of `depths` up, within a depth in traversal
+ * order, each stretch of a timeline's span outside the protected span
+ * `protect`, the spans of the deeper chosen depths and every piece found
+ * before.
+ */
+function derivedPieces(
+  scope: Scope,
+  protect: Stretch,
+  chain: readonly string[],
+  depths: readonly number[],
+): DerivedPiece[] {
+  const { rootEntry, lambda, index } = scope;
+  const root: Stretch = [zero(rootEntry.manifest.number_type), lambda];
+  const atDepth = (j: number): readonly Entry[] => {
+    if (j === 1) return rootEntry.drawn ? [rootEntry] : [];
+    const parent = chain[j - 2];
+    return (index.childrenByParent.get(parent ?? "") ?? []).filter((entry) => entry.drawn);
+  };
+  const covered: Stretch[] = [protect];
+  const found: DerivedPiece[] = [];
+  for (const j of [...depths].reverse()) {
+    const timelines = atDepth(j);
+    const pieces: DerivedPiece[] = [];
+    for (const entry of timelines) {
+      const [start, end] = clipped(entry.start, entry.end, root);
+      for (const [a, b] of outside(start, end, [
+        ...covered,
+        ...pieces.map((p) => [p.a, p.b] as const),
+      ])) {
+        pieces.push({ entry, a, b });
+      }
+    }
+    found.push(...pieces);
+    for (const entry of timelines) {
+      const [start, end] = clipped(entry.start, entry.end, root);
+      if (compareReal(start, end) < 0) covered.push([start, end]);
+    }
+  }
+  return found;
+}
+
+/** An integer as a value of `numberType`: the integer, the double equal to it, or `[n, 1]`. */
+function wholeUnit(value: bigint, numberType: NumberType): Real {
+  return numberType === "float" ? Number(value) : Rational.fromParts(value, 1n);
+}
+
+/** `⌊value⌋` or `⌈value⌉` of a value of the tower, as an integer. */
+function rounded(value: Real, up: boolean): bigint {
+  if (typeof value === "number") return BigInt(up ? Math.ceil(value) : Math.floor(value));
+  const { numerator, denominator } = value;
+  const quotient = numerator / denominator;
+  const exact = quotient * denominator === numerator;
+  if (exact) return quotient;
+  // BigInt division truncates towards zero.
+  if (numerator < 0n) return up ? quotient : quotient - 1n;
+  return up ? quotient + 1n : quotient;
+}
+
+/**
+ * A derived piece over `[a, b]` of its timeline's own axis (`[aR, bR]` on the
+ * root's), natural width `n`, drawn `W = r × n` wide with its middle left out
+ * (section 8.9): `h = (W − min(32, W)) / 2`, `k = n / (b − a)`; its elided
+ * coordinates `start = max(a, ⌊a + h / k⌋)` and `end = min(b, ⌈b − h / k⌉)`,
+ * whole units of its timeline; its visible ends at their natural widths `e1`
+ * and `e2`, its gap `g = W − e1 − e2`.
+ */
+function middleOf(
+  scope: Scope,
+  piece: DerivedPiece,
+  r: number,
+): {
+  readonly start: Real;
+  readonly end: Real;
+  readonly a: Real;
+  readonly b: Real;
+  readonly g: number;
+} {
+  const { L, u } = scope;
+  const { entry } = piece;
+  const numberType = entry.manifest.number_type;
+  const own = (value: Real) => difference(value, entry.start);
+  const a = own(piece.a);
+  const b = own(piece.b);
+  const n = L * u(piece.b) - L * u(piece.a);
+  const W = r * n;
+  const h = (W - Math.min(STANDARD_GAP, W)) / 2;
+  const span = difference(b, a);
+  const k = n / (typeof span === "number" ? span : toFloat(span));
+  const lower = wholeUnit(rounded(add(a, h / k), false), numberType);
+  const upper = wholeUnit(rounded(add(b, -(h / k)), true), numberType);
+  const start = compareReal(lower, a) > 0 ? lower : a;
+  const end = compareReal(upper, b) < 0 ? upper : b;
+  const startR = add(entry.start, start);
+  const endR = add(entry.start, end);
+  const e1 = L * u(startR) - L * u(piece.a);
+  const e2 = L * u(piece.b) - L * u(endR);
+  return { start, end, a: startR, b: endR, g: W - e1 - e2 };
+}
+
+/** A frame's gap carried into an ancestor card behind it: its stretch there and the frame's widths. */
+export interface CarriedGap {
+  readonly gap: Gap;
+  readonly a: Real;
+  readonly b: Real;
+}
+
+/** What an ancestor card decides of its elisions (section 8.9). */
+export interface AncestorElisions {
+  readonly mode: DrawnMode;
+  readonly proportion: number;
+  readonly automatic: boolean;
+  readonly depths: readonly number[];
+  readonly display: readonly ElisionWord[];
+  readonly axis: CardAxis | undefined;
+}
+
+/**
+ * The elisions of the ancestor card of the root of `scope` aligned to a
+ * member whose ancestors are `chain` (section 8.9): its protected span
+ * `protect`; the gaps `carried` from its frame, drawn in every mode; under
+ * `custom` its stored card elisions, under `proportional` the elisions it
+ * derives at the proportion `r` (`proportionOf`, called only where it is
+ * read) while `r < 1`, each clipped around the protected span.
+ */
+export function ancestorElisions(
+  scope: Scope,
+  style: Style,
+  protect: Stretch,
+  chain: readonly string[],
+  carried: readonly CarriedGap[],
+  proportionOf: () => number,
+): AncestorElisions {
+  const stored = cardElisionsOf(scope);
+  const mode = drawnMode(style, stored.length > 0);
+  const display = derivedDisplay(style);
+  const asked = depthsOf(style);
+  const depths =
+    asked === "auto"
+      ? chain.map((_, index) => index + 1)
+      : asked.filter((depth) => depth >= 1 && depth <= chain.length);
+  const stated = style["elision-proportion"];
+  const automatic = stated === "auto";
+  const placedCarried = carried.map(
+    ({ gap, a, b }): Placing => ({
+      source: gap.source,
+      a,
+      b,
+      ua: scope.u(a),
+      ub: scope.u(b),
+      n: gap.n,
+      g: gap.g,
+      entry: undefined,
+    }),
+  );
+  let pieces: CardPiece[] = [];
+  let r = 1;
+  if (mode === "custom") pieces = storedPieces(scope, stored, protect);
+  if (mode === "proportional") {
+    r = automatic ? proportionOf() : stated;
+    if (r < 1)
+      pieces = derivedGaps(scope, derivedPieces(scope, protect, chain, depths), r, display);
+  }
+  const axis =
+    pieces.length === 0 && placedCarried.length === 0
+      ? undefined
+      : cardAxisOf(scope, pieces, placedCarried);
+  return { mode, proportion: r, automatic, depths, display, axis };
+}
+
+/** The gaps of derived pieces at the proportion `r`, each with its middle left out. */
+function derivedGaps(
+  scope: Scope,
+  pieces: readonly DerivedPiece[],
+  r: number,
+  display: readonly ElisionWord[],
+): CardPiece[] {
+  return pieces.flatMap((piece): CardPiece[] => {
+    const { entry } = piece;
+    const timeline = entry.manifest;
+    const middle = middleOf(scope, piece, r);
+    const source = sourceOf(
+      scope,
+      timeline,
+      partAddress(idAddress(timeline.id), "elision"),
+      entry,
+      display,
+      { name: nameOf(timeline), coordinate: stretchText(timeline, middle.start, middle.end) },
+      {
+        origin: "default",
+        start: middle.start,
+        end: middle.end,
+        um: scope.u(midpointOf(piece.a, piece.b)),
+        framed: false,
+      },
+    );
+    if (!shown(source.style) || compareReal(middle.a, middle.b) >= 0) return [];
+    return [{ source, a: middle.a, b: middle.b, width: () => middle.g, entry }];
+  });
+}
+
+/** What the proportion of an ancestor card reads (section 8.9), in its frame's item coordinates. */
 export interface ProportionInputs {
   /** The view's width `VW` and height `VH`. */
   readonly view: View;
-  /** The frame's scale `sG`, graphical length `L` and member drawings' start `x0`. */
+  /** The frame's scale `sG`, graphical length `L`, its members' drawn length `L'` and start `x0`. */
   readonly scale: number;
   readonly L: number;
+  readonly drawnLength: number;
   readonly x0: number;
-  /** The frame's width `Fw` and height `Fh`, its requests included. */
+  /** The frame's width `Fw` and height `Fh` as drawn, its requests included. */
   readonly width: number;
   readonly height: number;
   /** `σ = K + N' + G'` of the root's drawing alone. */
@@ -415,16 +753,16 @@ export interface ProportionInputs {
   readonly ER: Real;
 }
 
+const isZero = (value: Real): boolean => compareReal(value, 0) === 0;
+
 /**
- * The default proportion `r` of an ancestor card (section 8.9): the largest
- * at which its strips are together no wider than the member's line and, with
- * the view centred on the frame at the zoom `zb`, the elided card lies
- * within the view: `min(1, λ / E, (B − dl) / (L × uL), (B − dr) / (L ×
- * uR))`, a term left out where its stretch is 0 or, for a side, where `B` is
- * no larger than that side's reach.
+ * The proportion `r` of an ancestor card under `elision-proportion: auto`
+ * (section 8.9): `min(1, λ / E × (L' / L), (B − dl) / (L × uL), (B − dr) /
+ * (L × uR))`, a term left out where its stretch is 0 or, for a side, where
+ * `B` is no larger than that side's reach.
  */
 export function ancestorProportion(inputs: ProportionInputs): number {
-  const { view, scale, L, x0, width, height, sigma, lambda, EL, ER } = inputs;
+  const { view, scale, L, drawnLength, x0, width, height, sigma, lambda, EL, ER } = inputs;
   const wide = times(4n, 5n, view.width);
   const high = times(4n, 5n, view.height);
   const zG = Math.min(4, wide / (scale * width), high / (scale * height));
@@ -432,11 +770,355 @@ export function ancestorProportion(inputs: ProportionInputs): number {
   const B = wide / (2 * zb * scale);
   const c = width / 2;
   const dl = c - x0 + sigma;
-  const dr = x0 + L + K - c;
+  const dr = x0 + drawnLength + K - c;
   const terms = [1];
   const E = add(EL, ER);
-  if (!isZero(E)) terms.push(proportion(lambda, E));
+  if (!isZero(E)) terms.push(proportion(lambda, E) * (drawnLength / L));
   if (!isZero(EL) && B > dl) terms.push((B - dl) / (L * proportion(EL, lambda)));
   if (!isZero(ER) && B > dr) terms.push((B - dr) / (L * proportion(ER, lambda)));
   return Math.min(...terms);
+}
+
+/** One member of a frame as its elisions read it. */
+export interface FrameMember {
+  readonly scope: Scope;
+}
+
+/** A frame's group elisions laid out (section 8.9, Group elisions). */
+export interface FrameElisions {
+  readonly mode: DrawnMode;
+  /** Its gaps from the left, over proportions of the frame; `a` and `b` the proportions as doubles. */
+  readonly gaps: readonly Gap[];
+  readonly runs: readonly Run[];
+  /** `DG`, the sum of every shrink. */
+  readonly total: number;
+  /** The frame's axis read by the member drawn in `scope`. */
+  viewOf(scope: Scope): CardAxis;
+  /** The elided coordinates of each gap on each member, top first (`ExposedGap.members`). */
+  membersOf(gap: Gap): ExposedGap["members"];
+}
+
+/**
+ * The group elisions of the frame `holder` of the group `group` (section 8.9):
+ * the stored elisions whose timelines lie in the group, in canonical order,
+ * each where its gap is displayed and its timeline's line is drawn in the
+ * frame, while the frame's `elision-mode` is `auto` or `custom`. Each
+ * elision's stretch, carried to the axis of the member `M` it lies under,
+ * becomes the proportions `[p, q]` of `M`'s length or reach, clipped to `[0,
+ * 1]`; each draws what of its stretch lies outside every piece before it, at
+ * the natural width `n = L × q − L × p` and the drawn width its `width` sets
+ * (`span` read with `M`'s length). Undefined where it draws no gap.
+ */
+export function frameElisions(
+  members: readonly FrameMember[],
+  group: string,
+  holder: Holder,
+  L: number,
+): FrameElisions | undefined {
+  const first = members[0]?.scope;
+  if (first === undefined) return undefined;
+  const { manifest } = first;
+  const mode = drawnMode(holder.style, true);
+  if (mode !== "custom") return undefined;
+  const { ancestry } = indexOf(manifest);
+  const taken: [number, number][] = [];
+  // Each piece with the member it lies under, its timeline there, and its proportions exact where
+  // both the piece's ends and that member's length are, read as a groupstamp's coordinates are.
+  const placing: (Placing & {
+    readonly owner: Scope;
+    readonly entry: Entry;
+    readonly exact: readonly [Real, Real];
+  })[] = [];
+  for (const elision of manifest.graphical?.elisions ?? []) {
+    const holding = groupsHolding(manifest, elision.timeline, ancestry) ?? [];
+    if (!holding.some((each) => each.id === group)) continue;
+    const owner = members.find(({ scope }) =>
+      scope.entries.some((entry) => entry.manifest.id === elision.timeline),
+    )?.scope;
+    const entry = owner?.entries.find((each) => each.manifest.id === elision.timeline);
+    if (owner === undefined || entry === undefined) continue;
+    const timeline = entry.manifest;
+    const own = (value: StoredElision["start"]) =>
+      add(entry.start, coordinateValue(value, timeline.number_type));
+    const clamp = (value: number) => Math.min(1, Math.max(0, value));
+    const p0 = clamp(owner.u(own(elision.start)));
+    const q0 = clamp(owner.u(own(elision.end)));
+    const width = widthOf(elision, timeline);
+    for (const [p, q] of outsideProportions(p0, q0, taken)) {
+      taken.push([p, q]);
+      const whole = p === owner.u(own(elision.start)) && q === owner.u(own(elision.end));
+      const onTimeline = (proportionValue: number) =>
+        difference(atProportion(proportionValue, owner.lambda), entry.start);
+      const start = whole ? coordinateValue(elision.start, timeline.number_type) : onTimeline(p);
+      const end = whole ? coordinateValue(elision.end, timeline.number_type) : onTimeline(q);
+      const source = sourceOf(
+        first,
+        timeline,
+        idAddress(elision.id),
+        holder,
+        elisionWords(elision.display),
+        storedTexts(elision, timeline, start, end),
+        { origin: "stored", start, end, um: (p + q) / 2, framed: true },
+      );
+      if (!entry.drawn || !shown(source.style)) continue;
+      const n = L * q - L * p;
+      // A float at its exact binary value, as a groupstamp's coordinates are read (section 2).
+      const rational = (value: Real) => (typeof value === "number" ? fromFloat(value) : value);
+      const exactOf = (value: Real, double: number): Real =>
+        whole && compareReal(owner.lambda, 0) !== 0
+          ? rational(value).divide(rational(owner.lambda))
+          : double;
+      const exact = [exactOf(own(elision.start), p), exactOf(own(elision.end), q)] as const;
+      const wanted =
+        width === null
+          ? STANDARD_GAP
+          : "ratio" in width
+            ? width.ratio * n
+            : "span" in width
+              ? L * proportion(width.span, owner.lambda)
+              : width.canvas;
+      placing.push({
+        source,
+        a: p,
+        b: q,
+        ua: p,
+        ub: q,
+        n,
+        g: wanted > n ? n : wanted,
+        owner,
+        entry,
+        exact,
+      });
+    }
+  }
+  if (placing.length === 0) return undefined;
+  const byProportion: Comparing = {
+    inside: (gap, value) => gap.ua < (value as number) && (value as number) < gap.ub,
+    before: (gap, value) => gap.ub <= (value as number),
+    holds: (gap, start, end) =>
+      (start as number) <= gap.ua && (end === null || (end as number) >= gap.ub),
+  };
+  const frame = axisOf(L, (value) => value as number, placing, byProportion);
+  const viewOf = (scope: Scope): CardAxis => {
+    const { u, lambda, rootEntry } = scope;
+    const viewed = frame.gaps.map((gap): Placing => {
+      const placed = placing.find((each) => each.source === gap.source);
+      const labelled = placed?.owner === scope ? placed.entry : undefined;
+      return {
+        source: gap.source,
+        a: atProportion(gap.ua, lambda),
+        b: atProportion(gap.ub, lambda),
+        ua: gap.ua,
+        ub: gap.ub,
+        n: gap.n,
+        g: gap.g,
+        entry: labelled,
+      };
+    });
+    const proportionOfEnd = (end: Real | null) =>
+      end === null ? null : rootEntry.open && compareReal(end, lambda) === 0 ? 1 : u(end);
+    return axisOf(scope.L, u, viewed, {
+      inside: (gap, value) => gap.ua < u(value) && u(value) < gap.ub,
+      before: (gap, value) => gap.ub <= u(value),
+      holds: (gap, start, end) => {
+        const to = proportionOfEnd(end);
+        return u(start) <= gap.ua && (to === null || to >= gap.ub);
+      },
+    });
+  };
+  const membersOf = (gap: Gap): ExposedGap["members"] => {
+    const placed = placing.find((each) => each.source === gap.source);
+    if (placed === undefined || placed.owner.rootEntry.open) {
+      return members.map(({ scope }) => ({ timeline: scope.root.id, start: null, end: null }));
+    }
+    const at = (proportionValue: Real, lambda: Real): Real =>
+      (typeof proportionValue === "number" ? fromFloat(proportionValue) : proportionValue).multiply(
+        typeof lambda === "number" ? fromFloat(lambda) : lambda,
+      );
+    const [p, q] = placed.exact;
+    return members.map(({ scope }) => ({
+      timeline: scope.root.id,
+      start: scope.rootEntry.open ? null : at(p, scope.lambda),
+      end: scope.rootEntry.open ? null : at(q, scope.lambda),
+    }));
+  };
+  return {
+    mode,
+    gaps: frame.gaps,
+    runs: frame.runs,
+    total: frame.total,
+    viewOf,
+    membersOf,
+  };
+}
+
+/**
+ * The gaps of the frame `frame` carried into the ancestor card of a root
+ * that starts at `ts` on the axis of the member it is aligned to, of length
+ * or reach `lambda` (section 8.9, Carried gaps): each over the root's
+ * stretch `−ts + p × λ` to `−ts + q × λ`, combined as section 3.1 combines
+ * values, with the frame's widths.
+ */
+export function carriedGaps(
+  frame: FrameElisions | undefined,
+  ts: Real,
+  lambda: Real,
+): CarriedGap[] {
+  if (frame === undefined) return [];
+  const toDouble = (value: Real) => (typeof value === "number" ? value : toFloat(value));
+  const at = (p: number) => add(negate(ts), p * toDouble(lambda));
+  return frame.gaps.map((gap) => ({
+    gap: { ...gap, source: { ...gap.source, origin: "carried", labels: [], framed: false } },
+    a: at(gap.ua),
+    b: at(gap.ub),
+  }));
+}
+
+/** A row of a card that a gap may cross (section 6.6): its ordinate and its span. */
+export interface CrossingRow {
+  readonly y: number;
+  readonly start: Real;
+  /** Its end; null where it is open to the right. */
+  readonly end: Real | null;
+}
+
+/**
+ * The ordinates of the rows among `rows` (in the order of section 8.5) that
+ * cross `gap` on `axis`.
+ */
+export function crossingRows(axis: CardAxis, gap: Gap, rows: readonly CrossingRow[]): number[] {
+  return rows.filter((row) => axis.crosses(gap, row.start, row.end)).map((row) => row.y);
+}
+
+/**
+ * The elements of one drawing of a gap (sections 6.6, 7.2 and 8.5): its
+ * rectangle from `x1` to `x2` and `yt` to `yb` with its continuations on the
+ * rows `rows`, where listed; its ellipses on those rows, where the gap is at
+ * least 20 wide; then its labels `labels`.
+ */
+export function gapElements(
+  gap: Gap,
+  x1: number,
+  x2: number,
+  yt: number,
+  yb: number,
+  rows: readonly number[],
+  labels: readonly TextElement[],
+): DrawnElement[] {
+  const { source } = gap;
+  const xm = (x1 + x2) / 2;
+  const ellipses: EllipsisElement[] =
+    source.ellipsis === null || x2 - x1 < ELLIPSIS_GAP
+      ? []
+      : rows.map((y) => ({
+          type: "ellipsis",
+          address: partAddress(source.address, "ellipsis"),
+          style: source.ellipsis ?? source.style,
+          x: xm,
+          y,
+          r: ELLIPSIS_RADIUS,
+          spacing: ELLIPSIS_SPACING,
+        }));
+  return [
+    {
+      type: "elision",
+      address: source.address,
+      style: source.style,
+      x1,
+      x2,
+      yt,
+      yb,
+      continuations: source.continuation ? [...rows] : [],
+      elided: { timeline: source.timeline.id, start: source.start, end: source.end },
+      origin: source.origin,
+    },
+    ...ellipses,
+    ...labels,
+  ];
+}
+
+/**
+ * The label stack of a gap in a markers band, at its unturned place (section
+ * 6.4, Markers): line `n` of the band's tiers starting `tip + 13 + 2 + (n −
+ * 1) × h` out from the line, `tip = c + w / 2`.
+ */
+export const stackLineStart = (tip: number, n: number, h: number): number =>
+  tip + MARKER_HEIGHT + LABEL_GAP + (n - 1) * h;
+
+/** The exposed form of a gap drawn from `x1` to `x2` in block coordinates. */
+export function exposedGap(
+  gap: Gap,
+  x1: number,
+  x2: number,
+  members: ExposedGap["members"],
+): ExposedGap {
+  const { source } = gap;
+  return {
+    address: source.address,
+    origin: source.origin,
+    timeline: source.timeline.id,
+    start: source.start,
+    end: source.end,
+    natural: gap.n,
+    drawn: gap.g,
+    x1,
+    x2,
+    members,
+  };
+}
+
+/** The forms an elision's `width` takes (section 2): absent for the standard gap, or one of three. */
+export type WidthForm = "standard" | "ratio" | "span" | "canvas";
+
+/** What an elision's `width` stores, as a manifest writes it; `null` for the standard gap. */
+export type StoredWidth =
+  | { readonly ratio: number }
+  | { readonly span: Real }
+  | { readonly canvas: number }
+  | null;
+
+/**
+ * The stored `width` of the form `form` that draws the gap `gap` as wide as
+ * it is drawn (section 8.9, Widths), in the item coordinates of its card or
+ * frame of graphical length `L`, `lambda` the length or reach a `span` is
+ * read with (the root's in a card, the member's in a frame) and
+ * `numberType` the number type of the elision's timeline: `null` for the
+ * standard gap; `{ratio: g / n}`; `{span: g × λ / L}`, exact on an exact axis
+ * (the doubles at their exact binary values), the nearest integer on an
+ * `int` axis, ties to even, a double on a `float` axis; `{canvas: g}`.
+ */
+export function widthAs(
+  form: WidthForm,
+  gap: ExposedGap,
+  L: number,
+  lambda: Real,
+  numberType: NumberType,
+): StoredWidth {
+  switch (form) {
+    case "standard":
+      return null;
+    case "ratio":
+      return { ratio: gap.drawn / gap.natural };
+    case "canvas":
+      return { canvas: gap.drawn };
+    case "span": {
+      if (numberType === "float" || typeof lambda === "number") {
+        const length = typeof lambda === "number" ? lambda : toFloat(lambda);
+        return { span: (gap.drawn * length) / L };
+      }
+      const exact = fromFloat(gap.drawn).multiply(lambda).divide(fromFloat(L));
+      if (numberType === "fraction") return { span: exact };
+      return { span: Rational.fromParts(roundHalfEven(exact), 1n) };
+    }
+  }
+}
+
+/** The integer nearest an exact value, ties to even. */
+function roundHalfEven(value: Rational): bigint {
+  const floor = rounded(value, false);
+  const twice = value.multiply(Rational.of(2n)).subtract(Rational.fromParts(2n * floor, 1n));
+  const order = compareReal(twice, Rational.of(1n));
+  if (order < 0) return floor;
+  if (order > 0) return floor + 1n;
+  return floor % 2n === 0n ? floor : floor + 1n;
 }

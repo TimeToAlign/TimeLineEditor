@@ -5,11 +5,11 @@
 
 import type { ElementAddress, Places, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timetoshare";
-import type { DrawnAxis, DrawnBox } from "./boxes.ts";
+import type { DrawnAxis, DrawnBox, ElisionExposure } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import type { WedgeCorner } from "./rotation.ts";
 
-export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
+export type { DrawnAxis, DrawnBox, ElementRange, ElisionExposure } from "./boxes.ts";
 
 /** Where and how large the drawing is placed (section 1). */
 export interface Placement {
@@ -108,7 +108,15 @@ export interface LineElement extends Addressed {
   readonly y: number;
   readonly start: LineStart;
   readonly end: LineEnd;
+  /**
+   * The gaps the line crosses (section 6.6, Elisions), each its left and right edge `x(a)` and
+   * `x(b)`, from the left: the line is drawn in pieces from run to run, nothing of it in a gap.
+   */
+  readonly cuts: readonly Cut[];
 }
+
+/** The edges `x(a)` and `x(b)` of a gap a row crosses, where its line or outline stops and resumes. */
+export type Cut = readonly [number, number];
 
 export interface MapElement extends Addressed {
   readonly type: "map";
@@ -118,6 +126,8 @@ export interface MapElement extends Addressed {
   readonly yc: number;
   /** The spacing `d` of the double line. */
   readonly spacing: number;
+  /** The gaps the map crosses, from the left: its outline is drawn in pieces (section 6.6). */
+  readonly cuts: readonly Cut[];
 }
 
 export interface RegionElement extends Addressed {
@@ -190,35 +200,55 @@ export interface MarkerElement extends Addressed {
 }
 
 /**
- * The strip of an elision (sections 6.6 and 8.9): a rectangle from `x(a)`
- * to `x(b)` and from its card's top `yt` to its bottom `yb`, filled and not
- * stroked; its rule at `x(a)` from `yt` to `yb` where it touches the strip
- * before it; and the continuations of the lines whose span holds its whole
- * stretch, at their ordinates, in the traversal order of their lines. It
- * carries what it elides, on the timeline it lies on: a default elision,
- * which no manifest stores, is read from here.
+ * The gap of an elision (sections 6.6 and 8.9): the rectangle from `x(a)` to
+ * `x(b)` and from the top `yt` of its card to its bottom `yb` (across a
+ * frame, from the top of its topmost member card to the bottom of its
+ * bottommost), filled and not stroked, drawn only where its `fill` is not
+ * `none`; and its continuations, one on each row that crosses it, at the
+ * rows' ordinates, where its `display` lists `continuation`. It carries what
+ * it leaves out on the timeline it lies on and where it comes from: a
+ * derived elision, which no manifest stores, is read from here.
  */
 export interface ElisionElement extends Addressed {
   readonly type: "elision";
   /** `x(a)` and `x(b)`, its left and right edges on the elided axis (section 3.2). */
   readonly x1: number;
   readonly x2: number;
-  /** Its card's top and bottom. */
   readonly yt: number;
   readonly yb: number;
-  /** It starts where the strip before it ends, and is parted from it by a rule. */
-  readonly rule: boolean;
-  /** The ordinates of its continuations, in the traversal order of their lines. */
+  /** The ordinates of its continuations, in the order of its rows (section 8.5). */
   readonly continuations: readonly number[];
   /**
-   * The stretch it draws on the timeline it lies on: that timeline's ID, and the start and end
-   * of the stretch on its own axis (a clipped or a default elision's own bounds).
+   * The stretch it leaves out on the timeline it lies on: that timeline's ID, and the start and
+   * end of its elided coordinates on its own axis (a clipped piece's, a derived elision's own).
    */
   readonly elided: {
     readonly timeline: string;
     readonly start: Real;
     readonly end: Real;
   };
+  /**
+   * A stored elision's gap, a derived one's, or a group elision's gap carried into an ancestor
+   * card behind its frame (section 8.9).
+   */
+  readonly origin: GapOrigin;
+}
+
+/** Where a gap comes from (section 8.9). */
+export type GapOrigin = "stored" | "default" | "carried";
+
+/**
+ * The ellipsis of an elision on one row that crosses its gap (section 6.6):
+ * three filled circles of radius 2 centred at `x − 6`, `x` and `x + 6` on the
+ * row's ordinate `y`, `x` the gap's middle.
+ */
+export interface EllipsisElement extends Addressed {
+  readonly type: "ellipsis";
+  readonly x: number;
+  readonly y: number;
+  /** The radius of each dot, 2, and the spacing of their centres, 6, at the element's scale. */
+  readonly r: number;
+  readonly spacing: number;
 }
 
 export interface TextElement extends Addressed {
@@ -241,6 +271,7 @@ export type DrawnElement =
   | AnchorElement
   | MarkerElement
   | ElisionElement
+  | EllipsisElement
   | TextElement;
 
 export interface Drawing {
@@ -257,5 +288,10 @@ export interface Drawing {
   /** Every line drawn, in the order of its element: what a position on it stands for. */
   readonly axes: readonly DrawnAxis[];
   readonly elements: readonly DrawnElement[];
+  /**
+   * What each container drawing gaps or able to draw them decides of its elisions (section
+   * 8.9): every ungrouped root's card, every drawn ancestor card and every frame, in drawing order.
+   */
+  readonly elisions: readonly ElisionExposure[];
   readonly unmapped: readonly number[];
 }

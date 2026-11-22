@@ -8,9 +8,10 @@
  */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import { type DrawnAxis, type DrawnBox, identityOf } from "../boxes.ts";
+import { type DrawnAxis, type DrawnBox, type ElisionExposure, identityOf } from "../boxes.ts";
 import { K, Q, SHADOW_OFFSET } from "../constants.ts";
 import type { DrawnElement, TextElement } from "../elements.ts";
+import { derivedDisplay, drawnMode, exposedGap, gapElements } from "../elisions.ts";
 import { rightEdge } from "../geometry.ts";
 import type { MemberDrawn } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
@@ -34,6 +35,13 @@ export interface LaidItem {
   readonly elements: readonly DrawnElement[];
   readonly boxes: readonly DrawnBox[];
   readonly axes: readonly DrawnAxis[];
+  /**
+   * The gaps of a frame's group elisions, from the left, each with its rows' continuations and
+   * ellipses card by card from the top and its labels, written after every item (section 8.5).
+   */
+  readonly trailing: readonly DrawnElement[];
+  /** What its frame or block-held card decides of its elisions, in item coordinates (`placedExposure`). */
+  readonly exposures: readonly ElisionExposure[];
   /** The right and bottom edges it draws, its cards' shadows included, for the block's size. */
   readonly rights: readonly number[];
   readonly bottoms: readonly number[];
@@ -47,22 +55,12 @@ export function titleElement(title: Title, x: number, baseline: number): TextEle
 
 /**
  * Draw each card of `item` at the columns: its member drawing's start `s0`, its top its card's;
- * `manifest` the manifest drawn, which its axes read. A block-held card, an ungrouped root's,
- * draws its stored elisions on its elided axis, those without `width` at its default proportion
- * (section 8.9); a member's card draws none.
+ * `manifest` the manifest drawn, which its axes read. Each card is drawn on the elided axis it
+ * was laid out on: a block-held card's own, a member's card its frame's (section 8.9).
  */
 export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): ItemDrawing {
-  const elided = item.cards.map((card) => {
-    if (item.frame !== null) return undefined;
-    const { elisions } = card.layout;
-    if (!elisions.stored) return undefined;
-    const pieces = elisions.storedPieces(null);
-    return pieces.length === 0
-      ? undefined
-      : elisions.axis(pieces, elisions.ungroupedProportion(pieces));
-  });
-  const drawn = item.cards.map((card, index) =>
-    card.layout.drawAt(s0, n, card.top, card.top + card.height, elided[index]),
+  const drawn = item.cards.map((card) =>
+    card.layout.drawAt(s0, n, card.top, card.top + card.height),
   );
   return {
     item,
@@ -71,13 +69,14 @@ export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): It
       const { key } = card.ref;
       if (key === null) throw new Error("a card has no place key");
       const own = drawn[index] ?? EMPTY;
-      return axesOf(manifest, card.member, key, own, s0, item.length, elided[index]);
+      return axesOf(manifest, card.member, key, own, s0, item.length, card.layout.scope.axis);
     }),
   };
 }
 
 const EMPTY: MemberDrawn = {
   elements: [],
+  framed: [],
   bands: [],
   markers: new Map(),
   marks: new Map(),
@@ -108,9 +107,10 @@ export function layoutItem(
       ? undefined
       : titleElement(frame.title, Q, Q + measure.ascent(frame.title.size));
   const inset = frame === null ? horizontal.inset : Q;
+  // A frame with group elisions is drawn shorter by `DG` (section 8.2).
   let R = contentRight(
     horizontal,
-    item.length,
+    item.length - item.DG,
     title === undefined ? undefined : rightEdge(title, measure),
   );
   if (stated.width !== undefined) R = Math.max(R, stated.width - K - inset);
@@ -212,7 +212,97 @@ export function layoutItem(
     });
     boxes.push(...bands);
   }
-  return { item, elements, boxes, axes: drawing.axes.flat(), rights, bottoms };
+  return {
+    item,
+    elements,
+    boxes,
+    axes: drawing.axes.flat(),
+    trailing: frameGaps(drawing, horizontal.s0),
+    exposures: exposuresOf(drawing, horizontal.s0),
+    rights,
+    bottoms,
+  };
+}
+
+/**
+ * The gaps of a frame's group elisions (sections 6.6 and 8.9), from the left: each from `x0 +
+ * (L × p − D)` to `x0 + (L × q − D)`, from the top of the topmost member card whose line is drawn
+ * to the bottom of the bottommost, its rows card by card from the top, its labels where its
+ * timeline's card draws them; none for a block-held card.
+ */
+function frameGaps(drawing: ItemDrawing, x0: number): DrawnElement[] {
+  const { item } = drawing;
+  const { elisions } = item;
+  if (elisions === undefined) return [];
+  const lined = item.cards.filter((card) => card.layout.scope.rootEntry.drawn);
+  if (lined.length === 0) return [];
+  const yt = Math.min(...lined.map((card) => card.top));
+  const yb = Math.max(...lined.map((card) => card.top + card.height));
+  return elisions.gaps.flatMap((gap) => {
+    const drawnIn = drawing.drawn.flatMap((drawn) =>
+      drawn.framed.filter((framed) => framed.gap.source === gap.source),
+    );
+    const rows = drawnIn.flatMap((framed) => framed.rows);
+    const labels = drawnIn.flatMap((framed) => framed.labels);
+    return gapElements(gap, x0 + gap.left, x0 + gap.right, yt, yb, rows, labels);
+  });
+}
+
+/**
+ * What a frame or a block-held card decides of its elisions (section 8.9), in item coordinates,
+ * the member drawings starting at `x0`: a frame's mode and gaps, with each gap's elided
+ * coordinates on every member; a block-held card's mode and its own gaps.
+ */
+function exposuresOf(drawing: ItemDrawing, x0: number): ElisionExposure[] {
+  const { item } = drawing;
+  const place = { x: item.x, y: item.y, scale: item.scale };
+  if (item.frame !== null) {
+    const { style } = item.frame.holder;
+    const { elisions } = item;
+    return [
+      {
+        kind: "frame",
+        key: item.key,
+        address: item.frame.address,
+        mode: style["elision-mode"],
+        drawn: drawnMode(style, true),
+        proportion: null,
+        automatic: false,
+        chain: [],
+        depths: [],
+        display: [],
+        gaps: (elisions?.gaps ?? []).map((gap) =>
+          exposedGap(gap, x0 + gap.left, x0 + gap.right, elisions?.membersOf(gap) ?? []),
+        ),
+        runs: elisions?.runs ?? [{ u0: 0, u1: 1, L: item.length, D: 0 }],
+        x0,
+        place,
+      },
+    ];
+  }
+  return item.cards.flatMap((card): ElisionExposure[] => {
+    const { key } = card.ref;
+    if (key === null || card.mode === null) return [];
+    const { axis } = card.layout.scope;
+    return [
+      {
+        kind: "card",
+        key,
+        address: card.address,
+        mode: card.style["elision-mode"],
+        drawn: card.mode,
+        proportion: null,
+        automatic: card.style["elision-proportion"] === "auto",
+        chain: [],
+        depths: [],
+        display: derivedDisplay(card.style),
+        gaps: (axis?.gaps ?? []).map((gap) => exposedGap(gap, x0 + gap.left, x0 + gap.right, [])),
+        runs: axis?.runs ?? [{ u0: 0, u1: 1, L: item.length, D: 0 }],
+        x0,
+        place,
+      },
+    ];
+  });
 }
 
 /** A card's rectangle from `left` to `right` and from its top to `bottom`. */

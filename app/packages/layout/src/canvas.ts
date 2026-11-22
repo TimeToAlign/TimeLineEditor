@@ -71,7 +71,14 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
     case "timeline":
     case "child":
     case "ancestor":
-      return { ...element, style, xs: x(element.xs), xe: x(element.xe), y: y(element.y) };
+      return {
+        ...element,
+        style,
+        xs: x(element.xs),
+        xe: x(element.xe),
+        y: y(element.y),
+        cuts: element.cuts.map(([left, right]) => [x(left), x(right)] as const),
+      };
     case "map":
       return {
         ...element,
@@ -80,6 +87,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         xe: x(element.xe),
         yc: y(element.yc),
         spacing: scale * element.spacing,
+        cuts: element.cuts.map(([left, right]) => [x(left), x(right)] as const),
       };
     case "region":
       return {
@@ -132,6 +140,15 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         yt: y(element.yt),
         yb: y(element.yb),
         continuations: element.continuations.map(y),
+      };
+    case "ellipsis":
+      return {
+        ...element,
+        style,
+        x: x(element.x),
+        y: y(element.y),
+        r: scale * element.r,
+        spacing: scale * element.spacing,
       };
     case "name":
     case "label":

@@ -584,6 +584,10 @@ describe("the marks at any position", () => {
     content: "none",
     "max-width": "none",
     rotation: 0,
+    "elision-mode": "auto",
+    "elision-proportion": "auto",
+    "elision-depths": "auto",
+    "elision-display": "ellipsis",
   };
 
   it("agree exactly with the named timestamps drawn", () => {
@@ -786,8 +790,10 @@ describe("the marks at any position", () => {
       style: ANCESTOR_MARK_STYLE,
     };
     expect(wedgeAt(plain, key, 200)).toEqual(mark);
-    const start = wedge(plain, at("middle", "start"));
-    expect(start.style).toEqual(ANCESTOR_MARK_STYLE);
+    // No mark of the member's start is drawn on the ancestor line (section 8.3).
+    expect(
+      plain.elements.filter((item) => sameAddress(item.address, at("middle", "start"))),
+    ).toEqual([]);
 
     const startRecoloured = layered([
       {
@@ -795,7 +801,6 @@ describe("the marks at any position", () => {
         set: { fill: "#FF0000" },
       },
     ]);
-    expect(wedge(startRecoloured, at("middle", "start")).style.fill).toBe("#FF0000");
     expect(wedgeAt(startRecoloured, key, 200)).toEqual(mark);
 
     const ancestorWedges = layered([

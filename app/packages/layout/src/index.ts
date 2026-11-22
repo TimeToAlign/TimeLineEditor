@@ -34,6 +34,9 @@ export type {
   DrawnAxis,
   DrawnBox,
   ElementRange,
+  ElisionExposure,
+  ExposedGap,
+  Run,
 } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
@@ -41,9 +44,12 @@ export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   AnchorElement,
   BlockElement,
+  Cut,
   Drawing,
   DrawnElement,
   ElisionElement,
+  EllipsisElement,
+  GapOrigin,
   JumpElement,
   LineElement,
   LineEnd,
@@ -61,6 +67,8 @@ export type {
   View,
 } from "./elements.ts";
 export { DEFAULT_PLACEMENT, DEFAULT_VIEW } from "./elements.ts";
+export type { StoredWidth, WidthForm } from "./elisions.ts";
+export { widthAs } from "./elisions.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
 export { boundsOf, brace, lineGeometry, wedgePoints } from "./geometry.ts";
 export { frameMemberLines, groupSpans, readsAcrossGroup } from "./groupstamps.ts";

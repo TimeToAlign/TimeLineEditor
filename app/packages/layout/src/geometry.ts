@@ -273,6 +273,16 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       return boundsOfPoints(wedgePoints(element));
     case "elision":
       return { left: element.x1, top: element.yt, right: element.x2, bottom: element.yb };
+    case "ellipsis": {
+      // Its three dots, the outer ones centred `spacing` from its middle.
+      const reach = element.spacing + element.r;
+      return {
+        left: element.x - reach,
+        top: element.y - element.r,
+        right: element.x + reach,
+        bottom: element.y + element.r,
+      };
+    }
     case "name":
     case "label": {
       const size = element.style["font-size"];

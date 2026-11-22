@@ -33,8 +33,8 @@ const blockAndCard = (root: string, W: number, H: number, cardWidth: number, Hm:
     shadowOffset: 2,
   },
 ];
-const root = { type: "timeline", start: "circle", end: "arrowhead" } as const;
-const child = { type: "child", start: "circle", end: "diamond" } as const;
+const root = { type: "timeline", start: "circle", end: "arrowhead", cuts: [] } as const;
+const child = { type: "child", start: "circle", end: "diamond", cuts: [] } as const;
 
 describe("bare", () => {
   const drawing = drawFixture("bare");
@@ -274,7 +274,7 @@ describe("map", () => {
     const xe = 463.53662109375;
     expect(geometry(drawing)).toEqual([
       ...blockAndCard("melody", 490.53662109375, 85.4765625, 472.53662109375, 67.4765625),
-      { type: "map", address: at("tempo"), xs: x0, xe, yc: 35, spacing: 2 },
+      { type: "map", address: at("tempo"), xs: x0, xe, yc: 35, spacing: 2, cuts: [] },
       {
         type: "map",
         address: at("ticks"),
@@ -282,6 +282,7 @@ describe("map", () => {
         xe: 363.53662109375,
         yc: 17.5,
         spacing: 2,
+        cuts: [],
       },
       { ...root, address: at("melody"), xs: x0, xe, y: 40.5 },
       { ...child, address: at("phrase"), xs: 163.53662109375, xe: 363.53662109375, y: 23 },

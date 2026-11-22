@@ -57,7 +57,7 @@ export interface LevelZero {
  * directly and in no band (section 2.1), and drawn only with that line.
  */
 export function levelZero(scope: Scope, line: Entry): LevelZero {
-  const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, u, h, d } = scope;
+  const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, h, d } = scope;
   const drawn = shown(line.style);
   const segments =
     drawn && line.manifest.is_segment_line
@@ -96,7 +96,10 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
       [relativeX(line.start), line.open ? end + 9.5 * w : end],
       ...labels.map((item) => labelExtent(relativeX(item.at), item.width)),
     ],
-    centred: labels.map((item) => ({ width: item.width, u: u(item.at) })),
+    centred: labels.flatMap((item) => {
+      const x = scope.drawnX(item.at);
+      return x === undefined ? [] : [{ width: item.width, x }];
+    }),
     reach: (side, against) => {
       if (side === "below" || tiers.count === 0) return m(against);
       return m(against) + LABEL_GAP + tiers.count * h(size);
@@ -104,7 +107,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
     draw: (at, against) => ({
       line: drawn ? drawnLine(at) : [],
       boundaries: boundaries
-        .filter(({ segment }) => at.strip(segment.start) === undefined)
+        .filter(({ segment }) => at.gap(segment.start) === undefined)
         .map(({ segment, address, style }) => ({
           segment,
           element: {
@@ -117,7 +120,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
           },
         })),
       segmentLabels: labels
-        .filter((item) => at.strip(item.at) === undefined)
+        .filter((item) => at.gap(item.at) === undefined)
         .map((item) => {
           const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
           return {
@@ -129,15 +132,16 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
   };
 
   /**
-   * The line at `at`: from `Xs`, or from the right edge of the strip its start lies in, without
-   * its circle; to its end mark past `Xe`, or to the left edge of the strip its end lies in,
-   * without a mark; none where those meet or cross (section 6.6, Elisions).
+   * The line at `at`: from `Xs`, or from the right edge of the gap its start lies in, without
+   * its circle; to its end mark past `Xe`, or to the left edge of the gap its end lies in,
+   * without a mark; none where those meet or cross; cut at every gap it crosses (section 6.6,
+   * Elisions).
    */
   function drawnLine(at: LinePosition): LineElement[] {
-    const first = at.strip(line.start);
-    const last = line.rootEnd ? undefined : at.strip(line.end);
-    const xs = first === undefined ? at.x(line.start) : first.right;
-    const xEnd = last === undefined ? at.xEnd(line) : last.left;
+    const first = at.gap(line.start);
+    const last = line.rootEnd ? undefined : at.gap(line.end);
+    const xs = first === undefined ? at.x(line.start) : first[1];
+    const xEnd = last === undefined ? at.xEnd(line) : last[0];
     if ((first !== undefined || last !== undefined) && xs >= xEnd) return [];
     const end =
       last === undefined
@@ -153,6 +157,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
         y: at.y,
         start: first === undefined ? "circle" : "none",
         end,
+        cuts: at.cuts(line.start, line.rootEnd ? null : line.end),
       },
     ];
   }

@@ -44,3 +44,10 @@ export const JUMP_DEPTH = 4;
 export const JUMP_PITCH = 6;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;
+/** The standard gap of an elision: the drawn width of a gap without a `width` (section 2). */
+export const STANDARD_GAP = 32;
+/** An ellipsis: the radius of each of its three dots and the spacing of their centres. */
+export const ELLIPSIS_RADIUS = 2;
+export const ELLIPSIS_SPACING = 6;
+/** The narrowest gap that draws an ellipsis. */
+export const ELLIPSIS_GAP = 20;
