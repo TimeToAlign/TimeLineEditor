@@ -5,7 +5,7 @@ import type { MatchFlagGroup } from "./matches.ts";
 interface Props {
   /**
    * The hovered MatchStamp's coordinates, its groupstamps' included above a timeline editor,
-   * one group per timeline, in the order they are drawn (`matchFlag`).
+   * in the order they are drawn, one group per run of them on one timeline (`matchFlag`).
    */
   groups: readonly MatchFlagGroup[];
   /** Where the hovered line or connector is, in pixels from the canvas's top-left corner. */
@@ -22,7 +22,7 @@ let { groups, x, y, top, width }: Props = $props();
 
 <!-- The Timestamp flag's look and place, with every coordinate of the MatchStamp. -->
 <Flag kind="match" label="MatchStamp" {x} {y} {top} {width}>
-  {#each groups as group (group.timeline)}
+  {#each groups as group (group.key)}
     <div class="tilie-coordinates-part" data-timeline={group.timeline}>
       <div class="tilie-coordinates-head">{group.name}</div>
       {#each group.rows as row (row.key)}

@@ -579,8 +579,13 @@ export interface MatchFlagRow {
   readonly text: string;
 }
 
-/** One timeline of a MatchStamp's flag: its ID, its name and its timestamps. */
+/**
+ * One run of a MatchStamp's flag on one timeline: its key among the groups
+ * (its first row's), the timeline's ID, its name and the timestamps drawn
+ * one after the other on it.
+ */
 export interface MatchFlagGroup {
+  readonly key: string;
   readonly timeline: string;
   readonly name: string;
   readonly rows: readonly MatchFlagRow[];
@@ -664,15 +669,17 @@ export function inScreenOrder<T>(
  * read on the other members of their groups (`groups.groupstampAt`: the
  * scaled members of the coordinate's GroupStamp pin, the arranger's
  * `timelinePin` read by the group, as the Matchstamp tab's Coordinates
- * read it), each value once per timeline. One group per timeline, named as
- * `manifest` names it (its ID where it holds none), each coordinate a row
- * written as core's `prettyText` with `decimals` places, in the timeline's
- * unit; rows in the order they are drawn, top to bottom, then left to right
- * (a coordinate of the stamp at its `screenPlace` over the drawing `lines`
+ * read it), each value once per timeline. Each coordinate is a row written
+ * as core's `prettyText` with `decimals` places, in the timeline's unit;
+ * rows in the order they are drawn, top to bottom, then left to right (a
+ * coordinate of the stamp at its `screenPlace` over the drawing `lines`
  * were read from, with the root raised as they were read; a groupstamp's at
  * the ordinate its pin reads the member at, on its coordinate's abscissa),
- * what the block does not draw last, in the index's order; groups by their
- * first row.
+ * what the block does not draw last, in the index's order. The rows are
+ * grouped by runs: one group for each run of rows on one timeline, named as
+ * `manifest` names it (its ID where it holds none), so the flag reads top
+ * to bottom exactly as drawn, a timeline whose rows lie apart in that order
+ * heading each run, and one whose rows are adjacent heading them once.
  */
 export function matchFlag(
   index: AnchorIndex,
@@ -713,6 +720,10 @@ export function matchFlag(
     add(timeline, value, { key: String(coordinate), coordinate, text }, place);
     if (groups === null || !groups.groupstampAt(coordinate)) continue;
     reads.push(() => {
+      // The flag lists positions, not map rows: a scaled member's position is
+      // `(position - offset) × scale`, which no MeasureMap's rows change, so
+      // the pin is read without them, and the Matchstamp tab, reading them,
+      // lists the same positions.
       const pin = timelinePin(
         manifest,
         groups.block,
@@ -748,14 +759,15 @@ export function matchFlag(
   }
   for (const read of reads) read();
   rows.sort((left, right) => screenOrder(left.place, right.place));
-  const byTimeline = new Map<string, MatchFlagRow[]>();
+  const runs: { key: string; timeline: string; rows: MatchFlagRow[] }[] = [];
   for (const { timeline, row } of rows) {
-    byTimeline.set(timeline, [...(byTimeline.get(timeline) ?? []), row]);
+    const last = runs.at(-1);
+    if (last?.timeline === timeline) last.rows.push(row);
+    else runs.push({ key: row.key, timeline, rows: [row] });
   }
-  return [...byTimeline].map(([timeline, found]) => ({
-    timeline,
-    name: findTimeline(manifest, timeline)?.name ?? timeline,
-    rows: found,
+  return runs.map((run) => ({
+    ...run,
+    name: findTimeline(manifest, run.timeline)?.name ?? run.timeline,
   }));
 }
 
