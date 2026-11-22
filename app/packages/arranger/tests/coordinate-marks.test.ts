@@ -185,14 +185,17 @@ function attributes(element: Element, names: readonly string[]): Record<string, 
 const LINE = ["x1", "y1", "x2", "y2", "stroke", "stroke-width", "stroke-dasharray", "opacity"];
 const WEDGE = ["points", "fill", "opacity"];
 
-/** The attributes the marks of `kind` must carry: layout's wedge and line at `x` on `key`. */
+/**
+ * The attributes the marks must carry: layout's wedge and cross-section line at `x` on `key`, the
+ * line in the pieces it leaves around the wedge's gap, from the top.
+ */
 function expectedMarks(drawing: Drawing, key: string, x: number) {
   const wedge = wedgeAt(drawing, key, x);
-  const line = crossSection(drawing, key, x);
-  if (wedge === null || line === null) throw new Error("melody's line draws no marks");
+  const pieces = crossSection(drawing, key, x);
+  if (wedge === null || pieces.length === 0) throw new Error("melody's line draws no marks");
   return {
     wedge: { points: attributeText(wedge.points), fill: wedge.style.fill, opacity: null },
-    line: {
+    lines: pieces.map((line) => ({
       x1: attributeText(x),
       y1: attributeText(line.y1),
       x2: attributeText(x),
@@ -201,7 +204,7 @@ function expectedMarks(drawing: Drawing, key: string, x: number) {
       "stroke-width": attributeText(line.style["stroke-width"]),
       "stroke-dasharray": line.style["stroke-dasharray"],
       opacity: null,
-    },
+    })),
   };
 }
 
@@ -211,7 +214,9 @@ function marks(kind: "hover" | "pin") {
   if (svg === null) return null;
   return {
     wedge: attributes(one('[data-testid="coordinate-wedge"]', svg), WEDGE),
-    line: attributes(one('[data-testid="coordinate-line"]', svg), LINE),
+    lines: [...svg.querySelectorAll('[data-testid="coordinate-line"]')].map((line) =>
+      attributes(line, LINE),
+    ),
   };
 }
 
@@ -246,16 +251,22 @@ describe("the hovered position", () => {
     expect(marks("pin")).toBeNull();
   });
 
-  it("is marked exactly as a named timestamp there is drawn", async () => {
+  it("is marked as a named timestamp there is drawn, but for its label stack", async () => {
     await show(namedView());
     await toggleCoordinates();
     await hoverAt(client(AT_4, MELODY_Y));
     const node = one(".svelte-flow__node[data-id] svg");
     const wedge = one('polygon[data-id="timestamp_3"]:not([data-part])', node);
-    const line = one('line[data-id="timestamp_3"][data-part="line"]', node);
+    const lines = [...node.querySelectorAll('line[data-id="timestamp_3"][data-part="line"]')];
+    // The line across the card, cut where the wedge and its label stack stand: two pieces. The
+    // hover draws no labels, so its lower piece starts at the wedge's base, 55, where the named
+    // one's starts below its name label.
+    expect(lines).toHaveLength(2);
+    const [upper, lower] = lines.map((line) => attributes(line, LINE));
+    expect(lower?.y1).toBe("67.4766");
     expect(marks("hover")).toEqual({
       wedge: attributes(wedge, WEDGE),
-      line: attributes(line, LINE),
+      lines: [upper, { ...lower, y1: "55" }],
     });
   });
 
@@ -475,7 +486,8 @@ describe("a pinned timestamp read across its group", () => {
     if (score === undefined) throw new Error("no line of score");
     await hoverAt(client(x, score.y));
     const expected = expectedGroupLines(key, x);
-    expect(expected).toHaveLength(2);
+    // The frame's span less `score`'s card, which `score` tops: one piece below it.
+    expect(expected).toHaveLength(1);
     expect(groupLines("hover")).toEqual(expected);
   });
 
@@ -502,7 +514,7 @@ describe("a pinned timestamp read across its group", () => {
       "stroke-dasharray": line.style["stroke-dasharray"],
       opacity: null,
     }));
-    expect(expected).toHaveLength(2);
+    expect(expected).toHaveLength(1);
     expect(groupLines()).toEqual(expected);
 
     harness.pin(pinOnScore({ target: inBlock(A, idAddress("score")), kind: "timeline" }).pin);
@@ -588,6 +600,7 @@ describe("the mode split", () => {
       "timestamp_2 coordinate",
       "timestamp_2 null",
       "timestamp_3 line",
+      "timestamp_3 line",
       "timestamp_3 name",
       "timestamp_3 null",
     ]);
@@ -606,7 +619,7 @@ describe("the mode split", () => {
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await settle();
     expect([...harness.current().selection.values()]).toEqual([timestamp]);
-    expect(glowing()).toEqual([null, "name", "line"]);
+    expect(glowing()).toEqual([null, "name", "line", "line"]);
   });
 
   it("selects a groupstamp by its line across the other members of its group", async () => {
@@ -744,10 +757,10 @@ describe("the flag", () => {
     expect([pole.style.left, pole.style.width, pole.style.top, pole.style.height]).toEqual([
       `${x + AT_4 - 0.5}px`,
       "1px",
-      `${y + 16 - 22}px`,
-      "46.5px",
+      `${y + 8 - 22}px`,
+      "54.5px",
     ]);
-    expect([flag.style.left, flag.style.top]).toEqual([`${x + AT_4 + 0.5}px`, `${y + 16 - 22}px`]);
+    expect([flag.style.left, flag.style.top]).toEqual([`${x + AT_4 + 0.5}px`, `${y + 8 - 22}px`]);
   });
 
   it("keeps its side where it would leave the canvas, shifted by exactly the overflow", async () => {
@@ -757,7 +770,7 @@ describe("the flag", () => {
     expect(x + AT_4 + 0.5 + 180).toBe(484.03662109375);
     expect([flag.style.left, flag.style.top, pole.style.left]).toEqual([
       `${400 - 180}px`,
-      `${y + 16 - 22}px`,
+      `${y + 8 - 22}px`,
       `${x + AT_4 - 0.5}px`,
     ]);
   });
@@ -797,6 +810,20 @@ describe("the flag", () => {
       ),
     ).toEqual(["tempo"]);
     expect(one('[data-testid="coordinate-footer"]').textContent).toBe("click to pin");
+  });
+
+  it("highlights the primary coordinate, the timeline read on", async () => {
+    await flagAt(1000);
+    /** The rows marked primary, as `[timeline, map]`. */
+    const primary = () =>
+      [...document.querySelectorAll('.tilie-coordinates-row[data-primary="true"]')].map((row) => [
+        row.closest(".tilie-coordinates-part")?.getAttribute("data-timeline"),
+        row.getAttribute("data-map"),
+      ]);
+    expect(primary()).toEqual([["melody", null]]);
+    // On `phrase`'s line (23) at the same abscissa: `phrase` at 2 is the primary coordinate.
+    await hoverAt(client(AT_4, 23));
+    expect(primary()).toEqual([["phrase", null]]);
   });
 });
 

@@ -63,6 +63,7 @@ import {
   arranger,
   clickPart,
   dispatch,
+  element,
   emptyPoint,
   fixtureText,
   journalLength,
@@ -154,7 +155,8 @@ test("the flag and the marks follow the pointer along a line and stay over its m
   await expect(row(page, "tempo")).toHaveText("Tempo 1.233″");
   await expect(footer(page)).toHaveText("click to pin");
   await expect(wedge(page, "hover")).toHaveCount(1);
-  await expect(crossSectionLine(page, "hover")).toHaveCount(1);
+  // The line crosses `melody`'s whole card, cut where the wedge stands: two pieces.
+  await expect(crossSectionLine(page, "hover")).toHaveCount(2);
 
   await hover(page, MELODY.start + 200, MELODY.y);
   await expect(coordinate(page)).toHaveText("4 ♩");
@@ -195,11 +197,18 @@ test("a map drawn above its line comes before the line's coordinate, in the flag
   expect(await tabRows("phrase")).toEqual(["Ticks", "coordinate"]);
 });
 
-test("a child's flag holds its own maps only", async ({ page }) => {
+test("a child's flag lists what its line crosses in the card, the child's coordinate primary", async ({
+  page,
+}) => {
   await hover(page, 263.53662109375, PHRASE_Y);
   await expect(coordinate(page, "phrase")).toHaveText("2 ♩");
   await expect(row(page, "ticks")).toHaveText("Ticks 960 ticks");
-  await expect(row(page, "tempo")).toHaveCount(0);
+  // The root `melody` and its map, drawn in the same card, are crossed too.
+  await expect(coordinate(page, "melody")).toHaveText("4 ♩");
+  await expect(row(page, "tempo")).toHaveText("Tempo 2″");
+  const primary = flag(page).locator('.tilie-coordinates-row[data-primary="true"]');
+  await expect(primary).toHaveCount(1);
+  await expect(primary).toHaveText("coordinate 2 ♩");
 });
 
 test("C toggles the flag", async ({ page }) => {
@@ -226,7 +235,7 @@ test("a click pins and selects Timestamp; a click elsewhere clears it and restor
   expect(await journalLength(page)).toBe(OPENED_JOURNAL.small);
   await hover(page, MELODY.start + 200, MELODY.y + 30);
   await expect(wedge(page, "pin")).toHaveCount(1);
-  await expect(crossSectionLine(page, "pin")).toHaveCount(1);
+  await expect(crossSectionLine(page, "pin")).toHaveCount(2);
 
   const empty = await emptyPoint(page, 560, 120);
   await page.mouse.click(empty.x, empty.y);
@@ -336,10 +345,17 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   await expect(page.getByTestId("coordinates")).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("timestamp-properties")).toHaveCount(0);
   const own = idAddress(TIMESTAMP.id);
-  for (const address of [own, partAddress(own, "name"), partAddress(own, "line")]) {
+  for (const address of [own, partAddress(own, "name")]) {
     await clickPart(page, SMALL.map, address);
     expect(await selection(page)).toEqual([TIMESTAMP]);
   }
+  // The line's lower piece, below the name label (its upper piece runs past `phrase`'s line),
+  // 1.5 into its first dash: the line is dashed 3 3 from its top, and a gap takes no click.
+  const lower = element(page, SMALL.map, partAddress(own, "line")).last();
+  const box = await lower.boundingBox();
+  if (box === null) throw new Error("the line's lower piece is not displayed");
+  await page.mouse.click(Math.round(box.x + box.width / 2), Math.round(box.y + 1.5));
+  expect(await selection(page)).toEqual([TIMESTAMP]);
   await expect(timestampTab(page)).toHaveAttribute("aria-selected", "true");
   const shown = await panel(page, "Timestamp");
   await expect(shown.getByLabel("Name", { exact: true })).toHaveValue("Four");

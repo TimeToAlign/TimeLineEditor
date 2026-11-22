@@ -4,7 +4,10 @@ import { flagParts, rowValueText } from "./coordinates.ts";
 import Flag from "./Flag.svelte";
 
 interface Props {
-  /** The pin the hovered position makes: its timestamp is shown, part by part. */
+  /**
+   * The pin the hovered position makes: its timestamp is shown, part by part, top to bottom, its
+   * primary coordinate (its anchor's) highlighted.
+   */
   pin: Pin;
   /** The hovered row, highlighted: the line's coordinate or one map's value. */
   hovered: Row;
@@ -13,7 +16,7 @@ interface Props {
   y: number;
   /** The topmost ordinate of the line, its maps and its cross-section line, in the same pixels. */
   top: number;
-  /** The canvas's width in pixels: a flag that would leave it there opens to the left, and stays inside it. */
+  /** The canvas's width in pixels: a flag that would leave it is shifted to stay inside it. */
   width: number;
 }
 
@@ -22,6 +25,9 @@ let { pin, hovered, x, y, top, width }: Props = $props();
 /** The places a float is shown with: the granularity's. */
 const decimals = $derived(pin.timestamp.granularity.decimals);
 const parts = $derived(flagParts(pin));
+
+/** The timeline of the timestamp's primary coordinate: its anchor's. */
+const primary = $derived(pin.spec.anchor.timeline);
 
 /** Whether `row` is the hovered one. */
 function isHovered(row: Row): boolean {
@@ -38,6 +44,7 @@ function isHovered(row: Row): boolean {
           class="tilie-coordinates-row"
           data-map={item.row.map ?? undefined}
           data-hovered={isHovered(item.row)}
+          data-primary={item.row.map === null && item.row.timeline === primary}
         >
           <span class="tilie-coordinates-name">{item.row.map === null ? "coordinate" : item.label}</span>
           <span class="tilie-coordinates-value" data-testid={item.row.map === null ? "coordinate" : undefined}

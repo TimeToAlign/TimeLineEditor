@@ -10,8 +10,10 @@
  * without, every field is disabled and greyed. A copy is confirmed in the
  * message bar; a refusal shows at its field. A group that says how its
  * timeline takes part (`through`, the Matchstamp tab's) carries a caption
- * under its heading; the coordinate its MatchClaims state (`claimed`) is
- * set apart: its row bold and its group marked by a bar on the left.
+ * under its heading; the primary coordinate (`primary`, the one the
+ * stamp's wedge and labels mark) and the coordinate its MatchClaims state
+ * (`claimed`) are set apart: the row bold and its group marked by a bar on
+ * the left.
  */
 import { informOf } from "../../messages.svelte.ts";
 import FormatSwitch from "../FormatSwitch.svelte";
@@ -180,7 +182,11 @@ async function copy(copied: string, what: string): Promise<void> {
         {#each groups as group, g (group.key)}
           {@const through = "through" in group ? group.through : undefined}
           {@const caption = captionOf(group)}
-          <tbody data-timeline={group.timeline} data-through={through}>
+          <tbody
+            data-timeline={group.timeline}
+            data-through={through}
+            data-primary={group.primary === true ? "" : undefined}
+          >
             <tr>
               <th colspan={2 + COPY_COLUMNS.length} scope="colgroup">{group.name}</th>
             </tr>
@@ -194,7 +200,8 @@ async function copy(copied: string, what: string): Promise<void> {
               {@const problem = `${uid}-${g}-${r}-problem`}
               {@const named = `${row.label} of ${group.name}`}
               {@const claimed = through === "claimed" && row.row.map === null}
-              <tr data-row={row.key} class={{ claimed }}>
+              {@const primary = group.primary === true && row.row.map === null}
+              <tr data-row={row.key} class={{ claimed, primary }}>
                 <th scope="row">{row.label}</th>
                 <td class="value" title={locked ? READ_ONLY : undefined}>
                   {#if row.numberType === null}
@@ -316,12 +323,18 @@ async function copy(copied: string, what: string): Promise<void> {
     font-style: italic;
   }
 
-  /* The coordinate the MatchClaims state: its group barred on the left, its row bold. */
+  /*
+   * The primary coordinate and the coordinate the MatchClaims state: the group barred on the left,
+   * the row bold.
+   */
+  tbody[data-primary] > tr > :first-child,
   tbody[data-through="claimed"] > tr > :first-child {
     padding-left: 0.4rem;
     border-left: 3px solid #1a1a1a;
   }
 
+  tr.primary th[scope="row"],
+  tr.primary .value input,
   tr.claimed th[scope="row"],
   tr.claimed .value input {
     color: #1a1a1a;

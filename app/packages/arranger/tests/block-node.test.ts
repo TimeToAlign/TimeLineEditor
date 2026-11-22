@@ -1130,7 +1130,7 @@ describe("the MatchStamp paint", () => {
       [addressKey(idAddress("anchor_1")), { attribute: "stroke", colour, marked: false }],
     ]);
 
-  it("is read again by the four MatchStamp parts alone when it changes", () => {
+  it("is read again by the eight MatchStamp parts alone when it changes", () => {
     const first = anchorStroked("#E51400");
     const second = anchorStroked("#E07000");
     const paints = new SvelteMap<string, MatchPaint>([["paint", first]]);
@@ -1139,10 +1139,10 @@ describe("the MatchStamp paint", () => {
     });
     const stroke = () => addressed(svg, idAddress("anchor_1")).map((e) => e.getAttribute("stroke"));
     const reads = (paint: CountedPaint) => [paint.sizeReads, paint.lookups];
-    expect([drawn(svg).length, reads(first), stroke()]).toEqual([36, [5, 40], ["#E51400"]]);
+    expect([drawn(svg).length, reads(first), stroke()]).toEqual([40, [9, 48], ["#E51400"]]);
 
     paints.set("paint", second);
     flushSync();
-    expect([reads(first), reads(second), stroke()]).toEqual([[5, 40], [5, 40], ["#E07000"]]);
+    expect([reads(first), reads(second), stroke()]).toEqual([[9, 48], [9, 48], ["#E07000"]]);
   });
 });

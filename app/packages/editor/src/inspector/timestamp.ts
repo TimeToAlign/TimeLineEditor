@@ -106,6 +106,11 @@ export interface TimelineRows {
   /** The timeline's name, else its ID. */
   readonly name: string;
   readonly rows: readonly ValueRow[];
+  /**
+   * Present, `true`, on the group holding the timestamp's primary coordinate (its anchor's
+   * coordinate row), which the tab highlights.
+   */
+  readonly primary?: true;
 }
 
 /** A row's label in the tab: a timeline's coordinate is "coordinate", its timeline's name heading the rows. */
@@ -171,11 +176,16 @@ function rowsOf(item: TimestampRow): ValueRow[] {
 /**
  * The rows of `pin`'s timestamp (core's `timestampRows`), grouped by
  * timeline in their order: each group the consecutive rows of one timeline,
- * top to bottom as they are drawn, named by its coordinate row's label.
+ * top to bottom as they are drawn, named by its coordinate row's label; the
+ * group holding the primary coordinate (the anchor's coordinate row) marked
+ * `primary`. They are what the coordinate flag lists for the pin.
  */
 export function timelineRows(pin: Pin): TimelineRows[] {
+  const anchor = pin.spec.anchor.timeline;
   const groups: TimelineRows[] = [];
   for (const item of timestampRows(pin)) {
+    const primary =
+      item.timeline === anchor && item.row.map === null ? { primary: true as const } : {};
     const last = groups.at(-1);
     if (last === undefined || last.timeline !== item.timeline) {
       groups.push({
@@ -183,10 +193,16 @@ export function timelineRows(pin: Pin): TimelineRows[] {
         timeline: item.timeline,
         name: item.label,
         rows: rowsOf(item),
+        ...primary,
       });
     } else {
       const name = item.row.map === null ? item.label : last.name;
-      groups[groups.length - 1] = { ...last, name, rows: [...last.rows, ...rowsOf(item)] };
+      groups[groups.length - 1] = {
+        ...last,
+        name,
+        rows: [...last.rows, ...rowsOf(item)],
+        ...primary,
+      };
     }
   }
   return groups;

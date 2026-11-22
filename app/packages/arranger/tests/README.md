@@ -2407,12 +2407,12 @@ on a line the raised card covers.
 **A GroupStamp read under the raised card.** A member of a group that
 the raised card draws is read on the card's row of it, as its own
 reading is placed there: in `group_parent_both` the GroupStamp pin of
-`recording` at 2.5 (`timelinePin`, `groupstamp`) reads `middle` at
-47.20703125 (its member card's line) and its ancestor `piece` at
-85.18359375 on the arranger, both scaled 4/5 (`middle` 4 ♩ ↔ `recording`
-5 s at the frame's common abscissa); with `piece`'s editor open `middle`
-at 51.20703125 (the card's row) and `piece` at 85.18359375 (the card's
-line). Its rows, top to bottom, are middle 2 ♩ / piece 6 ♩ / recording
+`recording` at 2.5 (`timelinePin`, `groupstamp`) reads, in traversal
+order, the ancestor `piece` at 85.18359375 and `middle` at 47.20703125
+(its member card's line) on the arranger, both scaled 4/5 (`middle` 4 ♩
+↔ `recording` 5 s at the frame's common abscissa); with `piece`'s editor
+open `piece` at 85.18359375 (the card's line) and `middle` at 51.20703125
+(the card's row). Its rows, top to bottom, are middle 2 ♩ / piece 6 ♩ / recording
 2.5″ both on the arranger and raised (the card's row lies above the
 card's line as the member's line lies above the ancestor line). What
 would be wrong: `middle` read on its own line the raised card covers.
@@ -2458,39 +2458,45 @@ The segments are marked on their segment line at their offset, a
 zero-length line at its start. What would be wrong: a pin whose value is
 seen left unmarked, or marked elsewhere than at its first place.
 
-**The cross-section.** The spec of a hovered line names its timeline as
-the anchor with the maps drawn at the line for it, then as members the
-anchor's ancestors, parent first, each at minus the offsets summed up to
-it and without maps (core's `ancestorMembers`: a parent's coordinate is
-its child's plus the child's offset), then every timeline the
-cross-section line crosses: the lines `crossedLines` lists after the line
-itself, and the segments of every crossed line (its own included), each
-once, in traversal order (pre-order, children by offset). Each crossed
-member's offset is its start on the anchor's axis, summed exactly down the
-manifest's tree from the anchor; each carries its name (its ID without
-one), unit, number type, length and the maps drawn for it at any crossed
-line, in drawing order, as the manifest holds them. The ancestors come
-from the manifest, never the drawing, so a child drawn in a card of its
-own as a group's member holds them as one drawn in its parent's card.
+**The cross-section.** A timestamp's coordinates in a card are what its
+cross-section line, drawn across the whole card, crosses there (drawing.md
+section 2): every timeline the card draws whose line spans the position,
+ends included, and every map drawn there. The spec of a hovered line
+names its timeline as the anchor with the maps drawn for it in the line's
+card, then as members every other timeline that card draws: the root and
+every line of its member drawing (siblings, children and parents of the
+anchor alike), the ancestor lines of a member's card, and every segment
+without a line of its own of each segment line there, each once, in
+traversal order (pre-order, children by offset). An ancestor card (section
+8.8) is a card of its own: its lines never join a member card's. Each
+member's offset is its zero on the root's axis less the anchor's, summed
+exactly down the manifest's tree (negative for a parent, an earlier
+sibling or a segment line); each carries its name (its ID without one),
+unit, number type, length and the maps drawn for it at the card's lines,
+in drawing order, as the manifest holds them. Which members a position
+crosses is core's (`timestampAt`: the closed span), so the spec does not
+depend on where the pointer lies. A timeline the card does not draw is no
+member: what the line does not cross is not listed.
 Every timeline of the spec, the anchor included, carries the **ordinate**
 of the line at which the reading crosses it in the hovered line's card:
 its own line there, its ancestor line there (a member drawn in a card of
-its own), or the line there whose segment it is; none where that card
-draws neither. Each timeline with maps drawn at the crossed lines also
-carries their **map ordinates**: per map, the ordinate of its drawing's
-centre there (layout's `AxisMap.yc` at that line); a timeline without a
-drawn map carries none. Both are read off layout's record of the same
-drawing (its `axes`), the oracle, and they are what the rows are ordered
-by (below, "The flag").
+its own), or the line there whose segment it is. Each timeline with maps
+drawn in the card also carries their **map ordinates**: per map, the
+ordinate of its drawing's centre there (layout's `AxisMap.yc` at that
+line); a timeline without a drawn map carries none. Both are read off
+layout's record of the same drawing (its `axes`), the oracle, and they are
+what the rows are ordered by (below, "The flag"). What would be wrong: a
+sibling or the root drawn in the card and spanning the position left out
+of the flag, or a timeline the card does not draw listed.
 
 - **From a root, with its children and their maps.** `map`'s `melody`:
   the anchor `melody` ("Melody", quarters, fraction, 8, `[tempo]`), one
   member `phrase` ("Phrase", 4, `[ticks]`) at offset 2 (its start 100
   canvas units right of `melody`'s at 50 a quarter, and its manifest
   offset).
-- **From a child, with its ancestors.** `phrase`'s line: the anchor
-  `phrase` with `[ticks]`, then `melody` at −2 (8 long), no maps; read at
-  `melody`'s 4 (`MELODY_START` + 200 on `melody`'s line) the parts are
+- **From a child, with the root its card draws.** `phrase`'s line: the
+  anchor `phrase` with `[ticks]`, then `melody` at −2 (8 long) with
+  `[tempo]`, the map drawn for `melody` in the same card; read at
   `melody` 4, `phrase` 2 as before. A child that is a group's member, in
   its own card: `bundle_mixed`'s `excerpt` (at 44100 in `recording`, 88200
   long) hovered at the middle of its line on the line reads `excerpt`
@@ -2508,8 +2514,51 @@ by (below, "The flag").
   302.294921875, 12 quarters over 150) `b2_ticks` is drawn at 30.9765625
   from 227.294921875 with `b2` as its owner; hovered, it is the row
   `{timeline: "b2", map: "b2_ticks"}`, the line the row `{timeline: "b",
-  map: null}`. `b`'s spec: anchor `b` without maps, members its segment
-  line `form` −8 (32), then `b1` 0 (6) and `b2` 6 (6, `[b2_ticks]`).
+  map: null}`. `b`'s spec: anchor `b` without maps, members every other
+  timeline of `form`'s card in traversal order: `form` −8 (32), its
+  sibling segment line `a` −8 (8) with `a1` −8 (8), `b`'s own segments
+  `b1` 0 (6) and `b2` 6 (6, `[b2_ticks]`), then `c` 12 (12) with `c1` 12
+  (12).
+
+**What a timestamp's line crosses, card by card** (`coordinates.test.ts`,
+"what a timestamp's line crosses in its card"). The flag and the
+Timestamp tab list a timestamp's coordinates in a card: every timeline
+and map that card draws whose span holds the position, ends included,
+top to bottom, the primary coordinate (the anchor's) marked; nothing the
+card does not draw. Each case adds what the old reading (the anchor's
+ancestors and crossed descendants only) would miss, so it fails on it:
+
+- **A child, its sibling and its root.** `map` with a second child
+  `motif` of `melody` (offset 3, 4 quarters, so 3 to 7, overlapping
+  `phrase`'s 2 to 6). The pin of `phrase` at 2 (`timelinePin`, no group)
+  lists `melody` 4 with `tempo`, `phrase` 2 with `ticks` and the sibling
+  `motif` at 4 − 3 = 1, its parts in the order of the ordinates of their
+  lines in layout's record (the oracle), the primary `phrase` (the
+  spec's anchor). At `phrase` 0.5 (`melody` 2.5) `motif` (3 to 7) is not
+  crossed and not listed. What would be wrong: `motif` missing at 2, or
+  listed at 0.5.
+- **An ancestor line in a member card, and the card behind.**
+  `group_parent_both` with a child `intro` of `piece` (offset 8, 4
+  quarters, 8 to 12), no group member. `piece` at 10 read on the
+  arranger lies on its ancestor line in `middle`'s card (inside the frame
+  the card's own line is covered) and lists `piece` 10 and `middle` 6,
+  never `intro`: `middle`'s card does not draw it, though it spans 10.
+  With `piece`'s timeline editor open (the card raised, its line the
+  place) the same position lists `piece` 10, `middle` 6 and `intro` 2,
+  all three drawn in the raised card. What would be wrong: `intro` read
+  where it is not drawn, or missing where it is.
+- **A groupstamp in another member's card.** `group_groupstamp_child_member`
+  with a child `bridge` of `score` (offset 2, 4 quarters, 2 to 6,
+  overlapping `second-half`'s 4 to 8) and a groupstamp named on
+  `second-half` at 2 (`score` 6). Its named pin lists `second-half` 2,
+  `score` 6, `bridge` 6 − 2 = 4 (a sibling of the anchor in `score`'s
+  card) and, read by the group from `score`'s card, `performance` 3.0 (6
+  / 2: 4.0 seconds over 8 quarters); `second-half` is the primary.
+- **A MatchStamp flag inside a timeline editor** stays the claim's two
+  coordinates (`matches.test.ts`): on `bundle_matchstamp_groupstamp` with
+  G, `matchFlag` of MatchStamp 1 without group reading lists `Score`
+  `6 ♩` then `Page` `400 px` (screen order: `group_1`'s card above
+  `group_2`'s), nothing a groupstamp's line or a card would add.
 
 **The position: snapping on the hovered row.** The position is core's
 `snapOnRow` of the hovered row with `p` the pointer's coordinate on the
@@ -2584,15 +2633,15 @@ hovered at the middle of its line (8 quarters over 400) reads the parts
 and in a group editor, `score` 4 alone in a timeline editor; `readsGroup`
 of the pin is true, resp. false. Without groups (`map`) nothing changes.
 
-**A reading across the group holds each member's crossed descendants**,
-where active, exactly as a groupstamp's pin does (one reading of a
-groupstamp's members, below): every other member of the frame comes with
-the descendants its own line's cross-section line crosses (the timelines
-its `crossSectionSpec` holds after its ancestors), each at the member's
-offset plus its own offset within the member divided by the member's
-scale, with the member's scale, so that its coordinate is the member's
-less its offset; and the member card holding the hovered line adds the
-crossed descendants of its member not yet held, unscaled. What proves it
+**A reading across the group holds each member's card**, where active,
+exactly as a groupstamp's pin does (one reading of a groupstamp's members,
+below): every other member of the frame comes with every timeline its card
+draws (what the groupstamp's line crosses there, as the hovered line's
+own card above), each at the member's offset plus its own offset from the
+member's zero divided by the member's scale, with the member's scale, so
+that its coordinate is the member's less that offset; and the member card
+holding the hovered line adds the timelines it draws not yet held,
+unscaled. What proves it
 is the child that the hovered line's own cross-section never reaches: in
 `groups/group_groupstamp_child_member` (`group_1` lists `score` (8
 quarters) and `performance` (4.0 seconds); `second-half` is `score`'s
@@ -2608,18 +2657,17 @@ cross-section), `performance` 3.0; at a quarter `score` 2, `performance`
 descendants, so the first case lacking `second-half`.
 
 **A reading across the group holds each other member's ancestors**, which
-the member's card draws as ancestor lines and the reading's cross-section
-line crosses there (layout: a member's cross-section lines reach its
-outermost displayed ancestor line): after the member, each of its
-ancestors, at the member's offset plus the ancestor's (negative) offset
-divided by the member's scale, with the member's scale, so that its
-coordinate is the member's less that offset, read at its ancestor line's
-ordinate in that card. In `groups/group_parent_both` (`group_1` lists
-`middle`, offset 4 and 8 quarters long in `piece` of 16, and `recording`,
-10.0 seconds), `recording` hovered at the middle of its line holds the
-members `middle` at 0, scale 8/10 = 4/5, and `piece` at `0 + (−4) / (4/5)
-= −5`, scale 4/5, and the parts `recording` the float 5.0, `middle` 4,
-`piece` `(5 + 5) × 4/5 = 8`; the anchor stays the timestamp's first part.
+the member's card draws as ancestor lines: the members of that card in
+traversal order, the ancestor first, at the member's offset plus the
+ancestor's (negative) offset divided by the member's scale, with the
+member's scale, so that its coordinate is the member's less that offset,
+read at its ancestor line's ordinate in that card. In
+`groups/group_parent_both` (`group_1` lists `middle`, offset 4 and 8
+quarters long in `piece` of 16, and `recording`, 10.0 seconds),
+`recording` hovered at the middle of its line holds the members `piece`
+at `0 + (−4) / (4/5) = −5`, scale 4/5, and `middle` at 0, scale 8/10 =
+4/5, and the parts `recording` the float 5.0, `piece` `(5 + 5) × 4/5 = 8`,
+`middle` 4; the anchor stays the timestamp's first part.
 What would be wrong: the ancestors left out, so `piece` missing, although
 its line is drawn in `middle`'s card and the group's line crosses it. The
 flag shows what
@@ -2644,17 +2692,20 @@ holds `origin` and `length` as `timestamp_1` and `timestamp_2`) at 4 on
 core's `timestampAt(spec, 4)`: `melody` 4, `phrase` 2. A timestamp of a
 segment without a line of its own is read on its segment line's line
 anchored on the segment (`crossSectionSpec` with the segment as the
-anchor): its members are its ancestors (its segment line among them),
-then the timelines of the segment's own subtree that line crosses, never
-a sibling segment. `segment_line` with `b2_ticks` and a timestamp at 1 on
+anchor): its members are every other timeline of that line's card, as a
+hovered line's. `segment_line` with `b2_ticks` and a timestamp at 1 on
 `b2` (no children) reads the spec anchor `b2` ("b2", quarters, fraction,
-6, `[b2_ticks]`, the map drawn at `b`'s line for it), members `b` ("B",
-12) at −6 and `form` ("Form", 32) at −14, both without maps (the anchor
-and `b` read at `b`'s line, 36.4765625, `form` at its own, 87.9296875;
-the anchor's map ordinates `b2_ticks` 30.9765625, its drawing above `b`'s
-line),
-and the timestamp `b2` at 1 with `b2_ticks` 480 (1·480), `b` 7, `form` 15; `b1`
-is no part of it. The same
+6, `[b2_ticks]`, the map drawn at `b`'s line for it), members in
+traversal order `form` ("Form", 32) at −14, `a` ("A", 8) and `a1` (8) at
+−14, `b` ("B", 12) and `b1` (6) at −6, `c` ("C", 12) and `c1` (12) at 6,
+all without maps (the anchor, `b` and `b1` read at `b`'s line,
+36.4765625, `a` and `a1` at `a`'s, `c` and `c1` at `c`'s, `form` at its
+own, 87.9296875; the anchor's map ordinates `b2_ticks` 30.9765625, its
+drawing above `b`'s line),
+and the timestamp `b2` at 1 with `b2_ticks` 480 (1·480), then the members
+whose span holds 1 + 14 = 15 on `form`'s axis, in the spec's order: `form`
+15 and `b` 7; `a`, `a1` (0 to 8), `b1` (8 to 14), `c` and `c1` (20 to 32)
+are no part of it, the line at 15 crossing none of them. The same
 holds on a line of unknown length: `unknown_length`'s `origin`
 (`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
@@ -3038,10 +3089,14 @@ quarters, fraction, 8) on the line y 43.20703125, `take_1` ("Take 1",
 samples, int, 352800) on y 100.5859375, `take_2` ("Take 2", samples, int,
 396900) on y 157.96484375, each from x 61.0927734375 to 461.0927734375
 (400 units: 50 a quarter, 882 samples a unit on `take_1`, 992.25 on
-`take_2`). None has a children or a conversion maps band, so a
-cross-section segment there is the point on the line (`y1 = y2` the
-line's ordinate) and a coordinate's line has no length: what shows are
-the connectors, exactly as for the named MatchStamps of the drawing
+`take_2`). A cross-section segment on a line spans its card (drawing.md
+section 8.7), from its upper border to its lower one (layout's record:
+each card 49.37890625 high, its line 14.40234375 below its top, the cards
+8 apart): `score` 28.8046875 to 78.18359375, `take_1` 86.18359375 to
+135.5625, `take_2` 143.5625 to 192.94140625. A coordinate's line spans
+its card so; a connector joins the nearer ends of two such segments (no
+two overlap), from the lower border of the upper card to the upper border
+of the lower one, exactly as for the named MatchStamps of the drawing
 (`anchor_1` joins `timestamp_1`, score 4, to `timestamp_2`, take_1 88200;
 `anchor_2` joins `timestamp_1` to `timestamp_3`, take_2 99225). Abscissas:
 score 4 → 261.0927734375, 6 → 361.0927734375; take_1 88200 →
@@ -3125,53 +3180,52 @@ draw.
 
 On the arranger (nothing raised), the lines in the drawing's order: the
 ancestor line (`piece`, card `{item: group_1, member: middle}`, y
-85.18359375, positions 4 to 12, cross-section from 47.20703125 to
-85.18359375: `middle`'s line's, which reaches down to the ancestor line),
-`middle`'s own line (y 47.20703125, 260.33544921875 to 660.33544921875, 0
-to 8, card `{item: group_1, member: middle}`, the same cross-section),
-then the card's line twice (card `{item: group_1, member: piece}`,
-cross-section from 44.20703125, the card's top 36.20703125 plus `P`, to
-85.18359375, its children band), from 0 to 1.925927734375 and from 12.8
-to 16; `middle` nowhere on the card's row (51.20703125). With `piece`'s
-timeline editor open (the card raised): the card's line, 0 to 16, then
-the card's `middle` row (y 51.20703125, 260.33544921875 to
-660.33544921875, 0 to 8, card `{item: group_1, member: piece}`, a
-cross-section of no extent: the point on the row, from 51.20703125 to
-51.20703125); `middle`'s own line lies inside the raised card (from
+85.18359375, positions 4 to 12, cross-section segment the span of
+`middle`'s card, 32.8046875 to 120.16015625: `middle`'s line's, whose
+card it lies in), `middle`'s own line (y 47.20703125, 260.33544921875 to
+660.33544921875, 0 to 8, card `{item: group_1, member: middle}`, the same
+segment), then the card's line twice (card `{item: group_1, member:
+piece}`, segment the ancestor card's span, 36.20703125 to 99.5859375),
+from 0 to 1.925927734375 and from 12.8 to 16; `middle` nowhere on the
+card's row (51.20703125). With `piece`'s timeline editor open (the card
+raised): the card's line, 0 to 16, then the card's `middle` row (y
+51.20703125, 260.33544921875 to 660.33544921875, 0 to 8, card `{item:
+group_1, member: piece}`, the same segment as the card's line, 36.20703125
+to 99.5859375); `middle`'s own line lies inside the raised card (from
 36.20703125 to 99.5859375) and is not seen.
 
-A connector joins two extents that overlap horizontally at the middle of
-their overlap (layout's `anchorLine`): c0's and c4's overlap from
-47.20703125 to 85.18359375, so a0 runs at `(47.20703125 + 85.18359375) /
-2 = 66.1953125`; raised, the row's point 51.20703125 lies within c4's
-extent, so a0 runs at 51.20703125.
+A connector joins two segments that overlap vertically at the middle of
+their overlap (layout's `anchorLine`): the ancestor card's span lies
+within `middle`'s card's, so every connector here runs at `(36.20703125 +
+99.5859375) / 2 = 67.896484375`, raised or not.
 
 | MatchStamp | Arranger: lines `[coordinate, x, y1, y2]`, connectors | Card raised |
 |---|---|---|
-| 0 | c0 [0, 260.33544921875, 47.20703125, 85.18359375], c4 [4, 110.33544921875, 44.20703125, 85.18359375] (left of the frame); a0 from (260.33544921875, 66.1953125) to (110.33544921875, 66.1953125) | c0 [0, 260.33544921875, 51.20703125, 51.20703125] on the card's row, c4 as on the arranger; a0 from (260.33544921875, 51.20703125) to (110.33544921875, 51.20703125) |
-| 1 | c1 [1, 310.33544921875, 47.20703125, 85.18359375] alone: c5 (`piece` 3, at 210.33544921875) lies in the gap | c1 [1, 310.33544921875, 51.20703125, 51.20703125], c5 [5, 210.33544921875, 44.20703125, 85.18359375]; a1 from (310.33544921875, 51.20703125) to (210.33544921875, 51.20703125) |
-| 2 | c2 [2, 360.33544921875, 47.20703125, 85.18359375] on `middle`'s line and c6 [6, 360.33544921875, 47.20703125, 85.18359375] on the ancestor line; a2 has no length | c2 [2, 360.33544921875, 51.20703125, 51.20703125], c6 [6, 360.33544921875, 44.20703125, 85.18359375]; a2 has no length |
-| 3 | c3 [3, 660.33544921875, 47.20703125, 85.18359375], c7 [7, 760.33544921875, 44.20703125, 85.18359375] (right of the frame); a3 from (660.33544921875, 66.1953125) to (760.33544921875, 66.1953125) | c3 [3, 660.33544921875, 51.20703125, 51.20703125], c7 as on the arranger; a3 from (660.33544921875, 51.20703125) to (760.33544921875, 51.20703125) |
+| 0 | c0 [0, 260.33544921875, 32.8046875, 120.16015625], c4 [4, 110.33544921875, 36.20703125, 99.5859375] (left of the frame); a0 from (260.33544921875, 67.896484375) to (110.33544921875, 67.896484375) | c0 [0, 260.33544921875, 36.20703125, 99.5859375] on the card's row, c4 as on the arranger; a0 as on the arranger |
+| 1 | c1 [1, 310.33544921875, 32.8046875, 120.16015625] alone: c5 (`piece` 3, at 210.33544921875) lies in the gap | c1 [1, 310.33544921875, 36.20703125, 99.5859375], c5 [5, 210.33544921875, 36.20703125, 99.5859375]; a1 from (310.33544921875, 67.896484375) to (210.33544921875, 67.896484375) |
+| 2 | c2 [2, 360.33544921875, 32.8046875, 120.16015625] on `middle`'s line and c6 [6, 360.33544921875, 32.8046875, 120.16015625] on the ancestor line; a2 has no length | c2 [2, 360.33544921875, 36.20703125, 99.5859375], c6 [6, 360.33544921875, 36.20703125, 99.5859375]; a2 has no length |
+| 3 | c3 [3, 660.33544921875, 32.8046875, 120.16015625], c7 [7, 760.33544921875, 36.20703125, 99.5859375] (right of the frame); a3 from (660.33544921875, 67.896484375) to (760.33544921875, 67.896484375) | c3 [3, 660.33544921875, 36.20703125, 99.5859375], c7 as on the arranger; a3 as on the arranger |
 
 The hit test (tolerance 8, connectors those of the whole view's overlay,
 a0 and a3 on the arranger, a0, a1 and a3 raised; the pole of a hit on a
-line lies at the line's ordinate, its top the extent's upper end):
+line lies at the line's ordinate, its top the segment's upper end):
 
 | Point | Arranger | Card raised |
 |---|---|---|
-| (110.33544921875, 85.18359375), left of the frame | c4, MatchStamp 0, distance 0, pole at (110.33544921875, 85.18359375), top 44.20703125 | the same |
-| (360.33544921875, 74), inside `middle`'s card | c6 on the ancestor line (tied with c2 on `middle`'s, the earlier line wins), MatchStamp 2, distance 0, top 47.20703125 | c6 on the card's line, distance 0, top 44.20703125 |
-| (360.33544921875, 91.40234375), below the ancestor line | c6 on the ancestor line, distance 6.21875 (91.40234375 − 85.18359375; tied with c2), MatchStamp 2, top 47.20703125 | c6 on the card's line, distance 6.21875, top 44.20703125 |
-| (210.33544921875, 80), `piece` 3 inside the frame | nothing: c5 lies in the gap, a0 lies 13.8046875 above | c5, MatchStamp 1, distance 0, top 44.20703125 (a1 lies 28.79296875 above) |
-| (760.33544921875, 85.18359375), right of the frame | c7, MatchStamp 3, distance 0, top 44.20703125 | the same |
-| (310.33544921875, 51.20703125), the card's `middle` row at 1 | not the row, covered by the frame: c1 on `middle`'s own line, whose extent holds the point, MatchStamp 1, distance 0, pole at 47.20703125 | c1 on the card's row, MatchStamp 1, distance 0, top 51.20703125 |
+| (110.33544921875, 85.18359375), left of the frame | c4, MatchStamp 0, distance 0, pole at (110.33544921875, 85.18359375), top 36.20703125 | the same |
+| (360.33544921875, 74), inside `middle`'s card | c6 on the ancestor line (tied with c2 on `middle`'s, the earlier line wins), MatchStamp 2, distance 0, top 32.8046875 | c6 on the card's line, distance 0, top 36.20703125 |
+| (360.33544921875, 91.40234375), below the ancestor line | c6 on the ancestor line, distance 0 (its segment reaches `middle`'s card's bottom, 120.16015625; tied with c2), MatchStamp 2, top 32.8046875 | c6 on the card's line, distance 0 (the card reaches 99.5859375), top 36.20703125 |
+| (210.33544921875, 80), `piece` 3 inside the frame | nothing: c5 lies in the gap, a0 lies 12.103515625 above | c5, MatchStamp 1, distance 0, top 36.20703125 (a1 lies 12.103515625 above) |
+| (760.33544921875, 85.18359375), right of the frame | c7, MatchStamp 3, distance 0, top 36.20703125 | the same |
+| (310.33544921875, 51.20703125), the card's `middle` row at 1 | not the row, covered by the frame: c1 on `middle`'s own line, whose segment holds the point, MatchStamp 1, distance 0, pole at 47.20703125, top 32.8046875 | c1 on the card's row, MatchStamp 1, distance 0, top 36.20703125 |
 
 With every ancestor card hidden (the workspace's rule) `piece` is drawn
 on no marked line, only as the ancestor line in `middle`'s card: it is
 seen there, the whole line, the positions 4 to 12 (layout's record gives
 its place: start 4, drawn length 8 over 400 units), so P's `piece` 6 is
-drawn on it 100 right of its start, from `middle`'s line down to its
-ordinate, and its screen place is that point. What would be wrong: `piece`
+drawn on it 100 right of its start, across `middle`'s card (from its
+upper to its lower border, layout's record of that card), and its screen
+place is the point on the ancestor line. What would be wrong: `piece`
 drawn nowhere, its ancestor line not taken for a line it is seen on.
 
 **What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
@@ -3179,16 +3233,19 @@ per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
 in the drawing's order, each by position: c1 at 261.0927734375 and c2 at
 361.0927734375 on score; c3 at 161.0927734375, c4 at 261.0927734375 and
 c5 at 361.0927734375 on take_1 (its own card, so c4 shares no column with
-c1); c0 at 361.0927734375 on take_2; each line the point `M x y V y`.
+c1); c0 at 361.0927734375 on take_2; each line across its card, `M x y1
+V y2` (score 28.8046875 to 78.18359375, take_1 86.18359375 to 135.5625,
+take_2 143.5625 to 192.94140625).
 Then every anchor of a drawn coordinate once, in the order the drawn
-coordinates reach them (c1: a2; c2: a3, a4; c4: a0; c5: a1): a2 from
-(261.0927734375, 43.20703125) to (161.0927734375, 100.5859375), exactly
+coordinates reach them (c1: a2; c2: a3, a4; c4: a0; c5: a1), each between
+the nearer ends of its two segments (no two cards overlap): a2 from
+(261.0927734375, 78.18359375) to (161.0927734375, 86.18359375), exactly
 the drawn `anchor_1` element's `x1, y1, x2, y2`; a3 from (361.0927734375,
-43.20703125) to (361.0927734375, 100.5859375); a4 is not drawn (`other`
-has no line); a0 from (361.0927734375, 157.96484375) to (261.0927734375,
-100.5859375) (no overlap and take_2 below take_1: from the upper end of
-the first to the lower end of the second); a1 from (361.0927734375,
-157.96484375) to (361.0927734375, 100.5859375).
+78.18359375) to (361.0927734375, 86.18359375); a4 is not drawn (`other`
+has no line); a0 from (361.0927734375, 143.5625) to (261.0927734375,
+135.5625) (take_2 below take_1: from the upper end of the first to the
+lower end of the second); a1 from (361.0927734375, 143.5625) to
+(361.0927734375, 135.5625).
 
 **One line per device pixel column of a card.** The table D holds 1601
 claims `score k/200` ↔ `take_1 220k`, k = 0 … 1600. On score a quarter is
@@ -3219,17 +3276,18 @@ the nearest wins, a line before a connector on a tie. On T:
 
 | Point | Hovered | Why |
 |---|---|---|
-| (364.0927734375, 40.20703125) | c2's line, MatchStamp 0 | 3 right and 3 above c2's point; a3's top end is as near: the tie goes to the line |
-| (365.0927734375, 46.20703125) | a3, MatchStamp 0, distance 4 | 4 from a3's vertical line, 5 from c2's point |
-| (311.0927734375, 134.275390625) | a0, MatchStamp 0 | 5 below a0's midpoint (311.0927734375, 129.275390625), 500 / √(100² + 57.37890625²) ≈ 4.34 from the diagonal; the nearest line is 23.7 away |
-| (461.0927734375, 70) | nothing | no line or connector within 8 |
-| (364.0927734375, 40.20703125) at zoom 2, ratio 2 | nothing | the tolerance is 2 |
+| (364.0927734375, 78.18359375) | c2's line, MatchStamp 0, distance 3 | 3 right of c2's line at its lower end (`score`'s card's bottom), where a3 begins: as near, the tie goes to the line |
+| (365.0927734375, 81.18359375) | a3, MatchStamp 0, distance 4 | 4 from a3's vertical line (78.18359375 to 86.18359375), 5 from c2's line's lower end |
+| (311.0927734375, 144.5625) | a0, MatchStamp 0 | 5 below a0's midpoint (311.0927734375, 139.5625), 500 / √(100² + 8²) ≈ 4.98 from the diagonal; the nearest line is 50 away |
+| (461.0927734375, 70) | nothing | no coordinate or connector within 8 |
+| (364.0927734375, 40.20703125) at zoom 2, ratio 2 | nothing | the tolerance is 2, c2's line 3 away |
 
 A coordinate hovered on its line puts the flag's pole at its abscissa,
-foot and top the line's ordinate (c2: x 361.0927734375, y and top
-43.20703125); on a connector at the nearest point (a3: (361.0927734375,
-46.20703125)). On D, the pointer at (61.5927734375, 43.20703125), on
-k = 2's place, hovers k = 2 (coordinate 2), which is not drawn.
+foot the line's ordinate, top its cross-section line's top (c2: x
+361.0927734375, y 43.20703125, top 28.8046875); on a connector at the
+nearest point (a3: (361.0927734375, 81.18359375)). On D, the pointer at
+(61.5927734375, 43.20703125), on k = 2's place, hovers k = 2 (coordinate
+2), which is not drawn.
 
 **Screen order** (`screenPlace`, `screenOrder`, `inScreenOrder`). The one
 screen order of a MatchStamp's coordinates, which the flag here and the
@@ -3359,12 +3417,15 @@ fraction, 8) is a member of `group_1` (with `performance`, seconds, float,
 cards. Layout's record: every line from x 102.29150390625 to
 502.29150390625 (400 units: 50 a quarter, 100 a second, one per 2
 pixels; `second-half` from 302.29150390625); `group_1`'s frame holds
-`second-half` on y 68.609375, `score` on 82.609375 (its cross-section
-extent from 61.609375, the children band) and `performance` on
-139.98828125, its members' cards from y 53.609375 to 174.96484375;
-`group_2`'s holds `second-half` on 230.76953125, `score` on 244.76953125
-(extent from 223.76953125) and `page` on 302.1484375, its members' cards
-from 215.76953125 to 337.125. The manifest holds the match timestamps
+`second-half` on y 68.609375 and `score` on 82.609375 in `score`'s card
+(53.609375 to 117.5859375), and `performance` on 139.98828125 in its card
+(125.5859375 to 174.96484375); `group_2`'s holds `second-half` on
+230.76953125 and `score` on 244.76953125 in `score`'s card (215.76953125
+to 279.74609375), and `page` on 302.1484375 in its card (287.74609375 to
+337.125). A coordinate's line spans the card of its line (section 8.7),
+`second-half`'s as `score`'s; a groupstamp's group piece is the frame's
+span (from its topmost card's upper border to its bottommost card's lower
+border) less that card: one piece. The manifest holds the match timestamps
 `timestamp_1` (score 4, a groupstamp), `timestamp_2` (performance 1.0, no
 groupstamp) and `timestamp_3` (second-half 2, no groupstamp). The table G
 (timelines `score`, `performance`, `second-half`, `page`): `g_1` score 4 ↔
@@ -3378,13 +3439,13 @@ which are none).
 
 | MatchStamp | Lines, as `[coordinate, x, y1, y2]` |
 |---|---|
-| 0 | c0 on `group_1`'s `score` [0, 302.29…, 61.609375, 82.609375], then [0, 302.29…, 53.609375, 61.609375] and [0, 302.29…, 82.609375, 174.96484375]; on `group_2`'s [0, 302.29…, 223.76953125, 244.76953125], then [0, 302.29…, 215.76953125, 223.76953125] and [0, 302.29…, 244.76953125, 337.125]; c2 [2, 202.29…, 139.98828125, 139.98828125] alone |
-| 1 | c1 as c0 at 402.29…; c5 [5, 302.29…, 302.1484375, 302.1484375], then [5, 302.29…, 215.76953125, 337.125] |
-| 2 | c3 [3, 402.29…, 139.98828125, 139.98828125], then [3, 402.29…, 53.609375, 174.96484375]; c4 [4, 402.29…, 68.609375, 68.609375] and [4, 402.29…, 230.76953125, 230.76953125] alone |
+| 0 | c0 on `group_1`'s `score` [0, 302.29…, 53.609375, 117.5859375], then [0, 302.29…, 117.5859375, 174.96484375]; on `group_2`'s [0, 302.29…, 215.76953125, 279.74609375], then [0, 302.29…, 279.74609375, 337.125]; c2 [2, 202.29…, 125.5859375, 174.96484375] alone |
+| 1 | c1 as c0 at 402.29…; c5 [5, 302.29…, 287.74609375, 337.125], then [5, 302.29…, 215.76953125, 287.74609375] |
+| 2 | c3 [3, 402.29…, 125.5859375, 174.96484375], then [3, 402.29…, 53.609375, 125.5859375]; c4 [4, 402.29…, 53.609375, 117.5859375] and [4, 402.29…, 215.76953125, 279.74609375] alone |
 
 (302.29… = 102.29150390625 + 200, 402.29… = + 300, 202.29… = + 100.)
 Each group piece is exactly what `groupCrossSections` gives on that line at
-that abscissa, and MatchStamp 0's six pieces of c0 are exactly the six
+that abscissa, and MatchStamp 0's four pieces of c0 are exactly the four
 `cross_section` elements the drawing holds for the named groupstamp
 `timestamp_1` at the same place: "exactly as a named one". Without
 `namedGroupstamps`, and on `bundles/bundle_matchstamps` (three ungrouped
@@ -3676,24 +3737,24 @@ screen position chosen for the case or a value derived above.
     of the view, so an element that reads it is drawn again each time;
     only the parts of a named MatchStamp or of a match timestamp
     (`Owner.match`) are ever painted, so only they may read it. On
-    `bundles/bundle_matchstamps` (no children, so the cross-section lines
-    of the match timestamps have no length and are not drawn, as "Named
-    MatchStamps painted" in "Show matches on the canvas" states) the node
-    draws 36 elements: the bundle's name label and the block's own
-    element, ten for each of `score`, `take_1` and `take_2` (the card's
-    shadow and card, the line with its start dot and arrowhead, the name
-    label, and for its two named timestamps `origin` and `length`, both
-    `[wedge, coordinate]`, a wedge and a coordinate label each), and four
-    MatchStamp parts: `anchor_1`'s line and name label (its `display` is
-    `[line, name]`), `anchor_2`'s line (no `display`: `[line]`) and
-    `timestamp_3`'s name label (`[name, cross_section]`, "Take 2, bar 2");
-    `timestamp_1` and `timestamp_2` (no `display`: `[cross_section]`) draw
-    nothing. The paint is a map counting the reads of its size and its
+    `bundles/bundle_matchstamps` the node draws 40 elements: the bundle's
+    name label and the block's own element, ten for each of `score`,
+    `take_1` and `take_2` (the card's shadow and card, the line with its
+    start dot and arrowhead, the name label, and for its two named
+    timestamps `origin` and `length`, both `[wedge, coordinate]`, a wedge
+    and a coordinate label each), and eight MatchStamp parts:
+    `anchor_1`'s line and name label (its `display` is `[line, name]`),
+    `anchor_2`'s line (no `display`: `[line]`), `timestamp_1`'s and
+    `timestamp_2`'s cross-section lines (no `display`: `[cross_section]`;
+    each one piece across its card, no wedge or label cutting it), and
+    `timestamp_3`'s name label ("Take 2, bar 2") and its cross-section line
+    in two pieces, cut where that label stands (`[name, cross_section]`).
+    The paint is a map counting the reads of its size and its
     lookups of a part. The out-of-date marks read the size once and look
-    up every one of the 36 elements; each MatchStamp part reads the size
-    once and looks itself up once: 5 size reads and 40 lookups when the
-    node is mounted with a paint stroking `anchor_1` `#E51400`, and 5 and
-    40 of a new paint stroking it `#E07000` once the paint changes, the
+    up every one of the 40 elements; each MatchStamp part reads the size
+    once and looks itself up once: 1 + 8 = 9 size reads and 40 + 8 = 48
+    lookups when the node is mounted with a paint stroking `anchor_1`
+    `#E51400`, and 9 and 48 of a new paint stroking it `#E07000` once the paint changes, the
     first paint read no more and `anchor_1`'s line now `#E07000` (the
     change reached the parts that read it). What would be wrong: every
     drawn element reading the paint, which makes every command mark every
@@ -3954,26 +4015,32 @@ named timestamp added there is `timestamp_3` ("Four", at 4, the default
 display: wedge, name label, cross-section line).
 
 - **Hover.** With Show coordinates on, the pointer on `melody` at 4
-  draws one wedge and one line whose attributes are exactly those of
-  `wedgeAt` and `crossSection` at 263.53662109375 on `melody`'s line key:
+  draws one wedge and the line in the pieces whose attributes are exactly
+  those of `wedgeAt` and `crossSection` at 263.53662109375 on `melody`'s
+  line key (two: from the card's top 8 to the wedge's tip 42, half the
+  line's stroke width 3 below the line at 40.5, and from the wedge's base
+  55, 13 further down, to the card's bottom 8 + 67.4765625 = 75.4765625):
   `points` as the writers write points, `fill`; `x1` = `x2`, `y1`, `y2`,
   `stroke`, `stroke-width`, `stroke-dasharray`, no `opacity` (the default
   styles are opaque). They are drawn in an `<svg>` whose `width`, `height`
   and `viewBox` equal the block node's own and whose left and top are the
   node's position, so they are in the drawing's units and scale with the
   zoom as the drawing does. With `timestamp_3` added, the hovered marks
-  equal its drawn wedge's and cross-section line's attributes, the
-  strongest form of "the geometry a named timestamp gets". With Show
+  equal its drawn wedge's and its two cross-section line pieces'
+  attributes, but for where the lower piece starts: the named line's gap
+  holds its label stack too (the name label "Four", down to 67.4766), the
+  hovered one draws no label, so its gap ends at the wedge's base, 55. With Show
   coordinates off nothing is marked and no flag is shown. A hovered
   position read across its group (`readsGroup` of the reading's pin) is
   marked across the group's frame as a groupstamp's line is drawn: in
   `groups/group_groupstamp`, the pointer on `score`'s line at its middle
-  draws, beside the wedge and line, exactly the two lines layout's
-  `groupCrossSections` gives there (`coordinate-group-line`, their
-  attributes those), from the upper border of `score`'s card to the top of
-  `score`'s cross-section extent (its conversion maps band) and from
-  `score`'s line to the lower border of `performance`'s card; on `melody`
-  of a block without groups, none.
+  draws, beside the wedge and line, exactly the one line layout's
+  `groupCrossSections` gives there (`coordinate-group-line`, its
+  attributes those): the frame's span (from the upper border of `score`'s
+  card, 32.8046875, to the lower border of `performance`'s, 139.7578125)
+  less `score`'s own card (32.8046875 to 82.28125), which its own line
+  crosses already, so from 82.28125 to 139.7578125; on `melody` of a block
+  without groups, none.
 - **Hover and pin on an ancestor line.** An ancestor line draws no
   timestamp and no cross-section line; the mark of a position on it is
   layout's `wedgeAt` there, the ancestor line's mark (layout's README,
@@ -4014,10 +4081,10 @@ display: wedge, name label, cross-section line).
   the reading turned into canvas pixels: the node's position plus the
   drawing point, times the zoom, plus the view's offset. Hovering
   `melody` at 4 on a canvas 1000 pixels wide, with the flag 180 wide, `top`
-  is `melody`'s cross-section line's top, 16 (below it `tempo` at 35 and
-  the line at 40.5): the pole's left edge is the node's left + 263.53662109375
-  − 0.5, its top the node's top + 16 − 22, its height 40.5 − 16 + 22 =
-  46.5; the flag's left edge is the node's left + 263.53662109375 + 0.5,
+  is `melody`'s cross-section line's top, the card's upper border 8 (below
+  it `tempo` at 35 and the line at 40.5): the pole's left edge is the
+  node's left + 263.53662109375 − 0.5, its top the node's top + 8 − 22,
+  its height 40.5 − 8 + 22 = 54.5; the flag's left edge is the node's left + 263.53662109375 + 0.5,
   its top the pole's. On a canvas 400 pixels wide the flag keeps its side
 and is shifted by exactly its overflow: its unshifted right edge, the
 node's left 40 + 263.53662109375 + 0.5 + 180 = 484.03662109375, lies
@@ -4030,6 +4097,12 @@ pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two
   `coordinate` `2 ♩`), then `Melody` (`Tempo` `2″` at 35, then
   `coordinate` `4 ♩` at 40.5), and exactly one row is highlighted:
   `melody`'s coordinate, and with the pointer on `tempo` (y 35) `tempo`'s.
+  Exactly one row is marked primary (`data-primary`, drawn bold with a
+  bar on its left): the coordinate of the timeline read on, the
+  timestamp's anchor, whose wedge the mark is: `melody`'s on `melody`'s
+  line, `phrase`'s with the pointer on `phrase`'s line (23) at the same
+  abscissa. What would be wrong: no row or a map's row marked, or the
+  mark staying on `melody` while `phrase` is read.
 - **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the
   pinned marks equal layout's at 263.53662109375; the pin replaced by the
   same pin moved to 2 (core's `pinAt`) moves them to 163.53662109375. A
@@ -4037,7 +4110,7 @@ pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two
   across its group (`readsGroup`) also draws the lines layout's
   `groupCrossSections` gives at its abscissa on its line (`coordinate-group-line`,
   their attributes exactly those): in `groups/group_groupstamp`, `score`'s
-  pin at its middle draws the same two as the hovered position;
+  pin at its middle draws the same one as the hovered position;
   the same pin read in a timeline editor, and every pin on `map`, none.
 - **Pinning.** With Show coordinates on, a press released where it began
   on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of
@@ -4050,15 +4123,15 @@ pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two
 - **Mode split.** With Show coordinates on, exactly the drawn elements
   that carry an address of a named timestamp (core resolves it to the
   timestamp or one of its parts) carry `pointer-events="none"`, in the
-  drawing's order; they are seven, `timestamp_1`'s and `timestamp_2`'s
+  drawing's order; they are eight, `timestamp_1`'s and `timestamp_2`'s
   wedges and coordinate labels and `timestamp_3`'s wedge, name label and
-  line (the order among them is layout's); so the browser's hit test
+  the two pieces of its line (the order among them is layout's); so the browser's hit test
   passes a press on them to what lies beneath (the end-to-end suite
   asserts the hit test). With it off, none do, and the node's element
   tree stays the exported figure's. With Show coordinates off a click on
   `timestamp_3`'s wedge, name label or line selects exactly `{block: A,
-  id: "timestamp_3"}`, and all three then show the selection (in drawing
-  order, the wedge, the name label, the line); a selected name label part
+  id: "timestamp_3"}`, and all of them then show the selection (in drawing
+  order, the wedge, the name label, the line's two pieces); a selected name label part
   alone shows it on the label only. A groupstamp's line across the other
   members of its group is the timestamp's line too: in
   `groups/group_groupstamp` the node draws as many lines at `timestamp_1`'s
@@ -4130,15 +4203,15 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   node lies left of the block's place origin by as much as the ancestor
   card reaches beyond the frame), inside the frame over `piece` 3 (c5), on the
   arranger the pointer hovers nothing and no flag is shown (c5 lies in a
-  gap, a0 13.8046875 above); with `piece`'s timeline editor open
+  gap, a0 12.103515625 above); with `piece`'s timeline editor open
   (`store.open`, the card raised) the potential path holds the card's
   lines: c4, c5, c6, c7 at 110.3354, 210.3354, 360.3354, 760.3354, each
-  from 44.207 to 85.1836 (44.20703125 and 85.18359375 written to four
-  places), then on the card's `middle` row at 51.207 c0, c1, c3 at 260.3354,
-  310.3354, 660.3354 (c2 shares c6's device column in the same card, so
+  across the card from 36.207 to 99.5859 (36.20703125 and 99.5859375
+  written to four places), then on the card's `middle` row, across the
+  same card, c0, c1, c3 at 260.3354, 310.3354, 660.3354 (c2 shares c6's device column in the same card, so
   the card draws one coordinate there, c6, as "What is drawn, in view"
   below draws one per column of a card), then the connectors a0, a1, a3
-  along the row (the table "Card raised" above), and the same drawing
+  at 67.8965 (the table "Card raised" above), and the same drawing
   point, taken through the view and the node's place the editor shows,
   hovers MatchStamp 1, whose flag lists `Middle` [`1 ♩`] then `Piece`
   [`3 ♩`] (`middle` 1 on the card's row above `piece` 3 on its line).
@@ -4156,10 +4229,11 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   (264.0927734375, 40.20703125), MatchStamp 1, calls them 1, 1 and 2 times
   (the potential path's lookup and the hovered path), and the potential
   path element stays the same.
-- **Device ratio.** At one device pixel per CSS pixel the point 3, 3 off
-  MatchStamp 0's line hovers it (4.24 ≤ 8); once the window's ratio is 2
-  and the canvas's resolution query reports the change, it does not
-  (4.24 > 4), and the canvas watches `(resolution: 2dppx)`.
+- **Device ratio.** At one device pixel per CSS pixel the point 5 right
+  of MatchStamp 0's line (c2's) on `score`'s line hovers it (5 ≤ 8); once
+  the window's ratio is 2 and the canvas's resolution query reports the
+  change, it does not (5 > 4), and the canvas watches `(resolution:
+  2dppx)`.
 - **Pin.** A click there calls `onmatchstamppin({block: A, matchStamp:
   0})`; a click at (461.0927734375, 70), on nothing, calls it with
   `null`. Given `pinnedMatchStamp` `{block: A, matchStamp: 0}`, the
@@ -4172,7 +4246,8 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   (`#E51400`, a1), each `d` as in "The pinned MatchStamp by colour".
 - **Named MatchStamps painted.** Each of score, take_1 and take_2 is
   given a child spanning it (`add child`), so every card draws a children
-  band and a timestamp's line has a length and is drawn. With T and the
+  band (every match timestamp's line is drawn across its card with or
+  without one). With T and the
   comparisons of "Named MatchStamps painted", without beliefs: the drawn line of `anchor_1` has
   `stroke="#1BA1E2"`, that of `anchor_2` `#E51400`, the lines of
   `timestamp_1` and `timestamp_3` `#E51400`, that of `timestamp_2` its
@@ -4192,7 +4267,8 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   `{block: A, id: "matchstamp_1"}`, and then `anchor_1`'s line and label
   and the lines of `timestamp_1` and `timestamp_2` show the selection; on
   `timestamp_3`'s line `matchstamp_2`; on `timestamp_3`'s name label the
-  timestamp `{block: A, id: "timestamp_3"}`, which its line shows too.
+  timestamp `{block: A, id: "timestamp_3"}`, which both pieces of its line
+  show too.
 - **One table per block.** Block B holds the same manifest at (40, 330),
   so every drawing point of B lies 250 below A's. With `matches` holding
   T for A alone, the mode on: one overlay `<svg>`, A's; B's `anchor_2`
@@ -4206,13 +4282,13 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   `bundles/bundle_matchstamp_groupstamp` at (40, 80) with the table G, as
   in "The hovered and the pinned MatchStamp drawn as named" above. Given
   `pinnedMatchStamp` `{block: A, matchStamp: 0}` (no beliefs: one pinned
-  path), its `d` is MatchStamp 0's lines of that table, the six pieces of
-  c0 and the point of c2, each `M x y1 V y2` as "The path" writes it,
+  path), its `d` is MatchStamp 0's lines of that table, the four pieces of
+  c0 and c2's line across `performance`'s card, each `M x y1 V y2` as "The path" writes it,
   then its one connector, exactly the drawn `anchor_1`'s line (`anchor_1`
   joins `timestamp_1` and `timestamp_2`, the same two places), its ends in
   the other order: `anchor_1` lists `timestamp_2` first, the connector
   runs from its anchor's lower coordinate, c0. The pointer on `group_1`'s `score` line at score 6 (402.29…,
-  82.609375) hovers MatchStamp 1, whose hovered path holds c1's six
+  82.609375) hovers MatchStamp 1, whose hovered path holds c1's four
   pieces and c5's two the same way, and whose flag (no editor open, so
   the groups read) heads Score, Performance, Second half, Score, Page
   over `6 ♩`, `3″`, `0 ♩`, `4 ♩`, `400 px`, `600 px`: `matchFlag`'s runs
@@ -4222,7 +4298,9 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
 - **The mode split.** With "Show matches" on, exactly the drawn elements
   that draw part of a named MatchStamp or of a match timestamp (`ownerOf`
   `match`) let the pointer through: `anchor_1`'s and `anchor_2`'s lines,
-  `anchor_1`'s name label and `timestamp_3`'s name label; with "Show
+  `anchor_1`'s name label, the cross-section lines of `timestamp_1` and
+  `timestamp_2` (one piece each) and of `timestamp_3` (two pieces, cut by
+  its name label), and `timestamp_3`'s name label; with "Show
   coordinates" on, every drawn element owned by a named timestamp or a
   named MatchStamp does (`ownerOf` not `null`), the MatchStamps' anchor
   lines and name labels among them, as every timestamp part, so that the

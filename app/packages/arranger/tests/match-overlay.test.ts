@@ -176,19 +176,19 @@ const path = (kind: string, block = A) =>
 
 /** The lines, then the connectors, of `README.md`'s MatchStamp 0, as the writers write them. */
 const STAMP_0 = [
-  "M361.0928 157.9648V157.9648",
-  "M361.0928 43.207V43.207",
-  "M261.0928 100.5859V100.5859",
-  "M361.0928 100.5859V100.5859",
-  "M361.0928 157.9648L261.0928 100.5859",
-  "M361.0928 157.9648L361.0928 100.5859",
-  "M361.0928 43.207L361.0928 100.5859",
+  "M361.0928 143.5625V192.9414",
+  "M361.0928 28.8047V78.1836",
+  "M261.0928 86.1836V135.5625",
+  "M361.0928 86.1836V135.5625",
+  "M361.0928 143.5625L261.0928 135.5625",
+  "M361.0928 143.5625L361.0928 135.5625",
+  "M361.0928 78.1836L361.0928 86.1836",
 ].join("");
 
 const STAMP_1 = [
-  "M261.0928 43.207V43.207",
-  "M161.0928 100.5859V100.5859",
-  "M261.0928 43.207L161.0928 100.5859",
+  "M261.0928 28.8047V78.1836",
+  "M161.0928 86.1836V135.5625",
+  "M261.0928 78.1836L161.0928 86.1836",
 ].join("");
 
 describe("the mode", () => {
@@ -248,16 +248,16 @@ describe("the overlay", () => {
     const attributes = ["d", "fill", "stroke", "stroke-width", "stroke-dasharray", "opacity"];
     expect(attributes.map((name) => potential.getAttribute(name))).toEqual([
       [
-        "M261.0928 43.207V43.207",
-        "M361.0928 43.207V43.207",
-        "M161.0928 100.5859V100.5859",
-        "M261.0928 100.5859V100.5859",
-        "M361.0928 100.5859V100.5859",
-        "M361.0928 157.9648V157.9648",
-        "M261.0928 43.207L161.0928 100.5859",
-        "M361.0928 43.207L361.0928 100.5859",
-        "M361.0928 157.9648L261.0928 100.5859",
-        "M361.0928 157.9648L361.0928 100.5859",
+        "M261.0928 28.8047V78.1836",
+        "M361.0928 28.8047V78.1836",
+        "M161.0928 86.1836V135.5625",
+        "M261.0928 86.1836V135.5625",
+        "M361.0928 86.1836V135.5625",
+        "M361.0928 143.5625V192.9414",
+        "M261.0928 78.1836L161.0928 86.1836",
+        "M361.0928 78.1836L361.0928 86.1836",
+        "M361.0928 143.5625L261.0928 135.5625",
+        "M361.0928 143.5625L361.0928 135.5625",
       ].join(""),
       "none",
       "#C8C8C8",
@@ -329,19 +329,17 @@ describe("hovering and pinning", () => {
     const piece = (x: string, y1: number, y2: number) => `M${x} ${number(y1)}V${number(y2)}`;
     const score = (x: string) =>
       [
-        [61.609375, 82.609375],
-        [53.609375, 61.609375],
-        [82.609375, 174.96484375],
-        [223.76953125, 244.76953125],
-        [215.76953125, 223.76953125],
-        [244.76953125, 337.125],
+        [53.609375, 117.5859375],
+        [117.5859375, 174.96484375],
+        [215.76953125, 279.74609375],
+        [279.74609375, 337.125],
       ].map(([y1, y2]) => piece(x, y1 as number, y2 as number));
     harness.pinMatchStamp({ block: A, matchStamp: 0 });
     await settle();
     expect(path("pinned")?.getAttribute("d")).toBe(
       [
         ...score("302.2915"),
-        piece("202.2915", 139.98828125, 139.98828125),
+        piece("202.2915", 125.5859375, 174.96484375),
         // `anchor_1` lists `timestamp_2` first; the connector runs from the lower coordinate, c0.
         `M${number(anchor.x2)} ${number(anchor.y2)}L${number(anchor.x1)} ${number(anchor.y1)}`,
       ].join(""),
@@ -352,8 +350,8 @@ describe("hovering and pinning", () => {
       hovered.startsWith(
         [
           ...score("402.2915"),
-          piece("302.2915", 302.1484375, 302.1484375),
-          piece("302.2915", 215.76953125, 337.125),
+          piece("302.2915", 287.74609375, 337.125),
+          piece("302.2915", 215.76953125, 287.74609375),
         ].join(""),
       ),
     ).toBe(true);
@@ -382,19 +380,19 @@ describe("hovering and pinning", () => {
         ["data-belief", "stroke", "d"].map((name) => element.getAttribute(name)),
       ),
     ).toEqual([
-      ["true", "#339933", "M361.0928 43.207L361.0928 100.5859"],
+      ["true", "#339933", "M361.0928 78.1836L361.0928 86.1836"],
       [
         "undecided",
         "#1BA1E2",
         [
-          "M361.0928 157.9648V157.9648",
-          "M361.0928 43.207V43.207",
-          "M261.0928 100.5859V100.5859",
-          "M361.0928 100.5859V100.5859",
-          "M361.0928 157.9648L261.0928 100.5859",
+          "M361.0928 143.5625V192.9414",
+          "M361.0928 28.8047V78.1836",
+          "M261.0928 86.1836V135.5625",
+          "M361.0928 86.1836V135.5625",
+          "M361.0928 143.5625L261.0928 135.5625",
         ].join(""),
       ],
-      ["false", "#E51400", "M361.0928 157.9648L361.0928 100.5859"],
+      ["false", "#E51400", "M361.0928 143.5625L361.0928 135.5625"],
     ]);
   });
 
@@ -438,7 +436,8 @@ describe("hovering and pinning", () => {
     );
     await show(WITH_T);
     await key("m");
-    await hoverAt(client(AT_300 + 3, SCORE_Y - 3));
+    // 5 right of c2's line: within 8 device pixels at one a CSS pixel, beyond them at two.
+    await hoverAt(client(AT_300 + 5, SCORE_Y));
     expect(path("hovered")?.getAttribute("d")).toBe(STAMP_0);
     expect(watched).toEqual(["change (resolution: 1dppx)"]);
 
@@ -572,7 +571,16 @@ describe("the named MatchStamps", () => {
       matchParts()
         .map(([, id, part]) => `${id} ${part}`)
         .sort(),
-    ).toEqual(["anchor_1 name", "anchor_1 null", "anchor_2 null", "timestamp_3 name"]);
+    ).toEqual([
+      "anchor_1 name",
+      "anchor_1 null",
+      "anchor_2 null",
+      "timestamp_1 line",
+      "timestamp_2 line",
+      "timestamp_3 line",
+      "timestamp_3 line",
+      "timestamp_3 name",
+    ]);
     expect(passing()).toEqual(matchParts());
     await key("m");
     expect(passing()).toEqual([]);
@@ -649,7 +657,7 @@ describe("the named MatchStamps", () => {
     ]);
     expect(await clickPart("timestamp_3", "line")).toEqual([inBlock(A, idAddress("matchstamp_2"))]);
     expect(await clickPart("timestamp_3", "name")).toEqual([inBlock(A, idAddress("timestamp_3"))]);
-    expect(glowing().sort()).toEqual(["timestamp_3 line", "timestamp_3 name"]);
+    expect(glowing().sort()).toEqual(["timestamp_3 line", "timestamp_3 line", "timestamp_3 name"]);
   });
 });
 
@@ -705,16 +713,16 @@ describe("an ancestor card raised", () => {
     };
     expect(path("potential")?.getAttribute("d")).toBe(
       [
-        "M110.3354 44.207V85.1836",
-        "M210.3354 44.207V85.1836",
-        "M360.3354 44.207V85.1836",
-        "M760.3354 44.207V85.1836",
-        "M260.3354 51.207V51.207",
-        "M310.3354 51.207V51.207",
-        "M660.3354 51.207V51.207",
-        "M260.3354 51.207L110.3354 51.207",
-        "M310.3354 51.207L210.3354 51.207",
-        "M660.3354 51.207L760.3354 51.207",
+        "M110.3354 36.207V99.5859",
+        "M210.3354 36.207V99.5859",
+        "M360.3354 36.207V99.5859",
+        "M760.3354 36.207V99.5859",
+        "M260.3354 36.207V99.5859",
+        "M310.3354 36.207V99.5859",
+        "M660.3354 36.207V99.5859",
+        "M260.3354 67.8965L110.3354 67.8965",
+        "M310.3354 67.8965L210.3354 67.8965",
+        "M660.3354 67.8965L760.3354 67.8965",
       ].join(""),
     );
     await hoverAt({

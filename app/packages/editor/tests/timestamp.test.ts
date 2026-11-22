@@ -937,6 +937,27 @@ describe("coordinates, Editor", () => {
     ]);
   });
 
+  it("set the primary coordinate apart, the timestamp's own timeline's", () => {
+    /** The groups and rows set apart, as their heading and their row's label. */
+    const primary = () => [
+      [...area("Coordinates").querySelectorAll("tbody[data-primary]")].map(
+        (body) => body.querySelector('th[scope="colgroup"]')?.textContent,
+      ),
+      [...area("Coordinates").querySelectorAll("tr.primary")].map(
+        (row) => row.querySelector('th[scope="row"]')?.textContent,
+      ),
+    ];
+    const store = example();
+    drawer(store, true, T).selected([THEME]);
+    expect(primary()).toEqual([["Score"], ["coordinate"]]);
+    if (app !== undefined) unmount(app);
+    app = undefined;
+    document.body.innerHTML = "";
+    const grouped = mixed();
+    drawer(grouped, true).pinTimestamp(unnamed(grouped));
+    expect(primary()).toEqual([["Score"], ["coordinate"]]);
+  });
+
   it("say why a map has no value, give one row per named output, and keep what no map solves read-only", () => {
     const store = mixed();
     const inspector = drawer(store, true);
@@ -1516,7 +1537,6 @@ describe("GroupStamp", () => {
 });
 
 describe("the wedge's rotation", () => {
-  const TURNS = "A GroupStamp's wedge turns \u221245° by default.";
   const WEDGE_OFF = "Turn the Wedge on to rotate it.";
   const STOPS = ["\u2212180", "\u2212135", "\u221245", "0", "45", "135", "180"];
   const field = () => find<HTMLElement>('[data-testid="timestamp-rotation"]');
@@ -1821,30 +1841,30 @@ describe("the wedge's rotation", () => {
     }
   });
 
-  it("shows an unnamed groupstamp's initial value, then a named one's, which a stated 0 overrides", () => {
+  it("shows a groupstamp's initial value 0, unnamed and named, then a stated value until Default", () => {
     const store = mixed();
     drawer(store, true).pinTimestamp(unnamed(store));
     expect([rotation(), described(slider())]).toEqual([
-      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, true],
-      `${TURNS} ${UNNAMED}`,
+      ["0", "0 degrees", "0°", ["0"], null, true],
+      UNNAMED,
     ]);
 
     type(nameField(), "Upbeat");
     press(nameField(), "Enter");
     const upbeat: Address = { block: A, id: "timestamp_11" };
     expect([rotation(), described(slider())]).toEqual([
-      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, false],
-      TURNS,
+      ["0", "0 degrees", "0°", ["0"], null, false],
+      "",
     ]);
-    stop("0");
+    stop("45");
     expect([lastCommand(store), rotation()]).toEqual([
-      turned(upbeat, 0),
-      ["0", "0 degrees", "0°", ["0"], false, false],
+      turned(upbeat, 45),
+      ["45", "45 degrees", "45°", ["45"], false, false],
     ]);
     reset();
     expect([lastCommand(store), rotation()]).toEqual([
       turned(upbeat, null),
-      ["-45", "\u221245 degrees", "\u221245°", ["\u221245"], null, false],
+      ["0", "0 degrees", "0°", ["0"], null, false],
     ]);
   });
 

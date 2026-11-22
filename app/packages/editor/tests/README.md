@@ -1218,7 +1218,15 @@ none). Theme crosses `score` and `phrase` at its start, listed top to
 bottom as their lines lie (`phrase`'s above `score`'s, in its children
 band), each timeline's rows top to bottom as drawn (its maps' band above
 its line, the first map nearest the line): Phrase ticks `0`, Phrase `0` ♩;
-Ticks `1920`, Tempo `2.0` s, Bars `1`, Score `4` ♩. **The end
+Ticks `1920`, Tempo `2.0` s, Bars `1`, Score `4` ♩. **The primary
+coordinate** is set apart as the coordinate flag sets it apart: exactly
+one group, the timestamp's own timeline's (its pin's anchor), is marked
+(`tbody[data-primary]`, barred on its left) and in it exactly its
+coordinate row (`tr.primary`, bold), never a map row: Score's
+"coordinate" for Theme (not Phrase's, which the line crosses too), and
+Score's for the unnamed pin on `score` at 16/5 read with its group (not
+Performance's, a member the group reads). What would be wrong: no row
+or several set apart, or the group's other member set apart. **The end
 of `annotations`** of `bundle_mixed` (12 quarters, in no group), given by
 commands a MeasureMap `measures` and maps that give no value there (the
 PiecewiseMap "Tempo", breaks 0, 4, 12, at its last break), need a
@@ -1598,14 +1606,16 @@ ticks `5760`, coordinate `12` ♩.
      Theme rotated to 45 and its Wedge toggled off keeps 45 (the stated
      value, its wedge not drawn), disabled, Default shown and disabled.
    - *Unnamed.* The unnamed pin on `score` at 16/5 (naming would store a
-     groupstamp, item 7a) shows −45, "−45 degrees", disabled, described
-     by "A GroupStamp's wedge turns −45° by default." and by the naming
-     hint.
+     groupstamp, item 7a) shows 0, "0 degrees", disabled, described by
+     the naming hint alone: a groupstamp's wedge marks its primary
+     coordinate and stands at 0 like any timestamp's (drawing
+     specification section 4; only a secondary coordinate's wedge turns
+     −45), so no hint names another initial value.
    - *Named groupstamp.* Named "Upbeat" (`timestamp_11`, a groupstamp
-     displaying its wedge): −45 read from the drawing, no Default,
-     enabled. The stop 0 journals `rotation: 0` on `timestamp_11` (a
-     stated 0 overrides the groupstamp's initial value) and shows 0 with
-     Default; Default journals `rotation: null` and shows −45 again.
+     displaying its wedge): 0 read from the drawing, no Default,
+     enabled. The stop 45 journals `rotation: 45` on `timestamp_11` and
+     shows 45 with Default; Default journals `rotation: null` and shows 0
+     again.
    - *In a timeline editor.* With the timeline editor of `score` open in
      the example, the stop 45 on Theme is accepted and the editor's
      session holds the `style` as its last entry (the rule is addressed to
@@ -1838,15 +1848,18 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "second-half", coordinate: [2, 1]}, {timeline: "performance",
    coordinate: 3.0}]], match_claims: ["claim_1"]}}` shows, without a
    table, the groups "Second half" [coordinate `2` ♩], "Score"
-   [coordinate `6` ♩: 2 + the offset 4; an ancestor's maps are not
-   listed, as in the Timestamp tab], "Performance" [`cmap_3` `132300` smp,
+   [`cmap_2` `3.0` s, `cmap_1` `2880` ticks, coordinate `6` ♩: 2 + the
+   offset 4, its maps drawn above its line in the card the coordinate's
+   line crosses (6 quarters at 120 to a minute, 6 × 480 ticks), as in the
+   Timestamp tab], "Performance" [`cmap_3` `132300` smp,
    3.0 × 44100, drawn above its line; coordinate `3.0` s], every field
    disabled; and the
    groups of its match timestamp on `second-half` (the first two) equal,
    heading for heading and row for row ([label, text, unit]), what the
    Timestamp tab shows for that match timestamp's own pin
    (`namedPinOf`). Before the ancestors were added the "Score" group was
-   missing, which this case fails on. **Crossed descendants and hidden
+   missing, and before the coordinates followed the whole card its map
+   rows, which this case fails on. **Crossed descendants and hidden
    maps follow the drawing as in the Timestamp tab**: on the same manifest,
    with the conversion-maps band of `score` hidden by one `style` (`select
    {addresses: [{id: score, facet: conversion_maps}]}`, `set {display:

@@ -1074,14 +1074,15 @@ describe("a GroupStamp read under the raised card", () => {
   it("reads a member the raised card draws on the card's row of it", () => {
     const parts = (pin: Pin | null) =>
       pin?.spec.members.map(({ timeline, ordinate, scale }) => [timeline, ordinate, scale]);
+    // The member card's timelines in traversal order: the root `piece` (its ancestor line) first.
     expect([parts(recordingPin(null)), parts(recordingPin(raised))]).toEqual([
       [
-        ["middle", MIDDLE_Y, q(4, 5)],
         ["piece", PIECE_Y, q(4, 5)],
+        ["middle", MIDDLE_Y, q(4, 5)],
       ],
       [
-        ["middle", CARD_MIDDLE_Y, q(4, 5)],
         ["piece", PIECE_Y, q(4, 5)],
+        ["middle", CARD_MIDDLE_Y, q(4, 5)],
       ],
     ]);
     const middle = ["middle", [["coordinate", "2 ♩"]]];
@@ -1219,10 +1220,12 @@ describe("the cross-section", () => {
     expect(anchor.maps).toEqual(load("map").timelines[0]?.conversion_maps);
   });
 
-  it("of a child holds its ancestors, parent first, without maps", () => {
+  it("of a child holds every timeline of its card, the root with the maps drawn for it", () => {
+    // What the child's cross-section line crosses in the card: the root `melody` too, at minus the
+    // child's offset 2, with its map `tempo` drawn in the card.
     expect(shape(specOf(viewWith("map"), "phrase"))).toEqual([
       ["phrase", q(0), q(4), ["ticks"]],
-      ["melody", q(-2), q(8), []],
+      ["melody", q(-2), q(8), ["tempo"]],
     ]);
     const reading = readAt(viewWith("map"), MELODY_START + 200, 40.5);
     expect(
@@ -1271,8 +1274,12 @@ describe("the cross-section", () => {
     expect(shape(specOf(view, "b"))).toEqual([
       ["b", q(0), q(12), []],
       ["form", q(-8), q(32), []],
+      ["a", q(-8), q(8), []],
+      ["a1", q(-8), q(8), []],
       ["b1", q(0), q(6), []],
       ["b2", q(6), q(6), ["b2_ticks"]],
+      ["c", q(12), q(12), []],
+      ["c1", q(12), q(12), []],
     ]);
     expect(readAt(view, 271.419921875, 30.9765625)?.row).toEqual({
       timeline: "b2",
@@ -1447,28 +1454,26 @@ describe("a named timestamp's pin", () => {
         ordinate: drawnY(view, "b"),
         mapOrdinates: new Map([["b2_ticks", 30.9765625]]),
       },
-      members: [
-        {
-          timeline: "b",
-          name: "B",
-          unit: "quarters",
-          numberType: "fraction",
-          length: q(12),
-          maps: [],
-          offset: q(-6),
-          ordinate: drawnY(view, "b"),
-        },
-        {
-          timeline: "form",
-          name: "Form",
-          unit: "quarters",
-          numberType: "fraction",
-          length: q(32),
-          maps: [],
-          offset: q(-14),
-          ordinate: drawnY(view, "form"),
-        },
-      ],
+      members: (
+        [
+          ["form", "Form", 32, -14, "form"],
+          ["a", "A", 8, -14, "a"],
+          ["a1", "a1", 8, -14, "a"],
+          ["b", "B", 12, -6, "b"],
+          ["b1", "b1", 6, -6, "b"],
+          ["c", "C", 12, 6, "c"],
+          ["c1", "c1", 12, 6, "c"],
+        ] as const
+      ).map(([timeline, name, length, offset, line]) => ({
+        timeline,
+        name,
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(length),
+        maps: [],
+        offset: q(offset),
+        ordinate: drawnY(view, line),
+      })),
     });
     expect([drawnY(view, "b"), drawnY(view, "form")]).toEqual([36.4765625, 87.9296875]);
     expect(pin?.spec).toEqual(
@@ -1489,8 +1494,8 @@ describe("a named timestamp's pin", () => {
       ]),
     ).toEqual([
       ["b2", q(1), [{ unit: "ticks", numberType: "int", value: 480n }]],
-      ["b", q(7), []],
       ["form", q(15), []],
+      ["b", q(7), []],
     ]);
   });
 
@@ -1872,15 +1877,15 @@ describe("a reading across a group whose member is a child", () => {
     expect(
       reading.pin.spec.members.map(({ timeline, offset, scale }) => [timeline, offset, scale]),
     ).toEqual([
-      ["middle", q(0), q(4, 5)],
       ["piece", q(-5), q(4, 5)],
+      ["middle", q(0), q(4, 5)],
     ]);
     expect(
       reading.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
     ).toEqual([
       ["recording", 5.0],
-      ["middle", q(4)],
       ["piece", q(8)],
+      ["middle", q(4)],
     ]);
   });
 
@@ -2344,5 +2349,123 @@ describe("one reading per frame", () => {
     expect(run).not.toHaveBeenCalled();
     vi.advanceTimersToNextFrame();
     expect(run.mock.calls).toEqual([[3]]);
+  });
+});
+
+describe("what a timestamp's line crosses in its card", () => {
+  /** `view` with a child `id` of `parent` at `offset`, `length` quarters long. */
+  const withChild = (view: View, parent: string, id: string, offset: number, length: number) =>
+    changed(view, {
+      type: "add",
+      into: inBlock(A, idAddress(parent)),
+      child: {
+        id,
+        unit: "quarters",
+        number_type: "fraction",
+        offset: [offset, 1],
+        length: [length, 1],
+      },
+    });
+
+  /** The unnamed pin of `timeline` at `value` in block A, no group read, `raised` raised. */
+  const pinOf = (view: View, timeline: string, value: Rational, raised: string | null = null) => {
+    const pin = timelinePin(
+      blockIn(view, A).manifest,
+      A,
+      drawingIn(view),
+      timeline,
+      value,
+      DEFAULT_GRANULARITY,
+      "no_server",
+      false,
+      raised,
+      null,
+    );
+    if (pin === null) throw new Error(`no pin of ${timeline}`);
+    return pin;
+  };
+
+  it("lists the root and a sibling of a child, top to bottom, the child primary", () => {
+    const view = withChild(viewWith("map"), "melody", "motif", 3, 4);
+    const pin = pinOf(view, "phrase", q(2));
+    const rows = new Map(rowsOf(pin).map(([timeline, values]) => [timeline, values]));
+    expect(Object.fromEntries(rows)).toEqual({
+      melody: [
+        ["tempo", "2″"],
+        ["coordinate", "4 ♩"],
+      ],
+      phrase: [
+        ["ticks", "960 ticks"],
+        ["coordinate", "2 ♩"],
+      ],
+      motif: [["coordinate", "1 ♩"]],
+    });
+    const topDown = ["melody", "phrase", "motif"].sort(
+      (left, right) => drawnY(view, left) - drawnY(view, right),
+    );
+    expect(flagParts(pin).map(({ timeline }) => timeline)).toEqual(topDown);
+    expect(pin.spec.anchor.timeline).toBe("phrase");
+    // At `melody` 2.5 the line lies left of `motif`, which starts at 3.
+    const before = pinOf(view, "phrase", q(1, 2));
+    expect(
+      flagParts(before)
+        .map(({ timeline }) => timeline)
+        .sort(),
+    ).toEqual(["melody", "phrase"]);
+  });
+
+  it("lists on an ancestor line what the member's card draws, and in the raised card what it draws", () => {
+    const view = withChild(viewWith(PARENT_BOTH), "piece", "intro", 8, 4);
+    const block = blockIn(view, A);
+    const listed = (pin: Pin) =>
+      pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]);
+    expect(listed(pinOf(view, "piece", q(10)))).toEqual([
+      ["piece", q(10)],
+      ["middle", q(6)],
+    ]);
+    expect(listed(pinOf(view, "piece", q(10), raisedRoot(block, PIECE_EDITOR)))).toEqual([
+      ["piece", q(10)],
+      ["middle", q(6)],
+      ["intro", q(2)],
+    ]);
+  });
+
+  it("lists a groupstamp's sibling in its member's card and the other member", () => {
+    const branched = withChild(
+      viewWith("groups/group_groupstamp_child_member"),
+      "score",
+      "bridge",
+      2,
+      4,
+    );
+    const view = changed(branched, {
+      type: "add",
+      into: inBlock(A, idAddress("second-half")),
+      timestamp: { name: "Crossing", coordinate: [2, 1], groupstamp: true },
+    });
+    const manifest = blockIn(view, A).manifest;
+    const id = manifest.graphical?.timestamps?.find((item) => item.name === "Crossing")?.id;
+    if (id === undefined) throw new Error("no timestamp named");
+    const pin = namedPin(
+      manifest,
+      A,
+      drawingIn(view),
+      id,
+      DEFAULT_GRANULARITY,
+      "no_server",
+      null,
+      null,
+    );
+    expect(pin?.spec.anchor.timeline).toBe("second-half");
+    expect(
+      pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position]).sort(),
+    ).toEqual(
+      [
+        ["second-half", q(2)],
+        ["score", q(6)],
+        ["bridge", q(4)],
+        ["performance", 3.0],
+      ].sort(),
+    );
   });
 });

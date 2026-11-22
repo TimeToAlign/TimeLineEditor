@@ -1263,12 +1263,16 @@ timeline's part, never by its place in the flag: at `xStart + 123` on
 lists `phrase` (the child the line crosses, drawn above it at y 23) and
 then `melody`, exactly in that order, and `melody`'s
 coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
-(the float 37/30 rounded to three places), with one hovered wedge and one
-hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
+(the float 37/30 rounded to three places), with one hovered wedge and the
+hovered cross-section line in two pieces (across `melody`'s card, cut
+where the wedge stands); at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
 2.0); the same abscissa on `tempo`'s drawing still reads `melody` at 4
 with `tempo`'s row highlighted (`data-hovered`); 30 below the line
 nothing is within 8 pixels: no flag and no marks; on `phrase` at
-263.53662109375 `2 ♩` with the row `Ticks 960 ticks` and no `tempo` row.
+263.53662109375 `2 ♩` with the row `Ticks 960 ticks`, and the root
+`melody` its line crosses in the same card, `4 ♩` with the row `Tempo
+2″`; exactly one row is marked primary (`data-primary`), `phrase`'s
+coordinate `2 ♩`, the timeline read on.
 Within one timeline's part the rows follow the drawn order too, top to
 bottom: a map is drawn above its line (its drawing's ordinate `yc`,
 `tempo` at 35 above `melody` at 40.5, `ticks` at 17.5 above `phrase` at
@@ -1281,7 +1285,7 @@ row headers `Tempo`, `coordinate` and `Ticks`, `coordinate`). The former
 order, the coordinate first and its maps after, is what would be wrong.
 C toggles the flag. A click on a line pins the reading: the Timestamp tab
 is selected and shows the pinned timestamp's name header
-(`timestamp-name`) and Properties (`timestamp-properties`), the pinned wedge and line stay when the pointer
+(`timestamp-name`) and Properties (`timestamp-properties`), the pinned wedge and the line's two pieces stay when the pointer
 leaves, and the journal keeps its length; a click on the empty pane
 clears the pin and its marks and selects Properties, the tab shown
 before. In the Timestamp pane the values are exact:
@@ -1307,7 +1311,10 @@ and 4 miss 2.46 by 0.46, 0.04 and 0.04; the nearest multiple of 1/4 is
 5/2); typing 0 marks the field invalid and changes nothing. A timestamp added at 4 on `melody` lets the
 pointer through while Show coordinates is on (a click on it selects
 nothing of it); with Show coordinates off a click on its wedge, its name
-label or its line, each at its centre rounded to a whole pixel (the
+label or its line (its lower piece, below the name label: the upper piece
+runs from the card's top past `phrase`'s line; clicked 1.5 below its top,
+inside its first dash, since the line is dashed `3 3` from its top and a
+gap takes no click), each at its centre rounded to a whole pixel (the
 rectangle lies a hair off the drawing's points, and a floored centre
 misses the one-pixel line), selects exactly `{block: "map0000000", id:
 "timestamp_3"}` and shows it in the Timestamp pane (Name "Four",

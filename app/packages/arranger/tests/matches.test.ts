@@ -54,6 +54,17 @@ const SCREEN: Screen = { x: 0, y: 0, zoom: 1, width: 1000, height: 600, ratio: 1
 const SCORE_Y = 43.20703125;
 const TAKE_1_Y = 100.5859375;
 const TAKE_2_Y = 157.96484375;
+/**
+ * The upper and lower borders of each root's card (layout's record: each 49.37890625 high, its
+ * line 14.40234375 below its top, the cards 8 apart), which a cross-section segment on its line
+ * spans.
+ */
+const SCORE_TOP = 28.8046875;
+const SCORE_BOTTOM = 78.18359375;
+const TAKE_1_TOP = 86.18359375;
+const TAKE_1_BOTTOM = 135.5625;
+const TAKE_2_TOP = 143.5625;
+const TAKE_2_BOTTOM = 192.94140625;
 const X_START = 61.0927734375;
 const AT_100 = X_START + 100;
 const AT_200 = X_START + 200;
@@ -113,13 +124,21 @@ describe("the lines holding a table's timelines", () => {
         xEnd,
       ]),
     ).toEqual([
-      [SCORE, placeKeyText({ item: "score" }), SCORE_Y, SCORE_Y, SCORE_Y, X_START, X_START + 400],
+      [
+        SCORE,
+        placeKeyText({ item: "score" }),
+        SCORE_Y,
+        SCORE_TOP,
+        SCORE_BOTTOM,
+        X_START,
+        X_START + 400,
+      ],
       [
         TAKE_1,
         placeKeyText({ item: "take_1" }),
         TAKE_1_Y,
-        TAKE_1_Y,
-        TAKE_1_Y,
+        TAKE_1_TOP,
+        TAKE_1_BOTTOM,
         X_START,
         X_START + 400,
       ],
@@ -127,8 +146,8 @@ describe("the lines holding a table's timelines", () => {
         TAKE_2,
         placeKeyText({ item: "take_2" }),
         TAKE_2_Y,
-        TAKE_2_Y,
-        TAKE_2_Y,
+        TAKE_2_TOP,
+        TAKE_2_BOTTOM,
         X_START,
         X_START + 400,
       ],
@@ -140,18 +159,18 @@ describe("what a view draws", () => {
   it("draws every coordinate in view on its lines and every anchor of a drawn one", () => {
     expect(shape(overlayOf(T, linesOf(T), PLACED, SCREEN))).toEqual({
       lines: [
-        [1, AT_200, SCORE_Y, SCORE_Y],
-        [2, AT_300, SCORE_Y, SCORE_Y],
-        [3, AT_100, TAKE_1_Y, TAKE_1_Y],
-        [4, AT_200, TAKE_1_Y, TAKE_1_Y],
-        [5, AT_300, TAKE_1_Y, TAKE_1_Y],
-        [0, AT_300, TAKE_2_Y, TAKE_2_Y],
+        [1, AT_200, SCORE_TOP, SCORE_BOTTOM],
+        [2, AT_300, SCORE_TOP, SCORE_BOTTOM],
+        [3, AT_100, TAKE_1_TOP, TAKE_1_BOTTOM],
+        [4, AT_200, TAKE_1_TOP, TAKE_1_BOTTOM],
+        [5, AT_300, TAKE_1_TOP, TAKE_1_BOTTOM],
+        [0, AT_300, TAKE_2_TOP, TAKE_2_BOTTOM],
       ],
       connectors: [
-        [2, AT_200, SCORE_Y, AT_100, TAKE_1_Y],
-        [3, AT_300, SCORE_Y, AT_300, TAKE_1_Y],
-        [0, AT_300, TAKE_2_Y, AT_200, TAKE_1_Y],
-        [1, AT_300, TAKE_2_Y, AT_300, TAKE_1_Y],
+        [2, AT_200, SCORE_BOTTOM, AT_100, TAKE_1_TOP],
+        [3, AT_300, SCORE_BOTTOM, AT_300, TAKE_1_TOP],
+        [0, AT_300, TAKE_2_TOP, AT_200, TAKE_1_BOTTOM],
+        [1, AT_300, TAKE_2_TOP, AT_300, TAKE_1_BOTTOM],
       ],
     });
   });
@@ -165,16 +184,16 @@ describe("what a view draws", () => {
   it("writes the lines, then the connectors, as subpaths", () => {
     expect(pathOf(overlayOf(T, linesOf(T), PLACED, SCREEN))).toBe(
       [
-        "M261.0928 43.207V43.207",
-        "M361.0928 43.207V43.207",
-        "M161.0928 100.5859V100.5859",
-        "M261.0928 100.5859V100.5859",
-        "M361.0928 100.5859V100.5859",
-        "M361.0928 157.9648V157.9648",
-        "M261.0928 43.207L161.0928 100.5859",
-        "M361.0928 43.207L361.0928 100.5859",
-        "M361.0928 157.9648L261.0928 100.5859",
-        "M361.0928 157.9648L361.0928 100.5859",
+        "M261.0928 28.8047V78.1836",
+        "M361.0928 28.8047V78.1836",
+        "M161.0928 86.1836V135.5625",
+        "M261.0928 86.1836V135.5625",
+        "M361.0928 86.1836V135.5625",
+        "M361.0928 143.5625V192.9414",
+        "M261.0928 78.1836L161.0928 86.1836",
+        "M361.0928 78.1836L361.0928 86.1836",
+        "M361.0928 143.5625L261.0928 135.5625",
+        "M361.0928 143.5625L361.0928 135.5625",
       ].join(""),
     );
   });
@@ -251,24 +270,25 @@ describe("hovering", () => {
     matchHitAt(T, linesOf(T), connectors(), { x, y }, tolerance);
 
   it("hovers a line by its nearest coordinate, a line before a connector on a tie", () => {
-    expect(hit(AT_300 + 3, SCORE_Y - 3)).toEqual({
+    // 3 right of c2's line at its lower end, where a3 begins: as near, the tie goes to the line.
+    expect(hit(AT_300 + 3, SCORE_BOTTOM)).toEqual({
       stamp: 0,
       coordinate: 2,
       anchor: null,
-      distance: Math.hypot(3, 3),
-      at: { x: AT_300, y: SCORE_Y, top: SCORE_Y },
+      distance: 3,
+      at: { x: AT_300, y: SCORE_Y, top: SCORE_TOP },
     });
   });
 
   it("hovers a connector nearer than any line", () => {
-    expect(hit(AT_300 + 4, SCORE_Y + 3)).toEqual({
+    expect(hit(AT_300 + 4, SCORE_BOTTOM + 3)).toEqual({
       stamp: 0,
       coordinate: null,
       anchor: 3,
       distance: 4,
-      at: { x: AT_300, y: SCORE_Y + 3, top: SCORE_Y + 3 },
+      at: { x: AT_300, y: SCORE_BOTTOM + 3, top: SCORE_BOTTOM + 3 },
     });
-    const found = hit(311.0927734375, 134.275390625);
+    const found = hit(311.0927734375, 144.5625);
     expect([found?.stamp, found?.anchor, found?.coordinate]).toEqual([0, 0, null]);
   });
 
@@ -287,15 +307,15 @@ describe("the hovered and the pinned MatchStamp", () => {
   it("draws every coordinate on its lines and every anchor", () => {
     expect(shape(stampOverlay(T, linesOf(T), 0))).toEqual({
       lines: [
-        [0, AT_300, TAKE_2_Y, TAKE_2_Y],
-        [2, AT_300, SCORE_Y, SCORE_Y],
-        [4, AT_200, TAKE_1_Y, TAKE_1_Y],
-        [5, AT_300, TAKE_1_Y, TAKE_1_Y],
+        [0, AT_300, TAKE_2_TOP, TAKE_2_BOTTOM],
+        [2, AT_300, SCORE_TOP, SCORE_BOTTOM],
+        [4, AT_200, TAKE_1_TOP, TAKE_1_BOTTOM],
+        [5, AT_300, TAKE_1_TOP, TAKE_1_BOTTOM],
       ],
       connectors: [
-        [0, AT_300, TAKE_2_Y, AT_200, TAKE_1_Y],
-        [1, AT_300, TAKE_2_Y, AT_300, TAKE_1_Y],
-        [3, AT_300, SCORE_Y, AT_300, TAKE_1_Y],
+        [0, AT_300, TAKE_2_TOP, AT_200, TAKE_1_BOTTOM],
+        [1, AT_300, TAKE_2_TOP, AT_300, TAKE_1_BOTTOM],
+        [3, AT_300, SCORE_BOTTOM, AT_300, TAKE_1_TOP],
       ],
     });
     expect(shape(stampOverlay(T, linesOf(T), 7))).toEqual({ lines: [], connectors: [] });
@@ -310,14 +330,12 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
   const named = namedGroupstamps(groupedManifest, G);
   const START = 102.29150390625;
   const [AT_1, AT_2, AT_3] = [START + 100, START + 200, START + 300];
-  /** The extents and the frame's spans of `score`'s lines, `group_1`'s then `group_2`'s. */
+  /** The cards and the frame's spans less them of `score`'s lines, `group_1`'s then `group_2`'s. */
   const scoreAt = (c: number, x: number) => [
-    [c, x, 61.609375, 82.609375],
-    [c, x, 53.609375, 61.609375],
-    [c, x, 82.609375, 174.96484375],
-    [c, x, 223.76953125, 244.76953125],
-    [c, x, 215.76953125, 223.76953125],
-    [c, x, 244.76953125, 337.125],
+    [c, x, 53.609375, 117.5859375],
+    [c, x, 117.5859375, 174.96484375],
+    [c, x, 215.76953125, 279.74609375],
+    [c, x, 279.74609375, 337.125],
   ];
 
   /** The line of `G` whose cross-section extent a segment piece is. */
@@ -330,18 +348,18 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
     expect([0, 1, 2, 3, 4, 5].map(named)).toEqual([true, true, false, true, false, true]);
     expect(shape(stampOverlay(G, groupedLines, 0, named)).lines).toEqual([
       ...scoreAt(0, AT_2),
-      [2, AT_1, 139.98828125, 139.98828125],
+      [2, AT_1, 125.5859375, 174.96484375],
     ]);
     expect(shape(stampOverlay(G, groupedLines, 1, named)).lines).toEqual([
       ...scoreAt(1, AT_3),
-      [5, AT_2, 302.1484375, 302.1484375],
-      [5, AT_2, 215.76953125, 337.125],
+      [5, AT_2, 287.74609375, 337.125],
+      [5, AT_2, 215.76953125, 287.74609375],
     ]);
     expect(shape(stampOverlay(G, groupedLines, 2, named)).lines).toEqual([
-      [3, AT_3, 139.98828125, 139.98828125],
-      [3, AT_3, 53.609375, 174.96484375],
-      [4, AT_3, 68.609375, 68.609375],
-      [4, AT_3, 230.76953125, 230.76953125],
+      [3, AT_3, 125.5859375, 174.96484375],
+      [3, AT_3, 53.609375, 125.5859375],
+      [4, AT_3, 53.609375, 117.5859375],
+      [4, AT_3, 215.76953125, 279.74609375],
     ]);
   });
 
@@ -378,9 +396,9 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
 
   it("draws no groupstamp without the manifest's word, nor on lines in no frame", () => {
     expect(shape(stampOverlay(G, groupedLines, 1)).lines).toEqual([
-      [1, AT_3, 61.609375, 82.609375],
-      [1, AT_3, 223.76953125, 244.76953125],
-      [5, AT_2, 302.1484375, 302.1484375],
+      [1, AT_3, 53.609375, 117.5859375],
+      [1, AT_3, 215.76953125, 279.74609375],
+      [5, AT_2, 287.74609375, 337.125],
     ]);
     for (const stamp of [0, 1]) {
       expect(stampOverlay(T, linesOf(T), stamp, namedGroupstamps(manifest, T))).toEqual(
@@ -391,13 +409,13 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
 
   it("keeps the potential MatchStamps' overlay as it is", () => {
     expect(shape(overlayOf(G, groupedLines, PLACED, SCREEN)).lines).toEqual([
-      [0, AT_2, 61.609375, 82.609375],
-      [1, AT_3, 61.609375, 82.609375],
-      [2, AT_1, 139.98828125, 139.98828125],
-      [3, AT_3, 139.98828125, 139.98828125],
-      [0, AT_2, 223.76953125, 244.76953125],
-      [1, AT_3, 223.76953125, 244.76953125],
-      [5, AT_2, 302.1484375, 302.1484375],
+      [0, AT_2, 53.609375, 117.5859375],
+      [1, AT_3, 53.609375, 117.5859375],
+      [2, AT_1, 125.5859375, 174.96484375],
+      [3, AT_3, 125.5859375, 174.96484375],
+      [0, AT_2, 215.76953125, 279.74609375],
+      [1, AT_3, 215.76953125, 279.74609375],
+      [5, AT_2, 287.74609375, 337.125],
     ]);
   });
 });
@@ -607,32 +625,32 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
 
   it("draws a member on its own card's line, the root on its ancestor line and beyond the frame", () => {
     expect(linesIn(null)).toEqual([
-      [MIDDLE_CARD, 1, 85.18359375, 47.20703125, 85.18359375, 260.33544921875, 4, 12],
-      [MIDDLE_CARD, 0, 47.20703125, 47.20703125, 85.18359375, 260.33544921875, 0, 8],
-      [PIECE_CARD, 1, 85.18359375, 44.20703125, 85.18359375, 60.33544921875, 0, 1.925927734375],
-      [PIECE_CARD, 1, 85.18359375, 44.20703125, 85.18359375, 60.33544921875, 12.8, 16],
+      [MIDDLE_CARD, 1, 85.18359375, 32.8046875, 120.16015625, 260.33544921875, 4, 12],
+      [MIDDLE_CARD, 0, 47.20703125, 32.8046875, 120.16015625, 260.33544921875, 0, 8],
+      [PIECE_CARD, 1, 85.18359375, 36.20703125, 99.5859375, 60.33544921875, 0, 1.925927734375],
+      [PIECE_CARD, 1, 85.18359375, 36.20703125, 99.5859375, 60.33544921875, 12.8, 16],
     ]);
   });
 
   it("draws the root on the card's line and the member on the card's row while the card is raised", () => {
     expect(linesIn(raised)).toEqual([
-      [PIECE_CARD, 1, 85.18359375, 44.20703125, 85.18359375, 60.33544921875, 0, 16],
-      [PIECE_CARD, 0, 51.20703125, 51.20703125, 51.20703125, 260.33544921875, 0, 8],
+      [PIECE_CARD, 1, 85.18359375, 36.20703125, 99.5859375, 60.33544921875, 0, 16],
+      [PIECE_CARD, 0, 51.20703125, 36.20703125, 99.5859375, 260.33544921875, 0, 8],
     ]);
   });
 
   it("draws each MatchStamp where its coordinates are seen", () => {
     const stamps = (root: string | null) =>
       [0, 1, 2, 3].map((stamp) => shape(stampOverlay(P, matchLinesOf(drawn, P, root), stamp)));
-    const ON_MIDDLE = [47.20703125, 85.18359375];
-    const ON_CARD = [44.20703125, 85.18359375];
+    const ON_MIDDLE = [32.8046875, 120.16015625];
+    const ON_CARD = [36.20703125, 99.5859375];
     expect(stamps(null)).toEqual([
       {
         lines: [
           [0, 260.33544921875, ...ON_MIDDLE],
           [4, 110.33544921875, ...ON_CARD],
         ],
-        connectors: [[0, 260.33544921875, 66.1953125, 110.33544921875, 66.1953125]],
+        connectors: [[0, 260.33544921875, 67.896484375, 110.33544921875, 67.896484375]],
       },
       { lines: [[1, 310.33544921875, ...ON_MIDDLE]], connectors: [] },
       {
@@ -647,24 +665,24 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
           [3, 660.33544921875, ...ON_MIDDLE],
           [7, 760.33544921875, ...ON_CARD],
         ],
-        connectors: [[3, 660.33544921875, 66.1953125, 760.33544921875, 66.1953125]],
+        connectors: [[3, 660.33544921875, 67.896484375, 760.33544921875, 67.896484375]],
       },
     ]);
-    const ON_ROW = [51.20703125, 51.20703125];
+    const ON_ROW = [36.20703125, 99.5859375];
     expect(stamps(raised)).toEqual([
       {
         lines: [
           [0, 260.33544921875, ...ON_ROW],
           [4, 110.33544921875, ...ON_CARD],
         ],
-        connectors: [[0, 260.33544921875, 51.20703125, 110.33544921875, 51.20703125]],
+        connectors: [[0, 260.33544921875, 67.896484375, 110.33544921875, 67.896484375]],
       },
       {
         lines: [
           [1, 310.33544921875, ...ON_ROW],
           [5, 210.33544921875, ...ON_CARD],
         ],
-        connectors: [[1, 310.33544921875, 51.20703125, 210.33544921875, 51.20703125]],
+        connectors: [[1, 310.33544921875, 67.896484375, 210.33544921875, 67.896484375]],
       },
       {
         lines: [
@@ -678,7 +696,7 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
           [3, 660.33544921875, ...ON_ROW],
           [7, 760.33544921875, ...ON_CARD],
         ],
-        connectors: [[3, 660.33544921875, 51.20703125, 760.33544921875, 51.20703125]],
+        connectors: [[3, 660.33544921875, 67.896484375, 760.33544921875, 67.896484375]],
       },
     ]);
   });
@@ -702,20 +720,20 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
       });
     };
     expect(hits(null)).toEqual([
-      [0, 4, null, 0, 110.33544921875, 85.18359375, 44.20703125],
-      [2, 6, null, 0, 360.33544921875, 85.18359375, 47.20703125],
-      [2, 6, null, 6.21875, 360.33544921875, 85.18359375, 47.20703125],
+      [0, 4, null, 0, 110.33544921875, 85.18359375, 36.20703125],
+      [2, 6, null, 0, 360.33544921875, 85.18359375, 32.8046875],
+      [2, 6, null, 0, 360.33544921875, 85.18359375, 32.8046875],
       null,
-      [3, 7, null, 0, 760.33544921875, 85.18359375, 44.20703125],
-      [1, 1, null, 0, 310.33544921875, 47.20703125, 47.20703125],
+      [3, 7, null, 0, 760.33544921875, 85.18359375, 36.20703125],
+      [1, 1, null, 0, 310.33544921875, 47.20703125, 32.8046875],
     ]);
     expect(hits(raised)).toEqual([
-      [0, 4, null, 0, 110.33544921875, 85.18359375, 44.20703125],
-      [2, 6, null, 0, 360.33544921875, 85.18359375, 44.20703125],
-      [2, 6, null, 6.21875, 360.33544921875, 85.18359375, 44.20703125],
-      [1, 5, null, 0, 210.33544921875, 85.18359375, 44.20703125],
-      [3, 7, null, 0, 760.33544921875, 85.18359375, 44.20703125],
-      [1, 1, null, 0, 310.33544921875, 51.20703125, 51.20703125],
+      [0, 4, null, 0, 110.33544921875, 85.18359375, 36.20703125],
+      [2, 6, null, 0, 360.33544921875, 85.18359375, 36.20703125],
+      [2, 6, null, 0, 360.33544921875, 85.18359375, 36.20703125],
+      [1, 5, null, 0, 210.33544921875, 85.18359375, 36.20703125],
+      [3, 7, null, 0, 760.33544921875, 85.18359375, 36.20703125],
+      [1, 1, null, 0, 310.33544921875, 51.20703125, 36.20703125],
     ]);
   });
 
@@ -748,9 +766,18 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     expect(lines.byTimeline.get(1)?.map(({ key: at, from, to }) => [at, from, to])).toEqual([
       [key, 4, 12],
     ]);
-    const middle = [...lineAxes(plain).values()].find((axis) => axis.timeline === "middle");
+    // The ancestor line's coordinate line spans `middle`'s card, as `middle`'s line's does.
+    const card = plain.boxes.find(
+      (box) => box.kind === "card" && box.key?.item === "group_1" && box.key.member === "middle",
+    );
+    if (card === undefined) throw new Error("no card of middle");
     const x = line.xStart + 100;
-    expect(shape(stampOverlay(P, lines, 2)).lines.at(-1)).toEqual([6, x, middle?.y, line.y]);
+    expect(shape(stampOverlay(P, lines, 2)).lines.at(-1)).toEqual([
+      6,
+      x,
+      card.y,
+      card.y + card.height,
+    ]);
     expect(screenPlace(plain, { timeline: "piece", value: fraction(6) })).toEqual({
       x,
       y: line.y,
@@ -852,21 +879,29 @@ describe("the pinned MatchStamp by colour", () => {
 
   it("draws each connector by the belief in its MatchClaims, the lines blue", () => {
     expect(parts(0, BELIEVED)).toEqual([
-      ["true", "#339933", { lines: [], connectors: [[3, AT_300, SCORE_Y, AT_300, TAKE_1_Y]] }],
+      [
+        "true",
+        "#339933",
+        { lines: [], connectors: [[3, AT_300, SCORE_BOTTOM, AT_300, TAKE_1_TOP]] },
+      ],
       [
         "undecided",
         "#1BA1E2",
         {
           lines: [
-            [0, AT_300, TAKE_2_Y, TAKE_2_Y],
-            [2, AT_300, SCORE_Y, SCORE_Y],
-            [4, AT_200, TAKE_1_Y, TAKE_1_Y],
-            [5, AT_300, TAKE_1_Y, TAKE_1_Y],
+            [0, AT_300, TAKE_2_TOP, TAKE_2_BOTTOM],
+            [2, AT_300, SCORE_TOP, SCORE_BOTTOM],
+            [4, AT_200, TAKE_1_TOP, TAKE_1_BOTTOM],
+            [5, AT_300, TAKE_1_TOP, TAKE_1_BOTTOM],
           ],
-          connectors: [[0, AT_300, TAKE_2_Y, AT_200, TAKE_1_Y]],
+          connectors: [[0, AT_300, TAKE_2_TOP, AT_200, TAKE_1_BOTTOM]],
         },
       ],
-      ["false", "#E51400", { lines: [], connectors: [[1, AT_300, TAKE_2_Y, AT_300, TAKE_1_Y]] }],
+      [
+        "false",
+        "#E51400",
+        { lines: [], connectors: [[1, AT_300, TAKE_2_TOP, AT_300, TAKE_1_BOTTOM]] },
+      ],
     ]);
     expect(parts(1, BELIEVED)).toEqual([
       [
@@ -874,13 +909,17 @@ describe("the pinned MatchStamp by colour", () => {
         "#1BA1E2",
         {
           lines: [
-            [1, AT_200, SCORE_Y, SCORE_Y],
-            [3, AT_100, TAKE_1_Y, TAKE_1_Y],
+            [1, AT_200, SCORE_TOP, SCORE_BOTTOM],
+            [3, AT_100, TAKE_1_TOP, TAKE_1_BOTTOM],
           ],
           connectors: [],
         },
       ],
-      ["unlikely", "#E07000", { lines: [], connectors: [[2, AT_200, SCORE_Y, AT_100, TAKE_1_Y]] }],
+      [
+        "unlikely",
+        "#E07000",
+        { lines: [], connectors: [[2, AT_200, SCORE_BOTTOM, AT_100, TAKE_1_TOP]] },
+      ],
     ]);
   });
 

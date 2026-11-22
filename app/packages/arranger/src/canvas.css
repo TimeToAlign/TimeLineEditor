@@ -307,6 +307,12 @@
   background: #fff3bf;
 }
 
+/* The timestamp's primary coordinate, the one its wedge and labels mark. */
+.tilie-canvas .tilie-coordinates-row[data-primary="true"] {
+  box-shadow: inset 3px 0 0 #1a1d23;
+  font-weight: 600;
+}
+
 .tilie-canvas .tilie-coordinates-row .tilie-coordinates-name,
 .tilie-canvas .tilie-coordinates-foot {
   color: #5b6372;

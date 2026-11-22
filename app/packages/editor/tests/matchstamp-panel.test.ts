@@ -408,7 +408,14 @@ describe("Coordinates", () => {
     const matchstamp = shownGroups();
     expect(matchstamp).toEqual([
       ["Second half", [["coordinate", "2", true, "♩"]]],
-      ["Score", [["coordinate", "6", true, "♩"]]],
+      [
+        "Score",
+        [
+          ["cmap_2", "3.0", true, "s"],
+          ["cmap_1", "2880", true, "ticks"],
+          ["coordinate", "6", true, "♩"],
+        ],
+      ],
       [
         "Performance",
         [
