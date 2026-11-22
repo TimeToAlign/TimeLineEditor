@@ -8,10 +8,10 @@
 
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { CommandError } from "../packages/core/src/index.ts";
 import { GRID_PITCH } from "./fixtures/generate.ts";
 import {
   cardPoint,
-  dispatch,
   drag,
   emptyPoint,
   frames,
@@ -182,27 +182,38 @@ const BREAKS = 100_000;
 const FRAME_MS = 16.7;
 
 /**
- * A PiecewiseMap from quarters to seconds on `melody` (8 quarters): `BREAKS`
- * breaks `8k / (BREAKS − 1)` from 0 to 8, a LinearMap between each two.
+ * Adds to `melody` (8 quarters) a PiecewiseMap from quarters to seconds:
+ * `BREAKS` breaks `8k / (BREAKS − 1)` from 0 to 8, a LinearMap between each
+ * two. The map is built inside the page and dispatched there, so the setup
+ * does not spend the test's time handing 10^5 objects from the test process
+ * to the page.
  */
-function pieces() {
-  return {
-    type: "PiecewiseMap",
-    id: "pieces",
-    name: "Pieces",
-    source_unit: "quarters",
-    target_unit: "seconds",
-    breaks: Array.from({ length: BREAKS }, (_, k) => [8 * k, BREAKS - 1]),
-    maps: Array.from({ length: BREAKS - 1 }, (_, k) => ({
-      type: "LinearMap",
-      id: `piece_${k}`,
-      name: null,
-      source_unit: "quarters",
-      target_unit: "seconds",
-      scalar: [k + 1, 7],
-      offset: [-k, 3],
-    })),
-  };
+function addPieces(page: Page): Promise<CommandError | null> {
+  return page.evaluate(
+    ({ block, breaks }) =>
+      window.__tilie.store().dispatch({
+        type: "add",
+        into: { block, id: "melody" },
+        map: {
+          type: "PiecewiseMap",
+          id: "pieces",
+          name: "Pieces",
+          source_unit: "quarters",
+          target_unit: "seconds",
+          breaks: Array.from({ length: breaks }, (_, k) => [8 * k, breaks - 1]),
+          maps: Array.from({ length: breaks - 1 }, (_, k) => ({
+            type: "LinearMap",
+            id: `piece_${k}`,
+            name: null,
+            source_unit: "quarters",
+            target_unit: "seconds",
+            scalar: [k + 1, 7],
+            offset: [-k, 3],
+          })),
+        },
+      }),
+    { block: SMALL.map, breaks: BREAKS },
+  );
 }
 
 test.describe("the coordinate flag over a PiecewiseMap of 10^5 breaks", { tag: "@budget" }, () => {
@@ -210,13 +221,7 @@ test.describe("the coordinate flag over a PiecewiseMap of 10^5 breaks", { tag: "
     test.skip(browserName !== "chromium", "script time is read through Chromium's protocol");
     await open(page, "small");
     await setViewport(page, { x: 40, y: 40, zoom: 1 });
-    expect(
-      await dispatch(page, {
-        type: "add",
-        into: { block: SMALL.map, id: "melody" },
-        map: pieces(),
-      }),
-    ).toBeNull();
+    expect(await addPieces(page)).toBeNull();
     await page.getByRole("button", { name: "Show coordinates" }).click();
     await expect(page.getByTestId("coordinates")).toHaveAttribute("aria-pressed", "true");
   });

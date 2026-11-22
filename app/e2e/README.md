@@ -1421,8 +1421,10 @@ per Ctrl+wheel zoom and per plain wheel pan, and 1 ms per command with a
 single-block redraw within one frame; each test prints its measurement.
 The coordinate flag's budget opens `small` at viewport (40, 40), zoom 1,
 adds to `melody` (block `map0000000`, 8 quarters) a PiecewiseMap "Pieces"
-of 10^5 breaks `8k / 99999` with a LinearMap between each two, turns Show
-coordinates on, and moves the pointer 200 times along `melody`'s line,
+of 10^5 breaks `8k / 99999` with a LinearMap between each two, built and
+dispatched inside the page (handing the 10^5 objects from the test process
+to the page took about 18 of the test's 30 seconds; the store then holds
+the same manifest either way), turns Show coordinates on, and moves the pointer 200 times along `melody`'s line,
 each move followed by two frames, so every move is read once: the flag
 shows the map's row before and after, and the script time per move is at
 most one frame at 60 Hz, 16.7 ms. These `≤` comparisons are budgets by
