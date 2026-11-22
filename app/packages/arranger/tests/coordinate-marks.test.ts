@@ -269,7 +269,7 @@ describe("the hovered position", () => {
 
 describe("a position on an ancestor line", () => {
   /** `piece`'s ancestor line in `middle`'s card, and 8 quarters of `piece` on it (`README.md`). */
-  const PIECE_Y = 67.78125;
+  const PIECE_Y = 85.18359375;
   const AT_PIECE_8 = 460.33544921875;
   const parentView = (): View =>
     viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
@@ -285,12 +285,13 @@ describe("a position on an ancestor line", () => {
   }
 
   /**
-   * The ancestor line's mark at 8: above the line, in the style the cascade gives a wedge of
+   * The ancestor line's mark at 8: below the line, away from the member above it (tip `+ 1.5`,
+   * base 13 further), in the style the cascade gives a wedge of
    * `piece` on its ancestor line, faded as what lies inside an ancestor line is by default.
    */
   const MARK = {
     wedge: {
-      points: "460.3354,66.2812 457.3354,53.2812 463.3354,53.2812",
+      points: "460.3354,86.6836 457.3354,99.6836 463.3354,99.6836",
       fill: "#000000",
       opacity: "0.35",
     },
@@ -303,7 +304,7 @@ describe("a position on an ancestor line", () => {
     await hoverAt(client(AT_PIECE_8, PIECE_Y));
     const node = one(".svelte-flow__node[data-id] svg");
     expect(attributes(one('polygon[data-id="middle"][data-part="start"]', node), WEDGE)).toEqual({
-      points: "260.3354,66.2812 257.3354,53.2812 263.3354,53.2812",
+      points: "260.3354,86.6836 257.3354,99.6836 263.3354,99.6836",
       fill: "#000000",
       opacity: "0.35",
     });
@@ -317,8 +318,8 @@ describe("a position on an ancestor line", () => {
         ]),
       ]),
     ).toEqual([
-      ["Piece", [["8 ♩", "true"]]],
       ["Middle", [["4 ♩", "false"]]],
+      ["Piece", [["8 ♩", "true"]]],
     ]);
   });
 
@@ -394,7 +395,7 @@ describe("a position on an ancestor line", () => {
     await settle();
     expect(wedgeMarks("pin")).toEqual({
       wedge: {
-        points: "210.3354,69.2812 207.3354,82.2812 213.3354,82.2812",
+        points: "210.3354,86.6836 207.3354,99.6836 213.3354,99.6836",
         fill: "#000000",
         opacity: null,
       },

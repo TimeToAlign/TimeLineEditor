@@ -619,7 +619,7 @@ describe("a timeline's start or end mark, selected", () => {
     );
   }
 
-  it("pins the member's start and end, its ancestor above it, its group below", () => {
+  it("pins the member's start and end, its ancestor below it, then its group", () => {
     const store = storeOf("groups/group_parent_both");
     const inspector = drawer(store, false);
     inspector.selected([MIDDLE_START]);
@@ -633,8 +633,8 @@ describe("a timeline's start or end mark, selected", () => {
       false,
       "Timestamp",
       [
-        ["Piece", [row("coordinate", "4", "♩")]],
         ["Middle", [row("coordinate", "0", "♩")]],
+        ["Piece", [row("coordinate", "4", "♩")]],
         ["Recording", [row("coordinate", "0.0", "s")]],
       ],
       onTimeline(store, "middle", q(0), true),
@@ -643,8 +643,8 @@ describe("a timeline's start or end mark, selected", () => {
     inspector.selected([MIDDLE_END]);
     expect([groups(), inspector.shownPin()]).toEqual([
       [
-        ["Piece", [row("coordinate", "12", "♩")]],
         ["Middle", [row("coordinate", "8", "♩")]],
+        ["Piece", [row("coordinate", "12", "♩")]],
         ["Recording", [row("coordinate", "10.0", "s")]],
       ],
       onTimeline(store, "middle", q(8), true),
@@ -664,8 +664,8 @@ describe("a timeline's start or end mark, selected", () => {
     inspector.selected([MIDDLE_START]);
     expect([groups(), inspector.shownPin()]).toEqual([
       [
-        ["Piece", [row("coordinate", "4", "♩")]],
         ["Middle", [row("coordinate", "0", "♩")]],
+        ["Piece", [row("coordinate", "4", "♩")]],
       ],
       onTimeline(store, "middle", q(0), false),
     ]);
@@ -705,14 +705,20 @@ describe("a named timestamp on the root of an ancestor card", () => {
     const piece = ["Piece", [row("coordinate", "8", "♩")]];
     const middle = ["Middle", [row("coordinate", "4", "♩")]];
     const inspector = drawer(store, true);
+    /** Where the pin reads `middle`: its own line, else the card's row of it. */
+    const middleAt = () => inspector.shownPin()?.spec.members.map((m) => [m.timeline, m.ordinate]);
     inspector.selected([{ block: A, id }]);
-    expect([selected(), groups()]).toEqual(["Timestamp", [piece, middle]]);
+    expect([selected(), groups(), middleAt()]).toEqual([
+      "Timestamp",
+      [middle, piece],
+      [["middle", 47.20703125]],
+    ]);
     expect(store.open({ block: A, id: "piece" })).toBeNull();
     flushSync();
-    expect(groups()).toEqual([middle, piece]);
+    expect([groups(), middleAt()]).toEqual([[middle, piece], [["middle", 51.20703125]]]);
     store.done();
     flushSync();
-    expect(groups()).toEqual([piece, middle]);
+    expect([groups(), middleAt()]).toEqual([[middle, piece], [["middle", 47.20703125]]]);
   });
 });
 
@@ -768,24 +774,37 @@ describe("a pin read on a line", () => {
   }
 
   it("names a timestamp read on that line, and shows a selected one at its first place", () => {
-    const store = storeOf("groups/group_grandchild");
-    expect(store.open({ block: A, id: "score" })).toBeNull();
+    // `score` 9 has two places: its ancestor line in `exposition`'s card (first), where no map
+    // is drawn, and the line of its card behind `group_2`'s frame, which draws `cmap_1`.
+    const store = storeOf("bundles/bundle_shared_parent");
     const inspector = drawer(store, true);
-    const line = lineIn(store, "movement", "theme");
-    inspector.pinTimestamp(readOn(store, "movement", q(8), line, false, "score"), line);
-    const score = ["Score", [row("coordinate", "24", "♩")]];
-    const movement = ["Movement", [row("coordinate", "8", "♩")]];
-    const theme = ["Theme", [row("coordinate", "0", "♩")]];
-    expect(groups()).toEqual([score, movement, theme]);
-    type(nameField(), "Eight");
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const line = [...lineAxes(drawingOf(block, store.view.graphical, fontMetrics))].find(
+      ([, axis]) => axis.timeline === "score" && axis.ancestor?.group === "group_2",
+    )?.[0];
+    if (line === undefined) throw new Error("no line of score in group_2's ancestor card");
+    inspector.pinTimestamp(readOn(store, "score", q(9), line, false, null), line);
+    const exposition = [
+      "Exposition",
+      [row("cmap_2", "4320", "ticks"), row("coordinate", "9", "♩")],
+    ];
+    const second = ["Second theme", [row("cmap_3", "1.5", "s"), row("coordinate", "3", "♩")]];
+    const onCard = [
+      exposition,
+      second,
+      ["Score", [row("cmap_1", "4320", "ticks"), row("coordinate", "9", "♩")]],
+    ];
+    expect(groups()).toEqual(onCard);
+    type(nameField(), "Nine");
     press(nameField(), "Enter");
     const id = inspector.shownPin()?.named?.id;
-    expect([id === undefined, groups()]).toEqual([false, [score, movement, theme]]);
+    expect([id === undefined, groups()]).toEqual([false, onCard]);
     inspector.selected([{ block: A, id: id ?? "" }]);
-    expect(groups()).toEqual([score, movement, theme]);
+    expect(groups()).toEqual(onCard);
     inspector.selected([{ block: A }]);
     inspector.selected([{ block: A, id: id ?? "" }]);
-    expect(groups()).toEqual([theme, movement, score]);
+    expect(groups()).toEqual([exposition, second, ["Score", [row("coordinate", "9", "♩")]]]);
   });
 
   it("is read again as a fresh reading when an editor raises or lowers its card, and kept as read in between", () => {
@@ -797,7 +816,7 @@ describe("a pin read on a line", () => {
     const piece = ["Piece", [row("coordinate", "8", "♩")]];
     const middle = ["Middle", [row("coordinate", "4", "♩")]];
     const recording = ["Recording", [row("coordinate", "5.0", "s")]];
-    expect([groups(), inspector.shownPin()]).toEqual([[piece, middle, recording], pin]);
+    expect([groups(), inspector.shownPin()]).toEqual([[middle, piece, recording], pin]);
     expect(store.open({ block: A, id: "piece" })).toBeNull();
     flushSync();
     const raised = inspector.shownPin();
@@ -815,7 +834,7 @@ describe("a pin read on a line", () => {
     expect(again()).toBe(again());
     store.done();
     flushSync();
-    expect([groups(), inspector.shownPin()]).toEqual([[piece, middle, recording], pin]);
+    expect([groups(), inspector.shownPin()]).toEqual([[middle, piece, recording], pin]);
     expect(inspector.shownPin()).toBe(pin);
   });
 
@@ -829,21 +848,21 @@ describe("a pin read on a line", () => {
     const middle = ["Middle", [row("coordinate", "4", "♩")]];
     const recording = ["Recording", [row("coordinate", "5.0", "s")]];
     expect([groups(), inspector.shownPin(), groupstampToggle()]).toEqual([
-      [piece, middle, recording],
+      [middle, piece, recording],
       pin,
       "true",
     ]);
     expect(store.open({ block: A, id: "middle" })).toBeNull();
     flushSync();
     expect([groups(), inspector.shownPin(), groupstampToggle()]).toEqual([
-      [piece, middle],
+      [middle, piece],
       readOn(store, "middle", q(4), line, false, null),
       "false",
     ]);
     store.done();
     flushSync();
     expect([groups(), inspector.shownPin() === pin, groupstampToggle()]).toEqual([
-      [piece, middle, recording],
+      [middle, piece, recording],
       true,
       "true",
     ]);
@@ -873,7 +892,7 @@ describe("a pin read on a line", () => {
     store.done();
     flushSync();
     expect([groups(), inspector.shownPin() === pin, groupstampToggle()]).toEqual([
-      [piece, middle, recording],
+      [middle, piece, recording],
       false,
       "true",
     ]);

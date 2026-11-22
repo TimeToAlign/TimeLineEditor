@@ -565,7 +565,7 @@ describe("the surroundings of an editor", () => {
     await show(marqueeView());
     open(id("dlt_1"));
     await atZoomOne();
-    await marqueeFrom(40, 410, 640, 496.25);
+    await marqueeFrom(40, 370, 640, 454);
     expect(selected()).toEqual([
       id("cmap_7"),
       id("dlt_1"),
@@ -574,7 +574,7 @@ describe("the surroundings of an editor", () => {
     store.done();
     open(id("group_1"));
     await atZoomOne();
-    await marqueeFrom(40, 410, 640, 496.25);
+    await marqueeFrom(40, 370, 640, 454);
     expect(selected()).toEqual([]);
   });
 

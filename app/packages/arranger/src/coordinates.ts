@@ -155,7 +155,8 @@ interface AncestorLine {
 
 /**
  * The ancestor lines of `drawing`, the lines of a child member's ancestors
- * drawn above its line in its card, which draw no markers, once per
+ * drawn beside its line in its card (on the side each ancestor's band
+ * order gives: below it by default), which draw no markers, once per
  * drawing, keyed as in `lineAxes` and in its order, each with the key of
  * the member's own line in that card (`markedOf`), whose cross-section a
  * reading there reads.
@@ -802,7 +803,7 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
  * its place (`placeOf`: the line keyed `preferred`, the line it was read
  * on, while that is one of its places, else the first), read as the
  * pointer reads it there (`crossSectionSpec` anchored on it: on an
- * ancestor line the cross-section of the member's line below it; on a
+ * ancestor line the cross-section of the member's line in that card; on a
  * segment line the segment's subtree), so its members are its ancestors
  * and the timelines of its own subtree that line crosses, each with the
  * maps drawn at the crossed lines. Where the position has no place (no line

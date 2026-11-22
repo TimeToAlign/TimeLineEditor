@@ -179,16 +179,21 @@ frame and are much wider than their frames. The positions above are chosen
 from the blocks as layout records them (the arranger's `drawingOf`, the
 nodes by `nodePosition`, width × height, node from (left, top) to (right,
 bottom)) so that no two nodes overlap (the narrowest gap is the 6.37109375
-between `bmixed0000` and `bungroup00`, as before):
+between `bmixed0000` and `bungroup00`, as before). The ancestor lines of a
+child member lie below it by default, so the ancestor cards no longer
+reach above their frames but for `bshared000`'s first card (its origin's
+ordinate 3.671875, layout's README, "Ancestor cards", point 11), and the
+member cards grow by 3.40234375 (an ancestor band below a markers band
+starts beyond it); the positions above keep every node apart:
 
 | Block | Drawing | Origin | Node |
 |---|---|---|---|
-| `gchild0000` | 921.898681640625 × 190.13671875 | (368, 0) | (−368, 0) to (553.898681640625, 190.13671875) |
-| `ggrand0000` | 3309.265625 × 227.30859375 | (1170.56201171875, 3.1953125) | (−1170.56201171875, 284.8046875) to (2138.70361328125, 512.11328125) |
-| `gmixed0000` | 1732.891295189951 × 377.640625 | (423.5276884191177, 0) | (216.47231158088232, 544) to (1949.3636067708335, 921.640625) |
+| `gchild0000` | 921.898681640625 × 193.5390625 | (368, 0) | (−368, 0) to (553.898681640625, 193.5390625) |
+| `ggrand0000` | 3309.265625 × 227.515625 | (1170.56201171875, 0) | (−1170.56201171875, 288) to (2138.70361328125, 515.515625) |
+| `gmixed0000` | 1732.891295189951 × 384.4453125 | (423.5276884191177, 0) | (216.47231158088232, 544) to (1949.3636067708335, 928.4453125) |
 | `gstyled000` | 546.1240234375 × 260.1875 | (0, 0) | (640, 0) to (1186.1240234375, 260.1875) |
 | `bmixed0000` | 2106.70361328125 × 473.62890625 | (153.412109375, 0) | (−153.412109375, 0) to (1953.29150390625, 473.62890625) |
-| `bshared000` | 1928.0259602864583 × 576.109375 | (698.6901041666667, 38.6484375) | (−58.69010416666674, 913.3515625) to (1869.3358561197915, 1489.4609375) |
+| `bshared000` | 1928.0259602864583 × 541.1328125 | (698.6901041666667, 3.671875) | (−58.69010416666674, 948.328125) to (1869.3358561197915, 1489.4609375) |
 | `bungroup00` | 527.3271484375 × 252.1640625 | (0, 0) | (0, 480) to (527.3271484375, 732.1640625) |
 | `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
 
@@ -919,15 +924,19 @@ to both sides of its member.
 *Drawn by default, hidden from its root and shown from its child.* With no rule stating
 anything of it, the block draws `piece`'s ancestor card, shadow and card
 addressed `{id: piece, part: [card]}`, at the layout's record (layout's
-README, "Ancestor cards", case 2): the card at `x="8"` `y="18.8047"`,
+README, "Ancestor cards", case 2): the card at `x="8"` `y="36.207"`
+(36.20703125: it lies on `piece`'s ancestor row, 85.18359375, below
+`middle`'s line, its line 48.9765625 below its top),
 `869.3354` × `63.3789` (869.33544921875 × 63.37890625 to four decimals),
 the frame at `x="156.6318"` (8 + the block's origin shift
 148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
 beyond the frame's left border and 869.33544921875 − 148.6318359375 −
 543.70361328125 = 177 beyond its right one; the member cards at
 `164.6318`, each `y`, width and height as without the card (`8`,
-`32.8047`, `124.7578`; `543.7036` × `174.1367`, `527.7036` × `83.9531`,
-`527.7036` × `49.3789`); the node at `(x − 148.6318359375, y)` of the
+`32.8047`, `128.1602`; `543.7036` × `177.5391`, `527.7036` × `87.3555`,
+`527.7036` × `49.3789`: `middle`'s card holds its ancestor band below its
+markers band, 3.40234375 higher than with the band above, and
+`recording`'s card lies that much lower); the node at `(x − 148.6318359375, y)` of the
 block's place `(x, y)` (each engine prints a transform's lengths to its own
 precision, Chromium and Firefox to six significant digits, WebKit to six
 decimals, so the node's transform is compared with the string the same
@@ -981,10 +990,11 @@ drawing points of the block placed where the arranger puts its node (the
 block read back from the page's workspace text, drawn by `drawingOf` and
 placed by `nodePosition`), the lines found in layout's `lineAxes` of that
 drawing: the card's `piece` line (its axis carries `ancestor`) at y
-67.78125 from 60.33544921875 to 860.33544921875 (0 to 16, 50 units a
+85.18359375 from 60.33544921875 to 860.33544921875 (0 to 16, 50 units a
 quarter), the card's `middle` row (its axis carrying `ancestor`) at y
-33.8046875, and `piece`'s ancestor line in `middle`'s member card (no
-`ancestor`) at the same y 67.78125 from 260.33544921875 (start 4). The
+51.20703125, 4 below `middle`'s own line (47.20703125), and `piece`'s
+ancestor line in `middle`'s member card (no `ancestor`) at the same y
+85.18359375 from 260.33544921875 (start 4). The
 viewport's abscissa is moved right by less than a pixel so that the card's
 `piece` line starts on a whole screen pixel; every point lies a whole
 number of units from it (Firefox and WebKit take whole pixels only) and
@@ -995,10 +1005,10 @@ carries `data-hovered="true"`:
 
 | Point (drawing) | Arranger | `piece`'s timeline editor open, the card raised |
 |---|---|---|
-| (110.33544921875, 67.78125), the card's `piece` line left of the frame | parts `piece` alone, `1 ♩` (50 / 800 × 16), hovered | — |
-| (760.33544921875, 67.78125), the card's `piece` line right of the frame | parts `piece` alone, `14 ♩`, hovered | — |
-| (460.33544921875, 67.78125), `piece`'s ancestor line in `middle`'s card | parts `piece`, `middle`: `piece` `8 ♩` hovered (the ancestor's row), `middle` `4 ♩` | parts `middle`, `piece` (the card's `middle` row lies above its `piece` line): `piece` `8 ♩` hovered, `middle` `4 ♩` |
-| (460.33544921875, 33.8046875), the card's `middle` row inside the frame | no flag: the frame covers the card there | parts `middle`, `piece`: `middle` `4 ♩` hovered, `piece` `8 ♩` |
+| (110.33544921875, 85.18359375), the card's `piece` line left of the frame | parts `piece` alone, `1 ♩` (50 / 800 × 16), hovered | — |
+| (760.33544921875, 85.18359375), the card's `piece` line right of the frame | parts `piece` alone, `14 ♩`, hovered | — |
+| (460.33544921875, 85.18359375), `piece`'s ancestor line in `middle`'s card | parts `middle`, `piece` (`middle`'s line lies above the ancestor line): `piece` `8 ♩` hovered (the ancestor's row), `middle` `4 ♩` | parts `middle`, `piece` (the card's `middle` row lies above its `piece` line): `piece` `8 ♩` hovered, `middle` `4 ♩` |
+| (460.33544921875, 51.20703125), the card's `middle` row inside the frame | not the card, which the frame covers there: `middle`'s own line, 4 above, within the pointer's 8: parts `middle`, `piece`, `recording` (a member's line reads its group), `middle` `4 ♩` hovered | parts `middle`, `piece`: `middle` `4 ♩` hovered, `piece` `8 ♩` |
 
 So the card is read beyond the frame's borders, never through the frame,
 and everywhere while it is raised; an ancestor line in a member's card is
@@ -1074,7 +1084,7 @@ page; these are the expected values of this spec computed by the code under test
 selection through changes and editors on `bundles` (block `bshared000`,
 `bundle_shared_parent`, its place origin at (640, 952), below the other
 blocks) at viewport (40, 80 − 952), so that the block, `score`'s ancestor
-cards reaching 38.6484375 above its place origin, lies 40 lower on the
+cards reaching 3.671875 above its place origin, lies 40 lower on the
 page than a block placed at (640, 0) at viewport (40, 40), its resize
 toolbar clear of the page's header, with reduced motion emulated,
 and the release of a card reorder on `groups` without it. Every gesture

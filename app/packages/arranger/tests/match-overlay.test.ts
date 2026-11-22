@@ -689,7 +689,9 @@ describe("an ancestor card raised", () => {
             ),
           ]);
     };
-    await hoverAt(client(210.33544921875, 40));
+    // The drawing's place origin lies 148.6318359375 right of its left edge (the ancestor card
+    // reaches left of the frame), so the node lies that much left of block A's position.
+    await hoverAt(client(210.33544921875 - 148.6318359375, 80));
     expect(flagOf()).toBeNull();
     expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
     await settle();
@@ -703,21 +705,21 @@ describe("an ancestor card raised", () => {
     };
     expect(path("potential")?.getAttribute("d")).toBe(
       [
-        "M110.3354 26.8047V67.7812",
-        "M210.3354 26.8047V67.7812",
-        "M360.3354 26.8047V67.7812",
-        "M760.3354 26.8047V67.7812",
-        "M260.3354 33.8047V33.8047",
-        "M310.3354 33.8047V33.8047",
-        "M660.3354 33.8047V33.8047",
-        "M260.3354 33.8047L110.3354 33.8047",
-        "M310.3354 33.8047L210.3354 33.8047",
-        "M660.3354 33.8047L760.3354 33.8047",
+        "M110.3354 44.207V85.1836",
+        "M210.3354 44.207V85.1836",
+        "M360.3354 44.207V85.1836",
+        "M760.3354 44.207V85.1836",
+        "M260.3354 51.207V51.207",
+        "M310.3354 51.207V51.207",
+        "M660.3354 51.207V51.207",
+        "M260.3354 51.207L110.3354 51.207",
+        "M310.3354 51.207L210.3354 51.207",
+        "M660.3354 51.207L760.3354 51.207",
       ].join(""),
     );
     await hoverAt({
       clientX: viewport.x + (node.x + 210.33544921875) * viewport.zoom,
-      clientY: viewport.y + (node.y + 40) * viewport.zoom,
+      clientY: viewport.y + (node.y + 80) * viewport.zoom,
     });
     expect(flagOf()).toEqual([
       ["Middle", ["1 ♩"]],

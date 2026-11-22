@@ -512,13 +512,15 @@ describe("an ancestor card raised", () => {
     const piece5 = group("Piece", "5", "♩");
     const middle = group("Middle", "1", "♩");
     const recording = group("Recording", "1.25", "s");
-    // On the arranger `piece`'s ancestor line (67.78125) lies above `middle`'s line (81.78125).
-    const throughMiddle = [piece5, middle, recording];
+    // On the arranger `middle`'s line (47.20703125) lies above `piece`'s ancestor line
+    // (85.18359375); `piece` 3 lies in a gap, so it comes last.
+    const throughMiddle = [middle, piece5, recording];
     const piece = group("Piece", "3", "♩");
     expect(shownGroups()).toEqual([...throughMiddle, piece]);
     expect(store.open({ block: A, id: "piece" })).toBeNull();
     flushSync();
-    // Raised: `middle` 1 on the card's row (33.8046875) above `piece` 3 on its line (67.78125).
+    // Raised: `middle` 1 on the card's row (51.20703125) above `piece` 3 on its line
+    // (85.18359375), the order the member's card gives too.
     expect(shownGroups()).toEqual([middle, piece5, recording, piece]);
     store.done();
     flushSync();
@@ -539,17 +541,18 @@ describe("an ancestor card raised", () => {
       [["coordinate", value, true, unit]],
     ];
     const throughRecording = [
-      group("Piece", "6", "♩"),
       group("Middle", "2", "♩"),
+      group("Piece", "6", "♩"),
       group("Recording", "2.5", "s"),
     ];
     const piece = group("Piece", "3", "♩");
     if (raised) {
       expect(store.open({ block: A, id: "piece" })).toBeNull();
       flushSync();
-      // Raised: `recording` 2.5's group member `middle` 2 is read on the card's row (33.8046875),
-      // its ancestor `piece` 6 on the card's `piece` line (67.78125), above `recording` (139.16015625).
-      const [piece6, middle2, recording] = throughRecording;
+      // Raised: `piece` 3 has its place on the card's line (85.18359375), above `recording`
+      // (142.5625); `recording` 2.5's group member `middle` 2 is read on the card's row
+      // (51.20703125), its ancestor `piece` 6 on the card's `piece` line.
+      const [middle2, piece6, recording] = throughRecording;
       expect(shownGroups()).toEqual([piece, middle2, piece6, recording]);
     } else expect(shownGroups()).toEqual([...throughRecording, piece]);
     const before = store.journal.length;

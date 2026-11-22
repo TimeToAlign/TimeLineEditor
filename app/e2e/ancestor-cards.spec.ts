@@ -84,20 +84,20 @@ function placedAt(page: Page, x: number, y: number): Promise<string> {
 
 /** The frame and the member cards without the ancestor card, as the writer prints them. */
 const HELD = [
-  ["8", "8", "543.7036", "174.1367"],
-  ["16", "32.8047", "527.7036", "83.9531"],
-  ["16", "124.7578", "527.7036", "49.3789"],
+  ["8", "8", "543.7036", "177.5391"],
+  ["16", "32.8047", "527.7036", "87.3555"],
+  ["16", "128.1602", "527.7036", "49.3789"],
 ];
 
 /** The same boxes with the ancestor card drawn: moved right in the drawing by the origin shift. */
 const HELD_BESIDE_CARD = [
-  ["156.6318", "8", "543.7036", "174.1367"],
-  ["164.6318", "32.8047", "527.7036", "83.9531"],
-  ["164.6318", "124.7578", "527.7036", "49.3789"],
+  ["156.6318", "8", "543.7036", "177.5391"],
+  ["164.6318", "32.8047", "527.7036", "87.3555"],
+  ["164.6318", "128.1602", "527.7036", "49.3789"],
 ];
 
 /** The card's attributes (layout's README, "Ancestor cards", case 2). */
-const CARD = ["8", "18.8047", "869.3354", "63.3789"];
+const CARD = ["8", "36.207", "869.3354", "63.3789"];
 
 /** The shift of the block's place origin while the card is drawn (layout's README). */
 const SHIFT = 148.6318359375;
@@ -322,10 +322,10 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
   const cardMiddle = line("middle", true);
   const ancestorPiece = line("piece", false);
   expect([cardPiece.y, cardPiece.xStart, cardPiece.xEnd]).toEqual([
-    67.78125, 60.33544921875, 860.33544921875,
+    85.18359375, 60.33544921875, 860.33544921875,
   ]);
-  expect(cardMiddle.y).toBe(33.8046875);
-  expect([ancestorPiece.y, ancestorPiece.xStart]).toEqual([67.78125, 260.33544921875]);
+  expect(cardMiddle.y).toBe(51.20703125);
+  expect([ancestorPiece.y, ancestorPiece.xStart]).toEqual([85.18359375, 260.33544921875]);
 
   const view = await page.evaluate(() => window.__tilie.viewport());
   const start = await toScreen(page, origin.x + cardPiece.xStart, origin.y + cardPiece.y);
@@ -363,17 +363,21 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
     expect(await parts()).toEqual(["piece"]);
   }
 
-  // Inside `middle`'s card the ancestor line of `piece` is read as `piece`'s: its row is hovered.
+  // Inside `middle`'s card the ancestor line of `piece` is read as `piece`'s: its row is hovered,
+  // below `middle`'s, as the ancestor line lies below `middle`'s line.
   await hover(400, ancestorPiece.y);
-  await expect.poll(parts).toEqual(["piece", "middle"]);
+  await expect.poll(parts).toEqual(["middle", "piece"]);
   await expect(row("piece").getByTestId("coordinate")).toHaveText("8 ♩");
   await expect(row("piece")).toHaveAttribute("data-hovered", "true");
   await expect(row("middle").getByTestId("coordinate")).toHaveText("4 ♩");
   await expect(row("middle")).toHaveAttribute("data-hovered", "false");
 
-  // The card's `middle` row inside the frame is covered by the frame: nothing is read.
+  // The card's `middle` row inside the frame is covered by the frame: not it, but `middle`'s own
+  // line 4 above it is read, with its group.
   await hover(400, cardMiddle.y);
-  await expect(flag).toHaveCount(0);
+  await expect.poll(parts).toEqual(["middle", "piece", "recording"]);
+  await expect(row("middle")).toHaveAttribute("data-hovered", "true");
+  await expect(row("middle").getByTestId("coordinate")).toHaveText("4 ♩");
 
   // Raised by `piece`'s timeline editor, the card is read inside the frame too.
   await enter(page, { block, id: "piece" }, measured);

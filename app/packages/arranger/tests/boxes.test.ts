@@ -236,19 +236,14 @@ describe("boxes in a manifest with one group", () => {
 
   it.each([
     ["the frame above the first card", 12, 12, cardKey("group_1")],
-    ["the gap between the cards", 100, 120, cardKey("group_1")],
+    ["the gap between the cards", 100, 124, cardKey("group_1")],
     [
       "the start of the ancestor line",
       108.61962890625,
-      67.78125,
+      85.18359375,
       cardKey("group_1", "second-half"),
     ],
-    [
-      "the start of recording's line",
-      120.61962890625,
-      139.16015625,
-      cardKey("group_1", "recording"),
-    ],
+    ["the start of recording's line", 120.61962890625, 142.5625, cardKey("group_1", "recording")],
     ["the block's padding", 4, 4, null],
     ["the right of the frame", 552, 100, null],
   ])("finds under %s the box %j", (_, x, y, expected) => {
@@ -271,10 +266,10 @@ describe("boxes in a manifest with one group", () => {
   it("finds the frame where a hidden card would be", () => {
     const hidden = drawingIn(styled(view, HIDDEN_CARDS));
     // The start of `recording`'s line, 368 right of where it lies without the ancestor card.
-    const point = { x: 488.61962890625, y: 139.16015625 };
+    const point = { x: 488.61962890625, y: 142.5625 };
     expect(hitOf(A, hidden, null, point).within?.key).toEqual(cardKey("group_1"));
     // Left of the frame and below the ancestor card: no box.
-    expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 139.16015625 }).within).toBeNull();
+    expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 142.5625 }).within).toBeNull();
     expect(roles(hidden)).toEqual([
       [0, BUNDLE_ADDRESS, "block"],
       [1, cardAddress("piece"), "shadow"],
@@ -300,7 +295,7 @@ describe("boxes in a manifest with one group", () => {
       hoverOf(
         hitOf(A, withoutCard, address === null ? null : sourceOf(withoutCard, address), { x, y }),
       );
-    expect(hover(idAddress("recording"), 120.61962890625, 139.16015625)).toEqual({
+    expect(hover(idAddress("recording"), 120.61962890625, 142.5625)).toEqual({
       box: placeKeyText(cardKey("group_1", "recording")),
       boundary: null,
       band: null,

@@ -530,53 +530,68 @@ describe("a pin made on the canvas", () => {
 
   it("keeps the rows of the line it was read on in the Timestamp tab", async () => {
     start();
-    hook().load(workspaceOf("groups/group_grandchild"));
-    flushSync();
-    expect(hook().open({ block: A, id: "score" })).toBeNull();
+    hook().load(workspaceOf("bundles/bundle_shared_parent"));
     flushSync();
     hook().setViewport({ x: 0, y: 0, zoom: 1 });
     document
       .querySelector('[data-testid="coordinates"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     flushSync();
-    // `movement` 8 on its ancestor line in `theme`'s card, the second of its places: the
-    // raised card's `movement` row is the first.
+    // `score` 9 on the line of its card behind `group_2`'s frame, left of that frame, the
+    // second of its places: its ancestor line in `exposition`'s card is the first.
     const { view } = hook().store();
     const block = view.blocks[A];
     if (block === undefined) throw new Error("no block A");
     const drawing = drawingOf(block, view.graphical, fontMetrics);
     const line = [...lineAxes(drawing).values()].find(
-      (axis) =>
-        axis.timeline === "movement" && axis.ancestor === undefined && axis.card.member === "theme",
+      (axis) => axis.timeline === "score" && axis.ancestor?.group === "group_2",
     );
-    if (line === undefined) throw new Error("no line of movement in theme's card");
+    if (line === undefined) throw new Error("no line of score in group_2's ancestor card");
     const at = {
       clientX:
-        block.x + (abscissaOf(line, Rational.fromParts(8n, 1n)) - drawing.origin.x) * block.scale,
+        block.x + (abscissaOf(line, Rational.fromParts(9n, 1n)) - drawing.origin.x) * block.scale,
       clientY: block.y + (line.y - drawing.origin.y) * block.scale,
     };
     pointer("pointerdown", at);
     pointer("pointerup", at);
     const read = [
-      ["Score", [["coordinate", "24"]]],
-      ["Movement", [["coordinate", "8"]]],
-      ["Theme", [["coordinate", "0"]]],
+      [
+        "Exposition",
+        [
+          ["cmap_2", "4320"],
+          ["coordinate", "9"],
+        ],
+      ],
+      [
+        "Second theme",
+        [
+          ["cmap_3", "1.5"],
+          ["coordinate", "3"],
+        ],
+      ],
+      [
+        "Score",
+        [
+          ["cmap_1", "4320"],
+          ["coordinate", "9"],
+        ],
+      ],
     ];
     await vi.waitFor(() => expect(coordinates()).toEqual(read));
     // Named, the timestamp is read anew from the view: on the line the pin was read on, which
-    // the canvas handed over with it; the first place would list Theme, Movement, Score.
+    // the canvas handed over with it; the first place, an ancestor line, draws no `cmap_1`.
     const name = document.querySelector<HTMLInputElement>(
       '[data-testid="timestamp-name"] input[type="text"]',
     );
     if (name === null) throw new Error("no name field");
-    name.value = "Eight";
+    name.value = "Nine";
     name.dispatchEvent(new Event("input", { bubbles: true }));
     flushSync();
     key(name, { key: "Enter" });
     const named = hook()
       .store()
-      .view.blocks[A]?.manifest.graphical?.timestamps?.find((item) => item.name === "Eight");
-    expect([named?.timeline, coordinates()]).toEqual(["movement", read]);
+      .view.blocks[A]?.manifest.graphical?.timestamps?.find((item) => item.name === "Nine");
+    expect([named?.timeline, coordinates()]).toEqual(["score", read]);
   });
 });
 

@@ -213,7 +213,8 @@ const linesByDrawing = new WeakMap<
  * line left to right. A line of its own draws its drawn span; a segment's
  * line the part of it the segment covers; a part of a line the positions
  * from its left end to its right end. On an ancestor line a coordinate's
- * line spans the cross-section of the member's line it lies above.
+ * line spans the cross-section of the member's line it belongs to, which
+ * reaches the ancestor line on whichever side it lies.
  */
 export function matchLinesOf(
   drawing: Drawing,

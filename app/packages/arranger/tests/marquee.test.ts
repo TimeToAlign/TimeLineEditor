@@ -22,7 +22,7 @@ const every = insideOf(manifest, node.data.drawing, null);
 const at = (...elements: ElementAddress[]) => elements.map((element) => inBlock(A, element));
 const part = (id: string, ...words: ("start" | "end" | "name" | "label")[]): ElementAddress =>
   words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
-const bottom = { x: 40, y: 410, width: 600, height: 86.25 };
+const bottom = { x: 40, y: 370, width: 600, height: 84 };
 /** `recording`'s timeline editor: the one editor raising its ancestor card. */
 const RECORDING: Editing = { target: inBlock(A, idAddress("recording")), kind: "timeline" };
 /** The canvas rectangle of the box under `key` in `node`'s drawing, `by` larger on every side. */
@@ -148,13 +148,17 @@ describe("elementsInRect", () => {
     const strip = { ...card, width: frame.x - 2 - card.x };
     expect(elementsInRect(node, strip, every, metrics)).toEqual([]);
     const behind = [
-      idAddress("cmap_7"),
+      idAddress("cmap_6"),
+      idAddress("region_3"),
       idAddress("recording"),
+      idAddress("excerpt"),
       part("excerpt", "start"),
       part("excerpt", "end"),
+      idAddress("timestamp_3"),
+      idAddress("timestamp_4"),
       part("recording", "name"),
-      part("excerpt", "start", "label"),
-      part("excerpt", "end", "label"),
+      part("excerpt", "name"),
+      part("region_3", "label"),
     ];
     expect(elementsInRect(node, card, every, metrics)).toEqual(at(...behind));
     const raised = nodeOf(view, RECORDING);
@@ -163,13 +167,17 @@ describe("elementsInRect", () => {
     expect(elementsInRect(raised, card, inside, metrics)).toEqual(
       at(
         idAddress("cmap_5"),
-        idAddress("cmap_7"),
+        idAddress("cmap_6"),
         idAddress("recording"),
+        idAddress("excerpt"),
+        idAddress("timestamp_3"),
+        idAddress("timestamp_4"),
+        part("excerpt", "name"),
         part("recording", "name"),
+        idAddress("region_3"),
         part("excerpt", "start"),
         part("excerpt", "end"),
-        part("excerpt", "start", "label"),
-        part("excerpt", "end", "label"),
+        part("region_3", "label"),
       ),
     );
   });

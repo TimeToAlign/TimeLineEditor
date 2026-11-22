@@ -489,10 +489,10 @@ beside it, which serves its MatchClaim table alone (reading
 `projections.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 170 manifest fixtures (85 and their minimal twins: 51 at the top
-level, 14 in `groups/`, 16 in `bundles/`, 4 in `statements/`, as the
+is 172 manifest fixtures (86 and their minimal twins: 51 at the top
+level, 15 in `groups/`, 16 in `bundles/`, 4 in `statements/`, as the
 schema package's fixture README counts them), 16 warning cases, the table
-fixture and 5 workspaces, 192 options, from `bare` to
+fixture and 5 workspaces, 194 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -502,7 +502,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 187 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 189 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -582,7 +582,7 @@ accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
    Each manifest fixture of the installed schema version (the 51 of the
-   top level, the 14 of `groups/` and the 16 of `bundles/`, the schema
+   top level, the 15 of `groups/` and the 16 of `bundles/`, the schema
    package's counts; a minimal twin reads back as its complete fixture,
    a case already) is written in each format and read back, and `dumps` of
    the value read equals the fixture's bytes; the YAML text written is the
@@ -1273,13 +1273,15 @@ ticks `5760`, coordinate `12` ♩.
    timeline editor), so the pin never depends on which editors were open
    before. In `groups/group_parent_both` (`middle`, offset 4, length 8, in
    `piece` of 16, a member of `group_1` with `recording`, 10.0 seconds), on
-   the arranger the start of `middle` shows the groups Piece [coordinate
-   `4` ♩], Middle [coordinate `0` ♩], Recording [coordinate `0.0` s], top
-   to bottom as `piece`'s ancestor line lies above `middle`'s line and
-   `recording`'s card below `middle`'s, `shownPin()` the arranger's
-   `timelinePin` of `middle` at 0 read by the group; its end Piece `12` ♩,
-   Middle `8` ♩, Recording `10.0` s. With `middle`'s own timeline editor
-   open its start shows Piece and Middle alone, `shownPin()` that pin read
+   the arranger the start of `middle` shows the groups Middle [coordinate
+   `0` ♩], Piece [coordinate `4` ♩], Recording [coordinate `0.0` s], top
+   to bottom as `middle`'s line lies above `piece`'s ancestor line (the
+   default band order puts `piece`'s children above its line, so its
+   line lies below the member) and `recording`'s card below `middle`'s,
+   `shownPin()` the arranger's `timelinePin` of `middle` at 0 read by the
+   group; its end Middle `8` ♩, Piece `12` ♩, Recording `10.0` s. With
+   `middle`'s own timeline editor open its start shows Middle and Piece
+   alone, `shownPin()` that pin read
    without the group, as a reading in that editor reads it. Selecting the
    block afterwards keeps that pin, as any unnamed pin is kept. What would
    be wrong: the start of a member pinned without its group on the
@@ -1293,48 +1295,57 @@ ticks `5760`, coordinate `12` ♩.
    In `groups/group_parent_both` a named timestamp `At 8` on `piece` at 8
    quarters lies, on the arranger, on `piece`'s ancestor line in
    `middle`'s card (`piece`'s ancestor card is covered there by
-   `group_1`'s frame): Piece [`8` ♩], Middle [`4` ♩], top to bottom as
-   that ancestor line lies above `middle`'s line. With `piece`'s timeline
-   editor open (`store.open`), its ancestor card is raised over the frame
-   and the timestamp lies on the card's line, where the card draws
-   `middle`'s row above `piece`'s line: Middle [`4` ♩], Piece [`8` ♩].
-   Closing the editor gives the arranger's rows back. What would be
-   wrong: the tab reading the covered card's line on the arranger, or the
-   ancestor line the raised card hides while the editor is open, so that
-   the tab lists rows in another order than the line the user sees.
+   `group_1`'s frame): Middle [`4` ♩], Piece [`8` ♩], top to bottom as
+   `middle`'s line (47.20703125, its pin's member ordinate) lies above that
+   ancestor line (85.18359375). With `piece`'s timeline editor open
+   (`store.open`), its ancestor card is raised over the frame and the
+   timestamp lies on the card's line, where the card draws `middle`'s row
+   (51.20703125, the ordinate read) above `piece`'s line: Middle [`4` ♩],
+   Piece [`8` ♩]. Closing the editor gives the arranger's reading back,
+   `middle` at 47.20703125. Both drawings list the rows in one order
+   (the member's card puts the ancestor line where the ancestor's own
+   drawing puts it), so the pin's ordinate of `middle` tells them apart.
+   What would be wrong: the tab reading the covered card's line on the
+   arranger, or the ancestor line the raised card hides while the editor
+   is open.
    **A pin keeps the line it was read on** (the canvas hands the line
    over with the pin, `pinTimestamp(pin, line)`), and so does the
    timestamp named from it, while that line is a place of its position;
    a timestamp selected otherwise is read at its first place (a
    selection names addresses, never the line a wedge was pressed on). In
-   `groups/group_grandchild` with `score`'s timeline editor open, a pin
-   of `movement` at 8 read on `movement`'s ancestor line in `theme`'s
-   card (the second of its places; the first is the raised card's
-   `movement` row) shows Score [`24` ♩], Movement [`8` ♩], Theme [`0` ♩],
-   top to bottom on that card; naming it "Eight" shows the same groups,
-   and selecting it again while shown keeps them; selected afresh (the
-   block first, then it) it is read on the raised card, Theme [`0` ♩],
-   Movement [`8` ♩], Score [`24` ♩]. What would be wrong: the tab of the
-   named timestamp built from the first place's card while the flag
-   showed the second's rows.
+   `bundles/bundle_shared_parent` with nothing open, a pin of `score` at
+   9 read on the line of `score`'s card behind `group_2`'s frame, left of
+   that frame (the second of its places; the first is `score`'s ancestor
+   line in `exposition`'s card, which the arranger's README lists in "A
+   reading belongs to the line it was read on") shows Exposition
+   [`cmap_2` `4320` ticks, `9` ♩], Second theme [`cmap_3` `1.5` s, `3`
+   ♩], Score [`cmap_1` `4320` ticks, `9` ♩], the card's line drawing
+   `score`'s map `cmap_1`; naming it "Nine" shows the same groups, and
+   selecting it again while shown keeps them; selected afresh (the block
+   first, then it) it is read on the ancestor line, which draws no map:
+   Score [`9` ♩] after the same two groups. What would be wrong: the tab
+   of the named timestamp built from the first place's line while the
+   flag showed the second's rows. (With the ancestor rows below the member
+   a raised card covers the member's card where it lies, so no second
+   place lies beside a raised card any more.)
    **The editor hands the line over** (`shell.test.ts`, the whole page
-   with its canvas): with the same editor open, the viewport at (0, 0)
-   and zoom 1 and Show coordinates on, a press released on `movement` 8 on
-   its ancestor line in `theme`'s card (its abscissa and ordinate from
-   layout's `lineAxes` and `abscissaOf` on the drawing, moved by the
-   drawing's origin to the canvas) shows Score [`24`], Movement [`8`],
-   Theme [`0`]; naming it "Eight" stores a timestamp on `movement` and
-   shows the same groups. What would be wrong: the canvas's line lost
-   between the canvas and the drawer (the named timestamp read at its
-   first place: Theme, Movement, Score), which a callback taking the pin
-   alone would still typecheck.
+   with its canvas): in the same workspace, the viewport at (0, 0) and
+   zoom 1 and Show coordinates on, a press released on `score` 9 on that
+   card's line (its abscissa and ordinate from layout's `lineAxes` and
+   `abscissaOf` on the drawing, moved by the drawing's origin to the
+   canvas) shows Exposition [`cmap_2` `4320`, `9`], Second theme
+   [`cmap_3` `1.5`, `3`], Score [`cmap_1` `4320`, `9`]; naming it "Nine"
+   stores a timestamp on `score` and shows the same groups. What would be
+   wrong: the canvas's line lost between the canvas and the drawer (the
+   named timestamp read at its first place: Score without `cmap_1`),
+   which a callback taking the pin alone would still typecheck.
    **A held unnamed pin is read again when an editor raises or lowers a
    card**, as a fresh reading at its mark reads it under the root raised
    then: by the group exactly where naming it would store a groupstamp
    (never inside a timeline editor), so its rows, the GroupStamp toggle
    and the tab after naming agree. In `groups/group_parent_both`, a pin of
    `middle` at 4 read on its own line with nothing open (a group read, as
-   on the arranger: Piece [`8` ♩], Middle [`4` ♩], Recording [`5.0` s])
+   on the arranger: Middle [`4` ♩], Piece [`8` ♩], Recording [`5.0` s])
    shows, once `piece`'s timeline editor is open, the pin read again at
    `middle` 4 under the raised card and without the group: Middle [`4` ♩]
    (the card's row), Piece [`8` ♩], the GroupStamp toggle not pressed; a
@@ -1344,14 +1355,14 @@ ticks `5760`, coordinate `12` ♩.
    the same object. The other way round, a pin of `middle` at 4 read on
    the raised card's row of `middle` with `piece`'s editor open (no group:
    Middle [`4` ♩], Piece [`8` ♩], the toggle not pressed) is read again
-   after Done on `middle`'s own line, by the group: Piece [`8` ♩], Middle
-   [`4` ♩], Recording [`5.0` s], a new pin, the toggle pressed. **A held
+   after Done on `middle`'s own line, by the group: Middle [`4` ♩], Piece
+   [`8` ♩], Recording [`5.0` s], a new pin, the toggle pressed. **A held
    pin read with its group is read again without it inside the member's
    own timeline editor**, which raises no card: the pin of `middle` at 4
-   read on its own line with nothing open (Piece, Middle, Recording, the
+   read on its own line with nothing open (Middle, Piece, Recording, the
    toggle pressed) shows, once `middle`'s timeline editor is open, exactly
    the arranger's `timelinePin` of `middle` at 4 on that line without the
-   group (Piece [`8` ♩], Middle [`4` ♩], the toggle not pressed), and after
+   group (Middle [`4` ♩], Piece [`8` ♩], the toggle not pressed), and after
    Done the pin held again, the same object. What would be wrong: rows
    that no fresh reading at the mark gives and that naming the pin does
    not store (the group read kept in a timeline editor, the member's own
@@ -1982,34 +1993,35 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    potential MatchStamp of `middle` 1: on the arranger `piece` 3 has no
    place (it lies where `group_1`'s frame covers `piece`'s ancestor card
    and no ancestor line runs) and orders last, so the Coordinates are
-   the groups of `middle` 1 (Piece [`5` ♩], its ancestor; Middle [`1` ♩];
+   the groups of `middle` 1 (Middle [`1` ♩] at its line, 47.20703125; Piece
+   [`5` ♩], its ancestor, at the ancestor line below it, 85.18359375;
    Recording [`1.25` s], through `group_1`, since naming stores a
-   GroupStamp on a group member), then Piece [`3` ♩]. With `piece`'s
-   timeline editor open the card is raised (from (8, 18.8046875),
-   869.33544921875 × 63.37890625, its bottom at 82.18359375; the
-   arranger's README, "A member in the raised card"): `middle`'s own line
-   at 81.78125 lies inside it and is not seen, and a member drawn in the
-   raised card is placed on the card's row that holds it, so `middle` 1
-   lies on the card's `middle` row at (310.33544921875, 33.8046875)
-   (260.33544921875 + 1 × 50) and `piece` 3 on the card's `piece` line at
-   (210.33544921875, 67.78125) (60.33544921875 + 3 × 50). Topmost first,
-   `middle` 1 comes first, and its pin is read on that row: Middle [`1` ♩]
-   at 33.8046875, its ancestor Piece [`5` ♩] at the card's `piece` line
-   (67.78125), Recording [`1.25` s] at its member card's line
-   (139.16015625, outside the card); then Piece [`3` ♩]. Closing the
-   editor (Done) gives the arranger's order back. What would be wrong:
-   the tab ordering by the places of nothing raised while the canvas
-   shows the raised card, or placing `middle` on its own line the raised
-   card covers (Piece [`3` ♩] first, then Piece, Middle, Recording).
+   GroupStamp on a group member, at 142.5625), then Piece [`3` ♩]. With
+   `piece`'s timeline editor open the card is raised (from (8,
+   36.20703125), 869.33544921875 × 63.37890625, its bottom at 99.5859375;
+   the arranger's README, "A member in the raised card"): `middle`'s own
+   line at 47.20703125 lies inside it and is not seen, and a member drawn
+   in the raised card is placed on the card's row that holds it, so
+   `middle` 1 lies on the card's `middle` row at (310.33544921875,
+   51.20703125) (260.33544921875 + 1 × 50) and `piece` 3 on the card's
+   `piece` line at (210.33544921875, 85.18359375) (60.33544921875 + 3 ×
+   50). Topmost first, `middle` 1 comes first, and its pin is read on that
+   row: Middle [`1` ♩] at 51.20703125, its ancestor Piece [`5` ♩] at the
+   card's `piece` line (85.18359375), Recording [`1.25` s] at its member
+   card's line (142.5625, outside the card); then Piece [`3` ♩]: the
+   order the arranger shows, since the member's card puts `piece`'s
+   ancestor line where `piece`'s own drawing puts its line, below its
+   children. Closing the editor (Done) gives the same order. What would
+   be wrong: Piece [`3` ♩] ordered by a place the raised card covers.
    **What is stored never follows it.** Naming (`stampToName`, read from
    the potential MatchStamp with nothing raised) and Update
    (`updateCommand`) store each anchor's coordinates, and the anchors, in
    the screen order of nothing raised, whichever editor is open, so one
    MatchStamp is stored one way. On `groups/group_parent_both` the places
    are (the drawing read with nothing raised | with `piece`'s card
-   raised): `piece` 3 none | (210.34, 67.78), `recording` 2.5
-   (360.34, 139.16) | the same, `middle` 1 (310.34, 81.78) | (310.34,
-   33.80), the card's `middle` row.
+   raised): `piece` 3 none | (210.34, 85.18), `recording` 2.5
+   (360.34, 142.56) | the same, `middle` 1 (310.34, 47.21) | (310.34,
+   51.21), the card's `middle` row.
    - Naming "Pickup" the potential MatchStamp of a table of one MatchClaim
      `p_1`, `piece` 3 ↔ `recording` 2.5 (the group partner of `piece`'s
      child `middle`): with nothing raised `piece` 3 has no place and
@@ -2017,34 +2029,33 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      [`recording` 2.5, `piece` [3, 1]], MatchClaims `["p_1"]`; the tab
      shows `recording` 2.5's groups (naming stores a GroupStamp on a group
      member, so its pin reads `group_1`'s other member `middle` and its
-     ancestor `piece`) Piece [`6` ♩] (`piece`'s ancestor line, 67.78125),
-     Middle [`2` ♩] (its member card's line, 81.78125), Recording [`2.5`
-     s], then Piece [`3` ♩]. `middle` 2 is `recording` 2.5 scaled by the
+     ancestor `piece`) Middle [`2` ♩] (its member card's line,
+     47.20703125), Piece [`6` ♩] (`piece`'s ancestor line, 85.18359375),
+     Recording [`2.5` s], then Piece [`3` ♩]. `middle` 2 is `recording` 2.5 scaled by the
      group, 2.5 × 4/5 (`middle` 4 ♩ ↔ `recording` 5 s at the frame's
      common abscissa 460.33544921875), and `piece` 6 is `middle` 2 plus
      `middle`'s offset 4. With `piece`'s timeline editor open the tab
-     shows Piece [`3` ♩] first (the card's `piece` line, 67.78125, above
-     `recording` 2.5 at 139.16015625), then the GroupStamp's groups read
+     shows Piece [`3` ♩] first (the card's `piece` line, 85.18359375,
+     above `recording` 2.5 at 142.5625), then the GroupStamp's groups read
      where the raised card draws them: a member of the group that the
      raised card draws is read on the card's row of it, as its own
      reading is placed there (the arranger's README, "A member in the
      raised card"), so Middle [`2` ♩] (the card's `middle` row,
-     33.8046875), Piece [`6` ♩] (the card's `piece` line, 67.78125),
+     51.20703125), Piece [`6` ♩] (the card's `piece` line, 85.18359375),
      Recording [`2.5` s]; naming stores the same command byte for byte
      (`JSON.stringify` of the journal's last command equal to the one
-     stored with no editor open). What would be wrong: `middle` 2 read on
-     its own line the raised card covers (Piece [`6` ♩] above Middle
-     [`2` ♩]).
+     stored with no editor open). What would be wrong: the stored command
+     following the raised order (Piece [`3` ♩] first).
    - Update of that named MatchStamp against a second table holding `p_1`
      and `p_2`, `middle` 1 ↔ `piece` 3 (out of date: the anchor of `p_2`
      is not in it): with nothing raised each pair's placed coordinate comes
-     first and the anchors sort by it, `middle` 1 (y 81.78) above
-     `recording` 2.5 (y 139.16), so the `set` stores the anchors
+     first and the anchors sort by it, `middle` 1 (y 47.21) above
+     `recording` 2.5 (y 142.56), so the `set` stores the anchors
      [[`middle` [1, 1], `piece` [3, 1]], [`recording` 2.5, `piece` [3, 1]]]
      and `match_claims` `["p_1", "p_2"]` (core's update, in row order);
      raised the same pairs would read [[`middle` 1, `piece` 3], [`piece`
-     3, `recording` 2.5]] (`middle` 1 at y 33.80 above `piece` 3 at
-     67.78, which lies above `recording` 2.5), yet Update with `piece`'s
+     3, `recording` 2.5]] (`middle` 1 at y 51.21 above `piece` 3 at
+     85.18, which lies above `recording` 2.5), yet Update with `piece`'s
      editor open stores the command of no editor open byte for byte.
    What would be wrong: the same MatchStamp stored in another orientation
    because an editor happened to be open.

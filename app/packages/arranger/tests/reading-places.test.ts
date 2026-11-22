@@ -378,15 +378,15 @@ const EXPECTED: readonly Expected[] = [
   },
   {
     fixture: "groups/group_grandchild",
-    places: [outcome(85), outcome(25)],
+    places: [outcome(80), outcome(25)],
     points: [
-      [802, 108],
+      [737, 173],
       [260, 0],
     ],
   },
   {
     fixture: "groups/group_parents_mixed",
-    places: [outcome(252), outcome(47)],
+    places: [outcome(243), outcome(47)],
     points: [
       [2602, 778],
       [455, 0],
@@ -394,7 +394,7 @@ const EXPECTED: readonly Expected[] = [
   },
   {
     fixture: "bundles/bundle_mixed",
-    places: [outcome(117), outcome(47)],
+    places: [outcome(108), outcome(47)],
     points: [
       [970, 70],
       [390, 0],
@@ -404,7 +404,7 @@ const EXPECTED: readonly Expected[] = [
     fixture: "bundles/bundle_shared_parent",
     places: [
       outcome(
-        495,
+        486,
         [
           boundary(null, "recapitulation_second"),
           boundary(null, "recapitulation_second"),
@@ -424,7 +424,7 @@ const EXPECTED: readonly Expected[] = [
       ),
     ],
     points: [
-      [2006, 464],
+      [2072, 398],
       [585, 0],
     ],
   },
@@ -435,7 +435,7 @@ describe("a reading at every place and the pin made from it", () => {
     expect(EXPECTED.map(({ fixture }) => fixture)).toEqual(FIXTURES);
     expect(
       EXPECTED.reduce((sum, { places }) => sum + places[0].compared + places[1].compared, 0),
-    ).toBe(1597);
+    ).toBe(1565);
   });
 
   it.each(EXPECTED)(

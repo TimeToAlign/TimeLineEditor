@@ -1102,7 +1102,7 @@ describe("an affordance in a stretch the frames cover", () => {
     expect(affordances(mountOn(view, A, null).svg)).toEqual([]);
     clear();
     expect(affordances(mountOn(view, A, PIECE).svg)).toEqual([
-      [addressKey(idAddress(id)), "210.3354,69.2812 207.3354,82.2812 213.3354,82.2812", false],
+      [addressKey(idAddress(id)), "210.3354,86.6836 207.3354,99.6836 213.3354,99.6836", false],
     ]);
   });
 });

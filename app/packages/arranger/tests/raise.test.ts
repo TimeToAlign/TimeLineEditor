@@ -60,22 +60,22 @@ describe("the decision of the raise", () => {
     const MIDDLE = { item: "group_1", member: "middle" };
     expect([at("piece", q(8), null), at("piece", q(8), "piece")]).toEqual([
       [
-        [MIDDLE, 67.78125, X],
-        [SECOND, 263.91796875, X],
+        [MIDDLE, 85.18359375, X],
+        [SECOND, 267.3203125, X],
       ],
       [
-        [CARD, 67.78125, X],
-        [SECOND, 263.91796875, X],
+        [CARD, 85.18359375, X],
+        [SECOND, 267.3203125, X],
       ],
     ]);
     expect([at("middle", q(4), null), at("middle", q(4), "piece")]).toEqual([
       [
-        [MIDDLE, 81.78125, X],
-        [SECOND, 229.94140625, X],
+        [MIDDLE, 47.20703125, X],
+        [SECOND, 233.34375, X],
       ],
       [
-        [CARD, 33.8046875, X],
-        [SECOND, 229.94140625, X],
+        [CARD, 51.20703125, X],
+        [SECOND, 233.34375, X],
       ],
     ]);
   });
