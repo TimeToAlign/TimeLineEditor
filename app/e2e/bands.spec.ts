@@ -152,8 +152,11 @@ test.describe("on bundles", () => {
     expect(await selection(page)).toEqual(SELECTED_F);
 
     // Left of every block, at the markers band's ordinate: only the selection's mark stays.
+    // `bmixed0000`'s ancestor card reaches 153.412109375 left of its place origin, so the view
+    // first moves right to show the pane beyond it.
     const at = await toCanvas(page, markers.x, markers.y);
-    const off = await emptyPoint(page, -20, at.y);
+    await setViewport(page, { ...VIEW, x: VIEW.x + 200 });
+    const off = await emptyPoint(page, -180, at.y);
     await page.mouse.move(off.x, off.y);
     await expect.poll(() => bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F]));
     expect(await entriesLength(page)).toBe(0);

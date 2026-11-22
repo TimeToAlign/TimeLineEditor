@@ -17,8 +17,24 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, select, selection, tabs, withoutPickers } from "./support.ts";
+import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
+import { isLoadError, matchClaimColumns, readWorkspace } from "../packages/core/src/index.ts";
+import { Rational } from "../packages/core/src/numbers.ts";
+import { abscissaOf, crossSectionSegment, lineAxes } from "../packages/layout/src/axes.ts";
+import { attributeText } from "../packages/writers/src/svg.ts";
+import { matchClaimsAnswer } from "./matchAnswer.ts";
+import { FONT_METRICS, manifestFixture, packageDir, SCHEMA_VERSION } from "./schema.ts";
+import {
+  chooseItem,
+  emptyPoint,
+  placement,
+  select,
+  selection,
+  setViewport,
+  tabs,
+  toScreen,
+  withoutPickers,
+} from "./support.ts";
 
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
@@ -31,13 +47,13 @@ const ROWS: number = JSON.parse(
   ANSWER.subarray(4, 4 + ANSWER.readUInt32LE(0)).toString("utf8"),
 ).rows;
 
-/** Open a fresh page whose match-claims requests the recording answers, counting them. */
-async function openPage(page: Page): Promise<{ requests: number }> {
+/** Open a fresh page whose match-claims requests `answer` answers (the recording), counting them. */
+async function openPage(page: Page, answer: Buffer = ANSWER): Promise<{ requests: number }> {
   const seen = { requests: 0 };
   await withoutPickers(page);
   await page.route("**/api/match-claims", async (route) => {
     seen.requests += 1;
-    await route.fulfill({ status: 200, contentType: "application/octet-stream", body: ANSWER });
+    await route.fulfill({ status: 200, contentType: "application/octet-stream", body: answer });
   });
   await page.goto("/");
   await page.waitForFunction(() => window.__tilie !== undefined);
@@ -287,4 +303,146 @@ test("importing a manifest that names a MatchClaim table says nothing of it and 
   await expect(page.getByTestId("message")).toHaveCount(0);
   expect(seen.requests).toBe(0);
   expect(asked).toEqual([]);
+});
+
+/** The MatchClaim table of the groupstamp case: score 4 ↔ performance 1.0, score 6 ↔ page 400. */
+const GROUPED = matchClaimColumns(
+  [
+    { id: "score", numberType: "fraction" },
+    { id: "performance", numberType: "float" },
+    { id: "second-half", numberType: "fraction" },
+    { id: "page", numberType: "int" },
+  ],
+  [
+    { id: "g_1", timelines: [0, 1], start: [Rational.of([4, 1]), 1.0] },
+    { id: "g_2", timelines: [0, 3], start: [Rational.of([6, 1]), 400n] },
+    { id: "g_3", timelines: [2, 1], start: [Rational.of([2, 1]), 3.0] },
+  ],
+);
+
+/** A vertical piece of an overlay path, `M<x> <y1>V<y2>`, its numbers as the path writes them. */
+interface Piece {
+  readonly x: string;
+  readonly y1: number;
+  readonly y2: number;
+}
+
+/** The vertical pieces of path `d`; its connectors (`M… L…`) are left out. */
+function piecesOf(d: string): Piece[] {
+  return [...d.matchAll(/M(-?[\d.]+) (-?[\d.]+)V(-?[\d.]+)/g)].map(([, x, y1, y2]) => ({
+    x: x as string,
+    y1: Math.min(Number(y1), Number(y2)),
+    y2: Math.max(Number(y1), Number(y2)),
+  }));
+}
+
+/** The union of the pieces at `x`, as sorted disjoint `[top, bottom]` intervals. */
+function spansAt(pieces: readonly Piece[], x: string): [number, number][] {
+  const spans: [number, number][] = [];
+  for (const { y1, y2 } of pieces.filter((piece) => piece.x === x).sort((a, b) => a.y1 - b.y1)) {
+    const last = spans.at(-1);
+    if (last !== undefined && y1 <= last[1]) last[1] = Math.max(last[1], y2);
+    else spans.push([y1, y2]);
+  }
+  return spans;
+}
+
+test("a potential MatchStamp on a group member, hovered and pinned, draws its lines across the frames", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await openPage(page, matchClaimsAnswer(GROUPED));
+  const block = await importFiles(page, [
+    {
+      name: "bundle_matchstamp_groupstamp.yaml",
+      buffer: Buffer.from(manifestFixture("bundles/bundle_matchstamp_groupstamp")),
+    },
+    { name: "grouped.parquet", buffer: Buffer.from("PAR1\0PAR1") },
+  ]);
+  const place = await placement(page, block);
+  await setViewport(page, { x: 80 - place.x, y: 80 - place.y, zoom: 1 });
+
+  // The drawing as the page draws it: its lines, and each frame's member cards from top to bottom.
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the page's workspace is refused");
+  const drawn = workspace.view.blocks[block];
+  if (drawn === undefined) throw new Error(`block ${block} is missing`);
+  const drawing = drawingOf(drawn, workspace.view.graphical, FONT_METRICS);
+  const origin = nodePosition(drawn, drawing);
+  const lines = [...lineAxes(drawing).entries()];
+  const linesOf = (timeline: string) => lines.filter(([, axis]) => axis.timeline === timeline);
+  /** The span of frame `group`'s member cards: the top of the topmost to the bottom of the lowest. */
+  const frameSpan = (group: string): [number, number] => {
+    const cards = drawing.boxes.filter(
+      (box) => box.kind === "card" && box.key?.item === group && box.key.member !== undefined,
+    );
+    return [
+      Math.min(...cards.map((card) => card.y)),
+      Math.max(...cards.map((card) => card.y + card.height)),
+    ];
+  };
+  const written = ([top, bottom]: [number, number]) => [
+    Number(attributeText(top)),
+    Number(attributeText(bottom)),
+  ];
+
+  // `score` is a member of both groups, `page` of `group_2`: score 6 ↔ page 400.
+  const score = linesOf("score");
+  const pageLines = linesOf("page");
+  expect(score.map(([, axis]) => axis.card.item)).toEqual(["group_1", "group_2"]);
+  expect(pageLines.map(([, axis]) => axis.card.item)).toEqual(["group_2"]);
+  // Hovered on `group_2`'s line: on `group_1`'s, MatchStamp performance 3.0 ↔ second-half 2 runs its
+  // connector down the same abscissa over the line, and the nearer of the two would be hovered.
+  const [, scoreAxis] = score[1] as (typeof score)[number];
+  const atScore = abscissaOf(scoreAxis, Rational.of([6, 1]));
+  const atPage = abscissaOf((pageLines[0] as (typeof pageLines)[number])[1], Rational.of([400, 1]));
+  const scoreX = attributeText(atScore);
+  const pageX = attributeText(atPage);
+  for (const [, axis] of score) expect(abscissaOf(axis, Rational.of([6, 1]))).toBe(atScore);
+  const across = {
+    score: [written(frameSpan("group_1")), written(frameSpan("group_2"))],
+    page: [written(frameSpan("group_2"))],
+  };
+
+  await page.getByTestId("matches").click();
+  await expect(page.getByTestId("matches")).toHaveAttribute("aria-pressed", "true");
+  const overlay = page.locator(`svg[data-matches="${block}"]`);
+  const path = (kind: string) => overlay.locator(`path[data-match="${kind}"]`);
+  await expect(path("potential")).toHaveCount(1);
+
+  // Unhovered, the potential overlay draws each coordinate on its line only. Performance 3.0 (of
+  // 4 seconds) lies at the abscissa of score 6 (of 8 quarters), so its line's piece is there too.
+  const performance = linesOf("performance");
+  expect(performance.map(([, axis]) => abscissaOf(axis, 3.0))).toEqual([atScore]);
+  const potential = piecesOf((await path("potential").getAttribute("d")) ?? "");
+  expect(spansAt(potential, scoreX)).toEqual(
+    [...score, ...performance]
+      .map(([key]) => {
+        const segment = crossSectionSegment(drawing, key, atScore);
+        if (segment === null) throw new Error(`no segment on ${key}`);
+        return written([segment.y1, segment.y2]);
+      })
+      .sort((a, b) => (a[0] as number) - (b[0] as number)),
+  );
+
+  // Hovered, score 6 ↔ page 400 is drawn as naming would store it: its groupstamps' lines cross
+  // every frame holding its timelines, from the topmost member card's top to the lowest's bottom.
+  const point = await toScreen(page, origin.x + atScore, origin.y + scoreAxis.y);
+  const at = { x: Math.round(point.x), y: Math.round(point.y) };
+  await page.mouse.move(at.x, at.y);
+  await expect(path("hovered")).toHaveCount(1);
+  const hovered = piecesOf((await path("hovered").getAttribute("d")) ?? "");
+  expect(spansAt(hovered, scoreX)).toEqual(across.score);
+  expect(spansAt(hovered, pageX)).toEqual(across.page);
+
+  // Pinned by a click, it keeps those lines once the pointer has left.
+  await page.mouse.click(at.x, at.y);
+  const pinned = overlay.locator('path[data-match="pinned"][data-belief="undecided"]');
+  await expect(pinned).toHaveCount(1);
+  const away = await emptyPoint(page, place.x + 900, place.y + 800);
+  await page.mouse.move(away.x, away.y);
+  await expect(path("hovered")).toHaveCount(0);
+  const kept = piecesOf((await pinned.getAttribute("d")) ?? "");
+  expect(spansAt(kept, scoreX)).toEqual(across.score);
+  expect(spansAt(kept, pageX)).toEqual(across.page);
 });

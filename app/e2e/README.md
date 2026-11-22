@@ -163,21 +163,51 @@ present. The files are never edited by hand.
 | File | Blocks |
 |---|---|
 | `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo`, C-Map `ticks`) at (640, 160) |
-| `groups.tle.json` | four manifests of one group each: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 240), `gmixed0000` (`groups/group_parents_mixed`) at (640, 0), `gstyled000` (`groups/group_styled`) at (640, 424) |
-| `bundles.tle.json` | the four named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480), `btwogroups` (`bundles/bundle_shared_member`: `t` a member of `g1` and of `g2`) at (640, 560) |
+| `groups.tle.json` | four manifests of one group each: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 288), `gmixed0000` (`groups/group_parents_mixed`) at (640, 544), `gstyled000` (`groups/group_styled`) at (640, 0) |
+| `bundles.tle.json` | the four named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 952), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480), `btwogroups` (`bundles/bundle_shared_member`: `t` a member of `g1` and of `g2`) at (640, 560) |
 | `grid-300.tle.json` | 300 `bare` blocks `g000000000` … `g000000299`, block `n` at (512 × (n mod 20), 80 × ⌊n / 20⌋) |
 | `grid-900.tle.json` | 900 `bare` blocks, block `n` at (512 × (n mod 30), 80 × ⌊n / 30⌋) |
 
+A block's `(x, y)` is the canvas position of its drawing's place origin,
+the point its items are placed from; where an ancestor card (drawing.md
+section 8.8) reaches left of or above the frames, the drawing's origin lies
+inside it and the block's node starts left of or above `(x, y)` by that
+origin (`nodePosition`). Ancestor cards are drawn by default, so the blocks
+holding a member that is a child timeline draw their root whole behind the
+frame and are much wider than their frames. The positions above are chosen
+from the blocks as layout records them (the arranger's `drawingOf`, the
+nodes by `nodePosition`, width × height, node from (left, top) to (right,
+bottom)) so that no two nodes overlap (the narrowest gap is the 6.37109375
+between `bmixed0000` and `bungroup00`, as before):
+
+| Block | Drawing | Origin | Node |
+|---|---|---|---|
+| `gchild0000` | 921.898681640625 × 190.13671875 | (368, 0) | (−368, 0) to (553.898681640625, 190.13671875) |
+| `ggrand0000` | 3309.265625 × 227.30859375 | (1170.56201171875, 3.1953125) | (−1170.56201171875, 284.8046875) to (2138.70361328125, 512.11328125) |
+| `gmixed0000` | 1732.891295189951 × 377.640625 | (423.5276884191177, 0) | (216.47231158088232, 544) to (1949.3636067708335, 921.640625) |
+| `gstyled000` | 546.1240234375 × 260.1875 | (0, 0) | (640, 0) to (1186.1240234375, 260.1875) |
+| `bmixed0000` | 2106.70361328125 × 473.62890625 | (153.412109375, 0) | (−153.412109375, 0) to (1953.29150390625, 473.62890625) |
+| `bshared000` | 1928.0259602864583 × 576.109375 | (698.6901041666667, 38.6484375) | (−58.69010416666674, 913.3515625) to (1869.3358561197915, 1489.4609375) |
+| `bungroup00` | 527.3271484375 × 252.1640625 | (0, 0) | (0, 480) to (527.3271484375, 732.1640625) |
+| `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
+
+The ancestor cards widen `gchild0000`, `ggrand0000` and `gmixed0000`
+(`group_parents_mixed` aligns two cards, so its origin is no dyadic
+fraction), and `bmixed0000` and `bshared000`; every other block is drawn as
+before. A card reaching across the page's width leaves room beside it for
+no other block, so the blocks are stacked: in `groups`, `gstyled000` moves
+up beside `gchild0000`, `ggrand0000` 48 down below both, and `gmixed0000`
+below `ggrand0000`; in `bundles`, `bshared000` moves below `btwogroups`,
+the only block moved. Every frame and member card of `groups` lies inside a
+1600 × 1000 page at viewport (40, 40), zoom 1 (the ancestor cards reach
+beyond it), and so does every block of `bundles` but `bshared000`, which
+lies below it: a spec working on `bshared000` sets a viewport showing it.
+
 The group workspace takes one manifest of each shape the drawing distinguishes:
-a member that is a child (one ancestor line), a grandchild (two), members
-under three different roots beside a root member, and a styled frame; the
-blocks it draws (553.898681640625 × 190.13671875, 559.70361328125 × 224.11328125,
-570.947265625 × 377.640625, 546.1240234375 × 260.1875) do not
-overlap at those positions, and all four lie inside a 1600 × 1000 page at
-viewport (40, 40), zoom 1. The bundle workspace holds every synthetic manifest
-of `bundles/` (blocks 581.9150390625 × 473.62890625, 585.39013671875 ×
-537.4609375, 527.3271484375 × 252.1640625, 541.83056640625 ×
-323.9296875), none overlapping another at those positions.
+a member that is a child (one ancestor line and an ancestor card), a
+grandchild (two), members under three different roots beside a root
+member, and a styled frame. The bundle workspace holds every synthetic
+manifest of `bundles/` named above.
 
 After opening, the journal holds one `add` per block (5, 4, 4, 300, 900); a gesture
 is proven to be one command by the journal growing by exactly one entry.
@@ -362,7 +392,9 @@ a vertical stretch of a block of one item, which has no gap, sets its
 `spacing`, a vertical shrink of it from margin 0 journals nothing, a resize held in the edge zone pans and follows the pointer, and
 undo restores the placement exactly. On `bundles` a frame's corner scales
 the group alone, a frame's vertical stretch by 44 sets its spacing to 52
-and states the other items where they are drawn, and a member's card keeps
+and states the other items where they are drawn, and a member's card of
+`bshared000` (at viewport (40, 40 − 952), which shows that block, placed at
+(640, 952) below the others, where (40, 40) showed it at (640, 0)) keeps
 its margin in proportion while its group shortens again; the card's place
 is stated inside its frame's (`places.group_1.cards.exposition`, beside
 the frame's own `length`), and the card is selected by its one address
@@ -737,21 +769,41 @@ order, each address once, compared by `addressKey`: a frame `{id: G}`, its
 title `{id: G, part: ["name"]}`, a card and its shadow
 `{id: T, part: ["card"]}`, a line `{id: T}`, the manifest's title
 `{part: ["name"]}`) equals the order of `docs/drawing.md` section 8.5
-applied to the fixture by hand, and the titles their texts. A part drawn twice
+applied to the fixture by hand, with section 8.8's ancestor cards drawn
+first (after the manifest's title, before every frame, each its card, its
+root's line and the lines of the root's descendants it draws, a root
+behind several frames listed once), so a member's card lists only the
+lines not already listed (`gchild0000`: `piece`'s card, `piece`,
+`second-half`, then the frame, its title, `second-half`'s card,
+`recording`'s card and line; `gmixed0000`: the ancestor cards of `sonata`,
+`session` and `page` in the order of their members; `bshared000`:
+`score`'s card with `score`, `exposition`, `recapitulation` and its two
+segment lines), and the titles their texts. A part drawn twice
 is marked selected in both copies: the start mark of `theme` in
 `ggrand0000`, a member drawn below its two ancestor lines `score` and
-`movement`, each of which marks its start (no line marks its own start).
-Delete removes a timeline with its subtree from its group (one `remove`
+`movement`, each of which marks its start (no line marks its own start);
+and `score`'s line in `bshared000` (at the viewport showing that block,
+`(40, 40 − 952)`, where `(40, 40)` showed it before it moved below the
+others) is drawn as 14 parts, four as the ancestor line in each frame's
+member card and three (line, start, end) in each of `score`'s two
+ancestor cards; five part centres lie inside each frame, the four of its
+member card and the line of the ancestor card behind it, whose start and
+end lie beyond the frame's borders; a click on it selects `{block, id:
+"score"}` and marks all 14. Delete removes a timeline with its subtree from its group (one `remove`
 of `{block, id: T}`) and a region added into `second-half` (`region_1`,
 removed as `{block, id: "region_1"}`), and refuses a selection holding the
 manifest's title whole. Hover marks exactly one box
 overlay, the card or the frame under the pointer (never a shadow or an
 enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
-boundary is marked with its card; `gchild0000` at scale 1.5 draws its
-`<svg>` 830.8480224609375 wide, 1.5 times its drawing's width
-553.898681640625 (layout's record: `second-half`'s end mark label `16 ♩`,
+boundary is marked with its card, the mark gone once the pointer is on the
+empty pane at canvas (584, 600), between `bungroup00` and `btwogroups`;
+`gchild0000` at scale 1.5 draws its
+`<svg>` 1382.8480224609375 wide, 1.5 times its drawing's width
+921.898681640625 (layout's record, the fixture table above: the frame's
+553.898681640625, from `second-half`'s end mark label `16 ♩`,
 18.55810546875 wide, centred at 520.61962890625 on `piece`'s line, then 8
-each for the card, the frame and the block); a press on a frame selects the group;
+each for the card, the frame and the block, plus the origin shift 368 of
+`piece`'s ancestor card reaching left of the frame); a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
 `data-box="block"`), each in its stated colour. A stretch keeps
@@ -777,39 +829,76 @@ exported byte for byte.
 drawing specification, section 8.8) on the schema package's
 `groups/group_parent_both`, imported through the File menu, at zoom 1
 with the block's place origin at (240, 80) on the pane, so that the card
-reaching left of the frame stays on screen: the root `piece`, whose
-child `middle` is a member of `group_1`, runs on to both sides of its
-member. Selecting `piece` offers the Properties checkbox "Card behind its
-groups", not checked, and the block draws no `piece` card. Checking it
-journals one `style` entry and draws `piece`'s ancestor card, shadow and
-card addressed `{id: piece, part: [card]}`, at the layout's record
-(layout's README, "Ancestor cards", case 2): the card at `x="8"`
-`y="18.8047"`, `869.3354` × `63.3789` (869.33544921875 × 63.37890625 to
-four decimals), the frame now at `x="156.6318"` (8 + the block's origin
-shift 148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
+reaching left of the frame stays on screen: the root `piece` (`Piece`, 16
+quarters), whose child `middle` (`Middle`, 8 quarters at offset 4) is a
+member of `group_1` beside `recording` (`Recording`, 10.0 seconds), runs on
+to both sides of its member.
+
+*Drawn by default, hidden and shown by one button.* With no rule stating
+anything of it, the block draws `piece`'s ancestor card, shadow and card
+addressed `{id: piece, part: [card]}`, at the layout's record (layout's
+README, "Ancestor cards", case 2): the card at `x="8"` `y="18.8047"`,
+`869.3354` × `63.3789` (869.33544921875 × 63.37890625 to four decimals),
+the frame at `x="156.6318"` (8 + the block's origin shift
+148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
 beyond the frame's left border and 869.33544921875 − 148.6318359375 −
-543.70361328125 = 177 beyond its right one. Nothing else on the canvas
-moves: the block's node moves left by exactly the origin shift (its
-transform from the block's place `(x, y)` to `(x − 148.6318359375, y)`;
-each engine prints a transform's lengths to its own precision, Chromium
-and Firefox to six significant digits, WebKit to six decimals, so the
-node's transform is compared with the string the same browser writes for
-`translate(<x>px, <y>px)` of the exact position, never with one engine's
-rounding)
-and the frame and the cards of `middle` and `recording` move right by it
-in its drawing (`x` 8 → `156.6318`, 16 → `164.6318`, each `y`, width
-and height as before: `8`, `32.8047`, `124.7578`; `543.7036` × `174.1367`,
-`527.7036` × `83.9531`, `527.7036` × `49.3789`), so on the canvas they
-lie where they lay; the block's place in the store is unchanged. The
-drawing is compared, never pixels. The card lies behind the
-frame: its rectangle precedes the frame's in the DOM. A double-click on a
-point of the card left of the frame, clear of everything drawn on it
-(`framePoint` of the card's address), opens the timeline editor of
-`{block, id: piece}`, and the card is raised over the frame: its rectangle
-now follows the frame's. Closing the editor (Done) and unchecking the
-checkbox removes the card again (one more `style` entry): no element is
-addressed `{id: piece, part: [card]}`, the frame and the cards are drawn
-as before the check and the node is back at the block's place.
+543.70361328125 = 177 beyond its right one; the member cards at
+`164.6318`, each `y`, width and height as without the card (`8`,
+`32.8047`, `124.7578`; `543.7036` × `174.1367`, `527.7036` × `83.9531`,
+`527.7036` × `49.3789`); the node at `(x − 148.6318359375, y)` of the
+block's place `(x, y)` (each engine prints a transform's lengths to its own
+precision, Chromium and Firefox to six significant digits, WebKit to six
+decimals, so the node's transform is compared with the string the same
+browser writes for `translate(<x>px, <y>px)` of the exact position, never
+with one engine's rounding). The card lies behind the frame: its
+rectangle precedes the frame's in the DOM. Selecting `piece` offers in
+Properties the button "Hide card behind its groups" (`ancestor-card`),
+enabled. Pressing it journals exactly one entry, `{type: "style", select:
+{element: "ancestor_card", addresses: [{id: "piece", part: ["card"]}]},
+set: {display: "none"}, blocks: [<block>]}`, and the card is gone: no
+element is addressed `{id: piece, part: [card]}`, the frame and the cards
+lie at `x` 8 and 16 with the same `y`, widths and heights, the node is at
+the block's place `(x, y)`, which the store keeps throughout. The button
+then reads "Show card behind its groups"; pressing it journals exactly one
+entry, the same command with `set: {display: null}` (the block's own rule
+hid the card, so Show unstates it rather than stating `inline`), and the
+card and every box are drawn as before Hide. The drawing is compared,
+never pixels.
+
+*Raised by its editor.* A double-click on a point of the card left of the
+frame, clear of everything drawn on it (`framePoint` of the card's
+address), opens the timeline editor of `{block, id: piece}`, and the card
+is raised over the frame: its rectangle now follows the frame's.
+
+*Read by Show coordinates* (the points and values derived in the arranger's
+tests README, "Show coordinates", on the same drawing). The points are
+drawing points of the block placed where the arranger puts its node (the
+block read back from the page's workspace text, drawn by `drawingOf` and
+placed by `nodePosition`), the lines found in layout's `lineAxes` of that
+drawing: the card's `piece` line (its axis carries `ancestor`) at y
+67.78125 from 60.33544921875 to 860.33544921875 (0 to 16, 50 units a
+quarter), the card's `middle` row (its axis carrying `ancestor`) at y
+33.8046875, and `piece`'s ancestor line in `middle`'s member card (no
+`ancestor`) at the same y 67.78125 from 260.33544921875 (start 4). The
+viewport's abscissa is moved right by less than a pixel so that the card's
+`piece` line starts on a whole screen pixel; every point lies a whole
+number of units from it (Firefox and WebKit take whole pixels only) and
+its ordinate is rounded to a whole pixel. With Show coordinates on, the
+flag (`coordinate-flag`) holds one part per timeline (`data-timeline`),
+top to bottom, each headed by its timeline's name, and the hovered row
+carries `data-hovered="true"`:
+
+| Point (drawing) | Arranger | `piece`'s timeline editor open, the card raised |
+|---|---|---|
+| (110.33544921875, 67.78125), the card's `piece` line left of the frame | parts `piece` alone, `1 ♩` (50 / 800 × 16), hovered | — |
+| (760.33544921875, 67.78125), the card's `piece` line right of the frame | parts `piece` alone, `14 ♩`, hovered | — |
+| (460.33544921875, 67.78125), `piece`'s ancestor line in `middle`'s card | parts `piece`, `middle`: `piece` `8 ♩` hovered (the ancestor's row), `middle` `4 ♩` | parts `middle`, `piece` (the card's `middle` row lies above its `piece` line): `piece` `8 ♩` hovered, `middle` `4 ♩` |
+| (460.33544921875, 33.8046875), the card's `middle` row inside the frame | no flag: the frame covers the card there | parts `middle`, `piece`: `middle` `4 ♩` hovered, `piece` `8 ♩` |
+
+So the card is read beyond the frame's borders, never through the frame,
+and everywhere while it is raised; an ancestor line in a member's card is
+read as its ancestor's. The raised card is opened through the hook
+(`enter`), the viewport set back to the one measured.
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
@@ -829,16 +918,27 @@ frame or a card, and Enter on one selected box, opens the editor and, the
 drawer having been closed, the drawer opens on the level tab, named
 "Bundle", "Group" or "Timeline", whose title line names the edited
 element; the viewport moves to the editor and back on Done;
-outside the edited element everything is faded and inert, another block as
-a whole through its node, and a click there, as on the pane, deselects;
+outside the edited element everything is faded and inert (in
+`group_1`'s editor of `bmixed0000`, `recording`'s ancestor card too),
+another block as a whole through its node (`btwogroups` and `bungroup00`,
+which lie on the page; `bshared000` lies below it), and a click there, as
+on the pane at canvas (−20, 600), below `bmixed0000` and left of
+`bungroup00`, deselects;
 editors nest only inside the innermost (opening `group_2` inside
 `group_1`'s editor is refused with `not_inside` at the path
 `[addressKey({block: "bmixed0000", id: "group_2"})]`); Done
 folds the session into one journal entry, undone as one step, Cancel asks
 only when there are changes, and Escape aborts a gesture, then clears the
 selection, then acts as Done; moves in the bundle editor state every item's
-place, a card moved left of the padding grows the box left, two items move
-together, a change outside the edited element is refused (a `set` of
+place; a card moved left of everything drawn grows the box left: in the
+bundle editor at viewport (340, 40), `annotations`' card dragged by
+(−200, 16) is stored at `{x: −192, y: <its y> + 16}`, beyond the left edge
+of `recording`'s ancestor card, which lies `shift − P` left of the place
+origin (`shift` the drawing's origin abscissa, 153.412109375, layout's
+record), so the node moves left by `192 − (shift − 8)` = 46.587890625 and
+the frame, drawn at `8 + shift` (`161.4121`), lies as much further right
+in it; two items move together (the frame's and the card's `rect` at
+`48 + shift`, written `201.4121`, while the drag holds); a change outside the edited element is refused (a `set` of
 `group_2`'s place in `group_1`'s editor: `side_effect` at the path
 `[addressKey({block: "bmixed0000", id: "group_2"})]`), and a refused
 Delete shows its refusal (`excerpt` deleted in `group_2`'s editor changes
@@ -853,20 +953,30 @@ row (a command's row reads `Set <members> of <words of its first
 target>`, "Set name of timeline 'Score' in bundle 'Mixed'", the element by
 its name in the view shown, so a renamed timeline by its new name), keeps an undone entry greyed, and undoes nested and interleaved
 sessions one run at a time, newest first, redoing in mirror. A
-double-click outside the edited element closes the innermost editor. The
-places of the bundle's items and the editor's viewport after the drawer
-changes the canvas's size come from the arranger's drawing and focus code
-run on the fixture outside the page; that is the one case in the suite
-whose expected values are computed by the code under test.
+double-click outside the edited element closes the innermost editor: on
+the pane at canvas (−20, 600), on `btwogroups`' faded frame `g1` (inside a
+group editor, then again inside the bundle editor) and on the faded frame
+`group_2` of the edited block. The
+places of the bundle's items, the origin shift of `bmixed0000`'s ancestor
+card (its value, 153.412109375, also stated above from layout's record)
+and the editor's viewport after the drawer changes the canvas's size come
+from the arranger's drawing and focus code run on the fixture outside the
+page; these are the expected values of this spec computed by the code under test.
 
 **`selection-motion.spec.ts`** (Chromium, Firefox, WebKit) proves the
 selection through changes and editors on `bundles` (block `bshared000`,
-`bundle_shared_parent`) at viewport (40, 40) with reduced motion emulated,
+`bundle_shared_parent`, its place origin at (640, 952), below the other
+blocks) at viewport (40, 80 − 952), so that the block, `score`'s ancestor
+cards reaching 38.6484375 above its place origin, lies 40 lower on the
+page than a block placed at (640, 0) at viewport (40, 40), its resize
+toolbar clear of the page's header, with reduced motion emulated,
 and the release of a card reorder on `groups` without it. Every gesture
 is a real pointer gesture; the stored state is read through the hook.
 
 - **A change keeps the selection**, gesture by gesture: a Box resize of
-  the block by its right handle on the arranger keeps
+  the block by its right handle on the arranger (at viewport (−660, 80 −
+  952), since the block's right edge, 1869.3358561197915 with its ancestor
+  cards, lies beyond the page at the other) keeps
   `[{block: "bshared000"}]`; a Stretch of `group_2`'s frame keeps
   `[{block: "bshared000", id: "group_2"}]`, and so does its undo
   (Ctrl+Z); in the bundle editor a Box resize of the block keeps the
@@ -884,12 +994,12 @@ is a real pointer gesture; the stored state is read through the hook.
   `[{block: "bshared000", id: "recapitulation_first"}]`.
 - **A click outside the edited element deselects**: in `group_2`'s
   editor, a click on the middle of `group_1`'s faded frame and one on the
-  empty pane at canvas (−20, 450) each leave the selection empty and the
+  empty pane at canvas (−20, 1550), below the block, each leave the selection empty and the
   editor open; with Shift the click on the faded frame leaves the
   selection as it was; a double-click there closes the editor.
 - **A double-click on the edited element centres the view on it again**:
   after `group_2`'s editor has opened and the view has stopped moving,
-  the viewport moved to (40, 40) returns, after a double-click on
+  the viewport moved to (40, 80 − 952) returns, after a double-click on
   `group_2`'s frame, to exactly the viewport the opening settled at, the
   editing path, the journal and the session unchanged.
 - **The release of a card reorder** in `group_1`'s editor of `gchild0000`,
@@ -910,7 +1020,8 @@ is a real pointer gesture; the stored state is read through the hook.
   card selected, Stretch offers the handles right, bottom-right and bottom;
   the right handle dragged by 20 stores `group_1`'s place `{length: 420}`,
   and both member cards of `group_1`, `score`'s and `performance`'s, are
-  drawn at `x` 16 and 567.915 wide (the SVG writer's text of
+  drawn at `x` `169.4121` (16 plus the origin shift 153.412109375 of
+  `recording`'s ancestor card, layout's record) and 567.915 wide (the SVG writer's text of
   567.9150390625: at length 400 every card of the block is 547.9150390625
   wide, set by `excerpt`'s end mark label `132 300 smp`, 59.2470703125
   wide, centred at 526.29150390625, so its right edge lies at
@@ -918,7 +1029,7 @@ is a real pointer gesture; the stored state is read through the hook.
   edge 563.9150390625, and less the card's `x` 16 (the frame's `x` 8 plus
   its padding `Q` 8) that is 547.9150390625; the stretch adds 20).
 - **A stretch in the group editor grows as well as shrinks**: in
-  `group_2`'s editor at viewport (−400, 40), zoom 1, a Stretch by the
+  `group_2`'s editor at viewport (−400, 80 − 952), zoom 1, a Stretch by the
   right handle of the frame, and of `recapitulation`'s card, by 60 stores
   `group_2`'s place `{length: 460}` (the content follows the pointer one
   unit of length per pixel, and the frame follows the content), by −60
@@ -980,7 +1091,11 @@ drawn in a card, by ID, `annotations`, `excerpt`, `page`, `performance`,
 `score`, from `timestamp_1`, so `score`'s `origin` is the ninth) moving
 with the preview and back to its drawn `points`; no band is offered in
 the bundle or group editor or on the arranger; and Delete with only a band
-selected removes nothing.
+selected removes nothing. A hovered band keeps its mark only while the
+pointer is on it: on the pane left of every block, at the markers band's
+ordinate (canvas x −180 at viewport (240, 40), since `bmixed0000`'s ancestor
+card of `recording` reaches 153.412109375 left of its place origin), only
+the selection's mark stays.
 
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
 host page it does not own. A route serves the host page at
@@ -1037,6 +1152,16 @@ hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the floa
 with `tempo`'s row highlighted (`data-hovered`); 30 below the line
 nothing is within 8 pixels: no flag and no marks; on `phrase` at
 263.53662109375 `2 ♩` with the row `Ticks 960 ticks` and no `tempo` row.
+Within one timeline's part the rows follow the drawn order too, top to
+bottom: a map is drawn above its line (its drawing's ordinate `yc`,
+`tempo` at 35 above `melody` at 40.5, `ticks` at 17.5 above `phrase` at
+23), so at `xStart + 123` `melody`'s part lists the row of `tempo`, then
+its coordinate, and `phrase`'s the row of `ticks`, then its coordinate
+(rows read in DOM order, a map's by `data-map`, the coordinate's without
+it); after the click that pins the reading the Timestamp tab's
+Coordinates list the same rows in the same order (`tbody[data-timeline]`,
+row headers `Tempo`, `coordinate` and `Ticks`, `coordinate`). The former
+order, the coordinate first and its maps after, is what would be wrong.
 C toggles the flag. A click on a line pins the reading: the Timestamp tab
 is selected and shows the pinned timestamp's name header
 (`timestamp-name`) and Properties (`timestamp-properties`), the pinned wedge and line stay when the pointer
@@ -1121,6 +1246,45 @@ that the named table was not loaded; that warning is gone on purpose, since
 the table is loaded when Show matches needs it, silently when it is found
 beside the manifest, and through the tables dialog only when it cannot be
 found (`matchclaim-loading.spec.ts`).
+
+A potential MatchStamp on a group member is drawn as naming would store
+it, its groupstamps' lines across the frames, both hovered and pinned. The
+manifest is the schema package's `bundles/bundle_matchstamp_groupstamp`
+(`score`, 8 quarters, a member of `group_1` beside `performance` and of
+`group_2` beside `page`), imported with a table file the editor gives to
+its only block; no recording of the server exists for it, so the request
+is answered with `matchAnswer.ts`'s `matchClaimsAnswer` of core's
+`matchClaimColumns` for three MatchClaims, `g_1` score 4 ↔ performance
+1.0, `g_2` score 6 ↔ page 400 and `g_3` second-half 2 ↔ performance 3.0
+(the arranger's table G; the answer's layout is the client decoder's,
+ADR 0030, with no beliefs, so every claim is undecided). The page is 1600 ×
+1000, the block's place origin at (80, 80), zoom 1. Every place is taken
+from the page's own drawing (its workspace text read back, drawn by
+`drawingOf`, placed by `nodePosition`), never from a screenshot: `score`
+is drawn on two lines, in `group_1`'s and in `group_2`'s card, both at the
+same abscissa for 6 (layout's `abscissaOf`), and `page` on one, in
+`group_2`'s; a frame's span runs from the top of its topmost member card
+to the bottom of its lowest (the drawing's card records). The overlay
+paths (`svg[data-matches=<block>]`, `path[data-match=potential|hovered|pinned]`)
+are read as their vertical pieces `M x y1 V y2`, and at one abscissa the
+union of the pieces is compared, each number as the path writes it
+(`attributeText`, 4 decimals). With Show matches on (the toolbar's
+`matches` button pressed) and nothing hovered, the potential path draws
+score 6 on each of its lines only: the union at its abscissa is exactly
+layout's `crossSectionSegment`s there, the two of `score`'s lines and the
+one of `performance`'s line, since performance 3.0 of its 4 seconds lies
+at the same abscissa as score 6 of its 8 quarters. Hovering `score`'s line in
+`group_2`'s card at 6 (in `group_1`'s card the connector of performance
+3.0 ↔ second-half 2 runs down the same abscissa across the line, from
+`performance` up to `second-half`'s row, and a pointer a fraction off the
+line would hover that MatchStamp) draws the hovered path, whose union at that abscissa
+is exactly both frames' spans, and at page 400's abscissa exactly
+`group_2`'s span (`page` is a group member, so naming would store a
+groupstamp on it too); a click there pins the MatchStamp, and once the
+pointer has left for the empty pane the hovered path is gone and the
+pinned one (`data-belief="undecided"`, the blue of an undecided claim)
+holds the same unions. What would be wrong: a hovered or pinned
+MatchStamp drawn on its lines only, as the potential overlay draws it.
 
 **`matchclaim-beliefs.spec.ts`** (Chromium, Firefox, WebKit) proves a
 MatchClaim's provenance and the user's belief end to end, on the same

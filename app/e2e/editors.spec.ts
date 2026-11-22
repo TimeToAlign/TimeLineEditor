@@ -16,6 +16,7 @@ import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
 import { focusViewport } from "../packages/arranger/src/focus.ts";
 import type { Address, ElementAddress } from "../packages/core/src/index.ts";
 import { addressKey, cardAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import { attributeText } from "../packages/writers/src/svg.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
   addressSelector,
@@ -84,6 +85,23 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
       key === null || item === undefined ? [] : [[key.item, { x: item.place.x, y: item.place.y }]],
     ),
   );
+}
+
+/**
+ * How far right of its node's left edge block `block`'s place origin lies in its drawing (layout's
+ * record): `bmixed0000`'s ancestor card of `recording` reaches that far left of its items.
+ */
+function originShift(block: string): number {
+  const workspace = readWorkspace(fixtureText("bundles"));
+  if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
+  const found = workspace.view.blocks[block];
+  if (found === undefined) throw new Error(`block ${block} is missing`);
+  return drawingOf(found, workspace.view.graphical, FONT_METRICS).origin.x;
+}
+
+/** A drawing abscissa as a drawn `rect`'s `x` attribute reads back: the writer's text, as a number. */
+function drawnX(value: number): number {
+  return Number(attributeText(value));
 }
 
 /** Whether `value` is a multiple of 1/2048, so a quantization to that step leaves it unchanged. */
@@ -270,13 +288,14 @@ test.describe("on bundles", () => {
         [cardAddress("page"), true],
         [{ id: "page" }, true],
         [cardAddress("excerpt"), true],
+        [cardAddress("recording"), true],
         [{ id: "recording" }, true],
         [{ id: "excerpt" }, true],
         [cardAddress("annotations"), true],
         [{ id: "annotations" }, true],
       ]),
     );
-    for (const other of [BUNDLES.shared, BUNDLES.ungrouped]) {
+    for (const other of [BUNDLES.twoGroups, BUNDLES.ungrouped]) {
       // Another block is faded and inert as a whole, through its node, not element by element.
       const whole = node(page, other);
       await expect(whole).toHaveClass(/(^|\s)tilie-outside(\s|$)/);
@@ -302,7 +321,7 @@ test.describe("on bundles", () => {
 
     // A click outside the edited element, on another block or on a faded part of its own, deselects.
     for (const [block, address] of [
-      [BUNDLES.shared, cardAddress("take_1")],
+      [BUNDLES.twoGroups, cardAddress("u")],
       [MIXED, cardAddress("annotations")],
     ] as const) {
       await select(page, [mixed("score")]);
@@ -313,7 +332,8 @@ test.describe("on bundles", () => {
     }
 
     await select(page, [mixed("score")]);
-    const pane = await emptyPoint(page, -20, 450);
+    // Below `bmixed0000` and left of `bungroup00`: `bmixed0000`'s ancestor card fills its left.
+    const pane = await emptyPoint(page, -20, 600);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
     expect(await editing(page)).toEqual(group);
@@ -503,7 +523,7 @@ test.describe("on bundles", () => {
     expect({ x, y }).toEqual({ x: 0, y: 0 });
   });
 
-  test("a card moved left of the padding grows the box left and moves nothing else", async ({
+  test("a card moved left of everything drawn grows the box left and moves nothing else", async ({
     page,
   }) => {
     const drawn = drawnPlaces(MIXED);
@@ -513,27 +533,33 @@ test.describe("on bundles", () => {
     }
     expect(annotations.x).toBe(8);
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
+    // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
+    // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
+    const shift = originShift(MIXED);
+    const grown = 192 - (shift - 8);
 
-    await enter(page, BUNDLE, VIEW);
+    // The view leaves room left of the block for the drag.
+    const view = { ...VIEW, x: VIEW.x + 300 };
+    await enter(page, BUNDLE, view);
     const nodeBefore = await node(page, MIXED).boundingBox();
     if (nodeBefore === null) throw new Error("bmixed0000 is not displayed");
     const frameBefore = await frameRect(page);
-    expect(frameBefore.x).toBe(8);
+    expect(frameBefore.x).toBe(drawnX(8 + shift));
 
-    await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -40, 16);
+    await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -200, 16);
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await places(page, MIXED)).toEqual({
       group_1: { x: first.x, y: first.y },
       group_2: { x: second.x, y: second.y },
-      annotations: { x: -32, y: annotations.y + 16 },
+      annotations: { x: -192, y: annotations.y + 16 },
     });
     const { x, y } = await placement(page, MIXED);
     expect({ x, y }).toEqual({ x: 0, y: 0 });
     await expect
       .poll(async () => (await node(page, MIXED).boundingBox())?.x)
-      .toBe(nodeBefore.x - 40);
-    // In drawing units at scale 1: the frame lies 40 further right in a node 40 further left.
-    expect(await frameRect(page)).toEqual({ ...frameBefore, x: frameBefore.x + 40 });
+      .toBe(nodeBefore.x - grown);
+    // In drawing units at scale 1: the frame lies `grown` further right in a node as much further left.
+    expect(await frameRect(page)).toEqual({ ...frameBefore, x: drawnX(8 + shift + grown) });
   });
 
   test("two selected items move together, the selection kept, undone as one", async ({ page }) => {
@@ -543,6 +569,8 @@ test.describe("on bundles", () => {
     }
     expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     expect([first.x, annotations.x]).toEqual([8, 8]);
+    // Drawn right of the place origin by `recording`'s ancestor card, which stays the leftmost.
+    const shift = originShift(MIXED);
 
     await enter(page, BUNDLE, VIEW);
     const view = await storeText(page, "view");
@@ -562,8 +590,8 @@ test.describe("on bundles", () => {
         .nth(index)
         .evaluate((rect) => Number(rect.getAttribute("x")));
     await dragStart(page, frame, 40, 24);
-    await expect.poll(() => rectX({ id: "group_1" }, 0)).toBe(48);
-    expect(await rectX(cardAddress("annotations"), 1)).toBe(48);
+    await expect.poll(() => rectX({ id: "group_1" }, 0)).toBe(drawnX(48 + shift));
+    expect(await rectX(cardAddress("annotations"), 1)).toBe(drawnX(48 + shift));
     await page.mouse.up();
 
     await expect.poll(() => entriesLength(page)).toBe(1);
@@ -849,13 +877,14 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     const group = [{ target: mixed("group_1"), kind: "group" }];
     await enter(page, BUNDLE, VIEW);
     await enter(page, mixed("group_1"), VIEW);
-    const pane = await emptyPoint(page, -20, 450);
+    // Below `bmixed0000` and left of `bungroup00`: `bmixed0000`'s ancestor card fills its left.
+    const pane = await emptyPoint(page, -20, 600);
     await page.mouse.dblclick(pane.x, pane.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await expect.poll(() => viewportOf(page)).toEqual(VIEW);
 
     await enter(page, mixed("group_1"), VIEW);
-    const other = await partCentre(page, BUNDLES.shared, { id: "group_1" });
+    const other = await partCentre(page, BUNDLES.twoGroups, { id: "g1" });
     await page.mouse.dblclick(other.x, other.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await page.mouse.dblclick(other.x, other.y);
@@ -956,7 +985,8 @@ test.describe("resizing in an editor", () => {
       element(page, MIXED, cardAddress(id))
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    expect(await drawn("score")).toEqual(["16", "567.915"]);
-    expect(await drawn("performance")).toEqual(["16", "567.915"]);
+    const x = attributeText(16 + originShift(MIXED));
+    expect(await drawn("score")).toEqual([x, "567.915"]);
+    expect(await drawn("performance")).toEqual([x, "567.915"]);
   });
 });
