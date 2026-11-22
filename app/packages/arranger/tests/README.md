@@ -1138,7 +1138,10 @@ here, so the facts hold whatever the layout's ordinates are:
    `y`; every element of the card's range whose address names a timeline
    or an entry or named timestamp of one (core's owners) takes that
    timeline's motion; the card's rectangle takes none (it blends in, the
-   member card beneath blending out).
+   member card beneath blending out), nor do its strips, which run from
+   the card's top to its bottom as the rectangle does (`group_grandchild`
+   is drawn elided by the defaults: three strips); a strip's labels travel
+   with the row of the timeline the elision lies on.
 7. **The clip** opens from the member card's record rectangle and ends
    at a rectangle holding the card's record rectangle and its shadow
    (`shadowOffset` right and down) and the bounds of every element of the
@@ -1174,6 +1177,130 @@ every 16 ms from 0). `raised` is a `$state` root,
 What would be wrong: a motion restarting from an end on reversal, the
 folding card dropped before it is folded, motion under reduced motion, a
 re-mounted node animating a raise that happened before it.
+
+## A card's elisions moving (`elide.test.ts`, `card-motions.svelte.test.ts`)
+
+An ancestor card or an ungrouped root's card keeps its rows whatever its
+strips: turning Elided or Full, a changed strip and a changed proportion
+move the card's elements sideways only; an ancestor card shown or hidden
+also unfolds out of its member card or folds back into it, as a raise
+does (decision record 0034). The same three parts are proven apart: the
+pure motion, the canvas's reading of two drawings into it, and the
+progress that drives it. A progress `t` runs from 0 (where the drawing
+before drew it) to 1 (the drawing at rest).
+
+**The pure motion sideways** (`unfold.ts`, literal knots; a knot is an
+abscissa and the position it draws on the card's root). `full` = (0, 0),
+(100, 100): one run at scale 1. `elided` = (0, 0), (10, 10), (19, 100):
+a run of 10, then a strip 9 wide eliding 10 to 100.
+
+13. **Positions and abscissas** (`positionAt`, `abscissaAt`): on `full`,
+    50 draws 50; on `elided`, 55 is drawn at 10 + 9 × 45 / 90 = 14.5, a
+    knot's own position exactly at it (100 at 19), beyond the knots
+    their nearer end (−5 at 0, 120 at 19); without knots `null`.
+14. **Where an abscissa starts** (`startOf(elided, full, 5, x)`, the
+    place origin moved by 5): 55 starts at 14.5 + 5 = 19.5; −8, left of
+    `full`'s first knot, starts as far left of that knot's start, 0 + 5
+    − 8 = −3; 108 at 19 + 5 + 8 = 32; without knots on either side `x`
+    moved by 5 (3 → 8).
+15. **An element at a progress** (`spanAt`, `placedAt`): an extent 0 to
+    100 starting at 5 to 24, down by 12, not entering: at 0 the span 5 to
+    24, the map `sx` 0.19, `dx` 5, `dy` 12, opacity 1; at ½ the span 2.5
+    to 62, `sx` 0.595, `dx` 2.5, `dy` 6; at 1 exactly at rest (`sx` 1,
+    `dx` 0, `dy` 0, opacity 1). A text at 7 starting at 3, entering: at 0
+    `sx` 1, `dx` −4, opacity 0; at ½ `dx` −2, opacity ½. Composing
+    (`composed`) `{sx 2, dx 1, dy 3, opacity ½}` after `{sx ½, dx 4, dy
+    1, opacity ½}` gives `{sx 1, dx 9, dy 4, opacity ¼}`; a raise's
+    frame `{dy 3, opacity ½}` is `{sx 1, dx 0, dy 3, opacity ½}`.
+16. **The attributes** (`placedAttributes`): none at rest; a move
+    alone a `translate(2 0)`; a stretch the `matrix(0.5 0 0 1 1 2)`, the
+    opacity `own` × the placed one (0.8 × 0.5 = 0.4).
+
+What would be wrong: an abscissa beyond the line's ends left behind while
+the line moves, a stretch rounded at rest, a position the start drawing
+elides drawn outside its strip.
+
+**Elided ↔ Full** (`elide.ts`, `groups/group_elided_inside` and
+`groups/group_grandchild` in block A, drawn by the defaults (Elided) and
+with `withFullCards` (Full); every expected abscissa is read from the
+drawing records, never written here). The oracle reads both cards
+through their **pieces**: each full run of the Elided card (an axis of
+it) and each strip, its two abscissas in the Elided card against the two
+abscissas the Full card draws the same values at, each read on that
+value's own timeline's line, which the Full card draws whole. An
+abscissa of one card stands for the abscissa of the other through the
+first piece holding it, linear in it (an end exactly at its abscissa).
+
+17. **One card moves.** Each way, `blockMotion` moves exactly the
+    ancestor card (`{item: group_1, member: piece}`,
+    `{item: group_1, member: score}`), nothing leaves.
+18. **Rows stay.** Every element of the card has `dy` 0 at 0, ½ and 1:
+    the card's top lies where it did, relative to the place origin.
+19. **Lines travel sideways.** Each line element of the card (`timeline`,
+    `child`) keeps its own ends `xs` and `xe` at rest; at 0 they lie
+    where the pieces read them in the other card, moved by the change of
+    the place origin (`origin.x` after less before); at ½ half-way
+    (`from + (own − from) × ½` each end); at 1 at their own. Elided →
+    Full, the root's line starts at its outer strips' edges, the first
+    strip's `x1` and the last strip's `x2` (on `group_grandchild`
+    82.265625 and 882.265625, plus 1170.56201171875 −
+    141.99058314732133).
+20. **What enters.** Full → Elided: what lies in a strip enters (opacity
+    0, ½, 1) and nothing else: every strip, every strip label (a label
+    whose address has the part `elision`), and a line drawn wholly within
+    a strip (`second` in `group_elided_inside`); each strip starts as
+    wide as its stretch in the Full card (its `elided` start and end read
+    on its timeline's Full line), moved as above. Elided → Full: a line
+    whose whole stretch a strip elided enters (`second`); the other lines
+    do not.
+
+**Hidden ↔ Elided** (`withoutAncestorCards` against the defaults, the
+same two fixtures):
+
+21. **The card unfolds.** Hidden → Elided moves the ancestor card alone,
+    nothing leaving. Each element's `dy` is the raise's row shift of its
+    row (`raiseUnfold`), 0 for its rectangle and strips: so `movement`
+    in `group_grandchild` lies at 0 on its ancestor line in the member
+    card (`y + dy` = that line's ordinate) and moves down; sideways each
+    end starts at the member line's start or end in the member card
+    (`theme`'s `xStart` and `xEnd` there, 253.69419642857133 and
+    653.6941964285713) where it lies left or right of the member's span,
+    and on itself inside it (every element but the row names and the
+    card's rectangle, which lie beyond the root line's ends and move by
+    what those ends move): the root line starts as wide as the member
+    line, a strip left of the span starts with both edges at its start,
+    one right of it at its end. Both move: some element has `dy` ≠ 0
+    and some has its start ≠ its own extent. The card's rectangle, its
+    strips and their labels enter; the member's lines do not.
+22. **The card folds back.** Elided → Hidden moves no card of the drawing
+    after and leaves one card: its key the ancestor card's, its
+    descriptors those of the card's range in the drawing before (in
+    order), each placed at `t` as the unfolding of item 21 places it at
+    `1 − t`, moved by the change of the place origin (`dx` and `dy`
+    added): at 0 at rest but for that move, at 1 folded.
+
+What would be wrong: a row moving vertically between Elided and Full, an
+element starting at its abscissa in the other drawing's coordinates
+without the origin's move, a strip appearing at its narrow width at
+once, a hidden card vanishing without folding.
+
+**The progress** (`CardMotions`, fake timers as for `Unfolding`; the
+drawing a `$state` holding `group_elided_inside`'s Elided, Full or Hidden
+drawing; `reduced` and `still` `$state` flags).
+
+23. **Made, at rest.** Nothing moves: `moving` false, `progress` 1,
+    `placedOf` of the card's root line `null`, `leaving` empty.
+24. **A switch moves.** Elided → Full: at once `moving`, `progress` 0 and
+    the root line placed as `placedAt` of its motion at 0; after 192 ms
+    at `UNFOLD_EASING(192 / 400)`; after 416 ms at rest (`null`, not
+    moving). An element outside the card is `null` throughout.
+25. **A hidden card folds back over the same time**: Elided → Hidden
+    gives one leaving card while moving and none at rest.
+26. **No motion while `reduced` or `still`**, and none for the same
+    drawing given again: at once `null`, not moving.
+
+What would be wrong: a preview animating behind the pointer, motion under
+reduced motion, a leaving card staying drawn at rest.
 
 ## Picking an element (`picking.test.ts`)
 
@@ -1858,6 +1985,50 @@ on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 `{100, 50, 10 × 10}` `{x: −20, y: 180, zoom: 4}`, `{100, 50, 100000 ×
 100}` `{x: −2105, y: 395, zoom: 0.05}`; no drawer, 1000 × 500, `{0, 0, 400
 × 100}` gives `{x: 100, y: 150, zoom: 2}`. The move takes 1000 ms.
+
+**A group's frame with elided ancestor cards** (`elidedReach`; elision
+plan's zoom `zE = min(zG, f · W / (2 · reach))`): the group's subeditor
+centres the frame as above and zooms out until every displayed ancestor
+card behind the frame that draws a strip fits on both sides of the
+frame's centre `c`: `reach` is the largest of `c` less a card's left edge
+and its right edge less `c` (canvas units), `f` = 0.8, `W` the pane
+width, `zG` the zoom fitting the frame. The view is the drawing's
+default, 1280 × 720, the pane the test passes.
+
+- `groups/group_grandchild` in block A at (0, 0), its group's editor
+  open: the node lies at x −141.99058314732133; the frame at 8, width
+  543.70361328125, so `c` = 8 + 543.70361328125 / 2 = 279.851806640625;
+  the card `score` at 8 − 141.99058314732133 = −133.99058314732133,
+  width 891.265625, right edge 757.2750418526787. Left 413.84238978794633,
+  right 477.42323521205367: `reach` 477.42323521205367. `zG` = min(4,
+  1024 / 543.70361328125, 576 / 211.515625) = 1.8833790598156273; `zE` =
+  1024 / (2 × 477.42323521205367) = 1.0724237159772683, which the
+  viewport takes, `{x: 339.88028559950897, y: 238.00342399730465}`
+  (640 and 360 less the bounds' centre (279.851806640625,
+  113.7578125) times the zoom).
+- `bundles/bundle_elided_layerit`, each of its four groups' editors: the
+  node at −389.0869140625, every frame at 8, width 622.8037109375, `c`
+  319.40185546875, `zG` 1024 / 622.8037109375 = 1.6441777433512452. The
+  cards (drawing x, width): `group_1` 408, 989.169677734375 (all strips
+  right: `reach` the right side, 1008.082763671875 − 319.40185546875 =
+  688.680908203125, `zE` 0.7434502596215237); `group_2`
+  289.296758104736, 989.1696777343823 (`reach` 569.9776663078683, `zE`
+  0.8982808103983636); `group_3` 239.84392699811178, 989.1696777343786
+  (`reach` 520.5248352012404, `zE` 0.9836226158201565); `group_4` 8,
+  989.169677734375 (all strips left: `reach` 319.40185546875 +
+  381.0869140625 = 700.48876953125, `zE` 0.7309182134962962): the
+  excerpts at the work's ends zoom out furthest, as the elision plan's
+  worked numbers say (about 0.73, and 0.98 for the excerpt inside).
+- In the Full view (`withFullCards`) no card draws a strip: `reach` is
+  `null` and the viewport is the frame's alone, `zG` (the root runs past
+  the screen). A timeline's editor and the bundle's give `null` too.
+- `focusViewport` with a reach, 1000 × 500 and no drawer: `{0, 0, 400 ×
+  100}` and `reach` 400 give zoom 800 / 800 = 1, `{x: 300, y: 200}`;
+  `reach` 100 keeps 2 (800 / 200 = 4 is larger); `reach` 10⁶ gives
+  0.05, the smallest zoom.
+
+What would be wrong: the zoom fitted to the frame alone while strips run
+off the screen, the Full view zoomed out to a root of thousands of units.
 
 ## The marquee inside an editor (`marquee.test.ts`)
 

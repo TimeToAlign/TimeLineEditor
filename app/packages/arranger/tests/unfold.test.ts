@@ -1,15 +1,30 @@
 /**
  * A raised card unfolding: the pure motion between two drawings and the
- * canvas's reading of a raised ancestor card into it. The cases are in
- * `README.md` ("A raised card unfolding", points 1 to 7).
+ * canvas's reading of a raised ancestor card into it, and the pure motion
+ * sideways. The cases are in `README.md` ("A raised card unfolding",
+ * points 1 to 7, and "A card's elisions moving", points 13 to 16).
  */
 
 import { indexOf, samePlaceKey } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import { boundsOf, lineAxes, TextMeasure } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
+import { placedAttributes } from "../src/animation/elide.ts";
 import { raiseUnfold } from "../src/animation/raise.ts";
-import { durationOf, frameAt, pairRows, rectAt } from "../src/animation/unfold.ts";
+import {
+  AT_REST,
+  abscissaAt,
+  composed,
+  durationOf,
+  frameAt,
+  framePlaced,
+  pairRows,
+  placedAt,
+  positionAt,
+  rectAt,
+  spanAt,
+  startOf,
+} from "../src/animation/unfold.ts";
 import { isAncestorCard, keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
 import { A, blockIn, metrics, viewOf } from "./support.ts";
@@ -171,7 +186,7 @@ describe.each([
     }
   });
 
-  it("gives every element its timeline's motion and the card's rectangle none", () => {
+  it("gives every element its timeline's motion and the card's rectangle and strips none", () => {
     const { owners } = indexOf(manifest);
     const motions = new Map(
       paired.map((timeline) => [timeline, unfold.motionOf(lineIndexes(timeline)[0] ?? -1)]),
@@ -179,8 +194,8 @@ describe.each([
     for (let index = card.range.start; index < card.range.end; index += 1) {
       const element = drawing.elements[index];
       if (element === undefined) throw new Error("no element");
-      if (element.type === "ancestor_card") {
-        expect(unfold.motionOf(index)).toBeNull();
+      if (element.type === "ancestor_card" || element.type === "elision") {
+        expect(unfold.motionOf(index), element.type).toBeNull();
         continue;
       }
       const timeline = owners.get(element.address.id ?? "");
@@ -214,5 +229,69 @@ describe.each([
       const bounds = boundsOf(element, measure);
       expect(holds(bounds.left, bounds.top, bounds.right, bounds.bottom), String(index)).toBe(true);
     }
+  });
+});
+
+describe("the motion sideways", () => {
+  const FULL = [
+    { x: 0, at: 0 },
+    { x: 100, at: 100 },
+  ];
+  const ELIDED = [
+    { x: 0, at: 0 },
+    { x: 10, at: 10 },
+    { x: 19, at: 100 },
+  ];
+
+  it("reads positions and abscissas through the knots", () => {
+    expect(positionAt(FULL, 50)).toBe(50);
+    expect(abscissaAt(ELIDED, 55)).toBe(14.5);
+    expect([abscissaAt(ELIDED, 100), abscissaAt(ELIDED, -5), abscissaAt(ELIDED, 120)]).toEqual([
+      19, 0, 19,
+    ]);
+    expect([positionAt([], 3), abscissaAt([], 3)]).toEqual([null, null]);
+  });
+
+  it("starts an abscissa where the other knots draw its position, the origin's move added", () => {
+    expect(startOf(ELIDED, FULL, 5, 55)).toBe(19.5);
+    expect(startOf(ELIDED, FULL, 5, -8)).toBe(-3);
+    expect(startOf(ELIDED, FULL, 5, 108)).toBe(32);
+    expect([startOf([], FULL, 5, 3), startOf(ELIDED, [], 5, 3)]).toEqual([8, 8]);
+  });
+
+  it("stretches an element from its start to its own extent and moves a text whole", () => {
+    const line = {
+      across: { left: 0, right: 100, fromLeft: 5, fromRight: 24 },
+      dy: 12,
+      enters: false,
+    };
+    expect(spanAt(line.across, 0)).toEqual({ left: 5, right: 24 });
+    expect(placedAt(line, 0)).toEqual({ sx: 0.19, dx: 5, dy: 12, opacity: 1 });
+    expect(spanAt(line.across, 0.5)).toEqual({ left: 2.5, right: 62 });
+    expect(placedAt(line, 0.5)).toEqual({ sx: 0.595, dx: 2.5, dy: 6, opacity: 1 });
+    expect(spanAt(line.across, 1)).toEqual({ left: 0, right: 100 });
+    expect(placedAt(line, 1)).toEqual(AT_REST);
+    expect(AT_REST).toEqual({ sx: 1, dx: 0, dy: 0, opacity: 1 });
+    const text = { across: { left: 7, right: 7, fromLeft: 3, fromRight: 3 }, dy: 0, enters: true };
+    expect(placedAt(text, 0)).toEqual({ sx: 1, dx: -4, dy: 0, opacity: 0 });
+    expect(placedAt(text, 0.5)).toEqual({ sx: 1, dx: -2, dy: 0, opacity: 0.5 });
+  });
+
+  it("composes two maps and reads a raise's frame as one", () => {
+    expect(
+      composed({ sx: 2, dx: 1, dy: 3, opacity: 0.5 }, { sx: 0.5, dx: 4, dy: 1, opacity: 0.5 }),
+    ).toEqual({ sx: 1, dx: 9, dy: 4, opacity: 0.25 });
+    expect(framePlaced({ dy: 3, opacity: 0.5 })).toEqual({ sx: 1, dx: 0, dy: 3, opacity: 0.5 });
+  });
+
+  it("writes a placed element's attributes", () => {
+    expect(placedAttributes(AT_REST, 1)).toEqual({});
+    expect(placedAttributes({ sx: 1, dx: 2, dy: 0, opacity: 1 }, 1)).toEqual({
+      transform: "translate(2 0)",
+    });
+    expect(placedAttributes({ sx: 0.5, dx: 1, dy: 2, opacity: 0.5 }, 0.8)).toEqual({
+      transform: "matrix(0.5 0 0 1 1 2)",
+      opacity: "0.4",
+    });
   });
 });
