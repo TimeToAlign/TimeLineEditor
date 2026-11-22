@@ -20,6 +20,7 @@ import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
 import { groupCrossSections, lineAxes } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
+import { raisedRoot, seenOn } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { MatchLines, MatchOverlay, Screen, ScreenCoordinate } from "../src/matches.ts";
 import {
@@ -39,7 +40,7 @@ import {
 import { holdingMatchStamp, ownerOf } from "../src/selectionRules.ts";
 import { G, GROUPSTAMP_FIXTURE } from "./groupTable.ts";
 import { BELIEVED, D, NAMED, NAMED_IN_D, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
-import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, metrics, viewOf, withoutAncestorCards } from "./support.ts";
 
 const view = viewOf({ id: A, fixture: "bundles/bundle_matchstamps", x: 40, y: 80 });
 const manifest: Manifest = blockIn(view, A).manifest;
@@ -488,38 +489,188 @@ describe("screen order", () => {
   });
 });
 
-describe("the lines of a table where an ancestor card is drawn", () => {
-  it("holds a member on its own card's line, a timeline no other line holds on the card's", () => {
-    const parent = viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
-    const drawn = drawingOf(blockIn(parent, A), parent.graphical, metrics);
-    const index = anchorIndexOf(
-      matchClaimColumns(
-        [
-          { id: "middle", numberType: "fraction" },
-          { id: "piece", numberType: "fraction" },
-        ],
-        [{ id: "p_1", timelines: [0, 1], start: [Rational.of([2, 1]), Rational.of([6, 1])] }],
-      ),
-    );
-    const { all } = matchLinesOf(drawn, index);
-    expect(
-      all.map(({ card, timeline, y, xStart, xEnd }) => [card, timeline, y, xStart, xEnd]),
-    ).toEqual([
+describe("where a timeline drawn only in an ancestor card is seen", () => {
+  const parent = viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
+  const block = blockIn(parent, A);
+  const drawn = drawingOf(block, parent.graphical, metrics);
+  const raised = raisedRoot(block, {
+    target: inBlock(A, idAddress("piece")),
+    kind: "timeline",
+  });
+  const fraction = (value: number) => Rational.of([value, 1]);
+  /** The table P of `README.md`: `middle` m ↔ `piece` p for (2, 6), (0, 1), (8, 14), (1, 3). */
+  const P = anchorIndexOf(
+    matchClaimColumns(
       [
-        placeKeyText({ item: "group_1", member: "middle" }),
-        0,
-        81.78125,
-        260.33544921875,
-        660.33544921875,
+        { id: "middle", numberType: "fraction" },
+        { id: "piece", numberType: "fraction" },
       ],
       [
-        placeKeyText({ item: "group_1", member: "piece" }),
-        1,
-        67.78125,
-        60.33544921875,
-        860.33544921875,
-      ],
+        [2, 6],
+        [0, 1],
+        [8, 14],
+        [1, 3],
+      ].map(([m, p], at) => ({
+        id: `p_${at + 1}`,
+        timelines: [0, 1],
+        start: [fraction(m as number), fraction(p as number)],
+      })),
+    ),
+  );
+  const MIDDLE_CARD = placeKeyText({ item: "group_1", member: "middle" });
+  const PIECE_CARD = placeKeyText({ item: "group_1", member: "piece" });
+  const LEFT = 156.6318359375;
+  const RIGHT = 700.33544921875;
+  const linesIn = (root: string | null) =>
+    matchLinesOf(drawn, P, root).all.map(({ card, timeline, y, y1, y2, xStart, from, to }) => [
+      card,
+      timeline,
+      y,
+      y1,
+      y2,
+      xStart,
+      from,
+      to,
     ]);
+
+  it("is numbered as README.md derives it", () => {
+    expect([...P.coordinates.timeline]).toEqual([0, 0, 0, 0, 1, 1, 1, 1]);
+    expect([...P.coordinates.position]).toEqual([0, 1, 2, 8, 1, 3, 6, 14]);
+    expect([...P.matchStamps.of]).toEqual([0, 1, 2, 3, 0, 1, 2, 3]);
+    expect(raised).toBe("piece");
+  });
+
+  it("covers the card's line by the frame, so the cases leave two gaps", () => {
+    expect([(LEFT - 60.33544921875) / 50, (RIGHT - 60.33544921875) / 50]).toEqual([
+      1.925927734375, 12.8,
+    ]);
+    expect(
+      seenOn(drawn, "piece", null).map(({ section, xFrom, xTo }) => [section, xFrom, xTo]),
+    ).toEqual([
+      ['["group_1","middle"]{"id":"middle"}', 260.33544921875, 660.33544921875],
+      ['["group_1","piece"]{"id":"piece"}', 60.33544921875, LEFT],
+      ['["group_1","piece"]{"id":"piece"}', RIGHT, 860.33544921875],
+    ]);
+    expect(seenOn(drawn, "piece", raised).map(({ xFrom, xTo }) => [xFrom, xTo])).toEqual([
+      [60.33544921875, 860.33544921875],
+    ]);
+    expect(seenOn(drawn, "middle", raised)).toEqual([]);
+  });
+
+  it("draws a member on its own card's line, the root on its ancestor line and beyond the frame", () => {
+    expect(linesIn(null)).toEqual([
+      [MIDDLE_CARD, 1, 67.78125, 67.78125, 81.78125, 260.33544921875, 4, 12],
+      [MIDDLE_CARD, 0, 81.78125, 67.78125, 81.78125, 260.33544921875, 0, 8],
+      [PIECE_CARD, 1, 67.78125, 26.8046875, 67.78125, 60.33544921875, 0, 1.925927734375],
+      [PIECE_CARD, 1, 67.78125, 26.8046875, 67.78125, 60.33544921875, 12.8, 16],
+    ]);
+  });
+
+  it("draws the root on the card's line alone while the card is raised", () => {
+    expect(linesIn(raised)).toEqual([
+      [PIECE_CARD, 1, 67.78125, 26.8046875, 67.78125, 60.33544921875, 0, 16],
+    ]);
+  });
+
+  it("draws each MatchStamp where its coordinates are seen", () => {
+    const stamps = (root: string | null) =>
+      [0, 1, 2, 3].map((stamp) => shape(stampOverlay(P, matchLinesOf(drawn, P, root), stamp)));
+    const ON_MIDDLE = [67.78125, 81.78125];
+    const ON_CARD = [26.8046875, 67.78125];
+    expect(stamps(null)).toEqual([
+      {
+        lines: [
+          [0, 260.33544921875, ...ON_MIDDLE],
+          [4, 110.33544921875, ...ON_CARD],
+        ],
+        connectors: [[0, 260.33544921875, 67.78125, 110.33544921875, 67.78125]],
+      },
+      { lines: [[1, 310.33544921875, ...ON_MIDDLE]], connectors: [] },
+      {
+        lines: [
+          [2, 360.33544921875, ...ON_MIDDLE],
+          [6, 360.33544921875, ...ON_MIDDLE],
+        ],
+        connectors: [],
+      },
+      {
+        lines: [
+          [3, 660.33544921875, ...ON_MIDDLE],
+          [7, 760.33544921875, ...ON_CARD],
+        ],
+        connectors: [[3, 660.33544921875, 67.78125, 760.33544921875, 67.78125]],
+      },
+    ]);
+    expect(stamps(raised)).toEqual([
+      { lines: [[4, 110.33544921875, ...ON_CARD]], connectors: [] },
+      { lines: [[5, 210.33544921875, ...ON_CARD]], connectors: [] },
+      { lines: [[6, 360.33544921875, ...ON_CARD]], connectors: [] },
+      { lines: [[7, 760.33544921875, ...ON_CARD]], connectors: [] },
+    ]);
+  });
+
+  it("hits a coordinate where it is drawn and nowhere else", () => {
+    const hits = (root: string | null) => {
+      const lines = matchLinesOf(drawn, P, root);
+      const { connectors } = overlayOf(P, lines, { origin: { x: 40, y: 80 }, scale: 1 }, SCREEN);
+      return [
+        { x: 110.33544921875, y: 67.78125 },
+        { x: 360.33544921875, y: 74 },
+        { x: 360.33544921875, y: 81.78125 },
+        { x: 210.33544921875, y: 40 },
+        { x: 760.33544921875, y: 67.78125 },
+      ].map((point) => {
+        const hit = matchHitAt(P, lines, connectors, point, 8);
+        return hit === null
+          ? null
+          : [hit.stamp, hit.coordinate, hit.anchor, hit.distance, hit.at.x, hit.at.y, hit.at.top];
+      });
+    };
+    expect(hits(null)).toEqual([
+      [0, 4, null, 0, 110.33544921875, 67.78125, 26.8046875],
+      [2, 6, null, 0, 360.33544921875, 67.78125, 67.78125],
+      [2, 6, null, 0, 360.33544921875, 67.78125, 67.78125],
+      null,
+      [3, 7, null, 0, 760.33544921875, 67.78125, 26.8046875],
+    ]);
+    expect(hits(raised)).toEqual([
+      [0, 4, null, 0, 110.33544921875, 67.78125, 26.8046875],
+      [2, 6, null, 6.21875, 360.33544921875, 67.78125, 26.8046875],
+      null,
+      [1, 5, null, 0, 210.33544921875, 67.78125, 26.8046875],
+      [3, 7, null, 0, 760.33544921875, 67.78125, 26.8046875],
+    ]);
+  });
+
+  it("is placed in screen order on the card's line in a gap, whatever covers it", () => {
+    expect(screenPlace(drawn, { timeline: "piece", value: fraction(3) })).toEqual({
+      x: 210.33544921875,
+      y: 67.78125,
+    });
+  });
+
+  it("is seen on its ancestor line alone where every ancestor card is hidden", () => {
+    const hidden = withoutAncestorCards(parent);
+    const plain = drawingOf(blockIn(hidden, A), hidden.graphical, metrics);
+    const [key, line] = [...lineAxes(plain)].find(([, axis]) => axis.timeline === "piece") ?? [];
+    if (key === undefined || line === undefined) throw new Error("no line of piece");
+    expect([line.card, line.start, line.drawnLength, line.xEnd - line.xStart]).toEqual([
+      { item: "group_1", member: "middle" },
+      Rational.of([4, 1]),
+      Rational.of([8, 1]),
+      400,
+    ]);
+    const lines = matchLinesOf(plain, P);
+    expect(lines.byTimeline.get(1)?.map(({ key: at, from, to }) => [at, from, to])).toEqual([
+      [key, 4, 12],
+    ]);
+    const middle = [...lineAxes(plain).values()].find((axis) => axis.timeline === "middle");
+    const x = line.xStart + 100;
+    expect(shape(stampOverlay(P, lines, 2)).lines.at(-1)).toEqual([6, x, line.y, middle?.y]);
+    expect(screenPlace(plain, { timeline: "piece", value: fraction(6) })).toEqual({
+      x,
+      y: line.y,
+    });
   });
 });
 

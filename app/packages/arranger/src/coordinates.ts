@@ -265,7 +265,10 @@ export function coveredIn(drawing: Drawing, raised: string | null): Covered {
  * frame while `editing`, the innermost open editor, is open: the root of
  * the timeline a timeline editor in this block edits, where that timeline
  * is no group member and lies in no member (core's `groupsHolding` is
- * empty); `null` for any other editor, none, or another block's.
+ * empty); `null` for any other editor, none, or another block's. The one
+ * decision of the raise: the block node shows those cards over every frame
+ * by it (`raisedEntries`), the pointer reads them (`coveredIn`) and "Show
+ * matches" draws on them (`seenOn`) by it.
  */
 export function raisedRoot(
   block: Pick<Block, "id" | "manifest">,
@@ -662,8 +665,8 @@ export interface Holding {
  * segment's offset and with its length; none where no such line is drawn.
  * The member's own card wins: a line of an ancestor card (section 8.8,
  * `LineAxis.ancestor`) is among them only where no other line is. Where a
- * named timestamp, and a coordinate shown by "Show matches", has its
- * place, and where screen order reads it (`screenPlace`).
+ * named timestamp has its place; "Show matches" and screen order add a
+ * timeline's ancestor lines to them (`drawnOn`).
  */
 export function holdings(drawing: Drawing, timeline: string): Holding[] {
   const lines = [...markedOf(drawing)];
@@ -686,6 +689,84 @@ export function holdings(drawing: Drawing, timeline: string): Holding[] {
         });
   const members = found.filter(({ axis }) => axis.ancestor === undefined);
   return members.length > 0 ? members : found;
+}
+
+/**
+ * A line a timeline is drawn on (`drawnOn`): a holding, with the key of
+ * the line whose cross-section line a coordinate drawn there is drawn as
+ * (layout's `crossSectionSegment`): the line's own, or on an ancestor line,
+ * which draws none, the line of the member in whose card it is drawn.
+ */
+export interface DrawnHolding extends Holding {
+  readonly section: string;
+}
+
+/** The part of a line where a timeline drawn on it is seen (`seenOn`). */
+export interface SeenHolding extends DrawnHolding {
+  /** The ends of the part seen, in block-local canvas units, both included. */
+  readonly xFrom: number;
+  readonly xTo: number;
+}
+
+/**
+ * The lines of `drawing` the timeline `timeline` is drawn on, covered or
+ * not: those `holdings` gives, and for a timeline drawn on no line but an
+ * ancestor card's (section 8.8: every holding carries `LineAxis.ancestor`,
+ * or there is none), also its ancestor lines in its descendants' member
+ * cards (`ancestorLinesOf`), which come first, as in `lineAxes`. A
+ * coordinate of a timeline drawn there is drawn where the user sees one of
+ * these lines (`seenOn`); screen order places it on them (`screenPlace`).
+ */
+export function drawnOn(drawing: Drawing, timeline: string): DrawnHolding[] {
+  const held = holdings(drawing, timeline).map((holding) => ({ ...holding, section: holding.key }));
+  if (held.some(({ axis }) => axis.ancestor === undefined)) return held;
+  const ancestors = [...ancestorLinesOf(drawing)].flatMap(
+    ([key, { axis, member }]): DrawnHolding[] =>
+      axis.timeline === timeline
+        ? [{ key, axis, offset: ZERO, length: null, section: member }]
+        : [],
+  );
+  return [...ancestors, ...held];
+}
+
+/**
+ * Where the timeline `timeline` is seen on the lines of `drawing` it is
+ * drawn on (`drawnOn`), `raised` naming the root whose ancestor cards are
+ * raised (`raisedRoot`), else `null`: each line cut at the left and right
+ * borders of every displayed frame and card into parts, and the parts it is
+ * not covered on (`coveredIn`, tested at the part's middle on the line),
+ * neighbours joined, both ends included. So a timeline drawn only in an
+ * ancestor card and as an ancestor line is seen on the ancestor line inside
+ * its member's card, on the card's line beyond the frames and member cards
+ * drawn over it, and on the card's line alone while it is raised; a line
+ * that nothing covers is seen whole. The one place "Show matches" draws a
+ * coordinate and the pointer hits it.
+ */
+export function seenOn(drawing: Drawing, timeline: string, raised: string | null): SeenHolding[] {
+  const covered = coveredIn(drawing, raised);
+  const borders = drawing.boxes
+    .filter((box) => box.displayed && (box.kind === "frame" || box.kind === "card"))
+    .flatMap((box) => [box.x, box.x + box.width]);
+  return drawnOn(drawing, timeline).flatMap((holding): SeenHolding[] => {
+    const { axis } = holding;
+    const { xStart, xEnd, y } = axis;
+    const cuts = [
+      ...new Set([xStart, ...borders.filter((x) => x > xStart && x < xEnd), xEnd]),
+    ].sort((left, right) => left - right);
+    if (cuts.length === 1) {
+      return covered(axis, { x: xStart, y }) ? [] : [{ ...holding, xFrom: xStart, xTo: xEnd }];
+    }
+    const seen: SeenHolding[] = [];
+    for (let at = 0; at + 1 < cuts.length; at += 1) {
+      const xFrom = cuts[at] as number;
+      const xTo = cuts[at + 1] as number;
+      if (covered(axis, { x: (xFrom + xTo) / 2, y })) continue;
+      const last = seen.at(-1);
+      if (last?.xTo === xFrom) seen[seen.length - 1] = { ...last, xTo };
+      else seen.push({ ...holding, xFrom, xTo });
+    }
+    return seen;
+  });
 }
 
 /** The key in `markedOf(drawing)` of the drawn line `axis`; undefined for an ancestor line. */
@@ -958,7 +1039,8 @@ export type KnotsOf = (manifest: Manifest) => readonly MeasureKnots[] | KnotsAbs
  * member of each group whose frame draws the hovered line's timeline, read
  * by the group as a groupstamp's (`withGroupMembers`).
  * `knotsOf` gives the expanded MeasureMaps of a manifest, or why they are
- * not at hand; without it no server expands them.
+ * not at hand; without it no server expands them. A point that is not
+ * finite reads nothing.
  */
 export function readingAt(
   nodes: readonly BlockNode[],
@@ -970,6 +1052,7 @@ export function readingAt(
     readonly knotsOf?: KnotsOf | undefined;
   },
 ): Reading | null {
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
   let found: { node: BlockNode; hit: LineHit; devicePixels: number } | null = null;
   for (const node of nodes) {
     const { block, drawing } = node.data;
