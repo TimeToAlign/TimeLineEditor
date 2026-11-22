@@ -1250,32 +1250,27 @@ export interface FlagPlace {
   /** The flag's left and top edges. */
   readonly left: number;
   readonly top: number;
-  /** Whether the flag opens to the left of the pole. */
-  readonly flipped: boolean;
 }
 
 /**
- * Where the flag of a reading hangs: its pole stands at `x` from `POLE_RISE`
- * above `top` (the topmost of the line, its maps and its cross-section
- * line), held below the canvas's top edge, down to `y`, the line; the flag
- * hangs from the pole's top, its near edge touching the pole's side, so it
- * never covers the pole nor the abscissa it marks. It opens to the right,
- * and to the left where a flag `flagWidth` wide would leave the canvas,
- * `width` wide, at its right edge.
+ * Where the flag of a reading starts: its pole stands at `x` from
+ * `POLE_RISE` above `top` (the topmost of the line, its maps and its
+ * cross-section line), held below the canvas's top edge, down to `y`, the
+ * line; the flag hangs from the pole's top and opens to the right, its
+ * left edge touching the pole's right side, so it never covers the pole
+ * nor the abscissa it marks. It never changes sides: near a border it is
+ * shifted by exactly what keeps it on screen (`onScreen`).
  */
-export function flagPlace(
-  at: { readonly x: number; readonly y: number; readonly top: number },
-  flagWidth: number,
-  width: number,
-): FlagPlace {
+export function flagPlace(at: {
+  readonly x: number;
+  readonly y: number;
+  readonly top: number;
+}): FlagPlace {
   const poleTop = Math.max(0, at.top - POLE_RISE);
-  const right = at.x + POLE_WIDTH / 2;
-  const flipped = right + flagWidth > width;
   return {
     pole: { x: at.x, top: poleTop, bottom: at.y },
-    left: flipped ? at.x - POLE_WIDTH / 2 - flagWidth : right,
+    left: at.x + POLE_WIDTH / 2,
     top: poleTop,
-    flipped,
   };
 }
 

@@ -9,7 +9,7 @@ export interface Extent {
 }
 
 /**
- * The flag at `place` (`flagPlace`: beside the wedge it marks), `size`
+ * The flag at `place` (`flagPlace`: right of the wedge it marks), `size`
  * wide and high, shifted by exactly the amount that keeps it inside the
  * canvas `screen` (its visible area, from its top-left corner): a flag
  * past the right or bottom border moves left or up until its right or

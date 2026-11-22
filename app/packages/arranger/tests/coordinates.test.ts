@@ -2237,12 +2237,12 @@ describe("the flag", () => {
   });
 
   it.each([
-    [{ x: 100, y: 200, top: 150 }, 800, { x: 100, top: 128, bottom: 200 }, 100.5, 128, false],
-    [{ x: 700, y: 200, top: 150 }, 800, { x: 700, top: 128, bottom: 200 }, 519.5, 128, true],
-    [{ x: 619.5, y: 200, top: 150 }, 800, { x: 619.5, top: 128, bottom: 200 }, 620, 128, false],
-    [{ x: 100, y: 40, top: 10 }, 800, { x: 100, top: 0, bottom: 40 }, 100.5, 0, false],
-  ])("hangs at the pole at %j on a canvas %d wide", (at, width, pole, left, top, flipped) => {
-    expect(flagPlace(at, 180, width)).toEqual({ pole, left, top, flipped });
+    [{ x: 100, y: 200, top: 150 }, { x: 100, top: 128, bottom: 200 }, 100.5, 128],
+    // At the right border too the flag starts right of its pole: the shift alone moves it.
+    [{ x: 700, y: 200, top: 150 }, { x: 700, top: 128, bottom: 200 }, 700.5, 128],
+    [{ x: 100, y: 40, top: 10 }, { x: 100, top: 0, bottom: 40 }, 100.5, 0],
+  ])("hangs right of the pole at %j", (at, pole, left, top) => {
+    expect(flagPlace(at)).toEqual({ pole, left, top });
   });
 });
 

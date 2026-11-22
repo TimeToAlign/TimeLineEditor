@@ -2625,15 +2625,17 @@ expand its measure map`. The footer says `click to pin`.
 centred on the marked abscissa `x`, from 22 pixels above `top` (the
 topmost of the line, its maps and its cross-section line), never above
 the canvas's top edge, down to the line. The flag's top is the pole's
-top, and its near edge touches the pole's side: it opens to the right
-(left edge `x + 0.5`), and to the left (right edge `x − 0.5`) only where
-a flag opening right would leave the canvas, its left edge plus its width
-beyond the canvas's width; so it never covers the pole nor the marked
-abscissa. At `x` 100, `y` 200, `top` 150, a flag 180 wide on a canvas
-800 wide: the pole from 128 to 200, the flag at (100.5, 128); at `x` 700
-it is flipped, at (519.5, 128); at `x` 619.5 its right edge is exactly
-800 and it stays right, at 620; with `top` 10 the pole and the flag start
-at 0.
+top, and it always opens to the right, its left edge touching the pole's
+right side (`x + 0.5`), whatever the canvas's width: it never flips to
+the pole's other side; near a border only the shift below moves it. At
+`x` 100, `y` 200, `top` 150: the pole from 128 to 200, the flag at
+(100.5, 128); at `x` 700 the flag at (700.5, 128), still right of the
+pole (a flag starting there and leaving an 800-wide canvas is the
+shift's to move, not this place's); with `top` 10 the pole and the flag
+start at 0. What would be wrong: a flag starting on the pole's left
+(the former flip at the right border, which ruled out the exact shift
+by moving the flag a whole flag's width plus the pole instead of the
+overflow), or a start depending on the flag's or the canvas's width.
 
 **The flag stays on screen** (`onScreen.ts`, `on-screen.test.ts`). The
 flag starts where `flagPlace` hangs it, beside its wedge, and is then
@@ -2644,13 +2646,13 @@ edge lies on the border, past the left or top border right or down
 until that edge lies on it. A flag larger than the canvas along an axis
 keeps its left or top edge on the border (its beginning stays
 readable). Along an axis where the canvas or the flag measures 0 (not
-laid out yet) nothing moves. The pole and the side the flag opens to
-are never changed: the pole stands at the marked abscissa. What would
+laid out yet) nothing moves. The pole is never moved: it stands at the
+marked abscissa. What would
 be wrong: a flag cut by a border (the bottom of the screen, where a
 flag hanging from a low line was cut), a flag moved more than needed
 (snapped to a corner, flipped instead of shifted), a flag moved where
 it fits, a moved pole. On a canvas 800 × 600, a flag 180 × 100 (pole
-and `flipped` kept, the same object returned where nothing moves):
+kept, the same object returned where nothing moves):
 
 | Starts at (left, top) | Kept at | Shift |
 |---|---|---|
@@ -2667,11 +2669,14 @@ height 0, or a flag of height 0, the flag at (100.5, 550) stays there.
 In the component (`Flag.svelte`, mounted with a body of its own) the
 canvas's height is the flag layer's, which covers the canvas; with `x`
 700, `y` 580, `top` 560 on a canvas 800 wide and a layer 600 high, a
-flag 180 × 100: `flagPlace` flips it to the left (700.5 + 180 > 800) at
-519.5 and hangs it from the pole's top 538 (560 − 22), so its bottom
-would lie at 638; it is drawn at (519.5, 500), the pole still from 538
-to 580 (left 699.5, height 42). With the layer not measured (height 0)
-it is drawn at (519.5, 538).
+flag 180 × 100: `flagPlace` hangs it right of its pole at 700.5 (the
+pole's right side), from the pole's top 538 (560 − 22), so its right
+edge would lie at 880.5 and its bottom at 638; it is drawn at (620,
+500), shifted by exactly the overflow, 80.5 left and 38 up, the pole
+still from 538 to 580 (left 699.5, height 42). With the layer not
+measured (height 0) it is drawn at (620, 538): shifted left by 80.5,
+not vertically. Before, the flag flipped to the pole's left first and
+was drawn at 519.5, 100.5 pixels further left than needed.
 
 **Measure maps.** The expanded MeasureMaps are asked once per manifest
 object (one version of a manifest) that has MeasureMaps, and never for
@@ -3776,9 +3781,12 @@ display: wedge, name label, cross-section line).
   the line at 40.5): the pole's left edge is the node's left + 263.53662109375
   − 0.5, its top the node's top + 16 − 22, its height 40.5 − 16 + 22 =
   46.5; the flag's left edge is the node's left + 263.53662109375 + 0.5,
-  its top the pole's, `data-flipped` `false`. On a canvas 400 pixels wide
-  the flag opens to the left: its left edge the node's left +
-  263.53662109375 − 0.5 − 180, `data-flipped` `true`. It holds two parts,
+  its top the pole's. On a canvas 400 pixels wide the flag keeps its side
+and is shifted by exactly its overflow: its unshifted right edge, the
+node's left 40 + 263.53662109375 + 0.5 + 180 = 484.03662109375, lies
+84.03662109375 beyond 400, so its left edge is 400 − 180 = 220, its top
+and the pole unchanged (formerly it flipped to the
+pole's left, at the node's left + 263.53662109375 − 0.5 − 180). It holds two parts,
   top to bottom as their lines lie (`phrase`'s at 23 above `melody`'s at
   40.5), each part's rows top to bottom as drawn (its maps' band above its
   line by the default band order): `Phrase` (`Ticks` `960 ticks`, then
