@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
 import { InvalidManifestError, isCommandError, isLoadError } from "../src/errors.ts";
+import { manifestElements } from "../src/manifest/elements.ts";
 import {
   completeOrdered,
   loadManifest,
@@ -183,6 +184,33 @@ describe("unknown keys", () => {
   });
 });
 
+describe("elisions", () => {
+  it("are carried through unchanged and drawn as nothing", () => {
+    const value = manifestValue("bare.yaml");
+    const given = { id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1] };
+    const graphical = { elisions: [{ ...given, width: { ratio: 0.25 } }] };
+    const manifest = loadText(fileText({ ...value, graphical }));
+    const expected = [
+      { ...given, width: { ratio: 0.25 }, display: ["strip", "name", "coordinate"] },
+    ];
+    expect(manifest.graphical?.elisions).toEqual(expected);
+    expect(loadText(saveManifest(manifest, COMPLETE)).graphical?.elisions).toEqual(expected);
+    let view = changed(createView(), {
+      type: "add",
+      into: {},
+      block: { id: A, manifest, x: 0, y: 0 },
+    });
+    view = changed(view, {
+      type: "set",
+      changes: [{ target: at("bare"), values: { name: "B" } }],
+    });
+    const edited = block(view).manifest;
+    expect(edited.timelines[0]?.name).toBe("B");
+    expect(edited.graphical?.elisions).toEqual(expected);
+    expect(manifestElements(edited).filter((key) => key.type === "elision")).toEqual([]);
+  });
+});
+
 describe("graphical styles", () => {
   it("warns once and completes every missing named style", () => {
     const value = manifestValue("bare.yaml");
@@ -222,6 +250,7 @@ describe("graphical styles", () => {
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
     expect(Object.keys(graphical ?? {})).toEqual([
+      "elisions",
       "matchstamps",
       "order",
       "rules",

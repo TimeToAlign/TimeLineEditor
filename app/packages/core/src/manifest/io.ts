@@ -305,16 +305,19 @@ export function plainSelector(select: Lossless<Selector>): Selector {
   return { ...kept, addresses: [first, ...more] };
 }
 
-/** A graphical block without its named timestamps and MatchStamps, which hold no declaration. */
-export type Styling = Omit<Graphical, "timestamps" | "matchstamps">;
+/**
+ * A graphical block without its named timestamps, MatchStamps and elisions,
+ * which hold no declaration.
+ */
+export type Styling = Omit<Graphical, "timestamps" | "matchstamps" | "elisions">;
 
 /**
  * The styling of a graphical block read losslessly, its declarations as the
  * drawing reads them: every declaration's numbers doubles
  * (`plainDeclaration`), in the named styles and in the rules; the
  * orders kept as they are, and every key of every object where it was. The
- * named timestamps, whose coordinates are own-axis values, and the named
- * MatchStamps are left to the caller.
+ * named timestamps and the elisions, whose coordinates are own-axis values,
+ * and the named MatchStamps are left to the caller.
  */
 export function plainGraphical(graphical: Lossless<Styling>): Styling | Problem {
   const { styles, rules, ...rest } = graphical;
@@ -373,12 +376,13 @@ export function completed(value: LosslessManifest): Manifest | LoadError {
   if (problems.length > 0) return refuse(...problems);
   if (graphical === undefined) return manifest;
   // The whole block is read as its styling, so that every key keeps its place; the named
-  // timestamps and MatchStamps, which `plainGraphical` passes over, are put back in theirs.
-  const { timestamps, matchstamps } = graphical;
+  // timestamps, MatchStamps and elisions, which `plainGraphical` passes over, are put back in
+  // theirs.
+  const { timestamps, matchstamps, elisions } = graphical;
   const styling: Lossless<Styling> = graphical;
   const plain = plainGraphical(styling);
   if ("code" in plain) return refuse(plain);
-  return { ...manifest, graphical: { ...plain, timestamps, matchstamps } };
+  return { ...manifest, graphical: { ...plain, timestamps, matchstamps, elisions } };
 }
 
 /**
@@ -414,9 +418,9 @@ function normalized(checked: LosslessManifest): Manifest | LoadError {
   const manifest = completed(checked);
   if (isLoadError(manifest) || manifest.graphical === undefined) return manifest;
   // completeStyles issues the one warning naming every missing style and adds it to the
-  // styles, the one member it changes; it reads the styling alone, never the named timestamps
-  // and MatchStamps.
-  const { timestamps: _, matchstamps: __, ...styling } = manifest.graphical;
+  // styles, the one member it changes; it reads the styling alone, never the named timestamps,
+  // MatchStamps and elisions.
+  const { timestamps: _, matchstamps: __, elisions: ___, ...styling } = manifest.graphical;
   const { styles } = completeStyles(styling).graphical;
   return styles === undefined
     ? manifest

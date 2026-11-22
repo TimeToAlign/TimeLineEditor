@@ -235,6 +235,7 @@ describe("add a named timestamp", () => {
         },
       ],
       matchstamps: [],
+      elisions: [],
     });
   });
 
@@ -476,6 +477,7 @@ describe("the default timestamps", () => {
         mark("timestamp_2", "bare", "length", [8, 1]),
       ],
       matchstamps: [],
+      elisions: [],
     });
     expect(importedManifest(withoutGraphical("nested.yaml")).graphical?.timestamps).toEqual([
       mark("timestamp_1", "clt_1", "origin", [0, 1]),

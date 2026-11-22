@@ -12,6 +12,7 @@
 
 import type {
   CompleteConversionMap,
+  CompleteElision,
   CompleteFlowControlElement,
   CompleteGraphical,
   CompleteGroup,
@@ -124,16 +125,27 @@ export type AnchorDisplay = AlignmentAnchor["display"][number];
 export type TimestampDisplay = NamedTimestamp["display"][number];
 
 /**
- * A manifest's styling, its display and band orders, its named timestamps
- * and its named MatchStamps, owned by the manifest, never by a canvas. The
- * numbers of its declarations are plain doubles: the schema boundary
- * (`normalizeManifest`) reads a declaration's integral float as the double
- * it equals; a named timestamp's coordinate is an own-axis value and stays
- * as read.
+ * An elision of a manifest, `{id, timeline, start, end, width?, display}`:
+ * a stretch of the timeline it names, its `start` and `end` (and a `width`'s
+ * `span`) bare values on that timeline's own axis as the reader returns
+ * them, its `display` always stated, in the schema package's canonical
+ * order (`ELISION_DISPLAY`). It is carried through unchanged and drawn as
+ * nothing.
  */
-export type ManifestGraphical = Omit<Graphical, "timestamps" | "matchstamps"> & {
+export type Elision = ReadonlyView<CompleteElision>;
+
+/**
+ * A manifest's styling, its display and band orders, its named timestamps,
+ * its named MatchStamps and its elisions, owned by the manifest, never by a
+ * canvas. The numbers of its declarations are plain doubles: the schema
+ * boundary (`normalizeManifest`) reads a declaration's integral float as the
+ * double it equals; a named timestamp's coordinate and an elision's values
+ * are own-axis values and stay as read.
+ */
+export type ManifestGraphical = Omit<Graphical, "timestamps" | "matchstamps" | "elisions"> & {
   timestamps?: readonly NamedTimestamp[];
   matchstamps?: readonly NamedMatchStamp[];
+  elisions?: readonly Elision[];
 };
 
 /**

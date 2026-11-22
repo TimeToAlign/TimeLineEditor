@@ -7,6 +7,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["score", "performance"],
@@ -318,6 +319,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["exposition", "take_1"],
@@ -769,6 +771,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "g1": ["t", "u"],
@@ -915,6 +918,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {},
           "rules": [],
@@ -1145,6 +1149,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["score", "performance"],
@@ -1461,6 +1466,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["exposition", "take_1"],
@@ -1917,6 +1923,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {},
               "rules": [],
@@ -2147,6 +2154,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "g1": ["t", "u"],

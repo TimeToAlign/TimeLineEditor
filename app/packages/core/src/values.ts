@@ -244,25 +244,32 @@ function located(
 
 /**
  * The workspace's `graphical` block. It lies beside no timeline, so the
- * schema refuses every named timestamp in it (`timestamp_timeline`) and
- * every named MatchStamp (`alignment_anchor`: its anchors name timestamps),
- * and it reads as a plain `Graphical`.
+ * schema refuses every named timestamp in it (`timestamp_timeline`), every
+ * named MatchStamp (`alignment_anchor`: its anchors name timestamps) and
+ * every elision (`elision_timeline`), and it reads as a plain `Graphical`.
  */
 export function readGraphical(value: unknown, path: readonly PathSegment[]): Graphical | Problem {
   const read = readObject(value, path);
   if (isCommandError(read)) return read;
   const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical: read });
   if ("code" in checked) return located(checked, ["graphical"], path);
-  const { timestamps, matchstamps, ...styling } = checked.graphical ?? {};
+  const { timestamps, matchstamps, elisions, ...styling } = checked.graphical ?? {};
   const plain = plainGraphical(styling);
   if ("code" in plain) return located(plain, ["graphical"], path);
-  if ((timestamps?.length ?? 0) > 0 || (matchstamps?.length ?? 0) > 0) {
-    throw new Error("the schema refuses a timestamp or a MatchStamp beside no timeline");
+  if (
+    (timestamps?.length ?? 0) > 0 ||
+    (matchstamps?.length ?? 0) > 0 ||
+    (elisions?.length ?? 0) > 0
+  ) {
+    throw new Error(
+      "the schema refuses a timestamp, a MatchStamp or an elision beside no timeline",
+    );
   }
   return {
     ...plain,
     ...(timestamps === undefined ? {} : { timestamps: [] }),
     ...(matchstamps === undefined ? {} : { matchstamps: [] }),
+    ...(elisions === undefined ? {} : { elisions: [] }),
   };
 }
 

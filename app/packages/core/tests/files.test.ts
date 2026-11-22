@@ -649,6 +649,7 @@ describe("commands in blocks of several roots", () => {
       ],
       timestamps: load(STYLED).graphical?.timestamps,
       matchstamps: [],
+      elisions: [],
     });
   });
 

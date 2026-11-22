@@ -158,6 +158,7 @@ describe("the shape of an address", () => {
       "line",
       "id",
       "coordinate",
+      "elision",
     ]);
   });
 

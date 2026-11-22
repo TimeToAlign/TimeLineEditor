@@ -627,16 +627,17 @@ accepts and refuses).
    is TimeToShare's: the tests read it from the validator at test time
    (`validatorDetail`) and never state its wording, so a change of the
    validator's phrasing breaks no test here. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 109:17 (after
+   reader's 1-based line and column: JSON `"locked": ,` at 110:17 (after
    `@context`, the default timestamps' `graphical` and `resources`, which
-   sort first), YAML `locked: [false` at 93:5 (the line after the
+   sort first), YAML `locked: [false` at 94:5 (the line after the
    unclosed sequence, after `@context`, `graphical` and `resources`).
    Schema 0.2.0's resources, MatchStamps and beliefs moved both by the
    lines they add before the timeline: `resources: []`, `graphical`'s
    `matchstamps: []`, each default timestamp's `matchstamp: false`, and the
    context's belief terms in place of the status terms (five lines more
    in pretty JSON, four in YAML); its `groupstamp` key, written `false` on
-   each of the two default timestamps, moves both by two lines more.
+   each of the two default timestamps, moves both by two lines more, and
+   `graphical`'s `elisions: []` by one more.
    TOML `locked = ` at 17:1 (the line after the missing value; the
    top-level keys, `resources = []` among them, `[meta]` and the
    timeline's keys before it,

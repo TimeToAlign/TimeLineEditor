@@ -351,6 +351,17 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `90.0`, `-135.0`, … read equal to the fixture and save to its text.
 18. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
+19. **Elisions are carried through unchanged.** Core draws, picks and edits
+    no elision yet; it holds what the manifest states. `bare.yaml` (root
+    `bare`, 8 quarters, fraction) given `graphical.elisions` holding
+    `{id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1], width:
+    {ratio: 0.25}}` (no `display`) reads with exactly that elision plus the
+    default `display: ["strip", "name", "coordinate"]`, the values kept as
+    the Fraction pairs they are; the complete form written by
+    `saveManifest` reads back equal. Added as a block, renamed by a `set`
+    of the root's `name`, the block's manifest still holds the same
+    elision, and core's element list (`manifestElements`) names no element
+    of type `elision`, so nothing is drawn for it.
 
 ## A manifest file written back as it came (`manifest-file.test.ts`)
 
@@ -1002,7 +1013,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
    ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
    `block`, and refuses a band's address as its owner at the type level (a
-   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, the schema's order.
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, the schema's order.
    `inBlock(A, element)` puts an element address into block `A`,
    `elementAddressOf` takes the block off again (`{}` for a block), and
    `isElementAddress` holds for an address stating `id`, `facet` or `part`

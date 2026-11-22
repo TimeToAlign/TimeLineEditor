@@ -94,6 +94,10 @@ export const DEFAULT_LAYER: Graphical = {
         shadow: "#B8BEC8",
       },
     },
+    {
+      select: { element: "elision" },
+      set: { fill: "#F2F2F2", stroke: "#9CA3AF", "stroke-width": 1, "stroke-dasharray": "2 2" },
+    },
     { select: { inside: "ancestor" }, set: { opacity: 0.35 } },
     { select: { element: "cross_section", inside: "ancestor" }, set: { opacity: 1 } },
     { select: { coordinates: "primary", inside: "ancestor" }, set: { opacity: 1 } },
@@ -106,6 +110,7 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "name", inside: "ancestor" },
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
     },
+    { select: { element: "label", inside: "elision" }, set: { fill: "#6B7280" } },
     {
       select: { element: "band", facet: "regions", inside: "band" },
       set: { display: "none" },

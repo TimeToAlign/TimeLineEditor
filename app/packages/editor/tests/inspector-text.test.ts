@@ -433,8 +433,8 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 109, 17],
-      ["syntax_error", 93, 5],
+      ["syntax_error", 110, 17],
+      ["syntax_error", 94, 5],
       ["syntax_error", 17, 1],
     ]);
     expect(store.journal).toHaveLength(1);

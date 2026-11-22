@@ -7,6 +7,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["second-half", "recording"]
@@ -130,6 +131,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["theme", "recording"]
@@ -269,6 +271,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["exposition", "take", "system", "audio"]
@@ -508,6 +511,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "group_1": ["score", "page", "performance"]
@@ -736,6 +740,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["second-half", "recording"]
@@ -864,6 +869,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["theme", "recording"]
@@ -1008,6 +1014,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["exposition", "take", "system", "audio"]
@@ -1252,6 +1259,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "group_1": ["score", "page", "performance"]

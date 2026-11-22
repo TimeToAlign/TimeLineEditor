@@ -7,6 +7,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {},
           "rules": [],
@@ -73,6 +74,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {},
           "rules": [],
@@ -192,6 +194,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {},
           "rules": [],
@@ -294,6 +297,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {},
           "rules": [],
@@ -392,6 +396,7 @@
       "length": 400,
       "manifest": {
         "graphical": {
+          "elisions": [],
           "matchstamps": [],
           "order": {
             "score": ["children", "markers", "line", "conversion_maps", "regions", "flow_control"]
@@ -738,6 +743,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {},
               "rules": [],
@@ -809,6 +815,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {},
               "rules": [],
@@ -912,6 +919,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {},
               "rules": [],
@@ -1019,6 +1027,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {},
               "rules": [],
@@ -1143,6 +1152,7 @@
           "length": 400,
           "manifest": {
             "graphical": {
+              "elisions": [],
               "matchstamps": [],
               "order": {
                 "score": ["children", "markers", "line", "conversion_maps", "regions", "flow_control"]
