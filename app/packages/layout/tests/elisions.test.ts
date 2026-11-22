@@ -482,3 +482,53 @@ describe("other ancestor cards", () => {
     expect(stripsOf(drawFixture(name))).toHaveLength(count);
   });
 });
+
+describe("a line of drawn length 0", () => {
+  /** `bundle_elisions_stored` with `late` (no length, nothing in it) added to `page` at `offset`. */
+  const withLate = (offset: number, ...commands: object[]) => {
+    const manifest = edit("bundles/bundle_elisions_stored", ...commands, {
+      type: "add",
+      into: target("page"),
+      child: { id: "late", unit: "pixels", number_type: "int", offset, length: null },
+    });
+    return draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
+  };
+  const lateLines = (drawing: Drawing) =>
+    drawing.elements.filter(
+      (item): item is LineElement =>
+        (item.type === "timeline" || item.type === "child") && item.address.id === "late",
+    );
+  const lateAxes = (drawing: Drawing) =>
+    drawing.axes
+      .filter((axis) => axis.address.id === "late")
+      .map((axis) => [
+        axis.xStart,
+        axis.xEnd,
+        String(axis.start),
+        axis.end,
+        String(axis.drawnEnd),
+        axis.run,
+      ]);
+
+  it.each([100, 600])("keeps its whole axis at %i, beside page's strip", (offset) => {
+    const drawing = withLate(offset);
+    const [line, ...more] = lateLines(drawing);
+    expect(more).toEqual([]);
+    expect(lateAxes(drawing)).toEqual([[line?.xs, line?.xs, "0", null, "0", undefined]]);
+  });
+
+  it("keeps its whole axis on a card without strips", () => {
+    const drawing = withLate(100, { type: "remove", targets: [target("elision_2")] });
+    const page = lineIn(drawing, at("page"));
+    const [line, ...more] = lateLines(drawing);
+    expect(more).toEqual([]);
+    expect(line?.xs).toBe(page.xs + (400 * 100) / 1754);
+    expect(lateAxes(drawing)).toEqual([[line?.xs, line?.xs, "0", null, "0", undefined]]);
+  });
+
+  it("has no axis inside a strip", () => {
+    const drawing = withLate(1000);
+    expect(lateLines(drawing)).toEqual([]);
+    expect(lateAxes(drawing)).toEqual([]);
+  });
+});

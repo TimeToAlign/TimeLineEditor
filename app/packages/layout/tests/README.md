@@ -1371,6 +1371,20 @@ label's `y + (w / 2 + 2) + a(9) = y + 11.85400390625` (`w = 3`).
    `bundle_mixed` two; the cards whose default proportion is 1
    (`group_parent_both`, `group_parent_right`, `group_parent_exact`,
    `group_child_member`, `group_child_member_stamps`) draw none.
+12. **A line of drawn length 0.** A line whose span is one point (unknown
+   length, nothing in it) has one run where no strip holds that point, a
+   strip's ends excluded, as for a named timestamp (section 6.6): a strip
+   elsewhere on the card takes nothing from it. Proven on
+   `bundle_elisions_stored` with a child `late` of `page` (pixels, int,
+   `length: null`, no children) added at an offset: at 100 (left of
+   `elision_2`'s 600–1754) and at 600 (the strip's left end) its line is
+   drawn and it has exactly one axis, without `run`, from `xStart = xEnd`
+   = the abscissa of its drawn line's start, `start` 0, `end` null (open),
+   drawn end 0; the same at 100 with `elision_2` removed (no strip on the
+   card), where that abscissa is `page`'s line start plus `400 × 100 /
+   1754` (`L = 400`, `λR = 1754`, the card whole); at 1000 (inside the
+   strip) no line of `late` is drawn and it has no axis. A line whose
+   drawn length is 0 is never an empty run list where no strip holds it.
 
 ## Named timestamps (`timestamps.test.ts`)
 

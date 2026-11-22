@@ -13,6 +13,18 @@ import { type ElidedAxis, outside, type Stretch } from "../elisions.ts";
 import type { MemberDrawn } from "../member.ts";
 import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../numbers.ts";
 
+/**
+ * The full runs of a line spanning `start` to `end` on its root's axis, the
+ * stretches elided: what `outside` leaves of the span, or, for a line of drawn
+ * length 0, the point itself where no strip holds it, its ends excluded (as
+ * `ElidedAxis.stripOf` reads a position), and nothing where one does.
+ */
+function runsOf(start: Real, end: Real, stretches: readonly Stretch[]): Stretch[] {
+  if (compareReal(start, end) !== 0) return outside(start, end, stretches);
+  const held = stretches.some(([a, b]) => compareReal(a, start) < 0 && compareReal(start, b) < 0);
+  return held ? [] : [[start, end]];
+}
+
 /** Where a timeline of a member drawing lies on its root's axis (sections 3.1 and 3.4). */
 interface Span {
   readonly timeline: TimelineManifest;
@@ -171,7 +183,7 @@ export function axesOf(
       mark: null,
       timestamps: drawn.timestamps.get(element) ?? [],
     };
-    const runs = outside(span.start, span.end, stretches);
+    const runs = runsOf(span.start, span.end, stretches);
     const [first] = runs;
     if (
       runs.length === 1 &&
