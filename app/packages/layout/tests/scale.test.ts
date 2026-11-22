@@ -364,10 +364,18 @@ describe("work per placement", () => {
         },
       }) as unknown as number;
     const rows = new Rows();
-    const placed = Array.from({ length: count }, (_, index) =>
-      rows.place([value(index), value(index + 1)]),
-    );
-    return { conversions, placed, count: rows.count };
+    const ends = Array.from({ length: count }, (_, index): readonly [number, number] => [
+      value(index),
+      value(index + 1),
+    ]);
+    const placed = ends.map((extent) => rows.place(extent));
+    const counted = conversions;
+    const [kept = []] = rows.rows;
+    // By identity alone: `===` on two objects converts neither.
+    const keepsEnds =
+      kept.length === count &&
+      kept.every(([start, end], index) => start === ends[index]?.[0] && end === ends[index]?.[1]);
+    return { conversions: counted, placed, count: rows.count, keepsEnds };
   };
   const small = placing(300);
   const large = placing(3000);
@@ -378,6 +386,10 @@ describe("work per placement", () => {
       small.placed.every((row) => row === 1),
       large.placed.every((row) => row === 1),
     ]).toEqual([true, true]);
+  });
+
+  it("keeps the values passed in as the ends of row 1, so every comparison of them is counted", () => {
+    expect([small.keepsEnds, large.keepsEnds]).toEqual([true, true]);
   });
 
   it("reads the ends 9,388 times for 300 extents and 133,664 times for 3,000", () => {

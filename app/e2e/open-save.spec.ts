@@ -424,15 +424,27 @@ test.describe("Through the server's files", () => {
     expect(await violations(page)).toEqual([]);
   });
 
-  test("axe-core reports no violation in the file dialog showing a folder without files of the kind", async ({
+  test("shows its note in the place of the empty list, and axe-core reports no violation there", async ({
     page,
   }) => {
     await openServerPage(page);
     await chooseItem(page, "Save as…");
     const save = page.getByRole("dialog", { name: "Save as" });
     await save.getByRole("option", { name: "story/" }).dblclick();
-    await expect(save.getByRole("listbox", { name: "Contents of story" })).toBeVisible();
+    const list = save.getByRole("listbox", { name: "Contents of story" });
+    await expect(list).toBeVisible();
     await expect(save.getByRole("option")).toHaveCount(0);
+    const note = save.getByRole("status");
+    await expect(note).toHaveText("Nothing to show here.");
+    const [listBox, noteBox] = await Promise.all([list.boundingBox(), note.boundingBox()]);
+    if (listBox === null || noteBox === null) throw new Error("the list or its note is not drawn");
+    // Where the first entry would stand: 1 px inside the list's border, its own box within the list's.
+    expect([
+      noteBox.x - listBox.x,
+      noteBox.y - listBox.y,
+      noteBox.x + noteBox.width <= listBox.x + listBox.width,
+      noteBox.y + noteBox.height <= listBox.y + listBox.height,
+    ]).toEqual([1, 1, true, true]);
     expect(await violations(page)).toEqual([]);
   });
 

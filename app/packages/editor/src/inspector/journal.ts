@@ -79,7 +79,25 @@ function addedMember(value: unknown, member: "id" | "name"): string | null {
   return typeof found === "string" ? found : null;
 }
 
-/** What one `add` put in: an added block by its bundle while the view holds it, else by its kind and its name or id. */
+/**
+ * An added block the view does not hold (its `add` undone, or the block
+ * removed since), by the manifest its `add` carries, as a held block's
+ * bundle is worded: its `name`, else its `id`, else as the anonymous
+ * bundle; `null` for a value carrying no manifest.
+ */
+function carriedBundleWords(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  const manifest: unknown = Reflect.get(value, "manifest");
+  if (typeof manifest !== "object" || manifest === null) return null;
+  const name = addedMember(manifest, "name") ?? addedMember(manifest, "id");
+  return name === null ? "the anonymous bundle" : `bundle '${name}'`;
+}
+
+/**
+ * What one `add` put in: an added block by its bundle, read from the view
+ * while it holds the block, else from the manifest the command carries;
+ * anything else by its kind and its name or id.
+ */
 function addedWords(command: AddCommand, view: View): string {
   const kind = ADD_KINDS.find((item) => command[item] !== undefined);
   if (kind === undefined) return "nothing";
@@ -88,6 +106,8 @@ function addedWords(command: AddCommand, view: View): string {
   if (kind === "block" && id !== null && view.blocks[id] !== undefined) {
     return addressWords(view, { block: id });
   }
+  const carried = kind === "block" ? carriedBundleWords(value) : null;
+  if (carried !== null) return carried;
   const name = kind === "block" ? null : addedMember(value, "name");
   const named = name ?? id;
   const added = named === null ? `a ${ADD_WORDS[kind]}` : `${ADD_WORDS[kind]} '${named}'`;

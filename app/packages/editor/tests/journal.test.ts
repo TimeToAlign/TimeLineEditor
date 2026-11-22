@@ -195,6 +195,25 @@ describe("journalRows", () => {
     ]);
   });
 
+  it("words an undone import by the manifest its add carries", () => {
+    const store = mixedStore();
+    const added = journalRows(store, store.view).map((row) => row.text);
+    store.undo();
+    store.undo();
+    store.undo();
+    expect(Object.keys(store.view.blocks)).toEqual([]);
+    expect(journalRows(store, store.view).map((row) => [row.text, row.undone])).toEqual([
+      ["Added the anonymous bundle", true],
+      ["Added bundle 'mixed'", true],
+      ["Added bundle 'Mixed'", true],
+    ]);
+    expect(added).toEqual([
+      "Added the anonymous bundle",
+      "Added bundle 'mixed'",
+      "Added bundle 'Mixed'",
+    ]);
+  });
+
   it("writes the commands on MatchStamps and their anchors by their words", () => {
     const stamps = fixtureStore("bundles/bundle_matchstamps").view;
     const S = blockId(0);
