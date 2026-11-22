@@ -525,6 +525,10 @@ describe("a block's arrangement", () => {
       setBlock({ arrangement: { direction: "vertical", order: ["G2", "nope"] } }),
     );
     expect(block(view).arrangement).toEqual({ direction: "vertical", order: ["G2", "nope"] });
+    const repeated = ["G2", "G1", "G2"];
+    view = changed(view, setBlock({ arrangement: { direction: "vertical", order: repeated } }));
+    expect(block(view).arrangement).toEqual({ direction: "vertical", order: repeated });
+    expect(itemOrder(SPREAD, repeated)).toEqual(["G2", "G1", "G3"]);
     view = changed(view, setBlock({ arrangement: null }));
     expect(Object.hasOwn(block(view), "arrangement")).toBe(false);
     expect(refused(apply(view, setBlock({ arrangement: null })))).toEqual({
@@ -558,11 +562,6 @@ describe("a block's arrangement", () => {
       code: "missing_member",
       path: [...at, "order"],
       message: "missing member order",
-    });
-    expect(of({ direction: "vertical", order: ["G1", "G1"] })).toEqual({
-      code: "invalid_value",
-      path: [...at, "order", 1],
-      message: "'G1' is listed twice",
     });
     expect(of({ direction: "vertical", order: [], columns: 2 })).toEqual({
       code: "unknown_member",
@@ -704,17 +703,26 @@ describe("arrangements in the workspace file", () => {
     expect(Object.hasOwn(block(view), "arrangement")).toBe(false);
   });
 
+  it("reads a repeated ID as written", () => {
+    const repeated = { direction: "vertical", order: ["G2", "G1", "G2"] };
+    const workspace = arranged(setBlock({ arrangement: repeated }));
+    const text = writeWorkspace(workspace);
+    const again = read(text);
+    expect(block(again.view).arrangement).toEqual(repeated);
+    expect(writeWorkspace(again)).toBe(text);
+  });
+
   it("refuses a malformed block arrangement", () => {
     const text = edited(writeWorkspace(arranged()), (value) => {
       const blocks = value.blocks as { [id: string]: Record<string, unknown> };
-      blocks[A] = { ...blocks[A], arrangement: { direction: "vertical", order: ["G1", "G1"] } };
+      blocks[A] = { ...blocks[A], arrangement: { direction: "vertical", order: [1] } };
     });
     const found = readWorkspace(text);
     expect(isLoadError(found) ? found.problems : []).toEqual([
       {
         code: "invalid_value",
-        message: "'G1' is listed twice",
-        path: ["blocks", A, "arrangement", "order", 1],
+        message: "expected a list of item IDs",
+        path: ["blocks", A, "arrangement", "order"],
       },
     ]);
   });

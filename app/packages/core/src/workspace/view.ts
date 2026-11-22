@@ -229,8 +229,9 @@ function arrangementObject(
 /**
  * A block's arrangement as a `set` gives it or a file states it: `null`
  * for none, else `{direction, order}`, `direction` `"vertical"` or
- * `"horizontal"`, `order` a list of IDs, each once; an ID naming no item is
- * valid (`itemOrder` passes over it).
+ * `"horizontal"`, `order` a list of IDs, kept as given: an ID naming no
+ * item or named again is valid (`itemOrder` passes over the one and takes
+ * the other at its first mention).
  */
 export function readItemArrangement(
   value: unknown,
@@ -244,13 +245,6 @@ export function readItemArrangement(
   const { order } = object;
   if (!Array.isArray(order) || !order.every((item) => typeof item === "string")) {
     return problem(ErrorCode.invalidValue, "expected a list of item IDs", [...path, "order"]);
-  }
-  const seen = new Set<string>();
-  for (const [index, id] of order.entries()) {
-    if (seen.has(id)) {
-      return problem(ErrorCode.invalidValue, `'${id}' is listed twice`, [...path, "order", index]);
-    }
-    seen.add(id);
   }
   return { direction, order: [...order] };
 }

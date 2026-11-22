@@ -2832,7 +2832,9 @@ text does (`5–10 ♩`).
     G2]}}` leaves `arrangement` exactly `{direction: "horizontal", order:
     [G1, G2, G3]}` (the row stored, in the same `set`) and the store's
     journal one entry longer by exactly that command. `{direction:
-    "vertical", order: [G2, nope]}` is stored as given. `arrangement: null`
+    "vertical", order: [G2, nope]}` is stored as given, and so is
+    `{direction: "vertical", order: [G2, G1, G2]}`: an order may repeat an
+    ID, which `itemOrder` takes at its first mention (`[G2, G1, G3]`). `arrangement: null`
     then leaves the block without the member (`Object.hasOwn` false), and
     another `null` is `invalid_value` at `[{block: A}, "arrangement"]`,
     "the command changes nothing". On
@@ -2842,8 +2844,7 @@ text does (`5–10 ♩`).
     `invalid_value` at `[…, "arrangement", "direction"]`, `expected
     "vertical" or "horizontal"`; `{direction: "vertical"}` `missing_member`
     at `[…, "order"]`, "missing member order"; `{direction: "vertical",
-    order: [G1, G1]}` `invalid_value` at `[…, "order", 1]`, "'G1' is listed
-    twice"; `{direction: "vertical", order: [], columns: 2}`
+    order: [], columns: 2}`
     `unknown_member` at `[…, "columns"]`, "unknown member columns"; `order:
     [1]` `invalid_value` at `[…, "order"]`, "expected a list of item IDs".
 18. **A later edit breaks side by side; the state is kept.** After the
@@ -2869,9 +2870,12 @@ text does (`5–10 ♩`).
     `arrangement` at the top and in the block. A workspace without either
     writes no `"arrangement"` anywhere in its text. A file stating
     `"arrangement": null` at the top and in a block reads as a view and a
-    block without the member. A block's `{direction: "vertical", order:
-    ["G1", "G1"]}` in a file is refused with `invalid_value` at `["blocks",
-    A, "arrangement", "order", 1]`.
+    block without the member. A block arranged `{direction: "vertical",
+    order: [G2, G1, G2]}` is read back with that order as written and
+    written again byte for byte (a repeated ID is valid; a reader refuses
+    none). A block's `{direction: "vertical", order: [1]}` in a file is
+    refused with `invalid_value` at `["blocks", A, "arrangement",
+    "order"]`, "expected a list of item IDs".
 21. **The journal is the authority.** A file whose view states an
     arrangement its journal never set is refused by `createStore` with
     `JournalMismatchError` at `["arrangement"]`.
