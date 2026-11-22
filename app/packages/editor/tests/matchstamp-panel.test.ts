@@ -472,23 +472,33 @@ describe("Coordinates", () => {
 });
 
 describe("an ancestor card raised", () => {
-  /** A table of one MatchClaim `p_1`: `middle` 1 ↔ `piece` 3 of `group_parent_both`. */
-  function pieceTable(): MatchClaimTable {
-    const columns = matchClaimColumns(
-      [
-        { id: "middle", numberType: "fraction" },
-        { id: "piece", numberType: "fraction" },
-      ],
-      [{ id: "p_1", timelines: [0, 1], start: [q(1), q(3)] }],
-    );
+  /** The timelines of `group_parent_both` the tables below hold MatchClaims on. */
+  const TIMELINES = [
+    { id: "middle", numberType: "fraction" },
+    { id: "piece", numberType: "fraction" },
+    { id: "recording", numberType: "float" },
+  ] as const;
+  /** `middle` 1 ↔ `piece` 3. */
+  const MIDDLE_PIECE = { id: "p_2", timelines: [0, 1], start: [q(1), q(3)] } as const;
+  /** `piece` 3 ↔ `recording` 2.5, the group partner of `piece`'s child `middle`. */
+  const PIECE_RECORDING = { id: "p_1", timelines: [1, 2], start: [q(3), 2.5] } as const;
+
+  /** A table of `claims` on `TIMELINES` without beliefs. */
+  function claimTable(
+    claims: readonly Parameters<typeof matchClaimColumns>[1][number][],
+  ): MatchClaimTable {
+    const columns = matchClaimColumns(TIMELINES, claims);
     const beliefs = {
       actors: [],
-      offsets: Uint32Array.from([0, 0]),
+      offsets: new Uint32Array(claims.length + 1),
       actor: Uint32Array.from([]),
       word: Uint8Array.from([]),
     };
     return { columns, beliefs };
   }
+
+  /** A table of one MatchClaim `p_1`: `middle` 1 ↔ `piece` 3 of `group_parent_both`. */
+  const pieceTable = () => claimTable([{ ...MIDDLE_PIECE, id: "p_1" }]);
 
   it("orders the Coordinates by the places the raised card gives", () => {
     const store = storeOf("groups/group_parent_both");
@@ -512,6 +522,105 @@ describe("an ancestor card raised", () => {
     store.done();
     flushSync();
     expect(shownGroups()).toEqual([...throughMiddle, piece]);
+  });
+
+  /**
+   * The command naming the potential MatchStamp of `piece` 3 "Pickup"
+   * stores, as JSON, with `piece`'s timeline editor open when `raised`;
+   * the store, left with the MatchStamp named, is handed to `named`.
+   */
+  function namePickup(raised: boolean, named?: (store: Store) => void): string {
+    const store = storeOf("groups/group_parent_both");
+    const table = claimTable([PIECE_RECORDING]);
+    show(store, potential(indexesUnder(table).shown, "piece", q(3)), tablesWith(table));
+    const group = (heading: string, value: string, unit: string) => [
+      heading,
+      [["coordinate", value, true, unit]],
+    ];
+    const throughRecording = [
+      group("Piece", "6", "♩"),
+      group("Middle", "2", "♩"),
+      group("Recording", "2.5", "s"),
+    ];
+    const piece = group("Piece", "3", "♩");
+    if (raised) {
+      expect(store.open({ block: A, id: "piece" })).toBeNull();
+      flushSync();
+      expect(shownGroups()).toEqual([piece, ...throughRecording]);
+    } else expect(shownGroups()).toEqual([...throughRecording, piece]);
+    const before = store.journal.length;
+    name("Pickup");
+    expect(store.journal.length).toBe(before + 1);
+    const command = JSON.stringify(lastCommand(store));
+    unmountTab();
+    named?.(store);
+    return command;
+  }
+
+  it("stores what naming stores with no editor open, whichever editor is open", () => {
+    const stored = namePickup(false);
+    expect(JSON.parse(stored)).toEqual({
+      type: "add",
+      into: { block: A },
+      matchstamp: {
+        name: "Pickup",
+        anchors: [
+          [
+            { timeline: "recording", coordinate: 2.5 },
+            { timeline: "piece", coordinate: [3, 1] },
+          ],
+        ],
+        match_claims: ["p_1"],
+      },
+    });
+    expect(namePickup(true)).toBe(stored);
+  });
+
+  it("stores what Update stores with no editor open, whichever editor is open", () => {
+    /** The `set` Update sends against the table of both MatchClaims, `piece`'s editor open when `raised`. */
+    function update(raised: boolean): string {
+      let command = "";
+      namePickup(false, (store) => {
+        const table = claimTable([PIECE_RECORDING, MIDDLE_PIECE]);
+        const pickup = store.view.blocks[A]?.manifest.graphical?.matchstamps?.[0]?.id;
+        if (pickup === undefined) throw new Error("Pickup is named");
+        show(store, { kind: "named", block: A, id: pickup }, tablesWith(table));
+        if (raised) {
+          expect(store.open({ block: A, id: "piece" })).toBeNull();
+          flushSync();
+        }
+        const before = store.journal.length;
+        button("Update").click();
+        flushSync();
+        expect(store.journal.length).toBe(before + 1);
+        command = JSON.stringify(lastCommand(store));
+        unmountTab();
+      });
+      return command;
+    }
+    const stored = update(false);
+    expect(JSON.parse(stored)).toEqual({
+      type: "set",
+      changes: [
+        {
+          target: { block: A, id: "matchstamp_1" },
+          values: {
+            anchors: [
+              [
+                { timeline: "middle", coordinate: [1, 1] },
+                { timeline: "piece", coordinate: [3, 1] },
+              ],
+              [
+                { timeline: "recording", coordinate: 2.5 },
+                { timeline: "piece", coordinate: [3, 1] },
+              ],
+            ],
+            match_claims: ["p_1", "p_2"],
+          },
+        },
+      ],
+    });
+    expect(update(true)).toBe(stored);
   });
 });
 

@@ -417,14 +417,14 @@ export function namedStamp(
  * whole MatchStamp the table states and is not out of date the moment it
  * is named (the timelines filter limits what is shown, never what is
  * stated). `stamp` itself where both indexes are one, or where the compared
- * index does not hold its coordinate; in screen order under `raised`, as
- * `potentialStamp`.
+ * index does not hold its coordinate. What is stored never depends on the
+ * open editor: `stamp` is read with nothing raised, and so is the
+ * MatchStamp returned (`potentialStamp` with `raised` `null`).
  */
 export function stampToName(
   stamp: ShownStamp,
   indexes: MatchIndexes,
   drawing: Drawing,
-  raised: string | null = null,
 ): ShownStamp {
   const [first] = stamp.coordinates;
   if (indexes.shown === indexes.compared || first === undefined) return stamp;
@@ -433,7 +433,7 @@ export function stampToName(
   const matchStamp = coordinate < 0 ? undefined : compared.matchStamps.of[coordinate];
   return matchStamp === undefined
     ? stamp
-    : potentialStamp(stamp.block, compared, matchStamp, drawing, raised);
+    : potentialStamp(stamp.block, compared, matchStamp, drawing);
 }
 
 /**
@@ -685,7 +685,8 @@ function anchorPair([left, right]: Pair): readonly [AnchorValue, AnchorValue] {
 /**
  * The `add` naming the potential MatchStamp `stamp` `name`: its anchors in
  * screen order, as `stamp` holds them, and the MatchClaims behind it. The
- * tab names `stampToName` of the MatchStamp it shows.
+ * tab names `stampToName` of the MatchStamp it shows, read with nothing
+ * raised, so what is stored does not depend on the open editor.
  */
 export function nameCommand(stamp: ShownStamp, name: string): Command {
   return {
@@ -720,8 +721,9 @@ export function anchorDisplayCommand(
 /**
  * The `set` updating the named MatchStamp `id` of block `block` from the
  * current potential MatchStamp `update` of `index` (core's comparison): its
- * anchors in screen order (under `raised`, as `potentialStamp`) and the
- * MatchClaims behind them, in one entry.
+ * anchors in screen order with nothing raised, as naming stores them
+ * (`stampToName`), whichever editor is open, and the MatchClaims behind
+ * them, in one entry.
  */
 export function updateCommand(
   block: string,
@@ -729,9 +731,8 @@ export function updateCommand(
   update: MatchStampUpdate,
   index: AnchorIndex,
   drawing: Drawing,
-  raised: string | null = null,
 ): Command {
-  const anchors = pairsInScreenOrder(drawing, indexPairs(index, update.anchors), raised);
+  const anchors = pairsInScreenOrder(drawing, indexPairs(index, update.anchors), null);
   return {
     type: "set",
     changes: [

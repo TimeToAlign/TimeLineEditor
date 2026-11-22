@@ -934,8 +934,12 @@ place; a card moved left of everything drawn grows the box left: in the
 bundle editor at viewport (340, 40), `annotations`' card dragged by
 (−200, 16) is stored at `{x: −192, y: <its y> + 16}`, beyond the left edge
 of `recording`'s ancestor card, which lies `shift − P` left of the place
-origin (`shift` the drawing's origin abscissa, 153.412109375, layout's
-record), so the node moves left by `192 − (shift − 8)` = 46.587890625 and
+origin (`shift` the drawing's origin abscissa, 153.412109375, derived in
+the arranger's tests README, "`bundle_mixed`'s `score`": `recording`'s line
+in the card starts at −73.70849609375, the card's edge its name column
+71.70361328125 further left, at −145.412109375, the block's edge the padding
+8 beyond; the spec holds it as the constant `MIXED_SHIFT`, never read from
+the layout), so the node moves left by `192 − (shift − 8)` = 46.587890625 and
 the frame, drawn at `8 + shift` (`161.4121`), lies as much further right
 in it; two items move together (the frame's and the card's `rect` at
 `48 + shift`, written `201.4121`, while the drag holds); a change outside the edited element is refused (a `set` of
@@ -957,9 +961,7 @@ double-click outside the edited element closes the innermost editor: on
 the pane at canvas (−20, 600), on `btwogroups`' faded frame `g1` (inside a
 group editor, then again inside the bundle editor) and on the faded frame
 `group_2` of the edited block. The
-places of the bundle's items, the origin shift of `bmixed0000`'s ancestor
-card (its value, 153.412109375, also stated above from layout's record)
-and the editor's viewport after the drawer changes the canvas's size come
+places of the bundle's items and the editor's viewport after the drawer changes the canvas's size come
 from the arranger's drawing and focus code run on the fixture outside the
 page; these are the expected values of this spec computed by the code under test.
 
@@ -1021,7 +1023,7 @@ is a real pointer gesture; the stored state is read through the hook.
   the right handle dragged by 20 stores `group_1`'s place `{length: 420}`,
   and both member cards of `group_1`, `score`'s and `performance`'s, are
   drawn at `x` `169.4121` (16 plus the origin shift 153.412109375 of
-  `recording`'s ancestor card, layout's record) and 567.915 wide (the SVG writer's text of
+  `recording`'s ancestor card, derived above) and 567.915 wide (the SVG writer's text of
   567.9150390625: at length 400 every card of the block is 547.9150390625
   wide, set by `excerpt`'s end mark label `132 300 smp`, 59.2470703125
   wide, centred at 526.29150390625, so its right edge lies at

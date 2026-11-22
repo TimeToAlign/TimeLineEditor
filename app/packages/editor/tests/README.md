@@ -1812,10 +1812,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      MatchStamp's lines show exactly the states the potential one
      showed.
    **Screen order follows the raised card.** The tab reads every place
-   under the innermost open editor (the arranger's `raisedRoot` of the
-   shown block and that editor, passed to `potentialStamp`, `namedStamp`,
-   `stampToName`, `stampGroups`, `stampLines` and `updateCommand`), as the
-   canvas draws the matches. On `groups/group_parent_both` with a table of
+   it shows under the innermost open editor (the arranger's `raisedRoot`
+   of the shown block and that editor, passed to `potentialStamp`,
+   `namedStamp`, `stampGroups` and `stampLines`), as the canvas draws the
+   matches. On `groups/group_parent_both` with a table of
    one MatchClaim `p_1`, `middle` 1 ↔ `piece` 3 (both fractions), the
    potential MatchStamp of `middle` 1: on the arranger `piece` 3 has no
    place (it lies where `group_1`'s frame covers `piece`'s ancestor card
@@ -1829,6 +1829,35 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    closing the editor (Done) gives the arranger's order back. What would
    be wrong: the tab ordering by the places of nothing raised while the
    canvas shows the raised card.
+   **What is stored never follows it.** Naming (`stampToName`, read from
+   the potential MatchStamp with nothing raised) and Update
+   (`updateCommand`) store each anchor's coordinates, and the anchors, in
+   the screen order of nothing raised, whichever editor is open, so one
+   MatchStamp is stored one way. On `groups/group_parent_both` the places
+   are (the drawing read with nothing raised | with `piece`'s card
+   raised): `piece` 3 none | (210.34, 67.78), `recording` 2.5
+   (360.34, 139.16) | the same, `middle` 1 (310.34, 81.78) | none.
+   - Naming "Pickup" the potential MatchStamp of a table of one MatchClaim
+     `p_1`, `piece` 3 ↔ `recording` 2.5 (the group partner of `piece`'s
+     child `middle`): with nothing raised `piece` 3 has no place and
+     orders after `recording` 2.5, so the one `add` stores the anchor
+     [`recording` 2.5, `piece` [3, 1]], MatchClaims `["p_1"]`. With
+     `piece`'s timeline editor open the tab shows Piece [`3` ♩] first,
+     then Recording [`2.5` s] (the raised order), and naming stores the
+     same command byte for byte (`JSON.stringify` of the journal's last
+     command equal to the one stored with no editor open).
+   - Update of that named MatchStamp against a second table holding `p_1`
+     and `p_2`, `middle` 1 ↔ `piece` 3 (out of date: the anchor of `p_2`
+     is not in it): with nothing raised each pair's placed coordinate comes
+     first and the anchors sort by it, `middle` 1 (y 81.78) above
+     `recording` 2.5 (y 139.16), so the `set` stores the anchors
+     [[`middle` [1, 1], `piece` [3, 1]], [`recording` 2.5, `piece` [3, 1]]]
+     and `match_claims` `["p_1", "p_2"]` (core's update, in row order);
+     raised the same pairs would read [[`piece` 3, `recording` 2.5],
+     [`piece` 3, `middle` 1]], yet Update with `piece`'s editor open
+     stores the command of no editor open byte for byte.
+   What would be wrong: the same MatchStamp stored in another orientation
+   because an editor happened to be open.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`
