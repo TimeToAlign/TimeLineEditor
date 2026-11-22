@@ -15,6 +15,7 @@ import {
   matchClaimColumns,
   partAddress,
   placeKeyText,
+  VALUELESS_TEXT,
 } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { Rational } from "@timetoalign/tilie-core/numbers";
@@ -26,6 +27,7 @@ import { seenOn } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { MatchLines, MatchOverlay, Screen, ScreenCoordinate } from "../src/matches.ts";
 import {
+  fadedPathsOf,
   inScreenOrder,
   matchFlag,
   matchHitAt,
@@ -370,11 +372,12 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
         const line = lineOf(piece);
         if (line === undefined) throw new Error("a piece on no line");
         const across = named(piece.coordinate)
-          ? groupCrossSections(groupedDrawing, line.key, piece.x).map(({ y1, y2 }) => ({
+          ? groupCrossSections(groupedDrawing, line.key, piece.x).map(({ y1, y2, style }) => ({
               coordinate: piece.coordinate,
               x: piece.x,
               y1,
               y2,
+              opacity: style.opacity,
             }))
           : [];
         return [piece, ...across];
@@ -404,6 +407,57 @@ describe("the hovered and the pinned MatchStamp drawn as named", () => {
       expect(stampOverlay(T, linesOf(T), stamp, namedGroupstamps(manifest, T))).toEqual(
         stampOverlay(T, linesOf(T), stamp),
       );
+    }
+  });
+
+  it("fades a group piece over a member card the group gives no value, at that piece's opacity", () => {
+    const unknown = changed(grouped, {
+      type: "set",
+      changes: [{ target: inBlock(A, idAddress("performance")), values: { length: null } }],
+    });
+    const unknownLines = matchLinesOf(
+      drawingOf(blockIn(unknown, A), unknown.graphical, metrics),
+      G,
+    );
+    const unknownNamed = namedGroupstamps(blockIn(unknown, A).manifest, G);
+    const opacities = (overlay: MatchOverlay) =>
+      overlay.lines.map(({ coordinate, x, y1, y2, opacity }) => [coordinate, x, y1, y2, opacity]);
+    // `FADED_OPACITY`, the drawing's opacity of what has no value (drawing.md §6.6).
+    const FADED = 0.35;
+    const [first, second, third] = [0, 1, 2].map((stamp) =>
+      stampOverlay(G, unknownLines, stamp, unknownNamed),
+    );
+    if (first === undefined || second === undefined || third === undefined) {
+      throw new Error("three overlays");
+    }
+    const cutAt = (c: number, x: number) => [
+      [c, x, 53.609375, 117.5859375, 1],
+      [c, x, 117.5859375, 125.5859375, 1],
+      [c, x, 125.5859375, 174.96484375, FADED],
+      [c, x, 215.76953125, 279.74609375, 1],
+      [c, x, 279.74609375, 337.125, 1],
+    ];
+    expect(opacities(first)).toEqual([...cutAt(0, AT_2), [2, AT_1, 125.5859375, 174.96484375, 1]]);
+    expect(opacities(second)).toEqual([
+      ...cutAt(1, AT_3),
+      [5, AT_2, 287.74609375, 337.125, 1],
+      [5, AT_2, 215.76953125, 287.74609375, 1],
+    ]);
+    expect(opacities(third)).toEqual([
+      [3, AT_3, 125.5859375, 174.96484375, 1],
+      [3, AT_3, 53.609375, 125.5859375, FADED],
+      [4, AT_3, 53.609375, 117.5859375, 1],
+      [4, AT_3, 215.76953125, 279.74609375, 1],
+    ]);
+    expect(fadedPathsOf(first)).toEqual([{ opacity: FADED, d: "M302.2915 125.5859V174.9648" }]);
+    expect(pathOf(first)).toBe(
+      pathOf({ ...first, lines: first.lines.filter((line) => line.opacity === 1) }),
+    );
+    // Both lengths known, every line at 1 and no faded path.
+    for (let stamp = 0; stamp < G.matchStamps.count; stamp += 1) {
+      const known = stampOverlay(G, groupedLines, stamp, named);
+      expect(known.lines.map(({ opacity }) => opacity)).toEqual(known.lines.map(() => 1));
+      expect(fadedPathsOf(known)).toEqual([]);
     }
   });
 
@@ -854,6 +908,37 @@ describe("the flag", () => {
       expect(flagOf(2, groups)).toEqual([
         ["second-half", [row(4, "2 ♩")]],
         ["score", [read("score", "6", "6 ♩")]],
+        ["performance", [row(3, "3″")]],
+      ]);
+    });
+
+    it("says a member the group gives no value has none, in its row's place", () => {
+      const unknown = changed(grouped, {
+        type: "set",
+        changes: [{ target: inBlock(A, idAddress("performance")), values: { length: null } }],
+      });
+      const unknownBlock = blockIn(unknown, A);
+      const unknownLines = matchLinesOf(drawingOf(unknownBlock, unknown.graphical, metrics), G);
+      const unknownGroups = { ...groups, groupstampAt: namedGroupstamps(unknownBlock.manifest, G) };
+      const flag = (stamp: number) =>
+        matchFlag(G, unknownBlock.manifest, unknownLines, stamp, 3, unknownGroups).map(
+          ({ timeline, rows }) => [timeline, rows],
+        );
+      expect(flag(0)).toEqual([
+        ["score", [row(0, "4 ♩")]],
+        ["performance", [row(2, "1″"), read("performance", "2", VALUELESS_TEXT)]],
+        ["page", [read("page", "400", "400 px")]],
+      ]);
+      expect(flag(1)).toEqual([
+        ["score", [row(1, "6 ♩")]],
+        ["performance", [read("performance", "3", VALUELESS_TEXT)]],
+        ["second-half", [read("second-half", "0", "0 ♩")]],
+        ["score", [read("score", "4", "4 ♩")]],
+        ["page", [row(5, "400 px"), read("page", "600", "600 px")]],
+      ]);
+      expect(flag(2)).toEqual([
+        ["second-half", [row(4, "2 ♩")]],
+        ["score", [read("score", "6", VALUELESS_TEXT)]],
         ["performance", [row(3, "3″")]],
       ]);
     });

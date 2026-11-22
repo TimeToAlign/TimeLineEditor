@@ -39,6 +39,7 @@ import {
   partAddress,
   placeKeyText,
   prettyText,
+  VALUELESS_TEXT,
 } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
@@ -271,12 +272,19 @@ export function matchLinesOf(
   return lines;
 }
 
-/** A coordinate's cross-section line as the overlay draws it, in block-local canvas units. */
+/**
+ * A coordinate's cross-section line as the overlay draws it, in block-local
+ * canvas units, and its opacity: 1 on a line holding the coordinate, a
+ * groupstamp's piece's own across a frame (layout's `groupCrossSections`:
+ * faded over a member card where the group gives the coordinate no value),
+ * drawn in place of the overlay's.
+ */
 export interface OverlayLine {
   readonly coordinate: number;
   readonly x: number;
   readonly y1: number;
   readonly y2: number;
+  readonly opacity: number;
 }
 
 /** An anchor's connector as the overlay draws it, in block-local canvas units. */
@@ -410,7 +418,7 @@ export function overlayOf(
       if (column >= columns) break;
       if (column >= 0 && taken[column] === 0) {
         taken[column] = 1;
-        drawn.push({ coordinate: c, x, y1: line.y1, y2: line.y2 });
+        drawn.push({ coordinate: c, x, y1: line.y1, y2: line.y2, opacity: 1 });
       }
       const next = coordinatesWithin(
         index,
@@ -460,7 +468,7 @@ export function namedGroupstamps(manifest: Manifest, index: AnchorIndex): Groups
  * holding it, and where `groupstampAt` says naming would store it as a
  * groupstamp, after each such line the lines layout's `groupCrossSections`
  * draws across the frame holding that line's card (none on a line in no
- * frame); then each of its anchors. Without `groupstampAt` no coordinate is
+ * frame), each at its piece's opacity; then each of its anchors. Without `groupstampAt` no coordinate is
  * taken for a groupstamp. Nothing for a number the index does not have.
  */
 export function stampOverlay(
@@ -476,10 +484,10 @@ export function stampOverlay(
   for (const coordinate of matchStampMembers(index, stamp)) {
     const across = groupstampAt?.(coordinate) === true;
     for (const { line, x } of placesOf(index, lines, coordinate)) {
-      drawn.push({ coordinate, x, y1: line.y1, y2: line.y2 });
+      drawn.push({ coordinate, x, y1: line.y1, y2: line.y2, opacity: 1 });
       if (!across) continue;
-      for (const { y1, y2 } of groupCrossSections(lines.drawing, line.key, x)) {
-        drawn.push({ coordinate, x, y1, y2 });
+      for (const { y1, y2, style } of groupCrossSections(lines.drawing, line.key, x)) {
+        drawn.push({ coordinate, x, y1, y2, opacity: style.opacity });
       }
     }
   }
@@ -671,8 +679,10 @@ export function inScreenOrder<T>(
  * scaled members of the coordinate's GroupStamp pin, the arranger's
  * `timelinePin` read by the group, as the Matchstamp tab's Coordinates
  * read it), each value once per timeline. Each coordinate is a row written
- * as core's `prettyText` with `decimals` places, in the timeline's unit;
- * rows in the order they are drawn, top to bottom, then left to right (a
+ * as core's `prettyText` with `decimals` places, in the timeline's unit,
+ * but a member the group gives no value (a length of the group not known:
+ * the pin's member `valueless`), written core's `VALUELESS_TEXT`, as the
+ * coordinate flag and the stamp tabs write it; rows in the order they are drawn, top to bottom, then left to right (a
  * coordinate of the stamp at its `screenPlace` over the drawing `lines`
  * were read from, with the root raised as they were read; a groupstamp's at
  * the ordinate its pin reads the member at, on its coordinate's abscissa),
@@ -752,7 +762,10 @@ export function matchFlag(
         const row = {
           key: `${part.timeline} ${toRational(part.position).toString()}`,
           coordinate: null,
-          text: prettyText(part.position, part.numberType, part.unit, decimals),
+          text:
+            member.valueless === true
+              ? VALUELESS_TEXT
+              : prettyText(part.position, part.numberType, part.unit, decimals),
         };
         add(part.timeline, part.position, row, at);
       }
@@ -918,18 +931,31 @@ export interface MatchLayer {
   readonly pinned: readonly BeliefOverlay[];
 }
 
-const pathByOverlay = new WeakMap<MatchOverlay, string>();
+/** One path of an overlay's lines at an opacity other than 1, and that opacity. */
+export interface FadedPath {
+  readonly opacity: number;
+  readonly d: string;
+}
+
+const pathsByOverlay = new WeakMap<
+  MatchOverlay,
+  { readonly path: string; readonly faded: readonly FadedPath[] }
+>();
 
 /**
- * The path data of an overlay, one subpath per line (`M x y1 V y2`) and per
- * connector (`M x1 y1 L x2 y2`), numbers written as the writers write them;
- * a dash pattern starts again on every subpath. Written once per overlay
- * object: an overlay never changes, so a layer redrawn around the same
- * overlay (the potential MatchStamps while the pointer moves) costs a
- * lookup.
+ * The paths of an overlay, numbers written as the writers write them: its
+ * lines at opacity 1, one subpath per line (`M x y1 V y2`), then one per
+ * connector (`M x1 y1 L x2 y2`); and for each other opacity of its lines,
+ * in the order first met, the subpaths of the lines at that opacity. A dash
+ * pattern starts again on every subpath. Written once per overlay object:
+ * an overlay never changes, so a layer redrawn around the same overlay (the
+ * potential MatchStamps while the pointer moves) costs a lookup.
  */
-export function pathOf(overlay: MatchOverlay): string {
-  const known = pathByOverlay.get(overlay);
+function pathsOf(overlay: MatchOverlay): {
+  readonly path: string;
+  readonly faded: readonly FadedPath[];
+} {
+  const known = pathsByOverlay.get(overlay);
   if (known !== undefined) return known;
   const texts = new Map<number, string>();
   /** `value` as the writers write it, each number once: a line's ordinates repeat on every coordinate. */
@@ -941,11 +967,32 @@ export function pathOf(overlay: MatchOverlay): string {
     }
     return written;
   };
-  const lines = overlay.lines.map(({ x, y1, y2 }) => `M${text(x)} ${text(y1)}V${text(y2)}`);
+  const byOpacity = new Map<number, string[]>([[1, []]]);
+  for (const { x, y1, y2, opacity } of overlay.lines) {
+    const subpath = `M${text(x)} ${text(y1)}V${text(y2)}`;
+    const same = byOpacity.get(opacity);
+    if (same === undefined) byOpacity.set(opacity, [subpath]);
+    else same.push(subpath);
+  }
   const connectors = overlay.connectors.map(
     ({ x1, y1, x2, y2 }) => `M${text(x1)} ${text(y1)}L${text(x2)} ${text(y2)}`,
   );
-  const path = [...lines, ...connectors].join("");
-  pathByOverlay.set(overlay, path);
-  return path;
+  const paths = {
+    path: [...(byOpacity.get(1) ?? []), ...connectors].join(""),
+    faded: [...byOpacity]
+      .filter(([opacity]) => opacity !== 1)
+      .map(([opacity, subpaths]) => ({ opacity, d: subpaths.join("") })),
+  };
+  pathsByOverlay.set(overlay, paths);
+  return paths;
+}
+
+/** The path of an overlay's lines at opacity 1 and its connectors (`pathsOf`). */
+export function pathOf(overlay: MatchOverlay): string {
+  return pathsOf(overlay).path;
+}
+
+/** The paths of an overlay's lines at each opacity other than 1, in the order first met (`pathsOf`). */
+export function fadedPathsOf(overlay: MatchOverlay): readonly FadedPath[] {
+  return pathsOf(overlay).faded;
 }

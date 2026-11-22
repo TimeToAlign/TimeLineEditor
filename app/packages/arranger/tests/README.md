@@ -2775,8 +2775,18 @@ holds `performance` at offset 0, scale 1/2 (the drawn lengths still place
 it), `valueless`; its flag lists the same parts in the same order as with
 both lengths known, `score`'s rows equal, `performance`'s two rows
 (`cmap_2` above its line, then its coordinate) with the value `null`, not
-editable, each the same text. With both lengths known no member is
-`valueless`, the oracle of the rest.
+editable, each core's `VALUELESS_TEXT`. With both lengths known no member is
+`valueless`, the oracle of the rest. **On an ancestor line too**: in
+`groups/group_child_member_stamps` (`group_1` of `middle`, quarters 8 at
+4 in `piece` 16, and `recording`, seconds 10.0) a groupstamp `Half` added
+on `recording` at the float 5.0 reads `middle`, scaled, and `piece`, the
+ancestor line `middle`'s card draws, scaled the same (the pin's members
+in the card's traversal order, `piece` then `middle`; the flag top to
+bottom, `middle` then `piece`). With `recording`'s
+length `null` (its reach 10.0, its `length` timestamp's) both are
+`valueless` and their flag rows carry `VALUELESS_TEXT` in place of a
+value; with it known neither is, `middle` reads 4 ♩ (5.0 of 10.0 × 8) and
+`piece` 8 ♩ (4 + 4), the oracle.
 
 **The flag equals the tab on an ancestor line.** A timestamp named from a
 reading on an ancestor line is read back where it was named: its first
@@ -3502,6 +3512,28 @@ on G its lines are c0 and c1 on `group_1`'s `score`, c2 and c3 on
 segment piece alone (c4 shares its device column on `score`'s card with
 c1, which `score`'s line, earlier in the drawing's order, took).
 
+**A length of the group not known** (drawing.md §6.6; a coordinate is
+placed wherever it is seen). Every line of the overlay carries its
+opacity: 1 on a line holding the coordinate and on a group piece where
+the group gives a value, the group piece's own where it gives none
+(`groupCrossSections`: `FADED_OPACITY` 0.35 in place of the line's). The
+overlay draws its lines at opacity 1 and its connectors as one path
+(`pathOf`), and the lines at each other opacity as one more path each,
+in the order first met (`fadedPathsOf`), which `MatchOverlay.svelte`
+draws at that opacity in the hovered or the pinned colour. With
+`performance`'s length `null` in block A (its reach 4.0, its `length`
+timestamp's, so every abscissa and card is as above), with
+`namedGroupstamps`: MatchStamp 0's lines are the table's, c0's
+`group_1` piece cut at `performance`'s card's top, [0, 302.29…,
+117.5859375, 125.5859375] at 1, then [0, 302.29…, 125.5859375,
+174.96484375] at 0.35; MatchStamp 1's likewise at 402.29… for c1; and
+MatchStamp 2's c3 piece, on `performance` itself (the member of unknown
+length holds the coordinate), whole at 0.35. Every other line is at 1.
+`fadedPathsOf` of MatchStamp 0's overlay is one path at 0.35,
+`M302.2915 125.5859V174.9648`, and `pathOf` the rest. With both lengths
+known every line is at 1 and `fadedPathsOf` gives none: the oracle of the
+geometry, which equals the table's piece for piece but for the one cut.
+
 **The flag of a MatchStamp crossing groupstamps** (`matchFlag` with the
 groups read, `namedGroupstamps`, as the canvas reads it above a timeline
 editor). A flag lists every coordinate the MatchStamp's lines show: its
@@ -3543,7 +3575,15 @@ one head. MatchStamp 2: c3 `performance` 3 reads `score` 6 (82.609375) and
 its crossed child `second-half` 2, equal to c4 and so listed once, as c4
 (68.609375, the topmost); c4 is none. Without the groups read the flags
 are MatchStamp 0 `score` [`4 ♩`], `performance` [`1″`] and MatchStamp 1
-`score` [`6 ♩`], `page` [`400 px`]. What would be wrong: a groupstamp's
+`score` [`6 ♩`], `page` [`400 px`]. With `performance`'s length `null`
+(above) the group gives `performance` no value from `score` and no member
+a value from `performance`: a row read by the group on a member without a
+value says core's `VALUELESS_TEXT` in place of its value, keyed as before,
+in the same place. MatchStamp 0: `performance` [c2 `1″`, read
+`VALUELESS_TEXT`]; MatchStamp 1: `performance` [read `VALUELESS_TEXT`];
+MatchStamp 2: `score` [read `VALUELESS_TEXT`], c3 still `3″` and c4 `2 ♩`
+(its own row). Every other row is the table's, the flag with both lengths
+known the oracle. What would be wrong: a groupstamp's
 coordinates missing above a timeline editor, listed inside one, listed
 twice, or listed in another order than drawn (a timeline's rows gathered
 under its first head although another timeline's lie between them).

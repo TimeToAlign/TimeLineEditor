@@ -22,10 +22,12 @@ import {
   timelineAxisOf,
   timestampAt,
   timestampJson,
+  VALUELESS_TEXT,
 } from "@timetoalign/tilie-core";
 import { axisCoordinate, Rational, realOf, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
 import { lineAxes, wedgeAt } from "@timetoalign/tilie-layout";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { raisedRoot, stackingOf } from "../src/boxes.ts";
 import {
@@ -1653,10 +1655,67 @@ describe("a named timestamp's pin", () => {
         [{ timeline: "performance", map: null }, null, false],
       ]);
       // Core's one text of a missing group value, on every row of the member.
-      const [first, second] = rows.map((item) => item.missing);
-      expect([typeof first, first === second]).toEqual(["string", true]);
+      expect(rows.map((item) => item.missing)).toEqual([VALUELESS_TEXT, VALUELESS_TEXT]);
     },
   );
+
+  it("of a groupstamp lists the other member and its ancestor line without a value", () => {
+    const half = (view: View) =>
+      changed(view, {
+        type: "add",
+        into: inBlock(A, idAddress("recording")),
+        timestamp: {
+          name: "Half",
+          coordinate: new JsonFloat(5),
+          display: ["wedge", "name", "coordinate"],
+          groupstamp: true,
+        },
+      });
+    const known = half(viewWith("groups/group_child_member_stamps"));
+    const unknown = changed(known, {
+      type: "set",
+      changes: [{ target: inBlock(A, idAddress("recording")), values: { length: null } }],
+    });
+    const id = blockIn(known, A).manifest.graphical?.timestamps?.find(
+      (item) => item.name === "Half",
+    )?.id;
+    if (id === undefined) throw new Error("Half is named");
+    const valued = pinIn(known, id);
+    const pin = pinIn(unknown, id);
+    if (pin === null || valued === null) throw new Error("both pins are read");
+    const members = (read: Pin) =>
+      read.spec.members.map(({ timeline, valueless }) => [timeline, valueless]);
+    // In the card's traversal order: the ancestor line's root first.
+    expect(members(valued)).toEqual([
+      ["piece", undefined],
+      ["middle", undefined],
+    ]);
+    expect(members(pin)).toEqual([
+      ["piece", true],
+      ["middle", true],
+    ]);
+    const quarters = (value: number) => ({
+      numberType: "fraction",
+      unit: "quarters",
+      value: q(value),
+    });
+    const rowsOf = (read: Pin) =>
+      flagParts(read)
+        .filter(({ timeline }) => timeline !== "recording")
+        .map(({ timeline, rows }) => [
+          timeline,
+          rows.map(({ value, missing }) => [value, missing]),
+        ]);
+    // Top to bottom: `middle`'s line above its ancestor line `piece`.
+    expect(rowsOf(valued)).toEqual([
+      ["middle", [[quarters(4), null]]],
+      ["piece", [[quarters(8), null]]],
+    ]);
+    expect(rowsOf(pin)).toEqual([
+      ["middle", [[null, VALUELESS_TEXT]]],
+      ["piece", [[null, VALUELESS_TEXT]]],
+    ]);
+  });
 
   it("is null for an ID the manifest does not hold", () => {
     expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
