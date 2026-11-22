@@ -4208,13 +4208,17 @@ inverse and gets the value back exactly. Span [0, 32] unless stated.
    span, so it is decided once for each: a hovered row asks it at every
    pointer move, and deciding a PiecewiseMap reads every break. What proves
    it is the number of times `breaks` is read, counted by a getter on item
-   3's rising PiecewiseMap, which no result depends on. The first
-   `invertible` over [0, 16] reads `breaks` some number of times `n` (at
-   least once) and says `true`; asking again over an equal span made of
-   other objects reads it 0 more times and says `true`. A copy of the map,
-   another object equal in value, is decided anew: its first `invertible`
-   over [0, 16] reads its own `breaks` exactly `n` times. Over the other
-   span [0, 4] the first map is decided anew too, `n` more reads, `true`.
+   3's rising PiecewiseMap, which no result depends on. One decision reads
+   `breaks` exactly twice, once for their floats (whether they rise) and
+   once for their exact values (the pieces the span reaches), so the count
+   is twice the number of decisions. The first `invertible` over [0, 16]
+   reads `breaks` 2 times and says `true`; asking again over an equal span
+   made of other objects reads it 0 more times (2 in all) and says `true`.
+   A copy of the map, another object equal in value, is decided anew: its
+   first `invertible` over [0, 16] reads its own `breaks` 2 times. Over the
+   other span [0, 4] the first map is decided anew too, 2 more reads (4 in
+   all), `true`. Without the memo the repeated call reads 2 more (4 after
+   it, 6 after the other span) and the second equality fails.
 
 ## Timestamps (`timestamp.test.ts`)
 

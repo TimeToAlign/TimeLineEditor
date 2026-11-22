@@ -173,18 +173,19 @@ describe("a PiecewiseMap", () => {
       });
       return copy;
     };
+    /** One decision reads `breaks` twice: their floats, then their exact values. */
+    const once = 2;
     const reads = { count: 0 };
     const pieces = counted(reads);
     expect(invertible(pieces, over(0, 16))).toBe(true);
-    const n = reads.count;
-    expect(n).toBeGreaterThan(0);
+    expect(reads.count).toBe(once);
     expect(invertible(pieces, over(0, 16))).toBe(true);
-    expect(reads.count).toBe(n);
+    expect(reads.count).toBe(once);
     const copyReads = { count: 0 };
     expect(invertible(counted(copyReads), over(0, 16))).toBe(true);
-    expect(copyReads.count).toBe(n);
+    expect(copyReads.count).toBe(once);
     expect(invertible(pieces, over(0, 4))).toBe(true);
-    expect(reads.count).toBe(2 * n);
+    expect(reads.count).toBe(2 * once);
   });
 });
 
