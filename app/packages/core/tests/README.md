@@ -748,28 +748,48 @@ check of who holds what.
     drawn, drawing.md §3.4), its primary on its own timeline and a
     secondary one on every other; in a frame a groupstamp's line crosses
     every other member's card at the same proportion of that member's drawn
-    length (§6.6), so it has secondary coordinates there too. What proves
-    the set: positions derived by hand on each axis and compared exactly
-    as values (an exact value stays exact, a float axis gives the binary64
-    product), and the keys listed in a card are exactly those, no other.
-    `cardStamps` (`window`, the positions and sources of `stamps`, the
-    `secondaries` by timeline) and the secondary keys of `manifestElements`
-    (type, address, timeline, `inside`, `coordinates`) are written out for:
+    length (§6.6), so it has secondary coordinates there too. Each
+    secondary coordinate carries its value on the timeline it lies on, the
+    one its `coordinate` label shows (§2, "read on that timeline's axis"),
+    as timetoalign maps a position across a group (`p · len_B / len_A`,
+    computed exactly, a float entering as its exact binary value) and
+    within a tree (the offsets subtracted exactly), then written in that
+    timeline's number type by `express_as`: a float axis the double nearest
+    the exact value, a fraction axis the exact value, an int axis the exact
+    value rounded half to even. The coordinate flag reads the same rows the
+    same way, so drawing and flag agree. What proves the set: positions and
+    values derived by hand on each axis and compared exactly as values, an
+    exact value written `n/d` and a float as the number (so a float where an
+    exact value is due, or the reverse, fails), and the keys listed in a
+    card are exactly those, no other. `cardStamps` (`window`, the positions
+    and sources of `stamps`, the `secondaries` by timeline with position and
+    value) and the secondary keys of `manifestElements` (type, address,
+    timeline, `inside`, `coordinates`) are written out for:
     `groups/group_groupstamp.yaml`: `timestamp_1` at 4 of `score`'s 8
-    quarters, a half, so on `performance` (4.0 seconds) at the float 2.0,
-    a secondary coordinate held by `performance`'s markers band in
-    `group_1` (wedge and name label, as its `display` lists); and none in
-    `score`'s card. `groups/group_groupstamp_child_member.yaml`:
+    quarters, a half, so on `performance` (4.0 seconds) at 2, its value
+    the float 2.0, a secondary coordinate held by `performance`'s markers
+    band in `group_1` (wedge and name label, as its `display` lists); and
+    none in `score`'s card. `groups/group_groupstamp_child_member.yaml`:
     `timestamp_1` at 2 on `second-half` (4 to 8 on `score`): in `score`'s
-    card secondary on `score` at 6, and `score`'s own `length` (8) secondary
-    on `second-half` (its end; `origin` at 0 lies before its start); in
-    `performance`'s card at 6/8 × 4.0 = 3.0.
-    `bundles/bundle_groupstamp_shared_member.yaml`: `timestamp_1` at 4 on
-    `t` (8): on `u` (4.0, `g1`) at 2.0, on `v` (800 pixels, `g2`) at the
-    exact 400, each only in its own frame's card, and none in `t`'s cards.
-    The same card drawn outside a frame (`cardStamps` without one) holds no
-    groupstamp of another member. A card in the frame of a group lists no
-    groupstamp of its own member twice.
+    card secondary on `score` at 6 (value 6), and `score`'s own `length`
+    (8) secondary on `second-half` (its end, value 8 − 4 = 4; `origin` at 0
+    lies before its start); in `performance`'s card at 6/8 × 4.0, the float
+    3.0. `bundles/bundle_groupstamp_shared_member.yaml`: `timestamp_1` at 4
+    on `t` (8): on `u` (4.0, `g1`) at the float 2.0, on `v` (800 pixels,
+    int, `g2`) at the exact 400, value the integer 400, each only in its
+    own frame's card, and none in `t`'s cards. The same card drawn outside
+    a frame (`cardStamps` without one) holds no groupstamp of another
+    member. A card in the frame of a group lists no groupstamp of its own
+    member twice. **Across number types**, the same bundle with three more
+    groupstamps: `a` on `u` at the float 1.0, `b` and `c` on `t` at 1/200
+    and 1/40. On `t` in `g1`, `a` lies at 1.0 / 4.0 × 8 = 2, the exact 2
+    and not the float 2.0 (a float member's position read exactly). On `u`
+    in `g1`, `b` and `c` lie at 1/200 / 8 × 4.0 = 1/400 and 1/80, a float
+    member's positions and values the floats nearest them, 0.0025 and
+    0.0125. On `v` in `g2`, `b`
+    and `c` lie at 1/200 / 8 × 800 = 1/2 and 1/40 / 8 × 800 = 5/2, exact
+    positions, their values rounded half to even: 0 and 2 (half up would
+    give 1 and 3).
 12. **The selector member `coordinates`** (drawing.md §2.3): it matches
     the wedges of named timestamps and the labels of their stacks (parts
     `name`, `id`, `coordinate`), primary or secondary, and nothing else.

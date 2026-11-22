@@ -1,4 +1,4 @@
-import { type Selector, schema } from "@timetoalign/timetoshare";
+import { JsonFloat, type Selector, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
 import { addressKey, FACETS } from "../src/manifest/address.ts";
@@ -652,7 +652,10 @@ describe("the secondary coordinates of a card", () => {
     if (frame === undefined || drawing === undefined) throw new Error(`no card of ${member}`);
     return cardStamps(manifest, drawing, frame);
   };
-  /** A card's stamps as `[timestamp, position, source]` and its secondaries by timeline. */
+  /**
+   * A card's stamps as `[timestamp, position, source]` and its secondaries by timeline as
+   * `[timestamp, position, value]`.
+   */
   const written = (card: CardStamps) => ({
     window: card.window.map(shownValue),
     stamps: card.stamps.map((stamp) => [
@@ -662,7 +665,11 @@ describe("the secondary coordinates of a card", () => {
     ]),
     secondaries: [...card.secondaries].map(([timeline, stamps]) => [
       timeline,
-      stamps.map((stamp) => [stamp.timestamp.id, shownValue(stamp.position)]),
+      stamps.map((stamp) => [
+        stamp.timestamp.id,
+        shownValue(stamp.position),
+        shownValue(stamp.value),
+      ]),
     ]),
   });
   /** The secondary keys of an enumeration: type, address, timeline and chain. */
@@ -681,7 +688,7 @@ describe("the secondary coordinates of a card", () => {
         ["timestamp_3", 4, "member"],
         ["timestamp_1", 2, "frame"],
       ],
-      secondaries: [["performance", [["timestamp_1", 2]]]],
+      secondaries: [["performance", [["timestamp_1", 2, 2]]]],
     });
     expect(written(cardIn(manifest, "score", "group_1"))).toEqual({
       window: ["0/1", "8/1"],
@@ -706,11 +713,11 @@ describe("the secondary coordinates of a card", () => {
     // and so at 6/8 × 4.0 = 3.0 on `performance`; `score`'s `length` (8) lies on `second-half`'s
     // end, its `origin` (0) before its start.
     expect(written(cardIn(manifest, "score", "group_1")).secondaries).toEqual([
-      ["score", [["timestamp_1", "6/1"]]],
-      ["second-half", [["timestamp_5", "8/1"]]],
+      ["score", [["timestamp_1", "6/1", "6/1"]]],
+      ["second-half", [["timestamp_5", "8/1", "4/1"]]],
     ]);
     expect(written(cardIn(manifest, "performance", "group_1")).secondaries).toEqual([
-      ["performance", [["timestamp_1", 3]]],
+      ["performance", [["timestamp_1", 3, 3]]],
     ]);
     expect(secondaryKeys(manifest)).toEqual([
       // `score`'s children band, holding `second-half`, precedes its markers band.
@@ -731,9 +738,11 @@ describe("the secondary coordinates of a card", () => {
   it("crosses each member of a shared member's groups in its own frame only", () => {
     const manifest = load("bundles/bundle_groupstamp_shared_member.yaml");
     // `timestamp_1` at 4 of `t`'s 8: on `u` (4.0) at 2.0 in `g1`, on `v` (800) at 400 in `g2`.
-    expect(written(cardIn(manifest, "u", "g1")).secondaries).toEqual([["u", [["timestamp_1", 2]]]]);
+    expect(written(cardIn(manifest, "u", "g1")).secondaries).toEqual([
+      ["u", [["timestamp_1", 2, 2]]],
+    ]);
     expect(written(cardIn(manifest, "v", "g2")).secondaries).toEqual([
-      ["v", [["timestamp_1", "400/1"]]],
+      ["v", [["timestamp_1", "400/1", "400/1"]]],
     ]);
     for (const group of ["g1", "g2"]) {
       const card = cardIn(manifest, "t", group);
@@ -745,6 +754,61 @@ describe("the secondary coordinates of a card", () => {
       ["label", id("timestamp_1", "name"), "u", "block frame timeline band"],
       ["wedge", id("timestamp_1"), "v", "block frame timeline band"],
       ["label", id("timestamp_1", "name"), "v", "block frame timeline band"],
+    ]);
+  });
+
+  it("reads a secondary coordinate exactly, written in its timeline's number type", () => {
+    const value = manifestValue("bundles/bundle_groupstamp_shared_member.yaml");
+    const graphical = value.graphical as { timestamps: object[] };
+    const groupstamp = (id: string, timeline: string, coordinate: unknown) => ({
+      coordinate,
+      display: ["wedge", "coordinate"],
+      groupstamp: true,
+      id,
+      matchstamp: false,
+      name: id,
+      timeline,
+    });
+    const manifest = loadText(
+      fileText({
+        ...value,
+        graphical: {
+          ...graphical,
+          timestamps: [
+            ...graphical.timestamps,
+            groupstamp("a", "u", new JsonFloat(1)),
+            groupstamp("b", "t", [1, 200]),
+            groupstamp("c", "t", [1, 40]),
+          ],
+        },
+      }),
+    );
+    // `a` at the float 1.0 of `u`'s 4.0: on `t` (fraction, 8) at the exact 2, not the float 2.0.
+    expect(written(cardIn(manifest, "t", "g1")).secondaries).toEqual([
+      ["t", [["a", "2/1", "2/1"]]],
+    ]);
+    // `b` and `c` at 1/200 and 1/40 of `t`'s 8: on `u` (float, 4.0) at 1/400 and 1/80, a float
+    // member's positions and values the floats nearest them.
+    expect(written(cardIn(manifest, "u", "g1")).secondaries).toEqual([
+      [
+        "u",
+        [
+          ["b", 0.0025, 0.0025],
+          ["c", 0.0125, 0.0125],
+          ["timestamp_1", 2, 2],
+        ],
+      ],
+    ]);
+    // On `v` (int, 800) at 1/2 and 5/2, rounded half to even: 0 and 2.
+    expect(written(cardIn(manifest, "v", "g2")).secondaries).toEqual([
+      [
+        "v",
+        [
+          ["b", "1/2", "0/1"],
+          ["c", "5/2", "2/1"],
+          ["timestamp_1", "400/1", "400/1"],
+        ],
+      ],
     ]);
   });
 });

@@ -207,8 +207,9 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     timeline: TimelineManifest,
     timestamp: NamedTimestamp,
     at: Real,
-    primary: boolean,
+    secondary: Real | undefined,
   ): Stamp => {
+    const primary = secondary === undefined;
     const band = source.bands.markers;
     const banded = shown(band.style);
     const address = idAddress(timestamp.id);
@@ -219,8 +220,9 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       ...elementKey(type, where, timeline, band.key),
       coordinates,
     });
-    // The value the wedge marks, on the timeline it marks (section 5.2).
-    const own = add(at, negate(source.start));
+    // The value the wedge marks, on the timeline it marks (section 5.2): a secondary coordinate's
+    // as core's `cardStamps` writes it in the timeline's number type.
+    const own = secondary ?? add(at, negate(source.start));
     // A match timestamp may have no name, and draws no name label then (section 2).
     const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
       name: timestamp.name,
@@ -260,14 +262,14 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
         timeline,
         timestamp,
         add(source.start, coordinateValue(timestamp.coordinate, timeline.number_type)),
-        true,
+        undefined,
       ),
     );
   });
   // A hidden secondary coordinate takes no room.
   const secondaries = sources.flatMap((source) =>
     crossingStamps(scope, source)
-      .map(({ timestamp, at }) => stampOf(source, source.manifest, timestamp, at, false))
+      .map(({ timestamp, at, value }) => stampOf(source, source.manifest, timestamp, at, value))
       .filter((stamp) => stamp.wedge !== undefined || stamp.labels.length > 0),
   );
   const stamps = [...primaries, ...secondaries];
@@ -407,17 +409,18 @@ function rotated(wedge: Styled): Styled {
 /**
  * The named timestamps with a secondary coordinate on the timeline of
  * `source` (section 2, core's `cardStamps` of the card in its frame), each at
- * its position on the root's axis, in the canonical order of
- * `graphical.timestamps`.
+ * its position on the root's axis with its coordinate on that timeline, in the
+ * canonical order of `graphical.timestamps`.
  */
 function crossingStamps(
   scope: Scope,
   source: Entry,
-): { readonly timestamp: NamedTimestamp; readonly at: Real }[] {
+): { readonly timestamp: NamedTimestamp; readonly at: Real; readonly value: Real }[] {
   const card = cardStamps(scope.manifest, scope.member, scope.frame);
   const origin = negate(card.window[0]);
-  return (card.secondaries.get(source.manifest.id) ?? []).map(({ timestamp, position }) => ({
+  return (card.secondaries.get(source.manifest.id) ?? []).map(({ timestamp, position, value }) => ({
     timestamp,
     at: add(position, origin),
+    value,
   }));
 }

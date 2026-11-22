@@ -1704,6 +1704,18 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
    further below `performance`'s line, plus `a(9)`. Shown, the stack takes
    room: `performance`'s card grows by one `h(9)`. The frame's line still
    runs uncut from `bottom(score)` to the new `bottom(performance)`.
+7. **A secondary coordinate's label is written in its timeline's number
+   type** (section 2, "read on that timeline's axis"; core's `cardStamps`
+   derives the value, "Secondary coordinates" there): with a groupstamp
+   `timestamp_6` "Beat" added on `performance` at the float 1.0, `display`
+   `[wedge, coordinate]`, and the same rule, its secondary coordinate on
+   `score` (fraction) lies at 1.0 / 4.0 × 8 = 2 quarters, and its
+   coordinate label reads `2 ♩` with the coordinate `{unit: quarters,
+   value: 2}`, the exact 2 (a `Rational`), as the coordinate flag's row for
+   `score` reads it, never the float label `2.0 ♩`. Its primary label on
+   `performance` follows, unchanged: `1″` (a whole float in seconds, a
+   clock, drawing.md §5.2), the coordinate the float 1.0. In drawing
+   order: `score`'s card first.
 
 ## Alignment anchors (`anchors.test.ts`)
 

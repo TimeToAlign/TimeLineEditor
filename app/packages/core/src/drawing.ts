@@ -13,6 +13,7 @@ export type {
   Domain,
   ElementKey,
   Modality,
+  SecondaryStamp,
   StampCoordinate,
   StampSource,
   TimestampLabel,

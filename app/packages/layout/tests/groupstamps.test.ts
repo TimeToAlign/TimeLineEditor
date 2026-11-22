@@ -5,7 +5,8 @@
 
 import type { Manifest } from "@timetoalign/tilie-core";
 import { idAddress, partAddress, sameAddress, samePlaceKey } from "@timetoalign/tilie-core";
-import type { Rule } from "@timetoalign/timetoshare";
+import { Rational } from "@timetoalign/tilie-core/numbers";
+import { JsonFloat, type Rule } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -312,5 +313,28 @@ describe("a groupstamp's secondary coordinates on the frame's other members", ()
       y1: card(drawing, "score").bottom,
       y2: card(drawing, "performance").bottom,
     });
+  });
+
+  it("label a secondary coordinate in its timeline's number type", () => {
+    // `timestamp_6` at the float 1.0 of `performance`'s 4.0: on `score` (fraction) at 2 quarters.
+    const beat = plain({
+      type: "add",
+      into: target("performance"),
+      timestamp: {
+        name: "Beat",
+        coordinate: new JsonFloat(1),
+        display: ["wedge", "coordinate"],
+        groupstamp: true,
+      },
+    });
+    const coordinates = drawn(beat, [SHOW]).elements.filter(
+      (item): item is TextElement =>
+        item.type === "label" &&
+        sameAddress(item.address, partAddress(idAddress("timestamp_6"), "coordinate")),
+    );
+    expect(coordinates.map((label) => [label.text, label.coordinate])).toEqual([
+      ["2 ♩", { unit: "quarters", value: Rational.of(2n) }],
+      ["1″", { unit: "seconds", value: 1 }],
+    ]);
   });
 });

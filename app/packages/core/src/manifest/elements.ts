@@ -7,9 +7,10 @@
 import type { ElementType, Selector, TimeUnit } from "@timetoalign/timetoshare";
 import { canonicalOrder } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
+import { expressAs } from "../maps/express.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import { addReal, compareReal, type Real, realOf, toFloat } from "../number/real.ts";
+import { addReal, compareReal, type Real, realOf, toRational } from "../number/real.ts";
 import type { ElementAddress, Facet } from "./address.ts";
 import {
   BUNDLE_ADDRESS,
@@ -568,6 +569,17 @@ export interface CardStamp {
   readonly source: StampSource;
 }
 
+/** A named timestamp at a secondary coordinate on a timeline of a card (section 2). */
+export interface SecondaryStamp extends CardStamp {
+  /**
+   * Its coordinate on that timeline: its exact position, every operand at its exact value (a
+   * float's exact binary value), less the timeline's exact start, written in the timeline's
+   * number type as timetoalign's `express_as` writes it (an int rounded half to even, held as
+   * an integral exact value).
+   */
+  readonly value: Real;
+}
+
 /** What the card of one member drawing draws of named timestamps. */
 export interface CardStamps {
   /** Its ancestors' lines from the root down to the parent, then its tree in pre-order. */
@@ -584,10 +596,10 @@ export interface CardStamps {
   /**
    * The secondary coordinates of the card by the ID of the timeline they lie on (section 2): every
    * stamp of `stamps` whose position the span of a timeline of `timelines` holds, its ends
-   * included, but on the stamp's own timeline, in the canonical order of `graphical.timestamps`.
-   * A timeline without one has no entry.
+   * included, but on the stamp's own timeline, in the canonical order of `graphical.timestamps`,
+   * each with its coordinate on that timeline. A timeline without one has no entry.
    */
-  readonly secondaries: ReadonlyMap<string, readonly CardStamp[]>;
+  readonly secondaries: ReadonlyMap<string, readonly SecondaryStamp[]>;
 }
 
 const value = (raw: unknown, timeline: TimelineManifest): Real =>
@@ -612,24 +624,22 @@ function larger(left: Real, right: Real): Real {
   return typeof left === "number" ? right : left;
 }
 
-/** `left − right`: exact when both are exact, otherwise a float. */
-function difference(left: Real, right: Real): Real {
-  if (left instanceof Rational && right instanceof Rational) return left.subtract(right);
-  return addReal(left, typeof right === "number" ? -right : -toFloat(right));
-}
-
 /**
- * The value at the proportion `t / from` of `to` (section 6.6): exact when
- * all three are exact, `(t / from) × to` in binary64 otherwise; zero, exact
- * or float as `to`, where `from` is 0, whose proportion is 0 (section 3.2).
+ * The value at the proportion `t / from` of `to` (section 6.6), exactly, a
+ * float entering as its exact binary value, as timetoalign maps a position
+ * across a group; zero, exact or float as `to`, where `from` is 0, whose
+ * proportion is 0 (section 3.2).
  */
 function atProportion(t: Real, from: Real, to: Real): Real {
   if (compareReal(from, Rational.of(0n)) === 0) return typeof to === "number" ? 0 : Rational.of(0n);
-  if (t instanceof Rational && from instanceof Rational && to instanceof Rational) {
-    return t.divide(from).multiply(to);
-  }
-  const float = (item: Real) => (typeof item === "number" ? item : toFloat(item));
-  return (float(t) / float(from)) * float(to);
+  return toRational(t).divide(toRational(from)).multiply(toRational(to));
+}
+
+/** A value written in `numberType` (core's `expressAs`), an int held as an integral exact value. */
+function expressed(exact: Rational, numberType: TimelineManifest["number_type"]): Real {
+  const written = expressAs(exact, numberType);
+  // `expressAs` refuses only an infinite float, which an exact value never is.
+  return typeof written === "bigint" ? Rational.fromParts(written, 1n) : (written as Real);
 }
 
 /**
@@ -668,8 +678,20 @@ export function reachOf(
   return reach;
 }
 
+/**
+ * A card with the exact position of each of its stamps on the axis of `CardTimeline.start`,
+ * every operand at its exact value (a float's exact binary value), and the member's exact start
+ * and drawn length there.
+ */
+interface ExactCard {
+  readonly card: CardStamps;
+  readonly positions: ReadonlyMap<CardStamp, Rational>;
+  readonly start: Rational;
+  readonly length: Real;
+}
+
 /** The cards already found, by manifest, member drawing and frame (`NO_FRAME` for none). */
-const foundCards = new WeakMap<Manifest, WeakMap<MemberDrawing, WeakMap<object, CardStamps>>>();
+const foundCards = new WeakMap<Manifest, WeakMap<MemberDrawing, WeakMap<object, ExactCard>>>();
 const NO_FRAME = {};
 
 /**
@@ -691,6 +713,10 @@ export function cardStamps(
   member: MemberDrawing,
   frame: GroupFrame | null = null,
 ): CardStamps {
+  return exactCard(manifest, member, frame).card;
+}
+
+function exactCard(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | null): ExactCard {
   let byMember = foundCards.get(manifest);
   if (byMember === undefined) {
     byMember = new WeakMap();
@@ -708,9 +734,12 @@ export function cardStamps(
   return card;
 }
 
-function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | null): CardStamps {
+function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | null): ExactCard {
   const root = member.timeline;
+  // Each timeline's start exactly, every offset at its exact value.
+  const exactStarts = new Map<TimelineManifest, Rational>();
   let base: Real | undefined;
+  let exactBase = Rational.of(0n);
   const ancestors: CardTimeline[] = [];
   for (const { timeline, offset } of member.ancestors) {
     const start = base ?? zeroOf(timeline);
@@ -721,7 +750,9 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
       end: length === null ? null : addReal(start, length),
       ancestor: true,
     });
+    exactStarts.set(timeline, exactBase);
     base = addReal(start, value(offset, timeline));
+    exactBase = exactBase.add(toRational(value(offset, timeline)));
   }
   const memberStart = base ?? zeroOf(root);
   const reaches = new WeakMap<TimelineManifest, Real>();
@@ -731,13 +762,15 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
   const tree: CardTimeline[] = [];
   // Where each timeline ends as drawn: at its length; a segment of unknown length at the next
   // segment's start, the last at its segment line's end; any other of unknown length at its reach.
-  const visit = (timeline: TimelineManifest, start: Real, end: Real) => {
+  const visit = (timeline: TimelineManifest, start: Real, exactStart: Rational, end: Real) => {
     tree.push({ timeline, start, end, ancestor: false });
+    exactStarts.set(timeline, exactStart);
     const starts = orderedChildren(timeline).map((child) => ({
       child,
       start: addReal(start, value(child.offset, timeline)),
+      exact: exactStart.add(toRational(value(child.offset, timeline))),
     }));
-    starts.forEach(({ child, start: from }, index) => {
+    starts.forEach(({ child, start: from, exact }, index) => {
       const length = lengthOf(child);
       const next = starts[index + 1]?.start;
       const to =
@@ -746,58 +779,84 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
           : timeline.is_segment_line
             ? (next ?? end)
             : addReal(from, reachOf(child, manifest, reaches));
-      visit(child, from, to);
+      visit(child, from, exact, to);
     });
   };
-  visit(root, memberStart, window[1]);
+  visit(root, memberStart, exactBase, window[1]);
+  const positions = new Map<CardStamp, Rational>();
+  // A stamp at `position`, exactly `exact`.
+  const placed = (stamp: CardStamp, exact: Rational): CardStamp => {
+    positions.set(stamp, exact);
+    return stamp;
+  };
+  // A named timestamp of `timeline`, starting at `start` (exactly `exactStart`), at its coordinate.
+  const at = (timestamp: NamedTimestamp, timeline: TimelineManifest, start: Real) => {
+    const own = value(timestamp.coordinate, timeline);
+    const exactStart = exactStarts.get(timeline) ?? Rational.of(0n);
+    return { position: addReal(start, own), exact: exactStart.add(toRational(own)) };
+  };
   const own = tree.flatMap(({ timeline, start }) =>
-    namedTimestamps(manifest, timeline.id).map(
-      (timestamp): CardStamp => ({
-        timestamp,
-        position: addReal(start, value(timestamp.coordinate, timeline)),
-        source: "member",
-      }),
-    ),
+    namedTimestamps(manifest, timeline.id).map((timestamp) => {
+      const { position, exact } = at(timestamp, timeline, start);
+      return placed({ timestamp, position, source: "member" }, exact);
+    }),
   );
   const inherited = ancestors.flatMap(({ timeline, start }) =>
     namedTimestamps(manifest, timeline.id).flatMap((timestamp): CardStamp[] => {
-      const position = addReal(start, value(timestamp.coordinate, timeline));
+      const { position, exact } = at(timestamp, timeline, start);
       return spans(window[0], window[1], position)
-        ? [{ timestamp, position, source: "ancestor" }]
+        ? [placed({ timestamp, position, source: "ancestor" }, exact)]
         : [];
     }),
   );
   const others = (frame?.members ?? []).filter((other) => other.timeline.id !== root.id);
   const crossing = others.flatMap((other) => {
-    const card = cardStamps(manifest, other);
-    const [start, end] = card.window;
-    return card.stamps.flatMap((stamp): CardStamp[] =>
-      stamp.source === "member" && stamp.timestamp.groupstamp
-        ? [
-            {
-              timestamp: stamp.timestamp,
-              position: addReal(
-                memberStart,
-                atProportion(difference(stamp.position, start), difference(end, start), lambda),
-              ),
-              source: "frame",
-            },
-          ]
-        : [],
-    );
+    const found = exactCard(manifest, other, null);
+    return found.card.stamps.flatMap((stamp): CardStamp[] => {
+      const exact = found.positions.get(stamp);
+      if (stamp.source !== "member" || !stamp.timestamp.groupstamp || exact === undefined) {
+        return [];
+      }
+      const proportion = atProportion(exact.subtract(found.start), found.length, lambda);
+      return [
+        placed(
+          {
+            timestamp: stamp.timestamp,
+            position: addReal(memberStart, proportion),
+            source: "frame",
+          },
+          exactBase.add(toRational(proportion)),
+        ),
+      ];
+    });
   });
   const stamps = [...own, ...inherited, ...crossing];
   const timelines = [...ancestors, ...tree];
   const order = new Map((manifest.graphical?.timestamps ?? []).map((item, index) => [item, index]));
-  const secondaries = new Map<string, CardStamp[]>();
+  const secondaries = new Map<string, SecondaryStamp[]>();
   for (const line of timelines) {
+    const lineStart = exactStarts.get(line.timeline) ?? Rational.of(0n);
     const held = stamps
       .filter(
         ({ timestamp, position }) =>
           timestamp.timeline !== line.timeline.id && spans(line.start, line.end, position),
       )
-      .sort((left, right) => (order.get(left.timestamp) ?? 0) - (order.get(right.timestamp) ?? 0));
+      .sort((left, right) => (order.get(left.timestamp) ?? 0) - (order.get(right.timestamp) ?? 0))
+      .map(
+        (stamp): SecondaryStamp => ({
+          ...stamp,
+          value: expressed(
+            (positions.get(stamp) ?? toRational(stamp.position)).subtract(lineStart),
+            line.timeline.number_type,
+          ),
+        }),
+      );
     if (held.length > 0) secondaries.set(line.timeline.id, held);
   }
-  return { timelines, stamps, window, secondaries };
+  return {
+    card: { timelines, stamps, window, secondaries },
+    positions,
+    start: exactBase,
+    length: lambda,
+  };
 }
