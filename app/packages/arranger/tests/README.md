@@ -3238,6 +3238,33 @@ screen position chosen for the case or a value derived above.
    the arrows move the focus and the tab stop past `b` and wrap, Home and
    End go to the ends, a vertical toolbar uses Up and Down instead, and a
    disabled or detached button hands the tab stop on.
+10. **Only MatchStamp parts read the paint.** The paint of a block's named
+    MatchStamps (`matchPaint`) is recomputed by the canvas at every change
+    of the view, so an element that reads it is drawn again each time;
+    only the parts of a named MatchStamp or of a match timestamp
+    (`Owner.match`) are ever painted, so only they may read it. On
+    `bundles/bundle_matchstamps` (no children, so the cross-section lines
+    of the match timestamps have no length and are not drawn, as "Named
+    MatchStamps painted" in "Show matches on the canvas" states) the node
+    draws 36 elements: the bundle's name label and the block's own
+    element, ten for each of `score`, `take_1` and `take_2` (the card's
+    shadow and card, the line with its start dot and arrowhead, the name
+    label, and for its two named timestamps `origin` and `length`, both
+    `[wedge, coordinate]`, a wedge and a coordinate label each), and four
+    MatchStamp parts: `anchor_1`'s line and name label (its `display` is
+    `[line, name]`), `anchor_2`'s line (no `display`: `[line]`) and
+    `timestamp_3`'s name label (`[name, cross_section]`, "Take 2, bar 2");
+    `timestamp_1` and `timestamp_2` (no `display`: `[cross_section]`) draw
+    nothing. The paint is a map counting the reads of its size and its
+    lookups of a part. The out-of-date marks read the size once and look
+    up every one of the 36 elements; each MatchStamp part reads the size
+    once and looks itself up once: 5 size reads and 40 lookups when the
+    node is mounted with a paint stroking `anchor_1` `#E51400`, and 5 and
+    40 of a new paint stroking it `#E07000` once the paint changes, the
+    first paint read no more and `anchor_1`'s line now `#E07000` (the
+    change reached the parts that read it). Read by every drawn element,
+    as before the reading was confined, the counts are 37 and 72 on both
+    paints.
 
 ### The canvas in an editor (`canvas-editors.test.ts`)
 

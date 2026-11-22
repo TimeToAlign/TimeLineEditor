@@ -6,7 +6,8 @@
  * taken where the editor moves or reorders a box, and every gesture ends in
  * exactly the calls its command predicts: the press that became a gesture
  * selects, each preview is the view its command gives, the release
- * dispatches that command, and the preview is withdrawn.
+ * dispatches that command, and the preview is withdrawn. Only the parts of a
+ * named MatchStamp read the MatchStamp paint.
  */
 
 import type {
@@ -44,8 +45,11 @@ import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { sourceAt } from "../src/gesture.ts";
 import { itemMoveCommand } from "../src/items.ts";
+import type { MatchPaint, Paint } from "../src/matches.ts";
+import { NO_PAINT } from "../src/matches.ts";
 import { CUBIC_OUT } from "../src/motion.ts";
 import type { BlockNodeData } from "../src/node.ts";
+import type { NodeActions } from "../src/nodeActions.ts";
 import { project } from "../src/project.ts";
 import { reorderCommand } from "../src/reorder.ts";
 import type { Selection } from "../src/selection.ts";
@@ -177,6 +181,7 @@ interface Options {
   readonly locked?: boolean;
   readonly zoom?: number;
   readonly reducedMotion?: boolean;
+  readonly matchPaint?: NodeActions["matchPaint"];
 }
 
 /**
@@ -192,6 +197,7 @@ function mountOn(view: View, id: string, editing: Editing | null, options: Optio
     locked = false,
     zoom = 1,
     reducedMotion = false,
+    matchPaint,
   } = options;
   const props = new SvelteMap([["data", withBands(dataOf(view, id, editing, selection), bands)]]);
   const rules = rulesOf(editing, { locked, readonly: false });
@@ -202,7 +208,7 @@ function mountOn(view: View, id: string, editing: Editing | null, options: Optio
       get data() {
         return props.get("data") as BlockNodeData;
       },
-      actions,
+      actions: matchPaint === undefined ? actions : { ...actions, matchPaint },
     },
   });
   flushSync();
@@ -1098,5 +1104,45 @@ describe("an affordance in a stretch the frames cover", () => {
     expect(affordances(mountOn(view, A, PIECE).svg)).toEqual([
       [addressKey(idAddress(id)), "210.3354,69.2812 207.3354,82.2812 213.3354,82.2812", false],
     ]);
+  });
+});
+
+describe("the MatchStamp paint", () => {
+  /** A paint counting each read of its size and each lookup of a part in it. */
+  class CountedPaint extends Map<string, Paint> {
+    sizeReads = 0;
+    lookups = 0;
+
+    override get size(): number {
+      this.sizeReads += 1;
+      return super.size;
+    }
+
+    override get(key: string): Paint | undefined {
+      this.lookups += 1;
+      return super.get(key);
+    }
+  }
+
+  /** `anchor_1`'s line stroked `colour`. */
+  const anchorStroked = (colour: string) =>
+    new CountedPaint([
+      [addressKey(idAddress("anchor_1")), { attribute: "stroke", colour, marked: false }],
+    ]);
+
+  it("is read again by the four MatchStamp parts alone when it changes", () => {
+    const first = anchorStroked("#E51400");
+    const second = anchorStroked("#E07000");
+    const paints = new SvelteMap<string, MatchPaint>([["paint", first]]);
+    const { svg } = mountOn(viewOf({ id: A, fixture: "bundles/bundle_matchstamps" }), A, null, {
+      matchPaint: () => paints.get("paint") ?? NO_PAINT,
+    });
+    const stroke = () => addressed(svg, idAddress("anchor_1")).map((e) => e.getAttribute("stroke"));
+    const reads = (paint: CountedPaint) => [paint.sizeReads, paint.lookups];
+    expect([drawn(svg).length, reads(first), stroke()]).toEqual([36, [5, 40], ["#E51400"]]);
+
+    paints.set("paint", second);
+    flushSync();
+    expect([reads(first), reads(second), stroke()]).toEqual([[5, 40], [5, 40], ["#E07000"]]);
   });
 });
