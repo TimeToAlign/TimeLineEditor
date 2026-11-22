@@ -20,6 +20,7 @@ import type { CanvasSource, Hit } from "./boxes.ts";
 import { hitForAddress, hitOf, pressSelection, workedBox } from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
+import { raisedRoot } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { editorTargetOf } from "./editors.ts";
@@ -273,7 +274,10 @@ export function resizableOf(
   const { block, drawing } = node.data;
   const box = workedBox(drawing, id, element ?? BUNDLE_ADDRESS, editing);
   if (box === undefined || box.kind === "band") return undefined;
-  if (element !== null && !insideOf(block.manifest, drawing, within).has(addressKey(element))) {
+  if (
+    element !== null &&
+    !insideOf(block.manifest, drawing, within, raisedRoot(block, editing)).has(addressKey(element))
+  ) {
     return undefined;
   }
   // A frame stands for its group, a card for its timeline (core's `placedElement`).

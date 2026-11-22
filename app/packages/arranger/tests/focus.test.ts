@@ -56,6 +56,29 @@ describe("targetBounds", () => {
     });
   });
 
+  it("leaves out what an ancestor card draws behind the frames, and spans a raised card", () => {
+    const [shown] = project(mixedView(), NOTHING_SELECTED, [], metrics, null);
+    if (shown === undefined) throw new Error("no node");
+    expect(targetBounds(shown, at("dlt_1"), metrics)).toEqual({
+      x: 64,
+      y: 414.89453125,
+      width: 302.29150390625,
+      height: 12.8046875,
+    });
+    const recording = at("recording");
+    const [raised] = project(mixedView(), NOTHING_SELECTED, [], metrics, {
+      target: recording,
+      kind: "timeline",
+    });
+    if (raised === undefined) throw new Error("no node");
+    expect(targetBounds(raised, recording, metrics)).toEqual({
+      x: -97.412109375,
+      y: 341.91796875,
+      width: 2063.70361328125,
+      height: 123.85546875,
+    });
+  });
+
   it("scales with the block", () => {
     expect(targetBounds(nodeOf(2), at("group_1"), metrics)).toEqual({
       x: 56,

@@ -278,12 +278,15 @@ describe("a position on an ancestor line", () => {
     };
   }
 
-  /** The ancestor line's mark at 8: above the line, in the style of `middle`'s unnamed wedge. */
+  /**
+   * The ancestor line's mark at 8: above the line, in the style the cascade gives a wedge of
+   * `piece` on its ancestor line, faded as what lies inside an ancestor line is by default.
+   */
   const MARK = {
     wedge: {
       points: "460.3354,66.2812 457.3354,53.2812 463.3354,53.2812",
       fill: "#000000",
-      opacity: null,
+      opacity: "0.35",
     },
     line: false,
   };

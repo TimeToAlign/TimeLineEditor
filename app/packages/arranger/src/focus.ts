@@ -5,7 +5,8 @@ import { addressKey, contains, resolveElement } from "@timetoalign/tilie-core";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
-import { isDisplayed, keyedBox } from "./boxes.ts";
+import { drawnBehind, isDisplayed, keyedBox } from "./boxes.ts";
+import { raisedRoot } from "./coordinates.ts";
 import { addressParts } from "./editing.ts";
 import { elementBounds, isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
 import type { BlockNode } from "./node.ts";
@@ -27,7 +28,9 @@ export type { Viewport };
  * of a timeline (its first, for a member of several groups), and for a
  * timeline drawn in no displayed card of its own (a
  * child, or a hidden card) the rectangle spanning every element drawn inside
- * it (core's `contains`, `elementBounds`).
+ * it (core's `contains`, `elementBounds`), leaving out the copies an
+ * ancestor card draws behind the frames while it is not raised
+ * (`drawnBehind`).
  */
 export function targetBounds(node: BlockNode, target: Address, metrics: FontMetrics): Rect {
   const { drawing, block } = node.data;
@@ -48,9 +51,11 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
   const box = container?.key == null ? undefined : keyedBox(drawing, container.key);
   if (box !== undefined && isDisplayed(box)) return rectOnCanvas(node, box);
   const measure = new TextMeasure(metrics);
+  const behind = drawnBehind(drawing, raisedRoot(block, node.data.editing));
   const spans = drawing.elements
     .filter(
-      (drawn) =>
+      (drawn, index) =>
+        !behind(index) &&
         !isContainerAddress(drawing, drawn.address) &&
         element.id !== undefined &&
         contains(block.manifest, element.id, drawn.address),

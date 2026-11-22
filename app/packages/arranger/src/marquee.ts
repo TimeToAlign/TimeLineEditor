@@ -5,7 +5,7 @@ import { addressKey, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { lineAxes, TextMeasure, wedgePoints } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import { boxOf, isAncestorCard } from "./boxes.ts";
+import { boxOf, drawnBehind } from "./boxes.ts";
 import { affordancesOf, raisedRoot } from "./coordinates.ts";
 import type { BlockNode } from "./node.ts";
 import { ownerOf } from "./selectionRules.ts";
@@ -146,11 +146,7 @@ export function elementsInRect(
 ): Address[] {
   const { drawing, block, editing } = node.data;
   const raised = raisedRoot(block, editing);
-  const behind = drawing.boxes.flatMap((box) =>
-    isAncestorCard(box) && box.address.id !== raised ? [box.range] : [],
-  );
-  const counted = (index: number) =>
-    !behind.some(({ start, end }) => start <= index && index < end);
+  const behind = drawnBehind(drawing, raised);
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
   const take = (address: ElementAddress, bounds: Rect) => {
@@ -163,11 +159,11 @@ export function elementsInRect(
   };
   drawing.elements.forEach((element, index) => {
     const { address } = element;
-    if (!counted(index) || isContainerAddress(drawing, address)) return;
+    if (behind(index) || isContainerAddress(drawing, address)) return;
     if (inside.has(addressKey(address))) take(address, elementBounds(element, measure));
   });
   const affordances = affordancesOf(block.manifest, drawing, raised);
-  const lines = affordances.length === 0 || behind.length === 0 ? null : lineAxes(drawing);
+  const lines = affordances.length === 0 ? null : lineAxes(drawing);
   for (const { address, line, points } of affordances) {
     const axis = lines?.get(line);
     if (axis?.ancestor !== undefined && axis.card.member !== raised) continue;

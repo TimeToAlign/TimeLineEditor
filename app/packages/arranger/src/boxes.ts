@@ -99,6 +99,21 @@ export function isAncestorCard(box: DrawnBox): boolean {
   return box.ancestor !== undefined;
 }
 
+/**
+ * Whether the element at index `index` of `drawing.elements` lies behind the frames: drawn in
+ * an ancestor card whose root is not `raised` (`raisedRoot` of the node's block and editor, else
+ * `null`). The user sees such a copy only where the card shows beside the frames, and what it
+ * draws is drawn again outside the card, so a reader of the elements a box or an address spans
+ * (the marquee, an editor's focus) leaves it out; once raised, the card is drawn over every
+ * frame and its elements count as any other.
+ */
+export function drawnBehind(drawing: Drawing, raised: string | null): (index: number) => boolean {
+  const behind = drawing.boxes.flatMap((box) =>
+    isAncestorCard(box) && box.address.id !== raised ? [box.range] : [],
+  );
+  return (index) => behind.some(({ start, end }) => start <= index && index < end);
+}
+
 /** Whether `box` is a band. */
 export function isBand(box: DrawnBox): box is BandBox {
   return box.kind === "band" && box.band !== undefined;
