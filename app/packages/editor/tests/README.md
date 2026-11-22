@@ -2883,9 +2883,16 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
 3. **Each journal entry is one sentence**, with the entry's UTC time as
    `HH:MM:SS` and its author, every address written as its words in the
    view the panel shows (`addressWords`; so a renamed element goes by its
-   new name, and one that is gone by its ID): on the three-block store, "Added
-   block '0000000003'" for a block the view does not hold, "Added bundle
-   'mixed'" for one it holds, "Added timeline 'Viola' to bundle 'Mixed'"
+   new name, and one that is gone by its ID): on the three-block store,
+   "Added bundle 'mixed'" for a block the view holds; a block the view
+   does not hold (its import undone, or the block removed since) by the
+   manifest the `add` itself carries, worded as a held block's bundle, so
+   an undone import still says what was undone: the three-block store with
+   its three `add`s undone holds no block, and its rows still read, newest
+   first and each undone, "Added the anonymous bundle", "Added bundle
+   'mixed'", "Added bundle 'Mixed'", the sentences they read before the
+   undo; only a command carrying no manifest is worded by the block's ID
+   ("Added block '0000000003'"); "Added timeline 'Viola' to bundle 'Mixed'"
    (an added element by its name, else its id), "Added region 'region_1'
    to timeline 'Score' in bundle 'Mixed'", "Added a region to timeline
    'Score' in bundle 'Mixed'" for a value without either, "Added
