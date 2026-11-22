@@ -21,7 +21,16 @@ import {
   readWorkspace,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import { dumps, fontMetrics, isJsonObject, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import {
+  dumps,
+  fontMetrics,
+  isJsonObject,
+  loads,
+  SCHEMA_VERSION,
+  SchemaValidationError,
+  validate,
+  withFileIds,
+} from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
@@ -60,6 +69,17 @@ const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
 function completeA(store: Store): void {
   const file = { minimal: false, styling: false, serialization: "yaml" } as const;
   expect(store.configure({ manifests: { [A]: file } })).toBeNull();
+}
+
+/** The detail TimeToShare's validator gives for the manifest in `text`, which a shown refusal repeats. */
+function validatorDetail(text: string): string {
+  try {
+    validate(withFileIds(loads(text)));
+  } catch (error) {
+    if (error instanceof SchemaValidationError) return error.detail;
+    throw error;
+  }
+  throw new Error("accepted");
 }
 
 /** The text the Manifest panel shows of block A in `format` by default: minimal, with the styling. */
@@ -333,7 +353,7 @@ describe("the inspector component", () => {
     flushSync();
     const items = problemItems();
     expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
-      "schema_violation must be boolean at /timelines/0/locked",
+      `schema_violation ${validatorDetail(edited)} at /timelines/0/locked`,
     ]);
     expect([...(items[0]?.querySelectorAll("code") ?? [])].map((item) => item.textContent)).toEqual(
       ["schema_violation", "/timelines/0/locked"],

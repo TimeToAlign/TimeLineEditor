@@ -15,7 +15,10 @@ import {
   loads,
   minimal,
   SCHEMA_VERSION,
+  SchemaValidationError,
+  validate,
   withBareIds,
+  withFileIds,
 } from "@timetoalign/timetoshare";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Format } from "../src/inspector/formats.svelte.ts";
@@ -97,6 +100,17 @@ function styledBare(): Store {
   });
   if (error !== null) throw new Error(error.message);
   return store;
+}
+
+/** The detail TimeToShare's validator gives for the manifest in `text`, which a shown refusal repeats. */
+function validatorDetail(text: string): string {
+  try {
+    validate(withFileIds(loads(text)));
+  } catch (error) {
+    if (error instanceof SchemaValidationError) return error.detail;
+    throw error;
+  }
+  throw new Error("accepted");
 }
 
 function written(format: Format, value: Json, options: TextOptions = FILE_FORM): string {
@@ -383,35 +397,25 @@ describe("applying a text", () => {
   it("returns a refusal with its path into the text", () => {
     const store = storeOf("bare");
     const json = written("json", manifestIn(store, A));
-    const locked = applyText(
-      store,
-      A,
-      "json",
-      json.replace('"locked": false', '"locked": "yes"'),
-      FILE_FORM,
-    );
+    const lockedText = json.replace('"locked": false', '"locked": "yes"');
+    const locked = applyText(store, A, "json", lockedText, FILE_FORM);
     expect(locked).toEqual({
       ok: false,
       problems: [
         {
           code: "schema_violation",
-          message: "must be boolean",
+          message: validatorDetail(lockedText),
           path: ["timelines", 0, "locked"],
         },
       ],
     });
     if (locked.ok) throw new Error("accepted");
     expect(problemPointer(locked.problems[0] as never)).toBe("/timelines/0/locked");
-    const unit = applyText(
-      store,
-      A,
-      "json",
-      json.replace('"unit": "quarters"', '"unit": "parsecs"'),
-      FILE_FORM,
-    );
+    const unitText = json.replace('"unit": "quarters"', '"unit": "parsecs"');
+    const unit = applyText(store, A, "json", unitText, FILE_FORM);
     if (unit.ok) throw new Error("accepted");
-    expect(unit.problems.map((item) => [item.message, problemPointer(item)])).toEqual([
-      ["must be equal to constant", "/timelines/0/unit"],
+    expect(unit.problems.map((item) => [item.code, item.message, problemPointer(item)])).toEqual([
+      ["schema_violation", validatorDetail(unitText), "/timelines/0/unit"],
     ]);
     const positions = (
       [

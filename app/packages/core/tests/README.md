@@ -803,10 +803,10 @@ the schema agree by construction.
    TimeToShare's identity check reports first for the same value.
 6. **Entries the schema refuses** (an empty string, an entry holding a
    control character) are refused by both: core as a stranger, the schema
-   at the entry (`["graphical", "order", "clt_3", 6]`), the empty string by
-   its `minLength` ("must NOT have fewer than 1 characters"), the control
-   character by its `not` over control characters ("must NOT be valid");
-   every value core accepts the schema accepts and every value it refuses
+   at the entry (`["graphical", "order", "clt_3", 6]`), code
+   `schema`, the empty string by its `minLength`, the control
+   character by its `not` over control characters (the tests assert code and
+   path, not the validator's wording); every value core accepts the schema accepts and every value it refuses
    the schema refuses.
 
 ## One walk to find timelines (`tree.test.ts`)
