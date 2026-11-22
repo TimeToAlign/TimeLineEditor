@@ -511,8 +511,11 @@ the dialog "step1.match_claims.parquet is not beside …" with its
 "Locate…" button); and on the header's title after the rename "Second"
 (the button "• Second" followed by the muted "— first.tle.json") and with
 its field refusing an empty name (`aria-invalid`). In the folder without an
-option the list holds no item, and the note "Nothing to show here." stands
-beside it as a status.
+option the list holds no item, and the dialog's one status, the note
+"Nothing to show here.", stands in the list's place: drawn inside the
+list's frame where its first entry would stand, its box 1 px right of and
+below the list's top left corner and within the list's box. In the
+document the note follows the list box, which owns options only.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
 the MatchClaim table a manifest names, the table route replayed from the
