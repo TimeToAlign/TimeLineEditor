@@ -489,11 +489,13 @@ beside it, which serves its MatchClaim table alone (reading
 `projections.parquet` from it gives `null`, nothing fetched), and every
 end-to-end workspace as `e2e/<name>`; no label
 repeats and the list is in code-unit order. For the installed package that
-is 172 manifest fixtures (86 and their minimal twins: 51 at the top
-level, 15 in `groups/`, 16 in `bundles/`, 4 in `statements/`, as the
-schema package's fixture README counts them), 16 warning cases, the table
-fixture and 5 workspaces, 194 options, from `bare` to
-`with_region.minimal`; no option starts with `drawings/` or `rejections/`,
+is 178 manifest fixtures (89 and their minimal twins: 51 at the top
+level, 16 in `groups/`, 18 in `bundles/`, 4 in `statements/`, as the
+schema package's fixture README counts them: 2 × (51 + 16 + 18 + 4) =
+178), 16 warning cases, the table fixture and 5 workspaces, 178 + 16 + 1
++ 5 = 200 options, from `bare` (then `bare.minimal`,
+`bundles/bundle_elided_layerit`, its twin, `bundles/bundle_elisions_stored`)
+to `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
 Examples menu opens an example, through the same routine: every manifest
@@ -502,7 +504,8 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 189 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 178 + 16 + 1 = 195 entries of kind `manifest` and 5 of kind
+`workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -582,7 +585,7 @@ accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
    Each manifest fixture of the installed schema version (the 51 of the
-   top level, the 15 of `groups/` and the 16 of `bundles/`, the schema
+   top level, the 16 of `groups/` and the 18 of `bundles/`, the schema
    package's counts; a minimal twin reads back as its complete fixture,
    a case already) is written in each format and read back, and `dumps` of
    the value read equals the fixture's bytes; the YAML text written is the

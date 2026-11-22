@@ -16,6 +16,7 @@ import { containersOf } from "../src/manifest/containers.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
+import type { TimelineManifest } from "../src/manifest/types.ts";
 import type { Address, ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
 import {
   addressWords,
@@ -551,6 +552,8 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
       return "part";
     case "alignment_anchor":
       return "anchor";
+    case "elision":
+      return "elision";
     default:
       return "timeline";
   }
@@ -598,14 +601,24 @@ describe("every resolvable part", () => {
       );
       const defaulted = (address: ElementAddress) => address.part?.[0] === "elision";
       expect(new Set(resolvable.filter((item) => !defaulted(item)).map(addressKey))).toEqual(drawn);
-      // The default elisions: no fixture stores an elision, so every ancestor card may draw them
-      // on its root and on the children of its member's ancestors above the member's parent.
-      const carrying = memberDrawings(manifest).ancestorCards.flatMap(({ member, root }) => [
-        root.timeline.id,
-        ...member.ancestors
-          .slice(0, -1)
-          .flatMap(({ timeline }) => timeline.children.map((child) => child.id)),
-      ]);
+      // The default elisions: an ancestor card may draw them on its root and on the children of
+      // its member's ancestors above the member's parent, unless a stored elision lies on a
+      // timeline of its root's tree (section 8.9), which then draws none.
+      const stored = new Set((manifest.graphical?.elisions ?? []).map(({ timeline }) => timeline));
+      const treeOf = (timeline: TimelineManifest): string[] => [
+        timeline.id,
+        ...timeline.children.flatMap(treeOf),
+      ];
+      const carrying = memberDrawings(manifest).ancestorCards.flatMap(({ member, root }) =>
+        treeOf(root.timeline).some((id) => stored.has(id))
+          ? []
+          : [
+              root.timeline.id,
+              ...member.ancestors
+                .slice(0, -1)
+                .flatMap(({ timeline }) => timeline.children.map((child) => child.id)),
+            ],
+      );
       const words: readonly (readonly Part[])[] = [
         ["elision"],
         ["elision", "name"],

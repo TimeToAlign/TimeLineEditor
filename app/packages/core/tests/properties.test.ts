@@ -253,6 +253,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "cycle",
         "duplicate_id",
         "duplicate_index",
+        "elision_exceeds_length",
         "id_not_settable",
         "invalid_address",
         "invalid_coordinate",

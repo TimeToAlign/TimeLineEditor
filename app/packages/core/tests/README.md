@@ -1118,7 +1118,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    drawn in no card but an ancestor card, which has no container and
    resolves to nothing, a frame a frame, a map, region, flow marker or jump
    origin an entry, a label, wedge or boundary a part, the title the title,
-   an alignment anchor's line its anchor, every other line a timeline;
+   an alignment anchor's line its anchor, a stored elision's strip its
+   elision, every other line a timeline;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -1132,8 +1133,11 @@ string form is `addressKey`, and nothing splits or composes an ID.
    view and core's elements do not list: those are exactly `{id: T, part:
    ["elision"]}`, `["elision", "name"]` and `["elision", "coordinate"]`
    for every `T` the drawing specification lets an ancestor card draw one
-   on (section 8.9, no fixture storing an elision: the card's root and the
-   children of its member's ancestors above the member's parent). The
+   on (section 8.9: the card's root and the children of its member's
+   ancestors above the member's parent, none at all for a card whose
+   root's tree holds a stored elision, as in
+   `bundles/bundle_elisions_stored.yaml`, where `score`'s and `session`'s
+   cards draw no default). The
    candidates are built without the resolver, so a part the resolver names
    that nothing draws fails here.
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
@@ -4151,7 +4155,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
 7. The generator reaches every refusal the commands produce on these
    targets: over a fixed sample (seed `20261011`, 150 sequences per fixture)
    the set of codes observed is exactly `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
-   `id_not_settable`, `invalid_address`, `invalid_coordinate`,
+   `elision_exceeds_length`, `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `negative_child_offset`,
    `nested_member`, `non_finite_number`, `non_positive_number`, `not_an_item`, `not_removable`,
@@ -4171,6 +4175,10 @@ Each manifest fixture starts as block `A` beside a block `B` of
    pinned by the session and guard tests. `timestamp_exceeds_length` is
    reached since the fixtures' roots carry their `origin` and `length`
    timestamps: a length set below a timestamp that is not at the end.
+   `elision_exceeds_length` is reached over
+   `bundles/bundle_elisions_stored.yaml`, whose stored elisions end inside
+   their timelines: a length set below an elision's end that is not at the
+   old end.
 
 **Editing sequences.** The same fixtures, in the same store, run sequences
 of up to 30 steps, ten per fixture, each step a seed with an operation: a
