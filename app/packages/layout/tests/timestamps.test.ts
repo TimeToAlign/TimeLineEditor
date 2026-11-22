@@ -603,12 +603,57 @@ describe("the marks at any position", () => {
     ]);
   });
 
-  it("are none on an ancestor line or where no line is keyed", () => {
-    const member = drawn(loadFile("groups/group_child_member"));
+  it("are an ancestor line's mark alone on it, styled by no rule on its marks", () => {
+    const manifest = loadFile("groups/group_child_member");
+    const layered = (rules: readonly Rule[]) =>
+      draw(
+        manifest,
+        DEFAULT_PLACEMENT,
+        [DEFAULT_LAYER, { rules: [...rules] }, manifestLayer(manifest)],
+        metrics,
+      );
+    const member = layered([]);
     const ancestor = member.axes.find((axis) => sameAddress(axis.address, at("piece")));
     if (ancestor === undefined) throw new Error("no ancestor line");
     const key = placeKeyText(ancestor.card) + addressKey(ancestor.address);
-    expect(marksAt(member, key, 100)).toEqual({ line: null, wedge: null });
+    expect([ancestor.card, ancestor.line, ancestor.marker]).toEqual([
+      { item: "group_1", member: "second-half" },
+      67.78125,
+      null,
+    ]);
+    const mark = {
+      points: [
+        [100, 67.78125 - 1.5],
+        [97, 67.78125 - 1.5 - 13],
+        [103, 67.78125 - 1.5 - 13],
+      ],
+      style: { fill: "#000000", opacity: 1, stroke: "#00CC00", rotation: 0 },
+    };
+    expect(marksAt(member, key, 100)).toMatchObject({ line: null, wedge: mark });
+    expect(mark.points).toEqual([
+      [100, 66.28125],
+      [97, 53.28125],
+      [103, 53.28125],
+    ]);
+    const restyled = layered([
+      {
+        select: { element: "wedge", addresses: [at("second-half", "start")] },
+        set: { display: "none" },
+      },
+      {
+        select: { element: "wedge", addresses: [at("second-half", "end")] },
+        set: { fill: "#FF0000", rotation: 90 },
+      },
+    ]);
+    expect(wedgeAt(restyled, key, 100)).toEqual(wedgeAt(member, key, 100));
+    const everyWedge = layered([{ select: { element: "wedge" }, set: { fill: "#123456" } }]);
+    expect(wedgeAt(everyWedge, key, 100)).toMatchObject({
+      points: mark.points,
+      style: { fill: "#123456" },
+    });
+  });
+
+  it("are none where no line is keyed", () => {
     expect(marksAt(drawing, keyOf(CLT_1, "nothing"), 100)).toEqual({ line: null, wedge: null });
   });
 });

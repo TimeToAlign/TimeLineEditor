@@ -23,6 +23,7 @@ import {
   MeasureKnotsSource,
   pinnedPlace,
   placeText,
+  raisedRoot,
   readingAt,
   readsGroup,
 } from "./coordinates.ts";
@@ -600,26 +601,28 @@ function shownNode(id: string) {
 }
 
 /**
- * The marks drawn: the pinned unnamed timestamp's (`pinnedPlace`), then
- * the hovered position's on the hovered line, across the group's frame where
- * the reading holds the group (`readsGroup`), as a groupstamp's line is drawn.
+ * The marks drawn: the pinned unnamed timestamp's (`pinnedPlace`, the root
+ * its node's editor raises, `raisedRoot`), then the hovered position's on
+ * the hovered line, across the group's frame where the reading holds the
+ * group (`readsGroup`), as a groupstamp's line is drawn.
  */
 const marks: readonly PlacedMarks[] = $derived.by(() => {
   const found: PlacedMarks[] = [];
   const mark = (
     kind: PlacedMarks["kind"],
     block: string,
-    place: (drawing: Drawing) => MarkPlace | null,
+    place: (drawing: Drawing, raised: string | null) => MarkPlace | null,
   ) => {
     const node = shownNode(block);
-    const at = node === undefined ? null : place(node.data.drawing);
-    if (node === undefined || at === null) return;
-    const { drawing, block: shown } = node.data;
+    if (node === undefined) return;
+    const { drawing, block: shown, editing } = node.data;
+    const at = place(drawing, raisedRoot(shown, editing));
+    if (at === null) return;
     found.push({ kind, ...at, drawing, origin: node.position, scale: shown.scale });
   };
   if (pinned !== null && pinned.named === null) {
     const pin = pinned;
-    mark("pin", pin.spec.block, (drawing) => pinnedPlace(drawing, pin, pinnedLine));
+    mark("pin", pin.spec.block, (drawing, raised) => pinnedPlace(drawing, pin, pinnedLine, raised));
   }
   if (reading !== null) {
     const { hit, at, pin } = reading;
@@ -668,11 +671,11 @@ const paintByBlock: ReadonlyMap<string, MatchPaint> = $derived.by(
 const matchBlocks = $derived.by(() => {
   if (!showMatches) return [];
   return nodes.nodes.flatMap((node) => {
-    const { block, drawing } = node.data;
+    const { block, drawing, editing } = node.data;
     const input = matchInputs.get(block.id);
     if (input === undefined) return [];
     const { index } = input;
-    const lines = matchLinesOf(drawing, index);
+    const lines = matchLinesOf(drawing, index, raisedRoot(block, editing));
     if (lines.all.length === 0) return [];
     const placed = { origin: node.position, scale: block.scale };
     return [{ node, index, lines, placed, overlay: overlayOf(index, lines, placed, screen) }];

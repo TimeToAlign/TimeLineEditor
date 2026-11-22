@@ -10,9 +10,17 @@ import type {
   Granularity,
   Manifest,
   MeasureKnots,
+  Pin,
+  PlaceKey,
   View,
 } from "@timetoalign/tilie-core";
-import { DEFAULT_GRANULARITY, idAddress, inBlock, timestampAt } from "@timetoalign/tilie-core";
+import {
+  DEFAULT_GRANULARITY,
+  idAddress,
+  inBlock,
+  samePlaceKey,
+  timestampAt,
+} from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
 import { lineAxes, wedgeAt } from "@timetoalign/tilie-layout";
@@ -20,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   affordancesOf,
   axesOf,
+  coveredIn,
   crossSectionSpec,
   FrameCoalescer,
   flagParts,
@@ -41,7 +50,17 @@ import type { Editing } from "../src/editing.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, changed, load, MIXED, metrics, viewOf } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  load,
+  MIXED,
+  metrics,
+  placed,
+  viewOf,
+  withoutAncestorCards,
+} from "./support.ts";
 
 const q = (numerator: number, denominator = 1) => Rational.of([numerator, denominator]);
 
@@ -463,6 +482,189 @@ describe("a covered line, not read", () => {
   });
 });
 
+describe("a later ancestor card over an earlier one", () => {
+  /** `bundle_shared_parent` in block A at (0, 0), `group_2`'s frame placed at (1200, 100). */
+  const view = placed(viewOf({ id: A, fixture: "bundles/bundle_shared_parent" }), A, "group_2", {
+    x: 1200,
+    y: 100,
+  });
+  const drawing = drawingIn(view);
+  const FIRST: PlaceKey = { item: "group_1", member: "score" };
+  const SECOND: PlaceKey = { item: "group_2", member: "score" };
+
+  it("lies where layout's record puts the two cards and their lines", () => {
+    const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
+    expect(cards.map(({ key, x, y, width, height }) => [key, x, y, width, height])).toEqual([
+      [FIRST, 8, 28.8046875, 1243.3592936197915, 154.8828125],
+      [SECOND, 533.3333333333333, 100, 1243.3592936197917, 154.8828125],
+    ]);
+    const frames = drawing.boxes.filter((box) => box.kind === "frame");
+    expect(frames.map(({ x, width }) => [x, x + width])).toEqual([
+      [40.0234375, 607.41357421875],
+      [1232.0234375, 1799.41357421875],
+    ]);
+    const lineIn = (card: PlaceKey, timeline: string) =>
+      [...lineAxes(drawing).values()].find(
+        (line) => line.timeline === timeline && samePlaceKey(line.card, card),
+      );
+    const score = lineIn(FIRST, "score");
+    const exposition = lineIn(SECOND, "exposition");
+    expect(score && [score.y, score.xStart, score.xEnd]).toEqual([
+      127.234375, 167.41357421875, 1234.0802408854165,
+    ]);
+    expect(exposition && [exposition.y, exposition.xStart, exposition.xEnd]).toEqual([
+      160.953125, 692.7469075520833, 1092.7469075520833,
+    ]);
+  });
+
+  it.each([
+    ["the first card's score line, inside the second card", 127.234375, null],
+    ["the second card's exposition row, inside the first card", 160.953125, ["exposition", SECOND]],
+  ])("at x 900 on %s reads %j", (_, y, expected) => {
+    const hit = lineAt(axesOf(drawing), { x: 900, y }, 8, coveredIn(drawing, null));
+    expect(hit === null ? null : [hit.axis.timeline, hit.axis.card]).toEqual(expected);
+  });
+});
+
+describe("two ancestor lines, an ancestor of unknown length, and the scales", () => {
+  /** A reading as `[timeline, its card, position, anchor and ordinate, members, parts]`. */
+  function readFull(reading: ReturnType<typeof readingAt>) {
+    if (reading === null) return null;
+    const { spec, timestamp } = reading.pin;
+    return [
+      reading.hit.axis.timeline,
+      reading.hit.axis.card,
+      reading.position,
+      [spec.anchor.timeline, spec.anchor.ordinate],
+      spec.members.map(({ timeline, offset, ordinate }) => [timeline, offset, ordinate]),
+      timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ];
+  }
+  const THEME_CARD = { item: "group_1", member: "theme" };
+  const SCORE_CARD = { item: "group_1", member: "score" };
+  const grandchild = viewWith("groups/group_grandchild");
+
+  it("reads a grandchild's two ancestor lines, the parts top to bottom", () => {
+    expect(readFull(readAt(grandchild, 1482.265625, 70.9765625))).toEqual([
+      "score",
+      THEME_CARD,
+      q(28),
+      ["score", 70.9765625],
+      [
+        ["movement", q(16), 104.953125],
+        ["theme", q(24), 118.953125],
+      ],
+      [
+        ["score", q(28)],
+        ["movement", q(12)],
+        ["theme", q(4)],
+      ],
+    ]);
+    expect(readFull(readAt(grandchild, 1482.265625, 104.953125))).toEqual([
+      "movement",
+      THEME_CARD,
+      q(12),
+      ["movement", 104.953125],
+      [
+        ["score", q(-16), 70.9765625],
+        ["theme", q(8), 118.953125],
+      ],
+      [
+        ["movement", q(12)],
+        ["score", q(28)],
+        ["theme", q(4)],
+      ],
+    ]);
+    const reading = readAt(grandchild, 1482.265625, 70.9765625);
+    expect(reading && flagParts(reading.pin).map(({ timeline }) => timeline)).toEqual([
+      "score",
+      "movement",
+      "theme",
+    ]);
+  });
+
+  it("leaves the card's covered row of the middle ancestor unread, and reads it beyond the frame", () => {
+    expect(readAt(grandchild, 1482.265625, 56.9765625)).toBeNull();
+    expect(readShape(readAt(grandchild, 1032.265625, 56.9765625))).toEqual([
+      "movement",
+      SCORE_CARD,
+      [
+        ["movement", q(3)],
+        ["score", q(19)],
+      ],
+    ]);
+  });
+
+  it("reads an ancestor of unknown length on its ancestor line and its card's", () => {
+    const unknown = changed(viewWith(PARENT_BOTH), {
+      type: "set",
+      changes: [{ target: inBlock(A, idAddress("piece")), values: { length: null } }],
+    });
+    const card = [...lineAxes(drawingIn(unknown)).values()].find(
+      (line) => line.timeline === "piece" && line.ancestor !== undefined,
+    );
+    expect(card && [card.xStart, card.xEnd, card.length, card.drawnLength]).toEqual([
+      60.33544921875,
+      660.33544921875,
+      null,
+      q(12),
+    ]);
+    expect(
+      [
+        [460.33544921875, PIECE_Y],
+        [660.33544921875, PIECE_Y],
+        [110.33544921875, PIECE_Y],
+      ].map(([x, y]) => readShape(readAt(unknown, x as number, y as number))),
+    ).toEqual([
+      [
+        "piece",
+        MIDDLE_CARD,
+        [
+          ["piece", q(8)],
+          ["middle", q(4)],
+        ],
+      ],
+      [
+        "piece",
+        MIDDLE_CARD,
+        [
+          ["piece", q(12)],
+          ["middle", q(8)],
+        ],
+      ],
+      ["piece", PIECE_CARD, [["piece", q(1)]]],
+    ]);
+  });
+
+  it("reads the card and the ancestor line at an item scale, a block scale and a zoom", () => {
+    const scaled = placed(viewWith(PARENT_BOTH, 0.5), A, "group_1", { scale: 2 });
+    const drawing = drawingIn(scaled);
+    const frame = drawing.boxes.find((box) => box.kind === "frame");
+    expect(frame && [frame.x, frame.x + frame.width]).toEqual([305.263671875, 1392.6708984375]);
+    const pieces = [...lineAxes(drawing).values()].filter((line) => line.timeline === "piece");
+    expect(pieces.map(({ card, y, xStart, xEnd }) => [card, y, xStart, xEnd])).toEqual([
+      [MIDDLE_CARD, 127.5625, 512.6708984375, 1312.6708984375],
+      [PIECE_CARD, 127.5625, 112.6708984375, 1712.6708984375],
+    ]);
+    expect(
+      [212.6708984375, 912.6708984375, 412.6708984375].map((x) =>
+        readShape(readAt(scaled, x, 127.5625, { zoom: 3 })),
+      ),
+    ).toEqual([
+      ["piece", PIECE_CARD, [["piece", q(1)]]],
+      [
+        "piece",
+        MIDDLE_CARD,
+        [
+          ["piece", q(8)],
+          ["middle", q(4)],
+        ],
+      ],
+      null,
+    ]);
+  });
+});
+
 describe("a timeline's place, its own card first", () => {
   const view = viewWith(PARENT_BOTH);
   const drawing = drawingIn(view);
@@ -482,7 +684,7 @@ describe("a timeline's place, its own card first", () => {
     ]);
   });
 
-  it("marks a pin of the ancestor on the card's line, or on the ancestor line it was pinned on", () => {
+  it("marks a pin of the ancestor where it is seen, or on the ancestor line it was pinned on", () => {
     const pin = readAt(view, AT_PIECE_8, PIECE_Y)?.pin;
     if (pin === undefined) throw new Error("piece is not read there");
     const ancestorKey = [...axes(view)].find(
@@ -490,10 +692,41 @@ describe("a timeline's place, its own card first", () => {
     )?.[0];
     const [cardKey] = holdings(drawing, "piece").map(({ key }) => key);
     if (ancestorKey === undefined) throw new Error("no ancestor line of piece");
-    expect(pinnedPlace(drawing, pin, null)).toEqual({ key: cardKey, x: AT_PIECE_8, group: false });
+    const raised = raisedRoot(blockIn(view, A), PIECE_EDITOR);
+    expect(pinnedPlace(drawing, pin, null)).toEqual({
+      key: ancestorKey,
+      x: AT_PIECE_8,
+      group: false,
+    });
+    expect(pinnedPlace(drawing, pin, null, raised)).toEqual({
+      key: cardKey,
+      x: AT_PIECE_8,
+      group: false,
+    });
     expect(pinnedPlace(drawing, pin, ancestorKey)).toEqual({
       key: ancestorKey,
       x: AT_PIECE_8,
+      group: false,
+    });
+  });
+
+  it("marks a pin in a gap nowhere, and on the card's line while the card is raised", () => {
+    const block = blockIn(view, A);
+    const pin = timelinePin(
+      block.manifest,
+      A,
+      drawing,
+      "piece",
+      q(3),
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+    if (pin === null) throw new Error("no pin of piece");
+    const [cardKey] = holdings(drawing, "piece").map(({ key }) => key);
+    expect(pinnedPlace(drawing, pin, null)).toBeNull();
+    expect(pinnedPlace(drawing, pin, null, raisedRoot(block, PIECE_EDITOR))).toEqual({
+      key: cardKey,
+      x: 210.33544921875,
       group: false,
     });
   });
@@ -1149,6 +1382,66 @@ describe("a reading across a group whose member is a child", () => {
   });
 });
 
+describe("a timestamp named on an ancestor line", () => {
+  /** `bundle_mixed` with a timestamp named on `recording` at 88200 samples, and its ID. */
+  const named = (view: View): [View, string] => {
+    const added = changed(view, {
+      type: "add",
+      into: inBlock(A, idAddress("recording")),
+      timestamp: { name: "Named", coordinate: 88200 },
+    });
+    const id = blockIn(added, A).manifest.graphical?.timestamps?.find(
+      (item) => item.name === "Named",
+    )?.id;
+    if (id === undefined) throw new Error("no timestamp named");
+    return [added, id];
+  };
+  /** Flag parts as `[timeline, [row's map or "coordinate", value text]]`. */
+  const parts = (pin: Pin) =>
+    flagParts(pin).map(({ timeline, rows }) => [
+      timeline,
+      rows.map((row) => [row.row.map ?? "coordinate", rowValueText(row, 3)]),
+    ]);
+
+  it.each([
+    ["the cards shown", (view: View) => view, 279.70361328125],
+    ["every ancestor card hidden", withoutAncestorCards, 126.29150390625],
+  ])("lists in its tab what the flag listed there, %s", (_, layered, xStart) => {
+    const [view, id] = named(layered(viewWith(MIXED)));
+    const drawing = drawingIn(view);
+    const line = [...lineAxes(drawing).values()].find(
+      (each) => each.timeline === "recording" && each.ancestor === undefined,
+    );
+    expect(line && [line.card, line.y, line.xStart, line.xEnd]).toEqual([
+      { item: "group_2", member: "excerpt" },
+      323.296875,
+      xStart,
+      xStart + 400,
+    ]);
+    const reading = readAt(view, xStart + 200, 323.296875);
+    if (reading === null) throw new Error("the ancestor line is not read");
+    expect([reading.hit.axis.start, reading.hit.axis.drawnLength, reading.position]).toEqual([
+      q(44100),
+      q(88200),
+      q(88200),
+    ]);
+    const flag = parts(reading.pin);
+    expect(flag).toEqual([
+      ["recording", [["coordinate", "88 200 smp"]]],
+      [
+        "excerpt",
+        [
+          ["cmap_6", "1″"],
+          ["coordinate", "44 100 smp"],
+        ],
+      ],
+    ]);
+    const block = blockIn(view, A);
+    const pin = namedPin(block.manifest, A, drawing, id, DEFAULT_GRANULARITY, "no_server");
+    expect(pin && parts(pin)).toEqual(flag);
+  });
+});
+
 describe("the affordance of a named timestamp that draws nothing", () => {
   const affordances = (view: View) => affordancesOf(blockIn(view, A).manifest, drawingIn(view));
 
@@ -1187,6 +1480,74 @@ describe("the affordance of a named timestamp that draws nothing", () => {
     expect(affordances(undisplayed(matches, "timestamp_1"))).toEqual([]);
     const both = undisplayed(undisplayed(matches, "timestamp_1"), "timestamp_4");
     expect(affordances(both).map(({ address }) => address)).toEqual([idAddress("timestamp_4")]);
+  });
+
+  /** `view` with a named timestamp at `coordinate` on `timeline` displaying nothing, and its ID. */
+  function blank(view: View, timeline: string, coordinate: unknown): [View, string] {
+    const added = changed(view, {
+      type: "add",
+      into: inBlock(A, idAddress(timeline)),
+      timestamp: { name: "Blank", coordinate },
+    });
+    const id = blockIn(added, A).manifest.graphical?.timestamps?.find(
+      (item) => item.name === "Blank",
+    )?.id;
+    if (id === undefined) throw new Error("no timestamp named");
+    return [undisplayed(added, id), id];
+  }
+
+  it("has none in a gap, and one on the card's line while the card is raised", () => {
+    const [view, id] = blank(viewWith(PARENT_BOTH), "piece", [3, 1]);
+    const block = blockIn(view, A);
+    const drawing = drawingIn(view);
+    const [cardKey] = holdings(drawing, "piece").map(({ key }) => key);
+    if (cardKey === undefined) throw new Error("no card line of piece");
+    expect(affordancesOf(block.manifest, drawing)).toEqual([]);
+    expect(affordancesOf(block.manifest, drawing, raisedRoot(block, PIECE_EDITOR))).toEqual([
+      {
+        kind: "affordance",
+        address: idAddress(id),
+        line: cardKey,
+        points: [
+          [210.33544921875, 69.28125],
+          [207.33544921875, 82.28125],
+          [213.33544921875, 82.28125],
+        ],
+      },
+    ]);
+  });
+
+  it("lies on a middle ancestor's ancestor line, never on the card's covered row", () => {
+    const [view, id] = blank(viewWith("groups/group_grandchild"), "movement", [12, 1]);
+    const block = blockIn(view, A);
+    const drawing = drawingIn(view);
+    const [ancestorKey] = [...lineAxes(drawing)].find(
+      ([, line]) => line.timeline === "movement" && line.ancestor === undefined,
+    ) ?? [undefined];
+    if (ancestorKey === undefined) throw new Error("no ancestor line of movement");
+    const points = [
+      [1482.265625, 103.453125],
+      [1479.265625, 90.453125],
+      [1485.265625, 90.453125],
+    ];
+    expect(affordancesOf(block.manifest, drawing)).toEqual([
+      { kind: "affordance", address: idAddress(id), line: ancestorKey, points },
+    ]);
+    const pin = timelinePin(
+      block.manifest,
+      A,
+      drawing,
+      "movement",
+      q(12),
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+    if (pin === null) throw new Error("no pin of movement");
+    expect(pinnedPlace(drawing, pin, null)).toEqual({
+      key: ancestorKey,
+      x: 1482.265625,
+      group: false,
+    });
   });
 
   it("lies on a member's own card alone, never on the row an ancestor card draws of it", () => {

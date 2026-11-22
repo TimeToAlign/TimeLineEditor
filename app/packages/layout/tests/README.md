@@ -1237,8 +1237,26 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   `[[200, 38.5], [197, 51.5], [203, 51.5]]`, its cross-section from `37 −
   21 = 16` to 37; the root's (children band from 7 to 35) from 16 to 51,
   its wedge `[[200, 52.5], [197, 65.5], [203, 65.5]]` below, uncrossed;
-- an ancestor line (`group_child_member`'s `piece`) and a key naming no
-  line have neither;
+- an ancestor line, which draws no named timestamp, has no cross-section
+  line but the mark its marks are drawn as (section 8.3): always above the
+  line, its tip on the line's edge, `y − w / 2`, `w` the drawn ancestor
+  line's stroke width, its base 13 further up, turned by its style's
+  `rotation`, in the style of the unnamed wedge of its member's line in
+  the same card. In `group_child_member` `piece`'s ancestor line in
+  `second-half`'s card lies at 67.78125 (`w` 3, defaults' ancestor stroke
+  width), so at 100 the mark is `[[100, 66.28125], [97, 53.28125], [103,
+  53.28125]]` (`67.78125 − 1.5`, then 13 up, `∓ 3` across), styled as
+  `second-half`'s unnamed wedge: fill `#000000` (the defaults' wedge
+  rule), opacity 1 (not inside the ancestor line, so not faded), stroke
+  `#00CC00` (the logical domain), turned 0. A rule hiding the drawn mark of
+  `second-half`'s start and one recolouring and turning the mark of its end
+  (each naming its address) change nothing of it: the hover mark depends on
+  no styled element. A rule on every wedge (`{element: wedge}` with fill
+  `#123456`, naming no address) recolours it, as it does every unnamed
+  wedge. What would be wrong: none (the hover on an ancestor line then shows
+  no mark), the mark of the member's start moved there (a rule on that
+  mark would hide or recolour the hover), or a mark below the line;
+- a key naming no line has neither;
 - in `nested`, an extra layer's rule `{element: wedge, within: clt_3}`
   setting `rotation` 90 turns `clt_3`'s mark at 200 about its tip (section
   6.6 at `s = 1`, `k = 0`: both corners 13 across, `3` and `−3` beyond
