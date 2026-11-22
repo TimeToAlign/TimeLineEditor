@@ -956,6 +956,25 @@ frame, clear of everything drawn on it (`framePoint` of the card's
 address), opens the timeline editor of `{block, id: piece}`, and the card
 is raised over the frame: its rectangle now follows the frame's.
 
+*Unfolded out of the member card* (decision record 0034; the arranger's
+tests README, "A raised card unfolding", derives the motion). The page
+records, on every change of the block's node, whether the raised card's
+layer (`g.tilie-raised`) was moving (`data-unfolding`) and the
+`transform` of `middle`'s line in the layer when the layer first
+appears. Before: no layer, the card behind the frame. After the
+double-click and once the editor is open, at rest: one layer, neither
+moving nor clipped (no `clip-path`, no `clipPath` in the node), no
+element in it carrying a `transform`, `middle`'s line at `y1` its row in
+the card (layout's `lineAxes` of the page's drawing, the axis carrying
+`ancestor`), the card after the frame. On the way, the layer moved, and
+it first showed `middle`'s line shifted by `translate(0 <s>)`, `s` its
+row in the member card less its row in the card (both from `lineAxes`,
+written as the writers write numbers): it started on the member card's
+row. After Done, at rest: no layer, the card behind the frame, and the
+layer moved on its way back. Under `prefers-reduced-motion: reduce` the
+same double-click and Done switch at once: the layer never moves and
+first appears unshifted, so no `transform` is recorded.
+
 *Read by Show coordinates* (the points and values derived in the arranger's
 tests README, "Show coordinates", on the same drawing). The points are
 drawing points of the block placed where the arranger puts its node (the
