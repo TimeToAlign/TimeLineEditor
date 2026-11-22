@@ -75,6 +75,34 @@ def post(server: TestClient, route: str, content: bytes) -> Any:
     return server.post(route, headers=headers, content=content)
 
 
+def assert_refused_in_timetoshares_words(
+    response: Any,
+    path: list[Any],
+    contains: list[str],
+    problems: list[dict[str, Any]] | None = None,
+) -> None:
+    """A 422 whose message is TimeToShare's: the status, the path and the problems'
+    codes, rows and columns are exact; the words are TimeToShare's to rephrase, so
+    only the substrings that name what is refused are asserted. A problem's message
+    is the answer's message."""
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["path"] == path
+    for text in contains:
+        assert text in detail["message"]
+    if problems is None:
+        assert set(detail) == {"path", "message"}
+        return
+    assert set(detail) == {"path", "message", "problems"}
+    assert [
+        {key: value for key, value in problem.items() if key != "message"}
+        for problem in detail["problems"]
+    ] == problems
+    assert [problem["message"] for problem in detail["problems"]] == [
+        detail["message"]
+    ] * len(problems)
+
+
 def belief(claim: str, actor: str, word: str, date: str = DAY) -> dict[str, Any]:
     return {"claim": claim, "actor": actor, "belief": word, "date": date}
 
@@ -248,16 +276,12 @@ def test_a_table_the_checks_refuse_is_refused(server: TestClient, route: str) ->
         {"claims": ["claim_1"]} if route == PROVENANCE else belief("claim_1", A, "true")
     )
     response = post(server, route, body(parameters, manifest=dumps(manifest).encode()))
-    problem = {
-        "code": "unknown_timeline",
-        "row": 14,
-        "column": ["timeline_a_id"],
-        "message": "the manifest has no timeline 'clt_2'",
-    }
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {"path": [], "message": problem["message"], "problems": [problem]}
-    }
+    assert_refused_in_timetoshares_words(
+        response,
+        [],
+        ["'clt_2'"],
+        [{"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"]}],
+    )
 
 
 COMPACT_A = "orcid:0000-0002-1825-0097"
@@ -497,16 +521,6 @@ def test_the_answer_is_a_table_the_table_route_reads(server: TestClient) -> None
             "a belief is one of the strings 'true', 'false', 'unlikely'",
         ),
         (
-            belief("claim_1", A, "true", "2026-02-30"),
-            ["date"],
-            "'2026-02-30' is no Gregorian calendar date written YYYY-MM-DD",
-        ),
-        (
-            belief("claim_1", A, "true", "20261122"),
-            ["date"],
-            "'20261122' is no Gregorian calendar date written YYYY-MM-DD",
-        ),
-        (
             {**belief("claim_1", A, "true"), "date": 20261122},
             ["date"],
             "a date is a string written YYYY-MM-DD",
@@ -528,8 +542,6 @@ def test_the_answer_is_a_table_the_table_route_reads(server: TestClient) -> None
         "numeric actor",
         "unknown belief",
         "boolean belief",
-        "no day",
-        "no date form",
         "numeric date",
         "unknown parameter",
         "missing parameter",
@@ -543,29 +555,24 @@ def test_a_belief_the_route_cannot_record_is_refused(
     assert response.json() == {"detail": {"path": path, "message": message}}
 
 
+@pytest.mark.parametrize("date", ["2026-02-30", "20261122"], ids=["no day", "no form"])
+def test_a_date_that_is_no_day_is_refused_in_timetoshares_words(
+    server: TestClient, date: str
+) -> None:
+    response = post(server, BELIEF, body(belief("claim_1", A, "true", date)))
+    assert_refused_in_timetoshares_words(response, ["date"], [f"'{date}'"])
+
+
 def test_an_actor_that_is_no_iri_reference_makes_a_table_the_checks_refuse(
     server: TestClient,
 ) -> None:
     response = post(server, BELIEF, body(belief("claim_6", "not an iri", "true")))
-    assert response.status_code == 422
-    message = (
-        "the provenance #/beliefs/1/actor: 'not an iri' holds U+0020: "
-        "no whitespace and no control character is admitted here"
+    assert_refused_in_timetoshares_words(
+        response,
+        [],
+        ["#/beliefs/1/actor", "'not an iri'"],
+        [{"code": "invalid_provenance", "row": 5, "column": ["provenance"]}],
     )
-    assert response.json() == {
-        "detail": {
-            "path": [],
-            "message": message,
-            "problems": [
-                {
-                    "code": "invalid_provenance",
-                    "row": 5,
-                    "column": ["provenance"],
-                    "message": message,
-                }
-            ],
-        }
-    }
 
 
 # --- Both routes ----------------------------------------------------------------
@@ -694,10 +701,4 @@ def test_timetoalign_refusing_the_manifest_keeps_the_validators_path(
 ) -> None:
     manifest = fixture_manifest() + b"name: 5\n"
     response = post(server, route, body(parameters, manifest=manifest))
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {
-            "path": ["name"],
-            "message": "#/name: 5 is not of type 'string', 'null'",
-        }
-    }
+    assert_refused_in_timetoshares_words(response, ["name"], ["#/name", "5"])

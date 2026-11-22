@@ -10,6 +10,8 @@ import pkgutil
 from pathlib import Path
 from types import ModuleType
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 from fastapi.routing import APIRoute
 
@@ -17,8 +19,32 @@ import tilie_server.routers
 
 SCRIPT = Path(__file__).parent.parent / "scripts" / "record_answers.py"
 
+PARQUET_MAGIC = b"PAR1"
+"""The first four bytes of a Parquet file."""
+
 LOOKUP = "/api/reconcile/"
 """The MusicBrainz routes, the editor's lookup, which no recording covers."""
+
+
+def file_metadata(content: bytes) -> dict[bytes, bytes]:
+    """The key/value metadata of a Parquet file's footer, without the Arrow schema
+    entry the writer derives from the table."""
+    metadata = pq.read_metadata(pa.BufferReader(content)).metadata or {}
+    return {key: value for key, value in metadata.items() if key != b"ARROW:schema"}
+
+
+def assert_same_parquet_table(name: str, recorded: bytes, answered: bytes) -> None:
+    """The two files hold the same table: columns, values, the schema's and fields'
+    metadata and the footer's key/value metadata. The footer also names the writing
+    library's version (``created_by``), which is no part of the answer: a pyarrow
+    upgrade changes those bytes and no behaviour."""
+    tables = [
+        pq.read_table(pa.BufferReader(content)) for content in (recorded, answered)
+    ]
+    assert tables[0].equals(tables[1], check_metadata=True), (
+        f"{name} is not the route's answer"
+    )
+    assert file_metadata(recorded) == file_metadata(answered), name
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +76,9 @@ def test_every_recording_is_the_routes_answer(
             ]
             assert shapes[0] == shapes[1]
             assert set(shapes[0].values()) == {"str"}
+        elif recorded.startswith(PARQUET_MAGIC):
+            assert answered.startswith(PARQUET_MAGIC), name
+            assert_same_parquet_table(name, recorded, answered)
         else:
             assert recorded == answered, f"{name} is not the route's answer"
 

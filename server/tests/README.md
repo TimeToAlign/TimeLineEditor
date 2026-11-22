@@ -4,12 +4,22 @@ HTTP status, JSON bodies, headers, process output and exit codes are exact.
 Application tests use an in-process client at the configured loopback
 origin; command tests run the installed `tilie` script on a free loopback
 port. Installed package metadata is the oracle for the server's and
-timetoalign's versions; timetoshare's is the version marker its bundled
-schema demands of a manifest (`$defs.Manifest.properties.timetoshare.const`),
+timetoalign's versions; the `timetoshare` member is the schema version, the
+version marker its bundled schema demands of a manifest (`$defs.Manifest.properties.timetoshare.const`),
 since an editable install keeps the metadata of the version it was
 installed at. uvicorn's own log lines are the oracle for the access log and
 a graceful shutdown, and temporary directories stand in for built and
 missing editors.
+
+**Words that are timetoshare's.** A refusal worded by timetoshare (its
+manifest validator, its MatchClaim table checks, its date reader) is proved
+by what the server owns and what is stable: the status, the `path`, each
+problem's `code`, `row` and `column`, that each problem's message is the
+answer's message, and the substrings that name what is refused (the ID, the
+date or the offending text). The sentence around them is timetoshare's to
+rephrase, and a test that pinned it would fail on every rewording there
+while no behaviour of the server changed. The words the server itself
+words stay exact.
 
 ## Security and routes
 
@@ -18,7 +28,7 @@ missing editors.
 | `/api/` path without exactly `Authorization: Bearer <run token>` (missing, wrong, `Basic`, `bearer`, a doubled space, a trailing space, an unknown path) | 401 `{"detail": "missing or invalid token"}`, before routing |
 | foreign `Host` (also absent, sent through raw ASGI since the test client always supplies one) | 403 `{"detail": "forbidden host"}` |
 | foreign `Origin` | 403 `{"detail": "forbidden origin"}` |
-| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the version of the timetoshare imported; `"timetoshare": null` where timetoshare cannot be imported, whatever the import raises: an `ImportError`, or any other exception, proven by an import that raises `RuntimeError` |
+| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the schema version of the timetoshare imported (`SCHEMA_VERSION`, not the installed package's metadata); `"timetoshare": null` where timetoshare cannot be imported, whatever the import raises: an `ImportError`, or any other exception, proven by an import that raises `RuntimeError` |
 | authorized `GET /api/openapi.json` | 404 `{"detail": "Not Found"}`; a generated document is no part of the interface |
 | `GET /` without a built editor | 503 `{"detail": "app not built"}` |
 | `GET /` and assets of a built editor | 200, byte for byte, `index.html` as `text/html; charset=utf-8` |
@@ -269,15 +279,15 @@ Refusals, each 422 at the parameter's name with this message: `claim`
 `claim_99`, `the MatchClaim table has no MatchClaim 'claim_99'`; `actor`
 `""` or `3`, `an actor is named by a non-empty string`; `belief` `maybe`
 or the JSON `true`, `a belief is one of the strings 'true', 'false',
-'unlikely'`; `date` `2026-02-30`, timetoshare's `'2026-02-30' is no
-Gregorian calendar date written YYYY-MM-DD`; `date` `20261122`, the same
-words for that text; `date` 20261122 (a number), `a date is a string
+'unlikely'`; `date` `2026-02-30` or `20261122` (path `["date"]`), timetoshare's
+words, of which the text quoted in single quotes is asserted; `date` 20261122 (a number), `a date is a string
 written YYYY-MM-DD`; a parameter `note`, `'note' is no parameter of this
 route`; without `date`, `the parameter 'date' is missing`. An actor that is
 no IRI reference (`not an iri`) passes these and makes a table that
 TimeToShare's checks refuse: 422 with the one problem `invalid_provenance`
-at row 5, column `["provenance"]`, the check's message, which points at
-`#/beliefs/1/actor`: the new actor's belief follows A's.
+at row 5, column `["provenance"]`, whose message (timetoshare's, equal to
+the answer's) points at `#/beliefs/1/actor` and quotes `'not an iri'`: the
+new actor's belief follows A's.
 
 **The parameters**, for both routes: two bytes, `the body does not start
 with the parameters' length`; a prefix stating 100 bytes before 10, `the
@@ -591,10 +601,14 @@ editor's lookup, not the client's, and replay their own recordings.
 Two facts are proved. **Every recording is the route's answer:** the test
 runs the script into a temporary folder and compares each file with the
 committed one byte for byte, so a change of an answer fails until it is
-recorded again; the one exception is the health answer, whose values are
-the installed versions, compared by its member names and the JSON type of
+recorded again. Two exceptions: the health answer, whose values are the
+installed versions, is compared by its member names and the JSON type of
 each value (every one a string), since a version moves with every release
-and the answer's form does not. The folder holds exactly the recordings
+and the answer's form does not; and a Parquet answer (the belief route's)
+is compared as a table, with its columns, values, schema and field metadata
+and the footer's key/value metadata, since its footer also names the
+writing library's version (`parquet-cpp-arrow version …`), and a pyarrow
+upgrade must not fail a test while no answer changed. The folder holds exactly the recordings
 the script writes, no stale file. **Every route the client calls is
 recorded:** the methods and paths of the application's routes below
 `/api/`, the MusicBrainz ones aside, are exactly the recordings' methods
