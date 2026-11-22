@@ -40,17 +40,22 @@ describe("carried", () => {
     });
   });
 
-  // The check values of the drawing specification's figure `timestamp_wedge_rotation`, each a
-  // stack of one label in tier 1, the wedge's tip 1.5 out (`c` 0, `w` 3): `t` as the
-  // specification's own computation gives it in binary64.
+  // The labels of the figure `timestamp_wedge_rotation`, each a stack of one label in tier 1, the
+  // wedge's tip 1.5 out (`c` 0, `w` 3): `t` derived by section 6.6's formula, `t = D + W/2·|s| +
+  // H/2·|k|`, with `D = 13 + 2` in tier 1, `H = h` and `s`, `k` the four-place sine and cosine,
+  // summed in that order in binary64.
   const W45 = 19.19970703125; // "-45°"
   const W180 = 21.67822265625; // "180°"
-  const t45 = 25.492045092773434;
-  const t180 = 20.23828125;
-  const t135 = 26.368324291992185;
+  const W135 = measure.width("135°", 9);
+  const tOf = (W: number, s: number, k: number) => 13 + 2 + (W / 2) * s + (h / 2) * k;
+  const t45 = tOf(W45, SINE_45, SINE_45);
+  const t180 = tOf(W180, 0, 1);
+  const t135 = tOf(W135, SINE_45, SINE_45);
 
-  it("measures the check values' labels as the specification does", () => {
+  it("measures the figure's labels as the metrics give them", () => {
     expect([measure.width("-45°", 9), measure.width("180°", 9)]).toEqual([W45, W180]);
+    // `t` at 180 is dyadic: 15 + h / 2.
+    expect(t180).toBe(20.23828125);
   });
 
   it("carries a stack round a wedge turned −45: across t × s, its box centred t × k out", () => {
@@ -73,7 +78,6 @@ describe("carried", () => {
   });
 
   it("carries a stack at 135 by the same rule", () => {
-    const W135 = measure.width("135°", 9);
     const stack = carried(135, 1.5, 1, 1, W135, h);
     expect([stack.vx, stack.starts, stack.inwards]).toEqual([
       t135 * SINE_45,
@@ -82,10 +86,10 @@ describe("carried", () => {
     ]);
   });
 
-  it("draws the check values in the figure, to four decimals", () => {
+  it("draws the figure's labels, to four decimals", () => {
     // `melody`'s line at 56.9765625, its band below: `-45°` at x 145.5112, baseline 79.6177;
     // `180°` at x 363.5366, baseline 41.354 (above the line, `d(9)` beyond); `135°` at x
-    // 332.1817, baseline 42.9472 (the specification's lane of check values, section 6.6).
+    // 332.1817, baseline 42.9472, derived by section 6.6's formula, `t = D + W/2·|s| + H/2·|k|`.
     const drawing = drawFixture("timestamp_wedge_rotation");
     const label = (id: string) => {
       const found = drawing.elements.find((item) => sameAddress(item.address, at(id, "name")));

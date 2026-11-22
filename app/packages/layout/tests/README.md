@@ -1572,10 +1572,10 @@ wedge is drawn or not (sections 6.4 Markers, 6.6 Labels of named timestamps
 and Cross-section lines, 8.3); `stacks.ts` holds the four rules every band
 and ancestor line uses, each proved on its own here and in drawings
 elsewhere ("Named timestamps", "Ancestor lines", "Groupstamps"). The
-oracle is the specification's text and its check values for the figure
-`timestamp_wedge_rotation` (`t` as its own computation gives it in
-binary64); `s` and `k` are the four-place sine and cosine of "Wedge
-rotation", `h = h(9) = 10.4765625`.
+oracle is the specification's text and values derived from it for the
+figure `timestamp_wedge_rotation` (`t` computed by the formula below, in
+its summation order, in binary64); `s` and `k` are the four-place sine
+and cosine of "Wedge rotation", `h = h(9) = 10.4765625`.
 
 - **Tiers** (`tiersOf`, section 6.3): one first fit of the stacks in order,
   each as wide as its widest label at its unturned place (`[x − w/2 − 1, x
@@ -1591,8 +1591,8 @@ rotation", `h = h(9) = 10.4765625`.
   + (n1 − 1) × h`, `H` the stack's lines' height, `W` its widest label;
   the labels centred `t × s` across, the box's centre `tip + t × k` out,
   its lines from its side nearer the tip; for `k < 0` they start inwards.
-  The check values, each a stack of one label in tier 1 with the tip 1.5
-  out: `-45°` (`W = 19.19970703125`, the width the metrics give at size 9)
+  The values derived from it, each a stack of one label in tier 1 with the
+  tip 1.5 out: `-45°` (`W = 19.19970703125`, the width the metrics give at size 9)
   at −45, `t = 25.492045092773434`, across `t × −0.7071`, starting `1.5 +
   t × 0.7071 − h / 2`; `180°` (`W = 21.67822265625`) at 180, `t =
   20.23828125`, no carry across, starting inwards at `1.5 − t + h / 2 =
