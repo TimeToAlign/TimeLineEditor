@@ -665,6 +665,24 @@ function linesHolding(
 }
 
 /**
+ * The lines of the cards of the root `raised` (`raisedRoot`) drawing the
+ * timeline `timeline`, in `lineAxes`' order: its own line there, else the
+ * line whose segment it is (`linesHolding`); none where `raised` is `null`
+ * or those cards do not draw it. A raised card draws its rows over every
+ * frame, so a timeline drawn there is read there first: its places
+ * (`drawnOn`) and a group's member read by the group (`withGroupMembers`).
+ */
+function liftedHoldings(drawing: Drawing, timeline: string, raised: string | null): Holding[] {
+  if (raised === null) return [];
+  return linesHolding(
+    [...markedOf(drawing)].filter(
+      ([, axis]) => axis.ancestor !== undefined && axis.card.member === raised,
+    ),
+    timeline,
+  );
+}
+
+/**
  * A line a timeline is drawn on (`drawnOn`): a holding, with the key of
  * the line whose cross-section line a coordinate drawn there is drawn as
  * (layout's `crossSectionSegment`): the line's own, or on an ancestor line,
@@ -703,15 +721,10 @@ function drawnOn(drawing: Drawing, timeline: string, raised: string | null): Dra
           ? [{ key, axis, offset: ZERO, length: null, section: member }]
           : [],
       );
-  const lifted =
-    raised === null
-      ? []
-      : linesHolding(
-          [...markedOf(drawing)].filter(
-            ([, axis]) => axis.ancestor !== undefined && axis.card.member === raised,
-          ),
-          timeline,
-        ).map((holding) => ({ ...holding, section: holding.key }));
+  const lifted = liftedHoldings(drawing, timeline, raised).map((holding) => ({
+    ...holding,
+    section: holding.key,
+  }));
   const first = new Set(lifted.map(({ key }) => key));
   return [...lifted, ...ancestors, ...held.filter(({ key }) => !first.has(key))];
 }
@@ -845,9 +858,12 @@ function markedKey(drawing: Drawing, axis: DrawnAxis): string | undefined {
  * so that its coordinate is the member's less its offset; an ancestor of it
  * likewise at the member's offset plus the ancestor's (negative) offset
  * divided by that scale, so that its coordinate is the member's less that
- * offset. Each is read at the ordinate of its line in the member's card. The
- * member holding
- * the anchor adds the crossed descendants it has beyond `spec`'s, unscaled.
+ * offset. Each is read at the ordinate of its line in the member's card,
+ * or, while `raised` (`raisedRoot`) names a root whose cards draw the
+ * member, on the card's row of it (`liftedHoldings`), as its own reading is
+ * placed there first (`placesAt`): its ancestors and crossed descendants
+ * then those of that row. The member holding the anchor adds the crossed
+ * descendants it has beyond `spec`'s, unscaled.
  * A timeline already in `spec` or added, a member card whose drawn end is 0
  * and an anchor whose member card is not among `spec`'s timelines are
  * passed over. The one reading of a groupstamp's members: a named
@@ -859,6 +875,7 @@ function withGroupMembers(
   manifest: Manifest,
   drawing: Drawing,
   holds: (axis: DrawnAxis) => boolean,
+  raised: string | null,
 ): CrossSectionSpec {
   const offsets = new Map<string, Real>([
     [spec.anchor.timeline, ZERO],
@@ -876,9 +893,12 @@ function withGroupMembers(
    * ancestors, then its crossed descendants, at `offset` and `scale`.
    */
   const read = (line: DrawnAxis, offset: Rational, scale: Rational | undefined): void => {
-    const key = markedKey(drawing, line);
+    const timeline = line.address.id;
+    const [lifted] = timeline === undefined ? [] : liftedHoldings(drawing, timeline, raised);
+    const key = lifted?.key ?? markedKey(drawing, line);
     if (key === undefined) return;
-    const { card, root, descendants } = crossedSubtree(manifest, drawing, key);
+    const segment = lifted !== undefined && lifted.length !== null ? timeline : undefined;
+    const { card, root, descendants } = crossedSubtree(manifest, drawing, key, segment);
     if (scale !== undefined) {
       add({ ...root, offset, scale });
       for (const ancestor of ancestorMembers(manifest, root.timeline)) {
@@ -930,17 +950,22 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
  * The cross-section a timestamp at the value `position` (exact, on its own
  * axis) of `timeline` of `manifest`, block `block`'s, drawn as `drawing`,
  * is read with, its timeline the anchor, `raised` naming the root whose
- * ancestor cards are raised (`raisedRoot`), else `null`: on the line of
- * its first place (`placesAt`, `crossSectionSpec` anchored on it: on an
- * ancestor line the cross-section of the member's line below it, as the
- * pointer reads it there), else, where it has none, on the first marked
+ * ancestor cards are raised (`raisedRoot`), else `null`: on the line keyed
+ * `preferred` (the line it was read on) while that line is one of its
+ * places (`placesAt`), else on the line of its first place
+ * (`crossSectionSpec` anchored on it: on an ancestor line the
+ * cross-section of the member's line below it, as the pointer reads it
+ * there), else, where it has none, on the first marked
  * line holding the timeline (`holdings`; a segment without a line of its
  * own on its segment line's line), so its members are its ancestors and
  * the timelines of its own subtree that line crosses, each with the maps
  * drawn at the crossed lines; where no line holds the timeline (a hidden
  * line), with all its own maps and its ancestors alone as members. The one
  * spec of a timestamp read at a timeline rather than at a hovered line, so
- * a timestamp named from a reading is read back as the reading was.
+ * a timestamp named from a reading is read back as the reading was: the
+ * rows depend on the line read (another card orders them by other
+ * ordinates; an ancestor line lists no maps), so a reading at any place
+ * and the pin made from it read alike.
  */
 function timelineSpec(
   manifest: Manifest,
@@ -950,8 +975,10 @@ function timelineSpec(
   position: Rational,
   granularity: Granularity,
   raised: string | null,
+  preferred: string | null,
 ): CrossSectionSpec {
-  const [place] = placesAt(drawing, timeline.id, position, raised);
+  const places = placesAt(drawing, timeline.id, position, raised);
+  const place = places.find(({ key }) => key === preferred) ?? places[0];
   const key = place?.key ?? holdings(drawing, timeline.id)[0]?.key;
   return key === undefined
     ? {
@@ -974,8 +1001,10 @@ function timelineSpec(
  * coordinate of a potential MatchStamp with it, `groupstamp` what naming
  * stores, so they list exactly the rows the Timestamp tab lists for the
  * timestamp naming stores at that coordinate. `knots` as `timestampAt`
- * takes them, `raised` as `timelineSpec` takes it; `null` where the
- * manifest holds no timeline `timeline`.
+ * takes them, `raised` and `preferred` (the line the position was read on,
+ * `null` for none) as `timelineSpec` takes them; `null` where the manifest
+ * holds no timeline `timeline`. Read at a place of the position with that
+ * place's line preferred, it lists the rows a reading there lists.
  */
 export function timelinePin(
   manifest: Manifest,
@@ -987,20 +1016,63 @@ export function timelinePin(
   knots: Knots,
   groupstamp = false,
   raised: string | null = null,
+  preferred: string | null = null,
 ): Pin | null {
   const found = findTimeline(manifest, timeline);
   if (found === undefined) return null;
-  const spec = timelineSpec(manifest, block, drawing, found, position, granularity, raised);
+  const spec = timelineSpec(
+    manifest,
+    block,
+    drawing,
+    found,
+    position,
+    granularity,
+    raised,
+    preferred,
+  );
   const holds = (axis: DrawnAxis) => axis.marker !== null && axis.address.id === timeline;
-  const read = groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
+  const read = groupstamp ? withGroupMembers(spec, manifest, drawing, holds, raised) : spec;
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named: null };
+}
+
+/**
+ * The unnamed pin `pin` of block `manifest`'s drawing `drawing` read again
+ * at its anchor's timeline and position (`timelinePin`), as when the
+ * raised card changes under it (`raised`, `raisedRoot`): with its knots,
+ * its granularity and its group reading (`readsGroup`), on the line keyed
+ * `preferred` (the line it was read on) while that line is still a place
+ * of its position, else at its first place; `null` where the manifest no
+ * longer holds its anchor's timeline.
+ */
+export function rereadPin(
+  manifest: Manifest,
+  drawing: Drawing,
+  pin: Pin,
+  raised: string | null,
+  preferred: string | null,
+): Pin | null {
+  const [anchor] = pin.timestamp.parts;
+  if (anchor === undefined) return null;
+  return timelinePin(
+    manifest,
+    pin.spec.block,
+    drawing,
+    pin.spec.anchor.timeline,
+    toRational(anchor.position),
+    pin.spec.granularity,
+    pin.knots,
+    readsGroup(pin),
+    raised,
+    preferred,
+  );
 }
 
 /**
  * The pin of the named timestamp `id` of `manifest`, block `block`'s,
  * drawn as `drawing`: its timeline the anchor, at its coordinate, read with
  * the cross-section of its timeline at its place there (`timelineSpec`,
- * `raised` naming the root whose ancestor cards are raised, else `null`),
+ * `raised` naming the root whose ancestor cards are raised, else `null`,
+ * `preferred` the line it was named from, `null` where it is not known),
  * so the Timestamp tab of a timestamp named from a reading lists what the
  * reading's flag listed. A groupstamp's adds the other members of its
  * groups' frames, read by the group (`withGroupMembers`): the Timestamp tab
@@ -1015,15 +1087,25 @@ export function namedPin(
   granularity: Granularity,
   knots: Knots,
   raised: string | null = null,
+  preferred: string | null = null,
 ): Pin | null {
   const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
   const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
   if (named === undefined || timeline === undefined) return null;
   const position = namedCoordinate(named, timeline);
-  const spec = timelineSpec(manifest, block, drawing, timeline, position, granularity, raised);
+  const spec = timelineSpec(
+    manifest,
+    block,
+    drawing,
+    timeline,
+    position,
+    granularity,
+    raised,
+    preferred,
+  );
   const holds = (axis: DrawnAxis) =>
     axis.marker?.timestamps.some((item) => item.id === named.id) ?? false;
-  const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
+  const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds, raised) : spec;
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named };
 }
 
@@ -1174,6 +1256,7 @@ export function readingAt(
         block.manifest,
         drawing,
         (line) => line.marker !== null && line.address.id === axis.timeline,
+        raisedRoot(block, node.data.editing),
       )
     : crossing;
   const knots = options.knotsOf?.(block.manifest) ?? "no_server";

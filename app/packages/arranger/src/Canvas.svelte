@@ -102,10 +102,13 @@ interface Props {
   pinned?: Pin | null;
   /**
    * While "Show coordinates" is on, called with the pin a click on a line
-   * or a map makes, and with `null` on any other click on the canvas;
-   * called with `null` when "Show coordinates" is turned off.
+   * or a map makes and the key of the line it was read on (in layout's
+   * `lineAxes`; a pin read again there, `timelinePin` with that line
+   * preferred, and the timestamp named from it list the same rows), and
+   * with `null` on any other click on the canvas; called with `null` when
+   * "Show coordinates" is turned off.
    */
-  oncoordinatepin?: (pin: Pin | null) => void;
+  oncoordinatepin?: (pin: Pin | null, line: string | null) => void;
   /**
    * The expanded MeasureMaps of a manifest, given its text (the server's
    * measure-maps route), or why the server gave none (`MeasureMapsAnswer`);
@@ -575,7 +578,7 @@ function pinOnRelease(event: PointerEvent) {
   const read = point === null ? null : readingOf(point);
   pinnedLine = read?.hit.key ?? null;
   announced = read === null ? "" : `Pinned ${placeText(read.pin.timestamp)}`;
-  oncoordinatepin?.(read?.pin ?? null);
+  oncoordinatepin?.(read?.pin ?? null, pinnedLine);
 }
 
 /** Turn "Show coordinates" on or off, "Show matches" off with it on; turned off, the pin is cleared. */
@@ -589,7 +592,7 @@ function setCoordinates(next: boolean): void {
   frames.cancel();
   hover = null;
   announced = "";
-  oncoordinatepin?.(null);
+  oncoordinatepin?.(null, null);
 }
 
 /** The line a click last pinned on, so a pinned timestamp stays marked on that card's line. */
