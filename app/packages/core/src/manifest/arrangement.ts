@@ -122,7 +122,7 @@ export function anchorsOf(manifest: Manifest): readonly Anchor[] {
       (item) => !item.ancestor && item.timeline.id === member.timeline.id,
     );
     if (line === undefined || line.end === null) {
-      throw new Error(`'${member.timeline.id}' is drawn in the card of its root`);
+      throw new Error(`'${member.timeline.id}' has no end in the card of its root`);
     }
     return {
       group: group.id,
@@ -147,6 +147,7 @@ interface Edge {
  * `nodes` ordered so that every edge's `from` precedes its `to`, of the
  * nodes free to go next always the first in `nodes`' order; else a cycle,
  * as its edges, starting at the first node of the cycle in `nodes`' order.
+ * Nodes that only follow a cycle take no part in it.
  * Of several edges between two nodes, the first in `edges` names the reason.
  */
 function sorted(
@@ -155,11 +156,13 @@ function sorted(
 ): { readonly order: readonly string[] } | { readonly cycle: readonly Edge[] } {
   const rank = new Map(nodes.map((node, index) => [node, index]));
   const out = new Map<string, Edge[]>(nodes.map((node) => [node, []]));
+  const into = new Map<string, Edge[]>(nodes.map((node) => [node, []]));
   const before = new Map<string, number>(nodes.map((node) => [node, 0]));
   for (const edge of edges) {
     const list = out.get(edge.from);
     if (list === undefined || list.some((item) => item.to === edge.to)) continue;
     list.push(edge);
+    into.get(edge.to)?.push(edge);
     before.set(edge.to, (before.get(edge.to) ?? 0) + 1);
   }
   const order: string[] = [];
@@ -172,19 +175,42 @@ function sorted(
     for (const edge of out.get(next) ?? []) before.set(edge.to, (before.get(edge.to) ?? 0) - 1);
   }
   if (order.length === nodes.length) return { order };
-  // Every node left has an edge from another node left: walk them until one repeats.
-  const left = (edge: Edge) => !placed.has(edge.to);
+  // Every node left has an edge from another node left, but a node only
+  // following a cycle may have none to one: strip those, last first, so that
+  // every node still left has an edge to another, then walk them until one
+  // repeats.
+  const left = new Set(nodes.filter((node) => !placed.has(node)));
+  const after = new Map(
+    [...left].map((node) => [
+      node,
+      (out.get(node) ?? []).filter((edge) => left.has(edge.to)).length,
+    ]),
+  );
+  const ends = [...left].filter((node) => after.get(node) === 0);
+  for (let end = ends.pop(); end !== undefined; end = ends.pop()) {
+    left.delete(end);
+    for (const edge of into.get(end) ?? []) {
+      if (!left.has(edge.from)) continue;
+      const count = (after.get(edge.from) ?? 0) - 1;
+      after.set(edge.from, count);
+      if (count === 0) ends.push(edge.from);
+    }
+  }
+  const onward = (edge: Edge) => left.has(edge.to);
   const byRank = (a: Edge, b: Edge) => (rank.get(a.to) ?? 0) - (rank.get(b.to) ?? 0);
   const start = present(
-    nodes.find((node) => !placed.has(node)),
-    "a node left",
+    nodes.find((node) => left.has(node)),
+    "a node on a cycle",
   );
   const walked: Edge[] = [];
   const seen = new Map<string, number>();
   let at = start;
   while (!seen.has(at)) {
     seen.set(at, walked.length);
-    const edge = present((out.get(at) ?? []).filter(left).sort(byRank)[0], `an edge from '${at}'`);
+    const edge = present(
+      (out.get(at) ?? []).filter(onward).sort(byRank)[0],
+      `an edge from '${at}'`,
+    );
     walked.push(edge);
     at = edge.to;
   }

@@ -393,6 +393,26 @@ describe("the rules of items side by side", () => {
       roots: ["S", "R"],
       reason: 'on "S" "G2" comes first, on "R" "G1"',
     });
+    // G3 lies after both on R, so only follows the cycle.
+    const followed = built({
+      roots: {
+        R: [
+          ["r1", 0, 10],
+          ["r2", 20, 10],
+          ["r3", 50, 10],
+        ],
+        S: [
+          ["s1", 20, 10],
+          ["s2", 0, 10],
+        ],
+      },
+      groups: { G1: ["r1", "s1"], G2: ["r2", "s2"], G3: ["r3"] },
+    });
+    expect(conflict(followed, ["G3", "G1", "G2"])).toEqual({
+      groups: ["G1", "G2"],
+      roots: ["R", "S"],
+      reason: 'on "R" "G1" comes first, on "S" "G2"',
+    });
     const three = built({
       roots: {
         R: [
@@ -431,11 +451,29 @@ describe("the rules of items side by side", () => {
       },
       groups: { G1: ["r1", "s1"], G2: ["s2", "r2"] },
     });
-    expect(conflict(manifest)).toEqual({
+    const cycle = {
       groups: ["G1", "G2"],
       roots: ["R", "S"],
       reason: '"G1" holds "R" above "S", "G2" holds "S" above "R"',
+    };
+    expect(conflict(manifest)).toEqual(cycle);
+    // A comes first by ID and only follows the cycle: G3 holds R above it.
+    const below = built({
+      roots: {
+        A: [["a1", 0, 10]],
+        R: [
+          ["r1", 0, 10],
+          ["r2", 20, 10],
+          ["r3", 40, 10],
+        ],
+        S: [
+          ["s1", 0, 10],
+          ["s2", 20, 10],
+        ],
+      },
+      groups: { G1: ["r1", "s1"], G2: ["s2", "r2"], G3: ["r3", "a1"] },
     });
+    expect(conflict(below)).toEqual(cycle);
   });
 
   it("tells a drop that changes an anchor", () => {

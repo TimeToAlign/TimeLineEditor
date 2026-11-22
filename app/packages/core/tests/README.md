@@ -42,7 +42,9 @@ installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
 through commands, or by changing the fixture's value before loading it
 (lifting a lock by stating `locked: false` is one such change). Core holds
 no manifest literal of its own except where a rejection or a single rule
-is asserted, and never names one like a fixture. So the suite proves core
+is asserted, and the arrangement cases, built by `arrangement.test.ts`'s
+builder until fixtures hold their shapes (section "Arrangements"); it never
+names one like a fixture. So the suite proves core
 against whatever TimeToShare ships. The manifests named most often:
 
 - `bare.yaml`: root `bare` "Bare", 8 quarters.
@@ -2719,7 +2721,10 @@ where things lie on the canvas is layout's. What proves each part:
   of: two stretches overlapping on a root (the first such root by ID, the
   first pair in the stored order), the stretches ordering the groups in a
   cycle, the groups ordering the roots in a cycle; a cycle is named from
-  its first group (or root) in the stored order (or by ID).
+  its first group (or root) in the stored order (or by ID). A group or root
+  that only follows a cycle, which it lies after, takes no part in it: the
+  conflict is the cycle's alone, whatever comes first in the stored order
+  or by ID.
 - **The commands** are proven by the block or workspace a `set` leaves
   (the exact `arrangement` member, or its absence), the exact code, path
   and message of a refusal, and the journal of the store (one entry per
@@ -2805,10 +2810,18 @@ text does (`5–10 ♩`).
     s1[0,10]]`, `G3 [s2[20,30], t1[0,10]]`: `{groups: [G1, G2, G3], roots:
     [R, S, T], reason: "on \"R\" \"G1\" comes before \"G2\", on \"S\"
     \"G2\" before \"G3\", on \"T\" \"G3\" before \"G1\""}`.
+    A group after the cycle: the two-group case plus `G3 [r3[50,60]]`
+    (after `G1` and `G2` on `R`), stored `[G3, G1, G2]`: exactly the
+    two-group conflict named from `G1`, `{groups: [G1, G2], roots: [R, S],
+    reason: "on \"R\" \"G1\" comes first, on \"S\" \"G2\""}`.
 15. **The groups order the roots in a cycle.** `G1 [r1[0,10], s1[0,10]]`,
     `G2 [s2[20,30], r2[20,30]]`: `{groups: [G1, G2], roots: [R, S],
     reason: "\"G1\" holds \"R\" above \"S\", \"G2\" holds \"S\" above
-    \"R\""}`.
+    \"R\""}`. A root below the cycle that comes first by ID: the same plus
+    the root `A` (its children `a…`) and `G3 [r3[40,50], a1[0,10]]`, which
+    holds `R` above `A`: exactly the same conflict, `{groups: [G1, G2],
+    roots: [R, S], reason: "\"G1\" holds \"R\" above \"S\", \"G2\" holds
+    \"S\" above \"R\""}`.
 16. **A drop that changes an anchor.** On case 2's manifest,
     `anchorChange(manifest, G1, [r2, r1])` is `would anchor "r2" on "R"
     instead of "r1"`; `[r1, r2]` gives `null`. On case 8's first manifest,
