@@ -55,10 +55,14 @@ export interface LineAxis {
 
 /**
  * The key of a drawn line: the place key text of the card `card` drawing it followed by the
- * address key of its timeline's address `address`.
+ * address key of its timeline's address `address`, and, from a line's second full run between
+ * strips on, the run's number.
  */
-const axisKey = (card: PlaceKey, address: ElementAddress): string =>
-  placeKeyText(card) + addressKey(address);
+const axisKey = (card: PlaceKey, address: ElementAddress, run?: number): string =>
+  placeKeyText(card) + addressKey(address) + (run === undefined ? "" : `#${run}`);
+
+/** The key of a drawn axis, as `lineAxes` keys it. */
+const keyOf = (axis: DrawnAxis): string => axisKey(axis.card, axis.address, axis.run);
 
 /**
  * Every drawn line of `drawing` (its `axes`, in their order) for a hit test,
@@ -86,7 +90,7 @@ export function lineAxes(drawing: Drawing): ReadonlyMap<string, LineAxis> {
         maps: axis.maps,
         ...(axis.ancestor === undefined ? {} : { ancestor: axis.ancestor }),
       };
-      return [[axisKey(axis.card, axis.address), line]];
+      return [[keyOf(axis), line]];
     }),
   );
 }
@@ -129,7 +133,7 @@ function markedLine(
   drawing: Drawing,
   lineKey: string,
 ): { readonly axis: DrawnAxis; readonly marker: AxisMarker } | null {
-  const axis = drawing.axes.find((each) => axisKey(each.card, each.address) === lineKey);
+  const axis = drawing.axes.find((each) => keyOf(each) === lineKey);
   return axis === undefined || axis.marker === null ? null : { axis, marker: axis.marker };
 }
 
@@ -230,7 +234,8 @@ export function timestampSegments(axes: readonly DrawnAxis[], id: string): Cross
  * crosses, as keys of `lineAxes`: that line's first, then those of its
  * timeline's displayed descendants drawn with a line of their own in the
  * same member drawing, in traversal order (section 6.1), every one lying in
- * its children band. A segment without a line of its own is no line: it
+ * its children band, each with every full run it is drawn in between
+ * strips, from the left. A segment without a line of its own is no line: it
  * lies on its segment line's axis (`LineAxis.segments`). None where the key
  * names no line, or an ancestor line.
  */
@@ -238,7 +243,35 @@ export function crossedLines(drawing: Drawing, lineKey: string): readonly string
   const marked = markedLine(drawing, lineKey);
   if (marked === null) return [];
   const { axis, marker } = marked;
-  return [lineKey, ...marker.descendants.map((id) => axisKey(axis.card, idAddress(id)))];
+  const runs = runsOf(drawing);
+  return [
+    lineKey,
+    ...marker.descendants.flatMap((id) => {
+      const first = axisKey(axis.card, idAddress(id));
+      return runs.get(first) ?? [first];
+    }),
+  ];
+}
+
+const runKeys = new WeakMap<Drawing, ReadonlyMap<string, readonly string[]>>();
+
+/**
+ * The keys of every drawn line of `drawing` by the key of its first run: a
+ * line drawn in runs between strips has one per run, from the left; memoised
+ * by the drawing.
+ */
+function runsOf(drawing: Drawing): ReadonlyMap<string, readonly string[]> {
+  const known = runKeys.get(drawing);
+  if (known !== undefined) return known;
+  const runs = new Map<string, string[]>();
+  for (const axis of drawing.axes) {
+    const first = axisKey(axis.card, axis.address);
+    const keys = runs.get(first);
+    if (keys === undefined) runs.set(first, [keyOf(axis)]);
+    else keys.push(keyOf(axis));
+  }
+  runKeys.set(drawing, runs);
+  return runs;
 }
 
 /**
@@ -257,7 +290,7 @@ export function crossedLines(drawing: Drawing, lineKey: string): readonly string
  * names no line.
  */
 export function wedgeAt(drawing: Drawing, lineKey: string, x: number): WedgeMark | null {
-  const axis = drawing.axes.find((each) => axisKey(each.card, each.address) === lineKey);
+  const axis = drawing.axes.find((each) => keyOf(each) === lineKey);
   const wedge = axis?.marker?.wedge ?? axis?.mark;
   if (wedge === undefined || wedge === null) return null;
   const { style, ...geometry } = wedge;

@@ -73,8 +73,8 @@ describe("the drawing fixtures", () => {
     expect(directories).toEqual(cases.map((item) => item.name).sort());
   });
 
-  it("are 91", () => {
-    expect(directories.length).toBe(91);
+  it("are 99", () => {
+    expect(directories.length).toBe(99);
   });
 
   it("draw a timeline of two groups in a card of each, every address alike in both", () => {

@@ -68,6 +68,11 @@ export const HAND_DERIVED: readonly string[] = [
   "map_band_order_subset",
   "group__group_child_member_stamps",
   "group__group_grandchild_parent_on_top",
+  "group__group_elided_inside",
+  "group__group_elided_inside__full",
+  "group__group_grandchild__full",
+  "group__group_grandchild_parent_on_top__full",
+  "group__group_parents_mixed__full",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

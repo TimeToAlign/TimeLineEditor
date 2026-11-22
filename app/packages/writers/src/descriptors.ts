@@ -179,25 +179,17 @@ function writerOf(element: DrawnElement, index: number) {
       height: number,
       paint: Attributes,
       role?: DescriptorSource["role"],
-    ): RectDescriptor => ({
-      tag: "rect",
-      x,
-      y,
-      width,
-      height,
-      text: null,
-      ...written(
-        [
-          ["x", x],
-          ["y", y],
-          ["width", width],
-          ["height", height],
-          ["rx", style.rx],
-        ],
-        paint,
-        role,
-      ),
-    }),
+      rounded = true,
+    ): RectDescriptor => {
+      const geometry: Attribute[] = [
+        ["x", x],
+        ["y", y],
+        ["width", width],
+        ["height", height],
+      ];
+      if (rounded) geometry.push(["rx", style.rx]);
+      return { tag: "rect", x, y, width, height, text: null, ...written(geometry, paint, role) };
+    },
     line: (x1: number, y1: number, x2: number, y2: number): LineDescriptor => ({
       tag: "line",
       x1,
@@ -346,6 +338,15 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
       return [writer.line(element.x, element.y1, element.x, element.y2)];
     case "alignment_anchor":
       return [writer.line(element.x1, element.y1, element.x2, element.y2)];
+    case "elision": {
+      // Its strip, filled and not stroked, without corners; its rule; its continuations.
+      const { x1, x2, yt, yb } = element;
+      return [
+        writer.rect(x1, yt, x2 - x1, yb - yt, filled, "primary", false),
+        ...(element.rule ? [writer.line(x1, yt, x1, yb)] : []),
+        ...element.continuations.map((y) => writer.line(x1, y, x2, y)),
+      ];
+    }
     case "name":
     case "label":
       return [writer.text(element.x, element.baseline, element.anchor, element.text)];

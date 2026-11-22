@@ -11,8 +11,10 @@
  * control band, and three manifests whose ancestor cards, which the
  * defaults show, an application layer hides: a root reaching past its
  * member on both sides, one reaching past it to the right, and three roots
- * of three axes behind one frame. Each is also a drawing fixture of the
- * schema package (`fixtures/<version>/drawings/`).
+ * of three axes behind one frame; four manifests whose elided ancestor cards
+ * a rule draws whole, `{element: elision}` hidden; and one with its elisions
+ * drawn for a smaller view. Each is also a drawing fixture of the schema
+ * package (`fixtures/<version>/drawings/`).
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -201,19 +203,46 @@ export function reviewCases(): ReviewCase[] {
       hidden({ element: "ancestor_card" }),
     );
   }
+  for (const stem of [
+    "group_elided_inside",
+    "group_grandchild",
+    "group_grandchild_parent_on_top",
+    "group_parents_mixed",
+  ]) {
+    add(
+      `group__${stem}__full`,
+      `groups/${stem}`,
+      DEFAULT_PLACEMENT,
+      1,
+      hidden({ element: "elision" }),
+    );
+  }
+  add(
+    "bundle__bundle_elided_layerit__view-1024x640",
+    "bundles/bundle_elided_layerit",
+    at({ view: { width: 1024, height: 640 } }),
+  );
   return cases;
 }
 
 /**
  * The text of a case's `inputs.json`, in pretty JSON: everything `draw` and
- * the writers need besides the files, the manifest named by its file.
+ * the writers need besides the files, the manifest named by its file; the
+ * placement's `view` only where the case states one.
  */
 export function inputsText(item: ReviewCase): string {
-  const { length, spacing, width, height, places } = item.placement;
+  const { length, spacing, width, height, places, view } = item.placement;
   return dumps(
     {
       manifest: `${item.manifest}.yaml`,
-      placement: { length, spacing, width, height, places },
+      placement: {
+        length,
+        spacing,
+        width,
+        height,
+        places,
+        ...(view === undefined ? {} : { view }),
+      },
       scale: item.scale,
       layers: item.settings,
     },

@@ -31,6 +31,7 @@ import {
   boxesOf,
   drawFixture,
   edit,
+  FULL_CARDS,
   HIDDEN_ANCESTOR_CARDS,
   loadFile,
   manifestNames,
@@ -47,14 +48,18 @@ const plain = (name: string, extra: Graphical[] = []) =>
 /**
  * The number of ancestor cards each manifest fixture draws with the defaults (section 8.8, Which):
  * one per group and root of a child member, so two for the score of `bundle_shared_parent`
- * behind its two frames and three for the three roots behind the one frame of
- * `group_parents_mixed`; none for every fixture not listed.
+ * behind its two frames, three for the three roots behind the one frame of
+ * `group_parents_mixed` and four for the Suite behind the four frames of
+ * `bundle_elided_layerit`; none for every fixture not listed.
  */
 const ANCESTOR_CARDS: Readonly<Record<string, number>> = {
+  "bundles/bundle_elided_layerit": 4,
+  "bundles/bundle_elisions_stored": 2,
   "bundles/bundle_mixed": 1,
   "bundles/bundle_shared_parent": 2,
   "groups/group_child_member": 1,
   "groups/group_child_member_stamps": 1,
+  "groups/group_elided_inside": 1,
   "groups/group_grandchild": 1,
   "groups/group_grandchild_parent_on_top": 1,
   "groups/group_parent_both": 1,
@@ -222,7 +227,8 @@ describe("the ancestor card of group_parent_right", () => {
 });
 
 describe("the ancestor cards of group_parents_mixed", () => {
-  const drawing = shown("group_parents_mixed");
+  // Drawn whole: their strips are the subject of `elisions.test.ts`.
+  const drawing = shown("group_parents_mixed", [FULL_CARDS]);
 
   it("lie behind the one frame, one per root, at their own axes' proportions", () => {
     expect(drawing.origin).toEqual({ x: 423.5276884191177, y: 0 });
@@ -501,7 +507,8 @@ describe("an ancestor card and the alignment anchors", () => {
 });
 
 describe("the ancestor cards of bundle_shared_parent", () => {
-  const drawing = drawFixture("bundles/bundle_shared_parent");
+  // Drawn whole: their strips are the subject of `elisions.test.ts`.
+  const drawing = drawFixture("bundles/bundle_shared_parent", [FULL_CARDS]);
   const keys = [
     { item: "group_1", member: "score" },
     { item: "group_2", member: "score" },

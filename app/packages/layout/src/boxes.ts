@@ -199,6 +199,12 @@ export interface DrawnAxis {
    * member card of the frame.
    */
   readonly ancestor?: { readonly group: string; readonly member: string };
+  /**
+   * Set from the second full run on of a line drawn in runs between the strips of its card
+   * (sections 3.2 and 8.9): the run's number from 0, from the left. Every run is its own axis,
+   * linear, with its timeline's address.
+   */
+  readonly run?: number;
 }
 
 /**

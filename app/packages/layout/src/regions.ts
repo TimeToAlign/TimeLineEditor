@@ -23,7 +23,9 @@ import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
  * h(9) + S`, `S` the card spacing, 9 the largest font size of the band's drawn labels.
  * Drawn from its start `r0`, row `k` has its brace's arms `r0 + (k − 1) ×
  * pr` out, the tip 6 further and the label's ordinate 2 further again, each
- * distance summed whole first (section 6.6, Regions).
+ * distance summed whole first (section 6.6, Regions). A region whose start,
+ * end or midpoint lies in a strip is not drawn, nor is its label (section
+ * 6.6, Elisions).
  */
 export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
   const { owned, measured, relativeX, u, S, h } = scope;
@@ -67,8 +69,15 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
     ),
     draw: (start, side, at) => {
       const arms = (index: number) => start + (nth(row, index) - 1) * pr;
+      const drawn = placed.flatMap((item, index) =>
+        [item.region.start, item.region.end, item.middle].some(
+          (value) => at.strip(value) !== undefined,
+        )
+          ? []
+          : [{ ...item, index }],
+      );
       return {
-        regions: placed.map(({ region, middle }, index) => ({
+        regions: drawn.map(({ region, middle, index }) => ({
           type: "region",
           address: region.address,
           style: region.style,
@@ -78,7 +87,7 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
           yb: at.yAt(side, arms(index)),
           ya: at.yAt(side, arms(index) + BRACE),
         })),
-        regionLabels: placed.flatMap(({ region, middle, label }, index) =>
+        regionLabels: drawn.flatMap(({ region, middle, label, index }) =>
           label === undefined
             ? []
             : [

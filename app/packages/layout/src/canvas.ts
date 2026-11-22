@@ -123,6 +123,16 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         yt: y(element.yt),
         corners: scaledCorners(element.corners, scale, y),
       };
+    case "elision":
+      return {
+        ...element,
+        style,
+        x1: x(element.x1),
+        x2: x(element.x2),
+        yt: y(element.yt),
+        yb: y(element.yb),
+        continuations: element.continuations.map(y),
+      };
     case "name":
     case "label":
       return { ...element, style, x: x(element.x), baseline: y(element.baseline) };

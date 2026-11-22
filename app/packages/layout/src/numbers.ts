@@ -81,9 +81,10 @@ const LABEL_DECIMALS = 3;
  * A coordinate label (section 5.2): the pretty text of a value on an axis of
  * `numberType` and `unit`, rounded as a label is, to three places. An exact
  * value is an int on an int axis where it is integral, else a fraction; a
- * float value, a sum involving a float, is a float whatever the axis.
+ * float value, a sum involving a float, is a float whatever the axis. Without
+ * a unit, the text has no pretty unit.
  */
-export function coordinateText(value: Real, numberType: NumberType, unit: TimeUnit): string {
+export function coordinateText(value: Real, numberType: NumberType, unit: TimeUnit | null): string {
   if (typeof value === "number") return prettyText(value, "float", unit, LABEL_DECIMALS);
   return numberType === "int" && value.denominator === 1n
     ? prettyText(value.numerator, "int", unit, LABEL_DECIMALS)

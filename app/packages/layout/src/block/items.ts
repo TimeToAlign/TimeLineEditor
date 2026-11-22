@@ -47,11 +47,22 @@ export function titleElement(title: Title, x: number, baseline: number): TextEle
 
 /**
  * Draw each card of `item` at the columns: its member drawing's start `s0`, its top its card's;
- * `manifest` the manifest drawn, which its axes read.
+ * `manifest` the manifest drawn, which its axes read. A block-held card, an ungrouped root's,
+ * draws its stored elisions on its elided axis, those without `width` at its default proportion
+ * (section 8.9); a member's card draws none.
  */
 export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): ItemDrawing {
-  const drawn = item.cards.map((card) =>
-    card.layout.drawAt(s0, n, card.top, card.top + card.height),
+  const elided = item.cards.map((card) => {
+    if (item.frame !== null) return undefined;
+    const { elisions } = card.layout;
+    if (!elisions.stored) return undefined;
+    const pieces = elisions.storedPieces(null);
+    return pieces.length === 0
+      ? undefined
+      : elisions.axis(pieces, elisions.ungroupedProportion(pieces));
+  });
+  const drawn = item.cards.map((card, index) =>
+    card.layout.drawAt(s0, n, card.top, card.top + card.height, elided[index]),
   );
   return {
     item,
@@ -59,7 +70,8 @@ export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): It
     axes: item.cards.map((card, index) => {
       const { key } = card.ref;
       if (key === null) throw new Error("a card has no place key");
-      return axesOf(manifest, card.member, key, drawn[index] ?? EMPTY, s0, item.length);
+      const own = drawn[index] ?? EMPTY;
+      return axesOf(manifest, card.member, key, own, s0, item.length, elided[index]);
     }),
   };
 }

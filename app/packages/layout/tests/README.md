@@ -993,7 +993,13 @@ layout's existing values, which the figures of the drawings with the
 hiding layer pin (`group__group_parent_both__ancestor-cards-hidden` and
 the others, byte for byte); the defaults show the cards, and the layer
 `HIDDEN_ANCESTOR_CARDS`, `{rules: [{select: {element: ancestor_card}, set:
-{display: none}}]}`, hides them. The frame's start `s0` is section 8.2's: `n
+{display: none}}]}`, hides them. A card whose default proportion is below
+1 draws strips (section 8.9; "Elisions" below derives them); where its
+whole geometry is the subject, it is drawn with the layer `FULL_CARDS`,
+`{rules: [{select: {element: elision}, set: {display: none}}]}`, which
+draws every ancestor card whole (section 8.9, Elided and full), as
+`group_parent_both` and `group_parent_right` are with the defaults alone
+(`r = 1`). The frame's start `s0` is section 8.2's: `n
 = Q + K = 16`, plus the widest drawn name `N`, plus `G`, plus `8w = 24`
 when an ancestor line runs on to the left. Each card's own start is `s0' =
 K + N' + G`, `N'` the widest name of the root's own drawing; its width
@@ -1006,8 +1012,10 @@ coordinate label at the root's end).
    records carrying `ancestor` number one per group and root of a child
    member (section 8.8, Which): two in `bundle_shared_parent` (`score`
    behind both frames), three in `group_parents_mixed` (`sonata`,
-   `session`, `page`), one in `bundle_mixed`, `group_child_member`,
-   `group_child_member_stamps`, `group_grandchild`,
+   `session`, `page`), four in `bundle_elided_layerit` (the Suite behind
+   each of its four frames), two in `bundle_elisions_stored` (`score` and
+   `session`), one in `bundle_mixed`, `group_child_member`,
+   `group_child_member_stamps`, `group_elided_inside`, `group_grandchild`,
    `group_grandchild_parent_on_top`, `group_parent_both`,
    `group_parent_exact` and `group_parent_right`, none in any other. With
    `HIDDEN_ANCESTOR_CARDS` no element is an `ancestor_card`, no axis
@@ -1063,7 +1071,8 @@ coordinate label at the root's end).
    0)`, `W = 23.6162109375 + 881.08740234375 + 2 + 8 = 914.70361328125`,
    `H = 193.5390625`; top `36.20703125` as in case 2 (same rows).
 5. **`group_parents_mixed`** (one frame, display order `exposition`,
-   `take`, `system`, `audio`): three cards, in that order, behind it.
+   `take`, `system`, `audio`), drawn with `FULL_CARDS`: three cards, in
+   that order, behind it.
    `N = w("Exposition", 11) = 57.0302734375`, chevrons: `s0 =
    105.0302734375`. `sonata` (`ts = −16`, `λ = 32`, `λR = 48`): `us =
    −0.5`, `ue = 1`, `LA = 600`, `s0' = 8 + 57.0302734375 + 8 =
@@ -1087,10 +1096,11 @@ coordinate label at the root's end).
    labelled wedges);
    `W = 479.5389188878677 + 1243.3523763020833 + 2 + 8 =
    1732.891295189951`, `H` unchanged.
-6. **One hidden of several.** The same with `session`'s cards hidden by
-   `{addresses: [{id: session, part: [card]}]}` `display: none` in a
-   second layer: two cards, the block grown left to `sonata`'s only,
-   origin `(168, 0)`, nothing of `session` drawn but its ancestor line.
+6. **One hidden of several.** The same with the defaults, `session`'s
+   cards hidden by `{addresses: [{id: session, part: [card]}]}` `display:
+   none` in a second layer: two cards, the block grown left to `sonata`'s
+   only (drawn whole, `r = 1`), origin `(168, 0)`, nothing of `session`
+   drawn but its ancestor line.
 7. **No ancestor line.** With the ancestor lines hidden (`{element:
    ancestor}` `display: none`), `piece`'s card in `group_parent_both` lies
    on `middle`'s own line instead: its line's ordinate equals `middle`'s.
@@ -1142,7 +1152,7 @@ coordinate label at the root's end).
    records: one `alignment_anchor` is drawn, the hiding layer's moved by
    the origin.
 11. **`bundle_shared_parent`: one root behind two frames** (section 8.8,
-   Which). `score` (32 quarters) holds the members `exposition` (12 at 0)
+   Which), drawn with `FULL_CARDS`. `score` (32 quarters) holds the members `exposition` (12 at 0)
    of `group_1` and `recapitulation` (12 at 20) of `group_2`; no line runs
    on to the left of `exposition`, but `score` does to the left of
    `recapitulation`, so the block's one horizontal layout has the chevron
@@ -1210,6 +1220,148 @@ coordinate label at the root's end).
    card's top to the wedge's tip, `51.20703125 + 1.5 = 52.70703125`, and
    from its base, `65.70703125`, to the card's bottom; `crossedLines` is
    its key alone.
+
+## Elisions (`elisions.test.ts`)
+
+Sections 3.2 (the elided axis), 6.6 (Elisions), 7.2, 8.5, 8.8 and 8.9 are
+the oracle, at the default placement and view (`1280 × 720`, so `0.8 ×
+VW = 1024`, `0.8 × VH = 576`, `Z` the double nearest 5/7 and `B = 716.8`
+wherever `zG` exceeds `Z`). Every number is derived in binary64 in the
+order the specification writes it: a strip's natural width `n = LA × ub −
+LA × ua`, its drawn width `w = r × n` (or its stored form), its shrink `n −
+w`, `x(t) = s0' + (LA × u − D)` in the root's own drawing, `D` the shrinks
+of the strips ending at or before `t` summed from the left, then the card
+moved by `dx = (xs + DL) − s0'`, drawn at its frame's place `8` and moved
+by the origin: a drawn abscissa is `Ox + (8 + (dx + x))`. The same chain,
+computed apart from the layout (in Python's floats, exact proportions by
+`Fraction`), gave every abscissa below. Ordinates are those of the card
+drawn whole (strips move x only, section 3.2): a strip spans its card's
+rectangle, a continuation lies at its line's ordinate, a `name` label's
+baseline is `y − (w / 2 + 2) − d(9) = y − 5.62255859375` and a `coordinate`
+label's `y + (w / 2 + 2) + a(9) = y + 11.85400390625` (`w = 3`).
+
+1. **`group_grandchild`** (`theme` 8 at 8 in `movement` 16 at 16 in
+   `score` 64; the frame `543.70361328125 × 211.515625`, `x0 =
+   103.70361328125`, `σ = 8 + w("Movement", 11) + 8 = 74.265625`): `ts =
+   −24`, `EL = 24`, `ER = 32`; `zG = 1024 / 543.70361328125`, `zb = Z`,
+   `c = 271.851806640625`, `dl = 242.413818359375`, `dr =
+   239.851806640625`; the terms `λ / E = 8 / 56 = 0.14285714285714285`,
+   left `(716.8 − dl) / (400 × 3) = 0.39532181803385413`, right `(716.8 −
+   dr) / (400 × 4) = 0.29809262084960936`: `r = 0.14285714285714285`, set
+   by (a). Generation 2 holds `movement`, generation 1 `score`; the
+   protected span is 24 to 32. Three default elisions, from the left:
+   `{id: score, part: [elision]}` over 0–16, `{id: movement, part:
+   [elision]}` over 16–24 (0–8 on its own axis), `{id: score, part:
+   [elision]}` over 32–64; at `LA = 3200` natural widths 800, 400, 1600,
+   drawn `800 / 7`, `400 / 7`, `1600 / 7` in binary64, `DL =
+   1028.5714285714287`, `dx = −141.99058314732133`. Drawn: the origin
+   `(141.99058314732133, 0)`, the block `909.265625 × 227.515625`, the
+   card at `(8, 56.18359375)`, `891.265625 × 77.37890625` (`s0' + LA + Mr +
+   K` with `Mr = −2391`, the arrowhead past the elided end); the strips from
+   `x1` to `x2`: `82.265625` to `196.55133928571422`,
+   `196.55133928571422` to `253.69419642857133` and `653.6941964285713`
+   to `882.265625`, each from `56.18359375` to `133.5625`; only the second
+   has a rule (it starts where the first ends); the continuations `[119.16015625]`
+   (`score`), `[119.16015625, 105.16015625]` (`score`, then `movement`,
+   traversal order), `[119.16015625]`; each carries its stretch on its own
+   timeline: `score` 0–16, `movement` 0–8, `score` 32–64. Labels, strip by
+   strip, name then coordinate, centred on `(x1 + x2) / 2`
+   (`139.4084821428571`, `225.12276785714278`, `767.9799107142857`):
+   `Score` and `0–16 ♩` at `113.53759765625` and `131.01416015625`,
+   `Movement` and `0–8 ♩` at `99.53759765625` and `117.01416015625`,
+   `Score` and `32–64 ♩` as the first; addressed `{id: T, part: [elision,
+   name]}` and `[elision, coordinate]`. `score`'s line runs from
+   `82.265625` to `882.265625` (`800 = L + 400`, the frame's length and
+   the strips' widths), `movement`'s from `196.55133928571422` and
+   `theme`'s row from `253.69419642857133`, the frame's `x0` drawn.
+2. **Order** (section 8.5). In the card's range the strips follow the
+   last element of its member drawing, and their six labels follow the
+   strips; the frame comes after all of them.
+3. **`group_grandchild_parent_on_top`**: the same abscissas; the card at
+   `y = 56.78125`, the continuations at `119.7578125` (`score`) and
+   `71.78125` (`movement`), the labels of the `score` strips at
+   `114.13525390625` and `131.61181640625`, of the `movement` strip at
+   `66.15869140625` and `83.63525390625`.
+4. **`group_parents_mixed`**. `sonata` has `λ / E = 2`, `r = 1`: no
+   strip, its card drawn whole (`690.309326171875` wide). `session`:
+   `r = 25.5 / 64.5 = 0.3953488372093023`, strips 0.0–30.0 from
+   `94.98376180959303` to `281.0302734375` and 55.5–90.0 from
+   `681.0302734375001` to `894.9837618095931`, labelled `Session` and
+   `0″–30″`, `Session` and `55.5″–1′30″` (seconds are clocks at both
+   ends), no rule (they do not touch), each continuing `session`'s line at
+   `180.63671875`; its card at `x = 37.014035247093034`, `874.9697265625001`
+   wide. `page`: `r = 600 / 1154 = 0.5199306759098787`, one strip
+   600–1754 from `681.0302734375` to `1081.0302734375`, labelled `Page`
+   and `600–1 754 px`; its card at `224.01123046875`, `874.01904296875`
+   wide. The origin `(168, 0)` (`sonata`'s card is now the leftmost), the
+   block `1108.0302734375 × 384.4453125`.
+5. **`group_elided_inside`** (`excerpt` 8 at 8 in `first` 32 at 0 in
+   `piece` 64, beside `second` 32 at 32): generation 2 holds `first` and
+   `second`, which leave generation 1 nothing: three default elisions,
+   `first` 0–8, `first` 16–32, `second` 0–32, none on `piece`; `r = 1 / 7`
+   by (a); strips from `95.4248046875` to `152.5676618303571`, from
+   `552.5676618303571` to `666.8533761160713` and from there to
+   `895.4248046875`, the third with a rule, each continuing `piece`'s line
+   at `119.16015625` and its own row at `105.16015625`. The origin
+   `(40.86404854910711, 0)`, the block `922.4248046875 × 227.515625`, the
+   card `904.4248046875` wide.
+6. **Stored elisions** (`bundle_elisions_stored`). In `score`'s ancestor
+   card (`LA = 3200`, protected span 16–24): `elision_4` (0–20, `{ratio:
+   0.5}`) clipped to 0–16, 400 of 800 wide; `elision_5` (32–48, `{span: 4}`)
+   200 wide (`3200 × 4 / 64`); `elision_6` (40–56, `{canvas: 30}`) clipped
+   by `elision_5` to 48–56, 30 wide, with a rule; their labels `Score` and
+   `0–16 ♩`, `Score` and `32–48 ♩`, `Score` (25.40478515625, within the
+   26 left) and `48–…` (`48–56 ♩` cut to the strip less 2 on either side).
+   The strips' widths, `x2 − x1`, are 400, 200 and 30 exactly (dyadic). No
+   default elision is drawn anywhere (stored elisions lie on `score`), no
+   `elision_1` (its timeline `coda` is hidden), no `elision_3` (on
+   `recording`, a member: drawn nowhere), no `elision_7` (hidden by the rule
+   `{element: elision, within: session}`, so `session`'s card is whole,
+   `1486.7344324448532` wide, as before strips existed). On `page`'s
+   ungrouped card (`L = 400`, `λR = 1754`), `elision_2` (600–1754, no
+   width): `E = 1154`, `Rf = 600`, `r = 0.5199306759098787`, `n = 400 −
+   400 × 0.34207525655644244 = 263.169897377423`, the strip from
+   `673.3880644791947` to `810.2181671017717`, where `page`'s line ends,
+   the line from `536.5579618566177`.
+7. **One axis per full run.** `score`'s line in its card of
+   `bundle_elisions_stored` is drawn in two runs, 16–32 and 56–64, and has
+   two axes, both addressed `{id: score}` and keyed by the card, the second
+   carrying `run: 1`: from `elision_4`'s right edge to `elision_5`'s left
+   edge, coordinates 16 to 32 (end known), and from `elision_6`'s right edge
+   to the line's end, 56 to 64; `lineAxes` lists both, drawn lengths 16
+   and 8. In `group_grandchild` `score`'s card line has one run, 24–32, its
+   axis from the strip edge `253.69419642857133` to `653.6941964285713`,
+   coordinates 24 to 32, without `run`.
+8. **What lies in a strip is not drawn.** `group_grandchild` with a named
+   timestamp `Here` added on `score` at 4 (in the strip 0–16): no element
+   carries its address, and no axis lists it; with `FULL_CARDS` its wedge is
+   drawn in the card. `bundle_elisions_stored` with a child `inner` (16
+   quarters at 8) added to `score`: its start lies in `elision_4`'s strip,
+   so its line starts at that strip's right edge without a circle
+   (`start: none`) and ends at 24, where `theme`'s line ends, with its
+   diamond.
+9. **Elided and full.** With `FULL_CARDS` no `elision` element is drawn
+   and `group_grandchild`'s card is `74.265625 + 3200 + 9 + 8 =
+   3291.265625` wide; with `{element: elision, within: score}` hidden
+   alone, the same (the rule reaches `movement`'s default elision, a
+   descendant's). A `display` without `strip` draws nothing: with
+   `elision_4`'s `display` `[name, coordinate]` (the fixture changed,
+   validated) no `elision_4` element is drawn and `elision_5` is the first
+   strip; with `[strip]` the strip is drawn without labels.
+10. **The view.** `group_grandchild` drawn for the view `640 × 360`: `zG =
+   512 / 543.70361328125 = 0.9416895299078136`, `zb = Z`, `B = 358.4`;
+   left `(358.4 − dl) / 1200 = 0.09665515136718748`, right `(358.4 − dr) /
+   1600 = 0.07409262084960937`, so (b) binds: `r =
+   0.07409262084960937`, `dx` follows, and the origin is
+   `(59.47315673828143, 0)`; the strips run from `82.265625` to
+   `141.53972167968755`, on to `171.17677001953143`, and from
+   `571.1767700195314` to `689.7249633789065`.
+11. **Other ancestor cards.** `bundle_shared_parent`'s `score` (its
+   members its own children, so generation 1 alone) draws one strip in
+   each of its two cards, on the side of `score` beyond the member;
+   `bundle_mixed` two; the cards whose default proportion is 1
+   (`group_parent_both`, `group_parent_right`, `group_parent_exact`,
+   `group_child_member`, `group_child_member_stamps`) draw none.
 
 ## Named timestamps (`timestamps.test.ts`)
 

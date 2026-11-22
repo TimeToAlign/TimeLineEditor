@@ -180,7 +180,7 @@ export interface MarkersBand extends PreparedBand {
    * Every named timestamp it holds, in the order it places them, with the abscissa of its
    * cross-section line at the line placed at `at`, whether or not that line is drawn: where the
    * alignment anchors joining its timestamp meet it (section 8.7), the card's span `span`; and
-   * that line's style.
+   * that line's style; none at a position in a strip, which has no abscissa.
    */
   timestamps(at: LinePosition, span: Span): AxisTimestamp[];
   /**
@@ -215,7 +215,10 @@ export interface MarkersBand extends PreparedBand {
  * offsets across (`[−3, 3]` unturned), and the extent of every stack where
  * its wedge carries it. A cross-section line is held by its timeline's line,
  * not by the band: it is drawn when its timestamp's `display` lists it and
- * its own display is `inline`, whatever the band's, and takes no room.
+ * its own display is `inline`, whatever the band's, and takes no room. A
+ * wedge, its labels and its cross-section line at a position in a strip are
+ * not drawn (section 6.6, Elisions), and that position takes its room all the
+ * same.
  */
 export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]): MarkersBand {
   const { relativeX, u, h, cascade, styled, measured } = scope;
@@ -364,11 +367,12 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     ),
     draw: (start, side, at) => ({
       wedges: wedges.flatMap(({ wedge, at: position }) =>
-        wedge === undefined
+        wedge === undefined || at.strip(position) !== undefined
           ? []
           : [wedgeElement(wedge.address, wedge.style, at.x(position), at, side, start, w)],
       ),
       wedgeLabels: withStacks.flatMap((stamp) => {
+        if (at.strip(stamp.at) !== undefined) return [];
         const placed = carry(known(stacks, stamp), start);
         const towards = placed.inwards ? opposite(side) : side;
         return stamp.labels.map(
@@ -386,18 +390,24 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     crossSections: (at, start, side, span) =>
       primaries.flatMap((stamp) => {
         const drawn = stamp.line;
-        if (drawn === undefined) return [];
+        if (drawn === undefined || at.strip(stamp.at) !== undefined) return [];
         return cut(span, gap(stamp, at, start, side)).map((piece) =>
           crossSectionElement(drawn.address, drawn.style, at.x(stamp.at), piece),
         );
       }),
     timestamps: (at, span) =>
-      primaries.map((stamp) => ({
-        id: stamp.id,
-        x: at.x(stamp.at),
-        line: stamp.line?.style ?? null,
-        segment: { y1: span[0], y2: span[1] },
-      })),
+      primaries.flatMap((stamp) =>
+        at.strip(stamp.at) !== undefined
+          ? []
+          : [
+              {
+                id: stamp.id,
+                x: at.x(stamp.at),
+                line: stamp.line?.style ?? null,
+                segment: { y1: span[0], y2: span[1] },
+              },
+            ],
+      ),
     unnamed: {
       wedge: cascade.resolveUnaddressed(
         unnamedKey("wedge", line.bands.markers.key),

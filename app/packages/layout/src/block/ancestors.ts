@@ -18,15 +18,16 @@ import {
 import { BLOCK_KEY, elementKey, reachOf } from "@timetoalign/tilie-core/drawing";
 import type { DrawnAxis } from "../boxes.ts";
 import { placedAt, placedAxis } from "../canvas.ts";
-import { CARD_SPACING, K, SHADOW_OFFSET } from "../constants.ts";
-import type { DrawnElement } from "../elements.ts";
+import { CARD_SPACING, G, K, SHADOW_OFFSET } from "../constants.ts";
+import { DEFAULT_VIEW, type DrawnElement } from "../elements.ts";
+import { ancestorProportion, type Stretch } from "../elisions.ts";
 import { layoutMember } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
 import { add, coordinateValue, lengthValue, negate, proportion } from "../numbers.ts";
 import { type Context, type Holder, shown } from "../traversal.ts";
 import { axesOf } from "./axes.ts";
 import { columnsOf, contentRight, type Horizontal, horizontalOf } from "./horizontal.ts";
-import type { ItemDrawing } from "./items.ts";
+import type { ItemDrawing, LaidItem } from "./items.ts";
 import type { Card, Item } from "./places.ts";
 
 /**
@@ -97,6 +98,7 @@ export function ancestorCards(
   block: Holder,
   items: readonly Item[],
   drawings: readonly ItemDrawing[],
+  laidItems: readonly LaidItem[],
   horizontal: Horizontal,
   measure: TextMeasure,
 ): LaidAncestorCard[] {
@@ -162,7 +164,34 @@ export function ancestorCards(
       cards: [card],
     };
     const columns = columnsOf([alone]);
-    const own = layout.drawAt(columns.s0, columns.n, 0, layout.height);
+
+    // Its elisions (section 8.9): the stored ones lying on `R` or a descendant, else the default
+    // ones while its default proportion is below 1, none in `M`'s span, the protected span.
+    const frame = laidItems[frameAt]?.boxes.find((box) => box.kind === "frame");
+    if (frame === undefined) return [];
+    const widest = layout.names.length === 0 ? 0 : Math.max(...layout.names);
+    const r = ancestorProportion({
+      view: placement.view ?? DEFAULT_VIEW,
+      scale: item.scale,
+      L,
+      x0: horizontal.s0,
+      width: frame.width,
+      height: frame.height,
+      sigma: K + widest + (layout.names.length === 0 ? 0 : G),
+      lambda,
+      EL: below,
+      ER: add(te, negate(lambda)),
+    });
+    const protect: Stretch = [below, add(below, lambda)];
+    const { elisions } = layout;
+    const chain = member.ancestors.map((each) => each.timeline.id);
+    const pieces = elisions.stored
+      ? elisions.storedPieces(protect)
+      : r < 1
+        ? elisions.defaultPieces(protect, chain)
+        : [];
+    const elided = pieces.length === 0 ? undefined : elisions.axis(pieces, r);
+    const own = layout.drawAt(columns.s0, columns.n, 0, layout.height, elided);
     const right =
       contentRight(
         horizontalOf(columns, [alone], [{ elements: own.elements, L: LA }], measure),
@@ -170,7 +199,9 @@ export function ancestorCards(
       ) + K;
     const line = lineAt(own.elements, "timeline", idAddress(R.id));
     if (line === undefined) return [];
-    const dx = xs - columns.s0;
+    // `R`'s line starts at `xs` plus the shrinks of the strips left of `M`'s span.
+    const DL = elided === undefined ? 0 : elided.shrinkBefore(below);
+    const dx = xs + DL - columns.s0;
     const dy = target - line;
     const rectangle: DrawnElement = {
       type: "ancestor_card",
@@ -184,7 +215,7 @@ export function ancestorCards(
     };
     const shadow = style.shadow === "none" ? 0 : SHADOW_OFFSET;
     const marked = { group: group.id, member: M.id };
-    const axes = axesOf(manifest, root, key, own, columns.s0, LA).map(
+    const axes = axesOf(manifest, root, key, own, columns.s0, LA, elided).map(
       (axis): DrawnAxis => ({ ...placedAxis(axis, dx, dy), ancestor: marked }),
     );
     return [

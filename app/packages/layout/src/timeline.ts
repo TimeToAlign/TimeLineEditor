@@ -14,7 +14,6 @@
  */
 
 import { bandOrderOf, FACETS, type Facet, LINE } from "@timetoalign/tilie-core";
-import type { Real } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
   bandStart,
@@ -31,6 +30,7 @@ import {
   type Side,
 } from "./bands.ts";
 import { P } from "./constants.ts";
+import type { ElidedAxis } from "./elisions.ts";
 import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
@@ -99,6 +99,11 @@ export interface LinePlace {
    * 6.6).
    */
   readonly bottom: number;
+  /**
+   * The elided axis of the card drawing the member drawing (sections 3.2 and 8.9), when it draws
+   * strips: every x of the card is read on it.
+   */
+  readonly elided?: ElidedAxis;
 }
 
 /** A child placed in its parent's children band (section 6.4, Children). */
@@ -490,15 +495,33 @@ function linePosition(
   place: LinePlace,
 ): LinePosition {
   const { scope, line } = prepared;
-  const { x0, y, size, top, Hc } = place;
+  const { x0, y, size, top, Hc, elided } = place;
   // The card margin `V` above the first row and below the last, inside the padding, counted from
   // the drawing's top.
   const near = top + (P + scope.V);
   const far = top + (Hc - P - scope.V);
+  // On an elided axis a position lies `D` further left, an open root end `D` short of `x0 + L`.
+  const axis: Pick<LinePosition, "x" | "xEnd" | "strip"> =
+    elided === undefined
+      ? {
+          x: (value) => x0 + scope.relativeX(value),
+          xEnd: (entry) => x0 + scope.relativeEnd(entry),
+          strip: () => undefined,
+        }
+      : {
+          x: (value) => x0 + elided.relative(value),
+          xEnd: (entry) =>
+            x0 + (entry.rootEnd ? scope.L - elided.total : elided.relative(entry.end)),
+          strip: (value) => {
+            const strip = elided.stripOf(value);
+            return strip === undefined
+              ? undefined
+              : { left: x0 + strip.left, right: x0 + strip.right };
+          },
+        };
   return {
     x0,
-    x: (value: Real) => x0 + scope.relativeX(value),
-    xEnd: (entry: Entry) => x0 + scope.relativeEnd(entry),
+    ...axis,
     y,
     yAt: (side, outwards) => (side === "above" ? y - outwards : y + outwards),
     beyond: (side, ordinate, labelSize) =>

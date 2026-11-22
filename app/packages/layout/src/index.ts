@@ -43,6 +43,7 @@ export type {
   BlockElement,
   Drawing,
   DrawnElement,
+  ElisionElement,
   JumpElement,
   LineElement,
   LineEnd,
@@ -57,8 +58,9 @@ export type {
   ShownCoordinate,
   TextElement,
   VerticalLineElement,
+  View,
 } from "./elements.ts";
-export { DEFAULT_PLACEMENT } from "./elements.ts";
+export { DEFAULT_PLACEMENT, DEFAULT_VIEW } from "./elements.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
 export { boundsOf, brace, lineGeometry, wedgePoints } from "./geometry.ts";
 export { frameMemberLines, groupSpans, readsAcrossGroup } from "./groupstamps.ts";

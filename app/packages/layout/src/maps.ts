@@ -130,7 +130,10 @@ export function conversionMapsBand(members: readonly MapMember[]): PreparedBand 
  * of the line placed at `at`, in the order they are taken (section 6.4,
  * Conversion maps): the map in slot `j` centred `c + w / 2 + j × (g + d) −
  * d / 2` out from the line, summed in that order, `w` the slots' largest
- * stroke width, spanning its own timeline from `Xs` to `Xe`.
+ * stroke width, spanning its own timeline from `Xs` to `Xe`. A map whose
+ * start lies in a strip starts at the strip's right edge, one whose end does
+ * ends at its left edge, and one whose start and end so meet or cross is not
+ * drawn (section 6.6, Elisions).
  */
 export function drawMaps(
   members: readonly MapMember[],
@@ -141,18 +144,26 @@ export function drawMaps(
 ): Pick<LineElements, "maps"> {
   const { w } = slots;
   return {
-    maps: members.map((member): MapElement => {
+    maps: members.flatMap((member): MapElement[] => {
       const j = slots.slot.get(member);
       if (j === undefined) throw new Error("a map is drawn without its slot");
-      return {
-        type: "map",
-        address: member.map.address,
-        style: member.map.style,
-        xs: at.x(member.entry.start),
-        xe: at.xEnd(member.entry),
-        yc: at.yAt(side, start + w / 2 + j * (MAP_GAP + MAP_SPACING) - MAP_SPACING / 2),
-        spacing: MAP_SPACING,
-      };
+      const { entry } = member;
+      const first = at.strip(entry.start);
+      const last = entry.rootEnd ? undefined : at.strip(entry.end);
+      const xs = first === undefined ? at.x(entry.start) : first.right;
+      const xe = last === undefined ? at.xEnd(entry) : last.left;
+      if ((first !== undefined || last !== undefined) && xs >= xe) return [];
+      return [
+        {
+          type: "map",
+          address: member.map.address,
+          style: member.map.style,
+          xs,
+          xe,
+          yc: at.yAt(side, start + w / 2 + j * (MAP_GAP + MAP_SPACING) - MAP_SPACING / 2),
+          spacing: MAP_SPACING,
+        },
+      ];
     }),
   };
 }

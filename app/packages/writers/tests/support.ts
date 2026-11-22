@@ -281,6 +281,23 @@ export function everything(): Drawing {
       ],
     },
     {
+      type: "elision",
+      address: at("c", "elision"),
+      style: style({
+        fill: "#F2F2F2",
+        stroke: "#9CA3AF",
+        "stroke-width": 1,
+        "stroke-dasharray": "2 2",
+      }),
+      x1: 150,
+      x2: 160,
+      yt: 26,
+      yb: 114,
+      rule: true,
+      continuations: [56],
+      elided: { timeline: "c", start: 0, end: 1 },
+    },
+    {
       type: "label",
       address: at("c", "start", "label"),
       style: style({ fill: "#000000", "font-size": 9, opacity: 0.5 }),

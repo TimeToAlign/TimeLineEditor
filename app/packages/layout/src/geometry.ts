@@ -45,8 +45,9 @@ export interface LineGeometry {
  * stops (short of a diamond), its start circle or two left chevrons, and its
  * end mark: the arrowhead, `3w` long and `3w` wide; the circle; the diamond,
  * `1.2w` high; three chevrons where its length is not known, two where it
- * runs on. A chevron's arms lie `w`, `2.5w` and `4w` from the end, each tip
- * `1.5w` further, the inner one first.
+ * runs on; no mark at an end that lies in a strip (section 6.6, Elisions). A
+ * chevron's arms lie `w`, `2.5w` and `4w` from the end, each tip `1.5w`
+ * further, the inner one first.
  */
 export function lineGeometry(element: LineElement): LineGeometry {
   const { xs, xe, y } = element;
@@ -102,15 +103,21 @@ export function lineGeometry(element: LineElement): LineGeometry {
         return chevrons(xe, 1, 3);
       case "chevrons":
         return chevrons(xe, 1, 2);
+      case "none":
+        return [];
     }
   };
-  return {
-    x1: xs,
-    x2,
-    y,
-    start: element.start === "circle" ? [circle(xs)] : chevrons(xs, -1, 2),
-    end: end(),
+  const start = (): LineMark[] => {
+    switch (element.start) {
+      case "circle":
+        return [circle(xs)];
+      case "chevrons":
+        return chevrons(xs, -1, 2);
+      case "none":
+        return [];
+    }
   };
+  return { x1: xs, x2, y, start: start(), end: end() };
 }
 
 /**
@@ -264,6 +271,8 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       ]);
     case "wedge":
       return boundsOfPoints(wedgePoints(element));
+    case "elision":
+      return { left: element.x1, top: element.yt, right: element.x2, bottom: element.yb };
     case "name":
     case "label": {
       const size = element.style["font-size"];

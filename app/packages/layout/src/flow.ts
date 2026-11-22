@@ -7,6 +7,7 @@
  */
 
 import { idAddress } from "@timetoalign/tilie-core";
+import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { PreparedBand } from "./bands.ts";
 import { FLOW_MARKER_LABEL_OFFSET, JUMP_DEPTH, JUMP_PITCH, LABEL_GAP } from "./constants.ts";
 import type { Point } from "./elements.ts";
@@ -35,7 +36,10 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * flow-marker labels together; a jump without a label of its own is drawn
  * with its manifestation. A flow marker runs from the flow row to
  * `at.flowMarkerEnd`, its label starting at `x + 3` in its tier, tier 1
- * touching the flow row on the line's side of it.
+ * touching the flow row on the line's side of it. A flow marker whose
+ * coordinate lies in a strip is not drawn, nor is its label; nor is a jump
+ * whose from, to or the midpoint of the two does, with its label (section
+ * 6.6, Elisions).
  */
 export function flowControlBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
   const { owned, measured, relativeX, u, S, h, a, d } = scope;
@@ -118,11 +122,17 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
       item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],
     ),
     draw: (start, side, at) => {
+      const elided = (...values: Real[]) => values.some((value) => at.strip(value) !== undefined);
+      const shownMarkers = markers.filter((item) => !elided(item.at));
+      const shownLabels = labelledMarkers.filter(({ item }) => !elided(item.at));
+      const shownJumps = placedJumps.filter(
+        ({ jump, middle }) => !elided(jump.from, jump.to, middle),
+      );
       const f0 = start + tierRoom;
       const yf = at.yAt(side, f0);
       const apex = (row: number) => f0 + depth + (row - 1) * pj;
       return {
-        flowMarkers: markers.map((item) => ({
+        flowMarkers: shownMarkers.map((item) => ({
           type: "flow_marker",
           address: item.address,
           style: item.style,
@@ -130,7 +140,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
           y1: yf,
           y2: at.flowMarkerEnd(side),
         })),
-        jumps: placedJumps.map(({ jump, row }) => {
+        jumps: shownJumps.map(({ jump, row }) => {
           const ya = at.yAt(side, apex(row));
           const w = jump.style["stroke-width"];
           const xf = at.x(jump.from);
@@ -159,7 +169,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
             ],
           };
         }),
-        jumpLabels: placedJumps.flatMap(({ jump, middle, label, row }) =>
+        jumpLabels: shownJumps.flatMap(({ jump, middle, label, row }) =>
           label === undefined
             ? []
             : [
@@ -172,7 +182,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
               ],
         ),
         // Tier 1 touches the flow row on the line's side; tier k lies (k − 1) h further in.
-        flowMarkerLabels: labelledMarkers.map(({ item, text, tier }) => {
+        flowMarkerLabels: shownLabels.map(({ item, text, tier }) => {
           const inwards = (tier - 1) * h(size);
           return {
             type: "label",

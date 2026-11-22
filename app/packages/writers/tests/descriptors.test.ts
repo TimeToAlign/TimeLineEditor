@@ -490,8 +490,56 @@ describe("descriptors", () => {
         '<polyline data-id="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
         '<polyline data-id="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
+      expect(svgBody(line(type, "none", "none"))).toEqual([lineTo(50)]);
+      expect(svgBody(line(type, "none", "circle"))).toEqual([
+        lineTo(50),
+        '<circle data-id="c" cx="50" cy="20" r="2" fill="#00CC00"/>',
+      ]);
     });
   }
+
+  it("writes a strip's rectangle, its rule and its continuations", () => {
+    const strip = (rule: boolean, address = at("e")) =>
+      synthetic({
+        type: "elision",
+        address,
+        style: style({
+          fill: "#F2F2F2",
+          stroke: "#9CA3AF",
+          "stroke-width": 1,
+          "stroke-dasharray": "2 2",
+        }),
+        x1: 10,
+        x2: 40,
+        yt: 4,
+        yb: 26,
+        rule,
+        continuations: [12, 20],
+        elided: { timeline: "t", start: 0, end: 1 },
+      });
+    const stroke = 'stroke="#9CA3AF" stroke-width="1" stroke-dasharray="2 2"';
+    const rect = '<rect data-id="e" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>';
+    const continuations = [
+      `<line data-id="e" x1="10" y1="12" x2="40" y2="12" ${stroke}/>`,
+      `<line data-id="e" x1="10" y1="20" x2="40" y2="20" ${stroke}/>`,
+    ];
+    expect(svgBody(strip(true))).toEqual([
+      rect,
+      `<line data-id="e" x1="10" y1="4" x2="10" y2="26" ${stroke}/>`,
+      ...continuations,
+    ]);
+    expect(svgBody(strip(false))).toEqual([rect, ...continuations]);
+    const dashed = "draw=ts9CA3AF,line width=1pt,dash pattern=on 2pt off 2pt";
+    expect(tikzBody(strip(true))).toEqual([
+      "\\path[fill=tsF2F2F2] (10,4) rectangle (40,26);",
+      `\\path[${dashed}] (10,26) -- (10,4);`,
+      `\\path[${dashed}] (10,18) -- (40,18);`,
+      `\\path[${dashed}] (10,10) -- (40,10);`,
+    ]);
+    expect(svgBody(strip(false, at("score", "elision")))[0]).toBe(
+      '<rect data-id="score" data-part="elision" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>',
+    );
+  });
 
   /**
    * The points of the polylines a fixture's drawing writes for one address,
@@ -845,7 +893,7 @@ describe("descriptor sources", () => {
 describe("one command per descriptor", () => {
   it("everything", () => {
     const descriptors = oneCommandPerDescriptor(everything(), 1);
-    expect(descriptors.length).toBe(31);
+    expect(descriptors.length).toBe(34);
     expect(new Set(descriptors.map((each) => each.tag))).toEqual(new Set(Object.keys(KIND)));
   });
 

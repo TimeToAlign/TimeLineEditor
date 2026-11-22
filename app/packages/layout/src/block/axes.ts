@@ -9,6 +9,7 @@ import { type MemberDrawing, orderedChildren, reachOf } from "@timetoalign/tilie
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { AxisMap, AxisSegment, DrawnAxis } from "../boxes.ts";
 import type { LineElement } from "../elements.ts";
+import { type ElidedAxis, outside, type Stretch } from "../elisions.ts";
 import type { MemberDrawn } from "../member.ts";
 import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../numbers.ts";
 
@@ -82,6 +83,13 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  * length (section 3.4), and the maps drawn at its line, its own and those of
  * its segments without a line (section 6.4, Segments without a line), in
  * the order they are drawn, each with the timeline it spans.
+ *
+ * On the elided axis `elided` of a card drawing strips (sections 3.2 and
+ * 8.9), a line is drawn in full runs between its strips, and has one axis
+ * per run, each linear, from the run's start to its end at their elided x,
+ * with the coordinates there, every one with the timeline's address (`run`
+ * telling them apart from the second on) and the named timestamps whose
+ * cross-section lines lie on it.
  */
 export function axesOf(
   manifest: Manifest,
@@ -90,11 +98,17 @@ export function axesOf(
   drawn: MemberDrawn,
   x0: number,
   L: number,
+  elided?: ElidedAxis,
 ): DrawnAxis[] {
   const root = member.timeline;
   // The root's length `λ`, or its reach when its length is not known (section 3.2).
   const lambda = lengthValue(root) ?? reachOf(root, manifest);
-  const relativeX = (value: Real) => L * proportion(value, lambda);
+  const relativeX = (value: Real) =>
+    elided === undefined ? L * proportion(value, lambda) : elided.relative(value);
+  // `Xe` of a span's end: `x0 + L` at the root's open end, less every shrink on an elided axis.
+  const endX = (span: Span) =>
+    x0 + (span.rootEnd ? (elided === undefined ? L : L - elided.total) : relativeX(span.end));
+  const stretches = (elided?.strips ?? []).map((strip): Stretch => [strip.a, strip.b]);
   const spans = spansOf(manifest, root, lambda);
   const rootOpen = spans.get(root.id)?.open === true;
   // The timeline each map spans, by the map's ID, and the line each timeline's maps are drawn
@@ -134,18 +148,18 @@ export function axesOf(
     member.ancestors.map(({ timeline }, index) => [timeline.id, index]),
   );
 
-  const lineAxis = (element: LineElement): DrawnAxis | undefined => {
+  const lineAxes = (element: LineElement): DrawnAxis[] => {
     const span = element.address.id === undefined ? undefined : spans.get(element.address.id);
-    if (span === undefined) return undefined;
+    if (span === undefined) return [];
     const { timeline } = span;
     const length = lengthValue(timeline);
     const drawnEnd = length ?? add(span.end, negate(span.start));
-    return {
+    const whole: DrawnAxis = {
       address: element.address,
       card,
       line: element.y,
       xStart: element.xs,
-      xEnd: x0 + (span.rootEnd ? L : relativeX(span.end)),
+      xEnd: endX(span),
       unit: timeline.unit,
       numberType: timeline.number_type,
       start: zero(timeline.number_type),
@@ -157,6 +171,33 @@ export function axesOf(
       mark: null,
       timestamps: drawn.timestamps.get(element) ?? [],
     };
+    const runs = outside(span.start, span.end, stretches);
+    const [first] = runs;
+    if (
+      runs.length === 1 &&
+      first !== undefined &&
+      compareReal(first[0], span.start) === 0 &&
+      compareReal(first[1], span.end) === 0
+    ) {
+      return [whole];
+    }
+    return runs.map(([from, to], index): DrawnAxis => {
+      const opening = compareReal(from, span.start) === 0;
+      const closing = compareReal(to, span.end) === 0;
+      const own = (value: Real) => add(value, negate(span.start));
+      const xStart = opening ? element.xs : x0 + relativeX(from);
+      const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
+      return {
+        ...whole,
+        xStart,
+        xEnd,
+        start: opening ? whole.start : own(from),
+        end: closing ? whole.end : own(to),
+        drawnEnd: closing ? whole.drawnEnd : own(to),
+        timestamps: whole.timestamps.filter(({ x }) => xStart <= x && x <= xEnd),
+        ...(index === 0 ? {} : { run: index }),
+      };
+    });
   };
   const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
     const { id } = element.address;
@@ -196,7 +237,8 @@ export function axesOf(
     if (element.type !== "timeline" && element.type !== "child" && element.type !== "ancestor") {
       return [];
     }
-    const axis = element.type === "ancestor" ? ancestorAxis(element) : lineAxis(element);
+    if (element.type !== "ancestor") return lineAxes(element);
+    const axis = ancestorAxis(element);
     return axis === undefined ? [] : [axis];
   });
 }

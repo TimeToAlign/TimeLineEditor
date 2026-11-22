@@ -26,6 +26,7 @@ import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
+import { type CardElisions, cardElisions, type ElidedAxis, stripElements } from "./elisions.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
@@ -51,16 +52,22 @@ export interface MemberLayout {
    * its ancestor bands, one on each side holding an ancestor line.
    */
   readonly contentCount: number;
+  /** The elisions its card may draw (section 8.9), an ungrouped root's card or an ancestor card. */
+  readonly elisions: CardElisions;
   /**
    * It drawn with the shared start `x0`, the name column `n`, its top `top` and its card's bottom
-   * `bottom`, in item coordinates.
+   * `bottom`, in item coordinates; on the elided axis `elided` where its card draws strips
+   * (sections 3.2 and 8.9), which are then drawn after it.
    */
-  drawAt(x0: number, n: number, top: number, bottom: number): MemberDrawn;
+  drawAt(x0: number, n: number, top: number, bottom: number, elided?: ElidedAxis): MemberDrawn;
 }
 
 /** A member drawing drawn in its item, in item coordinates. */
 export interface MemberDrawn {
-  /** Its elements in descriptor order (sections 7.2 and 8.5), its card excluded. */
+  /**
+   * Its elements in descriptor order (sections 7.2 and 8.5), its card excluded, its strips and
+   * their labels last.
+   */
   readonly elements: DrawnElement[];
   /**
    * The records of its present bands, its timelines in traversal order, each one's top to
@@ -125,7 +132,13 @@ export function layoutMember(
     ...[...fitted.values()].flatMap((line) => line.prepared.centred),
   ];
 
-  const drawAt = (x0: number, n: number, top: number, bottom: number): MemberDrawn => {
+  const drawAt = (
+    x0: number,
+    n: number,
+    top: number,
+    bottom: number,
+    elided?: ElidedAxis,
+  ): MemberDrawn => {
     const yRoot = top + yLocal;
     const placed = placeLines(root, rootRow, {
       x0,
@@ -134,6 +147,7 @@ export function layoutMember(
       top,
       Hc,
       bottom,
+      ...(elided === undefined ? {} : { elided }),
     });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
@@ -185,6 +199,22 @@ export function layoutMember(
       ...ancestorCrossSections(scope, ancestors, bands, x0, yRoot, [top, bottom]),
       ...each("crossSections"),
     ];
+    if (elided !== undefined) {
+      // The lines drawn, in traversal order, which a strip continues, and the line each
+      // timeline's labels stand on: its own, or its segment line's for a segment without one.
+      const lines = placed.flatMap((line, index) =>
+        nth(drawn, index).line.length === 0
+          ? []
+          : [{ entry: line.drawing.prepared.line, y: line.place.y }],
+      );
+      const lineOf = (entry: Entry) => {
+        const own = entry.line ? entry : entry.parent;
+        const at = lines.find((line) => line.entry === own);
+        return at === undefined ? undefined : { y: at.y, w: at.entry.style["stroke-width"] };
+      };
+      const { strips, labels } = stripElements(scope, elided, x0, top, bottom, lines, lineOf);
+      elements.push(...strips, ...labels);
+    }
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
     const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
@@ -202,7 +232,13 @@ export function layoutMember(
     };
   };
 
+  // Read only by the cards that may draw strips, so made on first read.
+  let elisions: CardElisions | undefined;
   return {
+    get elisions() {
+      elisions ??= cardElisions(scope);
+      return elisions;
+    },
     names: drawnNames.map((item) => item.width),
     centred,
     chevrons: chevrons(ancestors),

@@ -29,7 +29,22 @@ export interface Placement {
    * 8.6).
    */
   readonly places: Places;
+  /**
+   * The view `{width, height}`, the screen area the drawing is meant for, in canvas units at the
+   * scale 1, each finite and positive (section 1): it sets the default width of elisions (section
+   * 8.9) and nothing else. Left out, the default view.
+   */
+  readonly view?: View;
 }
+
+/** A view: the screen area a drawing is meant for, in canvas units at the scale 1 (section 1). */
+export interface View {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The default view, 1280 × 720 (section 1). */
+export const DEFAULT_VIEW: View = { width: 1280, height: 720 };
 
 export const DEFAULT_PLACEMENT: Placement = {
   length: 400,
@@ -70,15 +85,19 @@ export interface RectElement extends Addressed {
   readonly shadowOffset: number;
 }
 
-/** How a line starts: with its circle, or running on in a double chevron (section 8.3). */
-export type LineStart = "circle" | "chevrons";
+/**
+ * How a line starts: with its circle, running on in a double chevron (section 8.3), or `none`
+ * where its start lies in a strip and it starts at the strip's right edge (section 6.6, Elisions).
+ */
+export type LineStart = "circle" | "chevrons" | "none";
 
 /**
  * How a line ends (sections 6.6 and 8.3): `unknown`, three chevrons, where its
  * own length is not known; `chevrons`, a double chevron, where an ancestor
- * line runs on.
+ * line runs on; `none`, without a mark, where its end lies in a strip and it
+ * ends at the strip's left edge (section 6.6, Elisions).
  */
-export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "unknown" | "chevrons";
+export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "unknown" | "chevrons" | "none";
 
 export interface LineElement extends Addressed {
   readonly type: "timeline" | "child" | "ancestor";
@@ -170,6 +189,38 @@ export interface MarkerElement extends Addressed {
   readonly corners: readonly [WedgeCorner, WedgeCorner];
 }
 
+/**
+ * The strip of an elision (sections 6.6 and 8.9): a rectangle from `x(a)`
+ * to `x(b)` and from its card's top `yt` to its bottom `yb`, filled and not
+ * stroked; its rule at `x(a)` from `yt` to `yb` where it touches the strip
+ * before it; and the continuations of the lines whose span holds its whole
+ * stretch, at their ordinates, in the traversal order of their lines. It
+ * carries what it elides, on the timeline it lies on: a default elision,
+ * which no manifest stores, is read from here.
+ */
+export interface ElisionElement extends Addressed {
+  readonly type: "elision";
+  /** `x(a)` and `x(b)`, its left and right edges on the elided axis (section 3.2). */
+  readonly x1: number;
+  readonly x2: number;
+  /** Its card's top and bottom. */
+  readonly yt: number;
+  readonly yb: number;
+  /** It starts where the strip before it ends, and is parted from it by a rule. */
+  readonly rule: boolean;
+  /** The ordinates of its continuations, in the traversal order of their lines. */
+  readonly continuations: readonly number[];
+  /**
+   * The stretch it draws on the timeline it lies on: that timeline's ID, and the start and end
+   * of the stretch on its own axis (a clipped or a default elision's own bounds).
+   */
+  readonly elided: {
+    readonly timeline: string;
+    readonly start: Real;
+    readonly end: Real;
+  };
+}
+
 export interface TextElement extends Addressed {
   readonly type: "name" | "label";
   readonly x: number;
@@ -189,6 +240,7 @@ export type DrawnElement =
   | VerticalLineElement
   | AnchorElement
   | MarkerElement
+  | ElisionElement
   | TextElement;
 
 export interface Drawing {

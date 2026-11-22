@@ -72,7 +72,7 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  const ancestors = ancestorCards(context, block, items, drawings, horizontal, measure);
+  const ancestors = ancestorCards(context, block, items, drawings, laid, horizontal, measure);
   const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
     ...groupstampElements(manifest, axes, boxes),
     ...anchorElements(manifest, axes, cascade, block.style, measure),

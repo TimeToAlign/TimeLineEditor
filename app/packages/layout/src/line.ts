@@ -9,6 +9,7 @@ import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
+import type { LineElement } from "./elements.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
@@ -101,42 +102,58 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
       return m(against) + LABEL_GAP + tiers.count * h(size);
     },
     draw: (at, against) => ({
-      line: !drawn
-        ? []
-        : [
-            {
-              type: line === rootEntry ? "timeline" : "child",
-              address: line.key.address,
-              style: line.style,
-              xs: at.x(line.start),
-              xe: line.open ? at.xEnd(line) + 4 * w : at.xEnd(line),
-              y: at.y,
-              start: "circle",
-              end: endOf(
-                line.manifest,
-                line === rootEntry && member.ancestors.length === 0,
-                line.open,
-              ),
-            },
-          ],
-      boundaries: boundaries.map(({ segment, address, style }) => ({
-        segment,
-        element: {
-          type: "boundary",
-          address,
-          style,
-          x: at.x(segment.start),
-          y1: at.y - BOUNDARY,
-          y2: at.y + BOUNDARY,
-        },
-      })),
-      segmentLabels: labels.map((item) => {
-        const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
-        return {
-          segment: item.segment,
-          element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),
-        };
-      }),
+      line: drawn ? drawnLine(at) : [],
+      boundaries: boundaries
+        .filter(({ segment }) => at.strip(segment.start) === undefined)
+        .map(({ segment, address, style }) => ({
+          segment,
+          element: {
+            type: "boundary",
+            address,
+            style,
+            x: at.x(segment.start),
+            y1: at.y - BOUNDARY,
+            y2: at.y + BOUNDARY,
+          },
+        })),
+      segmentLabels: labels
+        .filter((item) => at.strip(item.at) === undefined)
+        .map((item) => {
+          const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
+          return {
+            segment: item.segment,
+            element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),
+          };
+        }),
     }),
   };
+
+  /**
+   * The line at `at`: from `Xs`, or from the right edge of the strip its start lies in, without
+   * its circle; to its end mark past `Xe`, or to the left edge of the strip its end lies in,
+   * without a mark; none where those meet or cross (section 6.6, Elisions).
+   */
+  function drawnLine(at: LinePosition): LineElement[] {
+    const first = at.strip(line.start);
+    const last = line.rootEnd ? undefined : at.strip(line.end);
+    const xs = first === undefined ? at.x(line.start) : first.right;
+    const xEnd = last === undefined ? at.xEnd(line) : last.left;
+    if ((first !== undefined || last !== undefined) && xs >= xEnd) return [];
+    const end =
+      last === undefined
+        ? endOf(line.manifest, line === rootEntry && member.ancestors.length === 0, line.open)
+        : "none";
+    return [
+      {
+        type: line === rootEntry ? "timeline" : "child",
+        address: line.key.address,
+        style: line.style,
+        xs,
+        xe: end === "unknown" ? xEnd + 4 * w : xEnd,
+        y: at.y,
+        start: first === undefined ? "circle" : "none",
+        end,
+      },
+    ];
+  }
 }

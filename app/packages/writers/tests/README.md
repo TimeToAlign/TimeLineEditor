@@ -235,7 +235,26 @@ fill="#00CC00"/>`, then the end of section 6.6:
   55,23` and `58,17 61,20 58,23`: stroked at `w / 2`, no dash, with the
   line's own address, so they hit the line;
 - `chevrons`, a line running on (section 8.3): stop 50, then only the
-  first two of those three: the two ends differ in the outer chevron alone.
+  first two of those three: the two ends differ in the outer chevron alone;
+- `none` at either end, a line cut at a strip's edge (section 6.6,
+  Elisions): no mark there, the stop at `xe` itself; with both ends `none`
+  the `<line>` stopping at 50 is written alone.
+
+**Strips** (section 7.2, elision). An elision `{id: e}` from `x1 10` to `x2
+40` and from `yt 4` to `yb 26`, with a rule and continuations at 12 and 20,
+filled `#F2F2F2` and stroked `#9CA3AF` with width 1 and dash `2 2` (the
+defaults' style), writes its rectangle with its `fill` alone and no `rx`,
+`<rect data-id="e" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>`
+(width `x2 − x1`, height `yb − yt`), then its rule `<line data-id="e"
+x1="10" y1="4" x2="10" y2="26" stroke="#9CA3AF" stroke-width="1"
+stroke-dasharray="2 2"/>`, then its continuations in their order, `<line
+data-id="e" x1="10" y1="12" x2="40" y2="12" …/>` and `… y1="20" … y2="20"
+…/>`, stroked alike; in TikZ `\path[fill=tsF2F2F2] (10,4) rectangle
+(40,26);`, then `… (10,26) -- (10,4);`, `… (10,18) -- (40,18);` and `…
+(10,10) -- (40,10);` with `draw=ts9CA3AF,line width=1pt,dash pattern=on 2pt
+off 2pt`. Without a rule the rectangle and the continuations are written
+alone. A default elision `{id: score, part: [elision]}` writes
+`data-id="score" data-part="elision"`; its labels are texts like any.
 
 **Cross-section lines** (section 7.2) are lines from `(X, y1)` to `(X, y2)`
 as the layout states them, in that order, whichever is the smaller: `{id:
@@ -360,9 +379,10 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 every kind of element: a frame and its title, a card with its shadow, an
 ancestor line running on at both sides, lines ending in the diamond, the
 open arrowhead, the end circle and the arrowhead, a map, a region, a jump origin,
-a flow marker, a boundary, a cross-section line, a wedge and labels; the
+a flow marker, a boundary, a cross-section line, a wedge, a strip with its
+rule and a continuation, and labels; the
 frame's title holds the TeX specials, `♩`, which DejaVu Sans draws, and the
-whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 31 descriptors, in which
+whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 34 descriptors, in which
 every tag occurs, one of them a shadow. For it and for every review case
 (drawn by the layout):
 
@@ -424,7 +444,16 @@ the layer `{element: ancestor_card}` `display: none`, which hides the
 ancestor cards the defaults show (`group__<file>__ancestor-cards-hidden`;
 each equals the drawing of its manifest without ancestor cards, and the
 layout's README derives the cards' geometry in the drawings without the
-layer). 91 fixtures in all.
+layer); `group_elided_inside`, `group_grandchild`,
+`group_grandchild_parent_on_top` and `group_parents_mixed` with the layer
+`{element: elision}` `display: none`, which draws every ancestor card whole
+(`group__<file>__full`; the last three equal, byte for byte, their
+manifests' drawings before ancestor cards drew strips); and
+`bundle_elided_layerit` drawn for the view `{width: 1024, height: 640}`
+(`bundle__bundle_elided_layerit__view-1024x640`, the one case whose
+`inputs.json` states a `view`: a case states the placement's `view` only
+where it sets one, so every other `inputs.json` is unchanged). 99 fixtures
+in all.
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards
@@ -512,7 +541,7 @@ fill="#000000">Bar 2, downbeat (take 1)</text>` (the middle 82.18359375
 plus `(a(9) − d(9)) / 2`), in TikZ `\path[draw=ts1BA1E2,line width=1pt,dash
 pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);` (`H =
 202.94140625`).
-There are 91 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
+There are 99 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.
