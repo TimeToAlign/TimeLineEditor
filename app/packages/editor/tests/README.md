@@ -894,8 +894,29 @@ ancestor, has no card).
     - *Hidden by a rule the own one cannot outrank* (the manifest's
       `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
       within: recording}` hiding it: a deeper `within` ranks higher):
-      "Show card behind its groups", disabled, titled "Hidden by another
-      style rule"; a click sends nothing.
+      "Show card behind its groups", disabled; a click sends nothing.
+    - *Shown by a rule the own one cannot outrank* (the manifest's
+      `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
+      within: recording}` with `display: inline`): the Hide command is
+      tried as Show's are (applied by core's `preview`, the block drawn),
+      the card stays drawn, so "Hide card behind its groups", disabled; a
+      click sends nothing and the journal keeps its length.
+    - *Disabled, yet reachable and explained*: a disabled button stays
+      focusable (`aria-disabled="true"`, never the `disabled` attribute,
+      which takes it out of the tab order and hides a tooltip in some
+      browsers); its accessible name is its text, and `aria-describedby`
+      names a visible hint paragraph holding the reason: "Hidden by
+      another style rule" for a disabled Show, "Shown by another style
+      rule" for a disabled Hide. An enabled button carries neither
+      `aria-disabled` nor the hint. Both disabled cases check the three.
+    - *Tried once per manifest and layer*: what a trial draws depends only
+      on the block's manifest and the workspace's `graphical`, so the
+      trials are kept per those two objects. Counting the calls of the
+      arranger's `drawingOf` (a pass-through spy of the module), a first
+      evaluation of the button for the hidden `recording` draws once, a
+      second with the same manifest and layer draws nothing, and one after
+      a command that replaces the manifest draws again. A count, never a
+      timing.
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's
