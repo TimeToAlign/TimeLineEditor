@@ -1634,23 +1634,34 @@ A}` `{40, 80, 581.9150390625 × 491.62890625}`, `{block: A, id:
 "group_1"}`'s frame `{48, 108.8046875, 563.9150390625 × 169.234375}`,
 `{block: A, id: "annotations"}`'s card `{48, 489.7734375,
 563.9150390625 × 71.85546875}`; a child with no card the rectangle
-around its drawn elements, `{block: A, id: "dlt_1"}`'s line and name
-`{64, 414.89453125, 302.29150390625 × 12.8046875}`; at scale 2 the frame
+around the geometric bounds of its drawn elements (layout's `boundsOf`,
+the drawing specification's section 6.7: a line with its start circle
+and its end's mark, no stroke width counted), `{block: A, id:
+"dlt_1"}`'s line and name `{64, 414.89453125, 306.79150390625 ×
+12.8046875}`: the name's left at 64, its top and height, and on the
+right the line's open diamond (a child whose end is known), whose right
+corner lies `1.5w = 4.5` past the line's end (child `stroke-width` 3,
+section 4's defaults), the end at 166.29150390625 + 200 =
+366.29150390625 (`excerpt`'s start, below, and 44100 samples at 2000 over
+441000), so the right 370.79150390625; the start circle's radius 3 stays
+within the name's height and right of it; at scale 2 the frame
 `{56, 137.609375, 1127.830078125 × 338.46875}`; a target in another
 block (`{block: "0000000009", id: "group_1"}`) throws. What an ancestor
 card draws counts only while the card is raised, as for the marquee
 (below): on `mixed` drawn with the defaults, `recording`'s ancestor card
 shown behind `group_2`'s frame, `dlt_1`'s rectangle is the same `{64,
-414.89453125, 302.29150390625 × 12.8046875}` (every element outside the
+414.89453125, 306.79150390625 × 12.8046875}` (every element outside the
 card keeps its canvas place), not one stretched over the copy of `dlt_1`
 the card draws; in `recording`'s own timeline editor, which raises the
 card, `recording`'s rectangle spans the card's drawings with the ones
 outside it: the node lies at 40 − 153.412109375 = −113.412109375 (the
 place origin moved by the card, "Snapping on a row" below), the card's
 left edge 8 right of that, its names 8 further, so x −97.412109375; the
-right end is the card's `recording` line's, −33.70849609375 + 2000 =
-1966.29150390625 (its start 200 left of `excerpt`'s at 166.29150390625,
-441000 samples over 2000), width 2063.70361328125; the top is the card's
+right end is the tip of the arrowhead of the card's `recording` line
+(a root whose end is known and whose `locked` is false), `3w = 9` past
+the line's end −33.70849609375 + 2000 = 1966.29150390625 (its start 200
+left of `excerpt`'s at 166.29150390625, 441000 samples over 2000), so
+1975.29150390625, width 2072.70361328125; the top is the card's
 copy of `dlt_1`'s name, `dlt_1`'s name in `excerpt`'s card (414.89453125)
 moved up by the card's offset from that card (`excerpt`'s line at
 438.796875 there, 365.8203125 in the ancestor card: 72.9765625), so
@@ -1668,10 +1679,13 @@ on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 ## The marquee inside an editor (`marquee.test.ts`)
 
 A marquee selects elements, never containers, and only inside the edited
-element; an element's bounds are the rectangle of the coordinates its
-drawing states (a text's from its measured width, ascent and descent), and
-an address drawn more than once is taken only when every copy lies
-inside. What an ancestor card draws counts only while that card is
+element; an element's bounds are its geometric bounds as layout's
+`boundsOf` gives them (the drawing specification's section 6.7, no
+stroke width counted: a line with its start circle and its end's
+arrowhead, circle, diamond or chevrons, a map with its double line, a
+region by its brace's points, a jump origin with its arrowhead, a text
+from its measured width, ascent and descent), and an address drawn more
+than once is taken only when every copy lies inside. What an ancestor card draws counts only while that card is
 raised, that is while the timeline editor of its root is open (the
 canvas then shows it over every frame): otherwise it lies behind the
 frames, and the marquee reads the drawings outside ancestor cards alone,
@@ -1713,7 +1727,14 @@ each result an address in block A, written below by its element address:
   the ancestor line `{id: "recording"}`, are left out.
 - Inside `dlt_1` only `{id: "cmap_7"}`, `{id: "dlt_1"}`, `{id: "dlt_1",
   part: ["name"]}`: core's containment decides by what an element belongs
-  to; inside `group_1` nothing. Without the rule above, `cmap_7`, `dlt_1`
+  to; inside `group_1` nothing. A child's line is taken with its end's
+  mark: `dlt_1`'s line ends at the canvas abscissa 366.29150390625 and
+  its open diamond reaches `1.5w = 4.5` further (the focus section
+  above), so inside `dlt_1` the rectangle from (40, 410) to the abscissa
+  370.79150390625 (width 330.79150390625, height 86.25) takes all three,
+  and one 0.5 narrower takes `cmap_7` (a map ends at its line's end) and
+  the name but not `dlt_1`. What would be wrong: bounds stopping at the
+  line's end, which take a line whose diamond the rectangle cuts. Without the rule above, `cmap_7`, `dlt_1`
   and its name would each have a second drawing in the card, outside the
   rectangle, and nothing would be taken.
 - A rectangle 2 larger on every side than `excerpt`'s member card (as the
@@ -1764,18 +1785,18 @@ each result an address in block A, written below by its element address:
   takes `timestamp_1` (at 3/2, abscissa 124.91552734375) and
   `timestamp_3` (1 on `clt_2` at offset 2, 199.91552734375) without
   `timestamp_2`.
-- An alignment anchor's line spans the rectangle of its two end points,
-  whichever is first: from (120, 80) to (40, 30) the bounds `{x: 40, y:
-  30, width: 80, height: 50}`; a horizontal one from (40, 64.5) to (300,
-  64.5) `{x: 40, y: 64.5, width: 260, height: 0}`.
-- A wedge spans the rectangle of its tip and its base's two corners, as it
-  is turned: tip (10, 5) and corners `(dx −3, y 18)`, `(dx 3, y 18)` give
-  `{x: 7, y: 5, width: 6, height: 13}`; turned 90, corners `(13, 8)` and
-  `(13, 2)`, `{x: 10, y: 2, width: 13, height: 6}`; with both corners up
-  and to the left, `(dx −11.3136, y 5 + (−2.8284))` and `(dx −7.071, y 5 +
-  (−7.071))`, `{x: 10 + (−11.3136), y: 5 + (−7.071), width: 10 − (10 +
-  (−11.3136)), height: 5 − (5 + (−7.071))}` in doubles, the tip the
-  rectangle's right and bottom.
+- The bounds the marquee reads (layout's `boundsOf`) of the two elements
+  whose points may come in any order: an alignment anchor's line spans
+  its two end points, whichever is first: from (120, 80) to (40, 30)
+  `{left: 40, top: 30, right: 120, bottom: 80}`; a horizontal one from
+  (40, 64.5) to (300, 64.5) `{left: 40, top: 64.5, right: 300, bottom:
+  64.5}`. A wedge spans its tip and its base's two corners, as it is
+  turned: tip (10, 5) and corners `(dx −3, y 18)`, `(dx 3, y 18)` give
+  `{left: 7, top: 5, right: 13, bottom: 18}`; turned 90, corners `(13,
+  8)` and `(13, 2)`, `{left: 10, top: 2, right: 23, bottom: 8}`; with both
+  corners up and to the left, `(dx −11.3136, y 5 + (−2.8284))` and `(dx
+  −7.071, y 5 + (−7.071))`, `{left: 10 + (−11.3136), top: 5 + (−7.071),
+  right: 10, bottom: 5}` in doubles, the tip the right and the bottom.
 
 ## The segment's Delete menu (`gap-menu.test.ts`)
 

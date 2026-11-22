@@ -2,13 +2,13 @@
 
 import type { Address } from "@timetoalign/tilie-core";
 import { addressKey, contains, resolveElement } from "@timetoalign/tilie-core";
-import { TextMeasure } from "@timetoalign/tilie-layout";
+import { boundsOf, TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import { drawnBehind, isDisplayed, keyedBox } from "./boxes.ts";
 import { raisedRoot } from "./coordinates.ts";
 import { addressParts } from "./editing.ts";
-import { elementBounds, isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
+import { isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
 import type { BlockNode } from "./node.ts";
 
 /** How long, in milliseconds, the view takes to move to an editor and back. */
@@ -28,7 +28,7 @@ export type { Viewport };
  * of a timeline (its first, for a member of several groups), and for a
  * timeline drawn in no displayed card of its own (a
  * child, or a hidden card) the rectangle spanning every element drawn inside
- * it (core's `contains`, `elementBounds`), leaving out the copies an
+ * it (core's `contains`, layout's `boundsOf`), leaving out the copies an
  * ancestor card draws behind the frames while it is not raised
  * (`drawnBehind`).
  */
@@ -60,12 +60,12 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
         element.id !== undefined &&
         contains(block.manifest, element.id, drawn.address),
     )
-    .map((drawn) => elementBounds(drawn, measure));
+    .map((drawn) => boundsOf(drawn, measure));
   if (spans.length === 0) throw new RangeError(`${addressKey(target)} is not drawn`);
-  const x = Math.min(...spans.map((span) => span.x));
-  const y = Math.min(...spans.map((span) => span.y));
-  const right = Math.max(...spans.map((span) => span.x + span.width));
-  const bottom = Math.max(...spans.map((span) => span.y + span.height));
+  const x = Math.min(...spans.map((span) => span.left));
+  const y = Math.min(...spans.map((span) => span.top));
+  const right = Math.max(...spans.map((span) => span.right));
+  const bottom = Math.max(...spans.map((span) => span.bottom));
   return rectOnCanvas(node, { x, y, width: right - x, height: bottom - y });
 }
 

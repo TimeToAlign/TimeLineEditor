@@ -2,8 +2,8 @@
 
 import type { Address, ElementAddress } from "@timetoalign/tilie-core";
 import { addressKey, inBlock } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
-import { lineAxes, TextMeasure, wedgePoints } from "@timetoalign/tilie-layout";
+import type { Bounds, Drawing } from "@timetoalign/tilie-layout";
+import { boundsOf, lineAxes, TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf, drawnBehind } from "./boxes.ts";
 import { affordancesOf, raisedRoot } from "./coordinates.ts";
@@ -25,68 +25,11 @@ function spanning(xs: readonly number[], ys: readonly number[]): Rect {
 }
 
 /**
- * The rectangle a drawn element spans, in the drawing's units: the
- * rectangle of the coordinates the drawing states for it (the block's
- * background its whole drawing, a frame's or a card's rectangle itself, a
- * line from its start to its end on its ordinate, a map likewise on its
- * centre, a region between its edges and ordinates, a jump around its
- * curve's points and its arrowhead, a flow marker, boundary or cross-section
- * line on its abscissa between its ordinates, a wedge around its tip and the
- * corners of its base, as it is turned, an alignment
- * anchor's line between its two end points), and a text over its
- * measured width (from its anchor, or centred on it) from its baseline less
- * the font's ascent to its baseline plus the descent. Stroke widths and
- * markers are not counted.
+ * The rectangle of an element's geometric bounds (layout's `boundsOf`,
+ * TimeToShare's drawing specification, section 6.7), in the drawing's units.
  */
-export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect {
-  switch (element.type) {
-    case "block":
-      return { x: 0, y: 0, width: element.width, height: element.height };
-    case "frame":
-    case "card":
-    case "ancestor_card":
-      return { x: element.x, y: element.y, width: element.width, height: element.height };
-    case "timeline":
-    case "child":
-    case "ancestor":
-      return spanning([element.xs, element.xe], [element.y]);
-    case "map":
-      return spanning([element.xs, element.xe], [element.yc]);
-    case "region":
-      return spanning([element.x1, element.x2], [element.ya, element.yb]);
-    case "jump_from": {
-      const points = [element.start, element.c1, element.c2, element.tip, ...element.corners];
-      return spanning(
-        points.map(([x]) => x),
-        points.map(([, y]) => y),
-      );
-    }
-    case "flow_marker":
-    case "boundary":
-    case "cross_section":
-      return spanning([element.x], [element.y1, element.y2]);
-    case "wedge": {
-      const points = wedgePoints(element);
-      return spanning(
-        points.map(([x]) => x),
-        points.map(([, y]) => y),
-      );
-    }
-    case "alignment_anchor":
-      return spanning([element.x1, element.x2], [element.y1, element.y2]);
-    case "name":
-    case "label": {
-      const size = element.style["font-size"];
-      const width = measure.width(element.text, size);
-      const x = element.anchor === "middle" ? element.x - width / 2 : element.x;
-      return {
-        x,
-        y: element.baseline - measure.ascent(size),
-        width,
-        height: measure.ascent(size) + measure.descent(size),
-      };
-    }
-  }
+function rectOf({ left, top, right, bottom }: Bounds): Rect {
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 /**
@@ -123,8 +66,8 @@ function holds(outer: Rect, inner: Rect): boolean {
  * The elements of `node` a marquee over the canvas rectangle `rect` selects,
  * as addresses in the node's block, in drawing order, each once: the
  * addresses among `inside` (the node's `inside`, by their keys) whose every
- * drawn element lies wholly in `rect`, edges included (`elementBounds`, on
- * the canvas). An address drawn in several places, such as an ancestor line
+ * drawn element lies wholly in `rect`, edges included (`boundsOf`, on the
+ * canvas). An address drawn in several places, such as an ancestor line
  * in several cards, is taken only when all of them lie inside. Every part of
  * a named timestamp (its wedge, labels and line, and the affordance of one
  * that draws nothing, `affordancesOf`) stands for the timestamp, and every
@@ -160,7 +103,7 @@ export function elementsInRect(
   drawing.elements.forEach((element, index) => {
     const { address } = element;
     if (behind(index) || isContainerAddress(drawing, address)) return;
-    if (inside.has(addressKey(address))) take(address, elementBounds(element, measure));
+    if (inside.has(addressKey(address))) take(address, rectOf(boundsOf(element, measure)));
   });
   const affordances = affordancesOf(block.manifest, drawing, raised);
   const lines = affordances.length === 0 ? null : lineAxes(drawing);
