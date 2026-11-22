@@ -26,7 +26,7 @@ import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 import { G, GROUPSTAMP_FIXTURE } from "./groupTable.ts";
 import { BELIEVED, NAMED, NAMED_IN_D, T } from "./matchTables.ts";
-import { A, B, blockIn, metrics, storeOf, viewOf } from "./support.ts";
+import { A, B, blockIn, changed, metrics, storeOf, viewOf } from "./support.ts";
 
 // The canvas's calls of what a hover costs are counted; each still does what it does.
 vi.mock("../src/matches.ts", async (importOriginal) => {
@@ -91,8 +91,9 @@ async function show(
   twice = false,
   matchesStatus?: string,
   fixture = MATCHES,
+  edit: (view: View) => View = (view) => view,
 ): Promise<void> {
-  store = storeOf(matchView(twice, fixture));
+  store = storeOf(edit(matchView(twice, fixture)));
   const instance = mount(Harness, {
     target: document.body,
     props: {
@@ -364,6 +365,40 @@ describe("hovering and pinning", () => {
     ]).toEqual([
       ["Score", "Performance", "Second half", "Score", "Page"],
       ["6 ♩", "3″", "0 ♩", "4 ♩", "400 px", "600 px"],
+    ]);
+  });
+
+  it("draws the pinned one's piece over a member of unknown length as a second, faded path", async () => {
+    const pinnedPaths = () =>
+      [...document.querySelectorAll(`[data-matches="${A}"] path[data-match="pinned"]`)].map(
+        (element) => [
+          element.getAttribute("data-belief"),
+          element.getAttribute("opacity"),
+          element.getAttribute("d"),
+        ],
+      );
+    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE, (view) =>
+      changed(view, {
+        type: "set",
+        changes: [{ target: inBlock(A, idAddress("performance")), values: { length: null } }],
+      }),
+    );
+    await key("m");
+    harness.pinMatchStamp({ block: A, matchStamp: 0 });
+    await settle();
+    const paths = pinnedPaths();
+    expect(paths.length).toBe(2);
+    expect(paths[0]?.slice(0, 2)).toEqual(["undecided", null]);
+    expect(paths[1]).toEqual(["undecided", "0.35", "M302.2915 125.5859V174.9648"]);
+    unmount(mounted as ReturnType<typeof mount>);
+    mounted = undefined;
+    document.body.innerHTML = "";
+    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE);
+    await key("m");
+    harness.pinMatchStamp({ block: A, matchStamp: 0 });
+    await settle();
+    expect(pinnedPaths().map(([belief, opacity]) => [belief, opacity])).toEqual([
+      ["undecided", null],
     ]);
   });
 

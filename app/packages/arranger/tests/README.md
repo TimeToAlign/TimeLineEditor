@@ -4373,6 +4373,19 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   for MatchStamp 1 (above), `score` heading two of them. So a potential MatchStamp shows its
   groupstamps across both frames before it is named, as `timestamp_1`
   does once it is.
+- **A length of the group not known, in the DOM.** The same block A and
+  table G with `performance`'s length `null` (`set` on its address, as
+  "A length of the group not known" above), `pinnedMatchStamp` `{block: A,
+  matchStamp: 0}`, no beliefs, the mode on. The overlay holds two pinned
+  paths, both `data-belief="undecided"`: the one at the pinned colour
+  without an `opacity` attribute (the opacity-1 lines and the connector),
+  and a second, after it, with `opacity="0.35"` and `d` exactly
+  `M302.2915 125.5859V174.9648`, the `group_1` piece of c0 over
+  `performance`'s card, the one place the group gives no value. With both
+  lengths known (the oracle, as the bullet above) the overlay holds one
+  pinned path and none with an `opacity`. What would be wrong: the overlay
+  drawing the opacity-1 path alone, so the piece over the card of unknown
+  length is not drawn faded.
 - **The mode split.** With "Show matches" on, exactly the drawn elements
   that draw part of a named MatchStamp or of a match timestamp (`ownerOf`
   `match`) let the pointer through: `anchor_1`'s and `anchor_2`'s lines,
