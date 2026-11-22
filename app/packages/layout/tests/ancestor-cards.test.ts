@@ -2,24 +2,53 @@ import { type ElementAddress, type Manifest, sameAddress } from "@timetoalign/ti
 import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { placedAt, placedAxis, placedBox } from "../src/canvas.ts";
+import { groupstampElements } from "../src/groupstamps.ts";
 import {
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
   type Drawing,
+  type DrawnAxis,
   type DrawnBox,
   type DrawnElement,
   draw,
+  frameMemberLines,
+  lineAxes,
   manifestLayer,
 } from "../src/index.ts";
-import { at, BLOCK, drawFixture, edit, manifestNames, metrics } from "./support.ts";
+import {
+  at,
+  BLOCK,
+  drawFixture,
+  edit,
+  HIDDEN_ANCESTOR_CARDS,
+  manifestNames,
+  metrics,
+  set,
+} from "./support.ts";
 
-/** The application layer that shows every ancestor card (section 8.8). */
-const SHOWN: Graphical = {
-  rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }],
+/** A group fixture drawn with the defaults, which show every ancestor card (section 8.8). */
+const shown = (name: string, extra: Graphical[] = []) => drawFixture(`groups/${name}`, extra);
+/** The same with the application layer hiding every ancestor card. */
+const plain = (name: string, extra: Graphical[] = []) =>
+  drawFixture(`groups/${name}`, [HIDDEN_ANCESTOR_CARDS, ...extra]);
+
+/**
+ * The number of ancestor cards each manifest fixture draws with the defaults (section 8.8, Which):
+ * one per group and root of a child member, so two for the score of `bundle_shared_parent`
+ * behind its two frames and three for the three roots behind the one frame of
+ * `group_parents_mixed`; none for every fixture not listed.
+ */
+const ANCESTOR_CARDS: Readonly<Record<string, number>> = {
+  "bundles/bundle_mixed": 1,
+  "bundles/bundle_shared_parent": 2,
+  "groups/group_child_member": 1,
+  "groups/group_child_member_stamps": 1,
+  "groups/group_grandchild": 1,
+  "groups/group_parent_both": 1,
+  "groups/group_parent_exact": 1,
+  "groups/group_parent_right": 1,
+  "groups/group_parents_mixed": 3,
 };
-const shown = (name: string, extra: Graphical[] = []) =>
-  drawFixture(`groups/${name}`, [SHOWN, ...extra]);
-const plain = (name: string, extra: Graphical[] = []) => drawFixture(`groups/${name}`, extra);
 
 /** The records of the ancestor cards of a drawing, in drawing order. */
 const ancestorsOf = (drawing: Drawing): DrawnBox[] =>
@@ -61,11 +90,16 @@ function alone(name: string, others: readonly string[]): Manifest {
   return edit(`groups/${name}`, { type: "remove", targets });
 }
 
-describe("ancestor cards hidden by default", () => {
-  it.each(manifestNames())("draw nothing in %s", (name) => {
+describe("ancestor cards shown by default, hidden by a rule", () => {
+  it.each(manifestNames())("%s draws its own, and none under the hiding rule", (name) => {
+    const count = ANCESTOR_CARDS[name] ?? 0;
     const drawing = drawFixture(name);
-    expect(drawing.elements.filter((item) => item.type === "ancestor_card")).toEqual([]);
-    expect(ancestorsOf(drawing)).toEqual([]);
+    expect(drawing.elements.filter((item) => item.type === "ancestor_card")).toHaveLength(count);
+    expect(ancestorsOf(drawing)).toHaveLength(count);
+    const hidden = drawFixture(name, [HIDDEN_ANCESTOR_CARDS]);
+    expect(hidden.elements.filter((item) => item.type === "ancestor_card")).toEqual([]);
+    expect(ancestorsOf(hidden)).toEqual([]);
+    expect(hidden.axes.filter((axis) => axis.ancestor !== undefined)).toEqual([]);
   });
 });
 
@@ -143,7 +177,9 @@ describe("the ancestor card of group_parent_both", () => {
         .map((box) => placedBox(box, dx, dy))
         .map(({ range: _, ...box }) => box),
     );
-    expect(drawing.axes).toEqual(without.axes.map((axis) => placedAxis(axis, dx, dy)));
+    expect(drawing.axes.slice(0, without.axes.length)).toEqual(
+      without.axes.map((axis) => placedAxis(axis, dx, dy)),
+    );
     // The order: the background, the ancestor card and its drawing, then the frame.
     expect(drawing.boxes.map((box) => [box.kind, box.range.start])).toEqual(
       without.boxes
@@ -248,5 +284,116 @@ describe("an ancestor card without its ancestor line", () => {
     const member = lineOf(drawing.elements, "timeline", at("middle"));
     expect(span(lineOf(drawnBy(drawing, card), "timeline", at("piece")))[0]).toBe(span(member)[0]);
     expect(drawing.elements.some((item) => item.type === "ancestor")).toBe(false);
+  });
+});
+
+describe("the axes of the ancestor card of group_parent_both", () => {
+  const drawing = shown("group_parent_both");
+  const without = plain("group_parent_both");
+  const key = { item: "group_1", member: "piece" };
+  const ancestor = { group: "group_1", member: "middle" };
+  const own = drawing.axes.slice(without.axes.length);
+  const axisOf = (id: string): DrawnAxis => {
+    const found = own.find((axis) => axis.address.id === id);
+    if (found === undefined) throw new Error(`the card draws no axis of ${id}`);
+    return found;
+  };
+  const exact = (axis: DrawnAxis) => [
+    axis.unit,
+    axis.numberType,
+    String(axis.start),
+    String(axis.end),
+    String(axis.drawnEnd),
+  ];
+
+  it("follow every member card's axes, one per line the card draws, marked", () => {
+    expect(drawing.axes.slice(0, without.axes.length)).toEqual(
+      without.axes.map((axis) => placedAxis(axis, 148.6318359375, 0)),
+    );
+    expect(own.map((axis) => [axis.address, axis.card, axis.ancestor])).toEqual([
+      [at("piece"), key, ancestor],
+      [at("middle"), key, ancestor],
+    ]);
+  });
+
+  it("lie on the card's lines, at their timelines' own coordinates", () => {
+    // The card's corner (8, 18.8046875), its start s0' = 52.33544921875 and LA = 800 (README).
+    const piece = axisOf("piece");
+    expect([piece.line, piece.xStart, piece.xEnd]).toEqual([
+      18.8046875 + 48.9765625,
+      8 + 52.33544921875,
+      8 + 52.33544921875 + 800,
+    ]);
+    expect(exact(piece)).toEqual(["quarters", "fraction", "0", "16", "16"]);
+    const middle = axisOf("middle");
+    expect([middle.line, middle.xStart, middle.xEnd]).toEqual([
+      18.8046875 + 15,
+      8 + 52.33544921875 + 200,
+      8 + 52.33544921875 + 600,
+    ]);
+    expect(exact(middle)).toEqual(["quarters", "fraction", "0", "8", "8"]);
+    // The lines the card draws: `piece`'s ends where its axis does; `middle`'s, a child's, stops
+    // short of its end mark, so only its ordinate and start are its axis's.
+    const card = drawnBy(drawing, cardOf(drawing, "piece"));
+    expect(span(lineOf(card, "timeline", at("piece")))).toEqual([
+      piece.line,
+      piece.xStart,
+      piece.xEnd,
+    ]);
+    expect(span(lineOf(card, "child", at("middle"))).slice(0, 2)).toEqual([
+      middle.line,
+      middle.xStart,
+    ]);
+  });
+
+  it("are hit-test lines as any card's, marked as the ancestor card's", () => {
+    const lines = [...lineAxes(drawing).values()].filter((line) => line.ancestor !== undefined);
+    expect(
+      lines.map((line) => [
+        line.timeline,
+        line.card,
+        line.y,
+        line.xStart,
+        line.xEnd,
+        line.ancestor,
+      ]),
+    ).toEqual([
+      ["piece", key, 67.78125, 60.33544921875, 860.33544921875, ancestor],
+      ["middle", key, 33.8046875, 260.33544921875, 660.33544921875, ancestor],
+    ]);
+    expect(lines.map((line) => String(line.drawnLength))).toEqual(["16", "8"]);
+  });
+
+  it("are no member lines of the frame", () => {
+    expect(frameMemberLines(drawing.axes, "group_1").map((axis) => axis.address.id)).toEqual([
+      "middle",
+      "recording",
+    ]);
+  });
+});
+
+describe("a groupstamp on a child member beside an ancestor card", () => {
+  // `timestamp_1` "Bar 2" at 2 on `middle`, drawing its cross-section line alone, made a groupstamp.
+  const manifest = edit(
+    "groups/group_child_member_stamps",
+    set("timestamp_1", { groupstamp: true }),
+  );
+  const layers = (extra: Graphical[]) => [DEFAULT_LAYER, ...extra, manifestLayer(manifest)];
+  const drawing = draw(manifest, DEFAULT_PLACEMENT, layers([]), metrics);
+  const without = draw(manifest, DEFAULT_PLACEMENT, layers([HIDDEN_ANCESTOR_CARDS]), metrics);
+
+  it("crosses the frame's member cards only, as without the card", () => {
+    const pieces = (of: Drawing) =>
+      groupstampElements(manifest, of.axes, of.boxes).map(({ x, y1, y2 }) => [x, y1, y2]);
+    // At `x0 + 100` of `middle`, from the top of `middle`'s card to the bottom of `recording`'s,
+    // less `middle`'s own cross-section line, from `piece`'s ancestor line to `middle`'s.
+    expect(pieces(without)).toEqual([
+      [211.70361328125, 32.8046875, 67.78125],
+      [211.70361328125, 81.78125, 174.13671875],
+    ]);
+    expect(pieces(drawing)).toEqual([
+      [211.70361328125 + 148.6318359375, 32.8046875, 67.78125],
+      [211.70361328125 + 148.6318359375, 81.78125, 174.13671875],
+    ]);
   });
 });

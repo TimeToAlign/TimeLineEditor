@@ -18,6 +18,7 @@ import {
   drawFixture,
   edit,
   element,
+  HIDDEN_ANCESTOR_CARDS,
   load,
   metrics,
   quarters,
@@ -25,8 +26,14 @@ import {
   target,
 } from "./support.ts";
 
+/** A manifest drawn without its ancestor cards (section 8.8), the subject being its ancestor lines. */
 const drawn = (manifest: Manifest): Drawing =>
-  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
+  draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
+    metrics,
+  );
 
 /** The start, the end and how it ends of the line of the timeline `id`. */
 function line(drawing: Drawing, id: string): Pick<LineElement, "xs" | "xe" | "end"> {

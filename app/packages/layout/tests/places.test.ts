@@ -1,7 +1,7 @@
 import { BUNDLE_ADDRESS, type ElementAddress, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PLACEMENT, type Drawing, type Placement } from "../src/index.ts";
-import { at, drawFixture, element, itemsOf } from "./support.ts";
+import { at, drawFixture, drawWithoutAncestorCards, element, itemsOf } from "./support.ts";
 
 const placedAt = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
 const block = {
@@ -63,7 +63,7 @@ describe("default places reproduce the stacked block", () => {
   });
 
   it("group_child_member: one frame at (8, 8)", () => {
-    const drawing = drawFixture("groups/group_child_member");
+    const drawing = drawWithoutAncestorCards("groups/group_child_member");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
     const size = { width: 537.898681640625, height: 174.13671875 };
     expect(itemsOf(drawing)).toEqual([
@@ -131,7 +131,7 @@ describe("an item left of the padding, a width request and a length of its own",
     group_2: { x: 40, y: 200, width: 700 },
     annotations: { x: -30, length: 300 },
   };
-  const drawing = drawFixture("bundles/bundle_mixed", [], placedAt({ places }));
+  const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [], placedAt({ places }));
 
   it("lists the items in drawing order with their places as stated", () => {
     expect(
@@ -305,7 +305,7 @@ describe("an item left of and above the padding and a height request", () => {
 });
 
 describe("a frame's own length and height request, a card's width request", () => {
-  const drawing = drawFixture(
+  const drawing = drawWithoutAncestorCards(
     "bundles/bundle_mixed",
     [],
     placedAt({ places: { group_1: { length: 300, height: 200 }, annotations: { width: 600 } } }),
@@ -461,7 +461,7 @@ describe("a fractional place origin: the shift is added last", () => {
   });
 
   it("sums a default top in place coordinates", () => {
-    const mixed = drawFixture(
+    const mixed = drawWithoutAncestorCards(
       "bundles/bundle_mixed",
       [],
       placedAt({ places: { group_1: { y: 10.11 }, annotations: { x: 560, y: -40.1 } } }),

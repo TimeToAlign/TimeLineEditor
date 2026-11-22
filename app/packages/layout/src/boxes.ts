@@ -187,6 +187,13 @@ export interface DrawnAxis {
   readonly maps: readonly AxisMap[];
   /** Where a coordinate marker of its line lies; null for an ancestor line, which draws none. */
   readonly marker: AxisMarker | null;
+  /**
+   * Set where the card drawing it is an ancestor card (section 8.8): the group whose frame that
+   * card lies behind and the member it is aligned to, as its `DrawnBox.ancestor`. Its card's
+   * place key has a member card's shape, `{item: group, member: root}`, but the card is no
+   * member card of the frame.
+   */
+  readonly ancestor?: { readonly group: string; readonly member: string };
 }
 
 /**

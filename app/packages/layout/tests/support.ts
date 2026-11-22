@@ -85,6 +85,15 @@ export function load(name: string): Manifest {
 }
 
 /**
+ * An application layer hiding every ancestor card (section 8.8), which the
+ * defaults show: the drawings of a test whose subject is not the ancestor
+ * card keep the derivations made without it, the cards taking no room.
+ */
+export const HIDDEN_ANCESTOR_CARDS: Graphical = {
+  rules: [{ select: { element: "ancestor_card" }, set: { display: "none" } }],
+};
+
+/**
  * Draw a fixture of any kind with the default layer, the application's
  * layers `extra` and the manifest's own layer, at a placement.
  */
@@ -95,6 +104,19 @@ export function drawFixture(
 ): Drawing {
   const manifest = loadFile(name);
   return draw(manifest, placement, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
+}
+
+/**
+ * Draw a fixture as `drawFixture` does with `HIDDEN_ANCESTOR_CARDS` before the
+ * application's layers `extra`: for a test of a child member's own card, its
+ * frame or its block, whose numbers are derived without the ancestor cards.
+ */
+export function drawWithoutAncestorCards(
+  name: string,
+  extra: readonly Graphical[] = [],
+  placement: Placement = DEFAULT_PLACEMENT,
+): Drawing {
+  return drawFixture(name, [HIDDEN_ANCESTOR_CARDS, ...extra], placement);
 }
 
 /**

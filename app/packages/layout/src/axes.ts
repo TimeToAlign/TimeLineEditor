@@ -48,6 +48,8 @@ export interface LineAxis {
   readonly segments: readonly AxisSegment[];
   /** The maps drawn at its line, its own and its segments', in the order they are drawn. */
   readonly maps: readonly AxisMap[];
+  /** Set where its card is an ancestor card (section 8.8), as `DrawnAxis.ancestor`. */
+  readonly ancestor?: { readonly group: string; readonly member: string };
 }
 
 /**
@@ -60,7 +62,8 @@ const axisKey = (card: PlaceKey, address: ElementAddress): string =>
 /**
  * Every drawn line of `drawing` (its `axes`, in their order) for a hit test,
  * keyed by the place key text of the card drawing it followed by the address
- * key of its timeline, so that a timeline drawn in two cards has two entries.
+ * key of its timeline, so that a timeline drawn in two cards has two entries;
+ * the lines of an ancestor card (section 8.8) come last and are marked so.
  */
 export function lineAxes(drawing: Drawing): ReadonlyMap<string, LineAxis> {
   return new Map(
@@ -80,6 +83,7 @@ export function lineAxes(drawing: Drawing): ReadonlyMap<string, LineAxis> {
         unit: axis.unit,
         segments: axis.segments,
         maps: axis.maps,
+        ...(axis.ancestor === undefined ? {} : { ancestor: axis.ancestor }),
       };
       return [[axisKey(axis.card, axis.address), line]];
     }),

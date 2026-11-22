@@ -27,6 +27,7 @@ import {
   BLOCK,
   boxesOf,
   drawFixture,
+  drawWithoutAncestorCards,
   element,
   itemsOf,
   loadFile,
@@ -93,7 +94,7 @@ describe("a manifest of one root: an anonymous block with one ungrouped root", (
 
 describe("manifests of one group: an anonymous block holding its frame", () => {
   it("group_child_member", () => {
-    const drawing = drawFixture("groups/group_child_member");
+    const drawing = drawWithoutAncestorCards("groups/group_child_member");
     expect(size(drawing)).toEqual([553.898681640625, 190.13671875]);
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 8,
@@ -149,7 +150,7 @@ describe("manifests of one group: an anonymous block holding its frame", () => {
   });
 
   it("group_parents_mixed", () => {
-    const drawing = drawFixture("groups/group_parents_mixed");
+    const drawing = drawWithoutAncestorCards("groups/group_parents_mixed");
     expect(size(drawing)).toEqual([570.947265625, 377.640625]);
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 8,
@@ -176,7 +177,7 @@ describe("manifests of one group: an anonymous block holding its frame", () => {
   });
 
   it("group_grandchild", () => {
-    const drawing = drawFixture("groups/group_grandchild");
+    const drawing = drawWithoutAncestorCards("groups/group_grandchild");
     expect(size(drawing)).toEqual([559.70361328125, 224.11328125]);
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 8,
@@ -206,7 +207,7 @@ describe("manifests of one group: an anonymous block holding its frame", () => {
 });
 
 describe("a titled manifest with two frames and an ungrouped root", () => {
-  const drawing = drawFixture("bundles/bundle_mixed");
+  const drawing = drawWithoutAncestorCards("bundles/bundle_mixed");
 
   it("opens with its title, then the frames and the ungrouped card F apart", () => {
     expect(size(drawing)).toEqual([581.9150390625, 473.62890625]);
@@ -390,7 +391,9 @@ const isTitle = (item: DrawnElement): boolean =>
 
 describe("hidden titles", () => {
   it("a frame without its title slot", () => {
-    const drawing = drawFixture("groups/group_child_member", [hide(at("group_1", "name"))]);
+    const drawing = drawWithoutAncestorCards("groups/group_child_member", [
+      hide(at("group_1", "name")),
+    ]);
     expect(drawing.elements.some((item) => sameAddress(item.address, at("group_1", "name")))).toBe(
       false,
     );
@@ -401,7 +404,7 @@ describe("hidden titles", () => {
   });
 
   it("a manifest without its title", () => {
-    const drawing = drawFixture("bundles/bundle_mixed", [hide({ part: ["name"] })]);
+    const drawing = drawWithoutAncestorCards("bundles/bundle_mixed", [hide({ part: ["name"] })]);
     expect(drawing.elements.some((item) => sameAddress(item.address, TITLE_ADDRESS))).toBe(false);
     expect(rect(drawing, at("group_1"))).toMatchObject({ y: 8 });
     expect(rect(drawing, at("annotations", "card"))).toMatchObject({ y: 370.96875 });
@@ -488,7 +491,7 @@ describe("cards in the tree", () => {
   const manifest = loadFile("groups/group_child_member");
 
   it("belong to their timeline, with its domain", () => {
-    const drawing = drawFixture("groups/group_child_member", [
+    const drawing = drawWithoutAncestorCards("groups/group_child_member", [
       {
         rules: [{ select: { element: "card", domain: "physical" }, set: { fill: "#ABCDEF" } }],
       },
@@ -531,8 +534,8 @@ describe("hidden cards and frames keep their place", () => {
   });
 
   it("group_child_member: the frame still sets the block", () => {
-    const natural = drawFixture("groups/group_child_member");
-    const drawing = drawFixture("groups/group_child_member", [hideAll("card")]);
+    const natural = drawWithoutAncestorCards("groups/group_child_member");
+    const drawing = drawWithoutAncestorCards("groups/group_child_member", [hideAll("card")]);
     expect(drawn(drawing, "card")).toEqual([]);
     expect(size(drawing)).toEqual([553.898681640625, 190.13671875]);
     expect(without(drawing, [])).toEqual(without(natural, ["card"]));
@@ -544,8 +547,8 @@ describe("hidden cards and frames keep their place", () => {
   });
 
   it("group_child_member: a hidden frame keeps xn and the block", () => {
-    const natural = drawFixture("groups/group_child_member");
-    const drawing = drawFixture("groups/group_child_member", [hideAll("frame")]);
+    const natural = drawWithoutAncestorCards("groups/group_child_member");
+    const drawing = drawWithoutAncestorCards("groups/group_child_member", [hideAll("frame")]);
     expect(drawn(drawing, "frame")).toEqual([]);
     expect(element(drawing, at("piece", "name"))).toMatchObject({ x: 24 });
     expect(rect(drawing, at("second-half", "card"))).toMatchObject({ x: 16 });
@@ -561,7 +564,7 @@ describe("hidden cards and frames keep their place", () => {
   it("records whether each container's own rectangle is drawn", () => {
     const displayed = (drawing: Drawing) =>
       drawing.boxes.map((record) => [record.kind, record.address, record.displayed]);
-    const natural = displayed(drawFixture("groups/group_child_member"));
+    const natural = displayed(drawWithoutAncestorCards("groups/group_child_member"));
     const flip = (hidden: string) =>
       natural.map(([kind, address, shown]) => [kind, address, kind === hidden ? false : shown]);
     expect(natural.filter(([kind]) => kind !== "band")).toEqual([
@@ -575,9 +578,9 @@ describe("hidden cards and frames keep their place", () => {
       ["frame", "frame"],
       ["card", "card"],
     ] as const) {
-      expect(displayed(drawFixture("groups/group_child_member", [hideAll(type)]))).toEqual(
-        flip(kind),
-      );
+      expect(
+        displayed(drawWithoutAncestorCards("groups/group_child_member", [hideAll(type)])),
+      ).toEqual(flip(kind));
     }
   });
 });

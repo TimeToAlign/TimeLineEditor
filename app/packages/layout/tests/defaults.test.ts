@@ -68,20 +68,29 @@ describe("the default layer resolved", () => {
     expect(styles(drawing, at("bare"), ["rx", "shadow"])).toEqual([[0, "none"]]);
   });
 
-  it("fades an ancestor line, its marks and their labels, not its name", () => {
+  it("fades an ancestor line, its marks and their labels, not its name, nor the ancestor card", () => {
     const drawing = drawn("groups/group_child_member");
     expect(styles(drawing, at("group_1"), ["fill", "stroke", "stroke-width", "rx"])).toEqual([
       ["#FFFFFF", "#D1D5DB", 1, 6],
     ]);
+    // `piece` is drawn first whole in its ancestor card, nothing of it faded (section 8.8), then
+    // as the ancestor line in `second-half`'s card.
     expect(
       styles(drawing, at("piece"), ["stroke", "stroke-width", "stroke-dasharray", "opacity"]),
-    ).toEqual([["#00CC00", 3, "none", 0.35]]);
+    ).toEqual([
+      ["#00CC00", 3, "none", 1],
+      ["#00CC00", 3, "none", 0.35],
+    ]);
     expect(styles(drawing, at("piece", "name"), ["fill", "font-size", "opacity"])).toEqual([
+      ["#000000", 11, 1],
       ["#6B7280", 9, 1],
     ]);
     expect(
       styles(drawing, at("second-half", "name"), ["fill", "font-size", "max-width", "opacity"]),
-    ).toEqual([["#000000", 11, 160, 1]]);
+    ).toEqual([
+      ["#000000", 11, 160, 1],
+      ["#000000", 11, 160, 1],
+    ]);
     // The marks on the ancestor line fade; the member's own `origin` and `length` do not.
     for (const [end, own] of [
       ["start", "timestamp_3"],
@@ -90,11 +99,15 @@ describe("the default layer resolved", () => {
       expect(styles(drawing, at("second-half", end), ["fill", "opacity"])).toEqual([
         ["#000000", 0.35],
       ]);
-      expect(styles(drawing, at(own), ["fill", "opacity"])).toEqual([["#000000", 1]]);
+      expect(styles(drawing, at(own), ["fill", "opacity"])).toEqual([
+        ["#000000", 1],
+        ["#000000", 1],
+      ]);
       expect(
         styles(drawing, at("second-half", end, "label"), ["fill", "font-size", "opacity"]),
       ).toEqual([["#000000", 9, 0.35]]);
       expect(styles(drawing, at(own, "coordinate"), ["fill", "font-size", "opacity"])).toEqual([
+        ["#000000", 9, 1],
         ["#000000", 9, 1],
       ]);
     }
