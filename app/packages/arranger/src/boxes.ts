@@ -26,6 +26,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  assertNever,
   BUNDLE_ADDRESS,
   idAddress,
   inBlock,
@@ -36,7 +37,6 @@ import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout"
 import type { Descriptor, DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Editing } from "./editing.ts";
 import { addressParts, bandTimelineOf, frameGroupOf } from "./editing.ts";
-import { assertNever } from "./never.ts";
 
 /**
  * What an affordance of the canvas stands for: a named timestamp the

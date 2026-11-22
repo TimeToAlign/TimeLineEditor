@@ -23,6 +23,7 @@ import type {
 import {
   addressKey,
   addressWords,
+  assertNever,
   canonicalText,
   isCommandError,
   resolveAddress,
@@ -100,8 +101,15 @@ function holderOf(
       return resolved.entry === "region" ? { kind: "region", id: resolved.element.id } : null;
     case "part":
       return holderOf(resolved.owner);
-    default:
+    case "workspace":
+    case "frame":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 

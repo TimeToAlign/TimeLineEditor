@@ -17,6 +17,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressWords,
+  assertNever,
   entryWord,
   facetWord,
   isCommandError,
@@ -63,8 +64,19 @@ export function editorName(view: View, target: Address): string {
       return resolved.group.name ?? resolved.group.id;
     case "timeline":
       return resolved.at.timeline.name ?? resolved.at.timeline.id;
-    default:
+    case "workspace":
+    case "title":
+    case "card":
+    case "band":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
+    case "part":
       return addressWords(view, target);
+    default:
+      return assertNever(resolved);
   }
 }
 

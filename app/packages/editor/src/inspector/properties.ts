@@ -51,6 +51,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  assertNever,
   bandAddress,
   canonicalText,
   containersOf,
@@ -611,8 +612,19 @@ function timelineOf(
       return resolved.at.timeline;
     case "part":
       return timelineOf(resolved.owner);
-    default:
+    case "workspace":
+    case "block":
+    case "title":
+    case "frame":
+    case "band":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 
