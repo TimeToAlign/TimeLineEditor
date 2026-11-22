@@ -1553,6 +1553,30 @@ ticks `5760`, coordinate `12` ♩.
      42. PageUp at 180 journals nothing (no stop above). Default journals
      `rotation: null`; the manifest's `graphical.rules` then equal the
      rules before the first rotation, the value is 0 and Default is gone.
+   - *A drag shown live.* The drawer is mounted under a context
+     recording what it hands the canvas (`transient.ts`, the editor's
+     `Canvas` `transient`); what proves a drag is shown and stored once:
+     every step hands the canvas the very `style` the release journals, at
+     the step's value and for the timestamp's block, and the store
+     journals exactly one entry per drag, whichever of the release and
+     `change` comes first. On Theme (0): a press on the slider, `input` at
+     30 and at 31 hand `{block: "timestamps", command: <the style at
+     30>}` and then 31, the value shown "31°" and nothing journalled; an
+     `input` at 31 again hands nothing more; an `input` at 0 (the stored
+     value) hands `null`; an `input` at 42 hands 42; its `change` hands
+     `null` and journals 42; the release that follows journals nothing
+     more. A second drag to 50 released before its `change`: the release
+     journals 50 and hands `null`, the `change` after it journals nothing.
+     *Escape.* Theme turned 45 by its stop, a drag to 60, then Escape on
+     the slider: it hands `null`, prevents the key's default, and the
+     slider shows the stored 45 again (value "45", "45°"); a further
+     `input` at 70 in that drag hands nothing and leaves the slider at
+     "45"; the release and a `change` journal nothing. *A cancelled
+     pointer.* Theme turned 45, a drag to 80 ended by a `pointercancel` on
+     the window: it hands `null`, shows 45, and a `change` after it
+     journals nothing. *Removed mid-drag.* A drag to 90,
+     then the drawer unmounted: the last thing handed is `null`. Escape
+     with no drag under way is left to the page (not prevented).
    - *A rule by another selector.* `{type: "style", select: {element:
      "wedge", within: "score"}, set: {rotation: 90}, blocks:
      ["timestamps"]}` (every wedge of `score`) makes Theme show 90, the

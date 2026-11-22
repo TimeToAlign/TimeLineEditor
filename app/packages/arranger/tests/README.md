@@ -3701,6 +3701,32 @@ element of the node's drawing carrying `data-id="group_2"` and neither
 release stores: `group_2` at (48, 230.0390625). Both report `null` once
 the gesture ends.
 
+### A transient command (`transient.test.ts`)
+
+The host may hand the canvas a command to show and never store (its
+`transient` prop, `{block, command}`: the editor's wedge rotation while
+its slider is dragged). What proves it: the node shows the block exactly
+as the store would after that command, and the store is untouched; so
+the expected drawing is not derived again here but read off a second
+canvas mounted on the store that took the same command (core applies it,
+layout draws it, both proven in their own suites). Specimen:
+`timestamp_wedge_rotation` in block A, its named timestamp `timestamp_1`
+turned −135 by a rule addressed to its wedge alone.
+
+- *Shown.* The command `{type: "style", select: {element: "wedge",
+  addresses: [{id: "timestamp_1"}]}, set: {rotation: 45}, blocks: [A]}`
+  given as transient: the `points` of the node's `polygon` with
+  `data-id="timestamp_1"` equal those of the canvas whose store took the
+  command, and differ from the stored drawing's; the node's width and
+  height are that canvas's too. The store's journal is as long as before,
+  its view the same object.
+- *Each step.* Handed 46 next, the polygon shows the rotation 46 the same
+  way; nothing is journalled.
+- *Withdrawn.* `null`: the polygon's `points` are the stored drawing's
+  again.
+- *Another block.* A transient command for block A whose `style` names a
+  block the view does not hold shows block A as stored.
+
 ### The coordinate marks and the mode split (`coordinate-marks.test.ts`)
 
 Where a wedge and a cross-section line lie, and how they are styled, is

@@ -7,7 +7,8 @@
  * frame's Stretch live in the bundle editor; and what the selection names
  * beside the heading (a bundle, a group, a timeline, a card), on `bundles`
  * and for a pressed card; and the Timestamp tab's wedge rotation, by the
- * keyboard, a stop and Default, turning the drawn wedge and back. The
+ * keyboard, a stop and Default, turning the drawn wedge and back, and by a
+ * drag, turning it live, cancelled by Escape, journalled once. The
  * method is in `README.md` ("inspector.spec.ts").
  */
 
@@ -648,4 +649,61 @@ test("the Timestamp tab turns a wedge by PageUp, a stop and Default, as one comm
   await expect(shown.getByRole("button", { name: "Default", exact: true })).toHaveCount(0);
   expect([await journalLength(page), await rules()]).toEqual([before + 3, []]);
   await expect(wedge).toHaveAttribute("points", unturned ?? "");
+});
+
+test("a drag of the wedge rotation's slider turns the drawn wedge live and journals once", async ({
+  page,
+}) => {
+  const origin = { block: SMALL.bare, id: "timestamp_1" };
+  const rules = () =>
+    page.evaluate(
+      (block) => window.__tilie.store().view.blocks[block]?.manifest.graphical?.rules,
+      SMALL.bare,
+    );
+  const wedge = node(page, SMALL.bare).locator('polygon[data-id="timestamp_1"]');
+  await select(page, [origin]);
+  const shown = await panel(page, "Timestamp");
+  const slider = shown.getByRole("slider", { name: "Wedge rotation" });
+  await expect(slider).toHaveAttribute("aria-valuetext", "0 degrees");
+  const unturned = (await wedge.getAttribute("points")) ?? "";
+  const before = await journalLength(page);
+  const stored = await rules();
+  const box = await slider.boundingBox();
+  if (box === null) throw new Error("the slider is not shown");
+  const y = box.y + box.height / 2;
+  /** The place on the track at `share` of its width. */
+  const along = (share: number) => box.x + box.width * share;
+
+  await page.mouse.move(along(0.5), y);
+  await page.mouse.down();
+  await page.mouse.move(along(0.75), y, { steps: 5 });
+  await expect(wedge).not.toHaveAttribute("points", unturned);
+  expect([await journalLength(page), await rules()]).toEqual([before, stored]);
+  await page.keyboard.press("Escape");
+  await expect(wedge).toHaveAttribute("points", unturned);
+  await expect(slider).toHaveAttribute("aria-valuetext", "0 degrees");
+  await page.mouse.move(along(0.9), y, { steps: 3 });
+  await page.mouse.up();
+  await expect(slider).toHaveAttribute("aria-valuetext", "0 degrees");
+  await expect(wedge).toHaveAttribute("points", unturned);
+  expect([await journalLength(page), await rules()]).toEqual([before, stored]);
+
+  await page.mouse.move(along(0.5), y);
+  await page.mouse.down();
+  await page.mouse.move(along(0.75), y, { steps: 5 });
+  await expect(wedge).not.toHaveAttribute("points", unturned);
+  const dragged = await wedge.getAttribute("points");
+  expect(await journalLength(page)).toBe(before);
+  await page.mouse.up();
+  await expect.poll(() => journalLength(page)).toBe(before + 1);
+  const value = Number(await slider.inputValue());
+  expect([await rules(), await wedge.getAttribute("points")]).toEqual([
+    [
+      {
+        select: { addresses: [{ id: "timestamp_1" }], element: "wedge" },
+        set: { rotation: value },
+      },
+    ],
+    dragged,
+  ]);
 });

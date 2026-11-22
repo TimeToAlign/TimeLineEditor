@@ -6,6 +6,7 @@ import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
 import { liveStore } from "../src/liveStore.svelte.ts";
 import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
+import type { TransientCommand } from "../src/node.ts";
 import type { ResizeMode } from "../src/resize.ts";
 import { NOTHING_SELECTED, type Selection } from "../src/selection.ts";
 
@@ -40,6 +41,7 @@ let pinned: Pin | null = $state.raw(null);
 // svelte-ignore state_referenced_locally
 let matches: readonly MatchOverlayInput[] = $state.raw(initialMatches);
 let pinnedMatchStamp: MatchStampPin | null = $state.raw(null);
+let transient: TransientCommand | null = $state.raw(null);
 
 /** The selection and the viewport as the canvas has them now. */
 export function current(): { selection: Selection; viewport: Viewport } {
@@ -82,6 +84,11 @@ export function pinMatchStamp(next: MatchStampPin | null): void {
   pinnedMatchStamp = next;
 }
 
+/** Give the canvas `next` as its transient command, as the editor does while a slider is dragged. */
+export function showTransient(next: TransientCommand | null): void {
+  transient = next;
+}
+
 /** Give the canvas `next` as its pinned timestamp, as the editor does. */
 export function pin(next: Pin | null): void {
   pinned = next;
@@ -98,6 +105,7 @@ export function pin(next: Pin | null): void {
     bind:locked
     bind:mode
     {pinned}
+    {transient}
     {oncoordinatepin}
     {measureMaps}
     {picking}

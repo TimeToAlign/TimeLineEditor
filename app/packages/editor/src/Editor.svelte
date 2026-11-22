@@ -10,7 +10,12 @@
  * and its type profiles, and gives the user, the profiles and the lookup to
  * every part through context.
  */
-import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
+import type {
+  LivePlacement,
+  ResizeMode,
+  TransientCommand,
+  Viewport,
+} from "@timetoalign/tilie-arranger";
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health, Server } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
@@ -53,6 +58,7 @@ import { ProfilesState, provideProfiles } from "./profiles/profiles.svelte.ts";
 import TablesDialog from "./TablesDialog.svelte";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
+import { provideTransient } from "./transient.ts";
 import UserDialog from "./UserDialog.svelte";
 import { provideUser, UserState } from "./user.svelte.ts";
 import WorkspaceTitle from "./WorkspaceTitle.svelte";
@@ -113,6 +119,10 @@ function warn(text: string, problems: readonly Problem[] = []): void {
 // Every component below posts its confirmations as information in the message bar, its refusals as warnings.
 provideInform((text) => messages.inform(text));
 provideWarn((text) => messages.warn(text));
+
+/** What a control below shows on the canvas before committing it (the wedge rotation's drag). */
+let transient: TransientCommand | null = $state.raw(null);
+provideTransient((shown) => (transient = shown));
 
 // --- The user, the type profiles and the lookup ---------------------------------
 
@@ -674,6 +684,7 @@ if (withTestHook) {
         bind:mode
         bind:viewport
         onlive={(next) => (placement = next)}
+        {transient}
         pinned={drawer?.shownPin() ?? null}
         oncoordinatepin={(pin, line) => drawer?.pinTimestamp(pin, line)}
         measureMaps={client === null ? undefined : measureMapsOf(client)}

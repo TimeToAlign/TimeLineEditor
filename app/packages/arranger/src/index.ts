@@ -30,7 +30,7 @@ export type {
   ScreenCoordinate,
 } from "./matches.ts";
 export { inScreenOrder, screenOrder, screenPlace } from "./matches.ts";
-export type { LivePlacement } from "./node.ts";
+export type { LivePlacement, TransientCommand } from "./node.ts";
 export { blocksInOrder } from "./project.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";

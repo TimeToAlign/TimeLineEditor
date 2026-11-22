@@ -32,6 +32,7 @@ import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
 import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
+import { previewed } from "./gestures/host.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
 import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
@@ -59,7 +60,7 @@ import {
   pinnedOverlays,
   stampOverlay,
 } from "./matches.ts";
-import type { LivePlacement } from "./node.ts";
+import type { LivePlacement, TransientCommand } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
 import { pickable } from "./picking.ts";
@@ -90,6 +91,13 @@ interface Props {
    * block or inside one reports one.
    */
   onlive?: (placement: LivePlacement | null) => void;
+  /**
+   * A command shown applied to its block and never stored, while given (a
+   * control's value before it is committed); while a gesture previews a
+   * block, the gesture's preview is shown instead. Nothing is reported
+   * through `onlive`.
+   */
+  transient?: TransientCommand | null;
   /**
    * How finely "Show coordinates" picks positions and shows floats; the
    * workspace's granularity setting when not given.
@@ -171,6 +179,7 @@ let {
   mode = $bindable(),
   viewport = $bindable(),
   onlive,
+  transient = null,
   granularity,
   pinned = null,
   oncoordinatepin,
@@ -278,7 +287,15 @@ const deviceRatio: () => number = (() => {
   };
 })();
 
-const nodes = new CanvasNodes(() => ({ view, selection, metrics, editing }));
+/** The transient command's block as the command leaves the view; `null` without one. */
+const transientPreview = $derived(
+  transient === null ? null : { id: transient.block, view: previewed(view, transient.command) },
+);
+
+const nodes = new CanvasNodes(
+  () => ({ view, selection, metrics, editing }),
+  () => transientPreview,
+);
 
 const editorFocus = new EditorFocus({
   store: () => store,

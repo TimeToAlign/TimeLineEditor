@@ -3,7 +3,7 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { KnotsOf } from "@timetoalign/tilie-arranger";
+import type { KnotsOf, TransientCommand } from "@timetoalign/tilie-arranger";
 import {
   drawingOf,
   liveStore,
@@ -46,6 +46,7 @@ import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
 import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
+import { transientContext } from "../src/transient.ts";
 import { addStylesOf, fadingsOf } from "./dom.ts";
 import { informing, noMatchClaims, providing, storeOf } from "./support.ts";
 
@@ -211,6 +212,8 @@ function others(store: Store): Pin {
 let app: ReturnType<typeof mount> | undefined;
 /** The information the drawer posted to the message bar since it was mounted. */
 let informed: string[] = [];
+/** What the drawer handed the canvas to show without storing it, since it was mounted. */
+let handed: (TransientCommand | null)[] = [];
 
 afterEach(() => {
   if (app !== undefined) unmount(app);
@@ -233,9 +236,13 @@ interface Drawer {
  */
 function drawer(store: Store, open: boolean, block: string = A, knotsOf?: KnotsOf): Drawer {
   informed = [];
+  handed = [];
   const mounted = mount(providing(InspectorDrawer), {
     target: document.body,
-    context: informing(informed),
+    context: new Map<symbol, unknown>([
+      ...informing(informed),
+      ...transientContext((shown) => handed.push(shown)),
+    ]),
     props: {
       live: liveStore(store),
       selection: selectionOf([{ block }]),
@@ -1603,6 +1610,127 @@ describe("the wedge's rotation", () => {
       before,
       ["0", "0 degrees", "0°", ["0"], null, false],
     ]);
+  });
+
+  describe("a drag shown live", () => {
+    /** A press on the slider, as a pointer starts a drag. */
+    function pressSlider(): void {
+      slider().dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      flushSync();
+    }
+    /** The slider dragged to `value`. */
+    function dragTo(value: number): void {
+      slider().value = String(value);
+      slider().dispatchEvent(new Event("input", { bubbles: true }));
+      flushSync();
+    }
+    /** The slider's `change`. */
+    function changed(): void {
+      slider().dispatchEvent(new Event("change", { bubbles: true }));
+      flushSync();
+    }
+    /** The pointer released (`pointerup`) or cancelled (`pointercancel`), heard on the window. */
+    function ended(type: "pointerup" | "pointercancel"): void {
+      window.dispatchEvent(new Event(type));
+      flushSync();
+    }
+    /** The transient command showing Theme's wedge turned by `value`. */
+    const shownAt = (value: number) => ({ block: T, command: turned(THEME, value) });
+
+    it("hands every step to the canvas and journals one entry per drag", () => {
+      const store = example();
+      drawer(store, true, T).selected([THEME]);
+      const entries = store.journal.length;
+
+      pressSlider();
+      dragTo(30);
+      dragTo(31);
+      dragTo(31);
+      expect([handed, store.journal.length, rotation()[2]]).toEqual([
+        [shownAt(30), shownAt(31)],
+        entries,
+        "31°",
+      ]);
+      dragTo(0);
+      dragTo(42);
+      expect([handed.slice(2), store.journal.length]).toEqual([[null, shownAt(42)], entries]);
+      changed();
+      expect([handed.slice(4), store.journal.length, lastCommand(store)]).toEqual([
+        [null],
+        entries + 1,
+        turned(THEME, 42),
+      ]);
+      ended("pointerup");
+      expect([handed.length, store.journal.length]).toEqual([5, entries + 1]);
+
+      pressSlider();
+      dragTo(50);
+      ended("pointerup");
+      expect([handed.slice(5), store.journal.length, lastCommand(store), rotation()[0]]).toEqual([
+        [shownAt(50), null],
+        entries + 2,
+        turned(THEME, 50),
+        "50",
+      ]);
+      changed();
+      expect([handed.length, store.journal.length]).toEqual([7, entries + 2]);
+    });
+
+    it("shows the stored value again on Escape and moves nothing more in that drag", () => {
+      const store = example();
+      drawer(store, true, T).selected([THEME]);
+      stop("45");
+      const entries = store.journal.length;
+
+      pressSlider();
+      dragTo(60);
+      const escaped = new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      });
+      slider().dispatchEvent(escaped);
+      flushSync();
+      expect([handed, escaped.defaultPrevented, slider().value, rotation()[2]]).toEqual([
+        [shownAt(60), null],
+        true,
+        "45",
+        "45°",
+      ]);
+      dragTo(70);
+      expect([handed.length, slider().value, rotation()[2]]).toEqual([2, "45", "45°"]);
+      ended("pointerup");
+      changed();
+      expect([handed.length, store.journal.length, rotation()[0]]).toEqual([2, entries, "45"]);
+
+      const idle = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      slider().dispatchEvent(idle);
+      expect([idle.defaultPrevented, handed.length]).toEqual([false, 2]);
+    });
+
+    it("shows the stored value again when the pointer is cancelled", () => {
+      const store = example();
+      drawer(store, true, T).selected([THEME]);
+      stop("45");
+      const entries = store.journal.length;
+
+      pressSlider();
+      dragTo(80);
+      ended("pointercancel");
+      expect([handed, slider().value, rotation()[2]]).toEqual([[shownAt(80), null], "45", "45°"]);
+      changed();
+      expect([handed.length, store.journal.length]).toEqual([2, entries]);
+    });
+
+    it("withdraws what it showed when removed mid-drag", () => {
+      const store = example();
+      drawer(store, true, T).selected([THEME]);
+      pressSlider();
+      dragTo(90);
+      if (app !== undefined) unmount(app);
+      app = undefined;
+      expect(handed).toEqual([shownAt(90), null]);
+    });
   });
 
   it("shows the rotation a rule by another selector draws, without Default", () => {
