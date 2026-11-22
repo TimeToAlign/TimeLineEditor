@@ -156,6 +156,36 @@ describe("a PiecewiseMap", () => {
     expect(invertible(piecewise(linear("second", -1, 10)), over(0, 16))).toBe(false);
     expect(invertible(piecewise(linear("second", 1, -4)), over(0, 16))).toBe(false);
   });
+
+  it("is decided once per map object and span", () => {
+    /** Item 3's rising map with a getter on `breaks` counting each read in `reads`. */
+    const counted = (reads: { count: number }): ConversionMap => {
+      const map = piecewise(linear("second", [3, 5], [-2, 5]));
+      if (map.type !== "PiecewiseMap") throw new Error("a PiecewiseMap");
+      const { breaks } = map;
+      const copy = { ...map };
+      Object.defineProperty(copy, "breaks", {
+        get() {
+          reads.count += 1;
+          return breaks;
+        },
+        enumerable: true,
+      });
+      return copy;
+    };
+    const reads = { count: 0 };
+    const pieces = counted(reads);
+    expect(invertible(pieces, over(0, 16))).toBe(true);
+    const n = reads.count;
+    expect(n).toBeGreaterThan(0);
+    expect(invertible(pieces, over(0, 16))).toBe(true);
+    expect(reads.count).toBe(n);
+    const copyReads = { count: 0 };
+    expect(invertible(counted(copyReads), over(0, 16))).toBe(true);
+    expect(copyReads.count).toBe(n);
+    expect(invertible(pieces, over(0, 4))).toBe(true);
+    expect(reads.count).toBe(2 * n);
+  });
 });
 
 describe("a ChainMap", () => {

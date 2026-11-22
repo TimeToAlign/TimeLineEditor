@@ -196,9 +196,14 @@ function passes(owner: Owner | null): boolean {
 /** How this block's named MatchStamps are painted over their style (`namedPaint`), by address key. */
 const paint = $derived(actions.matchPaint(data.block.id));
 
-/** An entry's attributes, a part of a named MatchStamp painted by belief or as out of date. */
+/**
+ * An entry's attributes, a part of a named MatchStamp painted by belief or as
+ * out of date. Only a MatchStamp's or a match timestamp's part (`Owner.match`)
+ * is ever painted, so only those read `paint`: every other entry's render
+ * stays independent of it, which every change of the view recomputes.
+ */
 function attributesOf(entry: Entry): Readonly<Record<string, string>> {
-  if (paint.size === 0) return entry.attributes;
+  if (entry.owner?.match !== true || paint.size === 0) return entry.attributes;
   const painted = paint.get(entry.addressKey);
   return painted === undefined
     ? entry.attributes

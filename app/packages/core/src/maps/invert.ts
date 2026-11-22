@@ -21,7 +21,7 @@ import type { Real } from "../number/real.ts";
 import { compareReal, toRational } from "../number/real.ts";
 import type { CompileContext } from "./compile.ts";
 import { compileMap, increasing, readFloat, readValue } from "./compile.ts";
-import type { MapValue } from "./values.ts";
+import type { MapValue, MeasureKnots } from "./values.ts";
 import { floatOf, isMapValue } from "./values.ts";
 
 /** What a map is inverted with: the compile context and the span of positions it is read over. */
@@ -275,6 +275,45 @@ function directionOf(map: ConversionMap, span: Span, context: CompileContext): D
   }
 }
 
+const NO_KNOTS: readonly MeasureKnots[] = Object.freeze([]);
+/** The direction of each map object over each span it was asked for, by the rows list it read. */
+const directions = new WeakMap<
+  ConversionMap,
+  WeakMap<readonly MeasureKnots[], Map<string, Direction | null>>
+>();
+
+/** A bound of a span as a text: equal texts for equal values of one kind, a float's apart from an exact value's. */
+function boundText(bound: Real | null): string {
+  if (bound === null) return "none";
+  return typeof bound === "number" ? `float ${bound}` : `exact ${bound}`;
+}
+
+/**
+ * `directionOf(map, span, context)`, decided once per map object, rows
+ * list and span: the same objects and an equal span give the same answer
+ * (as `compileMap` compiles once per map object), so a map read again at
+ * every pointer move is not decided again over all its pieces.
+ */
+function directionOver(map: ConversionMap, span: Span, context: CompileContext): Direction | null {
+  const knots = context.knots ?? NO_KNOTS;
+  let byKnots = directions.get(map);
+  if (byKnots === undefined) {
+    byKnots = new WeakMap();
+    directions.set(map, byKnots);
+  }
+  let bySpan = byKnots.get(knots);
+  if (bySpan === undefined) {
+    bySpan = new Map();
+    byKnots.set(knots, bySpan);
+  }
+  const key = `${boundText(span.low)} ${boundText(span.high)}`;
+  const known = bySpan.get(key);
+  if (known !== undefined) return known;
+  const direction = directionOf(map, span, context);
+  bySpan.set(key, direction);
+  return direction;
+}
+
 /** The position where `map`, strictly monotone over `span`, gives `y`; `undefined` where none does. */
 function inverseOf(
   map: ConversionMap,
@@ -294,7 +333,7 @@ function inverseOf(
     }
     case "PiecewiseMap": {
       const reach = piecewiseReach(map, span);
-      if (reach === null || directionOf(map, span, context) === null) return undefined;
+      if (reach === null || directionOver(map, span, context) === null) return undefined;
       for (const piece of reach.pieces) {
         const x = inverseOf(map.maps[piece.index] as ConversionMap, y, piece.span, context);
         if (x === undefined) continue;
@@ -325,7 +364,7 @@ function spanOf(context: InversionContext): Span {
 
 /** Whether `map` is strictly monotone, so invertible, over the context's span. */
 export function invertible(map: ConversionMap, context: InversionContext): boolean {
-  return directionOf(map, spanOf(context), context) !== null;
+  return directionOver(map, spanOf(context), context) !== null;
 }
 
 /**
@@ -342,7 +381,7 @@ export function invert(
   context: InversionContext,
 ): Real | null {
   const span = spanOf(context);
-  if (directionOf(map, span, context) === null) return null;
+  if (directionOver(map, span, context) === null) return null;
   const x = inverseOf(map, value, span, context);
   return x === undefined || (typeof x === "number" && !Number.isFinite(x)) ? null : realOf(x);
 }
