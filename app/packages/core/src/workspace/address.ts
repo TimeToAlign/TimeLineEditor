@@ -253,6 +253,7 @@ type Found =
     }
   | { readonly kind: "held"; readonly path: readonly PathSegment[] }
   | { readonly kind: "resource" }
+  | { readonly kind: "elision" }
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
   | { readonly kind: "group"; readonly group: Group }
@@ -283,8 +284,8 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * timelines (`timelinesInOrder`) and memoised by identity: per timeline in
  * pre-order its own, its entries' and, after each conversion map, the maps
  * it holds at any depth; then the groups', the MeasureMaps', the
- * resources', the named timestamps' and the named MatchStamps', each
- * followed by its alignment anchors'. An ID repeated in a manifest the
+ * resources', the named timestamps', the elisions' and the named
+ * MatchStamps', each followed by its alignment anchors'. An ID repeated in a manifest the
  * schema refuses keeps its first finding, and a timestamp on
  * a timeline the manifest lacks, which the schema refuses too, is passed
  * over.
@@ -324,6 +325,7 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
     if (on?.kind === "timeline")
       note(timestamp.id, { kind: "timestamp", at: on.at, index, timestamp });
   });
+  for (const elision of manifest.graphical?.elisions ?? []) note(elision.id, { kind: "elision" });
   (manifest.graphical?.matchstamps ?? []).forEach((matchstamp, index) => {
     note(matchstamp.id, { kind: "matchstamp", index, matchstamp });
     matchstamp.alignment_anchors.forEach((anchor, position) => {
@@ -338,8 +340,8 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
  * Every ID a manifest holds, each unique across the manifest: the IDs of
  * its catalogue (its timelines at any depth, their conversion maps at any
  * depth, regions and flow-control elements, its groups, MeasureMaps,
- * resources, named timestamps, named MatchStamps and their alignment
- * anchors) and the manifest's own, which is neither drawn nor addressed.
+ * resources, named timestamps, elisions, named MatchStamps and their
+ * alignment anchors) and the manifest's own, which is neither drawn nor addressed.
  */
 export function manifestIds(manifest: Manifest): Set<string> {
   const ids = new Set(catalogueOf(manifest).keys());
@@ -363,6 +365,7 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
       return [...found.path, "id"];
     case undefined:
     case "resource":
+    case "elision":
     case "matchstamp":
     case "anchor":
     case "group":
@@ -380,8 +383,8 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
  * of its bands (`facet`), an entry, a named timestamp, a named MatchStamp or
  * an alignment anchor; with the part words that address left to read, or
  * `undefined` when it names nothing. A band or a card exists only for a
- * timeline drawn in a card; a map another map holds and a resource are
- * neither drawn nor addressed, and a MatchStamp, which is drawn by its
+ * timeline drawn in a card; a map another map holds, a resource and an
+ * elision are neither drawn nor addressed, and a MatchStamp, which is drawn by its
  * anchors, has no part.
  */
 function baseOf(
@@ -409,6 +412,7 @@ function baseOf(
   switch (found.kind) {
     case "held":
     case "resource":
+    case "elision":
       return undefined;
     case "matchstamp":
       return part.length > 0 ? undefined : [{ ...found }, []];

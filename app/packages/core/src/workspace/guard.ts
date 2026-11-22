@@ -167,12 +167,12 @@ export function ruleInside(
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the canonical text of its value (`canonicalText`): per timeline (its lists
  * reduced to their ids), per map, region and flow-control element, per group, per measure
- * map, per named timestamp, each without what it states; the statements
+ * map, per named timestamp, per elision, each without what it states; the statements
  * and provenance of each timeline and region; the other top-level members
  * but `@context`; the other `graphical`
  * members. The edited timeline's object, or the edited group's
- * and each of its members', stands as `{id}`; the named timestamps lying on
- * a timeline inside and the entries of `graphical.order` whose keys lie
+ * and each of its members', stands as `{id}`; the named timestamps and the
+ * elisions lying on a timeline inside and the entries of `graphical.order` whose keys lie
  * inside (the group's display order, the band orders of the timelines it
  * holds) are left out; only the `rules` outside are kept, and of the
  * named styles only those they use.
@@ -246,10 +246,11 @@ function project(
     styles: named = {},
     order = {},
     timestamps = [],
+    elisions = [],
     ...rest
   } = manifest.graphical ?? {};
-  for (const timestamp of byId(timestamps)) {
-    if (!inside(timestamp.timeline)) elements.set(timestamp.id, canonicalText(timestamp));
+  for (const item of [...byId(timestamps), ...byId(elisions)]) {
+    if (!inside(item.timeline)) elements.set(item.id, canonicalText(item));
   }
   const top = new Map<string, string>();
   for (const [key, value] of Object.entries(manifest)) {

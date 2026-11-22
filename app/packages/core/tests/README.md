@@ -816,7 +816,17 @@ check of who holds what.
     `timestamp_1` lies on a member of unknown length, and `performance`'s
     card holds it at 2 with the value `null` likewise. With both lengths
     known the same display lists the coordinate label with the value 2.0,
-    so the label's absence follows from the unknown length alone.
+    so the label's absence follows from the unknown length alone. **Every
+    timeline of the card**, its ancestor lines included: in
+    `group_child_member_stamps.yaml` a groupstamp `Half` (`timestamp_8`) on
+    `recording` at the float 5.0, a half of its 10.0, lies at a half of the
+    member `middle`'s 8 quarters, 4 on `middle`, and so at 4 + 4 = 8 on its
+    ancestor `piece`, whose line `middle`'s card draws; the card's
+    secondaries hold it on `piece` at 8 with the value 8 and on `middle` at
+    8 with the value 4 (the oracle, both lengths known). With `recording`'s
+    length `null` (its reach its `length` timestamp's 10.0, so the
+    positions stay) both hold it at 8 with the value `null`: the unknown
+    length takes the value from the ancestor line as from the member's.
 12. **The selector member `coordinates`** (drawing.md §2.3): it matches
     the wedges of named timestamps and the labels of their stacks (parts
     `name`, `id`, `coordinate`), primary or secondary, and nothing else.
@@ -2481,6 +2491,53 @@ complete form).
     listed member. `groupsHolding` gives the groups themselves: `group_1`
     for `motif` and for `second-half`, none for `piece` and for an ID no
     timeline carries.
+
+## Elisions in ordinary edits (`elisions.test.ts`)
+
+Core neither draws nor edits an elision, but a manifest holding elisions
+takes every edit a manifest without them takes: an elision is a stretch of
+one timeline's own axis with an ID unique across the manifest, so what
+could break it is a new ID equal to its own, the removal of its timeline,
+and a length below its end. Each test therefore runs an edit that the
+schema check at settle would refuse (`schema_violation` with TimeToShare's
+`duplicate_id`, `elision_timeline` or `elision_stretch`) were core to
+ignore the elision, and pins the exact outcome core gives instead. The
+oracle is the rule core already holds for what else lies on a timeline:
+the named timestamps (`timestamps.test.ts`, "Lengths" and removal).
+
+The manifests are fixtures given `graphical.elisions` before they are read
+(no fixture holds an elision); each elision is complete, its `display` the
+default `[strip, name, coordinate]`.
+
+1. **Minting skips an elision's ID.** `bare.yaml` (root `bare`, 8
+   quarters; timestamps `timestamp_1`, `timestamp_2`) with `elision_1` on
+   `bare` from 1 to 2 and a second elision `timestamp_3` (IDs are free) from
+   3 to 4: the manifest's IDs hold both, so the next `elision_N` is
+   `elision_2`; `add {into: bare, timestamp: {name: "Bar 2", coordinate: [2,
+   1]}}` mints `timestamp_4` and is accepted with both elisions kept; `add
+   {into: bare, region: {id: "elision_1", …}}` is core's own `duplicate_id`
+   at `[bare's key, "region", "id"]`, "'elision_1' is already an ID of the
+   manifest", never a schema violation at settle.
+2. **A removed timeline takes its elisions along.** `nested.yaml`
+   (`clt_1` 16 quarters ⊃ `clt_3` 8 at 4 ⊃ `clt_2` 2 at 3/2) with
+   `elision_1` on `clt_1` from 13 to 15, `elision_2` on `clt_3` from 1 to 2
+   and `elision_3` on `clt_2` from 1/2 to 1: removing `clt_3` in one `remove`
+   leaves exactly `elision_1`, and `removedBy` names `clt_3`, `clt_2` and
+   both their elisions. Inside the timeline editor of `clt_3`, removing
+   `clt_2` (taking `elision_3`) is no side effect (the guard returns
+   `null`): an elision on a timeline inside the edited one lies inside it,
+   as a named timestamp there does.
+3. **A length change treats an elision as a named timestamp not at the
+   end.** Core refuses a length that leaves such a timestamp beyond it
+   (`timestamp_exceeds_length`), so it refuses one that leaves an elision's
+   end beyond it, with its own code `elision_exceeds_length` at `[clt_1's
+   key, "length"]`, message "elision 'elision_1' reaches beyond the end of
+   its timeline 'clt_1'". On the manifest of 2, `clt_1 {length: [29, 2]}`
+   is that refusal; `[15, 1]` (the elision's end) is accepted, the elision
+   unchanged and the `length` timestamp moved to 15; `null` is accepted. An
+   elision is never moved: one ending exactly at the old end (`elision_1`
+   from 13 to 16) refuses `[15, 1]` too, where the `length` timestamp at
+   16 would follow the end.
 
 ## Named MatchStamps (`matchstamps.test.ts`)
 

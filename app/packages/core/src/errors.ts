@@ -14,6 +14,7 @@ export const ErrorCode = {
   invalidCoordinate: "invalid_coordinate",
   childExceedsParent: "child_exceeds_parent",
   timestampExceedsLength: "timestamp_exceeds_length",
+  elisionExceedsLength: "elision_exceeds_length",
   locked: "locked",
   negativeChildOffset: "negative_child_offset",
   segmentNeverLocked: "segment_never_locked",

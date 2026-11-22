@@ -879,6 +879,49 @@ describe("the secondary coordinates of a card", () => {
       ]);
       expect(secondaryKeys(manifest)).toEqual(WEDGE_AND_NAME);
     });
+
+    it("gives no value on every timeline of the card, its ancestor lines included", () => {
+      /** `group_child_member_stamps.yaml` with a groupstamp `Half` on `recording` at 5.0. */
+      const halved = (length: JsonFloat | null) => {
+        const value = manifestValue("groups/group_child_member_stamps.yaml");
+        const graphical = value.graphical as { timestamps: object[] };
+        const timelines = value.timelines as { id: string }[];
+        const half = {
+          coordinate: new JsonFloat(5),
+          display: ["wedge", "name", "coordinate"],
+          groupstamp: true,
+          id: "timestamp_8",
+          matchstamp: false,
+          name: "Half",
+          timeline: "recording",
+        };
+        return loadText(
+          fileText({
+            ...value,
+            timelines: timelines.map((timeline) =>
+              timeline.id === "recording" ? { ...timeline, length } : timeline,
+            ),
+            graphical: { ...graphical, timestamps: [...graphical.timestamps, half] },
+          }),
+        );
+      };
+      /** The secondaries of `middle`'s card holding `Half`, by timeline. */
+      const halves = (manifest: Manifest) =>
+        [...cardIn(manifest, "middle", "group_1").secondaries].flatMap(([timeline, stamps]) =>
+          stamps
+            .filter((stamp) => stamp.timestamp.id === "timestamp_8")
+            .map((stamp) => [timeline, shownValue(stamp.position), shownValue(stamp.value)]),
+        );
+      // A half of `recording`'s 10.0 is 4 of `middle`'s 8 quarters, 8 on its ancestor `piece`.
+      expect(halves(halved(new JsonFloat(10)))).toEqual([
+        ["piece", "8/1", "8/1"],
+        ["middle", "8/1", "4/1"],
+      ]);
+      expect(halves(halved(null))).toEqual([
+        ["piece", "8/1", null],
+        ["middle", "8/1", null],
+      ]);
+    });
   });
 });
 

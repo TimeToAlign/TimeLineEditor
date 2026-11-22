@@ -1,7 +1,8 @@
 /**
  * Removing elements from a manifest. Removing a timeline, root or child,
- * removes its subtree, the named timestamps lying on it, its ID from every
- * group and from every display order, every `addresses` entry of a
+ * removes its subtree, the named timestamps and the elisions lying on it,
+ * its ID from every group and from every display order, every `addresses`
+ * entry of a
  * `graphical` rule addressing a removed element or a part, band or
  * card of one (a rule left with no `addresses` goes), and every
  * rule whose `within` names a removed timeline. Removing a named
@@ -32,7 +33,8 @@ function entryIds(timeline: TimelineManifest): string[] {
  * groups, measure maps, maps, regions, flow-control elements, named
  * timestamps and named MatchStamps) removes: the elements themselves, every
  * timeline below a removed one, every map, region and flow-control element
- * those timelines hold, every named timestamp lying on one of them, every
+ * those timelines hold, every named timestamp and every elision lying on
+ * one of them, every
  * named MatchStamp an anchor of which names a removed timestamp, with its
  * anchors, and every match timestamp no MatchStamp left names (so a
  * manifest whose MatchStamps changed drops the match timestamps left over,
@@ -55,6 +57,9 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   const timestamps = manifest.graphical?.timestamps ?? [];
   for (const { id, timeline } of timestamps) {
     if (asked.has(id) || removed.has(timeline)) removed.add(id);
+  }
+  for (const { id, timeline } of manifest.graphical?.elisions ?? []) {
+    if (removed.has(timeline)) removed.add(id);
   }
   const named = new Set<string>();
   for (const { id, alignment_anchors: anchors } of manifest.graphical?.matchstamps ?? []) {
@@ -113,6 +118,9 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
   }
   if (graphical.matchstamps !== undefined) {
     changed.matchstamps = graphical.matchstamps.filter(kept);
+  }
+  if (graphical.elisions !== undefined) {
+    changed.elisions = graphical.elisions.filter(kept);
   }
   if (graphical.rules !== undefined) {
     changed.rules = graphical.rules.flatMap((rule) => {
