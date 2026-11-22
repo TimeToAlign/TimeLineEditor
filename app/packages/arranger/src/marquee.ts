@@ -3,10 +3,10 @@
 import type { Address, ElementAddress } from "@timetoalign/tilie-core";
 import { addressKey, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
-import { TextMeasure, wedgePoints } from "@timetoalign/tilie-layout";
+import { lineAxes, TextMeasure, wedgePoints } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import { boxOf } from "./boxes.ts";
-import { affordancesOf } from "./coordinates.ts";
+import { boxOf, isAncestorCard } from "./boxes.ts";
+import { affordancesOf, raisedRoot } from "./coordinates.ts";
 import type { BlockNode } from "./node.ts";
 import { ownerOf } from "./selectionRules.ts";
 
@@ -129,9 +129,14 @@ function holds(outer: Rect, inner: Rect): boolean {
  * a named timestamp (its wedge, labels and line, and the affordance of one
  * that draws nothing, `affordancesOf`) stands for the timestamp, and every
  * alignment anchor's line and label for its named MatchStamp (`ownerOf`),
- * which is taken when all of them lie inside. Frames and cards are containers,
- * which a click selects, never a marquee; a band draws nothing, so no
- * marquee selects one either.
+ * which is taken when all of them lie inside. What an ancestor card draws
+ * (`docs/drawing.md` in TimeToShare, section 8.8), an affordance on its lines
+ * included, counts only while that card is raised (`raisedRoot`, the node's
+ * editor): otherwise the card lies behind the frames, and the marquee reads
+ * the drawings outside ancestor cards alone, so an address drawn there and
+ * in the card is taken by its drawings outside, and one drawn only there is
+ * never taken. Frames and cards are containers, which a click selects,
+ * never a marquee; a band draws nothing, so no marquee selects one either.
  */
 export function elementsInRect(
   node: BlockNode,
@@ -139,7 +144,13 @@ export function elementsInRect(
   inside: ReadonlySet<string>,
   metrics: FontMetrics,
 ): Address[] {
-  const { drawing, block } = node.data;
+  const { drawing, block, editing } = node.data;
+  const raised = raisedRoot(block, editing);
+  const behind = drawing.boxes.flatMap((box) =>
+    isAncestorCard(box) && box.address.id !== raised ? [box.range] : [],
+  );
+  const counted = (index: number) =>
+    !behind.some(({ start, end }) => start <= index && index < end);
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
   const take = (address: ElementAddress, bounds: Rect) => {
@@ -150,12 +161,16 @@ export function elementsInRect(
     if (known === undefined) taken.set(key, { address: owner, held });
     else known.held &&= held;
   };
-  for (const element of drawing.elements) {
+  drawing.elements.forEach((element, index) => {
     const { address } = element;
-    if (isContainerAddress(drawing, address) || !inside.has(addressKey(address))) continue;
-    take(address, elementBounds(element, measure));
-  }
-  for (const { address, points } of affordancesOf(block.manifest, drawing)) {
+    if (!counted(index) || isContainerAddress(drawing, address)) return;
+    if (inside.has(addressKey(address))) take(address, elementBounds(element, measure));
+  });
+  const affordances = affordancesOf(block.manifest, drawing);
+  const lines = affordances.length === 0 || behind.length === 0 ? null : lineAxes(drawing);
+  for (const { address, line, points } of affordances) {
+    const axis = lines?.get(line);
+    if (axis?.ancestor !== undefined && axis.card.member !== raised) continue;
     if (!inside.has(addressKey(address))) continue;
     take(
       address,
