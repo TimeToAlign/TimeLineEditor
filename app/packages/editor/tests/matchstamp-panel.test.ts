@@ -509,16 +509,17 @@ describe("an ancestor card raised", () => {
       heading,
       [["coordinate", value, true, unit]],
     ];
-    const throughMiddle = [
-      group("Piece", "5", "♩"),
-      group("Middle", "1", "♩"),
-      group("Recording", "1.25", "s"),
-    ];
+    const piece5 = group("Piece", "5", "♩");
+    const middle = group("Middle", "1", "♩");
+    const recording = group("Recording", "1.25", "s");
+    // On the arranger `piece`'s ancestor line (67.78125) lies above `middle`'s line (81.78125).
+    const throughMiddle = [piece5, middle, recording];
     const piece = group("Piece", "3", "♩");
     expect(shownGroups()).toEqual([...throughMiddle, piece]);
     expect(store.open({ block: A, id: "piece" })).toBeNull();
     flushSync();
-    expect(shownGroups()).toEqual([piece, ...throughMiddle]);
+    // Raised: `middle` 1 on the card's row (33.8046875) above `piece` 3 on its line (67.78125).
+    expect(shownGroups()).toEqual([middle, piece5, recording, piece]);
     store.done();
     flushSync();
     expect(shownGroups()).toEqual([...throughMiddle, piece]);
