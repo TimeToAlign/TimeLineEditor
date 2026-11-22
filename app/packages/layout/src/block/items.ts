@@ -62,7 +62,7 @@ export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): It
   };
 }
 
-const EMPTY: MemberDrawn = { elements: [], bands: [], markers: new Map() };
+const EMPTY: MemberDrawn = { elements: [], bands: [], markers: new Map(), marks: new Map() };
 
 /**
  * Lay out an item drawn as `drawing` (sections 8.2, 8.4 and 8.5). A frame

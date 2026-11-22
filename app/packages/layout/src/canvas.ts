@@ -4,7 +4,7 @@
  * in TimeToShare, sections 8.4 and 8.6).
  */
 
-import type { DrawnAxis, DrawnBox } from "./boxes.ts";
+import type { AxisWedge, DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import type { DrawnElement, Point } from "./elements.ts";
 import type { WedgeCorner } from "./rotation.ts";
@@ -151,22 +151,24 @@ export function placedBox(box: DrawnBox, dx: number, dy: number, scale = 1): Dra
 
 /**
  * A line's axis drawn at `(dx, dy)` and the scale `scale`, as `placedAt` draws its line, and its
- * marker as `placedAt` draws a wedge and a cross-section line.
+ * marker and its mark as `placedAt` draws a wedge and a cross-section line.
  */
 export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): DrawnAxis {
-  const { marker } = axis;
+  const { marker, mark } = axis;
   const y = (v: number) => dy + scale * v;
+  const wedge = ({ yt, corners, style }: AxisWedge): AxisWedge => ({
+    yt: y(yt),
+    corners: scaledCorners(corners, scale, y),
+    style: scaledStyle(style, scale),
+  });
   return {
     ...axis,
+    mark: mark === null ? null : wedge(mark),
     marker:
       marker === null
         ? null
         : {
-            wedge: {
-              yt: y(marker.wedge.yt),
-              corners: scaledCorners(marker.wedge.corners, scale, y),
-              style: scaledStyle(marker.wedge.style, scale),
-            },
+            wedge: wedge(marker.wedge),
             crossSection: {
               extent:
                 marker.crossSection.extent === null

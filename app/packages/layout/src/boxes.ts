@@ -188,12 +188,29 @@ export interface DrawnAxis {
   /** Where a coordinate marker of its line lies; null for an ancestor line, which draws none. */
   readonly marker: AxisMarker | null;
   /**
+   * The mark of an ancestor line (section 8.3) at the abscissa 0, as its marks of the member's
+   * start and end are drawn: above the line, its tip on the line's edge, with the style of a
+   * wedge held by that line that no named timestamp holds; null for every other line, whose
+   * `marker` holds its wedge.
+   */
+  readonly mark: AxisWedge | null;
+  /**
    * Set where the card drawing it is an ancestor card (section 8.8): the group whose frame that
    * card lies behind and the member it is aligned to, as its `DrawnBox.ancestor`. Its card's
    * place key has a member card's shape, `{item: group, member: root}`, but the card is no
    * member card of the frame.
    */
   readonly ancestor?: { readonly group: string; readonly member: string };
+}
+
+/**
+ * A wedge at the abscissa 0 of a drawn line (section 6.6, Wedges): its tip's
+ * ordinate, the corners of its base, and its style.
+ */
+export interface AxisWedge {
+  readonly yt: number;
+  readonly corners: readonly [WedgeCorner, WedgeCorner];
+  readonly style: Style;
 }
 
 /**
@@ -207,11 +224,7 @@ export interface DrawnAxis {
  * named timestamp holds.
  */
 export interface AxisMarker {
-  readonly wedge: {
-    readonly yt: number;
-    readonly corners: readonly [WedgeCorner, WedgeCorner];
-    readonly style: Style;
-  };
+  readonly wedge: AxisWedge;
   readonly crossSection: {
     /**
      * The ordinates of the line's cross-section lines, `y1` the smaller: from the smallest to the

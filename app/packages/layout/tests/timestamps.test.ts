@@ -627,7 +627,7 @@ describe("the marks at any position", () => {
         [97, 67.78125 - 1.5 - 13],
         [103, 67.78125 - 1.5 - 13],
       ],
-      style: { fill: "#000000", opacity: 1, stroke: "#00CC00", rotation: 0 },
+      style: { fill: "#000000", opacity: 0.35, stroke: "#00CC00", rotation: 0 },
     };
     expect(marksAt(member, key, 100)).toMatchObject({ line: null, wedge: mark });
     expect(mark.points).toEqual([
@@ -650,6 +650,97 @@ describe("the marks at any position", () => {
     expect(wedgeAt(everyWedge, key, 100)).toMatchObject({
       points: mark.points,
       style: { fill: "#123456" },
+    });
+  });
+
+  it("are an ancestor line's mark in the style of a wedge held by that line", () => {
+    const manifest = loadFile("groups/group_parent_both");
+    const layered = (rules: readonly Rule[], placement: Placement = DEFAULT_PLACEMENT) =>
+      draw(
+        manifest,
+        placement,
+        [DEFAULT_LAYER, { rules: [...rules] }, manifestLayer(manifest)],
+        metrics,
+      );
+    const ancestorOf = (drawing: Drawing) => {
+      const found = drawing.axes.find(
+        (axis) => sameAddress(axis.address, at("piece")) && axis.ancestor === undefined,
+      );
+      if (found === undefined) throw new Error("no ancestor line");
+      return found;
+    };
+    const keyIn = (drawing: Drawing, id: string) => {
+      const found = drawing.axes.find(
+        (axis) => sameAddress(axis.address, at(id)) && axis.ancestor === undefined,
+      );
+      if (found === undefined) throw new Error(`no line of ${id}`);
+      return placeKeyText(found.card) + addressKey(found.address);
+    };
+    const plain = layered([]);
+    const ancestor = ancestorOf(plain);
+    const key = keyIn(plain, "piece");
+    expect([ancestor.card, ancestor.line, ancestor.marker]).toEqual([
+      { item: "group_1", member: "middle" },
+      67.78125,
+      null,
+    ]);
+    const style = {
+      stroke: "#00CC00",
+      "stroke-width": 3,
+      "stroke-dasharray": "none",
+      fill: "#000000",
+      opacity: 0.35,
+      "font-size": 9,
+      rx: 0,
+      shadow: "none",
+      display: "inline",
+      content: "none",
+      "max-width": "none",
+      rotation: 0,
+    };
+    const mark = {
+      points: [
+        [200, 66.28125],
+        [197, 53.28125],
+        [203, 53.28125],
+      ],
+      style,
+    };
+    expect(wedgeAt(plain, key, 200)).toEqual(mark);
+    const start = wedge(plain, at("middle", "start"));
+    expect(start.style).toEqual(style);
+
+    const startRecoloured = layered([
+      {
+        select: { element: "wedge", addresses: [at("middle", "start")] },
+        set: { fill: "#FF0000" },
+      },
+    ]);
+    expect(wedge(startRecoloured, at("middle", "start")).style.fill).toBe("#FF0000");
+    expect(wedgeAt(startRecoloured, key, 200)).toEqual(mark);
+
+    const ancestorWedges = layered([
+      { select: { element: "wedge", inside: "ancestor" }, set: { fill: "#123456", opacity: 1 } },
+    ]);
+    expect(wedgeAt(ancestorWedges, key, 200)).toEqual({
+      ...mark,
+      style: { ...style, fill: "#123456", opacity: 1 },
+    });
+    expect(wedgeAt(ancestorWedges, keyIn(ancestorWedges, "middle"), 200)?.style).toMatchObject({
+      fill: "#000000",
+      opacity: 1,
+    });
+
+    const scaled = layered([], { ...DEFAULT_PLACEMENT, places: { group_1: { scale: 2 } } });
+    const y = ancestorOf(scaled).line;
+    const x = 300;
+    expect(wedgeAt(scaled, keyIn(scaled, "piece"), x)).toEqual({
+      points: [
+        [x, y - 3],
+        [x - 6, y - 3 - 26],
+        [x + 6, y - 3 - 26],
+      ],
+      style: { ...style, "stroke-width": 6, "font-size": 18 },
     });
   });
 

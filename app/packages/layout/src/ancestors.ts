@@ -11,6 +11,7 @@ import {
 } from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
+import type { AxisWedge } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
@@ -46,6 +47,11 @@ interface AncestorLine {
   readonly timeline: TimelineManifest;
   readonly address: ElementAddress;
   readonly style: Style;
+  /**
+   * The style of a wedge held by it that no named timestamp holds (`Cascade.resolveUnaddressed`),
+   * its `rotation` read: the mark an editor shows at a position on it.
+   */
+  readonly unnamed: Style;
   readonly name: Styled;
   /** It runs on to the left: `ts < 0`. */
   readonly left: boolean;
@@ -79,6 +85,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     const key = elementKey("ancestor", idAddress(timeline.id), timeline, rootEntry.key);
     const style = cascade.resolve(key, rootEntry.style);
     const line = { key, style };
+    const unnamedKey = elementKey("wedge", idAddress(timeline.id), timeline, key);
     // A member whose end is not known has no end to mark.
     const parts = rootEntry.open ? (["start"] as const) : (["start", "end"] as const);
     const marks = parts.map((part) => {
@@ -101,6 +108,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       timeline,
       address: idAddress(timeline.id),
       style,
+      unnamed: rotatedStyle(cascade.resolveUnaddressed(unnamedKey, style)),
       name: textOf(line, "name"),
       left: compareReal(start, zero(root.number_type)) < 0,
       // Where either end is not known, the line never claims the ancestor ends with the member.
@@ -210,10 +218,44 @@ export function ancestorLineElements(
 }
 
 /**
- * The marks of the member's start and end on each ancestor line, always above it: wedges whose
- * tip lies `w / 2` above the line, each corner of the base at its offset across and its distance
- * beyond the tip, turned by the mark's `rotation` (0 where unset) as a wedge above its line is
- * (section 6.6).
+ * A mark at the abscissa 0 of an ancestor line at `y` of stroke width `w`, in the style `style`
+ * whose `rotation` is read: always above the line, its tip `w / 2` above it, each corner of the
+ * base at its offset across and its distance beyond the tip, turned by `rotation` as a wedge above
+ * its line is (section 6.6).
+ */
+function markAbove(style: Style, y: number, w: number): AxisWedge {
+  const [first, second] = wedgeCorners(style.rotation ?? 0);
+  return {
+    yt: y - w / 2,
+    corners: [
+      { dx: first.dx, y: y - (w / 2 + first.out) },
+      { dx: second.dx, y: y - (w / 2 + second.out) },
+    ],
+    style,
+  };
+}
+
+/**
+ * The mark an editor shows at a position on each drawn ancestor line, `lines` the elements of
+ * `ancestors` in their order (`ancestorLineElements`): drawn as the marks of the member's start
+ * and end are (`ancestorMarkElements`), in the style of a wedge held by the line that no named
+ * timestamp holds, so that no rule on those marks changes it; by its line's element.
+ */
+export function ancestorLineMarks(
+  ancestors: readonly AncestorLine[],
+  lines: readonly LineElement[],
+): Map<LineElement, AxisWedge> {
+  return new Map(
+    ancestors.map((ancestor, index) => {
+      const line = nth(lines, index);
+      return [line, markAbove(ancestor.unnamed, line.y, ancestor.style["stroke-width"])];
+    }),
+  );
+}
+
+/**
+ * The marks of the member's start and end on each ancestor line, always above it, turned by the
+ * mark's `rotation`, 0 where unset (`markAbove`).
  */
 export function ancestorMarkElements(
   scope: Scope,
@@ -227,19 +269,8 @@ export function ancestorMarkElements(
     const y = ancestorY(band, index, yRoot);
     const w = ancestor.style["stroke-width"];
     return ancestor.marks.map((mark): MarkerElement => {
-      const style = rotatedStyle(mark.style);
-      const [first, second] = wedgeCorners(style.rotation ?? 0);
-      return {
-        type: "wedge",
-        address: mark.address,
-        style,
-        x: x0 + L * mark.u,
-        yt: y - w / 2,
-        corners: [
-          { dx: first.dx, y: y - (w / 2 + first.out) },
-          { dx: second.dx, y: y - (w / 2 + second.out) },
-        ],
-      };
+      const { yt, corners, style } = markAbove(rotatedStyle(mark.style), y, w);
+      return { type: "wedge", address: mark.address, style, x: x0 + L * mark.u, yt, corners };
     });
   });
 }

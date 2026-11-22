@@ -12,6 +12,7 @@ import {
   ancestorBand,
   ancestorLabelElements,
   ancestorLineElements,
+  ancestorLineMarks,
   ancestorLines,
   ancestorMarkElements,
   ancestorNames,
@@ -19,7 +20,7 @@ import {
   chevrons,
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
-import type { AxisMarker, DrawnBox, ElementRange } from "./boxes.ts";
+import type { AxisMarker, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
 import { heights } from "./heights.ts";
@@ -63,6 +64,8 @@ export interface MemberDrawn {
   readonly bands: DrawnBox[];
   /** Where a coordinate marker of each of its drawn lines lies, by the line's element. */
   readonly markers: ReadonlyMap<DrawnElement, AxisMarker>;
+  /** The mark of each of its drawn ancestor lines at the abscissa 0, by the line's element. */
+  readonly marks: ReadonlyMap<DrawnElement, AxisWedge>;
 }
 
 /**
@@ -145,12 +148,13 @@ export function layoutMember(
           item.text === undefined ? [] : [nameElement(scope, item.text, n, item.y)],
         ),
     ];
+    const ancestorLinesDrawn = ancestorLineElements(scope, ancestors, band, x0, yRoot);
     const elements: DrawnElement[] = [
       ...each("flowMarkers"),
       ...each("maps"),
       ...each("regions"),
       ...each("jumps"),
-      ...ancestorLineElements(scope, ancestors, band, x0, yRoot),
+      ...ancestorLinesDrawn,
       ...each("line"),
       ...bySegment(each("boundaries")),
       ...ancestorMarkElements(scope, ancestors, band, x0, yRoot),
@@ -166,7 +170,8 @@ export function layoutMember(
     ];
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
-    return { elements, bands: bandRecords(placed, fitted, card, end), markers };
+    const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
+    return { elements, bands: bandRecords(placed, fitted, card, end), markers, marks };
   };
 
   return {
