@@ -296,15 +296,6 @@ export function prettyText(
 }
 
 /**
- * An exact value written out as its decimal (`1/200` is `0.005`, `-3/8`
- * is `-0.375`), where the decimal ends; `undefined` where it does not.
- */
-export function exactDecimal(value: Rational): string | undefined {
-  if (placesOf(value.denominator) === undefined) return undefined;
-  return `${value.numerator < 0n ? "-" : ""}${decimal(magnitudeOf(value), false)}`;
-}
-
-/**
  * The coordinate dict `{unit, number_type, value}` of a value, the value
  * written as a bare value of its number type (a Fraction as its pair).
  *

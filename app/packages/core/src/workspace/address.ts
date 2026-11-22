@@ -10,7 +10,7 @@
  */
 
 import type { CommandError, Problem } from "../errors.ts";
-import { ErrorCode, problem } from "../errors.ts";
+import { assertNever, ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
 import type { ElementAddress, Facet, Part } from "../manifest/address.ts";
@@ -22,6 +22,7 @@ import { manifestElements, timelineAncestry } from "../manifest/elements.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
 import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
+import { timelinesInOrder } from "../manifest/tree.ts";
 import type {
   AlignmentAnchor,
   ConversionMap,
@@ -31,7 +32,6 @@ import type {
   MeasureMap,
   NamedMatchStamp,
   NamedTimestamp,
-  TimelineManifest,
 } from "../manifest/types.ts";
 import type { Block, BlockId } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
@@ -279,12 +279,13 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
 }
 
 /**
- * Every ID of a manifest with what it names, built in one walk of its trees
- * and memoised by identity: per timeline in pre-order its own, its entries'
- * and, after each conversion map, the maps it holds at any depth; then the
- * groups', the MeasureMaps', the resources', the named timestamps' and the
- * named MatchStamps', each followed by its alignment anchors'. An ID repeated in a
- * manifest the schema refuses keeps its first finding, and a timestamp on
+ * Every ID of a manifest with what it names, built once over its located
+ * timelines (`timelinesInOrder`) and memoised by identity: per timeline in
+ * pre-order its own, its entries' and, after each conversion map, the maps
+ * it holds at any depth; then the groups', the MeasureMaps', the
+ * resources', the named timestamps' and the named MatchStamps', each
+ * followed by its alignment anchors'. An ID repeated in a manifest the
+ * schema refuses keeps its first finding, and a timestamp on
  * a timeline the manifest lacks, which the schema refuses too, is passed
  * over.
  */
@@ -302,7 +303,7 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
       hold(item, at);
     }
   };
-  const visit = (at: Located) => {
+  for (const at of timelinesInOrder(manifest)) {
     note(at.timeline.id, { kind: "timeline", at });
     for (const entry of ENTRY_KINDS) {
       entriesOf(at.timeline, entry).forEach((item, index) => {
@@ -312,13 +313,7 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
     at.timeline.conversion_maps.forEach((map, index) => {
       hold(map, [...at.path, "conversion_maps", index]);
     });
-    at.timeline.children.forEach((timeline: TimelineManifest, index) => {
-      visit({ timeline, path: [...at.path, "children", index], parent: at });
-    });
-  };
-  manifest.timelines.forEach((timeline, index) => {
-    visit({ timeline, path: ["timelines", index], parent: undefined });
-  });
+  }
   for (const group of manifest.groups) note(group.id, { kind: "group", group });
   manifest.measure_maps.forEach((map, index) => {
     note(map.id, { kind: "measure_map", map, index });
@@ -366,8 +361,16 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
       return [...found.at.path, ...ENTRY_LISTS[found.entry].path, found.index, "id"];
     case "held":
       return [...found.path, "id"];
-    default:
+    case undefined:
+    case "resource":
+    case "matchstamp":
+    case "anchor":
+    case "group":
+    case "measure_map":
+    case "timestamp":
       return undefined;
+    default:
+      return assertNever(found);
   }
 }
 
@@ -425,6 +428,8 @@ function baseOf(
       if (element === undefined) return undefined;
       return [{ ...found, element }, part];
     }
+    default:
+      return assertNever(found);
   }
 }
 

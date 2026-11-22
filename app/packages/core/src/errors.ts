@@ -151,3 +151,16 @@ export class JournalMismatchError extends Error {
     this.path = path;
   }
 }
+
+/**
+ * The end of a closed switch over the kinds of a union: once every kind has
+ * its case, `value` has the type `never`, so a kind added to the union later
+ * fails to compile until the switch takes it. Reached at run time only
+ * through a value its type does not admit; it then throws, naming the value's
+ * `kind` where it has one.
+ */
+export function assertNever(value: never): never {
+  const seen: unknown = value;
+  const kind = typeof seen === "object" && seen !== null && "kind" in seen ? seen.kind : seen;
+  throw new Error(`a closed switch has no case for ${String(kind)}`);
+}

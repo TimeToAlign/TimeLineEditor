@@ -6,7 +6,7 @@
  */
 
 import type { CommandError } from "../errors.ts";
-import { isCommandError } from "../errors.ts";
+import { assertNever, isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type { Group, MeasureMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
@@ -157,8 +157,13 @@ export function targetOf(view: View, address: Address): Target | CommandError {
       const { block, index, matchstamp, position, anchor } = resolved;
       return { kind: "anchor", address, block, index, matchstamp, position, anchor };
     }
-    default:
+    case "title":
+    case "card":
+    case "band":
+    case "part":
       return namesNothing(view, address);
+    default:
+      return assertNever(resolved);
   }
 }
 

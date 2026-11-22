@@ -9,7 +9,7 @@
  */
 
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { assertNever, ErrorCode, isCommandError, problem } from "../errors.ts";
 import { addressKey, idAddress } from "../manifest/address.ts";
 import { removedBy, withoutElements } from "../manifest/remove.ts";
 import { isSegmentAt } from "../manifest/tree.ts";
@@ -72,11 +72,15 @@ function removalOf(target: Target): Removal | null {
       const line = isSegmentAt(at) ? (at.parent?.timeline.id ?? null) : null;
       return { element: at.timeline.id, line };
     }
-    default: {
+    case "map":
+    case "region":
+    case "flow_control": {
       const entry = entryAt(target.at.timeline, target.kind, target.index);
       if (entry === undefined) throw new Error(`${addressKey(target.address)} names an entry`);
       return { element: entry.id, line: null };
     }
+    default:
+      return assertNever(target);
   }
 }
 

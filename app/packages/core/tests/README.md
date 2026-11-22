@@ -809,6 +809,48 @@ the schema agree by construction.
    every value core accepts the schema accepts and every value it refuses
    the schema refuses.
 
+## One walk to find timelines (`tree.test.ts`)
+
+Every reader of a timeline by ID (`locateTimeline`, `findTimeline`,
+`isSegment`, the band orders, the cross-section's ancestors, the
+catalogue behind `resolveAddress`) reads one walk of the manifest's tree,
+made once per manifest object. What proves it is the number of times a
+walk opens a timeline's `children`, counted by a getter on each timeline,
+which no result depends on: a lookup-heavy operation counts its reads, and
+a walk repeated per lookup would read far more.
+
+The manifest is `bare.yaml`'s root `bare` with 99 children `child_0` to
+`child_98`, copies of the root without `children` of their own, added in
+that order: 100 timelines.
+
+1. **One walk for every lookup.** `bandOrderOf` of each of the 100 IDs in
+   tree order opens 100 `children`: the first lookup walks every timeline
+   once, every later one reads the walk. A walk per lookup, stopping at the
+   timeline found, would open 0 for `bare` and 1 + j for `child_j` (the
+   root's and those of `child_0` to `child_(j-1)`), 4,950 in all. Every
+   result is the default band order.
+2. **The walk is kept.** Asking all 100 again, then `findTimeline` of
+   `nothing` (no timeline), opens no `children` more: the count stays 100.
+   `findTimeline` gives for `child_42` the very object at `children[42]`.
+3. **Another manifest object walks again.** A copy of the manifest
+   (`{...manifest}`, the same timeline objects) opens exactly 100 more on
+   its first lookup: the walk belongs to the object asked, so a manifest a
+   command builds is never read through another's walk.
+
+## Closed switches (`switches.test.ts`)
+
+A switch over the kinds of a union (a resolved address, a target, what an
+ID names) lists every kind and ends with `assertNever`, so a kind added to
+the union fails to compile until each switch takes it. The proof is the
+compiler's, read by the test project's `tsc`: a call on a value whose type
+still admits a kind is marked `@ts-expect-error`, so the check passes only
+while `tsc` refuses that call; and a call on a value that has run out of
+kinds compiles. At run time `assertNever` is reached only through a value
+its type does not admit: given `{kind: "stranger"}` it throws "a closed
+switch has no case for stranger", given `7` "a closed switch has no case
+for 7", and the switch leaving `card` out, given a card, "a closed switch
+has no case for card".
+
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
 The view is `{meta, name, settings, graphical, blocks}`; an empty one
@@ -2495,10 +2537,7 @@ takes pairs in screen order as naming does, `match_claims` a list):
 ends), `set` of `score`'s length to `[10, 1]` moves the `length`
 timestamp `timestamp_5` to 10 and leaves `timestamp_10` at 8.
 
-**From the table to a command and back** (19): over the index of the
-matches case (in `matches.test.ts`, which builds it), `anchorValues(index, [6, 11])` is
-`[[clt_1@[3, 1], dpt_1@132300], [dpt_1@132300, cpt_1@3.0]]` (each anchor's
-lower coordinate first, an integral float a `JsonFloat`). For `M1`,
+**From a MatchStamp to the comparison** (19): for `M1`,
 `matchStampSpec` gives `{anchors: [{coordinates: [score 4, take_1
 88200n], carriesName: true}], claims: ["claim_1", "claim_2"]}`, the score
 value an exact `Rational` 4.
@@ -4094,9 +4133,6 @@ float from the decimal digits of its spelling, never from float arithmetic
    fraction of no terminating decimal, at 3 → `≈ 0.000000000000 ♩` (its
    magnitude rounds to 0 at 12 places). Copy and the raw text keep the
    float's `repr` exactly: −0.0 → `-0.0` and `-0.0 seconds`.
-10. **An exact decimal** (`exactDecimal`), the one writer of a terminating
-   decimal: 1/200 → `0.005`, −3/8 → `-0.375`, 3 → `3`, 27/2048 →
-   `0.01318359375`; 1/3 has none (`undefined`).
 
 ## Reading a typed value (`parse.test.ts`)
 
