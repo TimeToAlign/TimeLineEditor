@@ -101,7 +101,12 @@ width of the formula.
 ## The default layer (`defaults.test.ts`)
 
 The oracle is the JSON block of section 4, parsed from the installed schema
-package's `docs/drawing.md`: `DEFAULT_LAYER` equals it. Resolved alone, it
+package's `docs/drawing.md`: `DEFAULT_LAYER` equals it. That file is the
+copy of the TimeToShare repository's `docs/drawing.md` which the schema
+package's `pnpm build` puts into the package (`js/docs/`, not tracked); an
+edit of the repository's specification reaches this test and that of
+the constants below only after that build; until then both compare with
+the text built last. Resolved alone, the default layer
 gives `bare`'s block and card their fill, stroke, `rx` and shadow; in
 `group_child_member` the frame its own, the ancestor line `piece`, its marks
 and their labels opacity 0.35, its name grey at size 9 and not faded, while
@@ -877,8 +882,7 @@ coordinate label at the root's end).
    `HIDDEN_ANCESTOR_CARDS` no element is an `ancestor_card`, no axis
    carries `ancestor` and no record carries
    `ancestor`: those drawings are the figures of the drawing fixtures
-   without ancestor cards (`group__<file>__ancestor-cards-hidden` equal
-   to the earlier figures of their manifests).
+   `group__<file>__ancestor-cards-hidden`, drawn under the same rule.
 2. **`group_parent_both`** (`piece` 16 quarters, `middle` at 4, 8 long).
    `N = w("Recording", 11) = 10371 × 11 / 2048 = 55.70361328125`, `piece`
    runs on to the left, so `s0 = 16 + 55.70361328125 + 8 + 24 =
@@ -2149,11 +2153,17 @@ short children gives, every child in one row: 300 and 3,000 extents `[i,
 i + 1]`, placed in that order, each touching the one before it, so first
 fit puts all of them in row 1 (the rows are checked too). The work that
 grows when placement goes quadratic is the comparisons between ends, so
-those are what is counted, wherever the row keeps the ends: every end is a
-value that counts each conversion to a number, and a comparison of two
-ends (`<`, `<=`, `>`) converts both. The starts are distinct, so the
-identity comparison of two starts (`===` on the counting values) answers
-as their values would; it converts nothing.
+those are what is counted: every end is a value that counts each
+conversion to a number, and a comparison of two ends (`<`, `<=`, `>`)
+converts both. The count sees a comparison only while the row compares
+the values it was given: a row that converted every end to a number on
+entry would convert each end once, 600 and 6,000 times, whatever it
+compared afterwards, a scan of the whole row included. So the test first
+proves that the row keeps the very values passed in: every extent of row
+1 holds, as its start and end, the two counting values of the placement
+that added it (compared by identity, which converts nothing). The starts
+are distinct, so the identity comparison of two starts (`===` on the
+counting values) answers as their values would; it converts nothing.
 
 The counts, derived for a row that keeps its ordered extents sorted by
 start and checks a new one against its neighbours found by binary search:
@@ -2172,4 +2182,7 @@ the row, `n(n − 1)/2` comparisons: the literal reading of section 6.3
 row that scans every extent besides its binary search converts 99,088 and
 9,130,664 times, so either fails the counts. The counts are exact: a
 change that alters how many comparisons a placement makes, even within
-`n log n`, is re-derived here before the test changes.
+`n log n`, is re-derived here before the test changes. The counts are
+never re-derived over a row that converts the ends on entry: the identity
+check fails there, and its counts would be the conversions on entry, not
+the comparisons.
