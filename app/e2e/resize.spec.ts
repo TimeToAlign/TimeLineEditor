@@ -366,7 +366,8 @@ test.describe("a member's card in a group", () => {
     // takes several seconds in WebKit and Firefox under parallel load.
     test.slow();
     await open(page, "bundles");
-    await setViewport(page, { x: 40, y: 40, zoom: 1 });
+    // `bshared000`'s place origin lies at (640, 952), below the other blocks.
+    await setViewport(page, { x: 40, y: 40 - 952, zoom: 1 });
     const block = BUNDLES.shared;
     const places = () =>
       page.evaluate(

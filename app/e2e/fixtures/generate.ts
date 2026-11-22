@@ -58,15 +58,15 @@ export const SMALL = [
 /** The blocks of `groups`: id, fixture of one group, x, y, in the order they are added. */
 export const GROUPS = [
   ["gchild0000", "groups/group_child_member", 0, 0],
-  ["ggrand0000", "groups/group_grandchild", 0, 240],
-  ["gmixed0000", "groups/group_parents_mixed", 640, 0],
-  ["gstyled000", "groups/group_styled", 640, 424],
+  ["ggrand0000", "groups/group_grandchild", 0, 288],
+  ["gmixed0000", "groups/group_parents_mixed", 640, 544],
+  ["gstyled000", "groups/group_styled", 640, 0],
 ] as const;
 
 /** The blocks of `bundles`: id, fixture of `bundles/`, x, y, in the order they are added. */
 export const BUNDLES = [
   ["bmixed0000", "bundles/bundle_mixed", 0, 0],
-  ["bshared000", "bundles/bundle_shared_parent", 640, 0],
+  ["bshared000", "bundles/bundle_shared_parent", 640, 952],
   ["bungroup00", "bundles/bundle_ungrouped", 0, 480],
   ["btwogroups", "bundles/bundle_shared_member", 640, 560],
 ] as const;

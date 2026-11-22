@@ -170,6 +170,31 @@ test("the flag and the marks follow the pointer along a line and stay over its m
   await expect(marks(page, "hover")).toHaveCount(0);
 });
 
+test("a map drawn above its line comes before the line's coordinate, in the flag and the tab", async ({
+  page,
+}) => {
+  /** The rows of `timeline`'s part of the flag, top to bottom: a map's ID, `null` for the coordinate. */
+  const flagRows = (timeline: string) =>
+    flag(page)
+      .locator(`[data-timeline="${timeline}"] .tilie-coordinates-row`)
+      .evaluateAll((rows) => rows.map((found) => found.getAttribute("data-map")));
+  const point = await onMap(page, MELODY.start + 123, MELODY.y);
+  await page.mouse.move(point.x, point.y);
+  await expect(coordinate(page)).toHaveText("2 7/15 ♩");
+  expect(await flagRows("phrase")).toEqual(["ticks", null]);
+  expect(await flagRows("melody")).toEqual(["tempo", null]);
+
+  await page.mouse.click(point.x, point.y);
+  const shown = await panel(page, "Timestamp");
+  /** The row labels of `timeline`'s group in the tab's Coordinates, top to bottom. */
+  const tabRows = (timeline: string) =>
+    shown
+      .locator(`tbody[data-timeline="${timeline}"] tr[data-row] th[scope="row"]`)
+      .allTextContents();
+  await expect.poll(() => tabRows("melody")).toEqual(["Tempo", "coordinate"]);
+  expect(await tabRows("phrase")).toEqual(["Ticks", "coordinate"]);
+});
+
 test("a child's flag holds its own maps only", async ({ page }) => {
   await hover(page, 263.53662109375, PHRASE_Y);
   await expect(coordinate(page, "phrase")).toHaveText("2 ♩");

@@ -260,7 +260,7 @@
       "spacing": 8,
       "width": null,
       "x": 0,
-      "y": 240
+      "y": 288
     },
     "gmixed0000": {
       "height": null,
@@ -499,7 +499,7 @@
       "spacing": 8,
       "width": null,
       "x": 640,
-      "y": 0
+      "y": 544
     },
     "gstyled000": {
       "height": null,
@@ -722,7 +722,7 @@
       "spacing": 8,
       "width": null,
       "x": 640,
-      "y": 424
+      "y": 0
     }
   },
   "graphical": {},
@@ -992,7 +992,7 @@
           "spacing": 8,
           "width": null,
           "x": 0,
-          "y": 240
+          "y": 288
         },
         "into": {},
         "type": "add"
@@ -1236,7 +1236,7 @@
           "spacing": 8,
           "width": null,
           "x": 640,
-          "y": 0
+          "y": 544
         },
         "into": {},
         "type": "add"
@@ -1464,7 +1464,7 @@
           "spacing": 8,
           "width": null,
           "x": 640,
-          "y": 424
+          "y": 0
         },
         "into": {},
         "type": "add"

@@ -34,6 +34,13 @@ import {
 test.use({ viewport: { width: 1600, height: 1000 } });
 
 const VIEW = { x: 40, y: 40, zoom: 1 };
+/**
+ * The viewport showing `bshared000`, whose place origin lies at (640, 952) below
+ * the other blocks, 40 lower on the page than `VIEW` would show a block placed
+ * at (640, 0): `score`'s ancestor cards reach 38.6484375 above the place origin,
+ * and the resize toolbar above the block's node stays clear of the page's header.
+ */
+const SHARED_VIEW = { x: 40, y: 80 - 952, zoom: 1 };
 const SHARED = BUNDLES.shared;
 const BLOCK: Address = { block: SHARED };
 const GROUP_2: Address = { block: SHARED, id: "group_2" };
@@ -96,14 +103,17 @@ test.describe("the selection", () => {
 
   test.beforeEach(async ({ page }) => {
     await open(page, "bundles");
-    await setViewport(page, VIEW);
+    await setViewport(page, SHARED_VIEW);
   });
 
   test("a change keeps the selection, on the arranger and in every editor", async ({ page }) => {
+    // The block's right edge, 1869.34 with `score`'s ancestor cards drawn, on the page.
+    await setViewport(page, { ...SHARED_VIEW, x: SHARED_VIEW.x - 700 });
     await select(page, [BLOCK]);
     await resize(page, "box", "right", 40, 0);
     expect(await selection(page)).toEqual([BLOCK]);
 
+    await setViewport(page, SHARED_VIEW);
     await select(page, [GROUP_2]);
     await resize(page, "stretch", "right", 40, 0);
     expect(await selection(page)).toEqual([GROUP_2]);
@@ -160,7 +170,7 @@ test.describe("the selection", () => {
     page,
   }) => {
     await openSettled(page, GROUP_2);
-    await setViewport(page, VIEW);
+    await setViewport(page, SHARED_VIEW);
     // Faded parts take no pointer, so the click aims at the middle of the faded frame's rectangle.
     const faded = await partCentre(page, SHARED, { id: "group_1" });
 
@@ -172,7 +182,8 @@ test.describe("the selection", () => {
     await expect.poll(() => selection(page)).toEqual([]);
 
     await select(page, [card("take_2")]);
-    const pane = await emptyPoint(page, -20, 450);
+    // Below `bshared000`, the lowest block.
+    const pane = await emptyPoint(page, -20, 1550);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
     expect(await editing(page)).toEqual([{ target: GROUP_2, kind: "group" }]);
@@ -184,7 +195,7 @@ test.describe("the selection", () => {
   test("a double-click on the edited element centres the view on it again", async ({ page }) => {
     const centred = await openSettled(page, GROUP_2);
     const journal = await journalLength(page);
-    await setViewport(page, VIEW);
+    await setViewport(page, SHARED_VIEW);
     const own = await framePoint(page, SHARED, { id: "group_2" });
     await page.mouse.dblclick(own.x, own.y);
     await expect.poll(() => viewportOf(page)).toEqual(centred);
@@ -304,10 +315,10 @@ test.describe("a stretch in the group editor", () => {
     page,
   }) => {
     await open(page, "bundles");
-    await setViewport(page, VIEW);
+    await setViewport(page, SHARED_VIEW);
     await openSettled(page, GROUP_2);
     // The frame's right edge clear of the drawer, at zoom 1.
-    await setViewport(page, { x: -400, y: 40, zoom: 1 });
+    await setViewport(page, { x: -400, y: SHARED_VIEW.y, zoom: 1 });
     for (const box of [GROUP_2, card("recapitulation")]) {
       await select(page, [box]);
       await resize(page, "stretch", "right", 60, 0);

@@ -51,6 +51,11 @@ import {
 test.use({ viewport: { width: 1600, height: 1000 } });
 
 const VIEW = { x: 40, y: 40, zoom: 1 };
+/**
+ * The viewport showing `bshared000` (its place origin at (640, 952), below the
+ * other blocks) where `VIEW` showed it at (640, 0): its frames and cards on the page.
+ */
+const SHARED_VIEW = { x: 40, y: 40 - 952, zoom: 1 };
 
 /** The frame of group `id`. */
 const frame = idAddress;
@@ -143,37 +148,46 @@ test.describe("a group workspace", () => {
 
   test("draws its frames, cards, titles and lines in display order", async ({ page }) => {
     await expect(page.getByTestId("block")).toHaveCount(4);
+    // A root whose child is a member is drawn first, whole, in its ancestor card behind the frame:
+    // the card, the root's line and its descendants' lines down to the member's; the member's card
+    // then draws only lines already listed above its own.
     expect(await structureOf(page, GROUPS.child)).toEqual([
+      cardAddress("piece"),
+      line("piece"),
+      line("second-half"),
       frame("group_1"),
       title("group_1"),
       cardAddress("second-half"),
-      line("piece"),
-      line("second-half"),
       cardAddress("recording"),
       line("recording"),
     ]);
     expect(await structureOf(page, GROUPS.grandchild)).toEqual([
-      frame("group_1"),
-      title("group_1"),
-      cardAddress("theme"),
+      cardAddress("score"),
       line("score"),
       line("movement"),
       line("theme"),
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("theme"),
       cardAddress("recording"),
       line("recording"),
     ]);
+    // Three roots behind one frame, an ancestor card each, in the order of their members.
     expect(await structureOf(page, GROUPS.mixed)).toEqual([
+      cardAddress("sonata"),
+      line("sonata"),
+      line("exposition"),
+      cardAddress("session"),
+      line("session"),
+      line("take"),
+      cardAddress("page"),
+      line("page"),
+      line("system"),
       frame("group_1"),
       title("group_1"),
       cardAddress("exposition"),
-      line("sonata"),
-      line("exposition"),
       cardAddress("take"),
-      line("session"),
-      line("take"),
       cardAddress("system"),
-      line("page"),
-      line("system"),
       cardAddress("audio"),
       line("audio"),
     ]);
@@ -346,7 +360,7 @@ test.describe("a group workspace", () => {
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.groups + 1);
     await expect(node(page, GROUPS.child).locator(".tilie-block > svg")).toHaveAttribute(
       "width",
-      "830.8480224609375",
+      "1382.8480224609375",
     );
     const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
@@ -366,6 +380,9 @@ test.describe("a bundle workspace", () => {
     await expect(page.getByTestId("block")).toHaveCount(4);
     expect(await structureOf(page, BUNDLES.mixed)).toEqual([
       TITLE_ADDRESS,
+      cardAddress("recording"),
+      line("recording"),
+      line("excerpt"),
       frame("group_1"),
       title("group_1"),
       cardAddress("score"),
@@ -377,26 +394,26 @@ test.describe("a bundle workspace", () => {
       cardAddress("page"),
       line("page"),
       cardAddress("excerpt"),
-      line("recording"),
-      line("excerpt"),
       cardAddress("annotations"),
       line("annotations"),
     ]);
+    // `score`'s two ancestor cards, behind `group_1` and `group_2`, list its subtree once.
     expect(await structureOf(page, BUNDLES.shared)).toEqual([
       TITLE_ADDRESS,
+      cardAddress("score"),
+      line("score"),
+      line("exposition"),
+      line("recapitulation"),
+      line("recapitulation_first"),
+      line("recapitulation_second"),
       frame("group_1"),
       title("group_1"),
       cardAddress("exposition"),
-      line("score"),
-      line("exposition"),
       cardAddress("take_1"),
       line("take_1"),
       frame("group_2"),
       title("group_2"),
       cardAddress("recapitulation"),
-      line("recapitulation"),
-      line("recapitulation_first"),
-      line("recapitulation_second"),
       cardAddress("take_2"),
       line("take_2"),
       cardAddress("page"),
@@ -446,15 +463,18 @@ test.describe("a bundle workspace", () => {
   });
 
   test("selecting an ancestor line drawn in two frames marks both", async ({ page }) => {
+    await setViewport(page, SHARED_VIEW);
     const score = line("score");
-    await expect(element(page, BUNDLES.shared, score)).toHaveCount(8);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(4);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(4);
+    // Four parts in each frame's member card, three (line, start, end) in each of `score`'s two
+    // ancestor cards, whose line passes behind the frame with its start and end beyond its borders.
+    await expect(element(page, BUNDLES.shared, score)).toHaveCount(14);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(5);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(5);
     const { x, y } = await partCentre(page, BUNDLES.shared, score);
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([{ block: BUNDLES.shared, id: "score" }]);
     expect(await marked(page, "selection")).toEqual(
-      Array.from({ length: 8 }, () => markOf(BUNDLES.shared, score)),
+      Array.from({ length: 14 }, () => markOf(BUNDLES.shared, score)),
     );
   });
 
@@ -525,7 +545,7 @@ test.describe("a bundle workspace", () => {
         markOf(BUNDLES.ungrouped, cardAddress("pages")),
         markOf(BUNDLES.ungrouped, startOf("page_2")),
       ]);
-    const empty = await emptyPoint(page, 610, 200);
+    const empty = await emptyPoint(page, 584, 600);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "hover")).toEqual([]);
   });
