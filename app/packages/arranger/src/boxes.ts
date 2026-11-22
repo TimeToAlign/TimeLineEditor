@@ -36,6 +36,7 @@ import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout"
 import type { Descriptor, DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Editing } from "./editing.ts";
 import { addressParts, bandTimelineOf, frameGroupOf } from "./editing.ts";
+import { assertNever } from "./never.ts";
 
 /**
  * What an affordance of the canvas stands for: a named timestamp the
@@ -373,8 +374,21 @@ export function roleOf(descriptor: Descriptor): Role {
       return role === "shadow" ? "shadow" : "card";
     case "boundary":
       return "boundary";
-    default:
+    case "timeline":
+    case "child":
+    case "ancestor":
+    case "map":
+    case "region":
+    case "jump_from":
+    case "flow_marker":
+    case "cross_section":
+    case "wedge":
+    case "alignment_anchor":
+    case "name":
+    case "label":
       return "element";
+    default:
+      return assertNever(type);
   }
 }
 

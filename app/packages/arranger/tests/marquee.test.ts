@@ -1,9 +1,9 @@
 import type { ElementAddress, OwnerAddress, PlaceKey, View } from "@timetoalign/tilie-core";
 import { idAddress, inBlock, partAddress, samePlaceKey } from "@timetoalign/tilie-core";
-import { INITIAL_STYLE, TextMeasure } from "@timetoalign/tilie-layout";
+import { boundsOf, INITIAL_STYLE, TextMeasure } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import type { Editing } from "../src/editing.ts";
-import { elementBounds, elementsInRect, type Rect, rectOnCanvas } from "../src/marquee.ts";
+import { elementsInRect, type Rect, rectOnCanvas } from "../src/marquee.ts";
 import type { BlockNode } from "../src/node.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
@@ -77,6 +77,18 @@ describe("elementsInRect", () => {
     );
     const group = insideOf(manifest, node.data.drawing, "group_1");
     expect(elementsInRect(node, bottom, group, metrics)).toEqual([]);
+  });
+
+  it("takes a child's line with its end's diamond", () => {
+    const child = insideOf(manifest, node.data.drawing, "dlt_1");
+    const toDiamond = { ...bottom, width: 370.79150390625 - bottom.x };
+    expect(elementsInRect(node, toDiamond, child, metrics)).toEqual(
+      at(idAddress("cmap_7"), idAddress("dlt_1"), part("dlt_1", "name")),
+    );
+    const cut = { ...toDiamond, width: toDiamond.width - 0.5 };
+    expect(elementsInRect(node, cut, child, metrics)).toEqual(
+      at(idAddress("cmap_7"), part("dlt_1", "name")),
+    );
   });
 
   it("takes a member card's elements by their drawings outside the ancestor card", () => {
@@ -204,22 +216,22 @@ describe("elementsInRect", () => {
   });
 });
 
-describe("elementBounds", () => {
+describe("the bounds the marquee reads (boundsOf)", () => {
   it("spans an alignment anchor's line between its two end points, whichever comes first", () => {
     const measure = new TextMeasure(metrics);
     const address = idAddress("anchor_1");
     const line = { type: "alignment_anchor" as const, address, style: INITIAL_STYLE };
-    expect(elementBounds({ ...line, x1: 120, y1: 80, x2: 40, y2: 30 }, measure)).toEqual({
-      x: 40,
-      y: 30,
-      width: 80,
-      height: 50,
+    expect(boundsOf({ ...line, x1: 120, y1: 80, x2: 40, y2: 30 }, measure)).toEqual({
+      left: 40,
+      top: 30,
+      right: 120,
+      bottom: 80,
     });
-    expect(elementBounds({ ...line, x1: 40, y1: 64.5, x2: 300, y2: 64.5 }, measure)).toEqual({
-      x: 40,
-      y: 64.5,
-      width: 260,
-      height: 0,
+    expect(boundsOf({ ...line, x1: 40, y1: 64.5, x2: 300, y2: 64.5 }, measure)).toEqual({
+      left: 40,
+      top: 64.5,
+      right: 300,
+      bottom: 64.5,
     });
   });
 
@@ -233,29 +245,24 @@ describe("elementBounds", () => {
       yt: 5,
     };
     const bounds = (corners: readonly [{ dx: number; y: number }, { dx: number; y: number }]) =>
-      elementBounds({ ...tip, corners }, measure);
+      boundsOf({ ...tip, corners }, measure);
     expect(
       bounds([
         { dx: -3, y: 18 },
         { dx: 3, y: 18 },
       ]),
-    ).toEqual({ x: 7, y: 5, width: 6, height: 13 });
+    ).toEqual({ left: 7, top: 5, right: 13, bottom: 18 });
     expect(
       bounds([
         { dx: 13, y: 8 },
         { dx: 13, y: 2 },
       ]),
-    ).toEqual({ x: 10, y: 2, width: 13, height: 6 });
+    ).toEqual({ left: 10, top: 2, right: 23, bottom: 8 });
     expect(
       bounds([
         { dx: -11.3136, y: 5 + -2.8284 },
         { dx: -7.071, y: 5 + -7.071 },
       ]),
-    ).toEqual({
-      x: 10 + -11.3136,
-      y: 5 + -7.071,
-      width: 10 - (10 + -11.3136),
-      height: 5 - (5 + -7.071),
-    });
+    ).toEqual({ left: 10 + -11.3136, top: 5 + -7.071, right: 10, bottom: 5 });
   });
 });

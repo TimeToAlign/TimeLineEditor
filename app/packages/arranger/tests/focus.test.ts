@@ -51,7 +51,7 @@ describe("targetBounds", () => {
     expect(targetBounds(node, at("dlt_1"), metrics)).toEqual({
       x: 64,
       y: 414.89453125,
-      width: 302.29150390625,
+      width: 306.79150390625,
       height: 12.8046875,
     });
   });
@@ -62,7 +62,7 @@ describe("targetBounds", () => {
     expect(targetBounds(shown, at("dlt_1"), metrics)).toEqual({
       x: 64,
       y: 414.89453125,
-      width: 302.29150390625,
+      width: 306.79150390625,
       height: 12.8046875,
     });
     const recording = at("recording");
@@ -74,7 +74,7 @@ describe("targetBounds", () => {
     expect(targetBounds(raised, recording, metrics)).toEqual({
       x: -97.412109375,
       y: 341.91796875,
-      width: 2063.70361328125,
+      width: 2072.70361328125,
       height: 123.85546875,
     });
   });
