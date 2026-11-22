@@ -34,6 +34,7 @@ import {
   idAddress,
   matchStampAnchors,
   matchStampMembers,
+  namedAsGroupstamp,
   partAddress,
   placeKeyText,
   prettyText,
@@ -41,7 +42,13 @@ import {
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { Rational, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { CrossSectionSegment, Drawing } from "@timetoalign/tilie-layout";
-import { abscissaOf, anchorLine, crossSectionSegment, lineAxes } from "@timetoalign/tilie-layout";
+import {
+  abscissaOf,
+  anchorLine,
+  crossSectionSegment,
+  groupCrossSections,
+  lineAxes,
+} from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
 import type { Holding } from "./coordinates.ts";
 import { holdings } from "./coordinates.ts";
@@ -281,19 +288,26 @@ export interface Placed {
   readonly scale: number;
 }
 
+/** The lines whose drawn part holds coordinate `coordinate`, each with its abscissa there. */
+function placesOf(
+  index: AnchorIndex,
+  lines: MatchLines,
+  coordinate: number,
+): { readonly line: MatchLine; readonly x: number }[] {
+  const position = index.coordinates.position[coordinate] as number;
+  const held = lines.byTimeline.get(index.coordinates.timeline[coordinate] as number) ?? [];
+  return held.flatMap((line) =>
+    position >= line.from && position <= line.to ? [{ line, x: abscissa(line, position) }] : [],
+  );
+}
+
 /** The cross-section segments of coordinate `coordinate` on the lines holding it. */
 function segmentsOf(
   index: AnchorIndex,
   lines: MatchLines,
   coordinate: number,
 ): CrossSectionSegment[] {
-  const position = index.coordinates.position[coordinate] as number;
-  const held = lines.byTimeline.get(index.coordinates.timeline[coordinate] as number) ?? [];
-  return held.flatMap((line) =>
-    position >= line.from && position <= line.to
-      ? [{ x: abscissa(line, position), y1: line.y1, y2: line.y2 }]
-      : [],
-  );
+  return placesOf(index, lines, coordinate).map(({ line, x }) => ({ x, y1: line.y1, y2: line.y2 }));
 }
 
 /** The connector of anchor `anchor` (`anchorLine`), `null` where it has no length or an end is not drawn. */
@@ -399,19 +413,52 @@ export function overlayOf(
   return { lines: drawn, connectors: connectorsOf(index, lines, seen) };
 }
 
+/** Whether naming would store a coordinate of an index as a groupstamp, by the coordinate's number. */
+export type GroupstampAt = (coordinate: number) => boolean;
+
 /**
- * Every line and connector of the potential MatchStamp `stamp` in a block:
- * each of its coordinates on every line holding it, each of its anchors;
- * nothing for a number the index does not have.
+ * Whether naming a MatchStamp in `manifest` would store each coordinate of
+ * `index` as a groupstamp (core's `namedAsGroupstamp`: the `groupstamp` of
+ * the match timestamp `manifest` holds there, else whether its timeline is a
+ * member of a group).
  */
-export function stampOverlay(index: AnchorIndex, lines: MatchLines, stamp: number): MatchOverlay {
+export function namedGroupstamps(manifest: Manifest, index: AnchorIndex): GroupstampAt {
+  return (coordinate) => {
+    const timeline = index.columns.timelines[index.coordinates.timeline[coordinate] as number];
+    return (
+      timeline !== undefined &&
+      namedAsGroupstamp(manifest, timeline.id, coordinateValue(index, coordinate))
+    );
+  };
+}
+
+/**
+ * Every line and connector of the potential MatchStamp `stamp` in a block,
+ * as a named one would draw them: each of its coordinates on every line
+ * holding it, and where `groupstampAt` says naming would store it as a
+ * groupstamp, after each such line the lines layout's `groupCrossSections`
+ * draws across the frame holding that line's card (none on a line in no
+ * frame); then each of its anchors. Without `groupstampAt` no coordinate is
+ * taken for a groupstamp. Nothing for a number the index does not have.
+ */
+export function stampOverlay(
+  index: AnchorIndex,
+  lines: MatchLines,
+  stamp: number,
+  groupstampAt?: GroupstampAt,
+): MatchOverlay {
   if (!Number.isInteger(stamp) || stamp < 0 || stamp >= index.matchStamps.count) {
     return { lines: [], connectors: [] };
   }
   const drawn: OverlayLine[] = [];
   for (const coordinate of matchStampMembers(index, stamp)) {
-    for (const { x, y1, y2 } of segmentsOf(index, lines, coordinate)) {
-      drawn.push({ coordinate, x, y1, y2 });
+    const across = groupstampAt?.(coordinate) === true;
+    for (const { line, x } of placesOf(index, lines, coordinate)) {
+      drawn.push({ coordinate, x, y1: line.y1, y2: line.y2 });
+      if (!across) continue;
+      for (const { y1, y2 } of groupCrossSections(lines.drawing, line.key, x)) {
+        drawn.push({ coordinate, x, y1, y2 });
+      }
     }
   }
   return { lines: drawn, connectors: connectorsOf(index, lines, matchStampAnchors(index, stamp)) };

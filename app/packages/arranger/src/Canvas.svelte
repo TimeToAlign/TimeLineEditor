@@ -51,6 +51,7 @@ import {
   NO_MATCHES,
   NO_PAINT,
   NO_TABLES,
+  namedGroupstamps,
   namedPaint,
   overlayOf,
   pinnedOverlays,
@@ -719,7 +720,8 @@ const hoveredStamp: number | null = $derived(matchHover?.hit.stamp ?? null);
 
 /**
  * The overlays of the hovered and the pinned MatchStamp, per block that has
- * either; the hovered one not where it is pinned.
+ * either, each drawn as naming it in the block's manifest would draw it, its
+ * groupstamps across their frames; the hovered one not where it is pinned.
  */
 const stampLayers: ReadonlyMap<string, Pick<MatchLayer, "hovered" | "pinned">> = $derived.by(
   () =>
@@ -730,13 +732,16 @@ const stampLayers: ReadonlyMap<string, Pick<MatchLayer, "hovered" | "pinned">> =
         const pinned = pinnedMatchStamp?.block === block ? pinnedMatchStamp.matchStamp : null;
         if (hovered === null && pinned === null) return [];
         const beliefs = matchInputs.get(block)?.beliefs;
+        const groupstamps = namedGroupstamps(node.data.block.manifest, index);
         const layer = {
           hovered:
-            hovered === null || hovered === pinned ? null : stampOverlay(index, lines, hovered),
+            hovered === null || hovered === pinned
+              ? null
+              : stampOverlay(index, lines, hovered, groupstamps),
           pinned:
             pinned === null
               ? []
-              : pinnedOverlays(index, stampOverlay(index, lines, pinned), beliefs),
+              : pinnedOverlays(index, stampOverlay(index, lines, pinned, groupstamps), beliefs),
         };
         return [[block, layer] as const];
       }),

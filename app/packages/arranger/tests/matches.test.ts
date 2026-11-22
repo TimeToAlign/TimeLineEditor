@@ -10,7 +10,7 @@ import { addressKey, idAddress, inBlock, partAddress, placeKeyText } from "@time
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
-import { lineAxes } from "@timetoalign/tilie-layout";
+import { groupCrossSections, lineAxes } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
 import type { MatchLines, MatchOverlay, Screen, ScreenCoordinate } from "../src/matches.ts";
@@ -19,6 +19,7 @@ import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
+  namedGroupstamps,
   namedPaint,
   overlayOf,
   pathOf,
@@ -28,6 +29,7 @@ import {
   stampOverlay,
 } from "../src/matches.ts";
 import { holdingMatchStamp, ownerOf } from "../src/selectionRules.ts";
+import { G, GROUPSTAMP_FIXTURE } from "./groupTable.ts";
 import { BELIEVED, D, NAMED, NAMED_IN_D, OTHER, SCORE, T, TAKE_1, TAKE_2 } from "./matchTables.ts";
 import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
 
@@ -286,6 +288,106 @@ describe("the hovered and the pinned MatchStamp", () => {
       ],
     });
     expect(shape(stampOverlay(T, linesOf(T), 7))).toEqual({ lines: [], connectors: [] });
+  });
+});
+
+describe("the hovered and the pinned MatchStamp drawn as named", () => {
+  const grouped = viewOf({ id: A, fixture: GROUPSTAMP_FIXTURE, x: 40, y: 80 });
+  const groupedManifest: Manifest = blockIn(grouped, A).manifest;
+  const groupedDrawing: Drawing = drawingOf(blockIn(grouped, A), grouped.graphical, metrics);
+  const groupedLines = matchLinesOf(groupedDrawing, G);
+  const named = namedGroupstamps(groupedManifest, G);
+  const START = 102.29150390625;
+  const [AT_1, AT_2, AT_3] = [START + 100, START + 200, START + 300];
+  /** The extents and the frame's spans of `score`'s lines, `group_1`'s then `group_2`'s. */
+  const scoreAt = (c: number, x: number) => [
+    [c, x, 61.609375, 82.609375],
+    [c, x, 53.609375, 61.609375],
+    [c, x, 82.609375, 174.96484375],
+    [c, x, 223.76953125, 244.76953125],
+    [c, x, 215.76953125, 223.76953125],
+    [c, x, 244.76953125, 337.125],
+  ];
+
+  /** The line of `G` whose cross-section extent a segment piece is. */
+  const lineOf = (piece: { coordinate: number; y1: number; y2: number }) =>
+    groupedLines.byTimeline
+      .get(G.coordinates.timeline[piece.coordinate] as number)
+      ?.find(({ y1, y2 }) => y1 === piece.y1 && y2 === piece.y2);
+
+  it("follows a line with its groupstamp's lines where naming stores a groupstamp", () => {
+    expect([0, 1, 2, 3, 4, 5].map(named)).toEqual([true, true, false, true, false, true]);
+    expect(shape(stampOverlay(G, groupedLines, 0, named)).lines).toEqual([
+      ...scoreAt(0, AT_2),
+      [2, AT_1, 139.98828125, 139.98828125],
+    ]);
+    expect(shape(stampOverlay(G, groupedLines, 1, named)).lines).toEqual([
+      ...scoreAt(1, AT_3),
+      [5, AT_2, 302.1484375, 302.1484375],
+      [5, AT_2, 215.76953125, 337.125],
+    ]);
+    expect(shape(stampOverlay(G, groupedLines, 2, named)).lines).toEqual([
+      [3, AT_3, 139.98828125, 139.98828125],
+      [3, AT_3, 53.609375, 174.96484375],
+      [4, AT_3, 68.609375, 68.609375],
+      [4, AT_3, 230.76953125, 230.76953125],
+    ]);
+  });
+
+  it("draws exactly layout's groupstamp pieces, and the named groupstamp's", () => {
+    for (let stamp = 0; stamp < G.matchStamps.count; stamp += 1) {
+      const plain = stampOverlay(G, groupedLines, stamp).lines;
+      const expected = plain.flatMap((piece) => {
+        const line = lineOf(piece);
+        if (line === undefined) throw new Error("a piece on no line");
+        const across = named(piece.coordinate)
+          ? groupCrossSections(groupedDrawing, line.key, piece.x).map(({ y1, y2 }) => ({
+              coordinate: piece.coordinate,
+              x: piece.x,
+              y1,
+              y2,
+            }))
+          : [];
+        return [piece, ...across];
+      });
+      expect(stampOverlay(G, groupedLines, stamp, named).lines).toEqual(expected);
+    }
+    const timestamp1 = groupedDrawing.elements.flatMap((element) =>
+      element.type === "cross_section" && element.address.id === "timestamp_1"
+        ? [[element.x, element.y1, element.y2]]
+        : [],
+    );
+    const c0 = stampOverlay(G, groupedLines, 0, named).lines.flatMap(({ coordinate, x, y1, y2 }) =>
+      coordinate === 0 ? [[x, y1, y2]] : [],
+    );
+    const sorted = (pieces: number[][]) =>
+      [...pieces].sort((left, right) => (left[1] as number) - (right[1] as number));
+    expect(sorted(c0)).toEqual(sorted(timestamp1));
+  });
+
+  it("draws no groupstamp without the manifest's word, nor on lines in no frame", () => {
+    expect(shape(stampOverlay(G, groupedLines, 1)).lines).toEqual([
+      [1, AT_3, 61.609375, 82.609375],
+      [1, AT_3, 223.76953125, 244.76953125],
+      [5, AT_2, 302.1484375, 302.1484375],
+    ]);
+    for (const stamp of [0, 1]) {
+      expect(stampOverlay(T, linesOf(T), stamp, namedGroupstamps(manifest, T))).toEqual(
+        stampOverlay(T, linesOf(T), stamp),
+      );
+    }
+  });
+
+  it("keeps the potential MatchStamps' overlay as it is", () => {
+    expect(shape(overlayOf(G, groupedLines, PLACED, SCREEN)).lines).toEqual([
+      [0, AT_2, 61.609375, 82.609375],
+      [1, AT_3, 61.609375, 82.609375],
+      [2, AT_1, 139.98828125, 139.98828125],
+      [3, AT_3, 139.98828125, 139.98828125],
+      [0, AT_2, 223.76953125, 244.76953125],
+      [1, AT_3, 223.76953125, 244.76953125],
+      [5, AT_2, 302.1484375, 302.1484375],
+    ]);
   });
 });
 

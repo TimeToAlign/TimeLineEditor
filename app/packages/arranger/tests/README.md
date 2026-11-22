@@ -2242,6 +2242,62 @@ lines c1, c3, unlikely a2. Without beliefs every connector is undecided:
 one part, the whole overlay. The same overlay and beliefs give the same
 parts again.
 
+**The hovered and the pinned MatchStamp drawn as named** (`stampOverlay`
+with `namedGroupstamps`). A potential MatchStamp shown is drawn as naming
+it would draw it: where naming would store a coordinate as a groupstamp
+(core's `namedAsGroupstamp`, proven there: the `groupstamp` of the match
+timestamp the manifest holds at it, else whether its timeline lies in a
+group), each of its lines is followed by the lines a groupstamp there draws
+across the frame holding the line's card, exactly layout's
+`groupCrossSections` at the same abscissa (proven there against the
+drawing specification). What would be wrong: a groupstamp line missing
+where naming stores a groupstamp, one drawn where naming stores none, a
+piece unlike the named groupstamp's at the same place. Block A holds
+`bundles/bundle_matchstamp_groupstamp` at (40, 80): `score` (quarters,
+fraction, 8) is a member of `group_1` (with `performance`, seconds, float,
+4) and of `group_2` (with `page`, pixels, int, 800); its child
+`second-half` (4 quarters at offset 4) is drawn in each of `score`'s
+cards. Layout's record: every line from x 102.29150390625 to
+502.29150390625 (400 units: 50 a quarter, 100 a second, one per 2
+pixels; `second-half` from 302.29150390625); `group_1`'s frame holds
+`second-half` on y 68.609375, `score` on 82.609375 (its cross-section
+extent from 61.609375, the children band) and `performance` on
+139.98828125, its members' cards from y 53.609375 to 174.96484375;
+`group_2`'s holds `second-half` on 230.76953125, `score` on 244.76953125
+(extent from 223.76953125) and `page` on 302.1484375, its members' cards
+from 215.76953125 to 337.125. The manifest holds the match timestamps
+`timestamp_1` (score 4, a groupstamp), `timestamp_2` (performance 1.0, no
+groupstamp) and `timestamp_3` (second-half 2, no groupstamp). The table G
+(timelines `score`, `performance`, `second-half`, `page`): `g_1` score 4 ↔
+performance 1.0, `g_2` score 6 ↔ page 400, `g_3` second-half 2 ↔
+performance 3.0; so the coordinates c0 score 4, c1 score 6, c2
+performance 1.0, c3 performance 3.0, c4 second-half 2, c5 page 400 and
+the MatchStamps 0 = {c0, c2}, 1 = {c1, c5}, 2 = {c3, c4}. Naming stores
+a groupstamp at c0 (`timestamp_1`'s), c1, c3, c5 (unheld, on group
+members), none at c2 and c4 (held by `timestamp_2` and `timestamp_3`,
+which are none).
+
+| MatchStamp | Lines, as `[coordinate, x, y1, y2]` |
+|---|---|
+| 0 | c0 on `group_1`'s `score` [0, 302.29…, 61.609375, 82.609375], then [0, 302.29…, 53.609375, 61.609375] and [0, 302.29…, 82.609375, 174.96484375]; on `group_2`'s [0, 302.29…, 223.76953125, 244.76953125], then [0, 302.29…, 215.76953125, 223.76953125] and [0, 302.29…, 244.76953125, 337.125]; c2 [2, 202.29…, 139.98828125, 139.98828125] alone |
+| 1 | c1 as c0 at 402.29…; c5 [5, 302.29…, 302.1484375, 302.1484375], then [5, 302.29…, 215.76953125, 337.125] |
+| 2 | c3 [3, 402.29…, 139.98828125, 139.98828125], then [3, 402.29…, 53.609375, 174.96484375]; c4 [4, 402.29…, 68.609375, 68.609375] and [4, 402.29…, 230.76953125, 230.76953125] alone |
+
+(302.29… = 102.29150390625 + 200, 402.29… = + 300, 202.29… = + 100.)
+Each group piece is exactly what `groupCrossSections` gives on that line at
+that abscissa, and MatchStamp 0's six pieces of c0 are exactly the six
+`cross_section` elements the drawing holds for the named groupstamp
+`timestamp_1` at the same place: "exactly as a named one". Without
+`namedGroupstamps`, and on `bundles/bundle_matchstamps` (three ungrouped
+roots: no frame) with it, the overlay is the one above, its segment
+pieces alone: MatchStamp 1 then is c1's two extents and c5's point. The
+connectors are unchanged. The potential MatchStamps' overlay
+(`overlayOf`, the view of "What is drawn, in view") draws no groupstamps:
+on G its lines are c0 and c1 on `group_1`'s `score`, c2 and c3 on
+`performance`, c0 and c1 on `group_2`'s `score`, c5 on `page`, each its
+segment piece alone (c4 shares its device column on `score`'s card with
+c1, which `score`'s line, earlier in the drawing's order, took).
+
 **Named MatchStamps painted** (`namedPaint`). The named MatchStamps
 compared with T by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`,
 score 4 ↔ take_1 88200, claims `claim_1`, `claim_2`) is stated by a2 and
@@ -2843,9 +2899,27 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   0}`, the same number A's MatchStamp 0 has; given `pinnedMatchStamp`
   `{block: B, matchStamp: 0}`, B's overlay alone has a pinned path, equal
   to A's MatchStamp 0 path (the drawings are equal), and A's has none.
-- **The mode split.** With the mode on, exactly the drawn elements that
-  draw part of a named MatchStamp or of a match timestamp (`ownerOf`
+- **The hovered and the pinned MatchStamp drawn as named.** Block A holds
+  `bundles/bundle_matchstamp_groupstamp` at (40, 80) with the table G, as
+  in "The hovered and the pinned MatchStamp drawn as named" above. Given
+  `pinnedMatchStamp` `{block: A, matchStamp: 0}` (no beliefs: one pinned
+  path), its `d` is MatchStamp 0's lines of that table, the six pieces of
+  c0 and the point of c2, each `M x y1 V y2` as "The path" writes it,
+  then its one connector, exactly the drawn `anchor_1`'s line (`anchor_1`
+  joins `timestamp_1` and `timestamp_2`, the same two places), its ends in
+  the other order: `anchor_1` lists `timestamp_2` first, the connector
+  runs from its anchor's lower coordinate, c0. The pointer on `group_1`'s `score` line at score 6 (402.29…,
+  82.609375) hovers MatchStamp 1, whose hovered path holds c1's six
+  pieces and c5's two the same way. So a potential MatchStamp shows its
+  groupstamps across both frames before it is named, as `timestamp_1`
+  does once it is.
+- **The mode split.** With "Show matches" on, exactly the drawn elements
+  that draw part of a named MatchStamp or of a match timestamp (`ownerOf`
   `match`) let the pointer through: `anchor_1`'s and `anchor_2`'s lines,
-  `anchor_1`'s name label and `timestamp_3`'s name label; none with it
-  off. With it off, a click on `anchor_1`'s line or its name label selects
-  `{block: A, id: "matchstamp_1"}`, and then both show the selection.
+  `anchor_1`'s name label and `timestamp_3`'s name label; with "Show
+  coordinates" on, every drawn element owned by a named timestamp or a
+  named MatchStamp does (`ownerOf` not `null`), the MatchStamps' anchor
+  lines and name labels among them, as every timestamp part, so that the
+  lines beneath them are read; none with both off. With both off, a click
+  on `anchor_1`'s line or its name label selects `{block: A, id:
+  "matchstamp_1"}`, and then both show the selection.
