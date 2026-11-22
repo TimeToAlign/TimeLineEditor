@@ -582,6 +582,18 @@ change; the stop "−135 degrees" journals one more command, the rule
 stating −135, the stop pressed; axe-core reports no violation in the
 control; Default journals one more, leaves `bare` without rules, hides
 itself, and the wedge's `points` are those it was drawn with before.
+A drag of the slider with the mouse, which only a browser can drive (its
+`input`, `change` and release in their real order), is shown on the canvas
+while it moves and stored once: the mouse pressed on the thumb (at 0, the
+track's middle) and moved three quarters of the way along the track turns
+the drawn wedge (its `points` differ from the unturned ones) while the
+journal and `bare`'s rules stay as they were; Escape then draws the
+unturned wedge again and sets the slider back to "0 degrees", and moving
+on and releasing changes neither the wedge, the slider, the journal nor
+the rules. A second such drag turns the wedge before the release and
+journals exactly one command on release, the rule stating the slider's
+value then (read from the slider, a pixel's value being the browser's
+own), and the wedge keeps the `points` it showed before the release.
 
 **`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
 drawer's Properties tab on `bundles`. With `group_1` selected, its frame

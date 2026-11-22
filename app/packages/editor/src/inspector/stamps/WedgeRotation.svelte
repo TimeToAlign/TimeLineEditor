@@ -4,11 +4,16 @@
  * by 1, with the stops (`ROTATION_STOPS`) as its ticks and as a row of
  * buttons under it, each at its stop's place on the track and pressed while
  * the value is its stop. A drag shows its value live beside the slider and
- * commits once, when the slider changes (`change`, not `input`), so it is
- * one command; PageUp and PageDown move to the next stop up or down; a stop
- * commits its value; Default, offered while a rule states the rotation,
- * commits `null`. The caller sends the command (`oncommit`). Disabled, every
- * control shows greyed, the value beside them muted, and the value is kept.
+ * hands it to `onpreview` at every step (`null` once it is the value again),
+ * so the caller can show it without storing it; it commits once, when the
+ * slider changes or the pointer that dragged it is released, whichever
+ * comes first, so it is one command. Escape during a drag, and a cancelled
+ * pointer, end it without committing: the value is shown again and the rest
+ * of that drag moves nothing. PageUp and PageDown move to the next stop up
+ * or down; a stop commits its value; Default, offered while a rule states
+ * the rotation, commits `null`. The caller sends the command (`oncommit`).
+ * Disabled, every control shows greyed, the value beside them muted, and
+ * the value is kept.
  */
 import { degreesText, ROTATION_STOPS } from "../timestamp.ts";
 
@@ -24,9 +29,11 @@ interface Props {
   describedby?: string | undefined;
   /** A rotation chosen, `null` for the default. */
   oncommit: (rotation: number | null) => void;
+  /** The rotation dragged to and not committed yet, `null` once none is shown. */
+  onpreview?: ((rotation: number | null) => void) | undefined;
 }
 
-let { value, stated, disabled, labelledby, describedby, oncommit }: Props = $props();
+let { value, stated, disabled, labelledby, describedby, oncommit, onpreview }: Props = $props();
 
 const uid = $props.id();
 
@@ -34,18 +41,97 @@ const uid = $props.id();
 let draft: number | null = $state(null);
 const shown = $derived(draft ?? value);
 
+/**
+ * The drag under way, from a press on the slider to its release: whether
+ * Escape or a cancelled pointer has ended it, and the stop of the window
+ * listeners that hear the release; `null` while none is.
+ */
+let drag: { cancelled: boolean; readonly unlisten: () => void } | null = null;
+/** The rotation handed to `onpreview` last, so that each step is handed once. */
+let previewed: number | null = null;
+
+function preview(rotation: number | null): void {
+  if (rotation === previewed) return;
+  previewed = rotation;
+  onpreview?.(rotation);
+}
+
 function commit(rotation: number): void {
   draft = null;
+  preview(null);
   if (rotation !== value) oncommit(rotation);
 }
 
 function reset(): void {
   draft = null;
+  preview(null);
   oncommit(null);
 }
 
-/** PageUp and PageDown: the next stop above or below the value shown, committed. */
-function onkeydown(event: KeyboardEvent): void {
+/** Show the value again, nothing committed; a drag under way moves nothing more. */
+function cancel(slider: HTMLInputElement): void {
+  draft = null;
+  preview(null);
+  slider.value = String(value);
+  if (drag !== null) drag.cancelled = true;
+}
+
+function oninput(event: Event & { currentTarget: HTMLInputElement }): void {
+  const slider = event.currentTarget;
+  if (drag?.cancelled) {
+    slider.value = String(value);
+    return;
+  }
+  const next = Number(slider.value);
+  draft = next;
+  preview(next === value ? null : next);
+}
+
+/** The slider changed: by a key, or by the end of a drag; a drag already ended commits nothing more. */
+function onchange(event: Event & { currentTarget: HTMLInputElement }): void {
+  if (draft !== null) commit(Number(event.currentTarget.value));
+}
+
+/** The end of a drag, heard on the window: released, it commits; cancelled, it shows the value. */
+function ended(slider: HTMLInputElement, released: boolean): void {
+  if (drag === null) return;
+  const { cancelled } = drag;
+  drag.unlisten();
+  drag = null;
+  if (cancelled) return;
+  if (!released) cancel(slider);
+  else if (draft !== null) commit(draft);
+}
+
+function onpointerdown(event: PointerEvent & { currentTarget: HTMLInputElement }): void {
+  const slider = event.currentTarget;
+  drag?.unlisten();
+  // Added at once, not a microtask later as `svelte/events`' `on` would, so no release is missed.
+  const released = () => ended(slider, true);
+  const cancelled = () => ended(slider, false);
+  window.addEventListener("pointerup", released, true);
+  window.addEventListener("pointercancel", cancelled, true);
+  drag = {
+    cancelled: false,
+    unlisten: () => {
+      window.removeEventListener("pointerup", released, true);
+      window.removeEventListener("pointercancel", cancelled, true);
+    },
+  };
+}
+
+/**
+ * PageUp and PageDown: the next stop above or below the value shown,
+ * committed. Escape while a value is dragged: the value shown again.
+ */
+function onkeydown(event: KeyboardEvent & { currentTarget: HTMLInputElement }): void {
+  if (event.key === "Escape") {
+    if (draft === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancel(event.currentTarget);
+    return;
+  }
   if (event.key !== "PageUp" && event.key !== "PageDown") return;
   event.preventDefault();
   const next =
@@ -54,6 +140,13 @@ function onkeydown(event: KeyboardEvent): void {
       : ROTATION_STOPS.findLast((stop) => stop < shown);
   if (next !== undefined) commit(next);
 }
+
+// Removed during a drag, the control leaves no listener behind and withdraws what it showed.
+$effect(() => () => {
+  drag?.unlisten();
+  drag = null;
+  preview(null);
+});
 </script>
 
 <div class="rotation">
@@ -69,8 +162,10 @@ function onkeydown(event: KeyboardEvent): void {
     aria-describedby={describedby}
     aria-valuetext="{degreesText(shown)} degrees"
     {disabled}
-    bind:value={() => shown, (next) => (draft = next)}
-    onchange={() => commit(shown)}
+    value={shown}
+    {oninput}
+    {onchange}
+    {onpointerdown}
     {onkeydown}
   />
   <output class="degrees" for="{uid}-slider" aria-hidden="true">{degreesText(shown)}°</output>

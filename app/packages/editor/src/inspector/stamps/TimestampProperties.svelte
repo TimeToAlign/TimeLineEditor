@@ -2,7 +2,8 @@
 /**
  * The Timestamp tab's Properties, a key/value grid: what the timestamp
  * displays (its toggles); the rotation of its wedge, which waits while the
- * wedge is not displayed (its value kept); on a group member (a match
+ * wedge is not displayed (its value kept) and, while its slider is dragged,
+ * shows the dragged rotation on the canvas without storing it; on a group member (a match
  * timestamp's included) the GroupStamp toggle, whose line then crosses every member of its
  * groups, shown for an unnamed timestamp as naming would store it; the
  * MatchStamps a match timestamp belongs to; and Delete. While the timestamp
@@ -13,6 +14,7 @@ import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Pin, TimestampDisplay } from "@timetoalign/tilie-core";
 import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
+import { transientOf } from "../../transient.ts";
 import { matchStampsOf } from "../matchstamps.ts";
 import {
   DISPLAY_WORDS,
@@ -48,6 +50,7 @@ interface Props {
 let { live, pin, drafts, describedby }: Props = $props();
 
 const uid = $props.id();
+const showTransient = transientOf();
 
 /** The hint naming a GroupStamp's default rotation. */
 const GROUPSTAMP_TURNS = `A GroupStamp's wedge turns ${degreesText(GROUPSTAMP_ROTATION)}° by default.`;
@@ -100,6 +103,15 @@ function rotate(value: number | null): void {
   }
 }
 
+/** Show the wedge turned by `value` on the canvas, storing nothing; `null` shows it as stored. */
+function preview(value: number | null): void {
+  showTransient(
+    value === null || pin.named === null
+      ? null
+      : { block: pin.spec.block, command: rotationCommand(pin, value) },
+  );
+}
+
 function toggleGroupstamp(): void {
   const target = namedAddress(pin);
   if (target !== null && groupstamp !== null) {
@@ -142,6 +154,7 @@ function remove(): void {
         labelledby="{uid}-wedge"
         describedby={rotationDescribed}
         oncommit={rotate}
+        onpreview={preview}
       />
       {#if groupstamp === true}
         <span class="hint" id="{uid}-turns">{GROUPSTAMP_TURNS}</span>

@@ -1,8 +1,10 @@
 /**
  * The canvas's nodes: the projection of the view (one node per block), and
  * the nodes Svelte Flow shows, the projection with the block under a
- * gesture drawn as the gesture's preview. A preview never projects the
- * view again: only the previewed block's node is replaced.
+ * gesture drawn as the gesture's preview, or else with the block of the
+ * host's transient command (`TransientCommand`) drawn as that command
+ * leaves it. A preview never projects the view again: only the previewed
+ * block's node is replaced.
  */
 
 import type { BlockId, View } from "@timetoalign/tilie-core";
@@ -25,7 +27,7 @@ export interface Projected {
   readonly editing: Editing | null;
 }
 
-/** The block a gesture previews, and the view its command gives. */
+/** The block a gesture or a transient command previews, and the view its command gives. */
 export interface Preview {
   readonly id: BlockId;
   readonly view: View;
@@ -53,6 +55,7 @@ export class CanvasNodes {
   /** The last projection: `project` reuses the nodes of unchanged blocks. */
   #previous: BlockNode[] = [];
   readonly #input: () => Projected;
+  readonly #transient: () => Preview | null;
 
   /** The block a gesture previews; shown, never stored, until the gesture ends. */
   preview: Preview | null = $state.raw(null);
@@ -74,9 +77,12 @@ export class CanvasNodes {
     new Map(this.projected.map((node) => [node.id, node])),
   );
 
-  /** The previewed block's node, drawn at its preview; `null` without a preview. */
+  /**
+   * The previewed block's node, drawn at its preview: a gesture's, else the
+   * transient command's; `null` without either.
+   */
   readonly previewed: BlockNode | null = $derived.by(() => {
-    const preview = this.preview;
+    const preview = this.preview ?? this.#transient();
     const node = preview === null ? undefined : this.byId.get(preview.id);
     return preview === null || node === undefined
       ? null
@@ -130,7 +136,13 @@ export class CanvasNodes {
     return livePlacement(node.data.block, node.position, {}, node.data.drawing);
   }
 
-  constructor(input: () => Projected) {
+  /**
+   * The nodes of `input`; `transient` gives the preview of the host's
+   * transient command, read apart from `input` so that a new one replaces
+   * its block's node without projecting the view again.
+   */
+  constructor(input: () => Projected, transient: () => Preview | null) {
     this.#input = input;
+    this.#transient = transient;
   }
 }

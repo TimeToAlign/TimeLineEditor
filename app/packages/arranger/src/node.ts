@@ -1,9 +1,10 @@
 /**
- * The types of the canvas's nodes: what a block node renders and a block's
- * placement during a gesture. Pure types, so every module may import them.
+ * The types of the canvas's nodes: what a block node renders, a block's
+ * placement during a gesture and a command shown without being stored.
+ * Pure types, so every module may import them.
  */
 
-import type { Block, ElementAddress } from "@timetoalign/tilie-core";
+import type { Block, BlockId, Command, ElementAddress } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { Node } from "@xyflow/svelte";
@@ -45,3 +46,14 @@ export type LivePlacement = Pick<
   Block,
   "id" | "x" | "y" | "scale" | "length" | "spacing" | "margin" | "width" | "height"
 > & { readonly drawing: Drawing };
+
+/**
+ * A command the canvas shows applied to its block and never stores, while
+ * its host holds it: a control's value before it is committed (the wedge
+ * rotation's slider while dragged). Only that block's node is drawn again;
+ * a command the reducer refuses shows the block as stored.
+ */
+export interface TransientCommand {
+  readonly block: BlockId;
+  readonly command: Command;
+}

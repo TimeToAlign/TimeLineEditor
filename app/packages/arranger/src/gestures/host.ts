@@ -54,6 +54,14 @@ export function previewCommand(
   view: View,
   command: Command | null,
 ): void {
-  const shown = command === null ? view : preview(view, command);
-  actions.preview(block, { view: isCommandError(shown) ? view : shown });
+  actions.preview(block, { view: command === null ? view : previewed(view, command) });
+}
+
+/**
+ * `view` as `command` would leave it, through core's `preview`; `view`
+ * itself where the reducer refuses the command.
+ */
+export function previewed(view: View, command: Command): View {
+  const shown = preview(view, command);
+  return isCommandError(shown) ? view : shown;
 }
