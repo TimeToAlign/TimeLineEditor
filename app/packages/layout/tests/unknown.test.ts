@@ -1,6 +1,7 @@
 /** Timelines of unknown length: the reach, the five end rules, the open end; derived in tests/README.md. */
 
 import { type Manifest, sameAddress } from "@timetoalign/tilie-core";
+import { reachOf } from "@timetoalign/tilie-core/drawing";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -11,7 +12,6 @@ import {
   type LineElement,
   manifestLayer,
 } from "../src/index.ts";
-import { reachOf } from "../src/numbers.ts";
 import {
   at,
   child,

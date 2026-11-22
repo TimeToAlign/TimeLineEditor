@@ -59,7 +59,6 @@ import {
   toAxisValue,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
-import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import type { FontMetrics, NumberType, Selector } from "@timetoalign/timetoshare";
 import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
@@ -606,30 +605,22 @@ function statedRotation(manifest: Manifest, id: string): number | undefined {
  * with `metrics`): a named one's as its first drawn wedge carries it, in
  * drawing order (a rule scoped to a band or card can turn one address
  * differently in each drawing), whichever rule sets it; while its wedge
- * is not drawn, as its rule states it, else the initial value. An unnamed
- * one's as naming would draw it: the initial value of a groupstamp's wedge
- * where naming stores a groupstamp (`groupstampOf`, `editor` the innermost
- * editor open), else 0.
+ * is not drawn, as its rule states it, else the initial value 0, the
+ * rotation of every wedge of a primary coordinate, a groupstamp's included.
+ * An unnamed one's 0, as naming would draw it.
  */
-export function wedgeRotationOf(
-  view: View,
-  pin: Pin,
-  metrics: FontMetrics,
-  editor: EditorKind | null,
-): WedgeRotation {
+export function wedgeRotationOf(view: View, pin: Pin, metrics: FontMetrics): WedgeRotation {
   const block = view.blocks[pin.spec.block];
   if (block === undefined) return { value: 0, stated: false };
   const { manifest } = block;
-  const groupstamp = offersGroupstamp(manifest, pin) && groupstampOf(manifest, pin, editor);
-  const initial = groupstamp ? GROUPSTAMP_ROTATION : 0;
-  if (pin.named === null) return { value: initial, stated: false };
+  if (pin.named === null) return { value: 0, stated: false };
   const address = { id: pin.named.id };
   const stated = statedRotation(manifest, pin.named.id);
   const drawn = drawingOf(block, view.graphical, metrics).elements.find(
     (element) => element.type === "wedge" && sameAddress(element.address, address),
   );
   return {
-    value: drawn?.style.rotation ?? stated ?? initial,
+    value: drawn?.style.rotation ?? stated ?? 0,
     stated: stated !== undefined,
   };
 }

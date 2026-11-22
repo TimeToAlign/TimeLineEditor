@@ -4,21 +4,8 @@
  * 3 and 5.2).
  */
 
-import {
-  type AxisValue,
-  type Manifest,
-  prettyText,
-  type TimelineManifest,
-} from "@timetoalign/tilie-core";
-import { namedTimestamps } from "@timetoalign/tilie-core/drawing";
-import {
-  addReal,
-  compareReal,
-  fromFloat,
-  Rational,
-  type Real,
-  toFloat,
-} from "@timetoalign/tilie-core/numbers";
+import { type AxisValue, prettyText, type TimelineManifest } from "@timetoalign/tilie-core";
+import { addReal, fromFloat, Rational, type Real, toFloat } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import { isJsonFloat } from "@timetoalign/timetoshare";
 
@@ -46,49 +33,6 @@ export function coordinateValue(value: AxisValue, numberType: NumberType): Real 
 /** A timeline's length on its own axis, or null when the length is not known. */
 export function lengthValue(timeline: TimelineManifest): Real | null {
   return timeline.length === null ? null : coordinateValue(timeline.length, timeline.number_type);
-}
-
-/** The larger of two values, compared exactly; of two equal ones, an exact one before a float. */
-function larger(left: Real, right: Real): Real {
-  const order = compareReal(left, right);
-  if (order !== 0) return order > 0 ? left : right;
-  return typeof left === "number" ? right : left;
-}
-
-/**
- * The reach of a timeline on its own axis (section 3.4): the largest of its
- * number type's zero and every coordinate its content reaches, displayed or
- * not. A child counts its offset plus its length, or plus its own reach when
- * its length is not known; regions their start and end; every flow-control
- * element its coordinate; every named timestamp of it in `manifest`'s
- * `graphical` object its coordinate. Maps are not content, and a measure map
- * belongs to no timeline.
- * `reaches` holds the reach of every timeline already walked, so one traversal
- * walks each subtree once.
- */
-export function reachOf(
-  timeline: TimelineManifest,
-  manifest: Manifest,
-  reaches: WeakMap<TimelineManifest, Real> = new WeakMap(),
-): Real {
-  const cached = reaches.get(timeline);
-  if (cached !== undefined) return cached;
-  const own = (value: AxisValue) => coordinateValue(value, timeline.number_type);
-  let reach = zero(timeline.number_type);
-  const take = (value: Real) => {
-    reach = larger(reach, value);
-  };
-  for (const child of timeline.children) {
-    take(add(own(child.offset), lengthValue(child) ?? reachOf(child, manifest, reaches)));
-  }
-  for (const region of timeline.regions) {
-    take(own(region.start));
-    take(own(region.end));
-  }
-  for (const item of timeline.flow_control) take(own(item.coordinate));
-  for (const timestamp of namedTimestamps(manifest, timeline.id)) take(own(timestamp.coordinate));
-  reaches.set(timeline, reach);
-  return reach;
 }
 
 /** Zero in a number type: an exact 0, or the float 0.0. */

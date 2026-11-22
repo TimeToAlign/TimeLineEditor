@@ -20,6 +20,7 @@ import type { Drawing, Point } from "./elements.ts";
 import { wedgePoints } from "./geometry.ts";
 import { groupSpans } from "./groupstamps.ts";
 import { add, negate } from "./numbers.ts";
+import { cut } from "./stacks.ts";
 
 /** One drawn line of a drawing, in block-local canvas units, with the coordinates it stands for. */
 export interface LineAxis {
@@ -134,37 +135,41 @@ function markedLine(
 
 /**
  * The cross-section line at the abscissa `x` of the line keyed `lineKey` in
- * `drawing` (a key of `lineAxes`), as a named timestamp of its timeline lying
- * there draws its own (`docs/drawing.md` in TimeToShare, section 6.6,
- * Cross-section lines): across the line, its children band and its
- * conversion maps band, with the style of a cross-section line of that
- * timeline that no named timestamp holds; null where neither band is
- * present, so that the line has no length, and where the key names no line,
- * or an ancestor line, which draws none.
+ * `drawing` (a key of `lineAxes`), as a named timestamp of its timeline
+ * lying there draws its own (`docs/drawing.md` in TimeToShare, section 6.6,
+ * Cross-section lines): across the card drawing the line, from its top to
+ * its bottom, less the gap where the line's wedge stands (`AxisMarker`), up
+ * to two pieces from the top, with the style of a cross-section line of
+ * that timeline that no named timestamp holds; none where the key names no
+ * line, or an ancestor line, which draws none.
  */
-export function crossSection(drawing: Drawing, lineKey: string, x: number): CrossSection | null {
+export function crossSection(drawing: Drawing, lineKey: string, x: number): CrossSection[] {
   const crossing = markedLine(drawing, lineKey)?.marker.crossSection;
-  if (crossing === undefined || crossing.extent === null) return null;
-  const { y1, y2 } = crossing.extent;
-  return { x, y1, y2, style: crossing.style };
+  if (crossing === undefined) return [];
+  const { span, gap, style } = crossing;
+  return cut([span.y1, span.y2], gap === null ? null : [gap.y1, gap.y2]).map(([y1, y2]) => ({
+    x,
+    y1,
+    y2,
+    style,
+  }));
 }
 
 /**
  * The lines a groupstamp lying at the abscissa `x` of the line keyed
  * `lineKey` in `drawing` (a key of `lineAxes`) draws across the frame
  * holding that line's card, as a named groupstamp of its timeline lying there
- * draws them (`groupstampElements`): over the frame's spans (`groupSpans`)
- * less the line's own cross-section extent, which `crossSection` gives,
- * with the style of a cross-section line of that timeline that no named
- * timestamp holds; none where the line's card is held by no frame, and
- * where the key names no line, or an ancestor line.
+ * draws them (`groupstampElements`): over the frame's spans (`groupSpans`),
+ * which leave out the line's own card, with the style of a cross-section
+ * line of that timeline that no named timestamp holds; none where the line's
+ * card is held by no frame, and where the key names no line, or an ancestor
+ * line.
  */
 export function groupCrossSections(drawing: Drawing, lineKey: string, x: number): CrossSection[] {
   const marked = markedLine(drawing, lineKey);
   if (marked === null) return [];
-  const { extent, style } = marked.marker.crossSection;
-  const cuts = extent === null ? [] : [[extent.y1, extent.y2] as const];
-  return groupSpans(drawing.axes, drawing.boxes, marked.axis, cuts).map(([y1, y2]) => ({
+  const { style } = marked.marker.crossSection;
+  return groupSpans(drawing.axes, drawing.boxes, marked.axis).map(([y1, y2]) => ({
     x,
     y1,
     y2,
@@ -175,9 +180,8 @@ export function groupCrossSections(drawing: Drawing, lineKey: string, x: number)
 /**
  * A cross-section segment (section 8.7): the vertical segment from `(x, y1)`
  * to `(x, y2)`, `y1 ≤ y2`, in block-local canvas units, that a cross-section
- * line at `x` spans, drawn or not; the point `(x, y)` on its line, `y1 = y2
- * = y`, where neither the children band nor the conversion maps band of the
- * line is present.
+ * line at `x` spans, drawn or not: from the top of the card drawing its line
+ * to the card's bottom, its gap included.
  */
 export interface CrossSectionSegment {
   readonly x: number;
@@ -185,46 +189,41 @@ export interface CrossSectionSegment {
   readonly y2: number;
 }
 
-/** The cross-section segment at `x` of the drawn line `axis`, whose marker is `marker`. */
-function segmentAt(axis: DrawnAxis, marker: AxisMarker, x: number): CrossSectionSegment {
-  const crossing = marker.crossSection.extent;
-  return crossing === null
-    ? { x, y1: axis.line, y2: axis.line }
-    : { x, y1: crossing.y1, y2: crossing.y2 };
-}
-
 /**
  * The cross-section segment at the abscissa `x` of the line keyed `lineKey`
  * in `drawing` (a key of `lineAxes`), as a named timestamp of its timeline
- * lying there has it (section 8.7): the extent of the line's cross-section
- * lines, else the point on the line; null where the key names no line, or an
- * ancestor line, which draws none. What `anchorLine` joins.
+ * lying there has it (section 8.7): the span of the card drawing the line;
+ * null where the key names no line, or an ancestor line, which draws none.
+ * What `anchorLine` joins.
  */
 export function crossSectionSegment(
   drawing: Drawing,
   lineKey: string,
   x: number,
 ): CrossSectionSegment | null {
-  const marked = markedLine(drawing, lineKey);
-  return marked === null ? null : segmentAt(marked.axis, marked.marker, x);
+  const span = markedLine(drawing, lineKey)?.marker.crossSection.span;
+  return span === undefined ? null : { x, y1: span.y1, y2: span.y2 };
 }
 
 /**
  * Every cross-section segment of the named timestamp `id` among the drawn
  * lines `axes` (section 8.7): one in every member drawing that draws its
  * timeline's line, or its segment line's for a segment without a line of its
- * own, in the order of the lines, which is the order of their descriptors;
- * none in an ancestor card, which gives an alignment anchor no segment
- * (section 8.8), and none where no other line drawn holds it.
+ * own, or draws its timeline as an ancestor line and the timestamp on it, in
+ * the order of the lines, which is the order of their descriptors; none in
+ * an ancestor card, which gives an alignment anchor no segment (section
+ * 8.8), and none where no line drawn holds it.
  */
 export function timestampSegments(axes: readonly DrawnAxis[], id: string): CrossSectionSegment[] {
-  return axes.flatMap((axis) => {
-    const { marker } = axis;
-    if (marker === null || axis.ancestor !== undefined) return [];
-    return marker.timestamps.flatMap((timestamp) =>
-      timestamp.id === id ? [segmentAt(axis, marker, timestamp.x)] : [],
-    );
-  });
+  return axes.flatMap((axis) =>
+    axis.ancestor !== undefined
+      ? []
+      : axis.timestamps.flatMap((timestamp) =>
+          timestamp.id === id
+            ? [{ x: timestamp.x, y1: timestamp.segment.y1, y2: timestamp.segment.y2 }]
+            : [],
+        ),
+  );
 }
 
 /**
@@ -249,8 +248,8 @@ export function crossedLines(drawing: Drawing, lineKey: string): readonly string
  * its own (section 6.6, Wedges): in the line's markers band, from where that
  * band starts, or would start were it present; with the style of a wedge of
  * that timeline that no named timestamp holds, turned by that style's
- * `rotation` (a rule on the band's wedges, never one naming addresses nor a
- * groupstamp's initial −45). An ancestor line (section 8.3), which draws no
+ * `rotation` (a rule on the band's wedges, never one naming addresses). An
+ * ancestor line (section 8.3), which draws no
  * named timestamp, has the mark its marks are drawn as (`DrawnAxis.mark`):
  * always above the line, its tip on the line's edge, with the style of a
  * wedge held by the ancestor line that no named timestamp holds and that

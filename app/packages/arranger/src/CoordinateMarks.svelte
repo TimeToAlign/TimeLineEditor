@@ -52,7 +52,7 @@ function opacityOf(style: Style): string | undefined {
   <ViewportPortal target="front" class="tilie-overlay">
     {#each marks as mark (mark.kind)}
       {@const wedge = wedgeAt(mark.drawing, mark.key, mark.x)}
-      {@const line = crossSection(mark.drawing, mark.key, mark.x)}
+      {@const lines = crossSection(mark.drawing, mark.key, mark.x)}
       {@const group = mark.group === true ? groupCrossSections(mark.drawing, mark.key, mark.x) : []}
       <svg
         class="tilie-coordinate-marks"
@@ -72,9 +72,9 @@ function opacityOf(style: Style): string | undefined {
             opacity={opacityOf(wedge.style)}
           />
         {/if}
-        {#if line !== null}
-          {@render crossing(line, "coordinate-line")}
-        {/if}
+        {#each lines as piece (piece.y1)}
+          {@render crossing(piece, "coordinate-line")}
+        {/each}
         {#each group as piece (piece.y1)}
           {@render crossing(piece, "coordinate-group-line")}
         {/each}

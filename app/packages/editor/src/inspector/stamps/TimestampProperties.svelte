@@ -12,13 +12,11 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Pin, TimestampDisplay } from "@timetoalign/tilie-core";
-import { GROUPSTAMP_ROTATION } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { transientOf } from "../../transient.ts";
 import { matchStampsOf } from "../matchstamps.ts";
 import {
   DISPLAY_WORDS,
-  degreesText,
   displayCommand,
   displayOf,
   GROUPSTAMP_WORDS,
@@ -52,9 +50,6 @@ let { live, pin, drafts, describedby }: Props = $props();
 const uid = $props.id();
 const showTransient = transientOf();
 
-/** The hint naming a GroupStamp's default rotation. */
-const GROUPSTAMP_TURNS = `A GroupStamp's wedge turns ${degreesText(GROUPSTAMP_ROTATION)}° by default.`;
-
 const unnamed = $derived(pin.named === null);
 const manifest = $derived(live.view.blocks[pin.spec.block]?.manifest);
 /** The innermost editor open, `null` for none. */
@@ -67,11 +62,10 @@ const groupstamp = $derived(
 );
 /** Whether its wedge is displayed, so that its rotation shows. */
 const wedgeShown = $derived(displayOf(pin).includes("wedge"));
-const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics, editor));
-/** What describes the rotation: the GroupStamp's default, the wedge turned off, the naming hint. */
+const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics));
+/** What describes the rotation: the wedge turned off, the naming hint. */
 const rotationDescribed = $derived(
   [
-    groupstamp === true ? `${uid}-turns` : null,
     wedgeShown ? null : `${uid}-wedge-off`,
     describedby ?? null,
   ]
@@ -156,9 +150,6 @@ function remove(): void {
         oncommit={rotate}
         onpreview={preview}
       />
-      {#if groupstamp === true}
-        <span class="hint" id="{uid}-turns">{GROUPSTAMP_TURNS}</span>
-      {/if}
       {#if !wedgeShown}
         <span class="hint" id="{uid}-wedge-off">Turn the Wedge on to rotate it.</span>
       {/if}

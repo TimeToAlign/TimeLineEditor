@@ -244,15 +244,19 @@ describe("redraw operation counts", () => {
   // The tests each rule saw while drawing: its reads less a second ranking, draw's own cascade.
   const tests = all.map(({ reads: count }, index) => count() - 2 * (ranking[index] ?? 0));
 
-  it("styles 1,000 element keys", () => {
-    expect(keys).toHaveLength(1000);
+  it("styles 1,004 element keys: 1,000 and those of the root's secondary coordinates", () => {
+    // `origin` at 0 crosses `child_0` (its reach 1) and `nested_unknown` (its reach 0), each a
+    // secondary coordinate with a wedge and a coordinate label; `length` at 200 crosses no child,
+    // each ending at its reach, 1 past its offset, nor the segment line, 120 to 160 (section 2).
+    expect(keys.filter((key) => key.coordinates === "secondary")).toHaveLength(4);
+    expect(keys).toHaveLength(1004);
   });
 
   it("tests the general rule once per element key and twice per line, so resolves each key once", () => {
     // Each timeline or child line also resolves the wedge and the cross-section line no named
     // timestamp holds, once each.
     const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
-    expect(tests[0]).toBe(1000 + 2 * lines);
+    expect(tests[0]).toBe(keys.length + 2 * lines);
   });
 
   it("tests a rule with addresses, a class or an element only on keys it can match", () => {

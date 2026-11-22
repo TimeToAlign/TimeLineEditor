@@ -187,6 +187,12 @@ export interface DrawnAxis {
    */
   readonly mark: AxisWedge | null;
   /**
+   * The named timestamps the line holds, its timeline's and those of its segments without a line
+   * of their own, in the order its markers band places them, or on an ancestor line those it
+   * draws (section 8.3), each with the abscissa of its cross-section line, drawn or not.
+   */
+  readonly timestamps: readonly AxisTimestamp[];
+  /**
    * Set where the card drawing it is an ancestor card (section 8.8): the group whose frame that
    * card lies behind and the member it is aligned to, as its `DrawnBox.ancestor`. Its card's
    * place key has a member card's shape, `{item: group, member: root}`, but the card is no
@@ -219,12 +225,16 @@ export interface AxisMarker {
   readonly wedge: AxisWedge;
   readonly crossSection: {
     /**
-     * The ordinates of the line's cross-section lines, `y1` the smaller: from the smallest to the
-     * largest of the line's ordinate and of the start and outer edge of its children band and of
-     * its conversion maps band, each where present; null where neither band is present, so that
-     * a cross-section line there has no length and is not drawn.
+     * The ordinates of the card drawing the line, `y1` its top and `y2` its bottom (sections 8.4
+     * and 8.6), which every cross-section line of the line crosses (section 6.6).
      */
-    readonly extent: { readonly y1: number; readonly y2: number } | null;
+    readonly span: { readonly y1: number; readonly y2: number };
+    /**
+     * The gap a cross-section line of the line leaves where the wedge at the abscissa 0 stands,
+     * `y1` the smaller: its tip and corners where it is displayed and the vertical meets its body;
+     * null otherwise.
+     */
+    readonly gap: { readonly y1: number; readonly y2: number } | null;
     /** The style of a cross-section line of the line's timeline, drawn or not. */
     readonly style: Style;
   };
@@ -234,31 +244,21 @@ export interface AxisMarker {
    * children band, in traversal order (section 6.1).
    */
   readonly descendants: readonly string[];
-  /**
-   * The named timestamps the line holds, its timeline's and those of its segments without a line
-   * of their own, in the order its markers band places them, each with the abscissa of its
-   * cross-section line, drawn or not (section 8.7).
-   */
-  readonly timestamps: readonly AxisTimestamp[];
 }
 
 /**
- * A named timestamp held by a drawn line: its ID, the abscissa of its
- * cross-section line, that line's style, and the ordinates its stack of
- * labels lies between.
+ * A named timestamp held by a drawn line, its own or an ancestor line's
+ * (section 8.3): its ID, the abscissa of its cross-section line, that line's
+ * style, and the card span its cross-section segment covers (section 8.7).
  */
 export interface AxisTimestamp {
   readonly id: string;
   readonly x: number;
   /**
-   * The style of its cross-section line, whether or not the line has a length there; null where
-   * its `display` does not list `cross_section` or the line is not displayed.
+   * The style of its cross-section line, drawn or not; null where its `display` does not list
+   * `cross_section` or the line is not displayed.
    */
   readonly line: Style | null;
-  /**
-   * The ordinates `[y1, y2]`, `y1` the smaller, of the lines of the markers band its labels lie
-   * on, from the first line of its stack to the end of the last (each `h(s)` high, `s` the band's
-   * largest label size); null where it draws no label.
-   */
-  readonly labels: readonly [number, number] | null;
+  /** Its cross-section segment's ordinates: the card's top and bottom, its gap included. */
+  readonly segment: { readonly y1: number; readonly y2: number };
 }

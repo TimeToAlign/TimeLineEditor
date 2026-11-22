@@ -10,17 +10,20 @@ import { bandAddress, type PlaceKey } from "@timetoalign/tilie-core";
 import type { MemberDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   ancestorBands,
+  ancestorCentred,
+  ancestorCrossSections,
   ancestorLabelElements,
   ancestorLineElements,
   ancestorLineMarks,
   ancestorLines,
   ancestorMarkElements,
   ancestorNames,
+  ancestorTimestamps,
   ancestorY,
   chevrons,
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
-import type { AxisMarker, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
+import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
 import { heights } from "./heights.ts";
@@ -48,8 +51,11 @@ export interface MemberLayout {
    * its ancestor bands, one on each side holding an ancestor line.
    */
   readonly contentCount: number;
-  /** It drawn with the shared start `x0`, the name column `n` and its top `top`, in item coordinates. */
-  drawAt(x0: number, n: number, top: number): MemberDrawn;
+  /**
+   * It drawn with the shared start `x0`, the name column `n`, its top `top` and its card's bottom
+   * `bottom`, in item coordinates.
+   */
+  drawAt(x0: number, n: number, top: number, bottom: number): MemberDrawn;
 }
 
 /** A member drawing drawn in its item, in item coordinates. */
@@ -66,6 +72,8 @@ export interface MemberDrawn {
   readonly markers: ReadonlyMap<DrawnElement, AxisMarker>;
   /** The mark of each of its drawn ancestor lines at the abscissa 0, by the line's element. */
   readonly marks: ReadonlyMap<DrawnElement, AxisWedge>;
+  /** The named timestamps each of its drawn lines and ancestor lines holds, by the line's element. */
+  readonly timestamps: ReadonlyMap<DrawnElement, readonly AxisTimestamp[]>;
 }
 
 /**
@@ -110,23 +118,19 @@ export function layoutMember(
   );
 
   const centred = [
-    ...ancestors.flatMap((ancestor) =>
-      ancestor.labelled.map((mark) => ({ width: mark.width, u: mark.u })),
-    ),
+    ...ancestorCentred(scope, ancestors),
     ...[...fitted.values()].flatMap((line) => line.prepared.centred),
   ];
 
-  const drawAt = (x0: number, n: number, top: number): MemberDrawn => {
+  const drawAt = (x0: number, n: number, top: number, bottom: number): MemberDrawn => {
     const yRoot = top + yLocal;
-    // The root's cross-section lines reach its outermost displayed ancestor line on each side
-    // (section 6.6).
     const placed = placeLines(root, rootRow, {
       x0,
       y: yRoot,
       size: rootRow.size,
       top,
       Hc,
-      ...(bands.count === 0 ? {} : { ancestors: bands.outermost }),
+      bottom,
     });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
@@ -166,7 +170,7 @@ export function layoutMember(
       ...ancestorLinesDrawn,
       ...each("line"),
       ...bySegment(each("boundaries")),
-      ...ancestorMarkElements(scope, ancestors, bands, x0, yRoot),
+      ...ancestorMarkElements(ancestors, bands, x0, yRoot),
       ...each("wedges"),
       ...names,
       ...ancestorLabelElements(scope, ancestors, bands, x0, yRoot),
@@ -175,12 +179,24 @@ export function layoutMember(
       ...each("regionLabels"),
       ...each("jumpLabels"),
       ...each("flowMarkerLabels"),
+      ...ancestorCrossSections(scope, ancestors, bands, x0, yRoot, [top, bottom]),
       ...each("crossSections"),
     ];
     const end = { start: elements.length, end: elements.length };
     const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
     const marks = ancestorLineMarks(ancestors, ancestorLinesDrawn);
-    return { elements, bands: bandRecords(placed, fitted, card, end), markers, marks };
+    const held = ancestorTimestamps(ancestors, x0, [top, bottom]);
+    const timestamps = new Map<DrawnElement, readonly AxisTimestamp[]>([
+      ...each("markers").map((item) => [item.line, item.timestamps] as const),
+      ...ancestorLinesDrawn.map((line, index) => [line, nth(held, index)] as const),
+    ]);
+    return {
+      elements,
+      bands: bandRecords(placed, fitted, card, end),
+      markers,
+      marks,
+      timestamps,
+    };
   };
 
   return {

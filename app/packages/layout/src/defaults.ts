@@ -95,6 +95,8 @@ export const DEFAULT_LAYER: Graphical = {
       },
     },
     { select: { inside: "ancestor" }, set: { opacity: 0.35 } },
+    { select: { element: "cross_section", inside: "ancestor" }, set: { opacity: 1 } },
+    { select: { coordinates: "primary", inside: "ancestor" }, set: { opacity: 1 } },
     { select: { element: "label" }, set: { fill: "#000000", "font-size": 9 } },
     {
       select: { element: "name" },
@@ -112,6 +114,7 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "band", facet: "flow_control", inside: "band" },
       set: { display: "none" },
     },
+    { select: { coordinates: "secondary" }, set: { display: "none", rotation: -45 } },
   ],
 };
 

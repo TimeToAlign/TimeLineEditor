@@ -15,14 +15,14 @@ import {
   type Real,
   sameAddress,
 } from "@timetoalign/tilie-core";
-import { BLOCK_KEY, elementKey } from "@timetoalign/tilie-core/drawing";
+import { BLOCK_KEY, elementKey, reachOf } from "@timetoalign/tilie-core/drawing";
 import type { DrawnAxis } from "../boxes.ts";
 import { placedAt, placedAxis } from "../canvas.ts";
 import { CARD_SPACING, K, SHADOW_OFFSET } from "../constants.ts";
 import type { DrawnElement } from "../elements.ts";
 import { layoutMember } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
-import { add, coordinateValue, lengthValue, negate, proportion, reachOf } from "../numbers.ts";
+import { add, coordinateValue, lengthValue, negate, proportion } from "../numbers.ts";
 import { type Context, type Holder, shown } from "../traversal.ts";
 import { axesOf } from "./axes.ts";
 import { columnsOf, contentRight, type Horizontal, horizontalOf } from "./horizontal.ts";
@@ -162,7 +162,7 @@ export function ancestorCards(
       cards: [card],
     };
     const columns = columnsOf([alone]);
-    const own = layout.drawAt(columns.s0, columns.n, 0);
+    const own = layout.drawAt(columns.s0, columns.n, 0, layout.height);
     const right =
       contentRight(
         horizontalOf(columns, [alone], [{ elements: own.elements, L: LA }], measure),

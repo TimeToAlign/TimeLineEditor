@@ -367,6 +367,9 @@ describe("one address drawn twice", () => {
             rules: [
               { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
               { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
+              // Without the default layer the secondary coordinates are shown too (section 2);
+              // this compares the primary ones alone.
+              { select: { coordinates: "secondary" }, set: { display: "none" } },
             ],
           },
         ],
@@ -538,12 +541,15 @@ describe("the elements core enumerates", () => {
     ]);
     const cards = drawing.boxes.filter((box) => box.kind === "card");
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
-    // One drawing of an address: an element, but the pieces a groupstamp's line is drawn in
-    // across a frame, outside every card, which are one drawing of that frame.
+    // One drawing of an address: an element, but the pieces a cross-section line is drawn in
+    // across a card, on either side of its gap, which are one drawing of that card, and the
+    // pieces a groupstamp's line is drawn in across a frame, outside every card, which are one
+    // drawing of that frame.
     const drawingOf = (item: DrawnElement, index: number): string => {
-      const inCard = cards.some(({ range }) => range.start <= index && index < range.end);
+      const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
+      if (item.type === "cross_section" && inCard !== -1) return `card ${inCard}`;
       const frame =
-        item.type !== "cross_section" || inCard
+        item.type !== "cross_section"
           ? undefined
           : frames.find(
               (box) =>
@@ -582,9 +588,9 @@ describe("rotation", () => {
     { rules: [{ select: { element: "wedge" }, set: { rotation } }] },
   ];
 
-  it("turns a groupstamp's wedge −45 and every other wedge 0 where no rule sets it", () => {
+  it("turns every wedge of a primary coordinate 0 where no rule sets it, a groupstamp's too", () => {
     expect(rotations()).toEqual({
-      timestamp_1: -45,
+      timestamp_1: 0,
       timestamp_2: 0,
       timestamp_3: 0,
       timestamp_4: 0,

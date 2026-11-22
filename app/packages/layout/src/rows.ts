@@ -354,8 +354,8 @@ function placeChildren(
  * root's drawing `root` in the root's row `row` at `place`. A child in a
  * band above its parent's line lies at `yl − lk`, one below at `yl + lk`,
  * `yl` its parent's ordinate and `lk` its `PlacedChild.distance`; it shares
- * `x0`, the top and `Hc` of `place` and takes the name size of its
- * own row, never the root's `ancestors`.
+ * `x0`, the top, `Hc` and the card's bottom of `place` and takes the name
+ * size of its own row.
  */
 export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): PlacedLine[] {
   const rows = new Map<Entry, Row>();
@@ -371,9 +371,7 @@ export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): P
     for (const child of drawing.children?.children ?? []) {
       const y = side === "above" ? at.y - child.distance : at.y + child.distance;
       const size = known(rows, child.drawing.prepared.line).size;
-      // The ancestor lines on either side are the root's alone: a child's cross-section lines
-      // never reach them.
-      visit(child.drawing, { x0: at.x0, y, size, top: at.top, Hc: at.Hc });
+      visit(child.drawing, { ...at, y, size });
     }
   };
   visit(root, place);

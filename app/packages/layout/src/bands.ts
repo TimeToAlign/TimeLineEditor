@@ -9,7 +9,7 @@
 
 import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
-import type { AxisMarker } from "./boxes.ts";
+import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import type {
   JumpElement,
   LineElement,
@@ -31,6 +31,8 @@ export const opposite = (side: Side): Side => (side === "above" ? "below" : "abo
 export interface Centred {
   readonly width: number;
   readonly u: number;
+  /** Its carry `v`, by which a turned wedge moves it across (section 6.7); 0 where absent. */
+  readonly v?: number;
 }
 
 /**
@@ -125,10 +127,11 @@ export interface LineElements {
   readonly markers: readonly LineMarker[];
 }
 
-/** A drawn line and where a coordinate marker of it lies. */
+/** A drawn line, where a coordinate marker of it lies, and the named timestamps it holds. */
 export interface LineMarker {
   readonly line: LineElement;
   readonly marker: AxisMarker;
+  readonly timestamps: readonly AxisTimestamp[];
 }
 
 /**

@@ -1,4 +1,9 @@
-import { type ElementAddress, type Manifest, sameAddress } from "@timetoalign/tilie-core";
+import {
+  type ElementAddress,
+  type Manifest,
+  sameAddress,
+  samePlaceKey,
+} from "@timetoalign/tilie-core";
 import { canonicalOrder, type Graphical, validate, withFileIds } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { placedAt, placedAxis, placedBox } from "../src/canvas.ts";
@@ -394,14 +399,23 @@ describe("a groupstamp on a child member beside an ancestor card", () => {
     const pieces = (of: Drawing) =>
       groupstampElements(manifest, of.axes, of.boxes).map(({ x, y1, y2 }) => [x, y1, y2]);
     // At `x0 + 100` of `middle`, from the top of `middle`'s card to the bottom of `recording`'s,
-    // less `middle`'s own cross-section line, from `middle`'s line to `piece`'s ancestor line.
-    expect(pieces(without)).toEqual([
-      [211.70361328125, 32.8046875, 47.20703125],
-      [211.70361328125, 85.18359375, 177.5390625],
-    ]);
+    // less `middle`'s card, which its own cross-section line crosses: from the bottom of
+    // `middle`'s card to the bottom of `recording`'s.
+    const bottoms = (of: Drawing) =>
+      ["middle", "recording"].map((member) => {
+        const card = of.boxes.find(
+          (box) =>
+            box.kind === "card" &&
+            box.key !== null &&
+            samePlaceKey(box.key, { item: "group_1", member }),
+        );
+        return card === undefined ? Number.NaN : card.y + card.height;
+      });
+    const [middleBottom, recordingBottom] = bottoms(without);
+    expect(pieces(without)).toEqual([[211.70361328125, middleBottom, recordingBottom]]);
+    expect(bottoms(drawing)).toEqual(bottoms(without));
     expect(pieces(drawing)).toEqual([
-      [211.70361328125 + 148.6318359375, 32.8046875, 47.20703125],
-      [211.70361328125 + 148.6318359375, 85.18359375, 177.5390625],
+      [211.70361328125 + 148.6318359375, middleBottom, recordingBottom],
     ]);
   });
 });
@@ -427,18 +441,27 @@ describe("an ancestor card and the alignment anchors", () => {
       ([, line]) => line.ancestor !== undefined && line.timeline === "middle",
     );
     expect(card?.[1].xStart).toBe(260.33544921875);
+    // The span of `middle`'s member card, at the same ordinates without the ancestor card.
+    const middle = drawing.boxes.find(
+      (box) =>
+        box.kind === "card" &&
+        box.key !== null &&
+        samePlaceKey(box.key, { item: "group_1", member: "middle" }),
+    );
+    if (middle === undefined) throw new Error("no card of middle");
+    const [y1, y2] = [middle.y, middle.y + middle.height];
     expect(timestampSegments(drawing.axes, "timestamp_2")).toEqual([
-      { x: 460.33544921875, y1: 47.20703125, y2: 85.18359375 },
+      { x: 460.33544921875, y1, y2 },
     ]);
     expect(timestampSegments(without.axes, "timestamp_2")).toEqual([
-      { x: 311.70361328125, y1: 47.20703125, y2: 85.18359375 },
+      { x: 311.70361328125, y1, y2 },
     ]);
     expect(anchors(drawing)).toEqual(
       anchors(without).map((item) => placedAt(item, 148.6318359375, 0)),
     );
   });
 
-  it("draws no anchor for a timestamp on a root drawn only as an ancestor line and in its card", () => {
+  it("draws the anchor from the member card where a root's timestamp lies on its ancestor line", () => {
     const fixture = loadFile(name);
     const graphical = fixture.graphical ?? {};
     // `timestamp_2` moved onto the root `piece` at quarter 8.
@@ -456,16 +479,24 @@ describe("an ancestor card and the alignment anchors", () => {
     validate(withFileIds(manifest));
     const drawing = drawn(manifest);
     const without = drawn(manifest, [HIDDEN_ANCESTOR_CARDS]);
-    // The card draws `piece`'s line and marks `timestamp_2` on it, yet gives no segment.
-    expect(
-      drawing.axes
-        .filter((axis) => axis.ancestor !== undefined)
-        .flatMap((axis) => axis.marker?.timestamps.map((timestamp) => timestamp.id) ?? []),
-    ).toContain("timestamp_2");
-    expect(timestampSegments(drawing.axes, "timestamp_2")).toEqual([]);
-    expect(timestampSegments(without.axes, "timestamp_2")).toEqual([]);
-    expect(anchors(drawing)).toEqual([]);
-    expect(anchors(without)).toEqual([]);
+    // The ancestor card draws `piece`'s line and marks `timestamp_2` on it, yet gives no
+    // segment (section 8.8); `middle`'s member card draws it on `piece`'s ancestor line, which
+    // gives it the segment of that card (sections 8.3 and 8.7), as the line of `middle` would.
+    const held = (of: Drawing, card: boolean) =>
+      of.axes.flatMap((axis) =>
+        (axis.ancestor !== undefined) === card && axis.marker === null
+          ? axis.timestamps.filter((timestamp) => timestamp.id === "timestamp_2")
+          : [],
+      );
+    expect(held(drawing, true).map(({ id }) => id)).toEqual([]);
+    const [onAncestorLine] = held(drawing, false);
+    if (onAncestorLine === undefined) throw new Error("timestamp_2 is not on piece's line");
+    const { x, segment } = onAncestorLine;
+    expect(timestampSegments(drawing.axes, "timestamp_2")).toEqual([{ x, ...segment }]);
+    expect(anchors(drawing)).toHaveLength(1);
+    expect(anchors(drawing)).toEqual(
+      anchors(without).map((item) => placedAt(item, 148.6318359375, 0)),
+    );
   });
 });
 
@@ -595,20 +626,32 @@ describe("the hover readers on the lines of the ancestor card of group_parent_bo
   const middle = keyOf("middle", true);
   const x = 460.33544921875;
 
-  it("cross piece's children band in the card", () => {
-    const line = crossSection(drawing, piece, x);
-    expect(line && { x: line.x, y1: line.y1, y2: line.y2 }).toEqual({
-      x,
-      y1: 44.20703125,
-      y2: 85.18359375,
-    });
+  it("cross piece's whole ancestor card down to the wedge, which cuts the rest", () => {
+    const card = drawing.boxes.find((box) => box.kind === "card" && box.ancestor !== undefined);
+    const wedge = wedgeAt(drawing, piece, x);
+    if (card === undefined || wedge === null) throw new Error("no ancestor card or wedge");
+    const [[, tip], [, base]] = wedge.points;
+    const pieces = crossSection(drawing, piece, x);
+    // The wedge's base lies past the card's bottom: below the gap no line is left to draw.
+    expect(base > card.y + card.height).toBe(true);
+    expect(pieces.map((item) => ({ x: item.x, y1: item.y1, y2: item.y2 }))).toEqual([
+      { x, y1: card.y, y2: tip },
+    ]);
+    const [line] = pieces;
     expect([
       line?.style.stroke,
       line?.style["stroke-width"],
       line?.style["stroke-dasharray"],
     ]).toEqual(["#1BA1E2", 1, "3 3"]);
     expect(crossedLines(drawing, piece)).toEqual([piece, middle]);
-    expect(crossSection(drawing, middle, x)).toBeNull();
+    // `middle`'s line in the card crosses it whole too, cut by its own wedge.
+    const own = wedgeAt(drawing, middle, x);
+    if (own === null) throw new Error("no wedge on middle's line");
+    const [[, top], [, foot]] = own.points;
+    expect(crossSection(drawing, middle, x).map(({ y1, y2 }) => [y1, y2])).toEqual([
+      [card.y, top],
+      [foot, card.y + card.height],
+    ]);
     expect(crossedLines(drawing, middle)).toEqual([middle]);
   });
 

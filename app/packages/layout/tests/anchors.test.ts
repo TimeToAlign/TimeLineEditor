@@ -29,6 +29,7 @@ import {
   draw,
   lineAxes,
   manifestLayer,
+  TextMeasure,
   timestampSegments,
 } from "../src/index.ts";
 import { at, loadFile, metrics } from "./support.ts";
@@ -96,6 +97,32 @@ function anchorsOf(drawing: Drawing): unknown[] {
 
 const point = (x: number, y: number): CrossSectionSegment => ({ x, y1: y, y2: y });
 const span = (x: number, y1: number, y2: number): CrossSectionSegment => ({ x, y1, y2 });
+const measure = new TextMeasure(metrics);
+
+/** The top and bottom of every card drawing `timeline`'s line in `drawing`, in drawing order. */
+function cards(
+  drawing: Drawing,
+  timeline: string,
+): { readonly top: number; readonly bottom: number }[] {
+  return drawing.boxes.flatMap((box) =>
+    box.kind === "card" && sameAddress(box.address, { id: timeline, part: ["card"] })
+      ? [{ top: box.y, bottom: box.y + box.height }]
+      : [],
+  );
+}
+
+/** The one card drawing `timeline`'s line. */
+function card(
+  drawing: Drawing,
+  timeline: string,
+): { readonly top: number; readonly bottom: number } {
+  const [only, ...others] = cards(drawing, timeline);
+  if (only === undefined || others.length > 0) throw new Error(`not one card of ${timeline}`);
+  return only;
+}
+
+/** The baseline of a label of size 9 centred on the ordinate `y` (section 8.7). */
+const centredOn = (y: number) => y + (measure.ascent(9) - measure.descent(9)) / 2;
 
 describe("anchorLine", () => {
   it("joins overlapping segments horizontally at the middle of their overlap", () => {
@@ -146,25 +173,17 @@ describe("bundle_matchstamps", () => {
   const drawing = drawn(manifest);
 
   it("draws both lines, then the one label, after every item", () => {
+    // `score`'s card lies above `take_1`'s and `take_2`'s: each line runs from the bottom of
+    // `score`'s card to the top of the other (section 8.7), the label at its middle.
+    const score = card(drawing, "score");
+    const [x1, x2] = [261.0927734375, 161.0927734375];
     expect(anchorsOf(drawing)).toEqual([
-      {
-        address: { id: "anchor_1" },
-        x1: 261.0927734375,
-        y1: 43.20703125,
-        x2: 161.0927734375,
-        y2: 100.5859375,
-      },
-      {
-        address: { id: "anchor_2" },
-        x1: 261.0927734375,
-        y1: 43.20703125,
-        x2: 161.0927734375,
-        y2: 157.96484375,
-      },
+      { address: { id: "anchor_1" }, x1, y1: score.bottom, x2, y2: card(drawing, "take_1").top },
+      { address: { id: "anchor_2" }, x1, y1: score.bottom, x2, y2: card(drawing, "take_2").top },
       {
         address: { id: "anchor_1", part: ["name"] },
-        x: 211.0927734375,
-        baseline: 75.01220703125,
+        x: (x1 + x2) / 2,
+        baseline: centredOn((score.bottom + card(drawing, "take_1").top) / 2),
         anchor: "middle",
         text: "Bar 2, downbeat (take 1)",
       },
@@ -195,25 +214,42 @@ describe("bundle_matchstamps", () => {
     ]);
   });
 
-  it("draws no cross-section line where a line has neither band, and no name it lacks", () => {
-    expect(drawing.elements.filter((item) => item.type === "cross_section")).toEqual([]);
+  it("draws each line across its card, cut where a name stands, and no name it lacks", () => {
+    // `timestamp_3` draws its name below `take_2`'s line, tier 1, the band starting at 0: its gap
+    // runs from `w / 2 + 13 + 2` to that plus `h(9)` (section 6.6).
+    const take2 = card(drawing, "take_2");
+    const line = drawing.axes.find((axis) => axis.address.id === "take_2")?.line ?? 0;
+    const out = (distance: number) => take2.top + (line - take2.top + distance);
+    const crossings = drawing.elements.flatMap((item) =>
+      item.type === "cross_section" ? [[item.address.id, item.x, item.y1, item.y2]] : [],
+    );
+    expect(crossings).toEqual([
+      ["timestamp_1", 261.0927734375, card(drawing, "score").top, card(drawing, "score").bottom],
+      ["timestamp_2", 161.0927734375, card(drawing, "take_1").top, card(drawing, "take_1").bottom],
+      ["timestamp_3", 161.0927734375, take2.top, out(1.5 + 13 + 2)],
+      ["timestamp_3", 161.0927734375, out(1.5 + 13 + 2 + measure.lineHeight(9)), take2.bottom],
+    ]);
     expect(
       drawing.elements.filter((item) => sameAddress(item.address, at("timestamp_1", "name"))),
     ).toEqual([]);
   });
 
-  it("gives every match timestamp the point on its line as its segment", () => {
+  it("gives every match timestamp its card's span as its segment", () => {
+    const segment = (x: number, timeline: string) => {
+      const { top, bottom } = card(drawing, timeline);
+      return span(x, top, bottom);
+    };
     expect(
       ["timestamp_1", "timestamp_2", "timestamp_3"].map((id) =>
         timestampSegments(drawing.axes, id),
       ),
     ).toEqual([
-      [point(261.0927734375, 43.20703125)],
-      [point(161.0927734375, 100.5859375)],
-      [point(161.0927734375, 157.96484375)],
+      [segment(261.0927734375, "score")],
+      [segment(161.0927734375, "take_1")],
+      [segment(161.0927734375, "take_2")],
     ]);
     const key = [...lineAxes(drawing).keys()][0] ?? "";
-    expect(crossSectionSegment(drawing, key, 100)).toEqual(point(100, 43.20703125));
+    expect(crossSectionSegment(drawing, key, 100)).toEqual(segment(100, "score"));
     expect(crossSectionSegment(drawing, "no line", 100)).toBe(null);
   });
 
@@ -229,7 +265,7 @@ describe("bundle_matchstamps", () => {
 });
 
 describe("anchors in drawings of their own", () => {
-  it("joins a root's cross-section line horizontally to a point within its extent", () => {
+  it("joins two lines of one card horizontally at the card's middle", () => {
     // `nested`: the root's at 8, `clt_2`'s at 1 on its own axis, 13/2 on the root's.
     const nested = (rules: readonly Rule[]) =>
       drawn(
@@ -266,17 +302,30 @@ describe("anchors in drawings of their own", () => {
       drawing.elements.flatMap((item) =>
         item.type === "cross_section" ? [[item.address, item.x, item.y1, item.y2]] : [],
       );
-    const anchor = [
-      { address: { id: "anchor_1" }, x1: 249.91552734375, y1: 23, x2: 212.41552734375, y2: 23 },
-    ];
+    // Both lines cross the one card whole: their segments overlap, and the anchor runs
+    // horizontally at the card's middle.
     const drawing = nested([]);
+    const { top, bottom } = card(drawing, "clt_1");
+    const middle = (top + bottom) / 2;
+    const anchor = [
+      {
+        address: { id: "anchor_1" },
+        x1: 249.91552734375,
+        y1: middle,
+        x2: 212.41552734375,
+        y2: middle,
+      },
+    ];
     expect(crossings(drawing)).toEqual([
-      [partAddress({ id: "timestamp_9" }, "line"), 249.91552734375, 16, 51],
+      [partAddress({ id: "timestamp_9" }, "line"), 249.91552734375, top, bottom],
+      [partAddress({ id: "timestamp_10" }, "line"), 212.41552734375, top, bottom],
     ]);
     expect(anchorsOf(drawing)).toEqual(anchor);
     // A cross-section line that is not displayed keeps its segment.
     const hidden = nested([hide({ id: "timestamp_9", part: ["line"] })]);
-    expect(crossings(hidden)).toEqual([]);
+    expect(crossings(hidden)).toEqual([
+      [partAddress({ id: "timestamp_10" }, "line"), 212.41552734375, top, bottom],
+    ]);
     expect(anchorsOf(hidden)).toEqual(anchor);
   });
 
@@ -302,25 +351,17 @@ describe("anchors in drawings of their own", () => {
       ],
     );
     const drawing = drawn(manifest);
+    // `t`'s cards in `g1`'s and `g2`'s frames; `u`'s below the first, `v`'s below the second.
+    const [first, second] = cards(drawing, "t");
+    if (first === undefined || second === undefined) throw new Error("t is drawn twice");
+    const x = 302.29150390625;
     expect(timestampSegments(drawing.axes, "timestamp_7")).toEqual([
-      point(302.29150390625, 68.01171875),
-      point(302.29150390625, 215.57421875),
+      span(x, first.top, first.bottom),
+      span(x, second.top, second.bottom),
     ]);
     expect(anchorsOf(drawing)).toEqual([
-      {
-        address: { id: "anchor_1" },
-        x1: 302.29150390625,
-        y1: 68.01171875,
-        x2: 302.29150390625,
-        y2: 125.390625,
-      },
-      {
-        address: { id: "anchor_2" },
-        x1: 302.29150390625,
-        y1: 272.953125,
-        x2: 302.29150390625,
-        y2: 215.57421875,
-      },
+      { address: { id: "anchor_1" }, x1: x, y1: first.bottom, x2: x, y2: card(drawing, "u").top },
+      { address: { id: "anchor_2" }, x1: x, y1: card(drawing, "v").top, x2: x, y2: second.bottom },
     ]);
   });
 
@@ -352,7 +393,7 @@ describe("anchors in drawings of their own", () => {
       {
         address: { id: "anchor_1", part: ["name"] },
         x: 302.29150390625,
-        baseline: 99.81689453125,
+        baseline: centredOn(((cards(drawing, "t")[0]?.bottom ?? 0) + card(drawing, "u").top) / 2),
         anchor: "middle",
         text: "Half",
       },

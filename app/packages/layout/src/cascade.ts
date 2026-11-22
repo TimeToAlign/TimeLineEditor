@@ -177,7 +177,7 @@ function compareRanks(left: readonly number[], right: readonly number[]): number
 
 /**
  * The rules of every layer, lowest rank first (section 2.5: layer,
- * `addresses`, `within` depth, `class` or `facet`, `element`, `inside`, the count of `domain`
+ * `addresses`, `within` depth, `class`, `facet` or `coordinates`, `element`, `inside`, the count of `domain`
  * and `modality`, position). `ancestry` maps every timeline id to the ids
  * from its root down to it, so its length is the timeline's depth (the
  * roots 1).
@@ -215,7 +215,11 @@ export class Cascade {
             level,
             select.addresses === undefined ? 0 : 1,
             within,
-            select.class === undefined && select.facet === undefined ? 0 : 1,
+            select.class === undefined &&
+            select.facet === undefined &&
+            select.coordinates === undefined
+              ? 0
+              : 1,
             select.element === undefined ? 0 : 1,
             select.inside === undefined ? 0 : 1,
             (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),

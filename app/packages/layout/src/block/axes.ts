@@ -5,20 +5,12 @@
  */
 
 import type { Manifest, PlaceKey, Real, TimelineManifest } from "@timetoalign/tilie-core";
-import { type MemberDrawing, orderedChildren } from "@timetoalign/tilie-core/drawing";
+import { type MemberDrawing, orderedChildren, reachOf } from "@timetoalign/tilie-core/drawing";
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { AxisMap, AxisSegment, DrawnAxis } from "../boxes.ts";
 import type { LineElement } from "../elements.ts";
 import type { MemberDrawn } from "../member.ts";
-import {
-  add,
-  coordinateValue,
-  lengthValue,
-  negate,
-  proportion,
-  reachOf,
-  zero,
-} from "../numbers.ts";
+import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../numbers.ts";
 
 /** Where a timeline of a member drawing lies on its root's axis (sections 3.1 and 3.4). */
 interface Span {
@@ -163,6 +155,7 @@ export function axesOf(
       maps: drawnMaps.flatMap((item) => (item.line === timeline.id ? [item.map] : [])),
       marker: drawn.markers.get(element) ?? null,
       mark: null,
+      timestamps: drawn.timestamps.get(element) ?? [],
     };
   };
   const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
@@ -196,6 +189,7 @@ export function axesOf(
       maps: [],
       marker: null,
       mark: drawn.marks.get(element) ?? null,
+      timestamps: drawn.timestamps.get(element) ?? [],
     };
   };
   return drawn.elements.flatMap((element) => {

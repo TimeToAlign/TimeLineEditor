@@ -18,7 +18,6 @@ import {
   FLOW_MARKER_LABEL_OFFSET,
   FRAME_SPACING,
   G,
-  GROUPSTAMP_ROTATION,
   JUMP_DEPTH,
   JUMP_PITCH,
   K,
@@ -130,9 +129,9 @@ describe("the constants", () => {
     );
   });
 
-  it("turn a groupstamp's wedge as section 2.5 states it", () => {
+  it("give no wedge an initial rotation but 0, as section 2.5 states it", () => {
     expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
-      `but ${String(GROUPSTAMP_ROTATION).replace("-", "\u2212")} on the wedge of a groupstamp.`,
+      "`max-width` `none`, `rotation` 0.",
     );
   });
 });

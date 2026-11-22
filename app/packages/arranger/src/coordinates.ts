@@ -952,7 +952,7 @@ export function namedPin(
     preferred,
   );
   const holds = (axis: DrawnAxis) =>
-    axis.marker?.timestamps.some((item) => item.id === named.id) ?? false;
+    axis.marker !== null && axis.timestamps.some((item) => item.id === named.id);
   const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds, raised) : spec;
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named };
 }
@@ -1156,7 +1156,7 @@ export function readingAt(
   const row = rowOf(hit);
   const position = snapOnRow(spec, row, p, h, knots);
   const pin: Pin = { spec, knots, timestamp: timestampAt(spec, position, knots), named: null };
-  const line = crossSection(drawing, hit.key, 0);
+  const [line] = crossSection(drawing, hit.key, 0);
   const top = Math.min(axis.y, ...axis.maps.map((map) => map.yc), line?.y1 ?? axis.y);
   return {
     block: block.id,

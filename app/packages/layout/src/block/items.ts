@@ -50,7 +50,9 @@ export function titleElement(title: Title, x: number, baseline: number): TextEle
  * `manifest` the manifest drawn, which its axes read.
  */
 export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): ItemDrawing {
-  const drawn = item.cards.map((card) => card.layout.drawAt(s0, n, card.top));
+  const drawn = item.cards.map((card) =>
+    card.layout.drawAt(s0, n, card.top, card.top + card.height),
+  );
   return {
     item,
     drawn,
@@ -62,7 +64,13 @@ export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): It
   };
 }
 
-const EMPTY: MemberDrawn = { elements: [], bands: [], markers: new Map(), marks: new Map() };
+const EMPTY: MemberDrawn = {
+  elements: [],
+  bands: [],
+  markers: new Map(),
+  marks: new Map(),
+  timestamps: new Map(),
+};
 
 /**
  * Lay out an item drawn as `drawing` (sections 8.2, 8.4 and 8.5). A frame

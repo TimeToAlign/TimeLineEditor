@@ -119,7 +119,7 @@ const laid = (timeline: PreparedTimeline, children?: { start: number; width: num
     (band) => [band.facet, band.level, band.start, band.width, band.edge, band.elements],
   );
 
-const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
+const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200, bottom: 200 };
 
 const show = (...facets: Facet[]): Graphical => ({
   rules: facets.map((facet) => ({

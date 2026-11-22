@@ -146,7 +146,7 @@ describe("both sides of a line", () => {
     outwards: 1 | -1,
   ): readonly (readonly [number, number])[] {
     const axis = from.axes.find((item) => item.address.id === line && item.marker !== null);
-    const x = axis?.marker?.timestamps.find((timestamp) => timestamp.id === id)?.x;
+    const x = axis?.timestamps.find((timestamp) => timestamp.id === id)?.x;
     if (axis === undefined || x === undefined) throw new Error(`no abscissa of ${id}`);
     // Every ordinate is summed in item coordinates and drawn the card's `y` plus it (8.6).
     const origin = boxAt(from, at("melody", "card")).y;

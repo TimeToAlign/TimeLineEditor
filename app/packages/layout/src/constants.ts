@@ -1,7 +1,6 @@
 /**
  * The constants of the layout (`docs/drawing.md` in TimeToShare, section
- * 6.2; the default spacings of section 8.6 and the groupstamp wedge's
- * rotation of section 2.5). A distance that depends on the card spacing `S`
+ * 6.2; the default spacings of section 8.6). A distance that depends on the card spacing `S`
  * holds its fixed part here.
  */
 
@@ -31,8 +30,6 @@ export const MAP_GAP = 3;
 export const MARKER_BASE = 6;
 /** The distance from a wedge's tip to the middle of its base. */
 export const MARKER_HEIGHT = 13;
-/** The `rotation` of a groupstamp's wedge that no rule sets (section 2.5); every other wedge's is 0. */
-export const GROUPSTAMP_ROTATION = -45;
 /** The label gap, from a marker to its label. */
 export const LABEL_GAP = 2;
 /** The brace height. */

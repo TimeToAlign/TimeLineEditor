@@ -1,20 +1,34 @@
 /**
  * The drawing's own primitives (`docs/drawing.md` in TimeToShare, sections
  * 2.1 to 2.3 and 8.1), for the layout and the writers: the elements a
- * manifest draws, the keys a selector tests, the selector test itself, and
- * the timelines drawn as roots.
+ * manifest draws, the keys a selector tests, the selector test itself, the
+ * timelines drawn as roots, and the named timestamps each card draws with
+ * their primary and secondary coordinates.
  */
 
-export type { Domain, ElementKey, Modality, TimestampLabel } from "./manifest/elements.ts";
+export type {
+  CardStamp,
+  CardStamps,
+  CardTimeline,
+  Domain,
+  ElementKey,
+  Modality,
+  StampCoordinate,
+  TimestampLabel,
+} from "./manifest/elements.ts";
 export {
   BLOCK_KEY,
   bandKey,
+  cardStamps,
   DRAWN_FLOW,
   elementKey,
   manifestElements,
   namedTimestamps,
   orderedChildren,
+  reachOf,
+  secondaryTimelines,
   selectorMatches,
+  spans,
   TIMESTAMP_LABELS,
   textKey,
   timelineAncestry,

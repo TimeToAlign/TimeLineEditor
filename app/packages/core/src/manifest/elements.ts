@@ -8,7 +8,8 @@ import type { ElementType, Selector, TimeUnit } from "@timetoalign/timetoshare";
 import { canonicalOrder } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
-import { compareReal, realOf } from "../number/real.ts";
+import { Rational } from "../number/rational.ts";
+import { addReal, compareReal, type Real, realOf } from "../number/real.ts";
 import type { ElementAddress, Facet } from "./address.ts";
 import {
   BUNDLE_ADDRESS,
@@ -59,7 +60,16 @@ export interface ElementKey {
    * only.
    */
   readonly inside: readonly ElementType[];
+  /**
+   * For a wedge or a label of a named timestamp's stack, whether it marks the timestamp's primary
+   * coordinate or a secondary one (section 2), which the selector member `coordinates` tests;
+   * absent on every other element, a cross-section line included.
+   */
+  readonly coordinates?: StampCoordinate;
 }
+
+/** Which of a named timestamp's coordinates a wedge or a label marks (sections 2 and 2.3). */
+export type StampCoordinate = "primary" | "secondary";
 
 /**
  * The block's key: it draws the bundle, whose address is `{}`, belongs to
@@ -174,7 +184,8 @@ export function elementKey(
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
   const { facet, ...address } = owner.address;
   if (facet !== undefined) throw new Error("a band has no text");
-  return { ...owner, type, address: partAddress(address, type), inside: holdersOf(owner) };
+  const { coordinates: _marks, ...held } = owner;
+  return { ...held, type, address: partAddress(address, type), inside: holdersOf(owner) };
 }
 
 /**
@@ -266,7 +277,8 @@ export function groupsHolding(
 /**
  * Whether an element matches every member present in a selector:
  * `addresses` by whole address, `class` a timeline's class or a map's type,
- * `facet` a band's facet.
+ * `facet` a band's facet, `coordinates` a named timestamp's wedge or label of
+ * its primary or of a secondary coordinate (section 2.3).
  */
 export function selectorMatches(
   select: Selector,
@@ -282,6 +294,7 @@ export function selectorMatches(
   if (select.class !== undefined && select.class !== element.class) return false;
   if (select.facet !== undefined && select.facet !== element.facet) return false;
   if (select.inside !== undefined && !element.inside.includes(select.inside)) return false;
+  if (select.coordinates !== undefined && select.coordinates !== element.coordinates) return false;
   if (select.within !== undefined) {
     if (element.timeline === null) return false;
     if (!(ancestry.get(element.timeline) ?? []).includes(select.within)) return false;
@@ -324,10 +337,45 @@ function memberElements(
   holder: ElementKey,
   keys: ElementKey[],
   card: "card" | "ancestor_card" = "card",
+  crossing: readonly NamedTimestamp[] = [],
 ): void {
   const root = member.timeline;
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
+  const drawn = cardStamps(manifest, member);
+  // The wedge and the labels its `display` lists of a coordinate of `timestamp` on `timeline`,
+  // held by `band` (a markers band or an ancestor line).
+  const marks = (
+    timestamp: NamedTimestamp,
+    timeline: TimelineManifest,
+    band: ElementKey,
+    coordinates: StampCoordinate,
+  ) => {
+    const at = idAddress(timestamp.id);
+    const { display } = timestamp;
+    if (display.includes("wedge")) {
+      keys.push({ ...elementKey("wedge", at, timeline, band), coordinates });
+    }
+    for (const word of TIMESTAMP_LABELS) {
+      if (display.includes(word)) {
+        keys.push({ ...elementKey("label", partAddress(at, word), timeline, band), coordinates });
+      }
+    }
+  };
+  // The secondary coordinates on `timeline` (section 2): of every timestamp the card draws whose
+  // position its span holds, and of every groupstamp of another member of the frame, whose line
+  // crosses this card whole.
+  const crossed = new Map<string, NamedTimestamp[]>();
+  for (const stamp of drawn.stamps) {
+    for (const { timeline } of secondaryTimelines(drawn, stamp)) {
+      crossed.set(timeline.id, [...(crossed.get(timeline.id) ?? []), stamp.timestamp]);
+    }
+  }
+  const secondary = (timeline: TimelineManifest, band: ElementKey) => {
+    for (const timestamp of [...(crossed.get(timeline.id) ?? []), ...crossing]) {
+      marks(timestamp, timeline, band, "secondary");
+    }
+  };
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", idAddress(timeline.id), timeline, line);
     keys.push(ancestor, textKey(ancestor, "name"));
@@ -335,6 +383,22 @@ function memberElements(
       const mark = elementKey("wedge", partAddress(idAddress(root.id), end), root, ancestor);
       keys.push(mark, textKey(mark, "label"));
     }
+    // The timestamps of the ancestor within the member's span, drawn on its line (section 8.3).
+    for (const { timestamp } of drawn.stamps) {
+      if (timestamp.timeline !== timeline.id) continue;
+      marks(timestamp, timeline, ancestor, "primary");
+      if (timestamp.display.includes("cross_section")) {
+        keys.push(
+          elementKey(
+            "cross_section",
+            partAddress(idAddress(timestamp.id), "line"),
+            timeline,
+            ancestor,
+          ),
+        );
+      }
+    }
+    secondary(timeline, ancestor);
   }
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
     const labelled = (type: ElementType, at: ElementAddress, band: ElementKey) => {
@@ -371,18 +435,14 @@ function memberElements(
         }
       },
       markers: (band) => {
-        for (const { id, display } of namedTimestamps(manifest, timeline.id)) {
-          const at = idAddress(id);
-          if (display.includes("wedge")) keys.push(elementKey("wedge", at, timeline, band));
-          for (const word of TIMESTAMP_LABELS) {
-            if (display.includes(word)) {
-              keys.push(elementKey("label", partAddress(at, word), timeline, band));
-            }
-          }
-          if (display.includes("cross_section")) {
-            keys.push(elementKey("cross_section", partAddress(at, "line"), timeline, key));
+        for (const timestamp of namedTimestamps(manifest, timeline.id)) {
+          marks(timestamp, timeline, band, "primary");
+          if (timestamp.display.includes("cross_section")) {
+            const at = partAddress(idAddress(timestamp.id), "line");
+            keys.push(elementKey("cross_section", at, timeline, key));
           }
         }
+        secondary(timeline, band);
       },
       regions: (band) => {
         for (const region of timeline.regions) labelled("region", idAddress(region.id), band);
@@ -444,7 +504,17 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     const address = idAddress(group.id);
     const frame = unownedKey("frame", address, BLOCK_KEY);
     keys.push(frame, unownedKey("name", partAddress(address, "name"), frame));
-    for (const member of members) memberElements(ordered, member, frame, keys);
+    // The groupstamps of each member card lying in the group: their lines cross every other
+    // member's card whole (section 6.6), listed there on every timeline it draws.
+    const groupstamps = members.map((member) =>
+      cardStamps(ordered, member).stamps.flatMap(({ timestamp, ancestor }) =>
+        !ancestor && timestamp.groupstamp ? [timestamp] : [],
+      ),
+    );
+    members.forEach((member, index) => {
+      const crossing = groupstamps.flatMap((list, other) => (other === index ? [] : list));
+      memberElements(ordered, member, frame, keys, "card", crossing);
+    });
     return { group, frame };
   });
   for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
@@ -472,4 +542,179 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     }
   }
   return keys;
+}
+
+/**
+ * A timeline a member drawing draws in its card: a line of the member's
+ * tree (the root, a child, a segment, with or without a line of its own) or
+ * an ancestor line (section 8.3), with its span on the axis of the member's
+ * outermost ancestor (the member's root itself when it is a root), `end`
+ * null for an ancestor whose length is not known.
+ */
+export interface CardTimeline {
+  readonly timeline: TimelineManifest;
+  readonly start: Real;
+  readonly end: Real | null;
+  /** It is drawn as an ancestor line of the member. */
+  readonly ancestor: boolean;
+}
+
+/** A named timestamp a card draws, at its position on the axis of `CardTimeline.start`. */
+export interface CardStamp {
+  readonly timestamp: NamedTimestamp;
+  readonly position: Real;
+  /** It is a timestamp of an ancestor of the member, drawn on that ancestor's line. */
+  readonly ancestor: boolean;
+}
+
+/** What the card of one member drawing draws of named timestamps. */
+export interface CardStamps {
+  /** Its ancestors' lines from the root down to the parent, then its tree in pre-order. */
+  readonly timelines: readonly CardTimeline[];
+  /**
+   * The member's own timestamps, its tree's in pre-order, each timeline's in canonical order;
+   * then its ancestors' from the root down whose position lies within the member's span, its
+   * ends included (section 8.3).
+   */
+  readonly stamps: readonly CardStamp[];
+  /** The member's span on the same axis: its start and its end, at its reach where its length is not known. */
+  readonly window: readonly [Real, Real];
+}
+
+const value = (raw: unknown, timeline: TimelineManifest): Real =>
+  realOf(axisCoordinate(raw, timeline));
+
+/** Whether `position` lies on the span `[start, end]`, its ends included; no end bounds nothing. */
+export function spans(start: Real, end: Real | null, position: Real): boolean {
+  return compareReal(start, position) <= 0 && (end === null || compareReal(position, end) <= 0);
+}
+
+/** Zero on a timeline's axis: an exact 0, or the float 0.0. */
+const zeroOf = (timeline: TimelineManifest): Real =>
+  timeline.number_type === "float" ? 0 : Rational.of(0n);
+
+const lengthOf = (timeline: TimelineManifest): Real | null =>
+  timeline.length === null ? null : value(timeline.length, timeline);
+
+/** The larger of two values, compared exactly; of two equal ones, an exact one before a float. */
+function larger(left: Real, right: Real): Real {
+  const order = compareReal(left, right);
+  if (order !== 0) return order > 0 ? left : right;
+  return typeof left === "number" ? right : left;
+}
+
+/**
+ * The reach of a timeline on its own axis (section 3.4): the largest of its
+ * number type's zero and every coordinate its content reaches, displayed or
+ * not. A child counts its offset plus its length, or plus its own reach when
+ * its length is not known; regions their start and end; every flow-control
+ * element its coordinate; every named timestamp of it in `manifest`'s
+ * `graphical` object its coordinate. Maps are not content, and a measure map
+ * belongs to no timeline.
+ * `reaches` holds the reach of every timeline already walked, so one traversal
+ * walks each subtree once.
+ */
+export function reachOf(
+  timeline: TimelineManifest,
+  manifest: Manifest,
+  reaches: WeakMap<TimelineManifest, Real> = new WeakMap(),
+): Real {
+  const cached = reaches.get(timeline);
+  if (cached !== undefined) return cached;
+  const own = (raw: unknown) => value(raw, timeline);
+  let reach = zeroOf(timeline);
+  const take = (value: Real) => {
+    reach = larger(reach, value);
+  };
+  for (const child of timeline.children) {
+    take(addReal(own(child.offset), lengthOf(child) ?? reachOf(child, manifest, reaches)));
+  }
+  for (const region of timeline.regions) {
+    take(own(region.start));
+    take(own(region.end));
+  }
+  for (const item of timeline.flow_control) take(own(item.coordinate));
+  for (const timestamp of namedTimestamps(manifest, timeline.id)) take(own(timestamp.coordinate));
+  reaches.set(timeline, reach);
+  return reach;
+}
+
+/**
+ * The timelines and named timestamps of the card drawing `member`. Every
+ * position is taken on the axis of the member's outermost ancestor, the
+ * member's start being the sum of the offsets from there down, so that no
+ * value is negated. A timeline of the member's tree whose length is not
+ * known ends where it is drawn to (section 3.4): at its reach, or, a
+ * segment, at the next segment's start or its segment line's end; an
+ * ancestor whose length is not known has no end.
+ */
+export function cardStamps(manifest: Manifest, member: MemberDrawing): CardStamps {
+  const root = member.timeline;
+  let base: Real | undefined;
+  const ancestors: CardTimeline[] = [];
+  for (const { timeline, offset } of member.ancestors) {
+    const start = base ?? zeroOf(timeline);
+    const length = lengthOf(timeline);
+    ancestors.push({
+      timeline,
+      start,
+      end: length === null ? null : addReal(start, length),
+      ancestor: true,
+    });
+    base = addReal(start, value(offset, timeline));
+  }
+  const memberStart = base ?? zeroOf(root);
+  const reaches = new WeakMap<TimelineManifest, Real>();
+  // The member's drawn length: its length, or its reach where that is not known (section 3.4).
+  const lambda = lengthOf(root) ?? reachOf(root, manifest, reaches);
+  const window = [memberStart, addReal(memberStart, lambda)] as const;
+  const tree: CardTimeline[] = [];
+  // Where each timeline ends as drawn: at its length; a segment of unknown length at the next
+  // segment's start, the last at its segment line's end; any other of unknown length at its reach.
+  const visit = (timeline: TimelineManifest, start: Real, end: Real) => {
+    tree.push({ timeline, start, end, ancestor: false });
+    const starts = orderedChildren(timeline).map((child) => ({
+      child,
+      start: addReal(start, value(child.offset, timeline)),
+    }));
+    starts.forEach(({ child, start: from }, index) => {
+      const length = lengthOf(child);
+      const next = starts[index + 1]?.start;
+      const to =
+        length !== null
+          ? addReal(from, length)
+          : timeline.is_segment_line
+            ? (next ?? end)
+            : addReal(from, reachOf(child, manifest, reaches));
+      visit(child, from, to);
+    });
+  };
+  visit(root, memberStart, window[1]);
+  const own = tree.flatMap(({ timeline, start }) =>
+    namedTimestamps(manifest, timeline.id).map((timestamp) => ({
+      timestamp,
+      position: addReal(start, value(timestamp.coordinate, timeline)),
+      ancestor: false,
+    })),
+  );
+  const inherited = ancestors.flatMap(({ timeline, start }) =>
+    namedTimestamps(manifest, timeline.id).flatMap((timestamp) => {
+      const position = addReal(start, value(timestamp.coordinate, timeline));
+      return spans(window[0], window[1], position) ? [{ timestamp, position, ancestor: true }] : [];
+    }),
+  );
+  return { timelines: [...ancestors, ...tree], stamps: [...own, ...inherited], window };
+}
+
+/**
+ * The timelines of the card on which `stamp` has a secondary coordinate:
+ * every timeline the card draws whose span holds the stamp's position, its
+ * own timeline left out (section 2); an ancestor line only within the
+ * member's span, where it is drawn.
+ */
+export function secondaryTimelines(card: CardStamps, stamp: CardStamp): CardTimeline[] {
+  return card.timelines.filter(
+    (line) =>
+      line.timeline.id !== stamp.timestamp.timeline && spans(line.start, line.end, stamp.position),
+  );
 }

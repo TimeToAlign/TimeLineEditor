@@ -6,34 +6,46 @@
  * (`docs/drawing.md` in TimeToShare, sections 2, 6.4, Markers, 6.6 and 8.3).
  */
 
-import { type ElementAddress, idAddress, partAddress } from "@timetoalign/tilie-core";
 import {
+  type ElementAddress,
+  idAddress,
+  type NamedTimestamp,
+  partAddress,
+  type TimelineManifest,
+} from "@timetoalign/tilie-core";
+import {
+  type CardStamps,
+  cardStamps,
   type ElementKey,
   elementKey,
   namedTimestamps,
+  type StampCoordinate,
+  spans,
   TIMESTAMP_LABELS,
   type TimestampLabel,
 } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
-import type { LinePosition, PreparedBand, Side } from "./bands.ts";
+import { type LinePosition, opposite, type PreparedBand, type Side } from "./bands.ts";
 import type { AxisTimestamp } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import { GROUPSTAMP_ROTATION, LABEL_GAP, MARKER_HEIGHT } from "./constants.ts";
+import { LABEL_GAP, MARKER_HEIGHT } from "./constants.ts";
 import type {
   MarkerElement,
   ShownCoordinate,
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import { type Extent, labelExtent, Rows } from "./fit.ts";
+import { type Extent, labelExtent } from "./fit.ts";
 import { centredLabel } from "./names.ts";
-import { add, coordinateText, coordinateValue } from "./numbers.ts";
+import { add, coordinateText, coordinateValue, negate } from "./numbers.ts";
 import { type WedgeCorner, type WedgeOffset, wedgeCorners, wedgeSpan } from "./rotation.ts";
+import { carried, cut, gapOf, type Span, tiersOf } from "./stacks.ts";
 import {
   type Entry,
   known,
   type Measured,
   maxSize,
+  nth,
   type Scope,
   type Styled,
   shown,
@@ -49,10 +61,10 @@ export const markLabelOffset = (scope: Scope, w: number, line: number, size: num
 
 /**
  * A wedge's style with its `rotation` read (section 2.5): the value a rule
- * set, else `initial`, −45 on a groupstamp's wedge and 0 on any other.
+ * set, else the initial value 0.
  */
-export function rotatedStyle(style: Style, initial = 0): Style {
-  return style.rotation === null ? { ...style, rotation: initial } : style;
+export function rotatedStyle(style: Style): Style {
+  return style.rotation === null ? { ...style, rotation: 0 } : style;
 }
 
 /**
@@ -89,17 +101,9 @@ export function wedgeElement(
 }
 
 /**
- * The ordinates `[y1, y2]` of the cross-section lines of one line, `y1` the
- * smaller (section 6.6, Cross-section lines); null where they have no
- * length and are not drawn.
- */
-export type CrossSectionExtent = readonly [number, number] | null;
-
-/**
- * The cross-section line at `x` from `(x, y1)` to `(x, y2)`, `[y1, y2]` the
- * extent of its line's cross-section lines (section 6.6). Every named
- * timestamp's line is drawn by it, and so is the line an editor shows at a
- * position no named timestamp holds (`crossSection`).
+ * The cross-section line at `x` from `(x, y1)` to `(x, y2)`, one piece of a
+ * line across its card less its gap (section 6.6). Every named timestamp's
+ * line is drawn by it.
  */
 export function crossSectionElement(
   address: ElementAddress,
@@ -116,18 +120,30 @@ interface StampLabel extends Styled, Measured {
 }
 
 /**
- * A named timestamp held by a markers band, at its position on the root's
- * axis (section 3.1), with what it draws: its wedge, its stack of labels and
- * its cross-section line, each only when its `display` lists it and it is
- * displayed (section 2.4).
+ * A coordinate of a named timestamp marked in a markers band, at its
+ * position on the root's axis (section 3.1): its primary coordinate on the
+ * band's timeline or a segment joining it, or a secondary one (section 2),
+ * with what it draws there: its wedge, its stack of labels and, for its
+ * primary coordinate, its cross-section line, each only when its `display`
+ * lists it and it is displayed (section 2.4); and the `rotation` its wedge
+ * has, drawn or not, which carries its stack (section 6.6).
  */
 interface Stamp {
   readonly id: string;
   readonly at: Real;
+  readonly primary: boolean;
+  readonly rotation: number;
   readonly wedge: Styled | undefined;
   /** Its stack: its drawn labels in the order of `TIMESTAMP_LABELS`. */
   readonly labels: readonly StampLabel[];
   readonly line: Styled | undefined;
+}
+
+/** A stamp with a stack, placed in the band's tiers: its first line and its widest label. */
+interface Stacked {
+  readonly stamp: Stamp;
+  readonly n1: number;
+  readonly width: number;
 }
 
 /**
@@ -139,20 +155,19 @@ interface Stamp {
 export interface MarkersBand extends PreparedBand {
   /**
    * The drawn cross-section lines of the named timestamps it holds, in the order it places their
-   * timestamps, at the line placed at `at`, `extent` the extent of the cross-section lines of
-   * that line (section 6.6). Each is
-   * held by its timeline's line, not by the band: drawn whether or not its wedge or its labels
-   * are, whether or not the band is displayed or present, since it takes no room; none where
-   * `extent` is null.
+   * timestamps, the band drawn from `start` on `side` of the line placed at `at`, each across
+   * `span`, the card's top and bottom, less its gap (section 6.6). Each is held by its
+   * timeline's line, not by the band: drawn whether or not its wedge or its labels are, whether or
+   * not the band is displayed or present, since it takes no room.
    */
-  crossSections(at: LinePosition, extent: CrossSectionExtent): VerticalLineElement[];
+  crossSections(at: LinePosition, start: number, side: Side, span: Span): VerticalLineElement[];
   /**
    * Every named timestamp it holds, in the order it places them, with the abscissa of its
    * cross-section line at the line placed at `at`, whether or not that line is drawn: where the
-   * alignment anchors joining its timestamp meet it (section 8.7); that line's style; and the
-   * ordinates of the lines its stack of labels lies on, the band drawn from `start` on `side`.
+   * alignment anchors joining its timestamp meet it (section 8.7), the card's span `span`; and
+   * that line's style.
    */
-  timestamps(at: LinePosition, start: number, side: Side): AxisTimestamp[];
+  timestamps(at: LinePosition, span: Span): AxisTimestamp[];
   /**
    * The styles of a wedge and a cross-section line of the band's timeline that no named
    * timestamp holds: the cascade's, the wedge held by the band and the line by the timeline's
@@ -166,115 +181,166 @@ export interface MarkersBand extends PreparedBand {
  * Markers): the named timestamps of each of `sources`, the line's own first
  * and then each joined segment's, segment after segment, each one's in
  * canonical order, each at its timeline's start plus its coordinate (section
- * 3.1). Of each, the wedge and the labels its `display` lists are drawn when
- * they are displayed and its timeline's markers band is displayed; its
- * labels, name, ID and coordinate (sections 5.2 and 5.3), form its stack.
- * The stacks are placed by one first fit, in that order, into tiers, each
- * stack one item as wide as its widest label, centred on its timestamp's
- * `X`; a tier is as many lines high as its highest stack, and the label `j`
- * of a stack in tier `k` lies on line `m1 + … + m(k−1) + j`. The band holds
- * its wedges and its labels directly and is present when it draws either;
- * it is `w / 2 + 13` wide without a label, `w / 2 + 13 + 2 + T × h(9)` with
- * `T ≥ 1` lines of labels, `w` the stroke width of the line and 9 the
- * largest font size of its drawn labels; it adds to its timeline's extent
- * `[L × u + a, L × u + b]` for every wedge it draws, `a` and `b` the smallest
- * and largest of 0 and its corners' offsets across (`[−3, 3]` unturned), and
- * the extent of every stack. A wedge's `rotation` is 0 where no rule sets it,
- * −45 on a groupstamp's. Drawn from its start `c`, a wedge's tip lies
- * `c + w / 2` out, its base unturned 13 further, and line `n` starts
- * `c + w / 2 + 13 + 2 + (n − 1) × h(9)` out, summed in that order (section
- * 6.6), whether or not a wedge is drawn and whatever its rotation.
- * A cross-section line is held by its timeline's line, not by the band: it
- * is drawn when its timestamp's `display` lists it and its own display is
- * `inline`, whatever the band's, and takes no room in it.
+ * 3.1); then the secondary coordinates on each of `sources` of every named
+ * timestamp the card draws whose position its span holds (core's
+ * `cardStamps`), source after source, in canonical order of their
+ * timestamps, each read on that source's axis. Of each, the wedge and the
+ * labels its `display` lists are drawn when they are displayed and its
+ * timeline's markers band is displayed; its labels, name, ID and coordinate
+ * (sections 5.2 and 5.3), form its stack. The stacks are placed by one first
+ * fit, in that order, into tiers counted in lines (`tiersOf`), each stack
+ * one item as wide as its widest label, centred on its timestamp's `X`, at
+ * its unturned place; a wedge's `rotation`, 0 where no rule sets it, carries
+ * its stack (`carried`). The band holds its wedges and its labels directly
+ * and is present when it draws either; it is `w / 2 + 13` wide without a
+ * label, `w / 2 + 13 + 2 + T × h(9)` with `T ≥ 1` lines of labels, `w` the
+ * stroke width of the line and 9 the largest font size of its drawn labels;
+ * it adds to its timeline's extent `[L × u + a, L × u + b]` for every wedge
+ * it draws, `a` and `b` the smallest and largest of 0 and its corners'
+ * offsets across (`[−3, 3]` unturned), and the extent of every stack where
+ * its wedge carries it. A cross-section line is held by its timeline's line,
+ * not by the band: it is drawn when its timestamp's `display` lists it and
+ * its own display is `inline`, whatever the band's, and takes no room.
  */
 export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]): MarkersBand {
   const { relativeX, u, h, cascade, styled, measured } = scope;
-  const stamps: Stamp[] = sources.flatMap((source) => {
+  const stampOf = (
+    source: Entry,
+    timeline: TimelineManifest,
+    timestamp: NamedTimestamp,
+    at: Real,
+    primary: boolean,
+  ): Stamp => {
     const band = source.bands.markers;
     const banded = shown(band.style);
-    const timeline = source.manifest;
-    return namedTimestamps(scope.manifest, timeline.id).map((timestamp): Stamp => {
-      const own = coordinateValue(timestamp.coordinate, timeline.number_type);
-      const at = idAddress(timestamp.id);
-      const lists = (word: (typeof timestamp.display)[number]) => timestamp.display.includes(word);
-      const drawn = (item: Styled): Styled | undefined => (shown(item.style) ? item : undefined);
-      // A match timestamp may have no name, and draws no name label then (section 2).
-      const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
-        name: timestamp.name,
-        id: timestamp.id,
-        coordinate: coordinateText(own, timeline.number_type, timeline.unit),
-      };
-      const labels = !banded
-        ? []
-        : TIMESTAMP_LABELS.filter(lists).flatMap((word): StampLabel[] => {
-            const text = texts[word];
-            if (text === undefined) return [];
-            const label = styled(
-              elementKey("label", partAddress(at, word), timeline, band.key),
-              band.style,
-            );
-            if (!shown(label.style)) return [];
-            const coordinate =
-              word === "coordinate" ? { unit: timeline.unit, value: own } : undefined;
-            return [{ ...label, ...measured(label, text), coordinate }];
-          });
-      return {
-        id: timestamp.id,
-        at: add(source.start, own),
-        wedge:
-          banded && lists("wedge")
-            ? rotated(
-                drawn(styled(elementKey("wedge", at, timeline, band.key), band.style)),
-                timestamp.groupstamp ? GROUPSTAMP_ROTATION : 0,
-              )
-            : undefined,
-        labels,
-        line: lists("cross_section")
-          ? drawn(lineOf(scope, source, partAddress(at, "line")))
-          : undefined,
-      };
+    const address = idAddress(timestamp.id);
+    const coordinates: StampCoordinate = primary ? "primary" : "secondary";
+    const lists = (word: (typeof timestamp.display)[number]) => timestamp.display.includes(word);
+    const drawn = (item: Styled): Styled | undefined => (shown(item.style) ? item : undefined);
+    const keyed = (type: "wedge" | "label", where: typeof address) => ({
+      ...elementKey(type, where, timeline, band.key),
+      coordinates,
     });
+    // The value the wedge marks, on the timeline it marks (section 5.2).
+    const own = add(at, negate(source.start));
+    // A match timestamp may have no name, and draws no name label then (section 2).
+    const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
+      name: timestamp.name,
+      id: timestamp.id,
+      coordinate: coordinateText(own, timeline.number_type, timeline.unit),
+    };
+    const labels = !banded
+      ? []
+      : TIMESTAMP_LABELS.filter(lists).flatMap((word): StampLabel[] => {
+          const text = texts[word];
+          if (text === undefined) return [];
+          const label = styled(keyed("label", partAddress(address, word)), band.style);
+          if (!shown(label.style)) return [];
+          const coordinate =
+            word === "coordinate" ? { unit: timeline.unit, value: own } : undefined;
+          return [{ ...label, ...measured(label, text), coordinate }];
+        });
+    const wedge = rotated(styled(keyed("wedge", address), band.style));
+    return {
+      id: timestamp.id,
+      at,
+      primary,
+      rotation: wedge.style.rotation ?? 0,
+      wedge: banded && lists("wedge") ? drawn(wedge) : undefined,
+      labels,
+      line:
+        primary && lists("cross_section")
+          ? drawn(lineOf(scope, source, partAddress(address, "line")))
+          : undefined,
+    };
+  };
+  const primaries = sources.flatMap((source) => {
+    const timeline = source.manifest;
+    return namedTimestamps(scope.manifest, timeline.id).map((timestamp) =>
+      stampOf(
+        source,
+        timeline,
+        timestamp,
+        add(source.start, coordinateValue(timestamp.coordinate, timeline.number_type)),
+        true,
+      ),
+    );
   });
-  const stacks = stamps.filter((stamp) => stamp.labels.length > 0);
-  const widest = (stamp: Stamp) => Math.max(...stamp.labels.map((label) => label.width));
-  const tiers = new Rows();
-  const tierOf = new Map(
-    stacks.map((stamp) => [stamp, tiers.place(labelExtent(relativeX(stamp.at), widest(stamp)))]),
+  // A hidden secondary coordinate takes no room.
+  const secondaries = sources.flatMap((source) =>
+    crossingStamps(scope, source)
+      .map(({ timestamp, at }) => stampOf(source, source.manifest, timestamp, at, false))
+      .filter((stamp) => stamp.wedge !== undefined || stamp.labels.length > 0),
   );
-  // The height of each tier in lines, its highest stack's, and the lines of the tiers before it.
-  const heights = tiers.rows.map(() => 0);
-  for (const stamp of stacks) {
-    const index = known(tierOf, stamp) - 1;
-    heights[index] = Math.max(heights[index] ?? 0, stamp.labels.length);
-  }
-  const before: number[] = [];
-  let lines = 0;
-  for (const height of heights) {
-    before.push(lines);
-    lines += height;
-  }
-  const labels = stacks.flatMap((stamp) => stamp.labels);
+  const stamps = [...primaries, ...secondaries];
+  const widest = (stamp: Stamp) => Math.max(...stamp.labels.map((label) => label.width));
+  const withStacks = stamps.filter((stamp) => stamp.labels.length > 0);
+  const tiers = tiersOf(
+    withStacks.map((stamp) => ({
+      x: relativeX(stamp.at),
+      lines: stamp.labels.length,
+      width: widest(stamp),
+    })),
+  );
+  const stacks = new Map<Stamp, Stacked>(
+    withStacks.map((stamp, index) => [
+      stamp,
+      { stamp, n1: nth(tiers.first, index), width: widest(stamp) },
+    ]),
+  );
+  const labels = withStacks.flatMap((stamp) => stamp.labels);
   const size = maxSize(labels);
   const wedges = stamps.filter((stamp) => stamp.wedge !== undefined);
   const w = line.style["stroke-width"];
-  const wedgeExtent = ({ at, wedge }: Stamp): Extent => {
-    const [left, right] = wedgeSpan(wedge?.style.rotation ?? 0);
+  // Where its wedge carries the stack of `stamp`, the band starting at `start` (0 for the carry
+  // alone, which no start moves).
+  const carry = (stacked: Stacked, start: number) =>
+    carried(
+      stacked.stamp.rotation,
+      start + w / 2,
+      stacked.n1,
+      stacked.stamp.labels.length,
+      stacked.width,
+      h(size),
+    );
+  const vxOf = new Map([...stacks].map(([stamp, stacked]) => [stamp, carry(stacked, 0).vx]));
+  const wedgeExtent = ({ at, rotation }: Stamp): Extent => {
+    const [left, right] = wedgeSpan(rotation);
     return [relativeX(at) + left, relativeX(at) + right];
   };
   const unnamedKey = (type: "wedge" | "cross_section", holder: ElementKey) =>
     elementKey(type, idAddress(line.manifest.id), line.manifest, holder);
   const count = wedges.length + labels.length;
+  // The gap of the cross-section line of `stamp` in a band drawn from `start` (section 6.6).
+  const gap = (stamp: Stamp, at: LinePosition, start: number, side: Side): Span | null => {
+    const stacked = stacks.get(stamp);
+    const distances = gapOf(
+      at.x(stamp.at),
+      stamp.rotation,
+      start + w / 2,
+      stamp.wedge !== undefined,
+      stacked === undefined ? null : { carried: carry(stacked, start), width: stacked.width },
+    );
+    if (distances === null) return null;
+    const [first, second] = distances.map((distance) => at.yAt(side, distance));
+    return [Math.min(first ?? 0, second ?? 0), Math.max(first ?? 0, second ?? 0)];
+  };
   return {
     facet: "markers",
     elements: count,
-    width: count === 0 ? 0 : markReach(scope, w, lines, size),
+    width: count === 0 ? 0 : markReach(scope, w, tiers.lines, size),
     extents: [
       ...wedges.map(wedgeExtent),
-      ...stacks.map((stamp) => labelExtent(relativeX(stamp.at), widest(stamp))),
+      ...withStacks.map((stamp) =>
+        labelExtent(relativeX(stamp.at) + (vxOf.get(stamp) ?? 0), widest(stamp)),
+      ),
     ],
-    centred: stacks.flatMap((stamp) =>
-      stamp.labels.map((label) => ({ width: label.width, u: u(stamp.at) })),
+    centred: withStacks.flatMap((stamp) =>
+      stamp.labels.map((label) => ({
+        width: label.width,
+        u: u(stamp.at),
+        v: vxOf.get(stamp) ?? 0,
+      })),
     ),
     draw: (start, side, at) => ({
       wedges: wedges.flatMap(({ wedge, at: position }) =>
@@ -282,45 +348,36 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
           ? []
           : [wedgeElement(wedge.address, wedge.style, at.x(position), at, side, start, w)],
       ),
-      wedgeLabels: stacks.flatMap((stamp) =>
-        stamp.labels.map((label, index): TextElement => {
-          const n = (before[known(tierOf, stamp) - 1] ?? 0) + index + 1;
-          const outwards = start + w / 2 + MARKER_HEIGHT + LABEL_GAP + (n - 1) * h(size);
-          return centredLabel(
-            label,
-            at.x(stamp.at),
-            at.beyond(side, at.yAt(side, outwards), size),
-            label,
-            label.coordinate,
-          );
-        }),
-      ),
-    }),
-    crossSections: (at, extent) =>
-      extent === null
-        ? []
-        : stamps.flatMap(({ line: drawn, at: position }) =>
-            drawn === undefined
-              ? []
-              : [crossSectionElement(drawn.address, drawn.style, at.x(position), extent)],
-          ),
-    timestamps: (at, start, side) =>
-      stamps.map((stamp) => {
-        const tier = tierOf.get(stamp);
-        const first = tier === undefined ? 0 : (before[tier - 1] ?? 0);
-        const from = start + w / 2 + MARKER_HEIGHT + LABEL_GAP + first * h(size);
-        const ordinates = [
-          at.yAt(side, from),
-          at.yAt(side, from + stamp.labels.length * h(size)),
-        ] as const;
-        return {
-          id: stamp.id,
-          x: at.x(stamp.at),
-          line: stamp.line?.style ?? null,
-          labels:
-            stamp.labels.length === 0 ? null : [Math.min(...ordinates), Math.max(...ordinates)],
-        };
+      wedgeLabels: withStacks.flatMap((stamp) => {
+        const placed = carry(known(stacks, stamp), start);
+        const towards = placed.inwards ? opposite(side) : side;
+        return stamp.labels.map(
+          (label, index): TextElement =>
+            centredLabel(
+              label,
+              at.x(stamp.at) + placed.vx,
+              at.beyond(towards, at.yAt(side, nth(placed.starts, index)), size),
+              label,
+              label.coordinate,
+            ),
+        );
       }),
+    }),
+    crossSections: (at, start, side, span) =>
+      primaries.flatMap((stamp) => {
+        const drawn = stamp.line;
+        if (drawn === undefined) return [];
+        return cut(span, gap(stamp, at, start, side)).map((piece) =>
+          crossSectionElement(drawn.address, drawn.style, at.x(stamp.at), piece),
+        );
+      }),
+    timestamps: (at, span) =>
+      primaries.map((stamp) => ({
+        id: stamp.id,
+        x: at.x(stamp.at),
+        line: stamp.line?.style ?? null,
+        segment: { y1: span[0], y2: span[1] },
+      })),
     unnamed: {
       wedge: cascade.resolveUnaddressed(
         unnamedKey("wedge", line.bands.markers.key),
@@ -344,7 +401,44 @@ function lineOf(scope: Scope, source: Entry, address: ElementAddress): Styled {
   );
 }
 
-/** A drawn wedge with its `rotation` read, `initial` where no rule sets it (`rotatedStyle`). */
-function rotated(wedge: Styled | undefined, initial: number): Styled | undefined {
-  return wedge === undefined ? undefined : { ...wedge, style: rotatedStyle(wedge.style, initial) };
+/** A wedge's styled element with its `rotation` read, 0 where no rule sets it (`rotatedStyle`). */
+function rotated(wedge: Styled): Styled {
+  return { ...wedge, style: rotatedStyle(wedge.style) };
+}
+
+const stampsOfCards = new WeakMap<Scope, CardStamps>();
+
+/** The named timestamps the card of `scope`'s member drawing draws (core's `cardStamps`), once per scope. */
+function cardOf(scope: Scope): CardStamps {
+  let card = stampsOfCards.get(scope);
+  if (card === undefined) {
+    card = cardStamps(scope.manifest, scope.member);
+    stampsOfCards.set(scope, card);
+  }
+  return card;
+}
+
+/**
+ * The named timestamps with a secondary coordinate on the timeline of
+ * `source` (section 2), each at its position on the root's axis: every
+ * timestamp the card draws, its tree's and its ancestors', but those of
+ * that timeline, whose position the timeline's span holds, its ends
+ * included (its reach where its length is not known, section 3.4), in the
+ * canonical order of `graphical.timestamps`.
+ */
+function crossingStamps(
+  scope: Scope,
+  source: Entry,
+): { readonly timestamp: NamedTimestamp; readonly at: Real }[] {
+  const card = cardOf(scope);
+  const origin = negate(card.window[0]);
+  const order = scope.manifest.graphical?.timestamps ?? [];
+  return card.stamps
+    .flatMap(({ timestamp, position }) => {
+      const at = add(position, origin);
+      return timestamp.timeline !== source.manifest.id && spans(source.start, source.end, at)
+        ? [{ timestamp, at }]
+        : [];
+    })
+    .sort((left, right) => order.indexOf(left.timestamp) - order.indexOf(right.timestamp));
 }

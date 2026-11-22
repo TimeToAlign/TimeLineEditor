@@ -37,7 +37,6 @@ export type {
 } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
-export { GROUPSTAMP_ROTATION } from "./constants.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   AnchorElement,
@@ -62,8 +61,8 @@ export type {
 export { DEFAULT_PLACEMENT } from "./elements.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
 export { boundsOf, brace, lineGeometry, wedgePoints } from "./geometry.ts";
-export type { Span } from "./groupstamps.ts";
 export { frameMemberLines, groupSpans } from "./groupstamps.ts";
 export { cleanText, TextMeasure } from "./metrics.ts";
 export { times } from "./numbers.ts";
 export type { WedgeCorner } from "./rotation.ts";
+export type { Span } from "./stacks.ts";

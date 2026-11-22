@@ -35,9 +35,10 @@ import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
-import { type CrossSectionExtent, type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
+import { type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
 import { regionsBand } from "./regions.ts";
-import type { Entry, Scope } from "./traversal.ts";
+import { gapOf } from "./stacks.ts";
+import { type Entry, type Scope, shown } from "./traversal.ts";
 
 /** One timeline once every first fit of its own bands is done (section 6.4, the first pass). */
 export interface PreparedTimeline {
@@ -93,12 +94,11 @@ export interface LinePlace {
   /** The member drawing's content height `Hc` (section 6.5), its ancestor band included (section 8.4). */
   readonly Hc: number;
   /**
-   * For the root of a member drawing with an ancestor band (section 8.3) alone: on each side
-   * holding one, the distance from its line out to its outermost displayed ancestor line there,
-   * which its cross-section lines reach (section 6.6). Absent for every other line and where no
-   * ancestor line is drawn.
+   * The bottom of the card drawing the member drawing, in item coordinates: its top `top` plus its
+   * height (sections 8.4 and 8.6), which every cross-section line of the card reaches (section
+   * 6.6).
    */
-  readonly ancestors?: Readonly<Partial<Record<Side, number>>>;
+  readonly bottom: number;
 }
 
 /** A child placed in its parent's children band (section 6.4, Children). */
@@ -416,7 +416,11 @@ export function layoutTimeline(
 
   const elements = (place: LinePlace): LineElements => {
     const at = linePosition(prepared, edges, place);
-    const extent = crossSectionExtent(laid, at, place.ancestors);
+    // The card's span, from its top to its bottom, that every cross-section line crosses
+    // (section 6.6), and where the markers band starts, present or not.
+    const span = [place.top, place.bottom] as const;
+    const side = prepared.sides.markers;
+    const start = markersStart(prepared, (side === "above" ? above : below).bands, reach[side], w);
     const parts = [
       prepared.levelZero.draw(at, againstOf(prepared, slots, "above")),
       ...laid.map((band) =>
@@ -424,28 +428,32 @@ export function layoutTimeline(
           ? drawMaps(prepared.maps, slots, band.start, band.side, at)
           : bands[band.facet].draw(band.start, band.side, at),
       ),
-      { crossSections: prepared.markers.crossSections(at, extent) },
+      { crossSections: prepared.markers.crossSections(at, start, side, span) },
     ];
     const merged = mergeLineElements(parts);
     const [drawnLine] = merged.line;
     if (drawnLine === undefined) return merged;
     // Where a wedge and a cross-section line of the line lie, drawn by the code that draws a
     // named timestamp's, at the abscissa 0.
-    const side = prepared.sides.markers;
-    const start = markersStart(prepared, (side === "above" ? above : below).bands, reach[side], w);
     const { unnamed } = prepared.markers;
     const wedge = wedgeElement(drawnLine.address, unnamed.wedge, 0, at, side, start, w);
+    const rotation = wedge.style.rotation ?? 0;
+    const distances = gapOf(0, rotation, start + w / 2, shown(wedge.style), null);
+    const gap =
+      distances === null
+        ? null
+        : (() => {
+            const [first, second] = distances.map((distance) => at.yAt(side, distance));
+            return { y1: Math.min(first ?? 0, second ?? 0), y2: Math.max(first ?? 0, second ?? 0) };
+          })();
     const marker: LineMarker = {
       line: drawnLine,
       marker: {
         wedge: { yt: wedge.yt, corners: wedge.corners, style: wedge.style },
-        crossSection: {
-          extent: extent === null ? null : { y1: extent[0], y2: extent[1] },
-          style: unnamed.crossSection,
-        },
+        crossSection: { span: { y1: span[0], y2: span[1] }, gap, style: unnamed.crossSection },
         descendants,
-        timestamps: prepared.markers.timestamps(at, start, side),
       },
+      timestamps: prepared.markers.timestamps(at, span),
     };
     return { ...merged, markers: [marker] };
   };
@@ -470,41 +478,6 @@ function linesIn(laid: LaidChildren | undefined): Entry[] {
     drawing.prepared.line,
     ...linesIn(drawing.children),
   ]);
-}
-
-/**
- * The extent of the cross-section lines of a line placed at `at` whose
- * present bands are `laid` (section 6.6, Cross-section lines): of the line's
- * ordinate, the ordinates of the start and the outer edge of its children
- * band and of its conversion maps band, each where present, and, for the
- * root of a member drawing with ancestor bands, the ordinate of its
- * outermost displayed ancestor line on each side holding one, `ancestors`
- * out from its line (section 8.3), the smallest and the largest, each
- * ordinate the line's ordinate less or plus a distance summed whole first;
- * null where none of these is present. So the line crosses every ancestor
- * line drawn for the member, above it and below it, as it crosses the
- * member's children, and stops at the outermost on each side, short of
- * their marks. Nothing else bounds it: no card margin, no other band.
- */
-function crossSectionExtent(
-  laid: readonly LaidBand[],
-  at: LinePosition,
-  ancestors: Readonly<Partial<Record<Side, number>>> | undefined,
-): CrossSectionExtent {
-  const crossed = laid.filter(
-    (band) => band.facet === "children" || band.facet === "conversion_maps",
-  );
-  const outermost = (["above", "below"] as const).flatMap((side) => {
-    const distance = ancestors?.[side];
-    return distance === undefined ? [] : [at.yAt(side, distance)];
-  });
-  if (crossed.length === 0 && outermost.length === 0) return null;
-  const ordinates = [
-    at.y,
-    ...crossed.flatMap((band) => [at.yAt(band.side, band.start), at.yAt(band.side, band.edge)]),
-    ...outermost,
-  ];
-  return [Math.min(...ordinates), Math.max(...ordinates)];
 }
 
 /**

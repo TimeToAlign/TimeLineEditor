@@ -5,6 +5,7 @@ import {
   isLoadError,
   loadManifest,
   type Manifest,
+  type PlaceKey,
   sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
@@ -52,6 +53,15 @@ const card = (drawing: Drawing, member: string) =>
   element(drawing, at(member, "card")) as DrawnElement & { height: number };
 const xOf = (drawing: Drawing, member: string) =>
   (element(drawing, at(member)) as { xs: number }).xs;
+
+/** The top and bottom of the card keyed `key` in `drawing`, as `{y1, y2}`. */
+function cardSpan(drawing: Drawing, key: PlaceKey): { readonly y1: number; readonly y2: number } {
+  const card = drawing.boxes.find(
+    (box) => box.kind === "card" && box.key !== null && samePlaceKey(box.key, key),
+  );
+  if (card === undefined) throw new Error("no such card");
+  return { y1: card.y, y2: card.y + card.height };
+}
 
 describe("group_child_member: one ancestor", () => {
   const drawing = drawGroup("group_child_member");
@@ -333,10 +343,11 @@ describe("group_grandchild_parent_on_top: an ancestor line on each side", () => 
     ).toEqual([122.87353515625, 70.89697265625]);
   });
 
-  it("reaches the ancestor lines on both sides with the member's cross-section lines", () => {
-    const extent = drawing.axes.find((axis) => axis.address.id === "theme" && axis.marker !== null)
-      ?.marker?.crossSection.extent;
-    expect(extent).toEqual({ y1: 67.78125, y2: 119.7578125 });
+  it("crosses the ancestor lines on both sides with the member's cross-section lines", () => {
+    const theme = drawing.axes.find((axis) => axis.address.id === "theme" && axis.marker !== null);
+    if (theme === undefined) throw new Error("no line of theme");
+    const card = cardSpan(drawing, theme.card);
+    expect(theme.marker?.crossSection.span).toEqual(card);
     const manifest = edit("groups/group_grandchild_parent_on_top", {
       type: "add",
       into: target("theme"),
@@ -355,8 +366,8 @@ describe("group_grandchild_parent_on_top: an ancestor line on each side", () => 
     };
     expect([crossing.x, crossing.y1, crossing.y2]).toEqual([
       111.70361328125 + 100,
-      67.78125,
-      119.7578125,
+      card.y1,
+      card.y2,
     ]);
   });
 });
@@ -648,7 +659,11 @@ describe("the cascade on each drawing of an address", () => {
     const drawing = draw(
       manifest,
       DEFAULT_PLACEMENT,
-      only({ addresses: [at("piece")] }, { fill: "#112233" }),
+      [
+        ...only({ addresses: [at("piece")] }, { fill: "#112233" }),
+        // Without the default layer the secondary coordinates are shown too (section 2).
+        { rules: [{ select: { coordinates: "secondary" }, set: { display: "none" } }] },
+      ],
       metrics,
     );
     expect(styleOf(drawing, at("second-half", "start"))).toEqual(["#112233"]);
@@ -685,7 +700,7 @@ describe("the cascade on each drawing of an address", () => {
   });
 });
 
-describe("a member's cross-section lines cross its ancestor lines", () => {
+describe("a member's cross-section lines cross its whole card", () => {
   const here = {
     type: "add",
     into: target("middle"),
@@ -698,69 +713,58 @@ describe("a member's cross-section lines cross its ancestor lines", () => {
       [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, ...extra, manifestLayer(manifest)],
       metrics,
     );
-  /** The marker extent of `timeline`'s one drawn line. */
-  const extentOf = (drawing: Drawing, timeline: string) =>
-    drawing.axes.find((axis) => axis.address.id === timeline && axis.marker !== null)?.marker
-      ?.crossSection.extent;
-  const lineOf = (drawing: Drawing, id: string) =>
-    element(drawing, at(id, "line")) as DrawnElement & { x: number; y1: number; y2: number };
   const yOf = (drawing: Drawing, id: string) => (element(drawing, at(id)) as { y: number }).y;
+  /** The pieces of the cross-section line of the timestamp `id`, as `[x, y1, y2]`. */
+  const piecesOf = (drawing: Drawing, id: string) =>
+    all(drawing, at(id, "line")).flatMap((item) =>
+      item.type === "cross_section" ? [[item.x, item.y1, item.y2]] : [],
+    );
+  /** Whether every drawn line's marker spans the card that draws it, top to bottom. */
+  const spansCards = (drawing: Drawing) =>
+    drawing.axes
+      .filter((axis) => axis.marker !== null)
+      .every((axis) => {
+        const card = cardSpan(drawing, axis.card);
+        const span = axis.marker?.crossSection.span;
+        return span?.y1 === card.y1 && span?.y2 === card.y2;
+      });
 
-  it("runs from the outermost ancestor line to the member's line", () => {
+  it("runs across the member's card, its ancestor line below the member included", () => {
     const drawing = drawEdited(edit("groups/group_parent_both", here));
-    const top = yOf(drawing, "piece");
-    const line = yOf(drawing, "middle");
-    // `piece`'s line lies below `middle`'s, beyond `middle`'s own markers band.
-    expect([line, top]).toEqual([47.20703125, 85.18359375]);
-    expect(extentOf(drawing, "middle")).toEqual({ y1: line, y2: top });
-    const crossing = lineOf(drawing, "timestamp_5");
-    expect([crossing.x, crossing.y1, crossing.y2]).toEqual([
-      xOf(drawing, "middle") + 100,
-      line,
-      top,
-    ]);
-    expect(crossing.x).toBe(211.70361328125);
-    expect(extentOf(drawing, "recording")).toBeNull();
+    expect([yOf(drawing, "middle"), yOf(drawing, "piece")]).toEqual([47.20703125, 85.18359375]);
+    const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
+    expect(piecesOf(drawing, "timestamp_5")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
+    expect(spansCards(drawing)).toBe(true);
   });
 
-  it("never reaches the ancestors from a descendant of the member", () => {
+  it("runs across the member's card from a descendant of the member", () => {
     const manifest = edit("groups/group_parent_both", here, child("middle", "inner", 1, 2), {
       type: "add",
       into: target("inner"),
       timestamp: { name: "In", coordinate: [1, 1], display: ["cross_section"] },
     });
     const drawing = drawEdited(manifest);
-    const bottom = yOf(drawing, "piece");
-    expect([yOf(drawing, "middle"), bottom]).toEqual([61.8046875, 99.78125]);
-    // From the outer edge of the children band above `middle`'s line to `piece`'s below it.
-    expect(extentOf(drawing, "middle")).toEqual({ y1: 40.8046875, y2: bottom });
-    expect(extentOf(drawing, "inner")).toBeNull();
-    expect(all(drawing, at("timestamp_6", "line"))).toEqual([]);
+    const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
+    expect(piecesOf(drawing, "timestamp_6")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
+    expect(spansCards(drawing)).toBe(true);
   });
 
-  it("reaches no ancestor line that is not displayed", () => {
+  it("runs across the member's card where its ancestor line is not displayed", () => {
     const drawing = drawEdited(edit("groups/group_parent_both", here), [
       { rules: [{ select: { addresses: [at("piece")] }, set: { display: "none" } }] },
     ]);
     expect(all(drawing, at("piece"))).toEqual([]);
-    expect(extentOf(drawing, "middle")).toBeNull();
-    expect(all(drawing, at("timestamp_5", "line"))).toEqual([]);
+    const { y1, y2 } = cardSpan(drawing, { item: "group_1", member: "middle" });
+    expect(piecesOf(drawing, "timestamp_5")).toEqual([[xOf(drawing, "middle") + 100, y1, y2]]);
   });
 
-  it("crosses every ancestor line of a grouped child in a recorded session", () => {
+  it("spans every card of a recorded session", () => {
     const text = readFileSync(
       path.join(import.meta.dirname, "data", "clair-de-lune-session.yaml"),
       "utf8",
     );
     const manifest = loadManifest(text);
     if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
-    const drawing = drawEdited(manifest);
-    const bottom = yOf(drawing, "cgt_1");
-    expect([yOf(drawing, "cgt_3"), yOf(drawing, "cgt_2"), bottom]).toEqual([
-      84.20703125, 98.20703125, 132.18359375,
-    ]);
-    // From the outer edge of its maps band above its line to the outermost ancestor line below.
-    expect(extentOf(drawing, "cgt_3")).toEqual({ y1: 77.70703125, y2: bottom });
-    expect(extentOf(drawing, "dpt_1")).toEqual({ y1: 40.8046875, y2: 47.3046875 });
+    expect(spansCards(drawEdited(manifest))).toBe(true);
   });
 });

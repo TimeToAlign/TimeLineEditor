@@ -32,6 +32,7 @@ import {
   draw,
   manifestLayer,
   type Placement,
+  TextMeasure,
   wedgeAt,
   wedgePoints,
 } from "../src/index.ts";
@@ -133,6 +134,23 @@ function line(drawing: Drawing, id: string) {
   return found;
 }
 
+/** The pieces of the cross-section line of the timestamp `id`, as `[x, y1, y2]`, in drawing order. */
+const pieces = (drawing: Drawing, id: string) =>
+  drawing.elements.flatMap((item) =>
+    item.type === "cross_section" && sameAddress(item.address, at(id, "line"))
+      ? [[item.x, item.y1, item.y2]]
+      : [],
+  );
+
+const measure = new TextMeasure(metrics);
+
+/** The top and bottom of the card of the ungrouped root `id`. */
+function cardOf(drawing: Drawing, id: string): { readonly top: number; readonly bottom: number } {
+  const card = element(drawing, at(id, "card"));
+  if (card.type !== "card") throw new Error(`no card of ${id}`);
+  return { top: card.y, bottom: card.y + card.height };
+}
+
 /** The labels drawn, as `[address, text, x, baseline]`, in drawing order. */
 const labels = (drawing: Drawing) =>
   drawing.elements.flatMap((item) =>
@@ -198,6 +216,9 @@ describe("the timestamps fixture", () => {
       ["label", at("timestamp_3", "id")],
       ["label", at("timestamp_3", "coordinate")],
       ["cross_section", at("timestamp_1", "line")],
+      ["cross_section", at("timestamp_1", "line")],
+      ["cross_section", at("timestamp_3", "line")],
+      ["cross_section", at("timestamp_3", "line")],
     ]);
   });
 
@@ -242,12 +263,21 @@ describe("the timestamps fixture", () => {
     expect([band("clt_1")?.elements, band("clt_2")?.elements]).toEqual([4, 4]);
   });
 
-  it("spans the cross-section line over its timeline's line and children band only", () => {
-    const first = line(drawing, "timestamp_1");
-    expect([first.x, first.y1, first.y2]).toEqual([124.91552734375, 16, 77.9296875]);
-    expect(first.style).toMatchObject(DASHED);
+  it("crosses the whole card with each line, less the gap of its wedge and its stack", () => {
+    // The card runs from 8 to 8 + 104.90625; `clt_1`'s markers band starts at 0 below its line
+    // at 77.9296875, `clt_2`'s below its line at 23 (section 6.6): a gap from the wedge's tip,
+    // `w / 2` out, to the end of the stack's last line, `w / 2 + 13 + 2 + j × h(9)` out.
+    const h = measure.lineHeight(9);
+    expect(pieces(drawing, "timestamp_1")).toEqual([
+      [124.91552734375, 8, 77.9296875 + 1.5],
+      [124.91552734375, 77.9296875 + (1.5 + 13 + 2 + h), 8 + 104.90625],
+    ]);
+    expect(pieces(drawing, "timestamp_3")).toEqual([
+      [199.91552734375, 8, 23 + 1.5],
+      [199.91552734375, 23 + (1.5 + 13 + 2 + 3 * h), 8 + 104.90625],
+    ]);
+    expect(line(drawing, "timestamp_1").style).toMatchObject(DASHED);
     expect(find(drawing, "cross_section", at("timestamp_2", "line"))).toBeUndefined();
-    expect(find(drawing, "cross_section", at("timestamp_3", "line"))).toBeUndefined();
   });
 
   it("moves the root's line down by the room the child's timestamp takes", () => {
@@ -260,7 +290,13 @@ describe("the timestamps fixture", () => {
 describe("display, each on its own", () => {
   it("hides a wedge and keeps its labels where they were, and the band's room", () => {
     const drawing = drawn(stamped("timestamps", STAMPS, [hide(at("timestamp_3"))]));
-    expect(typesOf(drawing, "timestamp_3")).toEqual(["label", "label", "label"]);
+    expect(typesOf(drawing, "timestamp_3")).toEqual([
+      "label",
+      "label",
+      "label",
+      "cross_section",
+      "cross_section",
+    ]);
     expect(labels(drawing).slice(2)).toEqual([
       [at("timestamp_3", "name"), "Entry", 199.91552734375, 47.85400390625],
       [at("timestamp_3", "id"), "timestamp_3", 199.91552734375, 58.33056640625],
@@ -271,16 +307,26 @@ describe("display, each on its own", () => {
 
   it("hides the wedge and labels a hidden markers band holds and keeps the line", () => {
     const drawing = drawn(stamped("timestamps", STAMPS, [hide({ id: "clt_2", facet: "markers" })]));
-    expect(typesOf(drawing, "timestamp_3")).toEqual([]);
+    // Its line stays, across the whole card: nothing of it stands on the line to leave a gap.
+    const card = element(drawing, at("clt_1", "card"));
+    if (card.type !== "card") throw new Error("no card of clt_1");
+    expect(pieces(drawing, "timestamp_3")).toEqual([[199.91552734375, 8, 8 + card.height]]);
     expect([lineY(drawing, "clt_1"), lineY(drawing, "clt_2")]).toEqual([37, 23]);
-    const kept = line(drawing, "timestamp_1");
-    expect([kept.x, kept.y1, kept.y2]).toEqual([124.91552734375, 16, 37]);
+    expect(pieces(drawing, "timestamp_1")).toEqual([
+      [124.91552734375, 8, 37 + 1.5],
+      [124.91552734375, 37 + (1.5 + 13 + 2 + measure.lineHeight(9)), 8 + card.height],
+    ]);
   });
 
-  it("draws no cross-section line where a hidden child leaves no band to cross", () => {
+  it("draws nothing of a hidden child's timestamp, and the root's line across the card", () => {
     const drawing = drawn(stamped("timestamps", STAMPS, [hide({ id: "clt_2" })]));
     expect(typesOf(drawing, "timestamp_3")).toEqual([]);
-    expect(typesOf(drawing, "timestamp_1")).toEqual(["wedge", "label"]);
+    expect(typesOf(drawing, "timestamp_1")).toEqual([
+      "wedge",
+      "label",
+      "cross_section",
+      "cross_section",
+    ]);
     expect(lineY(drawing, "clt_1")).toBe(22.40234375);
   });
 
@@ -394,8 +440,13 @@ describe("named timestamps in the layout", () => {
       y + 1.5,
       unturned(y + 14.5),
     ]);
-    // `b` has neither a children band nor a conversion maps band: its line has no length.
-    expect(find(drawing, "cross_section", at("timestamp_1", "line"))).toBeUndefined();
+    // Its line crosses `form`'s whole card, its gap from the wedge's tip to its name's end.
+    const x = lineXs(drawing, "form") + 125;
+    const { top, bottom } = cardOf(drawing, "form");
+    expect(pieces(drawing, "timestamp_1")).toEqual([
+      [x, top, y + 1.5],
+      [x, y + (1.5 + 13 + 2 + measure.lineHeight(9)), bottom],
+    ]);
   });
 
   it("extends the reach of a timeline of unknown length", () => {
@@ -430,17 +481,25 @@ describe("a cross-section line in a band order of its own", () => {
   );
   const drawing = drawn(manifest);
 
-  it("spans both bands across the line and stops short of the markers band", () => {
+  it("crosses the whole card, its gap where its wedge and label lie beyond the children", () => {
     expect([lineY(drawing, "r"), lineY(drawing, "c")]).toEqual([22.5, 36.5]);
-    const crossing = line(drawing, "timestamp_3");
-    expect([crossing.x, crossing.y1, crossing.y2]).toEqual([lineXs(drawing, "r") + 150, 16, 43.5]);
     const mark = wedge(drawing, at("timestamp_3"));
     expect([mark.yt, mark.corners]).toEqual([49, unturned(62)]);
+    const x = lineXs(drawing, "r") + 150;
+    const { top, bottom } = cardOf(drawing, "r");
+    expect(pieces(drawing, "timestamp_3")).toEqual([
+      [x, top, 49],
+      [x, 22.5 + (26.5 + 13 + 2 + measure.lineHeight(9)), bottom],
+    ]);
   });
 
-  it("gives the same extent at any position, and the lines it crosses", () => {
+  it("gives the same card at any position, cut by the wedge alone, and the lines it crosses", () => {
     const key = keyOf({ item: "r" }, "r");
-    expect(crossSection(drawing, key, 100)).toMatchObject({ x: 100, y1: 16, y2: 43.5 });
+    const { top, bottom } = cardOf(drawing, "r");
+    expect(crossSection(drawing, key, 100)).toMatchObject([
+      { x: 100, y1: top, y2: 49 },
+      { x: 100, y1: 62, y2: bottom },
+    ]);
     expect(crossedLines(drawing, key)).toEqual([key, keyOf({ item: "r" }, "c")]);
   });
 });
@@ -484,15 +543,21 @@ describe("the lines a cross-section line crosses", () => {
 describe("the marks at any position", () => {
   const drawing = drawn(loadFile("timestamps"));
 
-  /** The drawn wedge of the timestamp `id` and its cross-section line, null where none is drawn. */
+  /**
+   * The drawn wedge of the timestamp `id` and its cross-section line as it would be drawn without
+   * labels: its upper piece as drawn, its lower piece from the wedge's base, its gap being the
+   * wedge's alone (section 6.6).
+   */
   const drawnMarks = (from: Drawing, id: string) => {
-    const crossing = find(from, "cross_section", at(id, "line"));
     const mark = wedge(from, at(id));
+    const drawnPieces = from.elements.flatMap((item) =>
+      item.type === "cross_section" && sameAddress(item.address, at(id, "line")) ? [item] : [],
+    );
+    const [upper, lower] = drawnPieces;
+    if (upper === undefined || lower === undefined) throw new Error(`no gap in ${id}'s line`);
+    const piece = ({ x, y1, y2, style }: (typeof drawnPieces)[number]) => ({ x, y1, y2, style });
     return {
-      line:
-        crossing?.type === "cross_section"
-          ? { x: crossing.x, y1: crossing.y1, y2: crossing.y2, style: crossing.style }
-          : null,
+      line: [piece(upper), { ...piece(lower), y1: mark.corners[0].y }],
       wedge: { points: wedgePoints(mark), style: mark.style },
     };
   };
@@ -526,17 +591,17 @@ describe("the marks at any position", () => {
     expect(marksAt(drawing, keyOf(CLT_1, "clt_2"), 199.91552734375)).toEqual(
       drawnMarks(drawing, "timestamp_3"),
     );
-    expect(crossSection(drawing, keyOf(CLT_1, "clt_2"), 199.91552734375)).toBe(null);
   });
 
   it("are never styled by a rule naming addresses", () => {
     const hidden = drawn(stamped("timestamps", STAMPS, [hide(at("timestamp_1", "line"))]));
     expect(find(hidden, "cross_section", at("timestamp_1", "line"))).toBeUndefined();
     const unnamed = crossSection(hidden, keyOf(CLT_1, "clt_1"), 124.91552734375);
-    expect(unnamed && [unnamed.x, unnamed.y1, unnamed.y2]).toEqual([
-      124.91552734375, 16, 77.9296875,
+    expect(unnamed.map(({ x, y1, y2 }) => [x, y1, y2])).toEqual([
+      [124.91552734375, 8, 79.4296875],
+      [124.91552734375, 92.4296875, 8 + 104.90625],
     ]);
-    expect(unnamed?.style).toMatchObject({ ...DASHED, display: "inline" });
+    expect(unnamed[0]?.style).toMatchObject({ ...DASHED, display: "inline" });
   });
 
   it("agree at an item's scale", () => {
@@ -552,7 +617,7 @@ describe("the marks at any position", () => {
       const x = wedge(scaled, at(id)).x;
       expect(marksAt(scaled, keyOf(CLT_1, timeline), x)).toEqual(expected);
     }
-    expect(crossSection(scaled, keyOf(CLT_1, "clt_1"), 0)?.style).toMatchObject({
+    expect(crossSection(scaled, keyOf(CLT_1, "clt_1"), 0)[0]?.style).toMatchObject({
       "stroke-width": 2,
       "stroke-dasharray": "6 6",
     });
@@ -560,8 +625,12 @@ describe("the marks at any position", () => {
 
   it("lie where an absent markers band would start, across the bands present", () => {
     const nested = drawn(loadFile("nested"));
+    const { top, bottom } = cardOf(nested, "clt_1");
     expect(marksAt(nested, keyOf(CLT_1, "clt_3"), 200)).toMatchObject({
-      line: { x: 200, y1: 16, y2: 37 },
+      line: [
+        { x: 200, y1: top, y2: 38.5 },
+        { x: 200, y1: 51.5, y2: bottom },
+      ],
       wedge: {
         points: [
           [200, 38.5],
@@ -571,7 +640,10 @@ describe("the marks at any position", () => {
       },
     });
     expect(marksAt(nested, keyOf(CLT_1, "clt_1"), 200)).toMatchObject({
-      line: { x: 200, y1: 16, y2: 51 },
+      line: [
+        { x: 200, y1: top, y2: 52.5 },
+        { x: 200, y1: 65.5, y2: bottom },
+      ],
       wedge: {
         points: [
           [200, 52.5],
@@ -648,7 +720,7 @@ describe("the marks at any position", () => {
       ],
       style: ANCESTOR_MARK_STYLE,
     };
-    expect(marksAt(member, key, 100)).toEqual({ line: null, wedge: mark });
+    expect(marksAt(member, key, 100)).toEqual({ line: [], wedge: mark });
     expect(mark.points).toEqual([
       [100, 86.68359375],
       [97, 99.68359375],
@@ -750,6 +822,6 @@ describe("the marks at any position", () => {
   });
 
   it("are none where no line is keyed", () => {
-    expect(marksAt(drawing, keyOf(CLT_1, "nothing"), 100)).toEqual({ line: null, wedge: null });
+    expect(marksAt(drawing, keyOf(CLT_1, "nothing"), 100)).toEqual({ line: [], wedge: null });
   });
 });

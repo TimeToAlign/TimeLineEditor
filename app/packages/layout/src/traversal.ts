@@ -22,6 +22,7 @@ import {
   elementKey,
   type MemberDrawing,
   orderedChildren,
+  reachOf,
   textKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
@@ -30,7 +31,7 @@ import type { Cascade, Style } from "./cascade.ts";
 import { ROW_PITCH } from "./constants.ts";
 import type { LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
-import { add, coordinateValue, lengthValue, proportion, reachOf, zero } from "./numbers.ts";
+import { add, coordinateValue, lengthValue, proportion, zero } from "./numbers.ts";
 
 export interface Styled {
   readonly address: ElementAddress;
