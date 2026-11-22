@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from refusals import assert_refused_in_timetoshares_words
 from timetoshare import dumps, loads
 from timetoshare.tables import fixture_path
 
@@ -153,16 +154,12 @@ def test_a_match_claim_table_the_checks_refuse_is_refused(server: TestClient) ->
     response = post(
         server, body({"claims": ["claim_1"]}, manifest=dumps(manifest).encode())
     )
-    problem = {
-        "code": "unknown_timeline",
-        "row": 14,
-        "column": ["timeline_a_id"],
-        "message": "the manifest has no timeline 'clt_2'",
-    }
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {"path": [], "message": problem["message"], "problems": [problem]}
-    }
+    assert_refused_in_timetoshares_words(
+        response,
+        [],
+        ["'clt_2'"],
+        [{"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"]}],
+    )
 
 
 def test_the_route_needs_the_token(server: TestClient) -> None:

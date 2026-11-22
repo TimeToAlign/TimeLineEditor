@@ -540,8 +540,15 @@ export function entryWord(kind: EntryKind, element: ListedElement): string {
 /** A name or an ID as a phrase quotes it. */
 const quoted = (text: string): string => `'${text}'`;
 
-/** A block's bundle by its manifest's `name`, else its `id`, else as the anonymous bundle. */
-function bundleWords({ manifest }: Block): string {
+/**
+ * A bundle by its manifest's `name`, else its `id`, else as the anonymous
+ * bundle. Takes the two members alone, so a manifest not yet held by a block
+ * (the one an `add` carries) is worded the same way.
+ */
+export function bundleWords(manifest: {
+  readonly name?: string | null;
+  readonly id?: string | null;
+}): string {
   const name = manifest.name ?? manifest.id;
   return name === null || name === undefined ? "the anonymous bundle" : `bundle ${quoted(name)}`;
 }
@@ -549,7 +556,7 @@ function bundleWords({ manifest }: Block): string {
 /** The block `block` by its bundle, or by its ID when the view does not hold it. */
 function blockWords(view: View, block: BlockId): string {
   const held = view.blocks[block];
-  return held === undefined ? `block ${quoted(block)}` : bundleWords(held);
+  return held === undefined ? `block ${quoted(block)}` : bundleWords(held.manifest);
 }
 
 /**
@@ -564,9 +571,9 @@ function elementWords(resolved: ResolvedAddress): {
     case "workspace":
       return { words: "the workspace", bundled: true };
     case "block":
-      return { words: bundleWords(resolved.block), bundled: true };
+      return { words: bundleWords(resolved.block.manifest), bundled: true };
     case "title":
-      return { words: `the title of ${bundleWords(resolved.block)}`, bundled: true };
+      return { words: `the title of ${bundleWords(resolved.block.manifest)}`, bundled: true };
     case "frame":
       return { words: `group ${quoted(resolved.group.name ?? resolved.group.id)}`, bundled: false };
     case "timeline":
