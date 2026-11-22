@@ -510,10 +510,9 @@ table lies (`step1.yaml` imported, the read of
 the dialog "step1.match_claims.parquet is not beside …" with its
 "Locate…" button); and on the header's title after the rename "Second"
 (the button "• Second" followed by the muted "— first.tle.json") and with
-its field refusing an empty name (`aria-invalid`). The folder without an
-option fails on the present editor (`aria-required-children`: the list
-holds only its presentational "Nothing to show here." item); the case
-stays failing until the dialog is fixed, never silenced.
+its field refusing an empty name (`aria-invalid`). In the folder without an
+option the list holds no item, and the note "Nothing to show here." stands
+beside it as a status.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
 the MatchClaim table a manifest names, the table route replayed from the
@@ -655,11 +654,10 @@ table changed ("…, changed", "Save MatchClaims…" shown, the difference
 "MatchClaims the belief filter leaves out"). With the manifest imported
 alone (no server for the user's files): the tables dialog "Load the
 MatchClaim table of The manifest" with Load disabled, and again once a
-file is chosen. Two cases fail on the present editor, each left failing
-until the editor is fixed: the unnamed pin (`color-contrast`: the
-rotation's degree readout, faded with its disabled slider, 3.31:1) and
-the Journal tab (`color-contrast`: the undone entry's text, time and
-author at opacity 0.5, 2.27:1).
+file is chosen. The unnamed pin (the
+rotation's degree readout beside its disabled slider) and the Journal tab
+(an undone entry's text, time and author) are checked for contrast like
+every other state.
 
 **`metadata.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording
 (`statements/layerit_recording.yaml` through Import manifest…) into a
