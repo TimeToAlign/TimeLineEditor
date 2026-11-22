@@ -636,22 +636,23 @@ describe("the marks at any position", () => {
     const key = placeKeyText(ancestor.card) + addressKey(ancestor.address);
     expect([ancestor.card, ancestor.line, ancestor.marker]).toEqual([
       { item: "group_1", member: "second-half" },
-      67.78125,
+      85.18359375,
       null,
     ]);
+    // `piece`'s line lies below the member's, so its mark points down, away from the member.
     const mark = {
       points: [
-        [100, 67.78125 - 1.5],
-        [97, 67.78125 - 1.5 - 13],
-        [103, 67.78125 - 1.5 - 13],
+        [100, 85.18359375 + 1.5],
+        [97, 85.18359375 + (1.5 + 13)],
+        [103, 85.18359375 + (1.5 + 13)],
       ],
       style: ANCESTOR_MARK_STYLE,
     };
     expect(marksAt(member, key, 100)).toEqual({ line: null, wedge: mark });
     expect(mark.points).toEqual([
-      [100, 66.28125],
-      [97, 53.28125],
-      [103, 53.28125],
+      [100, 86.68359375],
+      [97, 99.68359375],
+      [103, 99.68359375],
     ]);
     const restyled = layered([
       {
@@ -699,14 +700,14 @@ describe("the marks at any position", () => {
     const key = keyIn(plain, "piece");
     expect([ancestor.card, ancestor.line, ancestor.marker]).toEqual([
       { item: "group_1", member: "middle" },
-      67.78125,
+      85.18359375,
       null,
     ]);
     const mark = {
       points: [
-        [200, 66.28125],
-        [197, 53.28125],
-        [203, 53.28125],
+        [200, 86.68359375],
+        [197, 99.68359375],
+        [203, 99.68359375],
       ],
       style: ANCESTOR_MARK_STYLE,
     };
@@ -740,9 +741,9 @@ describe("the marks at any position", () => {
     const x = 300;
     expect(wedgeAt(scaled, keyIn(scaled, "piece"), x)).toEqual({
       points: [
-        [x, y - 3],
-        [x - 6, y - 3 - 26],
-        [x + 6, y - 3 - 26],
+        [x, y + 3],
+        [x - 6, y + 3 + 26],
+        [x + 6, y + 3 + 26],
       ],
       style: { ...ANCESTOR_MARK_STYLE, "stroke-width": 6, "font-size": 18 },
     });

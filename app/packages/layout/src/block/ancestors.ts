@@ -85,7 +85,8 @@ function lineAt(
  * holding nothing else, at the length `LA = xe − xs`, spacing 4 and margin
  * 0, with the name column `K` and its own start `s0'`; its card ends at
  * `Ri + K`. It is moved so that its line starts at `xs` and lies at the
- * ordinate of `R`'s ancestor line in `M`'s card, or of `M`'s line where that
+ * ordinate of `R`'s ancestor line in `M`'s card, on whichever side of `M`'s
+ * line `R`'s band order puts it (section 8.3), or of `M`'s line where that
  * ancestor line is not displayed. An ancestor card whose style does not
  * display it, or whose line or target ordinate is not drawn, is not drawn.
  * Its lines have axes as any card's (`axesOf` over `R`'s drawing at `s0'` and

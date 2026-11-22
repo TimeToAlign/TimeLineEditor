@@ -67,6 +67,7 @@ export const HAND_DERIVED: readonly string[] = [
   "bundle__bundle_matchstamp_cards",
   "map_band_order_subset",
   "group__group_child_member_stamps",
+  "group__group_grandchild_parent_on_top",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */
