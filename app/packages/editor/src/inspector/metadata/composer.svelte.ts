@@ -7,6 +7,7 @@
  * what is missing.
  */
 
+import { assertNever } from "@timetoalign/tilie-core";
 import type { Catalogue, Recognition } from "@timetoalign/timetoshare";
 import { compactIri, expandIri, instantiate, recognize } from "@timetoalign/timetoshare";
 import type { Candidate } from "../../lookup/index.ts";
@@ -59,8 +60,12 @@ export function valueIri(value: ValueChoice): string | null {
       return value.candidate.iri;
     case "recognized":
       return value.recognition.iri;
-    default:
+    case "element":
+    case "type":
+    case "literal":
       return null;
+    default:
+      return assertNever(value);
   }
 }
 

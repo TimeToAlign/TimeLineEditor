@@ -15,6 +15,7 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import {
+  assertNever,
   bandAddress,
   cardAddress,
   ITEM_PLACE_MEMBERS,
@@ -26,7 +27,6 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { blockBox, boxOf, isAncestorCard, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
-import { assertNever } from "./never.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 

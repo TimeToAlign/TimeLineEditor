@@ -5,10 +5,9 @@
  */
 
 import type { Address, Manifest, ResolvedElement } from "@timetoalign/tilie-core";
-import { resolveElement } from "@timetoalign/tilie-core";
+import { assertNever, resolveElement } from "@timetoalign/tilie-core";
 import type { Hit } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
-import { assertNever } from "./never.ts";
 
 /** The ID of the timeline or region a resolved element stands for, or `null`. */
 function pickedId(resolved: ResolvedElement | undefined): string | null {

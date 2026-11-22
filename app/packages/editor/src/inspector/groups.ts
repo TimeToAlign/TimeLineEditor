@@ -25,6 +25,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   apply,
+  assertNever,
   findTimeline,
   idAddress,
   inBlock,
@@ -79,8 +80,19 @@ function timelineIdOf(resolved: ResolvedAddress): string | null {
       return resolved.at.timeline.id;
     case "part":
       return timelineIdOf(resolved.owner);
-    default:
+    case "workspace":
+    case "block":
+    case "title":
+    case "frame":
+    case "band":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 
@@ -91,8 +103,20 @@ function groupIdOf(resolved: ResolvedAddress): string | null {
       return resolved.group.id;
     case "part":
       return groupIdOf(resolved.owner);
-    default:
+    case "workspace":
+    case "block":
+    case "title":
+    case "timeline":
+    case "card":
+    case "band":
+    case "entry":
+    case "measure_map":
+    case "timestamp":
+    case "matchstamp":
+    case "anchor":
       return null;
+    default:
+      return assertNever(resolved);
   }
 }
 

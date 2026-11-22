@@ -2,6 +2,7 @@
 
 import type { Address, Manifest, View } from "@timetoalign/tilie-core";
 import {
+  assertNever,
   contains,
   findTimeline,
   idAddress,
@@ -13,7 +14,6 @@ import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { type Hit, isAncestorCard } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
-import { assertNever } from "./never.ts";
 
 /**
  * The editor target a double-click, a double tap or Enter on `hit` opens, by
