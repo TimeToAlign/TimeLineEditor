@@ -68,8 +68,7 @@ lies 368 further right; in `bundle_mixed` `recording`'s card lies behind
 `group_2`'s frame, aligned to `excerpt`; in `bundle_shared_parent`
 `score` has one behind each frame. The values of this file are derived
 without the ancestor cards wherever a test's subject is something else (a
-box under a point, a mark, a place origin, a resize, a marquee, a
-viewport): those tests draw under the workspace rule `{"select":
+box under a point, a mark, a place origin, a resize, a viewport): those tests draw under the workspace rule `{"select":
 {"element": "ancestor_card"}, "set": {"display": "none"}}` (`support.ts`
 `withoutAncestorCards`), which hides them, so their cards take no room and
 the origin does not move. The tests of what the user sees by default (the
@@ -1651,13 +1650,23 @@ A marquee selects elements, never containers, and only inside the edited
 element; an element's bounds are the rectangle of the coordinates its
 drawing states (a text's from its measured width, ascent and descent), and
 an address drawn more than once is taken only when every copy lies
-inside. On `mixed` with the region `region_3` (0 to 10 samples) on
-`excerpt` and the map `cmap_7` on `dlt_1` (`region_1` and `cmap_3` are
-taken: an ID is unique across the manifest), at (40, 80), its ancestor
-card hidden (drawn, `recording`'s card would draw `excerpt`, `dlt_1` and
-their maps once more behind `group_2`'s frame, not wholly inside the
-rectangles below), each result an address in block A, written below by
-its element address:
+inside. What an ancestor card draws counts only while that card is
+raised, that is while the timeline editor of its root is open (the
+canvas then shows it over every frame): otherwise it lies behind the
+frames, and the marquee reads the drawings outside ancestor cards alone,
+so an address drawn there and in the card is taken by its drawings
+outside, and one drawn only in the card is never taken. While the card is
+raised, its drawings count as any other, inside the edited element. On
+`mixed` with the region `region_3` (0 to 10 samples) on `excerpt` and the
+map `cmap_7` on `dlt_1` (`region_1` and `cmap_3` are taken: an ID is
+unique across the manifest), at (40, 80), drawn with the defaults, so
+`recording`'s ancestor card lies behind `group_2`'s frame, aligned to
+`excerpt` (it draws `recording` with its map `cmap_5`, `excerpt`, `dlt_1`,
+`cmap_6`, `cmap_7`, `timestamp_3`, `timestamp_4` and the three names once
+more; the place origin moves left by as much as the card reaches beyond
+the frames, and every other element keeps its place on the canvas, so the
+canvas rectangles below are the ones of the drawing without the card),
+each result an address in block A, written below by its element address:
 
 - The rectangle of `score`'s card gives, in drawing order, `{id:
   "cmap_1"}`, `{id: "cmap_2"}`, `{id: "jump_from_1"}`, `{id: "score"}`,
@@ -1683,7 +1692,41 @@ its element address:
   the ancestor line `{id: "recording"}`, are left out.
 - Inside `dlt_1` only `{id: "cmap_7"}`, `{id: "dlt_1"}`, `{id: "dlt_1",
   part: ["name"]}`: core's containment decides by what an element belongs
-  to; inside `group_1` nothing.
+  to; inside `group_1` nothing. Without the rule above, `cmap_7`, `dlt_1`
+  and its name would each have a second drawing in the card, outside the
+  rectangle, and nothing would be taken.
+- A rectangle 2 larger on every side than `excerpt`'s member card (as the
+  drawing records it, moved and scaled onto the canvas) takes, in the
+  order their first drawings outside the card come: `cmap_6`, `cmap_7`,
+  `region_3`, `recording` (its ancestor line in the member card),
+  `excerpt`, `dlt_1`, `excerpt`'s start and end marks, `timestamp_3`,
+  `timestamp_4`, the names of `recording`, `dlt_1` and `excerpt`, the
+  labels of `excerpt`'s start and end marks and `region_3`'s label: the
+  member, its maps, its child, its name and its marks, though their
+  second drawings in the card lie outside the rectangle (the lines and
+  maps above it, the names in the card's name column left of it). One 2 larger than `group_2`'s frame takes, before those,
+  `group_2`'s name and `page`'s card's `cmap_4`, `page`, `timestamp_5`,
+  `timestamp_6` and `page`'s name; the names are taken too.
+- A rectangle 2 larger than the ancestor card itself takes, unraised, only
+  what the member card draws inside it: `cmap_7` (5.5 above `dlt_1`'s
+  line), `recording`'s ancestor line, `excerpt`'s start and end marks,
+  `recording`'s name in the member card and the marks' labels; never
+  `cmap_5`, which only the card draws. Its strip left of the frame (to 2
+  left of the frame's left edge), the only part of the card the user sees
+  there, takes nothing. In `recording`'s timeline editor the card is
+  raised and the editor's own inside applies: the whole card's rectangle
+  takes `cmap_5`, `cmap_7`, `recording`, `recording`'s name, `excerpt`'s
+  start and end marks and their labels (`excerpt`, `dlt_1`, `cmap_6`,
+  their names and `timestamp_3`, `timestamp_4` have drawings in the member
+  card below the rectangle); the strip still takes nothing, since each
+  name drawn in it is drawn once more in the member card, right of it.
+- An affordance on an ancestor card's line counts by the same rule: with
+  a timestamp `Mark` (22050 samples, `display` `[]`) added to `recording`,
+  the only marked line holding `recording` is the card's, so its
+  affordance lies there, behind the frame. A rectangle over the whole
+  drawing takes the ten timestamps `timestamp_1` to `timestamp_10` and not
+  `timestamp_11`; in `recording`'s editor it takes `timestamp_3`,
+  `timestamp_4` and `timestamp_11`.
 - A named timestamp that draws nothing is taken by its affordance (its
   bounds those of the affordance's three points, `affordancesOf`), whole,
   as one address: on `timestamps`
@@ -2849,8 +2892,8 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    Shift and such a click leave it. A click inside still selects what it
    hits (`score`'s card, `{block: A, id: "score", part: ["card"]}`, in
    `group_1`'s editor). A marquee selects only elements inside the edited
-   element: in `dlt_1`'s editor on the marquee's view (its ancestor card
-   hidden, as in the marquee section) the rectangle of the
+   element: in `dlt_1`'s editor on the marquee's view (drawn with the
+   defaults, as in the marquee section) the rectangle of the
    marquee section selects `{block: A, id: "cmap_7"}`, `{block: A, id:
    "dlt_1"}` and `{block: A, id: "dlt_1", part: ["name"]}`, in `group_1`'s
    nothing. A refusal of the store is shown in the status line with the

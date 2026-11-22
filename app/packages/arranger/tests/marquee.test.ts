@@ -1,31 +1,40 @@
-import type { ElementAddress, OwnerAddress } from "@timetoalign/tilie-core";
-import { idAddress, inBlock, partAddress } from "@timetoalign/tilie-core";
+import type { ElementAddress, OwnerAddress, PlaceKey, View } from "@timetoalign/tilie-core";
+import { idAddress, inBlock, partAddress, samePlaceKey } from "@timetoalign/tilie-core";
 import { INITIAL_STYLE, TextMeasure } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { elementBounds, elementsInRect } from "../src/marquee.ts";
+import type { Editing } from "../src/editing.ts";
+import { elementBounds, elementsInRect, type Rect, rectOnCanvas } from "../src/marquee.ts";
+import type { BlockNode } from "../src/node.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import {
-  A,
-  blockIn,
-  changed,
-  marqueeView,
-  metrics,
-  viewOf,
-  withoutAncestorCards,
-} from "./support.ts";
+import { A, blockIn, changed, marqueeView, metrics, viewOf } from "./support.ts";
 
-// Drawn without `recording`'s ancestor card, which draws `excerpt`, `dlt_1` and their maps once
-// more, behind the frame and not wholly inside the rectangles below.
-const view = withoutAncestorCards(marqueeView());
-const [node] = project(view, NOTHING_SELECTED, [], metrics, null);
-if (node === undefined) throw new Error("no node");
+// Drawn with the defaults: `recording`'s ancestor card lies behind `group_2`'s frame.
+const view = marqueeView();
+const nodeOf = (shown: View, editing: Editing | null): BlockNode => {
+  const [found] = project(shown, NOTHING_SELECTED, [], metrics, editing);
+  if (found === undefined) throw new Error("no node");
+  return found;
+};
+const node = nodeOf(view, null);
 const { manifest } = blockIn(view, A);
 const every = insideOf(manifest, node.data.drawing, null);
 const at = (...elements: ElementAddress[]) => elements.map((element) => inBlock(A, element));
 const part = (id: string, ...words: ("start" | "end" | "name" | "label")[]): ElementAddress =>
   words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
 const bottom = { x: 40, y: 410, width: 600, height: 86.25 };
+/** `recording`'s timeline editor: the one editor raising its ancestor card. */
+const RECORDING: Editing = { target: inBlock(A, idAddress("recording")), kind: "timeline" };
+/** The canvas rectangle of the box under `key` in `node`'s drawing, `by` larger on every side. */
+const around = (shown: BlockNode, key: PlaceKey, by = 2): Rect => {
+  const box = shown.data.drawing.boxes.find(
+    (found) => found.key !== null && samePlaceKey(found.key, key),
+  );
+  if (box === undefined) throw new Error(`no box ${JSON.stringify(key)}`);
+  const { x, y, width, height } = rectOnCanvas(shown, box);
+  return { x: x - by, y: y - by, width: width + 2 * by, height: height + 2 * by };
+};
+const ANCESTOR_CARD: PlaceKey = { item: "group_2", member: "recording" };
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
@@ -68,6 +77,111 @@ describe("elementsInRect", () => {
     );
     const group = insideOf(manifest, node.data.drawing, "group_1");
     expect(elementsInRect(node, bottom, group, metrics)).toEqual([]);
+  });
+
+  it("takes a member card's elements by their drawings outside the ancestor card", () => {
+    expect(
+      elementsInRect(node, around(node, { item: "group_2", member: "excerpt" }), every, metrics),
+    ).toEqual(
+      at(
+        idAddress("cmap_6"),
+        idAddress("cmap_7"),
+        idAddress("region_3"),
+        idAddress("recording"),
+        idAddress("excerpt"),
+        idAddress("dlt_1"),
+        part("excerpt", "start"),
+        part("excerpt", "end"),
+        idAddress("timestamp_3"),
+        idAddress("timestamp_4"),
+        part("recording", "name"),
+        part("dlt_1", "name"),
+        part("excerpt", "name"),
+        part("excerpt", "start", "label"),
+        part("excerpt", "end", "label"),
+        part("region_3", "label"),
+      ),
+    );
+    expect(elementsInRect(node, around(node, { item: "group_2" }), every, metrics)).toEqual(
+      at(
+        part("group_2", "name"),
+        idAddress("cmap_4"),
+        idAddress("page"),
+        idAddress("timestamp_5"),
+        idAddress("timestamp_6"),
+        part("page", "name"),
+        idAddress("cmap_6"),
+        idAddress("cmap_7"),
+        idAddress("region_3"),
+        idAddress("recording"),
+        idAddress("excerpt"),
+        idAddress("dlt_1"),
+        part("excerpt", "start"),
+        part("excerpt", "end"),
+        idAddress("timestamp_3"),
+        idAddress("timestamp_4"),
+        part("recording", "name"),
+        part("dlt_1", "name"),
+        part("excerpt", "name"),
+        part("excerpt", "start", "label"),
+        part("excerpt", "end", "label"),
+        part("region_3", "label"),
+      ),
+    );
+  });
+
+  it("counts an ancestor card's drawings only while the card is raised", () => {
+    const card = around(node, ANCESTOR_CARD);
+    const frame = around(node, { item: "group_2" }, 0);
+    const strip = { ...card, width: frame.x - 2 - card.x };
+    expect(elementsInRect(node, strip, every, metrics)).toEqual([]);
+    const behind = [
+      idAddress("cmap_7"),
+      idAddress("recording"),
+      part("excerpt", "start"),
+      part("excerpt", "end"),
+      part("recording", "name"),
+      part("excerpt", "start", "label"),
+      part("excerpt", "end", "label"),
+    ];
+    expect(elementsInRect(node, card, every, metrics)).toEqual(at(...behind));
+    const raised = nodeOf(view, RECORDING);
+    const { inside } = raised.data;
+    expect(elementsInRect(raised, strip, inside, metrics)).toEqual([]);
+    expect(elementsInRect(raised, card, inside, metrics)).toEqual(
+      at(
+        idAddress("cmap_5"),
+        idAddress("cmap_7"),
+        idAddress("recording"),
+        part("recording", "name"),
+        part("excerpt", "start"),
+        part("excerpt", "end"),
+        part("excerpt", "start", "label"),
+        part("excerpt", "end", "label"),
+      ),
+    );
+  });
+
+  it("takes the affordance on an ancestor card's line only while the card is raised", () => {
+    const marked = changed(view, {
+      type: "add",
+      into: inBlock(A, idAddress("recording")),
+      timestamp: { name: "Mark", coordinate: 22050, display: [] },
+    });
+    const stamps = (shown: BlockNode) => {
+      const { width, height } = shown.data.drawing;
+      return elementsInRect(shown, { ...shown.position, width, height }, shown.data.inside, metrics)
+        .flatMap(({ id }) => (id?.startsWith("timestamp_") ? [id] : []))
+        .sort();
+    };
+    expect(stamps(nodeOf(marked, null))).toEqual(
+      [1, 10, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `timestamp_${n}`),
+    );
+    expect(stamps(nodeOf(marked, RECORDING))).toEqual([
+      "timestamp_11",
+      "timestamp_3",
+      "timestamp_4",
+    ]);
   });
 
   it("takes a named timestamp for its parts, and one that draws nothing by its wedge", () => {

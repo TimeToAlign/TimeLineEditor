@@ -628,6 +628,26 @@ describe("the Properties panel", () => {
       changes: [{ target: { block: M }, values: { name: "Op. 35" } }],
     });
     expect(evaluate()).toEqual([false, { display: null }, 1]);
+    const manifest = blockOf(store).manifest;
+    dispatched(store, {
+      type: "set",
+      changes: [
+        {
+          target: {},
+          values: {
+            graphical: {
+              rules: [
+                ...(store.view.graphical.rules ?? []),
+                { select: { element: "frame" }, set: { stroke: "#000000" } },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    expect(blockOf(store).manifest).toBe(manifest);
+    expect(evaluate()).toEqual([false, { display: null }, 1]);
+    expect(evaluate()).toEqual([false, { display: null }, 0]);
   });
 
   /** The notice a size below `minimum` gives. */
