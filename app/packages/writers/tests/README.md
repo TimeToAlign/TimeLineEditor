@@ -546,6 +546,31 @@ member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.
 
+## Drawing a manifest file (`draw-manifest.test.ts`)
+
+`pnpm draw <manifest> --out <directory> [--name <stem>] [--length <n>]
+[--scale <s>]` (`scripts/draw-manifest.ts`) draws any manifest file, YAML or
+JSON, as the review cases draw a manifest fixture: the layers
+`[DEFAULT_LAYER, manifestLayer(manifest)]`, the default placement with
+`--length` replacing its length, the schema package's font metrics, the
+drawing placed at `(0, 0)` with the scale, written as `<stem>.svg` and the
+standalone `<stem>.tex`. What proves it draws exactly what the
+specification's fixtures pin is the command itself, run as a separate Node
+process on the manifest file a drawing fixture names: its two files equal
+that fixture's `figure.svg` and `figure.tex` byte for byte. The cases cover
+a group whose child member draws an ancestor card (`groups/group_parent_both`
+→ `group__group_parent_both`), a bundle storing elisions
+(`bundles/bundle_elisions_stored` → `bundle__bundle_elisions_stored`), the
+length (`nested` with `--length 800` → `nested__length-800`) and the scale
+(`nested` with `--scale 2` → `nested__scale-2`); the stem defaults to the
+file's name without its extension and `--name` replaces it. The same
+manifest written as pretty JSON (TimeToShare's `dumps`) draws the same two
+files, so the serialization is read, not assumed. A file that is no
+manifest (a manifest without `timelines`) writes nothing, and the command
+exits with status 1 and names the problem on standard error; a missing
+`--out` or a `--length` that is no positive number exits with status 2 and
+writes nothing.
+
 ## Validity (`compile.test.ts`)
 
 Every drawing fixture's `figure.svg`, and the SVG of the every-kind drawing,

@@ -20,8 +20,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
-import { writeSvg, writeTikz } from "../src/index.ts";
 import {
+  figures,
   fixturesDirectory,
   inputsText,
   MANIFEST_DIRECTORIES,
@@ -145,10 +145,9 @@ function emit(checkout: string): string[] {
   for (const item of cases) {
     const directory = path.join(drawingsDirectory, item.name);
     mkdirSync(directory, { recursive: true });
-    const placed = [{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }];
+    const { svg, tex } = figures(item.drawing, item.scale);
     if (update(path.join(directory, "inputs.json"), inputsText(item))) changed++;
-    if (update(path.join(directory, "figure.tex"), writeTikz(placed))) changed++;
-    const svg = writeSvg(placed);
+    if (update(path.join(directory, "figure.tex"), tex)) changed++;
     const figure = path.join(directory, "figure.svg");
     if (!HAND_DERIVED.includes(item.name)) {
       if (update(figure, svg)) changed++;

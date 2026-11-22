@@ -31,6 +31,7 @@ import {
 } from "@timetoalign/tilie-layout";
 import type { Graphical, Selector } from "@timetoalign/timetoshare";
 import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { writeSvg, writeTikz } from "../src/index.ts";
 
 const require = createRequire(import.meta.url);
 const packageDir = path.dirname(require.resolve("@timetoalign/timetoshare/package.json"));
@@ -65,6 +66,25 @@ export function loadFixture(name: string): Manifest {
   return manifest;
 }
 
+/**
+ * A manifest drawn as every review case draws one: under the defaults, the
+ * application's layers `settings` and the manifest's own layer, in that
+ * order, with the schema package's font metrics.
+ */
+export function drawManifest(
+  manifest: Manifest,
+  placement: Placement,
+  settings: readonly Graphical[] = [],
+): Drawing {
+  return draw(manifest, placement, [DEFAULT_LAYER, ...settings, manifestLayer(manifest)], metrics);
+}
+
+/** The SVG and the standalone TikZ document of a drawing placed at `(0, 0)` with `scale`. */
+export function figures(drawing: Drawing, scale: number): { svg: string; tex: string } {
+  const placed = [{ drawing, x: 0, y: 0, scale }];
+  return { svg: writeSvg(placed), tex: writeTikz(placed) };
+}
+
 export interface ReviewCase {
   /** The file name, without extension. */
   readonly name: string;
@@ -73,7 +93,6 @@ export interface ReviewCase {
   readonly placement: Placement;
   /** The application's layers, between the defaults and the manifest's own layer. */
   readonly settings: readonly Graphical[];
-  readonly layers: readonly (Graphical | undefined)[];
   readonly scale: number;
   readonly drawing: Drawing;
 }
@@ -88,16 +107,13 @@ export function reviewCases(): ReviewCase[] {
     scale = 1,
     extra: readonly Graphical[] = [],
   ) => {
-    const manifest = loadFixture(manifestName);
-    const layers = [DEFAULT_LAYER, ...extra, manifestLayer(manifest)];
     cases.push({
       name,
       manifest: manifestName,
       placement,
       settings: extra,
-      layers,
       scale,
-      drawing: draw(manifest, placement, layers, metrics),
+      drawing: drawManifest(loadFixture(manifestName), placement, extra),
     });
   };
   // The corpus manifests stay out: they are the library's real data, too large to review here.
