@@ -118,8 +118,9 @@ No dependency enters: `struct`, `json` and numpy (which timetoalign
 requires) on the server, `Blob`, `DataView`, typed arrays and
 `TextDecoder` in the browser. The server's tests decode the answer to the
 TimeToShare fixture `tables/0.2.0` with their own reader of this layout
-and compare every array; `scripts/record_match_claims.py` writes that
-answer into the client's tests, which decode it and compare the same
+and compare every array; `scripts/record_answers.py` writes that
+answer, with the answers of the client's other routes, into the client's
+tests, which decode it and compare the same
 values, written out from the fixture by hand.
 
 Primary sources: <https://fetch.spec.whatwg.org/#body-mixin>

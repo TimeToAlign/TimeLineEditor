@@ -1205,7 +1205,7 @@ tables in the built editor on TimeToShare's table fixture
 /api/match-claims` is answered with the client's recording
 (`packages/client/tests/data/match-claims.answer.bin`, the server's answer
 for exactly this manifest and table, written by the server's
-`scripts/record_match_claims.py`) and counted; the number of MatchClaims
+`scripts/record_answers.py`) and counted; the number of MatchClaims
 is read from the recording's header (15), never restated. Importing the
 manifest together with its table (Import manifest…, both files picked)
 makes one block and exactly one table request; with the block selected
