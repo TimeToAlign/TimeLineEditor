@@ -826,3 +826,20 @@ describe("an affordance", () => {
     expect(pressedIn(press(clt1), clt1)).toEqual(inA(idAddress("timestamp_2")));
   });
 });
+
+describe("an elision's descriptors", () => {
+  it("are elements, never a box, on bundle_elisions_stored", () => {
+    const view = viewOf({ id: A, fixture: "bundles/bundle_elisions_stored" });
+    const written = descriptorsOf(drawingIn(view)).filter(
+      (descriptor) => descriptor.source.type === "elision",
+    );
+    expect(new Set(written.map(roleOf))).toEqual(new Set(["element"]));
+    const ids = written.map((descriptor) => descriptor.source.address.id);
+    expect(ids.filter((id, index) => id !== ids[index - 1])).toEqual([
+      "elision_4",
+      "elision_5",
+      "elision_6",
+      "elision_2",
+    ]);
+  });
+});

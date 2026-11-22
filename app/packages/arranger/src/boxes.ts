@@ -505,6 +505,7 @@ export function roleOf(descriptor: Descriptor): Role {
     case "cross_section":
     case "wedge":
     case "alignment_anchor":
+    case "elision":
     case "name":
     case "label":
       return "element";

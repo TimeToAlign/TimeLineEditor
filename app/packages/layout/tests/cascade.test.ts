@@ -591,6 +591,8 @@ describe("the elements core enumerates", () => {
     };
     const drawn = new Map<string, { types: string[]; drawings: Set<string> }>();
     drawing.elements.forEach((item, index) => {
+      // A default elision and its labels depend on the drawing's geometry, so core lists none.
+      if (item.address.part?.[0] === "elision") return;
       const own = addressKey(item.address);
       const entry = drawn.get(own) ?? { types: [], drawings: new Set<string>() };
       entry.types.push(item.type);

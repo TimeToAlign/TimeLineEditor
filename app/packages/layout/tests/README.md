@@ -216,6 +216,15 @@ timestamp's own line in its card; the pieces themselves are counted under
 default layer hides the secondary coordinates by a rule of its own
 (`{coordinates: secondary}`, `display: none`), so that it compares the
 primary ones, which the defaults alone show.
+The one exception is the default elisions (section 8.9) and their labels,
+the elements at `{id: T, part: ["elision"]}` and `{id: T, part:
+["elision", "name" | "coordinate"]}`: they are left out of the comparison,
+and only they. Whether a default elision exists, and where, follows from
+the ancestor card's proportion `r`, which depends on the drawing's
+geometry and the view (the text widths of the name column, the frame's
+size, `Placement.view`), so core, which never lays out, resolves their
+addresses but cannot list them. Stored elisions (`{id: E}` and its two
+labels) are compared like every other element.
 
 ## Hand-derived drawings (`examples.test.ts`)
 

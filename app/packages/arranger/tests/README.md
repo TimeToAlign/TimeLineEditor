@@ -861,6 +861,12 @@ coordinates are layout's.
   the 17 descriptors of `second-half`'s card (19 to 35). With the cards
   hidden: the block, the ancestor card's shadow and rectangle (1, 2) and
   the frame (15) only.
+  An elision's strip, its rule and its continuation lines are elements,
+  never a box: on `bundle_elisions_stored` every descriptor written from
+  an `elision` element has the role "element", and those descriptors draw
+  exactly the stored elisions `elision_4`, `elision_5`, `elision_6` (on
+  `score`'s ancestor card) and `elision_2` (on `page`'s ungrouped card),
+  in that order (layout's README, "Elisions").
 - **What a press selects** is what it hit, inside what the level offers:
   on the arranger a card selects `{block: A, id: "recording", part:
   ["card"]}`, the frame `{block: A, id: "group_1"}`, the background
