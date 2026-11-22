@@ -281,6 +281,15 @@ function readShape(reading: ReturnType<typeof readingAt>) {
 
 const PIECE_EDITOR: Editing = { target: inBlock(A, idAddress("piece")), kind: "timeline" };
 
+describe("a point that is not finite", () => {
+  it("reads nothing", () => {
+    const view = viewWith(PARENT_BOTH);
+    expect(readWith(view, AT_PIECE_8, Number.NaN, null)).toBeNull();
+    expect(readWith(view, Number.NaN, MIDDLE_Y, null)).toBeNull();
+    expect(readShape(readWith(view, AT_PIECE_8, MIDDLE_Y, null))?.[0]).toBe("middle");
+  });
+});
+
 describe("an ancestor line, read as its ancestor's", () => {
   const view = viewWith(PARENT_BOTH);
   const drawing = drawingIn(view);
@@ -1178,6 +1187,27 @@ describe("the affordance of a named timestamp that draws nothing", () => {
     expect(affordances(undisplayed(matches, "timestamp_1"))).toEqual([]);
     const both = undisplayed(undisplayed(matches, "timestamp_1"), "timestamp_4");
     expect(affordances(both).map(({ address }) => address)).toEqual([idAddress("timestamp_4")]);
+  });
+
+  it("lies on a member's own card alone, never on the row an ancestor card draws of it", () => {
+    const view = undisplayed(viewWith("groups/group_child_member_stamps"), "timestamp_1");
+    const own = [...lineAxes(drawingIn(view))].find(
+      ([, line]) => line.timeline === "middle" && line.ancestor === undefined,
+    );
+    if (own === undefined) throw new Error("no member line of middle");
+    expect([own[1].y, own[1].xStart, own[1].card]).toEqual([
+      MIDDLE_Y,
+      260.33544921875,
+      MIDDLE_CARD,
+    ]);
+    const [affordance, ...more] = affordances(view);
+    expect(more).toEqual([]);
+    expect(affordance).toEqual(expected(view, "timestamp_1", own[0], 360.33544921875));
+    expect(affordance?.points).toEqual([
+      [360.33544921875, 83.28125],
+      [357.33544921875, 96.28125],
+      [363.33544921875, 96.28125],
+    ]);
   });
 });
 

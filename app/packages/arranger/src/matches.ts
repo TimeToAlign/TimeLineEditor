@@ -7,7 +7,7 @@
  *
  * Every coordinate of the table's anchor index (core's `anchorIndexOf`) is
  * drawn where a named timestamp at it would draw its cross-section line, on
- * every line holding its timeline (`holdings`), and every anchor as the
+ * every line its timeline is seen on (`seenOn`), and every anchor as the
  * line layout draws a named one's (`anchorLine` between two cross-section
  * segments, `crossSectionSegment`): no second geometry. A coordinate's
  * float position, the index's sort and hit-test key, places it; an exact
@@ -50,8 +50,8 @@ import {
   lineAxes,
 } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
-import type { Holding } from "./coordinates.ts";
-import { holdings } from "./coordinates.ts";
+import type { DrawnHolding } from "./coordinates.ts";
+import { drawnOn, seenOn } from "./coordinates.ts";
 import type { Point } from "./gesture.ts";
 
 /**
@@ -197,30 +197,44 @@ export interface MatchLines {
   readonly byTimeline: ReadonlyMap<number, readonly MatchLine[]>;
 }
 
-const linesByDrawing = new WeakMap<Drawing, { index: AnchorIndex; lines: MatchLines }>();
+const linesByDrawing = new WeakMap<
+  Drawing,
+  { index: AnchorIndex; raised: string | null; lines: MatchLines }
+>();
 
 /**
  * The lines of `drawing` holding a timeline of `index` (matched by ID), once
- * per drawing and index: for every timeline the lines `holdings` gives (so
- * an ancestor card's line only for a timeline no other line holds), in
- * the drawing's order of its lines, a timeline of the index before a later
- * one on one line. A line of its own draws its drawn span; a segment's line
- * the part of it the segment covers.
+ * per drawing, index and raised root: for every timeline the parts of the
+ * lines it is seen on (`seenOn`, `raised` the root whose ancestor cards are
+ * raised, core's `raisedRoot` of the block's editor, none by default: an
+ * ancestor card's line only for a timeline no other line holds, and there
+ * only beyond the frames and member cards drawn over it, its ancestor lines
+ * in its members' cards in between), in the drawing's order of its lines, a
+ * timeline of the index before a later one on one line, the parts of one
+ * line left to right. A line of its own draws its drawn span; a segment's
+ * line the part of it the segment covers; a part of a line the positions
+ * from its left end to its right end. On an ancestor line a coordinate's
+ * line spans the cross-section of the member's line it lies above.
  */
-export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
+export function matchLinesOf(
+  drawing: Drawing,
+  index: AnchorIndex,
+  raised: string | null = null,
+): MatchLines {
   const known = linesByDrawing.get(drawing);
-  if (known?.index === index) return known.lines;
+  if (known?.index === index && known.raised === raised) return known.lines;
   const rank = new Map([...lineAxes(drawing).keys()].map((key, at) => [key, at]));
   const found: MatchLine[] = [];
   for (const [id, timeline] of index.timelineNumbers) {
-    for (const { key, axis, offset, length } of holdings(drawing, id)) {
+    for (const seen of seenOn(drawing, id, raised)) {
+      const { key, axis, offset, length } = seen;
       const start = toFloat(toRational(axis.start));
       const drawnLength = toFloat(toRational(axis.drawnLength));
       const width = axis.xEnd - axis.xStart;
       const zero = toFloat(offset);
-      const segment = crossSectionSegment(drawing, key, axis.xStart);
+      const segment = crossSectionSegment(drawing, seen.section, axis.xStart);
       const end = length === null ? Number.POSITIVE_INFINITY : zero + toFloat(length);
-      found.push({
+      const line: MatchLine = {
         key,
         card: placeKeyText(axis.card),
         timeline,
@@ -234,7 +248,14 @@ export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
         offset: zero,
         from: Math.max(start, zero) - zero,
         to: Math.min(start + drawnLength, end) - zero,
-      });
+      };
+      if (seen.xFrom === axis.xStart && seen.xTo === axis.xEnd) {
+        found.push(line);
+        continue;
+      }
+      const from = Math.max(line.from, positionAt(line, seen.xFrom));
+      const to = Math.min(line.to, positionAt(line, seen.xTo));
+      if (from <= to) found.push({ ...line, from, to });
     }
   }
   found.sort(
@@ -246,7 +267,7 @@ export function matchLinesOf(drawing: Drawing, index: AnchorIndex): MatchLines {
     byTimeline.set(line.timeline, [...(byTimeline.get(line.timeline) ?? []), line]);
   }
   const lines = { drawing, all: found, byTimeline };
-  linesByDrawing.set(drawing, { index, lines });
+  linesByDrawing.set(drawing, { index, raised, lines });
   return lines;
 }
 
@@ -493,8 +514,10 @@ function nearestOn(connector: OverlayConnector, point: Point): Point {
 /**
  * What `point` (block-local) hovers within `tolerance` canvas units: of
  * every line's nearest coordinate (core's `coordinateNear`, whatever was
- * drawn) whose cross-section line, from `y1` to `y2`, lies within the
- * tolerance, and of every connector drawn (`connectors`, the overlay's),
+ * drawn) lying on the part of the line `lines` holds (`matchLinesOf`: where
+ * the timeline is seen, so never where its line is covered) whose
+ * cross-section line, from `y1` to `y2`, lies within the tolerance, and of
+ * every connector drawn (`connectors`, the overlay's),
  * the nearest by Euclidean distance, a line before a connector and an
  * earlier one before a later on a tie; `null` where none is near.
  */
@@ -565,10 +588,10 @@ export interface ScreenCoordinate {
   readonly value: CoordinateValue;
 }
 
-const holdingsByDrawing = new WeakMap<Drawing, Map<string, readonly Holding[]>>();
+const holdingsByDrawing = new WeakMap<Drawing, Map<string, readonly DrawnHolding[]>>();
 
-/** The lines of `drawing` holding `timeline` (`holdings`), once per drawing and timeline. */
-function heldOn(drawing: Drawing, timeline: string): readonly Holding[] {
+/** The lines of `drawing` drawing `timeline` (`drawnOn`), once per drawing and timeline. */
+function heldOn(drawing: Drawing, timeline: string): readonly DrawnHolding[] {
   let byTimeline = holdingsByDrawing.get(drawing);
   if (byTimeline === undefined) {
     byTimeline = new Map();
@@ -576,7 +599,7 @@ function heldOn(drawing: Drawing, timeline: string): readonly Holding[] {
   }
   let held = byTimeline.get(timeline);
   if (held === undefined) {
-    held = holdings(drawing, timeline);
+    held = drawnOn(drawing, timeline);
     byTimeline.set(timeline, held);
   }
   return held;
@@ -584,10 +607,11 @@ function heldOn(drawing: Drawing, timeline: string): readonly Holding[] {
 
 /**
  * Where `coordinate` shows first in `drawing`, in block-local canvas units:
- * of every line holding its timeline (`holdings`, where "Show matches" and
- * a named timestamp put it: a line of an ancestor card only where no other
- * line holds the timeline, so a member's own card wins over the row an
- * ancestor card draws of it) whose drawn part holds its value, exactly as
+ * of every line drawing its timeline (`drawnOn`, covered or not, so screen
+ * order never depends on an open editor: a line of an ancestor card only
+ * where no other line holds the timeline, so a member's own card wins over
+ * the row an ancestor card draws of it, and then the timeline's ancestor
+ * lines too) whose drawn part holds its value, exactly as
  * `matchLinesOf` bounds a line (from 0, up to a segment's length, within
  * `start` to `start + drawnLength` on the line's axis), the topmost
  * place, then the leftmost; its abscissa is
