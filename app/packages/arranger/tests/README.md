@@ -2386,11 +2386,15 @@ preferred line that is no place of the position (`theme`'s line for
 What would be wrong: the tab of a timestamp named on a second place
 built from the first place's card (other map rows).
 
-A raised card has no second place beside it: it lies on its root's
+A raised card leaves no ancestor line beside it: it lies on its root's
 ancestor row in the member's card (drawing specification section 8.8)
-and, since the ancestor rows lie on the side the band order gives (the
-default: below the member), it covers the member's own line and every
-ancestor line of that card. So with `score`'s card raised in
+and reaches from there up over the rows its root's drawing holds above
+its line, so, with the ancestor rows below the member (the default band
+orders), it covers every ancestor line of that card and the member's own
+line too unless the root's rows above reach less far up than the
+member's line lies (in `group_grandchild` the card's top, 56.18359375,
+lies below `theme`'s line, 47.20703125, which stays seen). So with
+`score`'s card raised in
 `group_grandchild`, `movement` 8 has one place, the card's row at
 105.16015625 (the ancestor line at 85.18359375 lies inside the card,
 from 56.18359375 to 133.5625); with `recording`'s card raised in

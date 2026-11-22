@@ -1326,8 +1326,8 @@ ticks `5760`, coordinate `12` ♩.
    Score [`9` ♩] after the same two groups. What would be wrong: the tab
    of the named timestamp built from the first place's line while the
    flag showed the second's rows. (With the ancestor rows below the member
-   a raised card covers the member's card where it lies, so no second
-   place lies beside a raised card any more.)
+   a raised card covers every ancestor line of the member's card, so no
+   ancestor line is a second place beside a raised card any more.)
    **The editor hands the line over** (`shell.test.ts`, the whole page
    with its canvas): in the same workspace, the viewport at (0, 0) and
    zoom 1 and Show coordinates on, a press released on `score` 9 on that
