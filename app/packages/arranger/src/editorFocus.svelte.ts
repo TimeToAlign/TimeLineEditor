@@ -9,7 +9,7 @@ import type { Address, OpenEditor, Store } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import type { Viewport } from "./focus.ts";
-import { FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
+import { elidedReach, FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
 import type { BlockNode } from "./node.ts";
 import { blockOf } from "./selection.ts";
 
@@ -105,8 +105,11 @@ export class EditorFocus {
    * Centre the edited element `target` in the canvas, once the page has
    * settled: the inspector may open with the editor, and the canvas, which
    * lies left of it, is measured after it has. Its width is therefore the
-   * area left of the drawer, and no drawer width is taken off. A target that
-   * is not drawn (a hidden element) leaves the view where it is.
+   * area left of the drawer, and no drawer width is taken off. A group whose
+   * frame has elided ancestor cards behind it is zoomed out until they fit
+   * on both sides of the frame's centre (`elidedReach`); in the Full view
+   * the frame alone decides and the cards may run past the edges. A target
+   * that is not drawn (a hidden element) leaves the view where it is.
    */
   async focusOn(target: Address): Promise<void> {
     const asked = ++this.#focusing;
@@ -122,7 +125,7 @@ export class EditorFocus {
       throw error;
     }
     this.#focusedAt = { width: root.clientWidth, height: root.clientHeight };
-    this.moveTo(focusViewport(bounds, this.#focusedAt, 0));
+    this.moveTo(focusViewport(bounds, this.#focusedAt, 0, elidedReach(node, target)));
   }
 
   /**
