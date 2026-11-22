@@ -36,6 +36,9 @@ export const TIMELINE_PREFIX = {
 /** The prefix of a named timestamp's ID (`timestamp_N`), which `add` mints. */
 export const TIMESTAMP_PREFIX = "timestamp";
 
+/** The prefix of an elision's ID (`elision_N`), which `add` mints. */
+export const ELISION_PREFIX = "elision";
+
 /** The prefix of a named MatchStamp's ID (`matchstamp_N`), which naming one mints. */
 export const MATCHSTAMP_PREFIX = "matchstamp";
 

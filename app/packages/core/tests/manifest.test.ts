@@ -185,7 +185,7 @@ describe("unknown keys", () => {
 });
 
 describe("elisions", () => {
-  it("are carried through unchanged and drawn as nothing", () => {
+  it("are carried through unchanged and listed among the elements", () => {
     const value = manifestValue("bare.yaml");
     const given = { id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1] };
     const graphical = { elisions: [{ ...given, width: { ratio: 0.25 } }] };
@@ -207,7 +207,8 @@ describe("elisions", () => {
     const edited = block(view).manifest;
     expect(edited.timelines[0]?.name).toBe("B");
     expect(edited.graphical?.elisions).toEqual(expected);
-    expect(manifestElements(edited).filter((key) => key.type === "elision")).toEqual([]);
+    const strips = manifestElements(edited).filter((key) => key.type === "elision");
+    expect(strips.map((key) => key.address)).toEqual([{ id: "elision_1" }]);
   });
 });
 

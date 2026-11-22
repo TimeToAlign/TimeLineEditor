@@ -1,7 +1,7 @@
 /**
  * The typed edits a command makes to a view: a block replaced, a timeline
- * replaced where it lies in its manifest (its timestamps at its end
- * following a new length), an entry of a kind replaced in its
+ * replaced where it lies in its manifest (its timestamps and elisions at its
+ * end following a new length), an entry of a kind replaced in its
  * timeline's list (`ENTRY_LISTS`). Every edit returns a new value and shares what it leaves
  * unchanged. The change set records what a command changed, for the store's
  * no-op refusal, for `settle`, and for the guard of an open editor.
@@ -10,12 +10,14 @@
 import type { PathSegment } from "../json.ts";
 import { jsonEqual } from "../json.ts";
 import { namedTimestamps } from "../manifest/elements.ts";
+import { elisionsOn } from "../manifest/elisions.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { ENTRY_LISTS } from "../manifest/files.ts";
 import { lengthOf } from "../manifest/invariants.ts";
 import type { Located } from "../manifest/tree.ts";
 import type {
   ChildTimeline,
+  Elision,
   Manifest,
   NamedMatchStamp,
   NamedTimestamp,
@@ -172,10 +174,25 @@ export function timestampsAtEnd(
 }
 
 /**
+ * The stored elisions lying on `timeline` that end exactly at its end, in
+ * canonical order; none where its length is unknown.
+ */
+export function elisionsAtEnd(manifest: Manifest, timeline: TimelineManifest): readonly Elision[] {
+  const length = lengthOf(timeline);
+  if (length === null) return [];
+  const end = realOf(length);
+  return elisionsOn(manifest, timeline.id).filter(
+    (elision) => compareReal(realOf(axisCoordinate(elision.end, timeline)), end) === 0,
+  );
+}
+
+/**
  * `manifest` with the timeline `at` locates replaced by `timeline`. Where
  * the new timeline's length is known and another than the old one's, the
- * named timestamps lying at the old end move to the new one: a timestamp
- * at a timeline's end stays at its end whatever changes the length.
+ * named timestamps lying at the old end move to the new one, and the stored
+ * elisions ending there end at the new one: what lies at a timeline's end
+ * stays at its end whatever changes the length (`lengthProblem` refuses a
+ * length at or before such an elision's start).
  */
 export function replaceTimeline(
   manifest: Manifest,
@@ -186,11 +203,23 @@ export function replaceTimeline(
   const { length } = timeline;
   if (length === null || sameJson(at.timeline.length, length)) return placed;
   const following = timestampsAtEnd(placed, at.timeline);
-  if (following.length === 0) return placed;
+  const ending = elisionsAtEnd(placed, at.timeline);
   const timestamps = placed.graphical?.timestamps ?? [];
-  return withTimestamps(
-    placed,
-    timestamps.map((item) => (following.includes(item) ? { ...item, coordinate: length } : item)),
+  const moved =
+    following.length === 0
+      ? placed
+      : withTimestamps(
+          placed,
+          timestamps.map((item) =>
+            following.includes(item) ? { ...item, coordinate: length } : item,
+          ),
+        );
+  if (ending.length === 0) return moved;
+  return withElisions(
+    moved,
+    (moved.graphical?.elisions ?? []).map((item) =>
+      ending.includes(item) ? { ...item, end: length } : item,
+    ),
   );
 }
 
@@ -264,6 +293,14 @@ export function withTimestamps(
   timestamps: readonly NamedTimestamp[],
 ): Manifest {
   return { ...manifest, graphical: { ...manifest.graphical, timestamps } };
+}
+
+/**
+ * `manifest` with its stored elisions replaced by `elisions`, its
+ * `graphical` object's other members kept (and created when it has none).
+ */
+export function withElisions(manifest: Manifest, elisions: readonly Elision[]): Manifest {
+  return { ...manifest, graphical: { ...manifest.graphical, elisions } };
 }
 
 /**

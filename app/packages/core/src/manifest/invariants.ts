@@ -72,7 +72,7 @@ export function contentEnd(timeline: TimelineManifest): Real {
 }
 
 /** A bare value as a message spells it: a fraction pair as `[n, d]`. */
-function spelled(value: unknown): string {
+export function spelled(value: unknown): string {
   return Array.isArray(value) ? `[${value.map(showJson).join(", ")}]` : showJson(value);
 }
 

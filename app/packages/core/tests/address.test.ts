@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ElementAddress } from "../src/manifest/address.ts";
+import type { ElementAddress, Part } from "../src/manifest/address.ts";
 import {
   addressKey,
   BUNDLE_ADDRESS,
@@ -15,6 +15,7 @@ import {
 import { containersOf } from "../src/manifest/containers.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
+import { memberDrawings } from "../src/manifest/files.ts";
 import type { Address, ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
 import {
   addressWords,
@@ -593,10 +594,29 @@ describe("every resolvable part", () => {
       const resolvable = [undefined, ...manifestIds(manifest)].flatMap((id) =>
         parts
           .map((part) => (id === undefined ? { part } : { id, part }))
-          .filter((address) => resolveElement(manifest, address) !== undefined)
-          .map(addressKey),
+          .filter((address) => resolveElement(manifest, address) !== undefined),
       );
-      expect(new Set(resolvable)).toEqual(drawn);
+      const defaulted = (address: ElementAddress) => address.part?.[0] === "elision";
+      expect(new Set(resolvable.filter((item) => !defaulted(item)).map(addressKey))).toEqual(drawn);
+      // The default elisions: no fixture stores an elision, so every ancestor card may draw them
+      // on its root and on the children of its member's ancestors above the member's parent.
+      const carrying = memberDrawings(manifest).ancestorCards.flatMap(({ member, root }) => [
+        root.timeline.id,
+        ...member.ancestors
+          .slice(0, -1)
+          .flatMap(({ timeline }) => timeline.children.map((child) => child.id)),
+      ]);
+      const words: readonly (readonly Part[])[] = [
+        ["elision"],
+        ["elision", "name"],
+        ["elision", "coordinate"],
+      ];
+      const defaults = [...new Set(carrying)].flatMap((id) =>
+        words.map((part): ElementAddress => ({ id, part })),
+      );
+      expect(new Set(resolvable.filter(defaulted).map(addressKey))).toEqual(
+        new Set(defaults.map(addressKey)),
+      );
     },
   );
 });

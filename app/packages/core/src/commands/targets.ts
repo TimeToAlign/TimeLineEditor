@@ -10,7 +10,7 @@ import { assertNever, isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type { Group, MeasureMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
-import type { Address, AnchorFound, MatchStampFound } from "../workspace/address.ts";
+import type { Address, AnchorFound, ElisionFound, MatchStampFound } from "../workspace/address.ts";
 import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -77,6 +77,13 @@ export interface TimestampTarget {
   readonly timestamp: NamedTimestamp;
 }
 
+/** A stored elision of a block's manifest, with the timeline it lies on. */
+export interface ElisionTarget extends ElisionFound {
+  readonly kind: "elision";
+  readonly address: Address;
+  readonly block: Block;
+}
+
 /** A named MatchStamp of a block's manifest. */
 export interface MatchStampTarget extends MatchStampFound {
   readonly kind: "matchstamp";
@@ -99,6 +106,7 @@ export type Target =
   | TimelineTarget
   | EntryTarget
   | TimestampTarget
+  | ElisionTarget
   | MatchStampTarget
   | AnchorTarget;
 export type TargetKind = Target["kind"];
@@ -115,13 +123,15 @@ export interface TargetOfKind {
   readonly region: EntryTarget;
   readonly flow_control: EntryTarget;
   readonly timestamp: TimestampTarget;
+  readonly elision: ElisionTarget;
   readonly matchstamp: MatchStampTarget;
   readonly anchor: AnchorTarget;
 }
 
 /**
  * The target an address names in `view`: `unknown_target` for a title,
- * cards, a band and a part.
+ * cards, a band and a part, a default elision included (it is a part of its
+ * timeline and has no stored object to change).
  */
 export function targetOf(view: View, address: Address): Target | CommandError {
   const resolved = resolveAddress(view, address);
@@ -148,6 +158,10 @@ export function targetOf(view: View, address: Address): Target | CommandError {
     case "timestamp": {
       const { block, at, index, timestamp } = resolved;
       return { kind: "timestamp", address, block, at, index, timestamp };
+    }
+    case "elision": {
+      const { block, at, index, elision } = resolved;
+      return { kind: "elision", address, block, at, index, elision };
     }
     case "matchstamp": {
       const { block, index, matchstamp } = resolved;

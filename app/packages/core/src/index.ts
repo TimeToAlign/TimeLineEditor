@@ -89,6 +89,7 @@ export {
 } from "./manifest/containers.ts";
 export { contains } from "./manifest/contains.ts";
 export { groupsHolding } from "./manifest/elements.ts";
+export { elisionsUnder } from "./manifest/elisions.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
 export type { ReadManifestFile } from "./manifest/io.ts";
@@ -136,6 +137,7 @@ export type {
   AxisValue,
   ChildTimeline,
   ConversionMap,
+  Elision,
   FlowControlElement,
   Group,
   Manifest,

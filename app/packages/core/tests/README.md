@@ -351,8 +351,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `90.0`, `-135.0`, … read equal to the fixture and save to its text.
 18. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
-19. **Elisions are carried through unchanged.** Core draws, picks and edits
-    no elision yet; it holds what the manifest states. `bare.yaml` (root
+19. **Elisions are carried through unchanged.** Core holds what the
+    manifest states. `bare.yaml` (root
     `bare`, 8 quarters, fraction) given `graphical.elisions` holding
     `{id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1], width:
     {ratio: 0.25}}` (no `display`) reads with exactly that elision plus the
@@ -360,8 +360,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     the Fraction pairs they are; the complete form written by
     `saveManifest` reads back equal. Added as a block, renamed by a `set`
     of the root's `name`, the block's manifest still holds the same
-    elision, and core's element list (`manifestElements`) names no element
-    of type `elision`, so nothing is drawn for it.
+    elision, and core's element list (`manifestElements`) names one element
+    of type `elision`, at `{id: "elision_1"}` (the root's card draws it;
+    "Elisions", item 8).
 
 ## A manifest file written back as it came (`manifest-file.test.ts`)
 
@@ -1126,8 +1127,15 @@ string form is `addressKey`, and nothing splits or composes an ID.
    built from no ID or one of `manifestIds` with a part of one or two part
    words that `resolveElement` resolves is exactly, as a set of
    `addressKey`s, the addresses with a part of the drawing's elements
-   (`indexOf(manifest).elements`). The candidates are built without the
-   resolver, so a part the resolver names that nothing draws fails here.
+   (`indexOf(manifest).elements`), but the default elisions' addresses
+   (`part` beginning with `elision`), which the drawing derives from the
+   view and core's elements do not list: those are exactly `{id: T, part:
+   ["elision"]}`, `["elision", "name"]` and `["elision", "coordinate"]`
+   for every `T` the drawing specification lets an ancestor card draw one
+   on (section 8.9, no fixture storing an elision: the card's root and the
+   children of its member's ancestors above the member's parent). The
+   candidates are built without the resolver, so a part the resolver names
+   that nothing draws fails here.
 8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
    `card`, `band`) states each container kind exactly: the block at the
    bundle level, styled as `block`, with no place; the frame at the group
@@ -2492,22 +2500,45 @@ complete form).
     for `motif` and for `second-half`, none for `piece` and for an ID no
     timeline carries.
 
-## Elisions in ordinary edits (`elisions.test.ts`)
+## Elisions (`elisions.test.ts`)
 
-Core neither draws nor edits an elision, but a manifest holding elisions
-takes every edit a manifest without them takes: an elision is a stretch of
-one timeline's own axis with an ID unique across the manifest, so what
-could break it is a new ID equal to its own, the removal of its timeline,
-and a length below its end. Each test therefore runs an edit that the
-schema check at settle would refuse (`schema_violation` with TimeToShare's
-`duplicate_id`, `elision_timeline` or `elision_stretch`) were core to
-ignore the elision, and pins the exact outcome core gives instead. The
-oracle is the rule core already holds for what else lies on a timeline:
-the named timestamps (`timestamps.test.ts`, "Lengths" and removal).
+An elision is `{id, timeline, start, end, width?, display}` in its
+manifest's `graphical.elisions`: a stretch of one timeline's own axis, the
+timeline it lies on, with an ID unique across the manifest. TimeToShare's
+validators refuse one naming no timeline (`elision_timeline`) and one whose
+stretch leaves its timeline or does not run forwards (`elision_stretch`);
+core must refuse what it is given with those codes and TimeToShare's
+messages itself, so a command never reaches the schema check at settle with
+a broken elision (a `schema_violation` there would mean core let it
+through). What proves each part:
+
+- **Commands** are proven by the outcome of each command: the exact
+  `graphical.elisions` a command leaves (complete, in canonical order: by
+  timeline, then start, then ID), or the exact code, path and message of
+  its refusal. The paths follow core's one rule: a value `add` puts in at
+  `[<address key of into>, "elision", …]`, a `set` at `[<address key of the
+  elision>, <property>]`, a length at `[<address key of the timeline>,
+  "length"]`.
+- **Addresses** are proven by `resolveAddress`: what each address of the
+  drawing specification (section 2.2) resolves to, and which name nothing.
+  The oracle for a default elision is the specification's rule of where
+  default elisions may be drawn (section 8.9: an ancestor card's root and
+  the children of the member's ancestors above its parent, while no stored
+  elision lies on the root's tree), never a list derived from the code.
+- **Elements** are proven by `manifestElements`: the exact keys listed for
+  stored elisions, read against the specification's tree (section 2.1: a
+  strip held by its timeline's line, its labels by the strip) and its rule
+  of where elisions are drawn (section 8.9: ungrouped root's cards and
+  ancestor cards, never a member's card), and the selectors of the
+  specification's examples matched over them (`selectorMatches`).
+- **One journal entry** is proven by the store: the journal grows by
+  exactly one entry for a list of elisions added, and one for all of a
+  root's elisions removed.
 
 The manifests are fixtures given `graphical.elisions` before they are read
-(no fixture holds an elision); each elision is complete, its `display` the
-default `[strip, name, coordinate]`.
+(no fixture holds an elision), each elision stated without `display`, so
+read with the default `[strip, name, coordinate]`. Fraction pairs are
+written `[n, d]`; a message spells a value as canonical YAML does.
 
 1. **Minting skips an elision's ID.** `bare.yaml` (root `bare`, 8
    quarters; timestamps `timestamp_1`, `timestamp_2`) with `elision_1` on
@@ -2527,17 +2558,136 @@ default `[strip, name, coordinate]`.
    `clt_2` (taking `elision_3`) is no side effect (the guard returns
    `null`): an elision on a timeline inside the edited one lies inside it,
    as a named timestamp there does.
-3. **A length change treats an elision as a named timestamp not at the
-   end.** Core refuses a length that leaves such a timestamp beyond it
-   (`timestamp_exceeds_length`), so it refuses one that leaves an elision's
-   end beyond it, with its own code `elision_exceeds_length` at `[clt_1's
-   key, "length"]`, message "elision 'elision_1' reaches beyond the end of
-   its timeline 'clt_1'". On the manifest of 2, `clt_1 {length: [29, 2]}`
-   is that refusal; `[15, 1]` (the elision's end) is accepted, the elision
-   unchanged and the `length` timestamp moved to 15; `null` is accepted. An
-   elision is never moved: one ending exactly at the old end (`elision_1`
-   from 13 to 16) refuses `[15, 1]` too, where the `length` timestamp at
-   16 would follow the end.
+3. **A length change treats an elision as a named timestamp.** A named
+   timestamp at the old end follows the end; one elsewhere keeps its place
+   and refuses a length leaving it beyond (`timestamp_exceeds_length`). So
+   an elision ending elsewhere keeps its values and refuses a length below
+   its end, and one ending exactly at the old end follows the end while the
+   new length lies after its start; both refusals are core's
+   `elision_exceeds_length` at `[clt_1's key, "length"]`, "elision
+   'elision_1' reaches beyond the end of its timeline 'clt_1'". On the
+   manifest of 2 (`elision_1` from 13 to 15): `clt_1 {length: [29, 2]}` is
+   that refusal; `[15, 1]` is accepted, the elision unchanged and the
+   `length` timestamp moved to 15; `null` is accepted, every elision
+   unchanged. With `elision_1` from 13 to 16 instead (at the end): `[15,
+   1]` is accepted, `elision_1` then from 13 to 15 beside the `length`
+   timestamp at 15; `[20, 1]` gives `elision_1` from 13 to 20; `[13, 1]`
+   (its start) is the refusal; `null` leaves it from 13 to 16.
+4. **`add` kind `elision` into a timeline.** On `bare.yaml` with
+   `elision_1` from 1 to 2: `add {into: bare, elision: {start: [3, 1], end:
+   [5, 1]}}` adds `{id: "elision_2", timeline: "bare", start: [3, 1], end:
+   [5, 1], display: [strip, name, coordinate]}` after `elision_1`; with
+   `width: {ratio: 0.25}` and `display: [name, strip]` the new elision
+   holds that width and `display: [strip, name]`. Each refusal, at `[bare's
+   key, "elision", …]` with `elision_2` the ID it would be given:
+   - no `end`: `invalid_value` at `end`, "a new elision needs end";
+   - a `timeline` member: `unknown_property` at `timeline`, "unknown
+     member timeline" (the target names the timeline);
+   - start `[-1, 1]`: `elision_stretch` at `start`, "start [-1, 1] of
+     'elision_2' lies before the start of its timeline 'bare'";
+   - end `[9, 1]`: `elision_stretch` at `end`, "end [9, 1] of 'elision_2'
+     is beyond the length [8, 1] of its timeline 'bare'";
+   - start and end `[2, 1]`: `elision_stretch` at `end`, "end [2, 1] of
+     'elision_2' does not lie after its start [2, 1]";
+   - width `{ratio: 0.5, canvas: 10}`: `invalid_value` at `width`, "a width
+     is exactly one of ratio, span and canvas", and `{}` the same;
+   - width `{ratio: 0}` and `{ratio: 1.5}`: `invalid_value` at `width`,
+     `ratio`, "a ratio lies above 0 and at most 1"; `{ratio: 1}` is
+     accepted;
+   - width `{span: [0, 1]}`: `non_positive_number` at `width`, `span`, "the
+     span must be positive";
+   - width `{canvas: -3}`: `non_positive_number` at `width`, `canvas`, "the
+     number must be positive";
+   - width `{ratio: 0.5, x: 1}`: `unknown_property` at `width`, `x`,
+     "unknown member x";
+   - display `[strip, strip]`: `invalid_value` at `display`, "'strip' is
+     given twice".
+5. **`set` and `remove` on a stored elision.** On `bare.yaml` with
+   `elision_1` from 1 to 2, at `{block: A, id: "elision_1"}`:
+   - `{start: [3, 1], end: [5, 1]}` in one change is accepted (both ends
+     move past the other's old value: the stretch is checked once the change
+     is made), giving 3 to 5;
+   - `{start: [3, 1]}` alone is `elision_stretch` at `start`, "end [2, 1]
+     of 'elision_1' does not lie after its start [3, 1]"; `{end: [1, 1]}`
+     alone the same at `end`, "end [1, 1] of 'elision_1' does not lie after
+     its start [1, 1]";
+   - `{end: [9, 1]}` is `elision_stretch` at `end`, "end [9, 1] of
+     'elision_1' is beyond the length [8, 1] of its timeline 'bare'";
+     `{start: [-1, 1]}` at `start`, "start [-1, 1] of 'elision_1' lies
+     before the start of its timeline 'bare'";
+   - `width` takes each of its forms, `{ratio: 0.25}`, `{span: [1, 2]}`,
+     `{canvas: 160}`, stored as given, and `null` deletes it again; `null`
+     on an elision without one changes nothing (`invalid_value` "the
+     command changes nothing" at `width`);
+   - `display: [coordinate, strip]` is stored `[strip, coordinate]`; the
+     stored display in another order changes nothing;
+   - `timeline` is `unknown_property` "elision has no property timeline";
+     `id` is `id_not_settable`;
+   - `remove {targets: [elision_1]}` leaves no elision.
+6. **Many elisions in one journal entry.** `groups/group_grandchild.yaml`
+   (`score` 64 quarters ⊃ `movement` 16 at 16 ⊃ `theme` 8 at 8; `group_1`
+   of the member `theme` and the root `recording`, 12 seconds), the card's
+   default elisions as the drawing derives them (drawing.md section 8.9):
+   `add {into: {block: A}, elision: [{timeline: "movement", start: [0, 1],
+   end: [8, 1]}, {timeline: "score", start: [0, 1], end: [16, 1]},
+   {timeline: "score", start: [32, 1], end: [64, 1]}]}` through the store
+   adds `elision_1`, `elision_2`, `elision_3` in that order (so stored
+   `movement`'s, then `score`'s two by start) and grows the journal by one
+   entry. With one more elision `elision_4` on `recording` from 1 to 2
+   seconds, `elisionsUnder(manifest, "score")` is `elision_1` to
+   `elision_3`, and one `remove` of their three addresses grows the
+   journal by one entry and leaves `elision_4` alone. Refusals at `[A's
+   key, "elision", …]`: an object, not a list, `invalid_value` "a block
+   takes a list of elisions"; `[]` `invalid_value` "a list of elisions
+   holds at least one"; an item without `timeline` `invalid_value` at
+   `0, timeline`, "a new elision needs timeline"; an item on `nowhere`
+   `elision_timeline` at `0, timeline`, "'nowhere' names no timeline of
+   this manifest"; a second item from 4 to 2 on `movement`
+   `elision_stretch` at `1, end`, "end [2, 1] of 'elision_2' does not lie
+   after its start [4, 1]" (the first item took `elision_1`).
+7. **Addresses.** On `group_grandchild.yaml`, the ancestor card of `score`
+   is aligned to `theme`, whose ancestors are `score` and `movement`, so
+   default elisions may lie on `score` and on the children of `score`:
+   `{id: "score", part: ["elision"]}` resolves to the part `elision` of the
+   timeline `score`, `{id: "movement", part: ["elision", "coordinate"]}`
+   to the part `coordinate` of the part `elision` of `movement`, and
+   `["elision", "name"]` likewise; `{id: "theme", part: ["elision"]}` (the
+   member), `{id: "recording", part: ["elision"]}` (a root with no
+   ancestor card) and `{id: "score", part: ["elision", "id"]}` name
+   nothing (`unknown_target`); `addressWords` says "the elision of
+   timeline 'Score'". A part is no target: `set` on `{id: "score", part:
+   ["elision"]}` is `unknown_target`. Once a stored elision lies on
+   `movement` (from 0 to 8), the card draws no default elision, and
+   `{id: "score", part: ["elision"]}` names nothing; the stored one,
+   `{id: "elision_1"}`, resolves to kind `elision` with its timeline
+   `movement` and index 0, its `name` and `coordinate` parts resolve (the
+   ancestor card draws it), it is worded "elision 'elision_1'", has no
+   editor (`no_editor`), and lies inside the timeline editor of `movement`
+   and of `score`, not of `theme` (`contains`); the default address of
+   `movement` lies inside `movement`. A stored elision on `recording`,
+   drawn in its member card only, resolves itself, while its `name` part
+   names nothing. On `bare.yaml` an elision with `display: [strip]`
+   resolves, its `name` part names nothing; `{id: "bare", part:
+   ["elision"]}` names nothing (an ungrouped root's card draws no
+   default).
+8. **Elements.** On `group_grandchild.yaml` with `elision_1` on
+   `movement` (display default), `elision_2` on `theme` (`display:
+   [strip]`) and `elision_3` on `recording`, `manifestElements` lists
+   exactly two `elision` keys, in the order of the tree, `{id:
+   "elision_2"}` (held by `theme`, inside `movement`'s children band) and
+   `{id: "elision_1"}` (the ancestor card of `score` draws both;
+   `recording` lies in a member card only), the latter `{type: "elision", timeline: "movement", domain:
+   "logical", modality: "continuous", class: "ContinuousLogicalTimeline",
+   facet: null, inside: [block, timeline, band, child]}` right after
+   `movement`'s `flow_control` band (its line holds it after its five
+   bands), followed by its labels `{id: "elision_1", part: ["name"]}` and
+   `["coordinate"]`, `inside` the strip's chain plus `elision`; `elision_2`
+   has no label. The selector `{element: "elision", within: "score"}`
+   matches the keys of `elision_2` and `elision_1`, `{element: "elision",
+   within: "recording"}` none, and `{element: "label", inside: "elision"}`
+   exactly the two labels of `elision_1`. On `bare.yaml` an elision
+   `elision_1` on `bare` is listed with `inside: [block, timeline]` (the
+   ungrouped root's card draws it).
 
 ## Named MatchStamps (`matchstamps.test.ts`)
 
@@ -2668,7 +2818,7 @@ takes pairs in screen order as naming does, `match_claims` a list):
     non-empty string` at `[matchstamp_1, "name"]`. `id` is
     `id_not_settable`; `colour` `unknown_property` `matchstamp has no
     property colour`; `display` `wrong_target_kind` `display is a property
-    of timestamp, anchor, not of matchstamp`.
+    of timestamp, elision, anchor, not of matchstamp`.
 11. **An anchor's `display`** (`set` on `anchor_N`): `["name", "line"]` on
     `anchor_2` is stored `["line", "name"]`; `[]` is stored; `["flag"]` is
     `invalid_value` `'flag' is no display word` at `[anchor_2,

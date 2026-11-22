@@ -16,7 +16,7 @@ import type { ChangeSet } from "./mutations.ts";
 import { emptyChanges, sameJson } from "./mutations.ts";
 import { parseCommand } from "./parse.ts";
 import { applyRemove } from "./remove.ts";
-import { setProperty } from "./set.ts";
+import { changeProblem, setProperty } from "./set.ts";
 import { settle } from "./settle.ts";
 import { applyStyle } from "./style.ts";
 import type { Command, SetCommand } from "./types.ts";
@@ -29,14 +29,20 @@ export interface Applied {
   readonly changes: ChangeSet;
 }
 
+/**
+ * Set each change's values in order, then check the target the change
+ * leaves (`changeProblem`).
+ */
 function applySet(view: View, command: SetCommand, changes: ChangeSet): View | CommandError {
   let current = view;
-  for (const { target, values } of command.changes) {
-    for (const [property, value] of Object.entries(values)) {
-      const next = setProperty(current, target, property, value, changes);
+  for (const change of command.changes) {
+    for (const [property, value] of Object.entries(change.values)) {
+      const next = setProperty(current, change.target, property, value, changes);
       if (isCommandError(next)) return next;
       current = next;
     }
+    const refused = changeProblem(current, change);
+    if (refused !== undefined) return refused;
   }
   return current;
 }

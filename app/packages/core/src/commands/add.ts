@@ -1,11 +1,12 @@
 /**
  * `add`: what each kind of target takes (`ADDABLE`) and how each thing is
  * put in. A block goes into the workspace; a root timeline, a group or a
- * measure map into a block's manifest, and a named MatchStamp too; a child,
- * map, region, flow-control element or named timestamp into a timeline. The
- * value carries its ID: a block's taken by no block of the workspace, any
- * other's by no element of the manifest; a named timestamp and a named
- * MatchStamp alone are given the next free ID.
+ * measure map into a block's manifest, and a named MatchStamp and a list of
+ * elisions too; a child, map, region, flow-control element, named timestamp
+ * or elision into a timeline. The value carries its ID: a block's taken by
+ * no block of the workspace, any other's by no element of the manifest; a
+ * named timestamp, an elision and a named MatchStamp alone are given the
+ * next free ID.
  * Whatever has a default may be left out, `settle` writing it out. A
  * problem of the value lies at `[<address key of into>, <kind>, …]`, one of
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
@@ -30,21 +31,24 @@ import {
 } from "../manifest/io.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
 import { statementHolders } from "../manifest/statements.ts";
-import type { Group, Manifest, TimelineManifest } from "../manifest/types.ts";
-import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
+import { findTimeline } from "../manifest/tree.ts";
+import type { Elision, Group, Manifest, TimelineManifest } from "../manifest/types.ts";
+import { readName, readObject, readPlaces, toJson, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
-import { MATCHSTAMP_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
+import { ELISION_PREFIX, MATCHSTAMP_PREFIX, nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View } from "../workspace/view.ts";
 import { placeProblems } from "../workspace/view.ts";
+import { readElision } from "./elisions.ts";
 import { namedMatchStamp, readAnchors, readMatchClaims } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   emptyChanges,
   record,
   withBlock,
+  withElisions,
   withEntryAdded,
   withMatchStamps,
   withTimeline,
@@ -64,12 +68,12 @@ import { placeChild } from "./topology.ts";
 import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
 
-const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS, "timestamp"];
+const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS, "timestamp", "elision"];
 
 /** What `add` puts into each kind of target. */
 export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   workspace: ["block"],
-  block: ["timeline", "group", "measure_map", "matchstamp"],
+  block: ["timeline", "group", "measure_map", "elision", "matchstamp"],
   group: [],
   measure_map: [],
   root: INTO_TIMELINE,
@@ -78,6 +82,7 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   region: [],
   flow_control: [],
   timestamp: [],
+  elision: [],
   matchstamp: [],
   anchor: [],
 };
@@ -540,6 +545,94 @@ function addTimestamp(
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
 }
 
+/**
+ * Add an elision into a timeline: `{start, end, width?, display?}`, read by
+ * `readElision` on the target timeline, which it lies on. It is given the
+ * smallest free `elision_N` of the manifest and written into its
+ * `graphical` object's `elisions`, which `settle` puts in canonical order.
+ */
+function addElision(
+  view: View,
+  target: TimelineTarget,
+  value: unknown,
+  changes: ChangeSet,
+): View | CommandError {
+  const path = [addressKey(target.address), "elision"];
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const { block, at } = target;
+  const { manifest } = block;
+  const id = nextId(ELISION_PREFIX, manifestIds(manifest));
+  const elision = readElision(object, at.timeline, id, path);
+  if (isCommandError(elision)) return elision;
+  record(changes, path, block.id, true);
+  const elisions = [...(manifest.graphical?.elisions ?? []), elision];
+  return withBlock(view, { ...block, manifest: withElisions(manifest, elisions) });
+}
+
+/**
+ * Add a list of elisions into a block's manifest in one command: a
+ * non-empty list (`invalid_value`) of `{timeline, start, end, width?,
+ * display?}`, each lying on the timeline its `timeline` names
+ * (`elision_timeline` at its `timeline` for an ID naming no timeline of the
+ * manifest) and read there by `readElision`, each given the smallest
+ * `elision_N` free in the manifest and among those given before it, in list
+ * order. What the editor stores of a card's default elisions, the drawing
+ * deriving them, goes in this way, as one journal entry. A problem of the
+ * `i`-th lies at `[<address key of into>, "elision", i, …]`.
+ */
+function addElisions(
+  view: View,
+  target: BlockTarget,
+  value: unknown,
+  changes: ChangeSet,
+): View | CommandError {
+  const path = [addressKey(target.address), "elision"];
+  const list = toJson(value, path);
+  if (isCommandError(list)) return list;
+  if (!Array.isArray(list)) {
+    return problem(ErrorCode.invalidValue, "a block takes a list of elisions", path);
+  }
+  if (list.length === 0) {
+    return problem(ErrorCode.invalidValue, "a list of elisions holds at least one", path);
+  }
+  const { block } = target;
+  const { manifest } = block;
+  const taken = manifestIds(manifest);
+  const added: Elision[] = [];
+  for (const [index, item] of list.entries()) {
+    const at = [...path, index];
+    const object = readObject(item, at);
+    if (isCommandError(object)) return object;
+    if (!Object.hasOwn(object, "timeline")) {
+      return problem(ErrorCode.invalidValue, "a new elision needs timeline", [...at, "timeline"]);
+    }
+    const named = object.timeline;
+    if (typeof named !== "string") {
+      return problem(ErrorCode.invalidValue, "an elision's timeline is a timeline ID", [
+        ...at,
+        "timeline",
+      ]);
+    }
+    const timeline = findTimeline(manifest, named);
+    if (timeline === undefined) {
+      return problem(ErrorCode.elisionTimeline, `'${named}' names no timeline of this manifest`, [
+        ...at,
+        "timeline",
+      ]);
+    }
+    const id = nextId(ELISION_PREFIX, taken);
+    taken.add(id);
+    const { timeline: _, ...rest } = object;
+    const elision = readElision(rest, timeline, id, at);
+    if (isCommandError(elision)) return elision;
+    added.push(elision);
+  }
+  record(changes, path, block.id, true);
+  const elisions = [...(manifest.graphical?.elisions ?? []), ...added];
+  return withBlock(view, { ...block, manifest: withElisions(manifest, elisions) });
+}
+
 /** The members a named MatchStamp `add` is given: all required, its IDs minted. */
 const MATCHSTAMP_VALUE = ["name", "anchors", "match_claims"];
 
@@ -605,10 +698,12 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
         if (kind === "group") return addGroup(view, target, value, changes);
         if (kind === "measure_map") return addMeasureMap(view, target, value, changes);
         if (kind === "matchstamp") return addMatchStamp(view, target, value, changes);
+        if (kind === "elision") return addElisions(view, target, value, changes);
         return addTimeline(view, target, value, changes);
       case "root":
       case "child":
         if (kind === "timestamp") return addTimestamp(view, target, value, changes);
+        if (kind === "elision") return addElision(view, target, value, changes);
         if (kind === "child" || isEntryKind(kind)) {
           return addElement(view, target, kind, value, changes);
         }

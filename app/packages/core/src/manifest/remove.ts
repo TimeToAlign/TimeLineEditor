@@ -6,8 +6,8 @@
  * `graphical` rule addressing a removed element or a part, band or
  * card of one (a rule left with no `addresses` goes), and every
  * rule whose `within` names a removed timeline. Removing a named
- * timestamp removes it and the rules' `addresses` entries naming it
- * or its parts alike. Removing a named MatchStamp removes it, its alignment
+ * timestamp or an elision removes it and the rules' `addresses` entries
+ * naming it or its parts alike. Removing a named MatchStamp removes it, its alignment
  * anchors and the match timestamps no MatchStamp left names; a MatchStamp
  * goes with every match timestamp one of its anchors names, so a removed
  * timeline or match timestamp takes it along. A resource keeps naming the
@@ -31,7 +31,7 @@ function entryIds(timeline: TimelineManifest): string[] {
 /**
  * The IDs that removing the elements with the IDs `elements` (timelines,
  * groups, measure maps, maps, regions, flow-control elements, named
- * timestamps and named MatchStamps) removes: the elements themselves, every
+ * timestamps, elisions and named MatchStamps) removes: the elements themselves, every
  * timeline below a removed one, every map, region and flow-control element
  * those timelines hold, every named timestamp and every elision lying on
  * one of them, every
@@ -59,7 +59,7 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
     if (asked.has(id) || removed.has(timeline)) removed.add(id);
   }
   for (const { id, timeline } of manifest.graphical?.elisions ?? []) {
-    if (removed.has(timeline)) removed.add(id);
+    if (asked.has(id) || removed.has(timeline)) removed.add(id);
   }
   const named = new Set<string>();
   for (const { id, alignment_anchors: anchors } of manifest.graphical?.matchstamps ?? []) {

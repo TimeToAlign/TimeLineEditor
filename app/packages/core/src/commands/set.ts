@@ -6,7 +6,7 @@
  * recognised without comparing views.
  */
 
-import { ANCHOR_DISPLAY, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
+import { ANCHOR_DISPLAY, ELISION_DISPLAY, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { CommandError, Problem } from "../errors.ts";
 import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
@@ -31,6 +31,7 @@ import { withoutElements } from "../manifest/remove.ts";
 import type {
   AlignmentAnchor,
   AxisValue,
+  Elision,
   Manifest,
   NamedMatchStamp,
   NamedTimestamp,
@@ -58,6 +59,7 @@ import { manifestIds } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
+import { readElisionEnd, readElisionStart, readElisionWidth, stretchProblem } from "./elisions.ts";
 import { readAnchors, readMatchClaims, rewrittenMatchStamp } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
@@ -67,6 +69,7 @@ import {
   replaceTimeline,
   sameJson,
   withBlock,
+  withElisions,
   withEntryAt,
   withEntryMember,
   withKey,
@@ -78,6 +81,7 @@ import { withSegmentLinesCovered } from "./settle.ts";
 import type {
   AnchorTarget,
   BlockTarget,
+  ElisionTarget,
   EntryTarget,
   GroupTarget,
   MatchStampTarget,
@@ -92,6 +96,7 @@ import type {
 import { targetOf } from "./targets.ts";
 import { readDisplay, readGroupstamp, readTimestampCoordinate } from "./timestamps.ts";
 import { lengthProblem, moveTimeline, placeChild, setGroups } from "./topology.ts";
+import type { Change } from "./types.ts";
 
 /**
  * Set one property of `target` to `value`: the new view, or the refusal at
@@ -956,6 +961,97 @@ const TIMESTAMP_SET: Setters<TimestampTarget> = {
   },
 };
 
+// ---------------------------------------------------------------- elisions
+
+/**
+ * The view with the target elision replaced by `next`, unless the member it
+ * sets holds what is stored (`stored`, `value`).
+ */
+function elisionChange(
+  view: View,
+  target: ElisionTarget,
+  path: readonly PathSegment[],
+  changes: ChangeSet,
+  stored: unknown,
+  value: unknown,
+  next: Elision,
+): View {
+  if (sameJson(stored, value)) return view;
+  const { block, index } = target;
+  const { manifest } = block;
+  recordValue(changes, path, block.id, true, stored, value);
+  const elisions = (manifest.graphical?.elisions ?? []).map((item, at) =>
+    at === index ? next : item,
+  );
+  return withBlock(view, { ...block, manifest: withElisions(manifest, elisions) });
+}
+
+const ELISION_SET: Setters<ElisionTarget> = {
+  /**
+   * Where the elided stretch starts on its timeline's own axis, at or after 0
+   * (`readElisionStart`); that it lies before the end is checked once the
+   * change is made (`elisionProblem`).
+   */
+  start: (view, target, value, path, changes) => {
+    const { at, elision } = target;
+    const start = readElisionStart(value, at.timeline, elision.id, path);
+    if (isCommandError(start)) return start;
+    return elisionChange(view, target, path, changes, elision.start, start, {
+      ...elision,
+      start,
+    });
+  },
+  /** Where it ends, at or before a known length of its timeline (`readElisionEnd`). */
+  end: (view, target, value, path, changes) => {
+    const { at, elision } = target;
+    const end = readElisionEnd(value, at.timeline, elision.id, path);
+    if (isCommandError(end)) return end;
+    return elisionChange(view, target, path, changes, elision.end, end, { ...elision, end });
+  },
+  /**
+   * How wide its strip is drawn: one of the three forms (`readElisionWidth`),
+   * or `null`, which deletes the width so that the strip takes its card's
+   * default proportion.
+   */
+  width: (view, target, value, path, changes) => {
+    const { at, elision } = target;
+    const { width: stored = null, ...unsized } = elision;
+    if (value === null) {
+      return elisionChange(view, target, path, changes, stored, null, unsized);
+    }
+    const width = readElisionWidth(value, at.timeline, path);
+    if (isCommandError(width)) return width;
+    return elisionChange(view, target, path, changes, stored, width, { ...elision, width });
+  },
+  /** What of the elision is drawn (`readDisplay` over `ELISION_DISPLAY`): stored in canonical order. */
+  display: (view, target, value, path, changes) => {
+    const display = readDisplay(value, ELISION_DISPLAY, path);
+    if (isCommandError(display)) return display;
+    const { elision } = target;
+    return elisionChange(view, target, path, changes, elision.display, display, {
+      ...elision,
+      display,
+    });
+  },
+};
+
+/**
+ * Why one change of a `set`, its values all set, leaves its target refused,
+ * if it does: an elision whose end does not lie after its start
+ * (`stretchProblem`), at the change's `end` where it gives one, else at its
+ * `start`. Checked once per change, so that one change may move both ends
+ * of an elision past the other's old value.
+ */
+export function changeProblem(view: View, change: Change): CommandError | undefined {
+  const { target: address, values } = change;
+  const end = Object.hasOwn(values, "end");
+  if (!end && !Object.hasOwn(values, "start")) return undefined;
+  const target = targetOf(view, address);
+  if (isCommandError(target) || target.kind !== "elision") return undefined;
+  const path = [addressKey(address), end ? "end" : "start"];
+  return stretchProblem(target.elision, target.at.timeline, path);
+}
+
 // ---------------------------------------------------------------- named MatchStamps
 
 /**
@@ -1056,6 +1152,7 @@ export const SETTABLE: { readonly [kind in TargetKind]: Setters<TargetOfKind[kin
   child: CHILD_SET,
   ...ENTRY_SET,
   timestamp: TIMESTAMP_SET,
+  elision: ELISION_SET,
   matchstamp: MATCHSTAMP_SET,
   anchor: ANCHOR_SET,
 };
@@ -1091,6 +1188,8 @@ function setterOf(
       return bind(SETTABLE[target.kind][property], target);
     case "timestamp":
       return bind(SETTABLE.timestamp[property], target);
+    case "elision":
+      return bind(SETTABLE.elision[property], target);
     case "matchstamp":
       return bind(SETTABLE.matchstamp[property], target);
     case "anchor":

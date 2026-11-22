@@ -19,6 +19,7 @@ import type { ContainerRef, Containers } from "../manifest/containers.ts";
 import { containersOf } from "../manifest/containers.ts";
 import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../manifest/elements.ts";
+import { defaultElisionTimelines, ELISION_LABELS } from "../manifest/elisions.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
 import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
@@ -26,6 +27,7 @@ import { timelinesInOrder } from "../manifest/tree.ts";
 import type {
   AlignmentAnchor,
   ConversionMap,
+  Elision,
   FlowControlElement,
   Group,
   Manifest,
@@ -182,6 +184,7 @@ export type ResolvedAddress =
       readonly index: number;
       readonly timestamp: NamedTimestamp;
     }
+  | ({ readonly kind: "elision"; readonly block: Block } & ElisionFound)
   | ({ readonly kind: "matchstamp"; readonly block: Block } & MatchStampFound)
   | ({ readonly kind: "anchor"; readonly block: Block } & AnchorFound)
   | {
@@ -217,9 +220,19 @@ export type ResolvedElement =
       readonly index: number;
       readonly timestamp: NamedTimestamp;
     }
+  | ({ readonly kind: "elision" } & ElisionFound)
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
+
+/** A stored elision, found in a manifest's `graphical.elisions` with the timeline it lies on. */
+export interface ElisionFound {
+  /** The timeline it lies on. */
+  readonly at: Located;
+  /** Its index in the manifest's `graphical.elisions`. */
+  readonly index: number;
+  readonly elision: Elision;
+}
 
 /** A named MatchStamp, found in a manifest's `graphical.matchstamps`. */
 export interface MatchStampFound {
@@ -239,9 +252,9 @@ export interface AnchorFound extends MatchStampFound {
  * What an ID of a manifest names, located in the manifest: a timeline, an
  * entry of a timeline's list, a conversion map another map holds (at
  * `path`, which nothing draws or addresses), a group, a MeasureMap, a
- * named timestamp (with the timeline it lies on), a named MatchStamp, an
- * alignment anchor (with its MatchStamp) or a resource (which nothing draws
- * or addresses).
+ * named timestamp or an elision (with the timeline it lies on), a named
+ * MatchStamp, an alignment anchor (with its MatchStamp) or a resource
+ * (which nothing draws or addresses).
  */
 type Found =
   | { readonly kind: "timeline"; readonly at: Located }
@@ -253,7 +266,7 @@ type Found =
     }
   | { readonly kind: "held"; readonly path: readonly PathSegment[] }
   | { readonly kind: "resource" }
-  | { readonly kind: "elision" }
+  | ({ readonly kind: "elision" } & ElisionFound)
   | ({ readonly kind: "matchstamp" } & MatchStampFound)
   | ({ readonly kind: "anchor" } & AnchorFound)
   | { readonly kind: "group"; readonly group: Group }
@@ -286,7 +299,7 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * it holds at any depth; then the groups', the MeasureMaps', the
  * resources', the named timestamps', the elisions' and the named
  * MatchStamps', each followed by its alignment anchors'. An ID repeated in a manifest the
- * schema refuses keeps its first finding, and a timestamp on
+ * schema refuses keeps its first finding, and a timestamp or an elision on
  * a timeline the manifest lacks, which the schema refuses too, is passed
  * over.
  */
@@ -325,7 +338,10 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
     if (on?.kind === "timeline")
       note(timestamp.id, { kind: "timestamp", at: on.at, index, timestamp });
   });
-  for (const elision of manifest.graphical?.elisions ?? []) note(elision.id, { kind: "elision" });
+  (manifest.graphical?.elisions ?? []).forEach((elision, index) => {
+    const on = found.get(elision.timeline);
+    if (on?.kind === "timeline") note(elision.id, { kind: "elision", at: on.at, index, elision });
+  });
   (manifest.graphical?.matchstamps ?? []).forEach((matchstamp, index) => {
     note(matchstamp.id, { kind: "matchstamp", index, matchstamp });
     matchstamp.alignment_anchors.forEach((anchor, position) => {
@@ -380,12 +396,12 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
 /**
  * The element an ID names with what its address adds: a group's frame, a
  * measure map, a timeline, its cards (`part` beginning with `card`) or one
- * of its bands (`facet`), an entry, a named timestamp, a named MatchStamp or
- * an alignment anchor; with the part words that address left to read, or
- * `undefined` when it names nothing. A band or a card exists only for a
- * timeline drawn in a card; a map another map holds, a resource and an
- * elision are neither drawn nor addressed, and a MatchStamp, which is drawn by its
- * anchors, has no part.
+ * of its bands (`facet`), an entry, a named timestamp, a stored elision, a
+ * named MatchStamp or an alignment anchor; with the part words that address
+ * left to read, or `undefined` when it names nothing. A band or a card
+ * exists only for a timeline drawn in a card; a map another map holds and a
+ * resource are neither drawn nor addressed, and a MatchStamp, which is
+ * drawn by its anchors, has no part.
  */
 function baseOf(
   manifest: Manifest,
@@ -412,7 +428,6 @@ function baseOf(
   switch (found.kind) {
     case "held":
     case "resource":
-    case "elision":
       return undefined;
     case "matchstamp":
       return part.length > 0 ? undefined : [{ ...found }, []];
@@ -426,6 +441,7 @@ function baseOf(
     case "measure_map":
       return part.length > 0 ? undefined : [{ ...found }, []];
     case "timestamp":
+    case "elision":
       return [{ ...found }, part];
     case "entry": {
       const element = entriesOf(found.at.timeline, found.entry)[found.index];
@@ -446,25 +462,50 @@ function baseOf(
  * wedges and marks of a member drawing's root with their labels, a
  * segment's boundary (of every segment but the first) and label, the label
  * of a region, a flow marker or a jump origin, a named timestamp's label
- * and cross-section line (`line`), and the cards. A named timestamp itself
- * resolves with the timeline it lies on; a named MatchStamp and an
- * alignment anchor, which belong to no timeline, resolve by their IDs, the
- * anchor with the MatchStamp holding it. `undefined`
- * for anything else, the bundle's address `{}` included (the workspace
- * resolver reads it as the block).
+ * and cross-section line (`line`), a stored elision's labels, and the
+ * cards. A named timestamp and a stored elision themselves resolve with the
+ * timeline they lie on, drawn or not; a named MatchStamp and an alignment
+ * anchor, which belong to no timeline, resolve by their IDs, the anchor with
+ * the MatchStamp holding it. A default elision, which the drawing derives
+ * and which has no ID, resolves as the part `elision` of the timeline `T`
+ * it lies on (`{id: T, part: ["elision"]}`, its labels `["elision", "name"]`
+ * and `["elision", "coordinate"]`) wherever `T` may carry one
+ * (`defaultElisionTimelines`), never as an invented ID. `undefined` for
+ * anything else, the bundle's address `{}` included (the workspace resolver
+ * reads it as the block).
  */
 export function resolveElement(
   manifest: Manifest,
   element: ElementAddress,
 ): ResolvedElement | undefined {
   const { id, facet, part = [] } = element;
-  if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
+  if (
+    part.length > 0 &&
+    !indexOf(manifest).drawn.has(addressKey(element)) &&
+    !namesDefaultElision(manifest, element)
+  ) {
+    return undefined;
+  }
   if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
   const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
   let [resolved] = base;
   for (const word of base[1]) resolved = { kind: "part", owner: resolved, word };
   return resolved;
+}
+
+/**
+ * Whether `element` addresses a default elision or one of its labels on a
+ * timeline that may carry one (`defaultElisionTimelines`): `{id: T, part:
+ * ["elision"]}`, `["elision", "name"]` or `["elision", "coordinate"]`.
+ */
+function namesDefaultElision(manifest: Manifest, { id, facet, part = [] }: ElementAddress) {
+  if (id === undefined || facet !== undefined || part[0] !== "elision" || part.length > 2) {
+    return false;
+  }
+  const [, label] = part;
+  if (label !== undefined && !ELISION_LABELS.some((word) => word === label)) return false;
+  return defaultElisionTimelines(manifest).has(id);
 }
 
 /** A resolved element as an address of the block holding its manifest. */
@@ -603,6 +644,8 @@ function elementWords(resolved: ResolvedAddress): {
       const { name, id } = resolved.timestamp;
       return { words: `timestamp ${quoted(name ?? id)}`, bundled: false };
     }
+    case "elision":
+      return { words: `elision ${quoted(resolved.elision.id)}`, bundled: false };
     case "matchstamp":
       return { words: `MatchStamp ${quoted(resolved.matchstamp.name)}`, bundled: false };
     case "anchor":
@@ -676,7 +719,10 @@ function inBundle(view: View, { block }: Address, words: string): string {
 export interface ManifestIndex {
   readonly containers: Containers;
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
-  /** Every timeline's, entry's and named timestamp's ID, mapped to the timeline it belongs to. */
+  /**
+   * Every timeline's, entry's, named timestamp's and stored elision's ID, mapped to the timeline
+   * it belongs to.
+   */
   readonly owners: ReadonlyMap<string, string>;
   /** Every element of the manifest's drawing (`manifestElements`). */
   readonly elements: readonly ElementKey[];
@@ -724,12 +770,18 @@ export function indexOf(manifest: Manifest): ManifestIndex {
 
 /**
  * Every timeline's ID mapped to itself, every entry's ID to the timeline
- * holding it and every named timestamp's to the timeline it lies on.
+ * holding it and every named timestamp's and stored elision's to the
+ * timeline it lies on.
  */
 function ownersOf(manifest: Manifest): ReadonlyMap<string, string> {
   const owners = new Map<string, string>();
   for (const [id, found] of catalogueOf(manifest)) {
-    if (found.kind === "timeline" || found.kind === "entry" || found.kind === "timestamp") {
+    if (
+      found.kind === "timeline" ||
+      found.kind === "entry" ||
+      found.kind === "timestamp" ||
+      found.kind === "elision"
+    ) {
       owners.set(id, found.at.timeline.id);
     }
   }

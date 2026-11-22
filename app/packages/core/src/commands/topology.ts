@@ -10,6 +10,7 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { namedTimestamps, orderedChildren } from "../manifest/elements.ts";
+import { elisionsOn } from "../manifest/elisions.ts";
 import { childEnd, childReach, lengthOf, readOnAxis } from "../manifest/invariants.ts";
 import { withPlaceLocks } from "../manifest/locks.ts";
 import { bandOrderOf } from "../manifest/order.ts";
@@ -24,6 +25,7 @@ import { indexOf } from "../workspace/address.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
+  elisionsAtEnd,
   record,
   replaceTimeline,
   sameJson,
@@ -58,9 +60,11 @@ function exceedsParent(
  * known. A named timestamp of the timeline at its end follows the end
  * (`replaceTimeline`); any other keeps its place, and the new length refuses
  * the first, in canonical order, that would lie beyond it
- * (`timestamp_exceeds_length`). An elision of the timeline keeps its place,
- * whatever its end, and the new length refuses the first, in canonical
- * order, whose end would lie beyond it (`elision_exceeds_length`). A length
+ * (`timestamp_exceeds_length`). A stored elision of the timeline ending at
+ * its end follows the end too while the new length lies after its start;
+ * any other keeps its place; the new length refuses the first, in canonical
+ * order, that would end beyond it or, following, would not end after its
+ * start (`elision_exceeds_length`). A length
  * of null is always taken: it bounds nothing, and a segment or line of
  * unknown length ends where its neighbours say.
  */
@@ -124,10 +128,11 @@ export function lengthProblem(
       path,
     );
   }
-  const elision = (manifest.graphical?.elisions ?? []).find(
-    (item) =>
-      item.timeline === timeline.id &&
-      compareReal(realOf(axisCoordinate(item.end, timeline)), limit) > 0,
+  const ending = elisionsAtEnd(manifest, timeline);
+  const elision = elisionsOn(manifest, timeline.id).find((item) =>
+    ending.includes(item)
+      ? compareReal(realOf(axisCoordinate(item.start, timeline)), limit) >= 0
+      : compareReal(realOf(axisCoordinate(item.end, timeline)), limit) > 0,
   );
   if (elision !== undefined) {
     return problem(

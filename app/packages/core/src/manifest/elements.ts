@@ -22,6 +22,7 @@ import {
   sameAddress,
   TITLE_ADDRESS,
 } from "./address.ts";
+import { ELISION_LABELS, elisionsOn } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
 import { findTimeline } from "./tree.ts";
@@ -338,7 +339,14 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * every wedge and label of a named timestamp carries `coordinates`, the
  * primary or a secondary one; the regions band its
  * regions, and the flow control band its flow markers, then its jump origins,
- * each with its label (a jump target draws nothing of its own).
+ * each with its label (a jump target draws nothing of its own). In a card
+ * drawing a timeline whole outside a frame (`elides`: an ungrouped root's
+ * card or an ancestor card, section 8.9), each timeline's line (or node)
+ * then holds, after its five bands, the stored elisions lying on it in
+ * canonical order whose `display` lists `strip`: its strip `{id: E}`, of
+ * type `elision`, holding its labels `{id: E, part: [word]}` in the order of
+ * `ELISION_LABELS` that its `display` lists; a member's card in a frame
+ * draws none.
  */
 function memberElements(
   manifest: Manifest,
@@ -347,6 +355,7 @@ function memberElements(
   keys: ElementKey[],
   card: "card" | "ancestor_card" = "card",
   frame: GroupFrame | null = null,
+  elides = false,
 ): void {
   const root = member.timeline;
   keys.push(elementKey(card, cardAddress(root.id), root, holder));
@@ -463,6 +472,17 @@ function memberElements(
       keys.push(band);
       held[facet](band);
     }
+    if (!elides) return;
+    for (const { id, display } of elisionsOn(manifest, timeline.id)) {
+      if (!display.includes("strip")) continue;
+      const strip = elementKey("elision", idAddress(id), timeline, key);
+      keys.push(strip);
+      for (const word of ELISION_LABELS) {
+        if (display.includes(word)) {
+          keys.push(elementKey("label", partAddress(idAddress(id), word), timeline, strip));
+        }
+      }
+    }
   };
   keys.push(line, textKey(line, "name"));
   visit(line, root);
@@ -476,7 +496,10 @@ function memberElements(
  * followed by the member drawing of its root `R`, all held by the block,
  * whether a rule displays them or not; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
- * frame; then, after every item, the lines of the groupstamps across their
+ * frame; the cards of the ancestor cards and of those roots holding the
+ * stored elisions of their timelines (`memberElements`), which no member's
+ * card in a frame holds, so a stored elision lying only on timelines drawn
+ * in member cards is listed nowhere; then, after every item, the lines of the groupstamps across their
  * groups' frames (section 6.6), so that every drawn line has an address:
  * timestamp by timestamp in the order of `graphical.timestamps`, for each
  * groupstamp whose `display` lists `cross_section`, one `cross_section` at
@@ -501,7 +524,7 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   }
   const { frames, ungrouped, ancestorCards } = memberDrawings(ordered);
   for (const { root } of ancestorCards) {
-    memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card");
+    memberElements(ordered, root, BLOCK_KEY, keys, "ancestor_card", null, true);
   }
   const drawnFrames = frames.map((drawn) => {
     const { group, members } = drawn;
@@ -511,7 +534,8 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     for (const member of members) memberElements(ordered, member, frame, keys, "card", drawn);
     return { group, frame };
   });
-  for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
+  for (const member of ungrouped)
+    memberElements(ordered, member, BLOCK_KEY, keys, "card", null, true);
   const ancestry = timelineAncestry(ordered);
   for (const timestamp of ordered.graphical?.timestamps ?? []) {
     if (!timestamp.groupstamp || !timestamp.display.includes("cross_section")) continue;

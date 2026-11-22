@@ -15,6 +15,8 @@ export const ErrorCode = {
   childExceedsParent: "child_exceeds_parent",
   timestampExceedsLength: "timestamp_exceeds_length",
   elisionExceedsLength: "elision_exceeds_length",
+  elisionTimeline: "elision_timeline",
+  elisionStretch: "elision_stretch",
   locked: "locked",
   negativeChildOffset: "negative_child_offset",
   segmentNeverLocked: "segment_never_locked",

@@ -417,7 +417,7 @@ describe("updating a named MatchStamp", () => {
     });
     expect(refused(apply(view, set(at("matchstamp_1"), { display: [] })))).toEqual({
       code: "wrong_target_kind",
-      message: "display is a property of timestamp, anchor, not of matchstamp",
+      message: "display is a property of timestamp, elision, anchor, not of matchstamp",
       path: path("display"),
     });
   });

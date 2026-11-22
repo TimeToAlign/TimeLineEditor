@@ -49,8 +49,8 @@ interface Removal {
 }
 
 /**
- * The ID of a group, measure map, timeline, entry, timestamp or MatchStamp
- * target; `null` for the workspace, a block or an alignment anchor.
+ * The ID of a group, measure map, timeline, entry, timestamp, elision or
+ * MatchStamp target; `null` for the workspace, a block or an alignment anchor.
  */
 function removalOf(target: Target): Removal | null {
   switch (target.kind) {
@@ -66,6 +66,8 @@ function removalOf(target: Target): Removal | null {
       return { element: target.map.id, line: null };
     case "timestamp":
       return { element: target.timestamp.id, line: null };
+    case "elision":
+      return { element: target.elision.id, line: null };
     case "root":
     case "child": {
       const { at } = target;

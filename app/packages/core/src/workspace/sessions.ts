@@ -218,6 +218,7 @@ export function editorKindOf(view: View, address: Address): EditorKind | Command
     case "entry":
     case "measure_map":
     case "timestamp":
+    case "elision":
     case "matchstamp":
     case "anchor":
     case "part":
