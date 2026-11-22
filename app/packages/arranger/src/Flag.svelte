@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import { flagPlace, POLE_WIDTH } from "./coordinates.ts";
+import { onScreen } from "./onScreen.ts";
 
 interface Props {
   /** What the flag shows, naming its test IDs: `<kind>-flag`, `<kind>-pole`, `<kind>-footer`. */
@@ -12,7 +13,10 @@ interface Props {
   y: number;
   /** The top of what the flag marks, in the same pixels: the pole rises above it. */
   top: number;
-  /** The canvas's width in pixels: a flag that would leave it there opens to the left. */
+  /**
+   * The canvas's width in pixels: a flag that would leave it there opens to the left, and a
+   * flag still past a border is shifted inside it.
+   */
   width: number;
   /** The flag's parts, above its footer. */
   children: Snippet;
@@ -21,12 +25,24 @@ interface Props {
 let { kind, label, x, y, top, width, children }: Props = $props();
 
 let flagWidth = $state(0);
+let flagHeight = $state(0);
+/** The canvas's visible height: the flag's layer covers the canvas (`inset: 0`). */
+let height = $state(0);
 
-const place = $derived(flagPlace({ x, y, top }, flagWidth, width));
+const place = $derived(
+  onScreen(
+    flagPlace({ x, y, top }, flagWidth, width),
+    { width: flagWidth, height: flagHeight },
+    { width, height },
+  ),
+);
 </script>
 
-<!-- The one flag of the canvas: a pole standing at what it marks, the flag hanging from its top (`flagPlace`). -->
-<div class="tilie-coordinates" data-testid="{kind}-flag">
+<!--
+  The one flag of the canvas: a pole standing at what it marks, the flag hanging from its top
+  (`flagPlace`), shifted by exactly what keeps it on screen (`onScreen`).
+-->
+<div class="tilie-coordinates" data-testid="{kind}-flag" bind:clientHeight={height}>
   <div
     class="tilie-coordinates-pole"
     data-testid="{kind}-pole"
@@ -43,6 +59,7 @@ const place = $derived(flagPlace({ x, y, top }, flagWidth, width));
     style:left="{place.left}px"
     style:top="{place.top}px"
     bind:offsetWidth={flagWidth}
+    bind:offsetHeight={flagHeight}
   >
     {@render children()}
     <div class="tilie-coordinates-foot" data-testid="{kind}-footer">click to pin</div>

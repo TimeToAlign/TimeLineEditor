@@ -953,7 +953,7 @@ editor, `u`'s card has its own on the arranger. Enter on `{block: A, id: "t", pa
 displayed), the one in `g2` on the arranger, in the bundle editor and in
 `g2`'s editor, and nothing in `g1`'s.
 
-## Ancestor cards (`ancestor-cards.test.ts`, `keys.test.ts`)
+## Ancestor cards (`ancestor-cards.test.ts`, `keys.test.ts`, `raise.test.ts`)
 
 An ancestor card (drawing.md §8.8) is a card the block holds behind a
 frame: the root of a member that is a child timeline, drawn whole. It has
@@ -979,8 +979,8 @@ layout's README derives the geometry the points below are taken from.
    piece}` on the arranger (`editorTargetOf`); `workedBox` gives its record
    for `{id: piece, part: [card]}`, while a member's card address keeps its
    own card.
-4. **Raised while its root's timeline lying in no group is edited**
-   (`raisedEntries`, which raises the root `raisedRoot` names, the one
+4. **Raised while a timeline of its root drawn in no member card is
+   edited** (`raisedEntries`, which raises the root `raisedRoot` names, the one
    decision the pointer's coverage and "Show matches" read too). With the
    descriptors in drawing order: on the
    arranger, in the editor of the member `middle` and in that of the group,
@@ -997,6 +997,54 @@ layout's README derives the geometry the points below are taken from.
    and keeps the selection; with `dlt_1` selected beside it, it removes
    `dlt_1` alone: the manifest it leaves equals, whole, the one Delete
    leaves with `dlt_1` selected by itself.
+6. **A root standing in another group rises on double-click**
+   (`raise.test.ts`). A root that is a member of one group and the
+   parent of a member of another stands twice: as a member card in its
+   own group's frame and as an ancestor card behind the other frame. Its
+   timeline editor raises the ancestor card exactly as it raises the card
+   of a root in no group: the covered card comes to the front over the
+   frame, showing whose timeline editor is open. `raisedRoot` therefore
+   names the edited timeline's root where no timeline from the root's
+   child down to the edited one is a member (the edited timeline is drawn
+   in no member card below the root) and the root is either in no group
+   or a member that draws an ancestor card (another member descends from
+   it); a root member drawing none raises nothing, as before. The view:
+   `group_parent_both` in block A at (0, 0) with a second group `group_2`
+   ("Parents", members `[piece]`) added by one `add`. Layout's README
+   derives `group_parent_both`'s geometry (above, and "A covered line is
+   not read"); `group_2`'s frame is laid out below `group_1`'s, so
+   nothing of `group_1` moves: its frame lies at y 190.13671875 (8 +
+   174.13671875 + 8), its card of `piece` at y 214.94140625 (the frame's
+   top plus the title band, 24.8046875, as `group_1`'s first card), and
+   that card, drawn as the ancestor card is (63.37890625 high), holds
+   `middle`'s row at 229.94140625 (+ 15) and `piece`'s line at
+   263.91796875 (+ 48.9765625).
+   - `raisedRoot` gives `piece` in `piece`'s timeline editor, and `null`
+     on the arranger, in the editors of `group_1` and `group_2`, of the
+     member `middle` and of the root member `recording` (which draws no
+     ancestor card).
+   - On the canvas, the rectangles of frames and cards in the node's
+     order are, by `data-id` and `x`: before, the ancestor card's shadow
+     and card (`piece` 10, 8), `group_1` (156.6318), `middle`'s and
+     `recording`'s shadows and cards (166.6318, 164.6318 each),
+     `group_2`, `piece`'s member card (166.6318, 164.6318). A
+     double-click on the ancestor card's rectangle opens `{block: A, id:
+     piece}` as a timeline editor, and then the ancestor card's two
+     rectangles come last, every other one in its order before them.
+   - The place rule reads its rows (`placesAt`): `piece` at 8 (abscissa
+     460.33544921875, 8 / 16 of its line) lies on the arranger on its
+     ancestor line in `middle`'s card (67.78125) and on its line in
+     `group_2` (263.91796875); in `piece`'s editor on the raised card's
+     line (card `{item: group_1, member: piece}`, 67.78125) and on
+     `group_2`'s. `middle` at 4 (the same abscissa) lies on the arranger
+     on its own line (81.78125) and on its row in `group_2`'s card
+     (229.94140625); raised, on its row in the ancestor card (33.8046875)
+     in the place of its own line, which the raised card covers, and on
+     `group_2`'s row.
+   What would be wrong: the card staying covered (the bug this point
+   pins: the root's own group made `raisedRoot` give `null`), a member's
+   editor raising the card over the member card it edits, the member
+   card in `group_2` covered by the raise.
 
 ## Picking an element (`picking.test.ts`)
 
@@ -1813,7 +1861,7 @@ reason as its title, a permitted one enabled without a title; the first
 permitted way is preselected and takes the focus; Enter and OK confirm,
 Escape and Cancel cancel, and only a permitted way can be chosen.
 
-## Show coordinates (`coordinates.test.ts`)
+## Show coordinates (`coordinates.test.ts`, `on-screen.test.ts`)
 
 With "Show coordinates" on, the pointer reads a timeline where it comes
 near its line or any map drawn at that line, and the reading is the
@@ -2008,8 +2056,10 @@ its drawing in (`raisedEntries`): from the bottom, the ancestor cards
 that are not raised, in record order (a later one over an earlier one),
 then every frame and card the block holds (one level), then the raised
 ancestor cards, in record order. A root's cards are raised while a
-timeline editor is open on a timeline of that root that is no group
-member and lies in no member (`raisedRoot` gives the root, else `null`).
+timeline editor is open on a timeline of that root drawn in no member
+card below the root, the root being in no group or a member drawing an
+ancestor card (`raisedRoot` gives the root, else `null`; "Ancestor
+cards", point 6).
 A line takes the level of the card drawing it, and it is covered at a
 point where a displayed frame or card of a higher level holds the point;
 a box whose rectangle is not drawn covers nothing. The pointer reads a
@@ -2584,6 +2634,44 @@ abscissa. At `x` 100, `y` 200, `top` 150, a flag 180 wide on a canvas
 it is flipped, at (519.5, 128); at `x` 619.5 its right edge is exactly
 800 and it stays right, at 620; with `top` 10 the pole and the flag start
 at 0.
+
+**The flag stays on screen** (`onScreen.ts`, `on-screen.test.ts`). The
+flag starts where `flagPlace` hangs it, beside its wedge, and is then
+shifted by exactly the amount that keeps its rectangle inside the
+canvas's visible area, on every side, and not at all when it lies
+inside: past the right or bottom border it moves left or up until that
+edge lies on the border, past the left or top border right or down
+until that edge lies on it. A flag larger than the canvas along an axis
+keeps its left or top edge on the border (its beginning stays
+readable). Along an axis where the canvas or the flag measures 0 (not
+laid out yet) nothing moves. The pole and the side the flag opens to
+are never changed: the pole stands at the marked abscissa. What would
+be wrong: a flag cut by a border (the bottom of the screen, where a
+flag hanging from a low line was cut), a flag moved more than needed
+(snapped to a corner, flipped instead of shifted), a flag moved where
+it fits, a moved pole. On a canvas 800 × 600, a flag 180 × 100 (pole
+and `flipped` kept, the same object returned where nothing moves):
+
+| Starts at (left, top) | Kept at | Shift |
+|---|---|---|
+| (100.5, 128) | (100.5, 128) | none, the same object |
+| (700, 128) | (620, 128) | 80 left |
+| (−30.5, 128) | (0, 128) | 30.5 right |
+| (100.5, −12) | (100.5, 0) | 12 down |
+| (100.5, 550) | (100.5, 500) | 50 up |
+| (700, 550) | (620, 500) | the corner: 80 left, 50 up |
+| (620, 500) | (620, 500) | none: both edges exactly on the borders |
+
+A flag 900 wide at (100.5, 128) is kept at (0, 128); on a canvas of
+height 0, or a flag of height 0, the flag at (100.5, 550) stays there.
+In the component (`Flag.svelte`, mounted with a body of its own) the
+canvas's height is the flag layer's, which covers the canvas; with `x`
+700, `y` 580, `top` 560 on a canvas 800 wide and a layer 600 high, a
+flag 180 × 100: `flagPlace` flips it to the left (700.5 + 180 > 800) at
+519.5 and hangs it from the pole's top 538 (560 − 22), so its bottom
+would lie at 638; it is drawn at (519.5, 500), the pole still from 538
+to 580 (left 699.5, height 42). With the layer not measured (height 0)
+it is drawn at (519.5, 538).
 
 **Measure maps.** The expanded MeasureMaps are asked once per manifest
 object (one version of a manifest) that has MeasureMaps, and never for
