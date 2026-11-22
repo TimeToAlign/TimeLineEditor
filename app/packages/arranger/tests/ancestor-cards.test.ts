@@ -7,6 +7,7 @@
 import type { View } from "@timetoalign/tilie-core";
 import { cardAddress, idAddress, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
+import type { Descriptor } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
 import {
   boxAt,
@@ -17,10 +18,11 @@ import {
   isItem,
   keyedBox,
   pressSelection,
+  raisedRoot,
   workedBox,
 } from "../src/boxes.ts";
 import { fieldsOf, type Level, resizes } from "../src/containers.ts";
-import { descriptorsOf, drawingOf, raisedEntries } from "../src/drawing.ts";
+import { descriptorsOf, drawingOf, raisedLayers } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorTargetOf } from "../src/editors.ts";
 import { insideOf } from "../src/project.ts";
@@ -95,46 +97,54 @@ describe("an ancestor card's record", () => {
   });
 });
 
-describe("raised entries", () => {
-  /** The elements of the drawing's descriptors in the order `raisedEntries` gives them. */
-  const order = (view: View, editing: Editing | null) => {
+describe("raised layers", () => {
+  /** The drawing's descriptors in the layers `raisedLayers` gives them, the editor's root raised. */
+  const layersIn = (view: View, editing: Editing | null) => {
     const drawing = drawingIn(view);
     const entries = descriptorsOf(drawing).map((descriptor) => ({ descriptor }));
-    const raised = raisedEntries(entries, blockIn(view, A), drawing, editing);
-    return { drawing, entries, raised };
+    const layers = raisedLayers(entries, drawing, raisedRoot(blockIn(view, A), editing));
+    return { drawing, entries, layers };
   };
 
-  it("leave the drawing's order but while the root's own timeline lying in no group is edited", () => {
+  /** What `raisedLayers` gives with `root`'s card raised: every other entry below, then the card's. */
+  const raisedOne = (
+    drawing: Drawing,
+    entries: readonly { descriptor: Descriptor }[],
+    root: string,
+  ) => {
+    const box = ancestorCard(drawing, root);
+    const inCard = (entry: (typeof entries)[number]) =>
+      box.range.start <= entry.descriptor.source.element &&
+      entry.descriptor.source.element < box.range.end;
+    return {
+      below: entries.filter((entry) => !inCard(entry)),
+      raised: [{ box, entries: entries.filter(inCard) }],
+    };
+  };
+
+  it("raise nothing but while the root's own timeline lying in no group is edited", () => {
     const view = viewWith("group_parent_both");
     const group: Editing = { target: inBlock(A, idAddress("group_1")), kind: "group" };
     for (const editing of [null, group, timelineEditor("middle")]) {
-      const { entries, raised } = order(view, editing);
-      expect(raised).toBe(entries);
+      const { entries, layers } = layersIn(view, editing);
+      expect(layers.below).toBe(entries);
+      expect(layers.raised).toEqual([]);
     }
-    const { drawing, entries, raised } = order(view, timelineEditor("piece"));
+    const { drawing, entries, layers } = layersIn(view, timelineEditor("piece"));
     const { start, end } = ancestorCard(drawing, "piece").range;
     expect([start, end]).toEqual([1, 10]);
-    const inCard = (entry: (typeof entries)[number]) =>
-      start <= entry.descriptor.source.element && entry.descriptor.source.element < end;
-    expect(raised).toEqual([
-      ...entries.filter((entry) => !inCard(entry)),
-      ...entries.filter(inCard),
-    ]);
+    expect(layers).toEqual(raisedOne(drawing, entries, "piece"));
   });
 
   it("raise one root's cards alone, and nothing hidden", () => {
     const mixed = viewWith("group_parents_mixed");
-    const { drawing, entries, raised } = order(mixed, timelineEditor("session"));
-    const { start, end } = ancestorCard(drawing, "session").range;
-    const inCard = (entry: (typeof entries)[number]) =>
-      start <= entry.descriptor.source.element && entry.descriptor.source.element < end;
-    expect(raised).toEqual([
-      ...entries.filter((entry) => !inCard(entry)),
-      ...entries.filter(inCard),
-    ]);
-    const member = order(mixed, timelineEditor("take"));
-    expect(member.raised).toBe(member.entries);
-    const hidden = order(viewWith("group_parent_both", false), timelineEditor("piece"));
-    expect(hidden.raised).toBe(hidden.entries);
+    const { drawing, entries, layers } = layersIn(mixed, timelineEditor("session"));
+    expect(layers).toEqual(raisedOne(drawing, entries, "session"));
+    const member = layersIn(mixed, timelineEditor("take"));
+    expect(member.layers.below).toBe(member.entries);
+    expect(member.layers.raised).toEqual([]);
+    const hidden = layersIn(viewWith("group_parent_both", false), timelineEditor("piece"));
+    expect(hidden.layers.below).toBe(hidden.entries);
+    expect(hidden.layers.raised).toEqual([]);
   });
 });

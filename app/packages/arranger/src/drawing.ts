@@ -1,13 +1,12 @@
 /** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
 import type { Block } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
-import { raisedRoot, stackingOf } from "./boxes.ts";
-import type { Editing } from "./editing.ts";
+import { isAncestorCard } from "./boxes.ts";
 
 interface Memo {
   readonly graphical: Graphical;
@@ -125,27 +124,38 @@ export function nodePosition(
   };
 }
 
+/** A raised ancestor card and the entries it draws, in drawing order. */
+export interface RaisedCard<E> {
+  readonly box: DrawnBox;
+  readonly entries: readonly E[];
+}
+
 /**
- * `entries`, the drawn descriptors of block `block` in drawing order, in the
- * order the block shows them (`stackingOf`): when `editing`, the innermost
- * open editor, raises a root (`raisedRoot`), the entries every displayed
- * ancestor card of that root draws (its rectangle and its drawing, the
- * record's range) follow every other entry, each group in its own order.
- * Anything else, and a timeline whose root has no displayed ancestor card,
- * keeps `entries` as they are (the same array). The drawing itself is never
- * changed: only the order the block shows it in.
+ * The entries of a block in the layers it shows them in (`stackingOf`):
+ * `below`, every entry no raised card draws, in drawing order, then each
+ * displayed ancestor card of the root `root` (`raisedRoot`, or the root a
+ * raise is folding back, `Unfolding.root`) in record order with the
+ * entries it draws (its rectangle and its drawing, the record's range).
+ * With no root, or a root without a displayed ancestor card, `below` is
+ * `entries` itself (the same array) and nothing is raised. The drawing is
+ * never changed: only the order and the layers the block shows it in.
  */
-export function raisedEntries<E extends { readonly descriptor: Descriptor }>(
+export function raisedLayers<E extends { readonly descriptor: Descriptor }>(
   entries: readonly E[],
-  block: Pick<Block, "id" | "manifest">,
   drawing: Drawing,
-  editing: Editing | null,
-): readonly E[] {
-  const root = raisedRoot(block, editing);
-  if (root === null) return entries;
-  const { above } = stackingOf(drawing, root);
-  const raised = (entry: E) => above(entry.descriptor.source.element);
-  const lifted = entries.filter(raised);
-  if (lifted.length === 0) return entries;
-  return [...entries.filter((entry) => !raised(entry)), ...lifted];
+  root: string | null,
+): { readonly below: readonly E[]; readonly raised: readonly RaisedCard<E>[] } {
+  if (root === null) return { below: entries, raised: [] };
+  const cards = drawing.boxes.filter((box) => isAncestorCard(box) && box.address.id === root);
+  const holding = (entry: E) =>
+    cards.find(({ range }) => {
+      const { element } = entry.descriptor.source;
+      return range.start <= element && element < range.end;
+    });
+  const raised = cards.flatMap((box) => {
+    const drawn = entries.filter((entry) => holding(entry) === box);
+    return drawn.length === 0 ? [] : [{ box, entries: drawn }];
+  });
+  if (raised.length === 0) return { below: entries, raised: [] };
+  return { below: entries.filter((entry) => holding(entry) === undefined), raised };
 }

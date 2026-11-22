@@ -22,8 +22,11 @@ export const IDENTITY: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
  * Stub what Svelte Flow and the canvas read and jsdom has not: media queries
  * (every one fails but reduced motion, which `reduced()` answers), resize
  * observers (each recorded, so a case can measure an element and report the
- * change through `resize`) and pointer capture. The globals are restored by
- * `vi.unstubAllGlobals()`.
+ * change through `resize`), pointer capture, and `getAnimations`, which
+ * Svelte calls on an element of a keyed block with `animate:` as it leaves
+ * the block (a drawn element moving into a raised card's layer; jsdom has no
+ * Web Animations, so none are listed). The globals are restored by
+ * `vi.unstubAllGlobals()`; the prototype method is installed once.
  */
 export function stubCanvasGlobals(reduced: () => boolean = () => true): {
   resize(target: Element, width: number, height: number): void;
@@ -60,6 +63,7 @@ export function stubCanvasGlobals(reduced: () => boolean = () => true): {
     },
   );
   stubPointerCapture();
+  Element.prototype.getAnimations ??= () => [];
   return {
     resize(target, width, height) {
       Object.defineProperty(target, "clientWidth", { value: width, configurable: true });

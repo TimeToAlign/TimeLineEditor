@@ -980,13 +980,14 @@ layout's README derives the geometry the points below are taken from.
    for `{id: piece, part: [card]}`, while a member's card address keeps its
    own card.
 4. **Raised while a timeline of its root drawn in no member card is
-   edited** (`raisedEntries`, which raises the root `raisedRoot` names, the one
+   edited** (`raisedLayers` with the root `raisedRoot` names, the one
    decision the pointer's coverage and "Show matches" read too). With the
    descriptors in drawing order: on the
    arranger, in the editor of the member `middle` and in that of the group,
-   the same array; in the timeline editor of `piece`, the descriptors of
-   the ancestor card's range (elements 1 to 9) follow every other
-   descriptor, each part in its own order. In `group_parents_mixed` the
+   nothing raised and every descriptor below, the same array; in the
+   timeline editor of `piece`, one raised card, `piece`'s record, holding
+   the descriptors of its range (elements 1 to 9) in their order, and
+   every other descriptor below in its order. In `group_parents_mixed` the
    editor of `session` raises `session`'s card alone, that of the member
    `take` nothing. With the workspace's rule `{element: ancestor_card}`
    `display: none` (every ancestor card hidden) the editor of `piece`
@@ -1045,6 +1046,100 @@ layout's README derives the geometry the points below are taken from.
    pins: the root's own group made `raisedRoot` give `null`), a member's
    editor raising the card over the member card it edits, the member
    card in `group_2` covered by the raise.
+
+## A raised card unfolding (`unfold.test.ts`, `unfolding.svelte.test.ts`)
+
+Opening a root's timeline editor raises its ancestor cards; each unfolds
+out of the member card it is aligned to, and closing the editor folds it
+back (decision record 0034). Three parts are proven apart: the pure
+motion between two drawings, the canvas's reading of layout's records
+into it, and the progress that drives it. The rows are a drawn line and
+what belongs to its timeline; a progress `t` runs from 0 (the member
+card's places) to 1 (the drawing at rest).
+
+**The motion between two drawings** (`unfold.ts`, literal rows). The
+rows of a member card of `theme`, a grandchild with two ancestors: `from`
+= `theme` 120, `movement` 104, `score` 72 (ordinates). The rows of its
+root's card: `to` = `top` 10, `theme` 24, `sibling` 40, `movement` 56,
+`score` 72, `extra` 90.
+
+1. **Pairing by key** (`pairRows`): `theme` shifts 96 (120 − 24),
+   `movement` 48, `score` 0, none entering. `sibling` lies between the
+   paired `theme` (24, 96) and `movement` (56, 48): 96 + (48 − 96) × 16 /
+   32 = 72, entering. `top` lies above every paired row and takes the
+   nearest one's, 96; `extra` below them all takes `score`'s, 0; both
+   enter. With no row paired every row shifts 0 and enters. A key twice in
+   `from` pairs with its first row (`theme` 120 and 130: 96); twice in
+   `to`, its first row is kept.
+2. **Frames** (`frameAt`) at `t` = 0, ½, 1: `theme` lies at `dy` 96, 48,
+   0, opacity 1 each; `sibling` at 72, 36, 0 with opacity 0, ½, 1; an
+   element of no row at `dy` 0, opacity 0, ½, 1.
+3. **The clip** (`rectAt`) from `{0, 0, 10, 10}` to `{−20, 4, 50, 30}`:
+   at ½ `{−10, 2, 30, 20}`, at 0 and 1 the ends exactly.
+4. **Durations** (`durationOf`): the whole way 400 ms each direction;
+   from 0.25 back to 0 100 ms, the reversal from where the motion stands
+   taking its part of the time; 0 under reduced motion, whatever the
+   distance; 0 for no distance.
+
+What would be wrong: rows paired by ordinate or by order instead of by
+timeline, an entering row jumping to its place or showing at once, a row
+beyond the paired ones left behind, a reversal taking the whole time.
+
+**A raised card's reading** (`raise.ts`, `groups/group_grandchild`,
+`theme` the member, its root `score` with `movement` between, both
+ancestor lines displayed; and `groups/group_parent_both`). Every
+expected value is derived from the drawing's own records, never written
+here, so the facts hold whatever the layout's ordinates are:
+
+5. **Rows from the records.** For each timeline layout draws a line of in
+   both the member card (`{item: group_1, member: theme}`, its own and its
+   ancestor lines) and the ancestor card (lines marked `ancestor`), the
+   motion is the member card's ordinate less the ancestor card's, not
+   entering: `theme`, `movement`, `score`. The root's shift is exactly 0:
+   layout lays the card's root line on the member card's ancestor line of
+   it.
+6. **Each element travels with its row.** Every line element of the card
+   (`timeline`, `child`) lies at `t` = 0 exactly on its timeline's line in
+   the member card (its `y` plus `dy`), at ½ half-way, at 1 at its own
+   `y`; every element of the card's range whose address names a timeline
+   or an entry or named timestamp of one (core's owners) takes that
+   timeline's motion; the card's rectangle takes none (it blends in, the
+   member card beneath blending out).
+7. **The clip** opens from the member card's record rectangle and ends
+   at a rectangle holding the card's record rectangle and its shadow
+   (`shadowOffset` right and down) and the bounds of every element of the
+   card.
+
+What would be wrong: a row read from another card (the frame's other
+member, the unraised order), an element moving apart from its line, the
+clip cutting the card at rest.
+
+**The progress** (`Unfolding`, under Vitest's fake timers faking
+`requestAnimationFrame` and `performance`, the clock it reads; a frame
+every 16 ms from 0). `raised` is a `$state` root,
+`reduced` a `$state` flag.
+
+8. **Made raised, at rest.** Made while `raised` is `R`: `root` `R`,
+   `progress` 1, not moving, before any frame.
+9. **Opening.** `raised` from `null` to `R`: at once `root` `R`,
+   `progress` 0, moving; after 192 ms (twelve frames) `progress` is
+   `UNFOLD_EASING(192 / 400)`; after 416 ms 1, not moving.
+10. **Reversal from where it stands.** At 192 ms, with `p` that
+    progress, `raised` back to `null`: `root` stays `R` while it folds,
+    the progress `p` at once (no jump to either end), and the way back
+    takes `400p` ms (`durationOf`), not 400: at the next frame (208 ms) it
+    is `p − p × UNFOLD_EASING(16 / (400p))`. `p` is `UNFOLD_EASING(0.48)`
+    = 0.442368, so `400p` is 176.9472 ms: at 352 ms, the last frame
+    before the end, `p − p × UNFOLD_EASING(160 / (400p))`, above 0, with
+    `root` `R`; at 384 ms 0 and `root` `null`.
+11. **Reduced motion.** With `reduced` true, raising gives `progress` 1
+    and closing 0 with `root` `null` at once, before any frame.
+12. **Another root.** From `R` at rest to `Q`: `root` `Q` at once,
+    `progress` 0, then 1 after 416 ms.
+
+What would be wrong: a motion restarting from an end on reversal, the
+folding card dropped before it is folded, motion under reduced motion, a
+re-mounted node animating a raise that happened before it.
 
 ## Picking an element (`picking.test.ts`)
 
@@ -2052,7 +2147,7 @@ unknown length or a scale breaking the abscissas.
 
 **A covered line is not read** (`stackingOf`, `raisedRoot`). One
 stacking order says what lies over what, the order the block node shows
-its drawing in (`raisedEntries`): from the bottom, the ancestor cards
+its drawing in (`raisedLayers`): from the bottom, the ancestor cards
 that are not raised, in record order (a later one over an earlier one),
 then every frame and card the block holds (one level), then the raised
 ancestor cards, in record order. A root's cards are raised while a

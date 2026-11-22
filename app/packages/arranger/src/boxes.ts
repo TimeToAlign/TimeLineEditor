@@ -148,7 +148,7 @@ export type Covered = (axis: LineAxis, point: DrawingPoint) => boolean;
  * every other frame and card (one level: a member's card lies in its
  * frame, and items laid over one another by the user cover nothing here),
  * then the raised ancestor cards, in record order. The one statement of
- * that order: the block node draws by it (`raisedEntries`), the pointer and
+ * that order: the block node draws by it (`raisedLayers`), the pointer and
  * every place of a coordinate read lines by `covered`, the marquee and an
  * editor's focus leave out what lies `behind`.
  */

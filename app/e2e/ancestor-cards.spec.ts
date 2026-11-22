@@ -4,7 +4,8 @@
  * the frame's borders; the Properties button "Hide parent timelines",
  * offered for the root and for its grouped child alike, hides it with one
  * style entry and "Show parent timelines" draws it again; a double-click on it opens the root's timeline editor and raises
- * it over the frame; Show coordinates reads the card where it is seen and an
+ * it over the frame, unfolding it out of the member card and folding it back on Done, at once under
+ * reduced motion; Show coordinates reads the card where it is seen and an
  * ancestor line as its ancestor's. The expected values are derived in
  * `README.md` ("ancestor-cards.spec.ts").
  */
@@ -15,8 +16,10 @@ import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
 import type { ElementAddress } from "../packages/core/src/index.ts";
 import { cardAddress, idAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import { lineAxes } from "../packages/layout/src/axes.ts";
+import { attributeText } from "../packages/writers/src/svg.ts";
 import { FONT_METRICS, manifestFixture } from "./schema.ts";
 import {
+  addressSelector,
   done,
   editing,
   element,
@@ -202,6 +205,94 @@ test("a double-click on an ancestor card opens its root's editor and raises it",
   await expect.poll(() => cardAfterFrame(page, block)).toBe(true);
   await done(page);
   await expect.poll(() => cardAfterFrame(page, block)).toBe(false);
+});
+
+/** What the page shows of a raised card's layer, recorded on every change of block `block`'s node. */
+interface Shown {
+  /** Whether a change found the layer moving (`data-unfolding`). */
+  moved: boolean;
+  /** The `transform` of `middle`'s line in the layer when the layer first appeared. */
+  first: string | null;
+}
+
+/** Record what the raised layer of block `block` shows from now on; read it with `.evaluate`. */
+function recordRaise(page: Page, block: string) {
+  const line = `g.tilie-raised line${addressSelector(idAddress("middle"))}`;
+  return node(page, block).evaluateHandle((held, selector): Shown => {
+    const shown: Shown = { moved: false, first: null };
+    let present = false;
+    new MutationObserver(() => {
+      const layer = held.querySelector("g.tilie-raised");
+      if (layer?.hasAttribute("data-unfolding")) shown.moved = true;
+      if (layer !== null && !present)
+        shown.first = held.querySelector(selector)?.getAttribute("transform") ?? null;
+      present = layer !== null;
+    }).observe(held, { subtree: true, childList: true, attributes: true });
+    return shown;
+  }, line);
+}
+
+test("the raised card unfolds out of the member card and folds back into it", async ({ page }) => {
+  const { block } = await imported(page);
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the page's workspace is refused");
+  const drawn = workspace.view.blocks[block];
+  if (drawn === undefined) throw new Error(`block ${block} is missing`);
+  const axes = [...lineAxes(drawingOf(drawn, workspace.view.graphical, FONT_METRICS)).values()];
+  const middleIn = (card: boolean) =>
+    axes.find(
+      (axis) =>
+        axis.timeline === "middle" &&
+        (card ? axis.ancestor !== undefined : axis.card.member === "middle"),
+    )?.y ?? Number.NaN;
+  const shift = middleIn(false) - middleIn(true);
+  const layer = node(page, block).locator("g.tilie-raised");
+  const raisedMiddle = layer.locator(`line${addressSelector(idAddress("middle"))}`);
+
+  // At rest on the arranger: no raised layer, the card behind the frame.
+  await expect(layer).toHaveCount(0);
+  expect(await cardAfterFrame(page, block)).toBe(false);
+
+  const opening = await recordRaise(page, block);
+  const visible = await framePoint(page, block, PIECE_CARD);
+  await page.mouse.dblclick(visible.x, visible.y);
+  await expect
+    .poll(() => editing(page))
+    .toEqual([{ target: { block, id: "piece" }, kind: "timeline" }]);
+  // At rest in the editor: the card raised in its own layer, unclipped, nothing shifted.
+  await expect(layer).toHaveCount(1);
+  await expect(layer).not.toHaveAttribute("data-unfolding");
+  await expect(layer).not.toHaveAttribute("clip-path");
+  await expect(node(page, block).locator("clipPath")).toHaveCount(0);
+  await expect(layer.locator("[transform]")).toHaveCount(0);
+  await expect(raisedMiddle).toHaveAttribute("y1", attributeText(middleIn(true)));
+  expect(await cardAfterFrame(page, block)).toBe(true);
+  // It started on the member card's row of `middle` and moved.
+  const opened = await opening.evaluate((shown) => ({ ...shown }));
+  expect(opened).toEqual({ moved: true, first: `translate(0 ${attributeText(shift)})` });
+
+  const closing = await recordRaise(page, block);
+  await done(page);
+  // At rest on the arranger again: the layer gone, the card behind the frame.
+  await expect(layer).toHaveCount(0);
+  expect(await cardAfterFrame(page, block)).toBe(false);
+  expect((await closing.evaluate((shown) => ({ ...shown }))).moved).toBe(true);
+});
+
+test("the raised card switches at once under reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const { block } = await imported(page);
+  const layer = node(page, block).locator("g.tilie-raised");
+  const opening = await recordRaise(page, block);
+  const visible = await framePoint(page, block, PIECE_CARD);
+  await page.mouse.dblclick(visible.x, visible.y);
+  await expect(layer).toHaveCount(1);
+  await expect(layer).not.toHaveAttribute("data-unfolding");
+  expect(await opening.evaluate((shown) => ({ ...shown }))).toEqual({ moved: false, first: null });
+  const closing = await recordRaise(page, block);
+  await done(page);
+  await expect(layer).toHaveCount(0);
+  expect((await closing.evaluate((shown) => ({ ...shown }))).moved).toBe(false);
 });
 
 test("Show coordinates reads the card where it is seen and an ancestor line as its ancestor's", async ({

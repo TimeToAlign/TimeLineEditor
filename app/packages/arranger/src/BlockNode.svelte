@@ -8,6 +8,10 @@ import { ADDRESS_ATTRIBUTES, attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
 import { tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import type { CardUnfold } from "./animation/raise.ts";
+import { raiseUnfold } from "./animation/raise.ts";
+import { frameAt, rectAt } from "./animation/unfold.ts";
+import { Unfolding } from "./animation/unfolding.svelte.ts";
 import type { BandBox, Hover, Role } from "./boxes.ts";
 import {
   boxKey,
@@ -28,7 +32,7 @@ import {
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
 import { affordancesOf } from "./coordinates.ts";
-import { raisedEntries } from "./drawing.ts";
+import { raisedLayers } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
@@ -44,6 +48,9 @@ import { type Owner, ownerOf } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
 let { data }: Pick<NodeProps<BlockNodeType>, "data"> = $props();
+
+/** This node's own prefix for the IDs its drawing defines (the clips of raised cards). */
+const uid = $props.id();
 
 const actions = getNodeActions();
 
@@ -120,13 +127,56 @@ function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descr
   });
 }
 
+/** The canvas's text measure, for the out-of-date marks and the bounds of a raised card. */
+const measure = new TextMeasure(actions.metrics);
+
 /**
- * The entries in the order the block shows them: the drawing's (`drawnEntries`, keyed once per
- * drawing), with a root's ancestor cards
- * raised over the frames while one of its timelines lying in no group is edited (`raisedEntries`).
+ * The raise of a root's ancestor cards over the frames while one of its
+ * timelines lying in no group is edited (`raisedRoot`), unfolding out of
+ * the member cards and folding back into them (decision record 0034).
+ */
+const unfolding = new Unfolding(
+  () => raisedRoot(data.block, data.editing),
+  () => actions.reducedMotion(),
+);
+
+/**
+ * The drawing's entries (`drawnEntries`, keyed once per drawing) in the
+ * layers the block shows them in (`raisedLayers`): every entry no raised
+ * card draws, then each raised card of the root `unfolding` shows, with how
+ * it unfolds (`raiseUnfold`).
  */
 const drawnEntries = $derived(keyed(data.block.manifest, data.drawing, data.descriptors));
-const entries = $derived(raisedEntries(drawnEntries, data.block, data.drawing, data.editing));
+const layers = $derived(raisedLayers(drawnEntries, data.drawing, unfolding.root));
+const raisedCards = $derived(
+  layers.raised.map((card) => ({
+    ...card,
+    key: boxKey(card.box) ?? addressKey(card.box.address),
+    unfold: raiseUnfold(data.block.manifest, data.drawing, card.box, measure),
+  })),
+);
+
+/** Every entry in the order the block shows it: below the raised cards, then theirs. */
+const entries = $derived(
+  layers.raised.length === 0
+    ? layers.below
+    : [...layers.below, ...layers.raised.flatMap((card) => card.entries)],
+);
+
+/**
+ * What an entry of a raised card adds to its attributes at the progress
+ * `t` of its unfolding (`frameAt`): its shift as a `transform` and its
+ * opacity times its own; nothing at rest.
+ */
+function unfoldAttributes(entry: Entry, unfold: CardUnfold, t: number): Record<string, string> {
+  if (t >= 1) return {};
+  const { dy, opacity } = frameAt(unfold.motionOf(entry.descriptor.source.element), t);
+  const own = Number(entry.attributes.opacity ?? 1);
+  return {
+    ...(dy === 0 ? {} : { transform: `translate(0 ${attributeText(dy)})` }),
+    ...(opacity === 1 ? {} : { opacity: attributeText(own * opacity) }),
+  };
+}
 
 /**
  * The entries a mark copies: each frame's and card's own rectangle by its
@@ -210,9 +260,6 @@ function attributesOf(entry: Entry): Readonly<Record<string, string>> {
     ? entry.attributes
     : { ...entry.attributes, [painted.attribute]: painted.colour };
 }
-
-/** The canvas's text measure, for the out-of-date marks. */
-const measure = new TextMeasure(actions.metrics);
 
 /**
  * The out-of-date marks (`OUT_OF_DATE_MARK`) of the name labels of named
@@ -540,7 +587,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
     {onpointerleave}
     {@attach bandMoves}
   >
-    {#each entries as entry (entry.key)}
+    {#each layers.below as entry (entry.key)}
       <svelte:element
         this={entry.descriptor.tag}
         {...attributesOf(entry)}
@@ -553,6 +600,48 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         {@attach gestureOf(entry.box)}
         animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
       >
+    {/each}
+    <!--
+      Each raised card in its own layer, clipped and its rows shifted while it
+      unfolds or folds back (`raiseUnfold`, `frameAt`), letting the pointer
+      through while it moves; at rest its entries are drawn as every other
+      one. An ancestor card is never reordered nor dragged, so its entries
+      take no slide and no gesture.
+    -->
+    {#each raisedCards as { key, entries: cardEntries, unfold }, at (key)}
+      {@const t = unfolding.progress}
+      {@const clip = t < 1 ? rectAt(unfold.from, unfold.to, t) : null}
+      {@const clipId = `${uid}-raised-${at}`}
+      {#if clip !== null}
+        <clipPath id={clipId}>
+          <rect
+            x={attributeText(clip.x)}
+            y={attributeText(clip.y)}
+            width={attributeText(clip.width)}
+            height={attributeText(clip.height)}
+          />
+        </clipPath>
+      {/if}
+      <g
+        class="tilie-raised"
+        data-raised={key}
+        data-unfolding={clip === null ? undefined : ""}
+        clip-path={clip === null ? undefined : `url(#${clipId})`}
+        pointer-events={clip === null ? undefined : "none"}
+      >
+        {#each cardEntries as entry (entry.key)}
+          <svelte:element
+            this={entry.descriptor.tag}
+            {...attributesOf(entry)}
+            {...unfoldAttributes(entry, unfold, t)}
+            data-selected={glows(entry) ? "" : undefined}
+            data-affected={isAffected(entry) ? "" : undefined}
+            data-outside={isOutside(entry.addressKey) ? "" : undefined}
+            pointer-events={passes(entry.owner) ? "none" : undefined}
+            {@attach drawn(entry.descriptor.source)}>{entry.descriptor.text}</svelte:element
+          >
+        {/each}
+      </g>
     {/each}
     {#each outOfDate as mark (mark.key)}
       <text
