@@ -120,6 +120,11 @@ describe("journalRows", () => {
         entry({ type: "add", into: address(A), timeline: { id: "viola", name: "Viola" } }),
         entry({ type: "add", into: address(A, "score"), region: { id: "region_1" } }),
         entry({ type: "add", into: address(A, "score"), region: {} }),
+        entry({
+          type: "add",
+          into: address(A, "score"),
+          elision: { start: [1, 1], end: [2, 1] },
+        }),
         entry({ type: "set", changes: [{ target: address(A), values: { x: 25, y: -3 } }] }),
         entry({
           type: "set",
@@ -179,6 +184,7 @@ describe("journalRows", () => {
       "Added timeline 'Viola' to bundle 'Mixed'",
       "Added region 'region_1' to timeline 'Score' in bundle 'Mixed'",
       "Added a region to timeline 'Score' in bundle 'Mixed'",
+      "Added an elision to timeline 'Score' in bundle 'Mixed'",
       "Set x, y of bundle 'Mixed'",
       "Set container width, container height of bundle 'Mixed'",
       "Set x, y of bundle 'Mixed' and 1 more",

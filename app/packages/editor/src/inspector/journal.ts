@@ -71,6 +71,7 @@ const ADD_WORDS: { readonly [kind in AddKind]: string } = {
   flow_control: "flow-control element",
   timestamp: "timestamp",
   matchstamp: "MatchStamp",
+  elision: "elision",
 };
 
 /** The string member `member` of an added value; `null` for a value without one. */
@@ -110,7 +111,9 @@ function addedWords(command: AddCommand, view: View): string {
   if (carried !== null) return carried;
   const name = kind === "block" ? null : addedMember(value, "name");
   const named = name ?? id;
-  const added = named === null ? `a ${ADD_WORDS[kind]}` : `${ADD_WORDS[kind]} '${named}'`;
+  const word = ADD_WORDS[kind];
+  const article = /^[aeiou]/.test(word) ? "an" : "a";
+  const added = named === null ? `${article} ${word}` : `${word} '${named}'`;
   return kind === "block" ? added : `${added} to ${addressWords(view, command.into)}`;
 }
 

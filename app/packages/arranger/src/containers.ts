@@ -310,6 +310,7 @@ function boxFor(
     case "timestamp":
     case "matchstamp":
     case "anchor":
+    case "elision":
       return null;
     default:
       return assertNever(resolved);

@@ -1005,6 +1005,21 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept.
 
+## A selected elision (`inspector-elision.test.ts`)
+
+A stored elision has no name, no lock, no timeline membership and no
+statements of its own, and no section of the Properties tab yet; the
+inspector treats it as it treats an alignment anchor. The oracle is the
+`bundles` workspace's `bmixed0000` with one `add` of an elision into the
+timeline `score` (`{start: [1, 1], end: [2, 1]}`), which mints
+`elision_1`, selected alone at the arranger. Core resolves the address to
+the kind `elision`. The statements tab shows nothing, in the words "Elision
+'elision_1' in bundle 'Mixed' has no statements: a
+bundle, a timeline or a region has. Select its block, a timeline or a
+region." (the elision's words are core's `addressWords`). The name field,
+the lock and the Groups fieldset are absent (`null`), since an elision is
+no timeline, group or named element.
+
 ## Group memberships (`inspector-groups.test.ts`)
 
 Below the geometry, the Properties tab offers the group memberships of
@@ -2968,7 +2983,10 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
    a part of a card; a band with a part; a band of a group or of a jump;
    the card of a timeline drawn in no card, `{block: "styled0000", id: "a",
    part: ["card"]}`). In the MatchStamps store: `matchstamp_1`
-   "MatchStamp" "Bar 2, downbeat (take 1)"; `anchor_2` "Alignment anchor"
+   "MatchStamp" "Bar 2, downbeat (take 1)"; a stored elision
+   `elision_1` of `score` (added by `add {into: score, elision: {start: [1,
+   1], end: [2, 1]}}`) "Elision" with its id `elision_1`, as an anchor,
+   since an elision has no name; `anchor_2` "Alignment anchor"
    with its id `anchor_2` (an anchor has no name); `anchor_1`'s drawn
    label `{part: ["name"]}` "Name of alignment anchor" with the id
    `anchor_1`; the match timestamp `timestamp_1` "Timestamp" with its id,
@@ -3007,7 +3025,9 @@ name, and `timestamp_3` "Take 2, bar 2"; the ordinary timestamp
    value's name); in the MatchStamps store's view, whose one block needs
    no bundle words, "Set name of MatchStamp 'Bar 2, downbeat (take 1)'",
    "Set display of alignment anchor 'anchor_2'", "Removed MatchStamp
-   'Bar 2, downbeat (take 2)'"; "Set x, y of
+   'Bar 2, downbeat (take 2)'"; an `add` of an elision into `score`, whose value
+   states no id, "Added an elision to timeline 'Score' in bundle 'Mixed'"
+   (the article is "an" before a vowel); "Set x, y of
    bundle 'Mixed'" (" and 1 more" for more changes), a block's size by the
    Properties form's words ("Set container width, container height of
    bundle 'Mixed'"), "Set place of group 'Performance' in bundle 'Mixed'

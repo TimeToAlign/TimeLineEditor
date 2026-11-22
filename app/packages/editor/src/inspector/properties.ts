@@ -555,6 +555,7 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
       return { target, name: matchstamp.name, nullable: false, manifest: block.manifest };
     }
     case "anchor":
+    case "elision":
       return null;
     case "part":
       return namedBy(resolved.owner);
@@ -625,6 +626,7 @@ function timelineOf(
     case "timestamp":
     case "matchstamp":
     case "anchor":
+    case "elision":
       return null;
     default:
       return assertNever(resolved);

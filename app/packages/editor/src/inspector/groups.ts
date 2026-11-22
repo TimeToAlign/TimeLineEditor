@@ -90,6 +90,7 @@ function timelineIdOf(resolved: ResolvedAddress): string | null {
     case "timestamp":
     case "matchstamp":
     case "anchor":
+    case "elision":
       return null;
     default:
       return assertNever(resolved);
@@ -114,6 +115,7 @@ function groupIdOf(resolved: ResolvedAddress): string | null {
     case "timestamp":
     case "matchstamp":
     case "anchor":
+    case "elision":
       return null;
     default:
       return assertNever(resolved);

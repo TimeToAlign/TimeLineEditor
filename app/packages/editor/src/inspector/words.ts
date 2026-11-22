@@ -73,6 +73,7 @@ export function editorName(view: View, target: Address): string {
     case "timestamp":
     case "matchstamp":
     case "anchor":
+    case "elision":
     case "part":
       return addressWords(view, target);
     default:
@@ -185,6 +186,8 @@ function describe(resolved: ResolvedAddress): Described | null {
         id: resolved.anchor.id,
         titled: false,
       };
+    case "elision":
+      return { parts: [], kind: "elision", name: null, id: resolved.elision.id, titled: false };
     case "part": {
       const owner = describe(resolved.owner);
       if (owner === null) return null;

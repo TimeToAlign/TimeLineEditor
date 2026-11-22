@@ -1184,6 +1184,11 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   segment `b`.
 - **`flow_control`**: the flow marker `flow_marker_1` and the jump origin
   `jump_from_1` pick nothing.
+- **`with_region` with a stored elision**: after `add {into: {block: A, id:
+  "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
+  `elision_1` on `clt_1`, which core resolves to the kind `elision`; a press
+  on `{id: "elision_1"}` picks nothing, exactly as on a named timestamp: an
+  elision names no timeline or region of its own to pick.
 
 The canvas (`CanvasHarness` on `with_region` at the default viewport,
 `picking` given): the arranger carries `data-picking`, absent without

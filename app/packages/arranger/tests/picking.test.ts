@@ -6,7 +6,14 @@
  */
 
 import type { Address, ElementAddress, Store } from "@timetoalign/tilie-core";
-import { bandAddress, cardAddress, idAddress, inBlock, partAddress } from "@timetoalign/tilie-core";
+import {
+  bandAddress,
+  cardAddress,
+  idAddress,
+  inBlock,
+  partAddress,
+  resolveAddress,
+} from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,7 +26,16 @@ import type { Selection } from "../src/selection.ts";
 import { selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
-import { A, blockIn, CHILD_MEMBER, metrics, sourceOf, storeOf, viewOf } from "./support.ts";
+import {
+  A,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  metrics,
+  sourceOf,
+  storeOf,
+  viewOf,
+} from "./support.ts";
 
 /** The block A of `fixture`: its manifest and drawing. */
 function blockOf(fixture: string) {
@@ -58,6 +74,26 @@ describe("what a press picks", () => {
     expect(pickable(hitOf(A, region.drawing, null), region.manifest)).toBeNull();
     expect(pick(region, idAddress("timestamp_1"), "wedge")).toBeNull();
     expect(pick(region, partAddress(idAddress("timestamp_1"), "coordinate"))).toBeNull();
+  });
+
+  it("picks nothing on a stored elision", () => {
+    const view = changed(viewOf({ id: A, fixture: "with_region" }), {
+      type: "add",
+      into: inBlock(A, idAddress("clt_1")),
+      elision: { start: [1, 1], end: [2, 1] },
+    });
+    const { manifest } = blockIn(view, A);
+    const address = inBlock(A, idAddress("elision_1"));
+    expect(resolveAddress(view, address)).toMatchObject({ kind: "elision" });
+    const hit: Hit = {
+      block: A,
+      kind: "element",
+      address,
+      box: null,
+      boundary: false,
+      within: null,
+    };
+    expect(pickable(hit, manifest)).toBeNull();
   });
 
   it("picks the edited timeline by its band in its editor", () => {

@@ -169,6 +169,19 @@ describe("inspectedSubject", () => {
     expect(inspectedSubject(small, selected(address))).toEqual(subject);
   });
 
+  it("names a stored elision by its kind and its id, as it has no name", () => {
+    const store = storeOf("bundles");
+    const error = store.dispatch({
+      type: "add",
+      into: at("bmixed0000", { id: "score" }),
+      elision: { start: [1, 1], end: [2, 1] },
+    });
+    if (error !== null) throw new Error(error.message);
+    expect(inspectedSubject(store.view, selected(at("bmixed0000", { id: "elision_1" })))).toEqual(
+      unnamed("Elision", "elision_1"),
+    );
+  });
+
   it("names a measure map by its kind and its name or id", () => {
     const store = storeOf("small");
     const error = store.dispatch({
