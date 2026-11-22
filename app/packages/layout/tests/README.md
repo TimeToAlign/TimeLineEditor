@@ -1241,21 +1241,46 @@ For a line keyed as `lineAxes` keys it, at the abscissa `x`:
   line but the mark its marks are drawn as (section 8.3): always above the
   line, its tip on the line's edge, `y − w / 2`, `w` the drawn ancestor
   line's stroke width, its base 13 further up, turned by its style's
-  `rotation`, in the style of the unnamed wedge of its member's line in
-  the same card. In `group_child_member` `piece`'s ancestor line in
-  `second-half`'s card lies at 67.78125 (`w` 3, defaults' ancestor stroke
-  width), so at 100 the mark is `[[100, 66.28125], [97, 53.28125], [103,
-  53.28125]]` (`67.78125 − 1.5`, then 13 up, `∓ 3` across), styled as
-  `second-half`'s unnamed wedge: fill `#000000` (the defaults' wedge
-  rule), opacity 1 (not inside the ancestor line, so not faded), stroke
-  `#00CC00` (the logical domain), turned 0. A rule hiding the drawn mark of
-  `second-half`'s start and one recolouring and turning the mark of its end
-  (each naming its address) change nothing of it: the hover mark depends on
-  no styled element. A rule on every wedge (`{element: wedge}` with fill
-  `#123456`, naming no address) recolours it, as it does every unnamed
-  wedge. What would be wrong: none (the hover on an ancestor line then shows
-  no mark), the mark of the member's start moved there (a rule on that
-  mark would hide or recolour the hover), or a mark below the line;
+  `rotation`, in the style the cascade gives a wedge held by the ancestor
+  line that no named timestamp holds (a wedge of the ancestor's timeline,
+  its parent the ancestor line, no rule naming `addresses` applied). With
+  the defaults (section 4) that style is, property by property: stroke
+  `#00CC00`, the logical-domain rule (and the line's, inherited); stroke
+  width 3 and dashes `none`, inherited from the line (`{element: ancestor}`
+  and its continuous rule), since no rule sets them on a wedge; fill
+  `#000000`, `{element: wedge}`, which outranks the domain rule by naming
+  the element; **opacity 0.35, `{inside: ancestor}`, the rule that decides**
+  (opacity is not inherited, so the faded line alone would leave it 1);
+  font size 9, rx 0, shadow `none`, display `inline`, content `none`,
+  max-width `none`, the initial values; rotation 0, a wedge's initial value
+  off a groupstamp. These are the values of the drawn marks of the member's
+  start and end on the same line, which the same rules style, so the hover
+  mark is faded as they are. In `group_child_member` `piece`'s ancestor line
+  in `second-half`'s card lies at 67.78125 (`w` 3, the defaults' ancestor
+  stroke width), so at 100 the mark is `[[100, 66.28125], [97, 53.28125],
+  [103, 53.28125]]` (`67.78125 − 1.5`, then 13 up, `∓ 3` across). A rule
+  hiding the drawn mark of `second-half`'s start and one recolouring and
+  turning the mark of its end (each naming its address) change nothing of
+  it: the hover mark depends on no styled element. A rule on every wedge
+  (`{element: wedge}` with fill `#123456`, naming no address) recolours it,
+  as it does every unnamed wedge. In `group_parent_both` `piece`'s
+  ancestor line in `middle`'s card lies at 67.78125 alike, so at 200 the
+  mark is `[[200, 66.28125], [197, 53.28125], [203, 53.28125]]` and its
+  style is the whole style above, equal to the drawn mark `{id: middle,
+  part: [start]}`'s; a rule recolouring that mark (`addresses: [{id:
+  middle, part: [start]}]`, fill `#FF0000`) recolours the drawn mark and
+  leaves the hover mark equal to the one without it; a rule on the wedges
+  of ancestor lines (`{element: wedge, inside: ancestor}`, fill `#123456`,
+  opacity 1) gives it fill `#123456` and opacity 1 and leaves the unnamed
+  wedge of `middle`'s own line as it was (fill `#000000`, opacity 1); with
+  `group_1` at scale 2 the mark is scaled with its line: at `x` its tip
+  lies at `y − 3` and its corners at `x ∓ 6` and `y − 3 − 26`, `y` the
+  ancestor line's ordinate in that drawing (its axis record), its style's
+  lengths doubled as every scaled style's (stroke width 6, font size 18). What would be wrong: none (the hover on an ancestor line
+  then shows no mark), the mark of the member's start moved there (a rule
+  on that mark would hide or recolour the hover), the member line's
+  unnamed wedge (opacity 1: an unfaded mark on a faded line), a mark that
+  keeps its unscaled size in a scaled card, or a mark below the line;
 - a key naming no line has neither;
 - in `nested`, an extra layer's rule `{element: wedge, within: clt_3}`
   setting `rotation` 90 turns `clt_3`'s mark at 200 about its tip (section

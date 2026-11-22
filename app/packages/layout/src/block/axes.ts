@@ -76,7 +76,7 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  * The axes of the lines `drawn` draws for `member` of `manifest`, started at
  * `x0` and `L` long, in item coordinates and in the order of their elements,
  * each timeline's or child's line with where a coordinate marker of it lies
- * (`MemberDrawn.markers`).
+ * (`MemberDrawn.markers`), each ancestor line with its mark (`MemberDrawn.marks`).
  *
  * A timeline's or a child's line runs from `Xs`, its own axis's zero, to
  * `Xe`, its end: its length, or the end the next segment or its segment
@@ -162,6 +162,7 @@ export function axesOf(
       segments: segmentsOf(timeline),
       maps: drawnMaps.flatMap((item) => (item.line === timeline.id ? [item.map] : [])),
       marker: drawn.markers.get(element) ?? null,
+      mark: null,
     };
   };
   const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
@@ -194,6 +195,7 @@ export function axesOf(
       segments: [],
       maps: [],
       marker: null,
+      mark: drawn.marks.get(element) ?? null,
     };
   };
   return drawn.elements.flatMap((element) => {

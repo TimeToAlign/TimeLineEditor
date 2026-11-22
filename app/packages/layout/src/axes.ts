@@ -11,7 +11,6 @@ import {
   type PlaceKey,
   placeKeyText,
   type Real,
-  samePlaceKey,
 } from "@timetoalign/tilie-core";
 import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
@@ -21,7 +20,6 @@ import type { Drawing, Point } from "./elements.ts";
 import { wedgePoints } from "./geometry.ts";
 import { groupSpans } from "./groupstamps.ts";
 import { add, negate } from "./numbers.ts";
-import { type WedgeCorner, wedgeCorners } from "./rotation.ts";
 
 /** One drawn line of a drawing, in block-local canvas units, with the coordinates it stands for. */
 export interface LineAxis {
@@ -253,40 +251,17 @@ export function crossedLines(drawing: Drawing, lineKey: string): readonly string
  * that timeline that no named timestamp holds, turned by that style's
  * `rotation` (a rule on the band's wedges, never one naming addresses nor a
  * groupstamp's initial −45). An ancestor line (section 8.3), which draws no
- * named timestamp, has the mark its marks are drawn as: always above the
- * line, its tip on the line's edge (`y − w / 2`, `w` the drawn ancestor
- * line's stroke width), with the style of a wedge of its member's line that
- * no named timestamp holds and that style's `rotation`, so that no rule on
+ * named timestamp, has the mark its marks are drawn as (`DrawnAxis.mark`):
+ * always above the line, its tip on the line's edge, with the style of a
+ * wedge held by the ancestor line that no named timestamp holds and that
+ * style's `rotation`, so that it is faded as the marks are and no rule on
  * the marks of the member's start and end changes it. Null where the key
  * names no line.
  */
 export function wedgeAt(drawing: Drawing, lineKey: string, x: number): WedgeMark | null {
-  const marked = markedLine(drawing, lineKey);
-  if (marked !== null) {
-    const { style, ...geometry } = marked.marker.wedge;
-    return { points: wedgePoints({ x, ...geometry }), style };
-  }
   const axis = drawing.axes.find((each) => axisKey(each.card, each.address) === lineKey);
-  if (axis === undefined) return null;
-  const address = addressKey(axis.address);
-  const line = drawing.elements.find(
-    (element) =>
-      element.type === "ancestor" &&
-      element.y === axis.line &&
-      element.xs <= axis.xStart &&
-      element.xe >= axis.xStart &&
-      addressKey(element.address) === address,
-  );
-  const holder = axis.card.member ?? axis.card.item;
-  const member = drawing.axes.find(
-    (each) => each.address.id === holder && samePlaceKey(each.card, axis.card),
-  )?.marker;
-  if (line === undefined || member === undefined || member === null) return null;
-  const { style } = member.wedge;
-  const tip = line.style["stroke-width"] / 2;
-  const corners = wedgeCorners(style.rotation ?? 0).map(({ dx, out }) => ({
-    dx,
-    y: axis.line - (tip + out),
-  })) as [WedgeCorner, WedgeCorner];
-  return { points: wedgePoints({ x, yt: axis.line - tip, corners }), style };
+  const wedge = axis?.marker?.wedge ?? axis?.mark;
+  if (wedge === undefined || wedge === null) return null;
+  const { style, ...geometry } = wedge;
+  return { points: wedgePoints({ x, ...geometry }), style };
 }

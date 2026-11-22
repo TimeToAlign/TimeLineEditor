@@ -639,6 +639,7 @@ describe("coordinateAt", () => {
     segments: [],
     maps: [],
     marker: null,
+    mark: null,
   });
 
   it("computes exactly and rounds once into the axis's number type", () => {
