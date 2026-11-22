@@ -4,19 +4,19 @@ import {
   crossSection,
   groupCrossSections,
   type Style,
+  wedgeAt,
 } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
 import { ViewportPortal } from "@xyflow/svelte";
-import { markWedgeAt, type PlacedMarks } from "./coordinates.ts";
+import type { PlacedMarks } from "./coordinates.ts";
 
 /**
  * The wedge and the cross-section line of the hovered position and of the
  * pinned unnamed timestamp, each as a named timestamp lying there draws its
- * own (layout's `wedgeAt` through `markWedgeAt`, and `crossSection`, with
- * their resolved styles); a line without a cross-section (neither its
- * children band nor its conversion maps band is present) draws the wedge
- * alone, and an ancestor line, which draws no timestamp, the mark of its
- * member's start moved to the position (`markWedgeAt`). A position read
+ * own (layout's `wedgeAt` and `crossSection`, with their resolved styles);
+ * a line without a cross-section (neither its children band nor its
+ * conversion maps band is present) draws the wedge alone, and so does an
+ * ancestor line, which draws no timestamp: layout's mark of it. A position read
  * across its group (`MarkPlace.group`) also draws the lines a groupstamp
  * lying there draws across the frame holding the line (layout's
  * `groupCrossSections`).
@@ -51,7 +51,7 @@ function opacityOf(style: Style): string | undefined {
 {#if marks.length > 0}
   <ViewportPortal target="front" class="tilie-overlay">
     {#each marks as mark (mark.kind)}
-      {@const wedge = markWedgeAt(mark.drawing, mark.key, mark.x)}
+      {@const wedge = wedgeAt(mark.drawing, mark.key, mark.x)}
       {@const line = crossSection(mark.drawing, mark.key, mark.x)}
       {@const group = mark.group === true ? groupCrossSections(mark.drawing, mark.key, mark.x) : []}
       <svg

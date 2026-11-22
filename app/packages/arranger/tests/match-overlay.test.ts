@@ -10,7 +10,8 @@
  */
 
 import type { Address, Store, View } from "@timetoalign/tilie-core";
-import { idAddress, inBlock } from "@timetoalign/tilie-core";
+import { anchorIndexOf, idAddress, inBlock, matchClaimColumns } from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
@@ -39,7 +40,7 @@ vi.mock("../src/matches.ts", async (importOriginal) => {
 });
 
 interface Mounted {
-  current(): { selection: Selection };
+  current(): { selection: Selection; viewport: { x: number; y: number; zoom: number } };
   showMatches(next: readonly MatchOverlayInput[]): void;
   pinMatchStamp(next: MatchStampPin | null): void;
   showAt(next: { x: number; y: number; zoom: number }): void;
@@ -639,6 +640,73 @@ describe("the named MatchStamps", () => {
     expect(await clickPart("timestamp_3", "line")).toEqual([inBlock(A, idAddress("matchstamp_2"))]);
     expect(await clickPart("timestamp_3", "name")).toEqual([inBlock(A, idAddress("timestamp_3"))]);
     expect(glowing().sort()).toEqual(["timestamp_3 line", "timestamp_3 name"]);
+  });
+});
+
+describe("an ancestor card raised", () => {
+  /** The table P of `README.md`: `middle` m ↔ `piece` p for (2, 6), (0, 1), (8, 14), (1, 3). */
+  const fraction = (value: number) => Rational.of([value, 1]);
+  const P = anchorIndexOf(
+    matchClaimColumns(
+      [
+        { id: "middle", numberType: "fraction" },
+        { id: "piece", numberType: "fraction" },
+      ],
+      [
+        [2, 6],
+        [0, 1],
+        [8, 14],
+        [1, 3],
+      ].map(([m, p], at) => ({
+        id: `p_${at + 1}`,
+        timelines: [0, 1],
+        start: [fraction(m as number), fraction(p as number)],
+      })),
+    ),
+  );
+
+  it("draws and hits the matches on the card the editor raises", async () => {
+    await show([{ block: A, index: P, named: [] }], false, undefined, "groups/group_parent_both");
+    await key("m");
+    const flagOf = () => {
+      const flag = document.querySelector('[data-testid="match-flag"]');
+      return flag === null
+        ? null
+        : [...flag.querySelectorAll(".tilie-coordinates-part")].map((part) => [
+            part.querySelector(".tilie-coordinates-head")?.textContent,
+            [...part.querySelectorAll('[data-testid="match-coordinate"]')].map(
+              (value) => value.textContent,
+            ),
+          ]);
+    };
+    await hoverAt(client(210.33544921875, 40));
+    expect(flagOf()).toBeNull();
+    expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
+    await settle();
+    // The editor fits the view to the card and places the node anew: the point is taken
+    // through the view and the node's place the canvas shows.
+    const { viewport } = harness.current();
+    const overlay = one(`[data-matches="${A}"]`) as SVGElement;
+    const node = {
+      x: Number.parseFloat(overlay.style.left),
+      y: Number.parseFloat(overlay.style.top),
+    };
+    expect(path("potential")?.getAttribute("d")).toBe(
+      [
+        "M110.3354 26.8047V67.7812",
+        "M210.3354 26.8047V67.7812",
+        "M360.3354 26.8047V67.7812",
+        "M760.3354 26.8047V67.7812",
+      ].join(""),
+    );
+    await hoverAt({
+      clientX: viewport.x + (node.x + 210.33544921875) * viewport.zoom,
+      clientY: viewport.y + (node.y + 40) * viewport.zoom,
+    });
+    expect(flagOf()).toEqual([
+      ["Piece", ["3 ♩"]],
+      ["Middle", ["1 ♩"]],
+    ]);
   });
 });
 

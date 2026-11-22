@@ -37,7 +37,6 @@ import type {
   TimestampRow,
 } from "@timetoalign/tilie-core";
 import {
-  addressKey,
   ancestorMembers,
   findTimeline,
   groupsHolding,
@@ -66,7 +65,6 @@ import type {
   DrawnAxis,
   DrawnBox,
   LineAxis,
-  MarkerElement,
   WedgeMark,
 } from "@timetoalign/tilie-layout";
 import {
@@ -76,7 +74,6 @@ import {
   frameMemberLines,
   lineAxes,
   wedgeAt,
-  wedgePoints,
 } from "@timetoalign/tilie-layout";
 import type { AffordanceSource } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
@@ -228,11 +225,12 @@ const coversByDrawing = new WeakMap<Drawing, Map<string | null, Covered>>();
  * it (`lineAt`), `raised` naming the root whose ancestor cards are raised
  * over every frame (`raisedRoot`), else `null`; once per drawing and root.
  * An ancestor card (section 8.8) lies behind every frame and every card the
- * block holds: a line of it is covered inside the rectangle of any of
- * those drawn (a frame and its member cards, an ungrouped root's card),
- * and read beyond their borders; once raised, its lines are never
- * covered, and every other line is covered inside the rectangle of a
- * raised card. A box whose rectangle is not drawn covers nothing.
+ * block holds, and behind every ancestor card recorded after it: a line of
+ * it is covered inside the rectangle of any of those drawn (a frame and its
+ * member cards, an ungrouped root's card, a later ancestor card), and read
+ * beyond their borders; once raised, its lines are never covered, and
+ * every other line is covered inside the rectangle of a raised card. A box
+ * whose rectangle is not drawn covers nothing.
  */
 export function coveredIn(drawing: Drawing, raised: string | null): Covered {
   let byRoot = coversByDrawing.get(drawing);
@@ -246,14 +244,27 @@ export function coveredIn(drawing: Drawing, raised: string | null): Covered {
     const above = drawn.filter(
       (box) => box.ancestor === undefined && (box.kind === "frame" || box.kind === "card"),
     );
-    const lifted = drawn.filter(
-      (box) => box.ancestor !== undefined && raised !== null && box.address.id === raised,
-    );
+    const cards = drawn.filter((box) => box.ancestor !== undefined);
+    const lifted = cards.filter((box) => raised !== null && box.address.id === raised);
+    /** The ancestor cards recorded after the one drawing `axis`, which lie over it. */
+    const later = (axis: LineAxis): readonly DrawnBox[] => {
+      const at = cards.findIndex(
+        (box) =>
+          box.address.id === axis.card.member &&
+          box.ancestor?.group === axis.ancestor?.group &&
+          box.ancestor?.member === axis.ancestor?.member,
+      );
+      return at < 0 ? [] : cards.slice(at + 1);
+    };
     covered = (axis, point) => {
       const ofCard = axis.ancestor !== undefined;
       if (ofCard && raised !== null && axis.card.member === raised) return false;
       if (lifted.some((box) => holdsPoint(box, point))) return true;
-      return ofCard && above.some((box) => holdsPoint(box, point));
+      if (!ofCard) return false;
+      return (
+        above.some((box) => holdsPoint(box, point)) ||
+        later(axis).some((box) => holdsPoint(box, point))
+      );
     };
     byRoot.set(raised, covered);
   }
@@ -562,88 +573,32 @@ function spans(axis: LineAxis, position: Rational): boolean {
 }
 
 /**
- * Where the pinned timestamp `pin` is marked in `drawing`, its block's: on
- * the line keyed `preferred` (the line it was pinned on) while that line
- * draws its anchor, else on the first line of its anchor's own that
- * `holdings` gives (a member card's before an ancestor card's) and that is
- * read (`axesOf`), else on the first ancestor line drawing it, at the
- * abscissa of its position, across the group's frame where the pin reads
- * the group (`readsGroup`); `null` where no such line draws its anchor or
- * the position lies outside the line's drawn span.
+ * Where the pinned timestamp `pin` is marked in `drawing`, its block's,
+ * `raised` naming the root whose ancestor cards are raised (`raisedRoot`),
+ * else `null`: on the line keyed `preferred` (the line it was pinned on)
+ * while that line draws its anchor at its position and is not covered
+ * there (`coveredIn`), else at the first place of its position
+ * (`placesAt`), across the group's frame where the pin reads the group
+ * (`readsGroup`); `null` where its anchor has no place there.
  */
 export function pinnedPlace(
   drawing: Drawing,
   pin: Pin,
   preferred: string | null,
+  raised: string | null = null,
 ): MarkPlace | null {
-  const axes = axesOf(drawing);
-  const { timeline } = pin.spec.anchor;
-  const own = preferred === null ? undefined : axes.get(preferred);
-  const held = holdings(drawing, timeline).find(
-    (holding) => holding.length === null && axes.has(holding.key),
-  );
-  const found =
-    preferred !== null && own?.timeline === timeline
-      ? ([preferred, own] as const)
-      : held !== undefined
-        ? ([held.key, held.axis] as const)
-        : [...axes].find(
-            ([key, axis]) => axis.timeline === timeline && !markedOf(drawing).has(key),
-          );
   const [anchor] = pin.timestamp.parts;
-  if (found === undefined || anchor === undefined) return null;
-  const [key, axis] = found;
+  if (anchor === undefined) return null;
+  const { timeline } = pin.spec.anchor;
   const position = toRational(anchor.position);
-  return spans(axis, position)
-    ? { key, x: abscissaOf(axis, position), group: readsGroup(pin) }
-    : null;
-}
-
-const startMarksByDrawing = new WeakMap<Drawing, Map<string, MarkerElement | null>>();
-
-/**
- * The mark of the member's start that `drawing` draws on its ancestor line
- * keyed `lineKey` (`ancestorLinesOf`): of the wedges addressed `{id: M,
- * part: ["start"]}`, `M` the member, at the line's start, the one whose
- * tip lies nearest above the line (section 6.6: always above it); `null`
- * on any other line and where the mark is not drawn. Once per drawing and
- * line.
- */
-function startMarkOf(drawing: Drawing, lineKey: string): MarkerElement | null {
-  let byLine = startMarksByDrawing.get(drawing);
-  if (byLine === undefined) {
-    byLine = new Map();
-    startMarksByDrawing.set(drawing, byLine);
+  const group = readsGroup(pin);
+  const own = preferred === null ? undefined : axesOf(drawing).get(preferred);
+  if (preferred !== null && own?.timeline === timeline && spans(own, position)) {
+    const x = abscissaOf(own, position);
+    if (!coveredIn(drawing, raised)(own, { x, y: own.y })) return { key: preferred, x, group };
   }
-  const known = byLine.get(lineKey);
-  if (known !== undefined) return known;
-  const line = ancestorLinesOf(drawing).get(lineKey);
-  let found: MarkerElement | null = null;
-  if (line !== undefined && line.axis.card.member !== undefined) {
-    const start = addressKey({ id: line.axis.card.member, part: ["start"] });
-    for (const element of drawing.elements) {
-      if (element.type !== "wedge" || element.x !== line.axis.xStart) continue;
-      if (element.yt > line.axis.y || addressKey(element.address) !== start) continue;
-      if (found === null || element.yt > found.yt) found = element;
-    }
-  }
-  byLine.set(lineKey, found);
-  return found;
-}
-
-/**
- * The wedge marking a position at the abscissa `x` of the line keyed
- * `lineKey` in `drawing`: layout's `wedgeAt`, as a named timestamp lying
- * there draws its own; on an ancestor line, which draws no timestamp, the
- * mark of the member's start on it (`startMarkOf`) moved to `x`, with its
- * style; `null` where neither is drawn.
- */
-export function markWedgeAt(drawing: Drawing, lineKey: string, x: number): WedgeMark | null {
-  const own = wedgeAt(drawing, lineKey, x);
-  if (own !== null) return own;
-  const mark = startMarkOf(drawing, lineKey);
-  if (mark === null) return null;
-  return { points: wedgePoints({ x, yt: mark.yt, corners: mark.corners }), style: mark.style };
+  const [place] = placesAt(drawing, timeline, position, raised);
+  return place === undefined ? null : { key: place.key, x: place.x, group };
 }
 
 /**
@@ -664,9 +619,10 @@ export interface Holding {
  * every line of its own, else every line whose segment it is, at the
  * segment's offset and with its length; none where no such line is drawn.
  * The member's own card wins: a line of an ancestor card (section 8.8,
- * `LineAxis.ancestor`) is among them only where no other line is. Where a
- * named timestamp has its place; "Show matches" and screen order add a
- * timeline's ancestor lines to them (`drawnOn`).
+ * `LineAxis.ancestor`) is among them only where no other line is. A
+ * timeline's ancestor lines are added to them (`drawnOn`), and both are cut
+ * to where the user sees them (`seenOn`), which places every coordinate
+ * (`placesAt`).
  */
 export function holdings(drawing: Drawing, timeline: string): Holding[] {
   const lines = [...markedOf(drawing)];
@@ -713,11 +669,10 @@ export interface SeenHolding extends DrawnHolding {
  * not: those `holdings` gives, and for a timeline drawn on no line but an
  * ancestor card's (section 8.8: every holding carries `LineAxis.ancestor`,
  * or there is none), also its ancestor lines in its descendants' member
- * cards (`ancestorLinesOf`), which come first, as in `lineAxes`. A
- * coordinate of a timeline drawn there is drawn where the user sees one of
- * these lines (`seenOn`); screen order places it on them (`screenPlace`).
+ * cards (`ancestorLinesOf`), which come first, as in `lineAxes`. Where the
+ * user sees them is `seenOn`'s.
  */
-export function drawnOn(drawing: Drawing, timeline: string): DrawnHolding[] {
+function drawnOn(drawing: Drawing, timeline: string): DrawnHolding[] {
   const held = holdings(drawing, timeline).map((holding) => ({ ...holding, section: holding.key }));
   if (held.some(({ axis }) => axis.ancestor === undefined)) return held;
   const ancestors = [...ancestorLinesOf(drawing)].flatMap(
@@ -729,25 +684,49 @@ export function drawnOn(drawing: Drawing, timeline: string): DrawnHolding[] {
   return [...ancestors, ...held];
 }
 
+const seenByDrawing = new WeakMap<
+  Drawing,
+  Map<string | null, Map<string, readonly SeenHolding[]>>
+>();
+
 /**
  * Where the timeline `timeline` is seen on the lines of `drawing` it is
  * drawn on (`drawnOn`), `raised` naming the root whose ancestor cards are
  * raised (`raisedRoot`), else `null`: each line cut at the left and right
  * borders of every displayed frame and card into parts, and the parts it is
  * not covered on (`coveredIn`, tested at the part's middle on the line),
- * neighbours joined, both ends included. So a timeline drawn only in an
- * ancestor card and as an ancestor line is seen on the ancestor line inside
- * its member's card, on the card's line beyond the frames and member cards
- * drawn over it, and on the card's line alone while it is raised; a line
- * that nothing covers is seen whole. The one place "Show matches" draws a
- * coordinate and the pointer hits it.
+ * neighbours joined, both ends included; once per drawing, root and
+ * timeline. So a timeline drawn only in an ancestor card and as an ancestor
+ * line is seen on the ancestor line inside its member's card, on the card's
+ * line beyond the frames and member cards drawn over it, and on the card's
+ * line alone while it is raised; nowhere where the card is covered and no
+ * ancestor line runs; a line that nothing covers is seen whole. The one
+ * place decision: "Show matches" draws a coordinate and the pointer hits it
+ * on these parts (`matchLinesOf`), and every other reader of a coordinate's
+ * place takes it from them (`placesAt`).
  */
-export function seenOn(drawing: Drawing, timeline: string, raised: string | null): SeenHolding[] {
+export function seenOn(
+  drawing: Drawing,
+  timeline: string,
+  raised: string | null,
+): readonly SeenHolding[] {
+  let byRoot = seenByDrawing.get(drawing);
+  if (byRoot === undefined) {
+    byRoot = new Map();
+    seenByDrawing.set(drawing, byRoot);
+  }
+  let byTimeline = byRoot.get(raised);
+  if (byTimeline === undefined) {
+    byTimeline = new Map();
+    byRoot.set(raised, byTimeline);
+  }
+  const known = byTimeline.get(timeline);
+  if (known !== undefined) return known;
   const covered = coveredIn(drawing, raised);
   const borders = drawing.boxes
     .filter((box) => box.displayed && (box.kind === "frame" || box.kind === "card"))
     .flatMap((box) => [box.x, box.x + box.width]);
-  return drawnOn(drawing, timeline).flatMap((holding): SeenHolding[] => {
+  const found = drawnOn(drawing, timeline).flatMap((holding): SeenHolding[] => {
     const { axis } = holding;
     const { xStart, xEnd, y } = axis;
     const cuts = [
@@ -766,6 +745,45 @@ export function seenOn(drawing: Drawing, timeline: string, raised: string | null
       else seen.push({ ...holding, xFrom, xTo });
     }
     return seen;
+  });
+  byTimeline.set(timeline, found);
+  return found;
+}
+
+/** A place of a coordinate: a part of a line where its timeline is seen, and its abscissa there. */
+export interface Place extends SeenHolding {
+  /** The abscissa of the coordinate on the line, in block-local canvas units (layout's `abscissaOf`). */
+  readonly x: number;
+}
+
+/**
+ * The places of the value `value` (exact, on the timeline's own axis) of
+ * the timeline `timeline` in `drawing`, `raised` naming the root whose
+ * ancestor cards are raised (`raisedRoot`), else `null`: of the parts of
+ * lines where the timeline is seen (`seenOn`), in their order, each one
+ * holding the value: from 0, up to a segment's length, within the line's
+ * drawn span (`start` to `start + drawnLength` on its axis, the segment's
+ * offset added), and its abscissa there (layout's `abscissaOf`) within the
+ * part, both ends included. None where the user sees no line of the
+ * timeline at that value. The one place rule of a coordinate: screen order
+ * (`screenPlace`), the affordances (`affordancesOf`), the pin's mark
+ * (`pinnedPlace`) and a named timestamp's cross-section (`timelineSpec`)
+ * read it, as "Show matches" reads `seenOn`.
+ */
+export function placesAt(
+  drawing: Drawing,
+  timeline: string,
+  value: Rational,
+  raised: string | null,
+): Place[] {
+  if (value.compare(ZERO) < 0) return [];
+  return seenOn(drawing, timeline, raised).flatMap((seen): Place[] => {
+    const { axis, offset, length } = seen;
+    if (length !== null && value.compare(length) > 0) return [];
+    const onLine = value.add(offset);
+    if (!spans(axis, onLine)) return [];
+    const x = abscissaOf(axis, onLine);
+    return x < seen.xFrom || x > seen.xTo ? [] : [{ ...seen, x }];
   });
 }
 
@@ -875,32 +893,40 @@ function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rat
 }
 
 /**
- * The cross-section a timestamp on `timeline` of `manifest`, block
- * `block`'s, drawn as `drawing`, is read with, its timeline the anchor: on
- * the first marked line holding the timeline (`holdings`,
- * `crossSectionSpec` anchored on it; a segment without a line of its own on
- * its segment line's line), so its members are its ancestors and the
- * timelines of its own subtree that line crosses, each with the maps drawn
- * at the crossed lines; where no line holds the timeline (a hidden line),
- * with all its own maps and its ancestors alone as members. The one spec of
- * a timestamp read at a timeline rather than at a hovered line.
+ * The cross-section a timestamp at the value `position` (exact, on its own
+ * axis) of `timeline` of `manifest`, block `block`'s, drawn as `drawing`,
+ * is read with, its timeline the anchor, `raised` naming the root whose
+ * ancestor cards are raised (`raisedRoot`), else `null`: on the line of
+ * its first place (`placesAt`, `crossSectionSpec` anchored on it: on an
+ * ancestor line the cross-section of the member's line below it, as the
+ * pointer reads it there), else, where it has none, on the first marked
+ * line holding the timeline (`holdings`; a segment without a line of its
+ * own on its segment line's line), so its members are its ancestors and
+ * the timelines of its own subtree that line crosses, each with the maps
+ * drawn at the crossed lines; where no line holds the timeline (a hidden
+ * line), with all its own maps and its ancestors alone as members. The one
+ * spec of a timestamp read at a timeline rather than at a hovered line, so
+ * a timestamp named from a reading is read back as the reading was.
  */
 function timelineSpec(
   manifest: Manifest,
   block: BlockId,
   drawing: Drawing,
   timeline: TimelineManifest,
+  position: Rational,
   granularity: Granularity,
+  raised: string | null,
 ): CrossSectionSpec {
-  const [holding] = holdings(drawing, timeline.id);
-  return holding === undefined
+  const [place] = placesAt(drawing, timeline.id, position, raised);
+  const key = place?.key ?? holdings(drawing, timeline.id)[0]?.key;
+  return key === undefined
     ? {
         block,
         granularity,
         anchor: timelineAxisOf(timeline, timeline.conversion_maps),
         members: ancestorMembers(manifest, timeline.id),
       }
-    : crossSectionSpec(manifest, block, drawing, holding.key, granularity, timeline.id);
+    : crossSectionSpec(manifest, block, drawing, key, granularity, timeline.id);
 }
 
 /**
@@ -914,7 +940,8 @@ function timelineSpec(
  * coordinate of a potential MatchStamp with it, `groupstamp` what naming
  * stores, so they list exactly the rows the Timestamp tab lists for the
  * timestamp naming stores at that coordinate. `knots` as `timestampAt`
- * takes them; `null` where the manifest holds no timeline `timeline`.
+ * takes them, `raised` as `timelineSpec` takes it; `null` where the
+ * manifest holds no timeline `timeline`.
  */
 export function timelinePin(
   manifest: Manifest,
@@ -925,10 +952,11 @@ export function timelinePin(
   granularity: Granularity,
   knots: Knots,
   groupstamp = false,
+  raised: string | null = null,
 ): Pin | null {
   const found = findTimeline(manifest, timeline);
   if (found === undefined) return null;
-  const spec = timelineSpec(manifest, block, drawing, found, granularity);
+  const spec = timelineSpec(manifest, block, drawing, found, position, granularity, raised);
   const holds = (axis: DrawnAxis) => axis.marker !== null && axis.address.id === timeline;
   const read = groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named: null };
@@ -937,11 +965,13 @@ export function timelinePin(
 /**
  * The pin of the named timestamp `id` of `manifest`, block `block`'s,
  * drawn as `drawing`: its timeline the anchor, at its coordinate, read with
- * the cross-section of its timeline (`timelineSpec`). A groupstamp's adds
- * the other members of its groups' frames, read by the group
- * (`withGroupMembers`): the Timestamp tab shows the whole GroupStamp.
- * `knots` as `timestampAt` takes them; `null` where the manifest holds no
- * timestamp `id`.
+ * the cross-section of its timeline at its place there (`timelineSpec`,
+ * `raised` naming the root whose ancestor cards are raised, else `null`),
+ * so the Timestamp tab of a timestamp named from a reading lists what the
+ * reading's flag listed. A groupstamp's adds the other members of its
+ * groups' frames, read by the group (`withGroupMembers`): the Timestamp tab
+ * shows the whole GroupStamp. `knots` as `timestampAt` takes them; `null`
+ * where the manifest holds no timestamp `id`.
  */
 export function namedPin(
   manifest: Manifest,
@@ -950,15 +980,16 @@ export function namedPin(
   id: string,
   granularity: Granularity,
   knots: Knots,
+  raised: string | null = null,
 ): Pin | null {
   const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
   const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
   if (named === undefined || timeline === undefined) return null;
-  const spec = timelineSpec(manifest, block, drawing, timeline, granularity);
+  const position = namedCoordinate(named, timeline);
+  const spec = timelineSpec(manifest, block, drawing, timeline, position, granularity, raised);
   const holds = (axis: DrawnAxis) =>
     axis.marker?.timestamps.some((item) => item.id === named.id) ?? false;
   const read = named.groupstamp ? withGroupMembers(spec, manifest, drawing, holds) : spec;
-  const position = namedCoordinate(named, timeline);
   return { spec: read, knots, timestamp: timestampAt(read, position, knots), named };
 }
 
@@ -978,23 +1009,33 @@ export interface Affordance extends AffordanceSource {
 
 const affordancesByDrawing = new WeakMap<
   Drawing,
-  { readonly manifest: Manifest; readonly affordances: readonly Affordance[] }
+  Map<string | null, { readonly manifest: Manifest; readonly affordances: readonly Affordance[] }>
 >();
 
 /**
  * The affordances of the named timestamps of `manifest` whose `display` is
  * empty, `drawing` being its drawing, but for a match timestamp, which
  * leaves no placeholder (its MatchStamp is reached through its lines and
- * connectors): each on every marked line holding its
- * timeline (`holdings`), whatever its length, its wedge at the abscissa of
- * its coordinate (layout's `abscissaOf`: the line's start on a zero-length
- * line), in the order the manifest lists them; a place outside the line's
- * drawn span is left out. The one place their geometry is computed, once
- * per drawing: the block node draws them, the marquee takes their bounds,
- * the projection counts their addresses as drawn.
+ * connectors): one at every place of its coordinate (`placesAt`, `raised`
+ * naming the root whose ancestor cards are raised, else `null`), whatever
+ * the line's length, its wedge layout's `wedgeAt` there (an ancestor
+ * line's mark on an ancestor line), in the order the manifest lists them;
+ * none where its coordinate has no place. The one place their geometry is
+ * computed, once per drawing and root: the block node draws them, the
+ * marquee takes their bounds, the projection counts their addresses as
+ * drawn.
  */
-export function affordancesOf(manifest: Manifest, drawing: Drawing): readonly Affordance[] {
-  const known = affordancesByDrawing.get(drawing);
+export function affordancesOf(
+  manifest: Manifest,
+  drawing: Drawing,
+  raised: string | null = null,
+): readonly Affordance[] {
+  let byRoot = affordancesByDrawing.get(drawing);
+  if (byRoot === undefined) {
+    byRoot = new Map();
+    affordancesByDrawing.set(drawing, byRoot);
+  }
+  const known = byRoot.get(raised);
   if (known?.manifest === manifest) return known.affordances;
   const affordances = (manifest.graphical?.timestamps ?? []).flatMap((named) => {
     if (named.display.length > 0 || named.matchstamp) return [];
@@ -1002,17 +1043,16 @@ export function affordancesOf(manifest: Manifest, drawing: Drawing): readonly Af
     if (timeline === undefined) return [];
     const coordinate = namedCoordinate(named, timeline);
     const address = idAddress(named.id);
-    return holdings(drawing, named.timeline).flatMap(({ key, axis, offset }): Affordance[] => {
-      const position = offset.add(coordinate);
-      const wedge = spans(axis, position)
-        ? wedgeAt(drawing, key, abscissaOf(axis, position))
-        : null;
-      return wedge === null
-        ? []
-        : [{ kind: "affordance", address, line: key, points: wedge.points }];
-    });
+    return placesAt(drawing, named.timeline, coordinate, raised).flatMap(
+      ({ key, x }): Affordance[] => {
+        const wedge = wedgeAt(drawing, key, x);
+        return wedge === null
+          ? []
+          : [{ kind: "affordance", address, line: key, points: wedge.points }];
+      },
+    );
   });
-  affordancesByDrawing.set(drawing, { manifest, affordances });
+  byRoot.set(raised, { manifest, affordances });
   return affordances;
 }
 

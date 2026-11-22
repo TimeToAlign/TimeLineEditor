@@ -489,6 +489,41 @@ describe("screen order", () => {
   });
 });
 
+describe("screen order of a grandchild and its two ancestors", () => {
+  const grandchild = viewOf({ id: A, fixture: "groups/group_grandchild", x: 40, y: 80 });
+  const at = (timeline: string, value: CoordinateValue): ScreenCoordinate => ({ timeline, value });
+  const score28 = at("score", Rational.of([28, 1]));
+  const movement12 = at("movement", Rational.of([12, 1]));
+  const theme4 = at("theme", Rational.of([4, 1]));
+
+  it("places each on the line the user sees in the grandchild's card", () => {
+    const drawn = drawingOf(blockIn(grandchild, A), grandchild.graphical, metrics);
+    expect([score28, movement12, theme4].map((item) => screenPlace(drawn, item))).toEqual([
+      { x: 1482.265625, y: 70.9765625 },
+      { x: 1482.265625, y: 104.953125 },
+      { x: 1482.265625, y: 118.953125 },
+    ]);
+    expect(inScreenOrder(drawn, [movement12, score28, theme4], (item) => item)).toEqual([
+      score28,
+      movement12,
+      theme4,
+    ]);
+  });
+
+  it("keeps that order with every ancestor card hidden", () => {
+    const hidden = withoutAncestorCards(grandchild);
+    const drawn = drawingOf(blockIn(hidden, A), hidden.graphical, metrics);
+    expect([score28, movement12, theme4].map((item) => screenPlace(drawn, item)?.y)).toEqual([
+      67.78125, 101.7578125, 115.7578125,
+    ]);
+    expect(inScreenOrder(drawn, [movement12, score28, theme4], (item) => item)).toEqual([
+      score28,
+      movement12,
+      theme4,
+    ]);
+  });
+});
+
 describe("where a timeline drawn only in an ancestor card is seen", () => {
   const parent = viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
   const block = blockIn(parent, A);
@@ -642,11 +677,16 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     ]);
   });
 
-  it("is placed in screen order on the card's line in a gap, whatever covers it", () => {
-    expect(screenPlace(drawn, { timeline: "piece", value: fraction(3) })).toEqual({
-      x: 210.33544921875,
-      y: 67.78125,
-    });
+  it("has no screen place in a gap, and its place on the card's line while the card is raised", () => {
+    const piece3 = { timeline: "piece", value: fraction(3) };
+    const middle1 = { timeline: "middle", value: fraction(1) };
+    expect(screenPlace(drawn, piece3)).toBeNull();
+    expect(screenPlace(drawn, piece3, raised)).toEqual({ x: 210.33544921875, y: 67.78125 });
+    expect(inScreenOrder(drawn, [piece3, middle1], (item) => item)).toEqual([middle1, piece3]);
+    expect(inScreenOrder(drawn, [middle1, piece3], (item) => item, raised)).toEqual([
+      piece3,
+      middle1,
+    ]);
   });
 
   it("is seen on its ancestor line alone where every ancestor card is hidden", () => {

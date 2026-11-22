@@ -15,6 +15,7 @@ import {
   partAddress,
   pinAt,
   sameAddress,
+  WORKSPACE,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -24,7 +25,7 @@ import type { Viewport } from "@xyflow/svelte";
 import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { KnotsOf } from "../src/coordinates.ts";
-import { axesOf, readingAt } from "../src/coordinates.ts";
+import { axesOf, readingAt, timelinePin } from "../src/coordinates.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { project } from "../src/project.ts";
@@ -277,16 +278,17 @@ describe("a position on an ancestor line", () => {
     };
   }
 
+  /** The ancestor line's mark at 8: above the line, in the style of `middle`'s unnamed wedge. */
   const MARK = {
     wedge: {
       points: "460.3354,66.2812 457.3354,53.2812 463.3354,53.2812",
       fill: "#000000",
-      opacity: "0.35",
+      opacity: null,
     },
     line: false,
   };
 
-  it("is marked by its member's start mark moved there, and flags the ancestor", async () => {
+  it("is marked by the ancestor line's mark, and flags the ancestor", async () => {
     await show(parentView());
     await toggleCoordinates();
     await hoverAt(client(AT_PIECE_8, PIECE_Y));
@@ -325,6 +327,63 @@ describe("a position on an ancestor line", () => {
     harness.pin(pin);
     await settle();
     expect(wedgeMarks("pin")).toEqual(MARK);
+  });
+
+  it("is marked alike while a rule hides the drawn mark of the member's start", async () => {
+    const hiding = {
+      select: { element: "wedge", addresses: [partAddress(idAddress("middle"), "start")] },
+      set: { display: "none" },
+    };
+    const view = parentView();
+    await show(
+      changed(view, {
+        type: "set",
+        changes: [
+          {
+            target: WORKSPACE,
+            values: {
+              graphical: { ...view.graphical, rules: [...(view.graphical.rules ?? []), hiding] },
+            },
+          },
+        ],
+      }),
+    );
+    const node = one(".svelte-flow__node[data-id] svg");
+    expect(node.querySelector('polygon[data-id="middle"][data-part="start"]')).toBeNull();
+    await toggleCoordinates();
+    await hoverAt(client(AT_PIECE_8, PIECE_Y));
+    expect(wedgeMarks("hover")).toEqual(MARK);
+  });
+
+  it("marks a pin in a gap only while the card is raised, on the card's line", async () => {
+    await show(parentView());
+    const { manifest } = blockIn(store.view, A);
+    const drawing = drawingOf(blockIn(store.view, A), store.view.graphical, metrics);
+    const pin = timelinePin(
+      manifest,
+      A,
+      drawing,
+      "piece",
+      Rational.of([3, 1]),
+      DEFAULT_GRANULARITY,
+      "no_server",
+    );
+    if (pin === null) throw new Error("no pin of piece");
+    harness.pin(pin);
+    await settle();
+    expect(wedgeMarks("pin")).toBeNull();
+    expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
+    await settle();
+    harness.showAt(VIEW);
+    await settle();
+    expect(wedgeMarks("pin")).toEqual({
+      wedge: {
+        points: "210.3354,69.2812 207.3354,82.2812 213.3354,82.2812",
+        fill: "#000000",
+        opacity: null,
+      },
+      line: true,
+    });
   });
 });
 

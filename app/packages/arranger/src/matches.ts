@@ -40,18 +40,16 @@ import {
   prettyText,
 } from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
-import { Rational, toFloat, toRational } from "@timetoalign/tilie-core/numbers";
+import { toFloat, toRational } from "@timetoalign/tilie-core/numbers";
 import type { CrossSectionSegment, Drawing } from "@timetoalign/tilie-layout";
 import {
-  abscissaOf,
   anchorLine,
   crossSectionSegment,
   groupCrossSections,
   lineAxes,
 } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
-import type { DrawnHolding } from "./coordinates.ts";
-import { drawnOn, seenOn } from "./coordinates.ts";
+import { placesAt, seenOn } from "./coordinates.ts";
 import type { Point } from "./gesture.ts";
 
 /**
@@ -89,8 +87,6 @@ export interface MatchStampPin {
   readonly block: string;
   readonly matchStamp: number;
 }
-
-const ZERO = Rational.fromParts(0n, 1n);
 
 /** No block with a table: what the canvas draws from by default. */
 export const NO_TABLES: readonly MatchOverlayInput[] = [];
@@ -193,6 +189,8 @@ function perUnit(line: MatchLine): number {
 export interface MatchLines {
   /** The drawing they were read from. */
   readonly drawing: Drawing;
+  /** The root whose ancestor cards were raised as they were read (`raisedRoot`), else `null`. */
+  readonly raised: string | null;
   readonly all: readonly MatchLine[];
   readonly byTimeline: ReadonlyMap<number, readonly MatchLine[]>;
 }
@@ -206,7 +204,7 @@ const linesByDrawing = new WeakMap<
  * The lines of `drawing` holding a timeline of `index` (matched by ID), once
  * per drawing, index and raised root: for every timeline the parts of the
  * lines it is seen on (`seenOn`, `raised` the root whose ancestor cards are
- * raised, core's `raisedRoot` of the block's editor, none by default: an
+ * raised, `raisedRoot` of the block's editor, none by default: an
  * ancestor card's line only for a timeline no other line holds, and there
  * only beyond the frames and member cards drawn over it, its ancestor lines
  * in its members' cards in between), in the drawing's order of its lines, a
@@ -266,7 +264,7 @@ export function matchLinesOf(
   for (const line of found) {
     byTimeline.set(line.timeline, [...(byTimeline.get(line.timeline) ?? []), line]);
   }
-  const lines = { drawing, all: found, byTimeline };
+  const lines = { drawing, raised, all: found, byTimeline };
   linesByDrawing.set(drawing, { index, raised, lines });
   return lines;
 }
@@ -588,46 +586,25 @@ export interface ScreenCoordinate {
   readonly value: CoordinateValue;
 }
 
-const holdingsByDrawing = new WeakMap<Drawing, Map<string, readonly DrawnHolding[]>>();
-
-/** The lines of `drawing` drawing `timeline` (`drawnOn`), once per drawing and timeline. */
-function heldOn(drawing: Drawing, timeline: string): readonly DrawnHolding[] {
-  let byTimeline = holdingsByDrawing.get(drawing);
-  if (byTimeline === undefined) {
-    byTimeline = new Map();
-    holdingsByDrawing.set(drawing, byTimeline);
-  }
-  let held = byTimeline.get(timeline);
-  if (held === undefined) {
-    held = drawnOn(drawing, timeline);
-    byTimeline.set(timeline, held);
-  }
-  return held;
-}
-
 /**
- * Where `coordinate` shows first in `drawing`, in block-local canvas units:
- * of every line drawing its timeline (`drawnOn`, covered or not, so screen
- * order never depends on an open editor: a line of an ancestor card only
- * where no other line holds the timeline, so a member's own card wins over
- * the row an ancestor card draws of it, and then the timeline's ancestor
- * lines too) whose drawn part holds its value, exactly as
- * `matchLinesOf` bounds a line (from 0, up to a segment's length, within
- * `start` to `start + drawnLength` on the line's axis), the topmost
- * place, then the leftmost; its abscissa is
- * layout's `abscissaOf` of the value on the line's axis. `null` where the
- * block draws it on no line.
+ * Where `coordinate` shows first in `drawing`, in block-local canvas units,
+ * `raised` naming the root whose ancestor cards are raised (`raisedRoot`),
+ * else `null`: of its places (`placesAt`: where the user sees a line of its
+ * timeline at its value, the parts "Show matches" draws it on), the
+ * topmost, then the leftmost; `null` where it has none.
  */
-export function screenPlace(drawing: Drawing, coordinate: ScreenCoordinate): Point | null {
-  const value = toRational(coordinate.value);
+export function screenPlace(
+  drawing: Drawing,
+  coordinate: ScreenCoordinate,
+  raised: string | null = null,
+): Point | null {
   let best: Point | null = null;
-  for (const { axis, offset, length } of heldOn(drawing, coordinate.timeline)) {
-    if (value.compare(ZERO) < 0 || (length !== null && value.compare(length) > 0)) continue;
-    const onLine = value.add(offset);
-    const start = toRational(axis.start);
-    if (onLine.compare(start) < 0) continue;
-    if (onLine.compare(start.add(toRational(axis.drawnLength))) > 0) continue;
-    const x = abscissaOf(axis, onLine);
+  for (const { axis, x } of placesAt(
+    drawing,
+    coordinate.timeline,
+    toRational(coordinate.value),
+    raised,
+  )) {
     if (best === null || axis.y < best.y || (axis.y === best.y && x < best.x)) {
       best = { x, y: axis.y };
     }
@@ -647,18 +624,19 @@ export function screenOrder(left: Point | null, right: Point | null): number {
 
 /**
  * `items` in screen order (`screenOrder` of each one's `screenPlace` in
- * `drawing`, `coordinateOf` giving its coordinate); items at one place, or
- * none drawn, keep their given order. The one screen order of the flag of
- * a potential MatchStamp and of the coordinates and alignment anchors of a
- * MatchStamp wherever it is listed or named.
+ * `drawing` with `raised`, `coordinateOf` giving its coordinate); items at
+ * one place, or none drawn, keep their given order. The one screen order of
+ * the flag of a potential MatchStamp and of the coordinates and alignment
+ * anchors of a MatchStamp wherever it is listed or named.
  */
 export function inScreenOrder<T>(
   drawing: Drawing,
   items: readonly T[],
   coordinateOf: (item: T) => ScreenCoordinate,
+  raised: string | null = null,
 ): T[] {
   return items
-    .map((item) => ({ item, place: screenPlace(drawing, coordinateOf(item)) }))
+    .map((item) => ({ item, place: screenPlace(drawing, coordinateOf(item), raised) }))
     .sort((left, right) => screenOrder(left.place, right.place))
     .map(({ item }) => item);
 }
@@ -668,7 +646,8 @@ export function inScreenOrder<T>(
  * named as `manifest` names it (its ID where it holds none), each of its
  * coordinates a row written as core's `prettyText` with `decimals` places,
  * in the timeline's unit; groups and rows in screen order (`inScreenOrder`
- * over the drawing `lines` were read from, a group by its first row), what
+ * over the drawing `lines` were read from, with the root raised as they
+ * were read, a group by its first row), what
  * the block does not draw last, in the index's order.
  */
 export function matchFlag(
@@ -678,10 +657,15 @@ export function matchFlag(
   stamp: number,
   decimals: number,
 ): MatchFlagGroup[] {
-  const members = inScreenOrder(lines.drawing, [...matchStampMembers(index, stamp)], (c) => ({
-    timeline: index.columns.timelines[index.coordinates.timeline[c] as number]?.id ?? "",
-    value: coordinateValue(index, c),
-  }));
+  const members = inScreenOrder(
+    lines.drawing,
+    [...matchStampMembers(index, stamp)],
+    (c) => ({
+      timeline: index.columns.timelines[index.coordinates.timeline[c] as number]?.id ?? "",
+      value: coordinateValue(index, c),
+    }),
+    lines.raised,
+  );
   const groups = new Map<number, MatchFlagRow[]>();
   for (const coordinate of members) {
     const timeline = index.coordinates.timeline[coordinate] as number;
