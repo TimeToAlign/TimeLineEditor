@@ -18,18 +18,14 @@ export interface Rect {
   readonly height: number;
 }
 
-function spanning(xs: readonly number[], ys: readonly number[]): Rect {
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
-}
-
-/**
- * The rectangle of an element's geometric bounds (layout's `boundsOf`,
- * TimeToShare's drawing specification, section 6.7), in the drawing's units.
- */
-function rectOf({ left, top, right, bottom }: Bounds): Rect {
-  return { x: left, y: top, width: right - left, height: bottom - top };
+/** The bounds of the points with the abscissas `xs` and the ordinates `ys`. */
+function spanning(xs: readonly number[], ys: readonly number[]): Bounds {
+  return {
+    left: Math.min(...xs),
+    top: Math.min(...ys),
+    right: Math.max(...xs),
+    bottom: Math.max(...ys),
+  };
 }
 
 /**
@@ -53,12 +49,29 @@ export function rectOnCanvas(node: BlockNode, rect: Rect): Rect {
   };
 }
 
-function holds(outer: Rect, inner: Rect): boolean {
+/**
+ * Bounds in the drawing of `node` as the canvas shows them: each edge moved
+ * by the node's position and scaled, so an edge is never rebuilt from a
+ * width or a height.
+ */
+function boundsOnCanvas(node: BlockNode, { left, top, right, bottom }: Bounds): Bounds {
+  const { x, y } = node.position;
+  const scale = node.data.block.scale;
+  return {
+    left: x + left * scale,
+    top: y + top * scale,
+    right: x + right * scale,
+    bottom: y + bottom * scale,
+  };
+}
+
+/** Whether the canvas rectangle `outer` holds the canvas bounds `inner`, edges included. */
+function holds(outer: Rect, inner: Bounds): boolean {
   return (
-    outer.x <= inner.x &&
-    outer.y <= inner.y &&
-    inner.x + inner.width <= outer.x + outer.width &&
-    inner.y + inner.height <= outer.y + outer.height
+    outer.x <= inner.left &&
+    outer.y <= inner.top &&
+    inner.right <= outer.x + outer.width &&
+    inner.bottom <= outer.y + outer.height
   );
 }
 
@@ -92,10 +105,10 @@ export function elementsInRect(
   const behind = drawnBehind(drawing, raised);
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
-  const take = (address: ElementAddress, bounds: Rect) => {
+  const take = (address: ElementAddress, bounds: Bounds) => {
     const owner = ownerOf(block.manifest, address)?.address ?? address;
     const key = addressKey(owner);
-    const held = holds(rect, rectOnCanvas(node, bounds));
+    const held = holds(rect, boundsOnCanvas(node, bounds));
     const known = taken.get(key);
     if (known === undefined) taken.set(key, { address: owner, held });
     else known.held &&= held;
@@ -103,7 +116,7 @@ export function elementsInRect(
   drawing.elements.forEach((element, index) => {
     const { address } = element;
     if (behind(index) || isContainerAddress(drawing, address)) return;
-    if (inside.has(addressKey(address))) take(address, rectOf(boundsOf(element, measure)));
+    if (inside.has(addressKey(address))) take(address, boundsOf(element, measure));
   });
   const affordances = affordancesOf(block.manifest, drawing, raised);
   const lines = affordances.length === 0 ? null : lineAxes(drawing);
