@@ -79,6 +79,7 @@ import { raisedRoot, stackingOf } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
+import { stripAt, zeroOf } from "./strips.ts";
 
 /** How near, in device pixels, the pointer must come to a line or a map to hover it. */
 export const HIT_TOLERANCE = 8;
@@ -305,12 +306,6 @@ interface CardTimeline {
   readonly reach?: Real;
   readonly maps: readonly ConversionMap[];
   readonly mapOrdinates: ReadonlyMap<string, number>;
-}
-
-/** Where the zero of the timeline `id` of `manifest` lies on its root's axis, exact: the sum of the offsets down to it. */
-function zeroOf(manifest: Manifest, id: string): Rational {
-  const root = ancestorMembers(manifest, id).at(-1);
-  return root === undefined ? ZERO : ZERO.subtract(toRational(root.offset));
 }
 
 const traversalRanks = new WeakMap<Manifest, ReadonlyMap<string, number>>();
@@ -1139,7 +1134,11 @@ function hoveredSpec(
  * line `point` hovers (`lineAt`, `HIT_TOLERANCE` device pixels around,
  * where it is not covered: `stackingOf`, the root raised by the node's
  * editor, `raisedRoot`), the nearest, a later node on a tie; `null` where
- * no line is hovered. An ancestor line is read as its ancestor's
+ * no line is hovered. A node in which the point lies inside a strip of an
+ * elision (`stripAt`) reads nothing: the stretch it elides is not drawn
+ * there, so nothing is placed, not even the end of a run beside it; every
+ * full run of an elided line is a line of its own (`axesOf`), read alike.
+ * An ancestor line is read as its ancestor's
  * (`crossSectionSpec`). The
  * position is core's `snapOnRow` on the hovered row (`rowOf`) of the
  * line's cross-section (`crossSectionSpec`), `p` the pointer's coordinate
@@ -1181,8 +1180,10 @@ export function readingAt(
     ) {
       continue;
     }
-    const { covered } = stackingOf(drawing, raisedRoot(block, node.data.editing));
-    const hit = lineAt(axesOf(drawing), local, tolerance, covered);
+    const stacking = stackingOf(drawing, raisedRoot(block, node.data.editing));
+    // Inside a strip nothing is placed: the stretch it elides is not drawn there.
+    if (stripAt(drawing, local, stacking) !== null) continue;
+    const hit = lineAt(axesOf(drawing), local, tolerance, stacking.covered);
     if (
       hit !== null &&
       (found === null || hit.distance * devicePixels <= found.hit.distance * found.devicePixels)

@@ -4,7 +4,7 @@
  * canvas's rules (`rulesOf`) whether it may run, and nothing else.
  */
 
-import type { Address, Command, View } from "@timetoalign/tilie-core";
+import type { Address, Command, ElementAddress, Granularity, View } from "@timetoalign/tilie-core";
 import {
   holdingOf,
   isCommandError,
@@ -16,10 +16,26 @@ import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
 import { nudgeCommand, removeCommand, type ZOrderAction, zOrderCommand } from "./commands.ts";
 import type { LevelRules } from "./containers.ts";
+import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
+import { previewed } from "./gestures/host.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 import { NOTHING_SELECTED, selectedBand, selectionOf } from "./selection.ts";
+import type { StripChange, StripEdge } from "./strips.ts";
+import {
+  defaultsRemoval,
+  edgeStep,
+  isDefaultStrip,
+  isStrip,
+  piecesOf,
+  storedAs,
+  stripCommand,
+  subjectOf,
+  widthFor,
+  widthsOf,
+} from "./strips.ts";
 
 /**
  * Whether `address` names cards that are ancestor cards alone (`docs/drawing.md` in TimeToShare,
@@ -45,6 +61,13 @@ export interface KeyContext {
   /** The canvas's rules now (`rulesOf`). */
   readonly rules: LevelRules;
   readonly metrics: FontMetrics;
+  /** How finely a key moving an elision's edge picks its value: the canvas's granularity. */
+  readonly granularity: Granularity;
+  /**
+   * The edge of a selected elision the arrows move while its bracket is held
+   * down, `[` the start and `]` the end; `null` while neither is.
+   */
+  heldEdge(): StripEdge | null;
   /** How many editors are open: Escape closes the innermost. */
   readonly editors: number;
   select(next: Selection): void;
@@ -108,6 +131,92 @@ function selectedBlocks({ view, selection }: KeyContext): string[] {
   );
 }
 
+/** The one selected address, when it is a strip of an elision, with its block's drawing. */
+function selectedStrip(context: KeyContext) {
+  if (context.selection.size !== 1) return null;
+  const [address] = context.selection.values();
+  if (address === undefined) return null;
+  const { block: id, element } = addressParts(address);
+  const block = context.view.blocks[id];
+  if (block === undefined || element === null || !isStrip(block.manifest, element)) return null;
+  const drawing = drawingOf(block, context.view.graphical, context.metrics);
+  return { block, drawing, element };
+}
+
+/**
+ * An arrow on the one selected strip: with `[` or `]` held, its start or
+ * end moves one grid step (`edgeStep`); with Shift, its drawn width
+ * narrows (Left) or widens (Right) by one grid step, written in its form
+ * (`widthFor`). A default strip is stored with its card's defaults, and the
+ * elision it becomes is selected. `null` when the key is no such move.
+ */
+function stripArrow(context: KeyContext, event: KeyboardEvent): boolean | null {
+  const strip = selectedStrip(context);
+  const edge = context.heldEdge();
+  if (strip === null || (edge === null && !event.shiftKey)) return null;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return true;
+  if (!context.rules.resize) return true;
+  const { block, drawing, element } = strip;
+  const { manifest } = block;
+  const direction = event.key === "ArrowLeft" ? -1 : 1;
+  const step = context.view.settings.grid.size;
+  const edgeContext = { block: block.id, manifest, drawing, granularity: context.granularity };
+  const subjects = piecesOf(drawing, element).flatMap((piece) => {
+    const subject = subjectOf(manifest, piece);
+    return subject === null ? [] : [subject];
+  });
+  let change: StripChange | null = null;
+  const subject = edge === null ? subjects[0] : subjects.find(({ edges }) => edges.includes(edge));
+  if (subject === undefined) return true;
+  if (edge !== null) {
+    const value = edgeStep(edgeContext, subject, edge, direction, step);
+    change = value === null ? null : { [edge]: value };
+  } else {
+    const widths = widthsOf(manifest, drawing, subject.piece);
+    const width =
+      widths === null
+        ? null
+        : widthFor(edgeContext, subject, widths.drawn + direction * step, step / 2);
+    change = width === null ? null : { width };
+  }
+  const stored =
+    change === null ? null : stripCommand(context.view, block.id, drawing, subject, change);
+  if (stored === null || !context.dispatch(stored.command) || stored.stores === null) return true;
+  const after = storedAs(previewed(context.view, stored.command), block.id, stored.stores);
+  if (after !== null) context.select(selectionOf([after]));
+  return true;
+}
+
+/**
+ * Delete on default strips (`{id: T, part: ["elision"]}`), which name no
+ * stored element: they go by storing the other defaults of their card
+ * (`defaultsRemoval`), and only alone in the selection. `null` when the
+ * selection holds none.
+ */
+function deleteDefaultStrips(context: KeyContext): boolean | null {
+  const defaults = [...context.selection.values()].flatMap((address) => {
+    const { block, element } = addressParts(address);
+    return element !== null && isDefaultStrip(element) ? [{ block, element }] : [];
+  });
+  const [first] = defaults;
+  if (first === undefined) return null;
+  if (
+    defaults.length !== context.selection.size ||
+    defaults.some(({ block }) => block !== first.block)
+  ) {
+    context.refuse("Delete automatic elisions on their own, those of one block at a time.");
+    return true;
+  }
+  const block = context.view.blocks[first.block];
+  if (block === undefined) return true;
+  const drawing = drawingOf(block, context.view.graphical, context.metrics);
+  const elements: ElementAddress[] = defaults.map(({ element }) => element);
+  const removal = defaultsRemoval(context.view, block.id, drawing, elements);
+  if ("refused" in removal) context.refuse(removal.refused);
+  else if (context.dispatch(removal)) context.select(NOTHING_SELECTED);
+  return true;
+}
+
 /** The key table, in the order the rows are read. */
 export const KEYS: readonly KeyRow[] = [
   {
@@ -149,9 +258,12 @@ export const KEYS: readonly KeyRow[] = [
     },
   },
   {
-    // The arrows nudge the selected blocks where the level nudges: on the arranger.
+    // The arrows nudge the selected blocks where the level nudges: on the arranger. On the one
+    // selected strip of an elision, with a bracket or Shift held, they move its edge or width.
     match: (event) => plain(event) && Object.hasOwn(ARROWS, event.key),
     run(context, event) {
+      const moved = stripArrow(context, event);
+      if (moved !== null) return moved;
       const ids = selectedBlocks(context);
       const arrow = ARROWS[event.key];
       if (ids.length === 0 || arrow === undefined || !context.rules.nudge) return false;
@@ -176,6 +288,8 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && (event.key === "Delete" || event.key === "Backspace"),
     run(context) {
       if (context.selection.size === 0 || !context.rules.remove) return false;
+      const defaults = deleteDefaultStrips(context);
+      if (defaults !== null) return defaults;
       // An ancestor card stands for no element of its own: Delete leaves it, and its root, alone.
       const selection = selectionOf(
         [...context.selection.values()].filter(
@@ -188,6 +302,12 @@ export const KEYS: readonly KeyRow[] = [
       else if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
       return true;
     },
+  },
+  {
+    // `[` and `]` are held down to move a selected strip's start or end with the arrows.
+    match: (event) =>
+      plain(event) && (event.code === "BracketLeft" || event.code === "BracketRight"),
+    run: (context) => selectedStrip(context) !== null,
   },
   {
     // Enter opens the editor of the single selected box or timeline; else, like Space, it

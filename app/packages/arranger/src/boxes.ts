@@ -167,6 +167,11 @@ export interface Stacking {
   readonly behind: (index: number) => boolean;
   /** Whether the element at an index of `drawing.elements` lies in a raised card. */
   readonly above: (index: number) => boolean;
+  /**
+   * Whether the element at an index of `drawing.elements` is covered at a point: a displayed
+   * frame or card of a higher rank than the card drawing it holds the point.
+   */
+  readonly coveredElement: (index: number, point: DrawingPoint) => boolean;
 }
 
 const stackings = new WeakMap<Drawing, Map<string | null, Stacking>>();
@@ -223,6 +228,8 @@ export function stackingOf(drawing: Drawing, raised: string | null): Stacking {
   };
   const inRange = (index: number, test: (rank: number) => boolean) =>
     ranges.some(({ range, rank }) => test(rank) && range.start <= index && index < range.end);
+  const rankOfElement = (index: number) =>
+    ranges.find(({ range }) => range.start <= index && index < range.end)?.rank ?? level;
   const stacking: Stacking = {
     raised,
     rankOf,
@@ -231,6 +238,8 @@ export function stackingOf(drawing: Drawing, raised: string | null): Stacking {
     covered: (axis, point) => coveringAbove(rankOf(axis)).some((box) => holdsPoint(box, point)),
     behind: (index) => inRange(index, (rank) => rank < level),
     above: (index) => inRange(index, (rank) => rank > level),
+    coveredElement: (index, point) =>
+      coveringAbove(rankOfElement(index)).some((box) => holdsPoint(box, point)),
   };
   byRoot.set(raised, stacking);
   return stacking;

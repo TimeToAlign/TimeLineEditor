@@ -1210,7 +1210,9 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
   `elision_1` on `clt_1`, which core resolves to the kind `elision`; a press
   on `{id: "elision_1"}` picks nothing, exactly as on a named timestamp: an
-  elision names no timeline or region of its own to pick.
+  elision names no timeline or region of its own to pick. A default strip
+  and its labels pick nothing alike (Elisions on the canvas, below), though
+  core resolves them as parts of their timeline.
 
 The canvas (`CanvasHarness` on `with_region` at the default viewport,
 `picking` given): the arranger carries `data-picking`, absent without
@@ -3691,6 +3693,176 @@ five runs after a warm-up. The path of a view's overlay, written anew for
 each new overlay, is measured and printed, not bounded (the writers'
 exact number text decides its cost). The lines of a drawing
 (`matchLinesOf`) are built once per drawing and table and are not timed.
+
+## Elisions on the canvas (`strips.test.ts`, `strip-keys.test.ts`, `strip-gesture.test.ts`, `strip-handles.test.ts`, `pane.svelte.test.ts`)
+
+An elision is drawn as strips (layout's README, "Elisions", is the oracle
+of every abscissa used here): a stored elision `E` addressed `{id: E}`, a
+default one lying on `T` addressed `{id: T, part: ["elision"]}`, each piece
+one `elision` element of the card drawing it. What proves the canvas's side
+is that every value below follows from those abscissas and the card's
+scale by the arithmetic written here, never from the arranger's output;
+blocks lie at (0, 0), scale 1, zoom 1, device ratio 1, so a canvas point is
+the block-local point moved by the node's position, `−origin`.
+
+Facts of `bundle_elisions_stored` (layout's points 6 and 7): `score` (64
+quarters, fraction; children `theme` 16–24 and `coda` 56–64) is drawn in
+its ancestor card `{item: group_1, member: score}` at `LA = 3200`, so 50
+canvas units a quarter, protected span 16–24; its first run 16–32 from
+`536.5579618566177` to `1336.5579618566176`, its second (`run: 1`) 56–64
+from `1566.5579618566176` to `1966.5579618566176`, both at ordinate
+`105.98828125`; the strips `elision_4` (stored 0–20, `{ratio: 0.5}`,
+drawn 0–16, 400 wide, ending at `536.5579618566177`), `elision_5` (32–48,
+`{span: [4, 1]}`, from `1336.5579618566176`, 200 wide), `elision_6`
+(stored 40–56, `{canvas: 30}`, drawn 48–56 from `1536.5579618566176` to
+`1566.5579618566176`), each from the card's top `57.01171875` to its
+bottom `120.390625`, then `page`'s `elision_2` (600–1754 pixels, int) on
+its ungrouped card `{item: page}`, `673.3880644791947` to
+`810.2181671017717`, `309.69921875` to `359.078125`. The frame spans x
+`432.8543485753677` to `976.5579618566177`. Facts of `group_grandchild`
+(layout's point 1, 50 a quarter, protected span 24–32): the default
+pieces `score` 0–16 (`82.265625` to `196.55133928571422`, natural 800),
+`movement` 0–8 (16–24 on the root, to `253.69419642857133`, natural 400)
+and `score` 32–64 (`653.6941964285713` to `882.265625`, natural 1600).
+
+- **The pieces** (`stripsOf`): `bundle_elisions_stored` draws `elision_4`,
+  `elision_5`, `elision_6` in `score`'s ancestor card and `elision_2` in
+  `page`'s card, in that order.
+- **A strip and its labels** (`stripOf`): `{id: elision_4}` and its
+  labels `{id: elision_4, part: [name]}`, `[coordinate]` stand for `{id:
+  elision_4}`; on `group_grandchild` `{id: movement, part: [elision]}` and
+  `[elision, coordinate]` for `{id: movement, part: [elision]}`; the line
+  `{id: score}` and a named timestamp's label for nothing.
+- **What a strip says** (`stripText`): the timeline's name, the piece's
+  stretch on its own axis, exact, with the unit's name, and "elided":
+  "Score, 0–16 quarters, elided", "Score, 32–48 quarters, elided",
+  "Score, 48–56 quarters, elided", "Page, 600–1 754 pixels, elided" (ints
+  grouped by three with a space, as the drawn label groups them);
+  "Movement, 0–8 quarters, elided" on `group_grandchild`.
+- **The edges a piece moves** (`subjectOf`): a stored elision's start and
+  end are its own (`elision_4` 0–20), shown on the piece reaching them:
+  `elision_4` the start alone, `elision_5` both, `elision_6` the end alone
+  (40–56), `elision_2` both; every default piece both, its own stretch.
+- **An edge under the pointer** (`edgeAt`, tolerance 8, reach 0.5 canvas
+  units): `elision_5`'s start at `1236.5579618566176` (100 left of its
+  strip, on the first run: 32 − 100 / 50) is 30; 5 right of the abscissa
+  of 24 (`936.5579618566177`, theme's end and the protected edge, a
+  snapping value) is 24; at `886.5579618566177` (23 on the run) it is held
+  to 24, since the piece lies right of the protected span; `elision_5`'s
+  end at `1551.5579618566176`, inside `elision_6`'s strip (48–56 over 30
+  units: 48 + 15 / 30 × 8) is 52, and 100 past `score`'s end is 64, its
+  length; `elision_6`'s end at `1581.5579618566176` (run 56–64: 56 + 15 /
+  50) is 563/10, and 5 right of `1566.5579618566176` is 56, `coda`'s start.
+  On `group_grandchild` `movement`'s end at 15 right of its strip (24.3 on
+  the root, 8.3 on its own axis) is held to 8: its piece lies left of the
+  protected span, which starts at 8 on `movement`.
+- **A step** (`edgeStep`, one step of 50 canvas units is one quarter):
+  `elision_5`'s start left is 31, its end right 49; a step of 500 left
+  from 32 stops at 24, the snapping value on the way; `elision_4`'s start
+  left changes nothing (0); `movement`'s end right changes nothing (the
+  protected edge); `elision_2`'s start left by 50 is 381 (600 −
+  50 × 1754 / 400 = 380.75, the nearest integer on an int axis).
+- **A width** (`widthFor`, reach 0.5) in the elision's form: `elision_4`
+  (ratio, natural 16 × 50 = 800) drawn 300 is `{ratio: 0.375}`, 1000 is
+  `{ratio: 1}` (never wider than natural); `elision_5` (span) drawn 250 is
+  `{span: [5, 1]}`; `elision_6` (canvas) drawn 45.678 is `{canvas:
+  45.68}`; the default `movement` piece (Automatic becomes Proportional,
+  natural 400) drawn 100 is `{ratio: 0.25}`.
+- **The command** (`stripCommand`): `elision_5` with start 30 is `set
+  {start: [30, 1]}` on `{block: A, id: elision_5}`, applied without
+  refusal; with its own start 32 nothing; `elision_2` with end 1700 `set
+  {end: 1700}`. The default `movement` piece of `group_grandchild` with
+  start 4 is one `add` into `{block: A}` of `[score 0–16, movement 4–8,
+  score 32–64]` (drawing order, no `width`), one journal entry; after it
+  the stored elision found for the changed one (`storedAs`, by its values)
+  is `{block: A, id: elision_2}`, minted second; the first `score` piece
+  with width `{ratio: 0.125}` writes that width on its entry alone.
+- **Deleting defaults** (`defaultsRemoval`): deleting `movement`'s default
+  stores `[score 0–16, score 32–64]`; deleting `score`'s (both pieces)
+  stores `[movement 0–8]`; deleting both is refused, "The last automatic
+  elisions of a card are not deleted: choose Full to draw it whole."
+- **Nothing is placed in a strip, every run is read** (`readingAt`,
+  `stripHoverAt`): at the local point (1766.5579618566176, 105.98828125)
+  on the second run the reading is on `score` at 60 (56 + 200 / 50), drawn
+  at x `1766.5579618566176`; at (1616.5579618566176, 105.98828125) it is 57;
+  at (1236.5579618566176, 105.98828125), on the first run outside the frame,
+  30. At (1551.5579618566176, 105.98828125), inside `elision_6`'s strip,
+  nothing is read and the strip's flag says "Score, 48–56 quarters,
+  elided", at the pointer's abscissa, its top the card's top
+  `57.01171875`; at (1563.5579618566176, 105.98828125), 3 inside the
+  strip's right edge, within the hover tolerance of the run 56–64, nothing
+  is read either (without the strip rule the run's start, 56, would be).
+- **Places on runs** (`placesAt`, the one place rule of pins, affordances,
+  Show coordinates and Show matches): `score` at 60 has exactly one place,
+  on the second run (its axis from `1566.5579618566176`) at x
+  `1766.5579618566176`; at 40, inside `elision_5`'s stretch, none.
+- **A press on a strip or its label** (`pressedIn`, on the arranger): the
+  label `{id: elision_5, part: [name]}` selects `{block: A, id:
+  elision_5}`, the strip itself its own address; on `group_grandchild`
+  the label `{id: movement, part: [elision, coordinate]}` selects `{block:
+  A, id: movement, part: [elision]}`. A selected strip holds its card
+  (`holdingOf`): `elision_5` holds `score`'s ancestor card and the block,
+  not the frame.
+- **The marquee** (`elementsInRect`) over `page`'s card: a rectangle from
+  (670, 305) to (815, 363) takes `{id: elision_2}` once and none of its
+  labels' addresses; one from (670, 305) to (815, 330), short of the
+  strip's bottom, takes no `elision_2`.
+- **Picking** (`pickable`): `group_grandchild`'s default strip `{id:
+  movement, part: [elision]}` and its label pick nothing, as the stored
+  `elision_1` of `with_region` does (Picking, above).
+
+The keys (`strip-keys.test.ts`, the arranger's rules, the canvas's
+`KeyContext` with `heldEdge` and the default granularity):
+
+- **Delete** on `{block: A, id: elision_5}` dispatches `remove` of it, and
+  the manifest keeps `elision_2`, `elision_4`, `elision_6` (and the ones not
+  drawn); on `{block: A, id: movement, part: [elision]}` it dispatches the
+  `add` of `[score 0–16, score 32–64]` and clears the selection; on both
+  defaults of the card it refuses with the message above and dispatches
+  nothing; with a default strip and the block `{block: A}` it refuses,
+  "Delete automatic elisions on their own, those of one block at a time."
+- **Moving an edge**, the grid at 50 (one quarter a step): `[` held with
+  Left on `elision_5` sets its start to 31, `]` held with Right its end to
+  49; `[` itself, a strip selected, is taken and dispatches nothing,
+  without a strip it is not taken.
+- **The width**: Shift+Right on `elision_4` (grid 50) widens it to (400 +
+  50) / 800, `{ratio: 0.5625}`; Shift+Left on `group_grandchild`'s default
+  `movement` (grid 8) narrows it to (400 / 7 − 8) / 400 =
+  0.12285714285714…, `{ratio: 0.1229}`, storing the card's three
+  defaults in one `add` (`movement`'s entry with that width) and selecting
+  `{block: A, id: elision_2}`, the elision it became.
+- A plain Left on a selected strip is not taken; read-only, the arrows on
+  a strip dispatch nothing.
+
+The handles' gesture (`strip-gesture.test.ts`, the strategy driven
+directly with recorded node actions, viewport (0, 0) zoom 1): `elision_5`'s
+start handle moved 100 screen pixels left previews and stores `set
+{start: [30, 1]}`, its flag saying "Score, 30–48 quarters" at the
+previewed strip's left edge; `elision_6`'s width grip moved 15 right
+stores `set {width: {canvas: 45}}`; a press on `elision_6`'s start (it
+shows none) and any press on a read-only canvas are not taken.
+`movement`'s end handle on `group_grandchild` moved 10 left (inside its
+strip: 16 + (47.14285714285711 / 57.14285714285711) × 8 on the root, 33/5
+on `movement`) stores the card's defaults with `movement` 0–33/5; once the
+view holds them the release selects `{block: A, id: elision_2}`, and an
+ended gesture whose view did not change selects nothing.
+
+The handles on the canvas (`strip-handles.test.ts`, `CanvasHarness`):
+with `{block: A, id: elision_5}` selected the canvas shows the handles
+`start`, `end`, `width`; with `elision_4` (its piece reaching only the
+stored start) `start`, `width`; with `group_grandchild`'s default
+`movement` strip `start`, `end`, `width`; with a line selected none.
+
+The pane (`pane.svelte.test.ts`): before a canvas settles one, every
+drawing takes layout's default view (`group_grandchild`'s first strip
+`82.265625` to `196.55133928571422`). Settled at 640 × 360, `drawingOf`
+draws a new drawing with layout's point 10: strips from `82.265625` to
+`141.53972167968755`, on to `171.17677001953143`, and from
+`571.1767700195314` to `689.7249633789065`. A size 0 × 360, −5 × 100 or
+NaN wide is skipped and the drawing stays the same object; a release by a
+canvas that did not settle it changes nothing, its settler's release
+brings the default view back. A `$derived` reading the pane is read again
+when it is settled and released (`createSubscriber`).
 
 ## Package (`name.test.ts`)
 

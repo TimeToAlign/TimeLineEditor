@@ -1,16 +1,20 @@
 /** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
 import type { Block } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
+import { containersOf } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnBox, View } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { isAncestorCard } from "./boxes.ts";
+import { paneView } from "./pane.ts";
 
 interface Memo {
   readonly graphical: Graphical;
   readonly metrics: FontMetrics;
+  /** The pane it was drawn for (`paneView`); `undefined` for layout's default view. */
+  readonly view: View | undefined;
   readonly drawing: Drawing;
 }
 
@@ -25,10 +29,14 @@ const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
 /** The placement members a drawing depends on. */
 type Placement = Pick<Block, "length" | "spacing" | "margin" | "width" | "height" | "places">;
 
-/** The one string form of a placement's values, `-0` told apart from `0`. */
-function placementKey({ length, spacing, margin, width, height, places }: Placement): string {
-  return JSON.stringify([length, spacing, margin, width, height, places], (_key, value) =>
-    Object.is(value, -0) ? "-0" : value,
+/** The one string form of a placement's values and the pane, `-0` told apart from `0`. */
+function placementKey(
+  { length, spacing, margin, width, height, places }: Placement,
+  view: View | undefined,
+): string {
+  return JSON.stringify(
+    [length, spacing, margin, width, height, places, view?.width, view?.height],
+    (_key, value) => (Object.is(value, -0) ? "-0" : value),
   );
 }
 
@@ -43,9 +51,12 @@ export function styleLayers(
 /**
  * The drawing of a block: its manifest drawn at its placement with the
  * default layer, the workspace's `graphical` and the manifest's own
- * (`manifestLayer`: its styles and rules), from lowest to highest. Blocks are immutable, so the drawing is memoized per
- * block and redrawn only when the workspace's `graphical` or the metrics
- * change identity.
+ * (`manifestLayer`: its styles and rules), from lowest to highest, for the
+ * pane the canvas settled at (`paneView`, the placement's `view`; layout's
+ * default view before one is settled) where the manifest draws an ancestor
+ * card, whose default proportion alone reads it. Blocks are immutable, so the drawing is memoized per
+ * block and redrawn only when the workspace's `graphical`, the metrics or
+ * the pane change; read in a reaction, it is read again when the pane does.
  * `overrides` replace members of the block's placement (a resize measuring
  * the content at another length or with no size request). Every drawing is
  * also kept by its manifest and its placement's values, the `RECENT` last
@@ -58,9 +69,18 @@ export function drawingOf(
   metrics: FontMetrics,
   overrides?: Partial<Block>,
 ): Drawing {
+  const manifest = overrides?.manifest ?? block.manifest;
+  // Only an ancestor card's default proportion reads the pane (section 8.9): a manifest drawing
+  // none is drawn once, whatever the pane.
+  const view = containersOf(manifest).ancestorCards.length === 0 ? undefined : paneView();
   if (overrides === undefined) {
     const memo = drawings.get(block);
-    if (memo !== undefined && memo.graphical === graphical && memo.metrics === metrics) {
+    if (
+      memo !== undefined &&
+      memo.graphical === graphical &&
+      memo.metrics === metrics &&
+      memo.view === view
+    ) {
       return memo.drawing;
     }
   }
@@ -70,7 +90,7 @@ export function drawingOf(
     recent = new Map();
     placed.set(placement.manifest, recent);
   }
-  const key = placementKey(placement);
+  const key = placementKey(placement, view);
   let memo = recent.get(key);
   recent.delete(key);
   if (memo === undefined || memo.graphical !== graphical || memo.metrics !== metrics) {
@@ -83,11 +103,12 @@ export function drawingOf(
         width: placement.width,
         height: placement.height,
         places: placement.places,
+        ...(view === undefined ? {} : { view }),
       },
       styleLayers(graphical, placement.manifest),
       metrics,
     );
-    memo = { graphical, metrics, drawing };
+    memo = { graphical, metrics, view, drawing };
   }
   recent.set(key, memo);
   for (const oldest of recent.keys()) {

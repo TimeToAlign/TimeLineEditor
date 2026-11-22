@@ -29,10 +29,13 @@ import {
   readsGroup,
 } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
+import Flag from "./Flag.svelte";
 import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
 import { previewed } from "./gestures/host.ts";
+import type { StripLive } from "./gestures/strip.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
 import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
@@ -63,14 +66,18 @@ import {
 import type { LivePlacement, TransientCommand } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
+import { releasePane, settlePane } from "./pane.ts";
 import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
+import StripHandles from "./StripHandles.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
 import type { Pressed } from "./selectionRules.ts";
 import { DONE, hitAt, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
+import type { StripEdge } from "./strips.ts";
+import { isStrip, stripHoverAt } from "./strips.ts";
 
 interface Props {
   /** The workspace store, read through `liveStore`; replacing it shows the new workspace, fitted into view. */
@@ -243,6 +250,12 @@ let showMatches = $state(false);
 /** The canvas's size in pixels: what "Show matches" draws follows the view. */
 let canvasWidth = $state(0);
 let canvasHeight = $state(0);
+/**
+ * This canvas as the holder of the pane every drawing is fitted to
+ * (`settlePane`): its size, which lies left of the inspector drawer, is
+ * the pane once both sides are measured, as the focus measures it.
+ */
+const pane = {};
 /** The pointer over the canvas, in pixels from its top-left corner; `null` while it is elsewhere. */
 let hover: Point | null = $state.raw(null);
 /** Bumped when a manifest's expanded MeasureMaps arrive, so the reading is made again with them. */
@@ -460,6 +473,20 @@ setNodeActions({
   gestures,
 });
 
+/** The one selected strip of an elision and the node holding it, as stored; `null` otherwise. */
+const selectedStrip = $derived.by(() => {
+  if (selection.size !== 1) return null;
+  const [address] = selection.values();
+  if (address === undefined) return null;
+  const { block, element } = addressParts(address);
+  const node = nodes.byId.get(block);
+  if (element === null || node === undefined) return null;
+  return isStrip(node.data.block.manifest, element) ? { node, element } : null;
+});
+
+/** The dragged strip handle's place and value, from its gesture; `null` while none is dragged. */
+let stripDrag: StripLive | null = $state.raw(null);
+
 /** What the resize toolbar acts on (`resizableOf`). */
 const resizable = $derived(resizableOf(selection, nodes.byId, editing, level));
 
@@ -529,6 +556,30 @@ function readingOf(point: Point) {
 
 /** What the pointer reads now; nothing while boxes move or "Show coordinates" is off. */
 const reading = $derived(!coordinates || moving || hover === null ? null : readingOf(hover));
+
+/**
+ * The strip of an elision the pointer rests on while "Show coordinates" is
+ * on: nothing is placed inside a strip (`readingAt` reads nothing there),
+ * and its flag says what it elides (`stripHoverAt`).
+ */
+const stripHover = $derived.by(() => {
+  if (!coordinates || moving || hover === null || reading !== null) return null;
+  const { x, y, zoom } = viewport;
+  return stripHoverAt(nodes.nodes, { x: (hover.x - x) / zoom, y: (hover.y - y) / zoom });
+});
+
+/** The strip flag in canvas pixels: the dragged handle's, else the hovered strip's; `null` for none. */
+const stripFlag = $derived.by(() => {
+  const { x, y, zoom } = viewport;
+  const screen = (cx: number, cy: number) => ({ x: x + cx * zoom, y: y + cy * zoom });
+  if (stripDrag !== null) {
+    const at = screen(stripDrag.at.x, stripDrag.at.y);
+    return { ...at, top: screen(stripDrag.at.x, stripDrag.top).y, text: stripDrag.text };
+  }
+  if (stripHover === null) return null;
+  const at = screen(stripHover.x, stripHover.top);
+  return { ...at, top: at.y, text: stripHover.text };
+});
 
 /** What a screen reader hears when a click pins a timestamp; the moving flag is not announced. */
 let announced = $state("");
@@ -942,6 +993,19 @@ function onpointerupcapture(event: PointerEvent) {
 
 // --- Keys ------------------------------------------------------------------
 
+/** The edge of a selected strip the arrows move while its bracket is held: `[` the start, `]` the end. */
+let heldEdge: StripEdge | null = null;
+
+const BRACKETS: { readonly [code: string]: StripEdge } = {
+  BracketLeft: "start",
+  BracketRight: "end",
+};
+
+/** A bracket released, or the page left, ends the hold. */
+function onkeyupcapture(event: KeyboardEvent) {
+  if (BRACKETS[event.code] === heldEdge) heldEdge = null;
+}
+
 /** The canvas as the key `event` acts on it. */
 function keyContext(event: KeyboardEvent): KeyContext {
   return {
@@ -950,6 +1014,8 @@ function keyContext(event: KeyboardEvent): KeyContext {
     editing,
     rules,
     metrics,
+    granularity: granularity ?? view.settings.granularity,
+    heldEdge: () => heldEdge,
     editors: live.editing.length,
     select: (next) => (selection = next),
     dispatch,
@@ -977,6 +1043,8 @@ function keyContext(event: KeyboardEvent): KeyContext {
  */
 function onkeydowncapture(event: KeyboardEvent) {
   if (event.defaultPrevented || isTextInput(event.target)) return;
+  const bracket = BRACKETS[event.code];
+  if (bracket !== undefined && !event.ctrlKey && !event.metaKey) heldEdge = bracket;
   if (picking !== null && event.key === "Escape") return;
   if (!within(root, event.target) || inToolbar(event)) return;
   if (!pickOnKey(event) && !handleKey(keyContext(event), event)) return;
@@ -985,7 +1053,7 @@ function onkeydowncapture(event: KeyboardEvent) {
 }
 </script>
 
-<svelte:window {onkeydowncapture} />
+<svelte:window {onkeydowncapture} {onkeyupcapture} onblur={() => (heldEdge = null)} />
 
 <!--
   The arranger is one tab stop with keys of its own, an ARIA application;
@@ -1004,13 +1072,16 @@ function onkeydowncapture(event: KeyboardEvent) {
   bind:clientWidth={null,
   (next) => {
     canvasWidth = next ?? 0;
+    settlePane(pane, canvasWidth, canvasHeight);
     editorFocus.resized();
   }}
   bind:clientHeight={null,
   (next) => {
     canvasHeight = next ?? 0;
+    settlePane(pane, canvasWidth, canvasHeight);
     editorFocus.resized();
   }}
+  {@attach () => () => releasePane(pane)}
   {onpointerdowncapture}
   {onpointerupcapture}
   {onclickcapture}
@@ -1076,6 +1147,15 @@ function onkeydowncapture(event: KeyboardEvent) {
           />
         {/if}
       {/if}
+      {#if !moving && selectedStrip !== null && rules.resize}
+        <StripHandles
+          node={selectedStrip.node}
+          address={selectedStrip.element}
+          zoom={viewport.zoom}
+          granularity={granularity ?? view.settings.granularity}
+          onlive={(next) => (stripDrag = next)}
+        />
+      {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />
       <CoordinateMarks {marks} />
       <MatchOverlay layers={matchLayers} />
@@ -1113,6 +1193,19 @@ function onkeydowncapture(event: KeyboardEvent) {
       top={matchFlagShown.top}
       width={root?.clientWidth ?? 0}
     />
+  {/if}
+  {#if stripFlag !== null}
+    <Flag
+      kind="elision"
+      label="Elision"
+      x={stripFlag.x}
+      y={stripFlag.y}
+      top={stripFlag.top}
+      width={root?.clientWidth ?? 0}
+      footer={null}
+    >
+      <div class="tilie-coordinates-head" data-testid="elision-text">{stripFlag.text}</div>
+    </Flag>
   {/if}
   {#if showMatches && matches.length === 0}
     <p class="tilie-matches-state" data-testid="matches-state" role="status">{matchesStatus}</p>

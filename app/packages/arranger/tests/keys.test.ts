@@ -8,6 +8,7 @@
 import type { Address, Command, Store } from "@timetoalign/tilie-core";
 import {
   cardAddress,
+  DEFAULT_GRANULARITY,
   findTimeline,
   idAddress,
   inBlock,
@@ -52,6 +53,8 @@ function deleteIn(store: Store, ...addresses: Address[]): Pressed {
     editing,
     rules: rulesOf(editing, { locked: false, readonly: false }),
     metrics,
+    granularity: DEFAULT_GRANULARITY,
+    heldEdge: () => null,
     editors: store.editing.length,
     select: (next) => {
       selection = next;
