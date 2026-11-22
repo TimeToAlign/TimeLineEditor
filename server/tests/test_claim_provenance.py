@@ -549,10 +549,8 @@ def test_an_actor_that_is_no_iri_reference_makes_a_table_the_checks_refuse(
     response = post(server, BELIEF, body(belief("claim_6", "not an iri", "true")))
     assert response.status_code == 422
     message = (
-        "the provenance #/beliefs/1/actor: 'not an iri' should not be valid under "
-        "{'anyOf': [{'pattern': '[\\\\u0000-\\\\u0020\\\\u007f-\\\\u00a0\\\\u1680"
-        "\\\\u2000-\\\\u200a\\\\u2028\\\\u2029\\\\u202f\\\\u205f\\\\u3000\\\\ufeff]'}, "
-        "{'pattern': '^_:'}, {'pattern': '^@'}]}"
+        "the provenance #/beliefs/1/actor: 'not an iri' holds U+0020: no whitespace and no "
+        "control character is admitted here"
     )
     assert response.json() == {
         "detail": {
