@@ -16,6 +16,7 @@ import pyarrow.parquet as pq
 import pytest
 import timetoshare.tables as tables
 from fastapi.testclient import TestClient
+from refusals import assert_refused_in_timetoshares_words
 from timetoshare import FORMAT_CONTEXT, dumps, loads
 from timetoshare.tables import fixture_path
 
@@ -73,34 +74,6 @@ def body(parameters: Any, table: pa.Table | None = None, **rest: Any) -> bytes:
 def post(server: TestClient, route: str, content: bytes) -> Any:
     headers = {**AUTH, "Content-Type": "application/octet-stream"}
     return server.post(route, headers=headers, content=content)
-
-
-def assert_refused_in_timetoshares_words(
-    response: Any,
-    path: list[Any],
-    contains: list[str],
-    problems: list[dict[str, Any]] | None = None,
-) -> None:
-    """A 422 whose message is TimeToShare's: the status, the path and the problems'
-    codes, rows and columns are exact; the words are TimeToShare's to rephrase, so
-    only the substrings that name what is refused are asserted. A problem's message
-    is the answer's message."""
-    assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert detail["path"] == path
-    for text in contains:
-        assert text in detail["message"]
-    if problems is None:
-        assert set(detail) == {"path", "message"}
-        return
-    assert set(detail) == {"path", "message", "problems"}
-    assert [
-        {key: value for key, value in problem.items() if key != "message"}
-        for problem in detail["problems"]
-    ] == problems
-    assert [problem["message"] for problem in detail["problems"]] == [
-        detail["message"]
-    ] * len(problems)
 
 
 def belief(claim: str, actor: str, word: str, date: str = DAY) -> dict[str, Any]:

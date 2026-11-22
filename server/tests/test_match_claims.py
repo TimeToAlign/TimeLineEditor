@@ -14,6 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
+from refusals import assert_refused_in_timetoshares_words
 from timetoshare import FORMAT_CONTEXT, dumps, loads
 from timetoshare.tables import MATCH_CLAIM_SCHEMA, fixture_path
 
@@ -259,17 +260,12 @@ def test_a_scope_tells_no_two_ids_apart(server: TestClient) -> None:
         index, table.schema.field(index), pa.array(["claim_1", "claim_1", *ids[2:]])
     )
     response = post(server, body(fixture_manifest(), parquet(scoped(table))))
-    assert response.status_code == 422
-    message = "the ID 'claim_1' is given twice"
-    assert response.json() == {
-        "detail": {
-            "path": [],
-            "message": message,
-            "problems": [
-                {"code": "duplicate_id", "row": 1, "column": ["id"], "message": message}
-            ],
-        }
-    }
+    assert_refused_in_timetoshares_words(
+        response,
+        [],
+        ["'claim_1'"],
+        [{"code": "duplicate_id", "row": 1, "column": ["id"]}],
+    )
 
 
 def test_the_files_provenance_gives_every_row_its_beliefs(server: TestClient) -> None:
@@ -428,22 +424,13 @@ def test_a_table_the_checks_refuse_answers_every_problem(server: TestClient) -> 
     del manifest["timelines"][0]["children"]
     from timetoshare.tables import match_claim_problems
 
-    problem = {
-        "code": "unknown_timeline",
-        "row": 14,
-        "column": ["timeline_a_id"],
-        "message": "the manifest has no timeline 'clt_2'",
-    }
+    problem = {"code": "unknown_timeline", "row": 14, "column": ["timeline_a_id"]}
     found = match_claim_problems(fixture_table(), manifest)
     assert [
-        {"code": p.code, "row": p.row, "column": list(p.column), "message": p.message}
-        for p in found
+        {"code": p.code, "row": p.row, "column": list(p.column)} for p in found
     ] == [problem]
     response = post(server, body(dumps(manifest).encode(), parquet(fixture_table())))
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {"path": [], "message": problem["message"], "problems": [problem]}
-    }
+    assert_refused_in_timetoshares_words(response, [], ["'clt_2'"], [problem])
 
 
 def test_a_table_without_a_column_answers_the_schema_problem(
@@ -451,22 +438,12 @@ def test_a_table_without_a_column_answers_the_schema_problem(
 ) -> None:
     table = fixture_table().drop_columns(["certainty"])
     response = post(server, body(fixture_manifest(), parquet(table)))
-    assert response.status_code == 422
-    message = "the table has no column 'certainty'"
-    assert response.json() == {
-        "detail": {
-            "path": [],
-            "message": message,
-            "problems": [
-                {
-                    "code": "schema_violation",
-                    "row": None,
-                    "column": ["certainty"],
-                    "message": message,
-                }
-            ],
-        }
-    }
+    assert_refused_in_timetoshares_words(
+        response,
+        [],
+        ["'certainty'"],
+        [{"code": "schema_violation", "row": None, "column": ["certainty"]}],
+    )
 
 
 @pytest.mark.parametrize(
@@ -480,18 +457,13 @@ def test_a_table_without_a_column_answers_the_schema_problem(
         ),
         (body(b"\xff", b""), [], "the manifest is not UTF-8 text"),
         (
-            body(fixture_manifest().replace(b'"#clt_1"\n', b'"clt_1"\n'), b""),
-            ["timelines", 0, "id"],
-            "'clt_1' is not written as an ID: it does not start with '#'",
-        ),
-        (
             body(fixture_manifest(), b"not parquet"),
             [],
             "the MatchClaim table is no Parquet file",
         ),
         (body(fixture_manifest(), b""), [], "the MatchClaim table is no Parquet file"),
     ],
-    ids=["short", "long manifest", "no UTF-8", "bare ID", "no Parquet", "no table"],
+    ids=["short", "long manifest", "no UTF-8", "no Parquet", "no table"],
 )
 def test_a_body_that_cannot_be_read_is_refused(
     server: TestClient, content: bytes, path: list[Any], message: str
@@ -501,10 +473,12 @@ def test_a_body_that_cannot_be_read_is_refused(
     assert response.json() == {"detail": {"path": path, "message": message}}
 
 
-NAMED_FIVE = {
-    "detail": {"path": ["name"], "message": "#/name: 5 is not of type 'string', 'null'"}
-}
-"""The refusal of the fixture's manifest naming itself 5, at the validator's path."""
+def test_a_bare_id_in_the_manifest_is_refused_at_its_path(server: TestClient) -> None:
+    manifest = fixture_manifest().replace(b'"#clt_1"\n', b'"clt_1"\n')
+    response = post(server, body(manifest, b""))
+    assert_refused_in_timetoshares_words(
+        response, ["timelines", 0, "id"], ["'clt_1'", "'#'"]
+    )
 
 
 def test_timetoalign_refusing_the_manifest_keeps_the_validators_path(
@@ -512,8 +486,7 @@ def test_timetoalign_refusing_the_manifest_keeps_the_validators_path(
 ) -> None:
     manifest = fixture_manifest() + b"name: 5\n"
     response = post(server, body(manifest, parquet(fixture_table())))
-    assert response.status_code == 422
-    assert response.json() == NAMED_FIVE
+    assert_refused_in_timetoshares_words(response, ["name"], ["#/name", "5"])
 
 
 def test_the_route_needs_the_token(server: TestClient) -> None:

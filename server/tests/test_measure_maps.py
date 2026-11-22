@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from refusals import assert_refused_in_timetoshares_words
 from timetoshare import dumps, loads
 
 import tilie_server.app
@@ -248,21 +249,11 @@ def test_two_requests_answer_the_same(server: TestClient) -> None:
     ("body", "path", "message"),
     [
         (b"\xff", [], "the body is not UTF-8 text"),
-        (
-            b"{not json",
-            [],
-            "the body is neither JSON nor YAML: expected a key at line 1, column 2",
-        ),
         (b"[]", [], "the body is not an object"),
         (b"- 1\n", [], "the body is not an object"),
         (b'{"measure_maps": {}}', ["measure_maps"], "measure_maps is not a list"),
-        (
-            b'{"measure_maps": [{"id": "bars", "rows": [{"count": 1}]}]}',
-            ["measure_maps", 0, "id"],
-            "'bars' is not written as an ID: it does not start with '#'",
-        ),
     ],
-    ids=["no UTF-8", "unreadable", "JSON list", "YAML list", "maps", "bare ID"],
+    ids=["no UTF-8", "JSON list", "YAML list", "maps"],
 )
 def test_a_body_of_another_form_is_refused(
     server: TestClient, body: bytes, path: list[Any], message: str
@@ -273,19 +264,32 @@ def test_a_body_of_another_form_is_refused(
     assert response.json() == {"detail": {"path": path, "message": message}}
 
 
+def test_a_body_neither_serialization_reads_is_refused(server: TestClient) -> None:
+    headers = {**AUTH, "Content-Type": "application/json"}
+    response = server.post(ROUTE, headers=headers, content=b"{not json")
+    assert_refused_in_timetoshares_words(
+        response, [], ["the body is neither JSON nor YAML: ", "line 1, column 2"]
+    )
+
+
+def test_a_bare_map_id_is_refused_at_its_path(server: TestClient) -> None:
+    headers = {**AUTH, "Content-Type": "application/json"}
+    content = b'{"measure_maps": [{"id": "bars", "rows": [{"count": 1}]}]}'
+    response = server.post(ROUTE, headers=headers, content=content)
+    assert_refused_in_timetoshares_words(
+        response, ["measure_maps", 0, "id"], ["'bars'", "'#'"]
+    )
+
+
 def test_a_map_the_library_refuses_is_named_by_its_path(server: TestClient) -> None:
     manifest = read(FIXTURE)
     manifest["measure_maps"].append(
         {"id": "#broken", "rows": [{"count": 2}, {"count": 1}]}
     )
     response = server.post(ROUTE, headers=AUTH, json=manifest)
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {
-            "path": ["measure_maps", 1],
-            "message": "Measure Map count 1 does not increase after count 2",
-        }
-    }
+    assert_refused_in_timetoshares_words(
+        response, ["measure_maps", 1], ["count 1", "does not increase", "count 2"]
+    )
 
 
 def test_the_route_needs_the_token(server: TestClient) -> None:
