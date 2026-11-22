@@ -35,12 +35,12 @@ function carrying(manifest: Manifest, id: string, value: unknown): Record<string
  * Where and why TimeToShare's validator refuses `value`, a manifest with bare
  * IDs, written as a file writes it, or `null` when it is a manifest.
  */
-function validatorRefusal(value: unknown): { path: readonly PathSegment[]; detail: string } | null {
+function validatorRefusal(value: unknown): { code: string; path: readonly PathSegment[] } | null {
   try {
     validate(withFileIds(value));
     return null;
   } catch (error) {
-    if (error instanceof SchemaValidationError) return { path: error.path, detail: error.detail };
+    if (error instanceof SchemaValidationError) return { code: error.code, path: error.path };
     throw error;
   }
 }
@@ -230,19 +230,19 @@ describe("band order problems", () => {
     );
   });
 
-  it.each([
-    ["", "must NOT have fewer than 1 characters"],
-    ["li\u0000ne", "must NOT be valid"],
-  ])("reports %j, which the schema refuses, as a stranger", (entry, detail) => {
-    const value = [...D, entry];
-    expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
-      `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
-    );
-    expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
-      path: ["graphical", "order", "#clt_3", 6],
-      detail,
-    });
-  });
+  it.each([[""], ["li\u0000ne"]])(
+    "reports %j, which the schema refuses, as a stranger",
+    (entry) => {
+      const value = [...D, entry];
+      expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
+        `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
+      );
+      expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
+        code: "schema",
+        path: ["graphical", "order", "#clt_3", 6],
+      });
+    },
+  );
 
   it("refuses exactly the values the validators refuse", () => {
     const values: unknown[] = [

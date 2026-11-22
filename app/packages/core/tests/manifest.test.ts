@@ -300,9 +300,8 @@ describe("canonical order", () => {
       { id: "region_2", start: "later", end: [1, 1] },
     ];
     const unordered = { ...value, timelines: [{ ...root, regions }] };
-    expect(completeOrdered(unordered)).toEqual({
+    expect(completeOrdered(unordered)).toMatchObject({
       code: "schema_violation",
-      message: "must be number",
       path: ["timelines", 0, "regions", 1, "start"],
     });
   });

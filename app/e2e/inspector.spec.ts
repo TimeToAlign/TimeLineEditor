@@ -16,7 +16,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Manifest } from "../packages/core/src/index.ts";
 import { isLoadError, loadManifest } from "../packages/core/src/index.ts";
-import { dumps, loads, manifestFixture } from "./schema.ts";
+import { dumps, loads, manifestFixture, validatorDetail } from "./schema.ts";
 import {
   BUNDLES,
   cardPoint,
@@ -142,7 +142,7 @@ test("a refused edit shows its exact path and keeps the text", async ({ page }) 
   const problems = page.getByRole("list", { name: "Problems" }).getByRole("listitem");
   await expect(problems).toHaveCount(1);
   await expect(problems).toHaveText(
-    /^\s*schema_violation\s+must be boolean\s+at\s+\/timelines\/0\/locked\s*$/,
+    `schema_violation ${validatorDetail(edited)} at /timelines/0/locked`,
   );
   await expect(manifestText(page)).toHaveValue(edited);
   await expectButtons(page, true);

@@ -622,9 +622,11 @@ accepts and refuses).
    first), so the comparison is the inspector's.
 5. **A refusal points into the text.** The store's path loses its
    `[<block>, "manifest"]` prefix and is shown as a JSON pointer:
-   `"locked": "yes"` is `schema_violation` "must be boolean" at
-   `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
-   (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
+   `"locked": "yes"` is `schema_violation` at `/timelines/0/locked`,
+   `"unit": "parsecs"` `schema_violation` at `/timelines/0/unit`; the message
+   is TimeToShare's: the tests read it from the validator at test time
+   (`validatorDetail`) and never state its wording, so a change of the
+   validator's phrasing breaks no test here. A syntax error carries the
    reader's 1-based line and column: JSON `"locked": ,` at 109:17 (after
    `@context`, the default timestamps' `graphical` and `resources`, which
    sort first), YAML `locked: [false` at 93:5 (the line after the

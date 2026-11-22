@@ -41,8 +41,9 @@ Two modules hold what the specs share. `schema.ts` loads the schema
 package the editor's packages resolve (installed or linked), typed as that
 package's own exports (the suite's `tsconfig.json` maps the package for
 types only), and gives its directory, its `SCHEMA_VERSION`, the manifest
-fixtures of that version and the bundled faces' metrics, the package's own
-export the editor draws with.
+fixtures of that version, the bundled faces' metrics, the package's own
+export the editor draws with, and `validatorDetail`, the message the package's
+validator gives for a manifest text, so no spec states the validator's wording.
 `support.ts` holds every helper more than one spec uses: opening a fixture,
 reading the hook, selecting, closing an editor, the inspector's tabs and
 panels, the marks, the points a gesture aims at and the gestures
@@ -543,7 +544,9 @@ the text. A block without a manifest file of its own opens with Minimal and
 Include styling checked, so `bare`'s text, before the refused edit, equals
 the schema package's fixture `bare.minimal` in pretty JSON
 (`dumps(loads(fixture), {serialization: "json"})`); the edit states
-`"locked": "yes"` on the root timeline, refused at `/timelines/0/locked`. For the complete and the minimal form, with the styling excluded
+`"locked": "yes"` on the root timeline, refused at `/timelines/0/locked`
+with the message the schema package's validator gives for that text
+(`validatorDetail` in `schema.ts`, never a literal). For the complete and the minimal form, with the styling excluded
 or included, the text shown equals the schema package's fixture file in
 that form (without `graphical` unless included), Apply and Revert are
 enabled exactly while it differs, the form options are locked meanwhile,

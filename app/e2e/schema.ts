@@ -38,6 +38,21 @@ export const FONT_METRICS: FontMetrics = schema.fontMetrics;
 /** The package's writer and its reader of every serialization, as the editor uses them. */
 export const { dumps, loads } = schema;
 
+/**
+ * The detail the package's validator gives for the manifest in `text` (a
+ * schema refusal), which a refusal shown by the editor repeats; the specs take
+ * it from here instead of stating the validator's wording.
+ */
+export function validatorDetail(text: string): string {
+  try {
+    schema.validate(schema.withFileIds(schema.loads(text)));
+  } catch (error) {
+    if (error instanceof schema.SchemaValidationError) return error.detail;
+    throw error;
+  }
+  throw new Error("the manifest is valid");
+}
+
 /** The text of a manifest fixture by its path below the schema version's fixtures (`groups/group_styled`). */
 export function manifestFixture(name: string): string {
   return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.yaml`), "utf8");
