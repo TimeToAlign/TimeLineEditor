@@ -7,6 +7,7 @@
 
 import type { ElementAddress } from "@timetoalign/tilie-core";
 import type {
+  Cut,
   Drawing,
   DrawnElement,
   LineMark,
@@ -274,6 +275,22 @@ function markDescriptor(mark: LineMark, writer: Writer): Descriptor {
   }
 }
 
+/**
+ * The pieces `[from, to]` of a row from `x1` to `x2` that crosses the gaps
+ * `cuts`, from run to run (section 6.6, Elisions); a piece without length is
+ * not drawn.
+ */
+function piecesOf(x1: number, x2: number, cuts: readonly Cut[]): (readonly [number, number])[] {
+  const pieces: (readonly [number, number])[] = [];
+  let from = x1;
+  for (const [left, right] of cuts) {
+    pieces.push([from, left]);
+    from = right;
+  }
+  pieces.push([from, x2]);
+  return pieces.filter(([left, right]) => right > left);
+}
+
 /** The descriptors of one element (sections 7.2 and 8.5). */
 function elementDescriptors(element: DrawnElement, index: number): Descriptor[] {
   const writer = writerOf(element, index);
@@ -295,30 +312,34 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     case "timeline":
     case "child":
     case "ancestor": {
-      // The line to where it stops, its start circle or left chevrons, its end mark or chevrons.
+      // The line to where it stops, in pieces from run to run where it crosses gaps, its start
+      // circle or left chevrons, its end mark or chevrons.
       const line = lineGeometry(element);
       return [
-        writer.line(line.x1, line.y, line.x2, line.y),
+        ...piecesOf(line.x1, line.x2, element.cuts).map(([from, to]) =>
+          writer.line(from, line.y, to, line.y),
+        ),
         ...[...line.start, ...line.end].map((mark) => markDescriptor(mark, writer)),
       ];
     }
     case "wedge":
       return [writer.points("polygon", wedgePoints(element), filled)];
     case "map": {
+      // Its closed double line, in pieces from run to run where it crosses gaps.
       const { xs, xe, yc } = element;
       const half = element.spacing / 2;
-      return [
+      return piecesOf(xs, xe, element.cuts).map(([from, to]) =>
         writer.points(
           "polygon",
           [
-            [xs, yc - half],
-            [xe, yc - half],
-            [xe, yc + half],
-            [xs, yc + half],
+            [from, yc - half],
+            [to, yc - half],
+            [to, yc + half],
+            [from, yc + half],
           ],
           open,
         ),
-      ];
+      );
     }
     case "region":
       return [writer.path(brace(element), open)];
@@ -339,13 +360,20 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     case "alignment_anchor":
       return [writer.line(element.x1, element.y1, element.x2, element.y2)];
     case "elision": {
-      // Its strip, filled and not stroked, without corners; its rule; its continuations.
+      // Its gap, filled and not stroked, without corners, only where its fill is not `none`; then
+      // its continuations.
       const { x1, x2, yt, yb } = element;
       return [
-        writer.rect(x1, yt, x2 - x1, yb - yt, filled, "primary", false),
-        ...(element.rule ? [writer.line(x1, yt, x1, yb)] : []),
+        ...(element.style.fill === "none"
+          ? []
+          : [writer.rect(x1, yt, x2 - x1, yb - yt, filled, "primary", false)]),
         ...element.continuations.map((y) => writer.line(x1, y, x2, y)),
       ];
+    }
+    case "ellipsis": {
+      // Three filled dots, `spacing` apart, on the row's ordinate.
+      const { x, y, r, spacing } = element;
+      return [x - spacing, x, x + spacing].map((cx) => writer.circle(cx, y, r, filled));
     }
     case "name":
     case "label":

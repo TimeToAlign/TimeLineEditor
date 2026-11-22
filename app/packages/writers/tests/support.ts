@@ -57,6 +57,7 @@ export function boxed(
     origin: { x: 0, y: 0 },
     boxes: [],
     axes: [],
+    elisions: [],
     elements: [
       { type: "block", address: BUNDLE_ADDRESS, style: background, width, height },
       ...elements,
@@ -119,6 +120,7 @@ export function bare(): Drawing {
       y,
       start: "circle",
       end: "arrowhead",
+      cuts: [],
     },
     {
       type: "wedge",
@@ -165,7 +167,7 @@ function line(
   end: LineElement["end"],
   changes: Partial<Style> = {},
 ): LineElement {
-  return { type, address, style: { ...LOGICAL, ...changes }, xs, xe, y, start, end };
+  return { type, address, style: { ...LOGICAL, ...changes }, xs, xe, y, start, end, cuts: [] };
 }
 
 /**
@@ -220,6 +222,7 @@ export function everything(): Drawing {
       xe: 100,
       yc: 64,
       spacing: 2,
+      cuts: [],
     },
     {
       type: "region",
@@ -293,9 +296,18 @@ export function everything(): Drawing {
       x2: 160,
       yt: 26,
       yb: 114,
-      rule: true,
       continuations: [56],
       elided: { timeline: "c", start: 0, end: 1 },
+      origin: "default",
+    },
+    {
+      type: "ellipsis",
+      address: at("c", "elision", "ellipsis"),
+      style: BLACK,
+      x: 155,
+      y: 56,
+      r: 2,
+      spacing: 6,
     },
     {
       type: "label",

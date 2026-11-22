@@ -236,25 +236,39 @@ fill="#00CC00"/>`, then the end of section 6.6:
   line's own address, so they hit the line;
 - `chevrons`, a line running on (section 8.3): stop 50, then only the
   first two of those three: the two ends differ in the outer chevron alone;
-- `none` at either end, a line cut at a strip's edge (section 6.6,
+- `none` at either end, a line cut at a gap's edge (section 6.6,
   Elisions): no mark there, the stop at `xe` itself; with both ends `none`
   the `<line>` stopping at 50 is written alone.
 
-**Strips** (section 7.2, elision). An elision `{id: e}` from `x1 10` to `x2
-40` and from `yt 4` to `yb 26`, with a rule and continuations at 12 and 20,
-filled `#F2F2F2` and stroked `#9CA3AF` with width 1 and dash `2 2` (the
-defaults' style), writes its rectangle with its `fill` alone and no `rx`,
-`<rect data-id="e" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>`
-(width `x2 − x1`, height `yb − yt`), then its rule `<line data-id="e"
-x1="10" y1="4" x2="10" y2="26" stroke="#9CA3AF" stroke-width="1"
-stroke-dasharray="2 2"/>`, then its continuations in their order, `<line
-data-id="e" x1="10" y1="12" x2="40" y2="12" …/>` and `… y1="20" … y2="20"
-…/>`, stroked alike; in TikZ `\path[fill=tsF2F2F2] (10,4) rectangle
-(40,26);`, then `… (10,26) -- (10,4);`, `… (10,18) -- (40,18);` and `…
-(10,10) -- (40,10);` with `draw=ts9CA3AF,line width=1pt,dash pattern=on 2pt
-off 2pt`. Without a rule the rectangle and the continuations are written
-alone. A default elision `{id: score, part: [elision]}` writes
-`data-id="score" data-part="elision"`; its labels are texts like any.
+**Gaps and ellipses** (section 7.2, elision and ellipsis). An elision `{id:
+e}` from `x1 10` to `x2 40` and from `yt 4` to `yb 26`, stroked `#9CA3AF`
+with width 1 and dash `2 2` (the defaults' style), writes its rectangle
+only where its `fill` is not `none`: unfilled and without continuations it
+writes nothing; unfilled with continuations at 12 and 20 it writes them
+alone, `<line data-id="e" x1="10" y1="12" x2="40" y2="12" stroke="#9CA3AF"
+stroke-width="1" stroke-dasharray="2 2"/>` and `… y1="20" … y2="20" …/>`;
+filled `#F2F2F2` it writes first its rectangle with its `fill` alone and no
+`rx`, `<rect data-id="e" x="10" y="4" width="30" height="22"
+fill="#F2F2F2"/>` (width `x2 − x1`, height `yb − yt`), then those lines;
+in TikZ `\path[fill=tsF2F2F2] (10,4) rectangle (40,26);`, then `…
+(10,18) -- (40,18);` and `… (10,10) -- (40,10);` with
+`draw=ts9CA3AF,line width=1pt,dash pattern=on 2pt off 2pt`. A derived
+elision `{id: score, part: [elision]}` writes `data-id="score"
+data-part="elision"`. An ellipsis `{id: e, part: [ellipsis]}` at `x 25`,
+`y 12`, radius 2 and spacing 6 writes three filled circles, `<circle
+data-id="e" data-part="ellipsis" cx="19" cy="12" r="2" fill="#000000"/>`,
+then `cx="25"`, then `cx="31"`, in TikZ `\path[fill=ts000000] (19,18)
+circle[radius=2];` and the other two.
+
+**Rows crossing gaps** (section 6.6, Elisions). A line crossing gaps is
+written in pieces from run to run, each a `<line>` from where one run
+starts to where the next gap starts, a piece without length left out, then
+its marks: a child `{id: c}` from 10 to 50 at 20, start `circle`, end
+`none`, cut at `[10, 14]` and `[20, 30]`, writes `<line … x1="14" y1="20"
+x2="20" y2="20" …/>`, `<line … x1="30" y1="20" x2="50" y2="20" …/>` (the
+piece 10–10 is left out) and its start circle at 10. A map from 10 to 50
+centred at 20, spacing 4, cut at `[20, 30]`, writes two closed outlines,
+`points="10,18 20,18 20,22 10,22"` and `points="30,18 50,18 50,22 30,22"`.
 
 **Cross-section lines** (section 7.2) are lines from `(X, y1)` to `(X, y2)`
 as the layout states them, in that order, whichever is the smaller: `{id:
@@ -298,16 +312,16 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   since the subject is the ancestor line on the member's card and the
   ancestor card the defaults show (section 8.8) would move the frame right:
   the ancestor `score` runs on at both sides
-  (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 119.16015625`, the
+  (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 99.18359375`, the
   second ancestor row below the member, as the layout's README derives) and
   writes exactly four polylines, two on each side, each from `y − 1.5w` to
-  `y + 1.5w`: left `(96.70361328125, 114.66015625) (92.20361328125,
-  119.16015625) (96.70361328125, 123.66015625)` and `(92.20361328125,
-  114.66015625) (87.70361328125, 119.16015625) (92.20361328125,
-  123.66015625)`; right `(526.70361328125, 114.66015625) (531.20361328125,
-  119.16015625) (526.70361328125, 123.66015625)` and `(531.20361328125,
-  114.66015625) (535.70361328125, 119.16015625) (531.20361328125,
-  123.66015625)`, the outer tip
+  `y + 1.5w`: left `(96.70361328125, 94.68359375) (92.20361328125,
+  99.18359375) (96.70361328125, 103.68359375)` and `(92.20361328125,
+  94.68359375) (87.70361328125, 99.18359375) (92.20361328125,
+  103.68359375)`; right `(526.70361328125, 94.68359375) (531.20361328125,
+  99.18359375) (526.70361328125, 103.68359375)` and `(531.20361328125,
+  94.68359375) (535.70361328125, 99.18359375) (531.20361328125,
+  103.68359375)`, the outer tip
   `Xr + 4w`, never `Xr + 5.5w`.
 
 **Other elements.**
@@ -379,15 +393,16 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 every kind of element: a frame and its title, a card with its shadow, an
 ancestor line running on at both sides, lines ending in the diamond, the
 open arrowhead, the end circle and the arrowhead, a map, a region, a jump origin,
-a flow marker, a boundary, a cross-section line, a wedge, a strip with its
-rule and a continuation, and labels; the
+a flow marker, a boundary, a cross-section line, a wedge, a filled gap
+with a continuation and its ellipsis, and labels; the
 frame's title holds the TeX specials, `♩`, which DejaVu Sans draws, and the
-whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 34 descriptors, in which
+whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 36 descriptors, in which
 every tag occurs, one of them a shadow. For it and for every review case
 (drawn by the layout):
 
 - **sources**: the descriptors' element indices never decrease, every
-  element writes at least one descriptor, each names its element's type
+  element writes at least one descriptor but an unfilled gap without
+  continuations, which writes none, each names its element's type
   and address, and the role is `shadow` for the first of a card's
   descriptors when its style has a shadow and `primary` otherwise;
 - **one command per descriptor**: `writeSvg` writes exactly one line per
@@ -452,8 +467,16 @@ manifests' drawings before ancestor cards drew strips); and
 `bundle_elided_layerit` drawn for the view `{width: 1024, height: 640}`
 (`bundle__bundle_elided_layerit__view-1024x640`, the one case whose
 `inputs.json` states a `view`: a case states the placement's `view` only
-where it sets one, so every other `inputs.json` is unchanged). 99 fixtures
-in all.
+where it sets one, so every other `inputs.json` is unchanged);
+`group_elided_inside` with the layer `{addresses: [{id: piece, part:
+[card]}]}` `elision-display: "ellipsis name coordinate"`
+(`group__group_elided_inside__labels`, the derived elisions' name and
+coordinate labels shown) and with `elision-mode: custom`
+(`group__group_elided_inside__custom`, the card drawn whole while no card
+elision is stored); `group_elided_members` with `{addresses: [{id:
+group_1}]}` `elision-mode: full` (`group__group_elided_members__full`,
+the frame without its group elisions); and `bundle_groupstamp_shared_member`
+with `places.g2.scale` 1.5 (`bundle__bundle_groupstamp_shared_member__scaled`).
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards

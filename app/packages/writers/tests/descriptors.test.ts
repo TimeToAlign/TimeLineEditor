@@ -233,6 +233,7 @@ describe("descriptors", () => {
       xe: 50,
       yc: 20,
       spacing: 4,
+      cuts: [],
     });
     expect(svgBody(map)).toEqual([
       '<polygon data-id="m" points="10,18 50,18 50,22 10,22" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
@@ -450,6 +451,7 @@ describe("descriptors", () => {
       y: 20,
       start,
       end,
+      cuts: [],
     });
   const lineTo = (stop: number) =>
     `<line data-id="c" x1="10" y1="20" x2="${stop}" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`;
@@ -498,24 +500,19 @@ describe("descriptors", () => {
     });
   }
 
-  it("writes a strip's rectangle, its rule and its continuations", () => {
-    const strip = (rule: boolean, address = at("e")) =>
+  it("writes a gap's rectangle only where it is filled, then its continuations", () => {
+    const gap = (fill: string, continuations: number[], address = at("e")) =>
       synthetic({
         type: "elision",
         address,
-        style: style({
-          fill: "#F2F2F2",
-          stroke: "#9CA3AF",
-          "stroke-width": 1,
-          "stroke-dasharray": "2 2",
-        }),
+        style: style({ fill, stroke: "#9CA3AF", "stroke-width": 1, "stroke-dasharray": "2 2" }),
         x1: 10,
         x2: 40,
         yt: 4,
         yb: 26,
-        rule,
-        continuations: [12, 20],
+        continuations,
         elided: { timeline: "t", start: 0, end: 1 },
+        origin: "stored",
       });
     const stroke = 'stroke="#9CA3AF" stroke-width="1" stroke-dasharray="2 2"';
     const rect = '<rect data-id="e" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>';
@@ -523,22 +520,77 @@ describe("descriptors", () => {
       `<line data-id="e" x1="10" y1="12" x2="40" y2="12" ${stroke}/>`,
       `<line data-id="e" x1="10" y1="20" x2="40" y2="20" ${stroke}/>`,
     ];
-    expect(svgBody(strip(true))).toEqual([
-      rect,
-      `<line data-id="e" x1="10" y1="4" x2="10" y2="26" ${stroke}/>`,
-      ...continuations,
-    ]);
-    expect(svgBody(strip(false))).toEqual([rect, ...continuations]);
+    expect(svgBody(gap("none", []))).toEqual([]);
+    expect(svgBody(gap("none", [12, 20]))).toEqual(continuations);
+    expect(svgBody(gap("#F2F2F2", [12, 20]))).toEqual([rect, ...continuations]);
     const dashed = "draw=ts9CA3AF,line width=1pt,dash pattern=on 2pt off 2pt";
-    expect(tikzBody(strip(true))).toEqual([
+    expect(tikzBody(gap("#F2F2F2", [12, 20]))).toEqual([
       "\\path[fill=tsF2F2F2] (10,4) rectangle (40,26);",
-      `\\path[${dashed}] (10,26) -- (10,4);`,
       `\\path[${dashed}] (10,18) -- (40,18);`,
       `\\path[${dashed}] (10,10) -- (40,10);`,
     ]);
-    expect(svgBody(strip(false, at("score", "elision")))[0]).toBe(
+    expect(svgBody(gap("#F2F2F2", [], at("score", "elision")))[0]).toBe(
       '<rect data-id="score" data-part="elision" x="10" y="4" width="30" height="22" fill="#F2F2F2"/>',
     );
+  });
+
+  it("writes an ellipsis as three filled dots, spacing apart, on its row", () => {
+    const ellipsis = synthetic({
+      type: "ellipsis",
+      address: at("e", "ellipsis"),
+      style: style({ fill: "#000000" }),
+      x: 25,
+      y: 12,
+      r: 2,
+      spacing: 6,
+    });
+    const dot = (cx: number) =>
+      `<circle data-id="e" data-part="ellipsis" cx="${cx}" cy="12" r="2" fill="#000000"/>`;
+    expect(svgBody(ellipsis)).toEqual([dot(19), dot(25), dot(31)]);
+    expect(tikzBody(ellipsis)).toEqual([
+      "\\path[fill=ts000000] (19,18) circle[radius=2];",
+      "\\path[fill=ts000000] (25,18) circle[radius=2];",
+      "\\path[fill=ts000000] (31,18) circle[radius=2];",
+    ]);
+  });
+
+  it("writes a line and a map crossing gaps in pieces from run to run", () => {
+    const cut = synthetic({
+      type: "child",
+      address: at("c"),
+      style: style({ stroke: "#00CC00", fill: "#00CC00", "stroke-width": 2 }),
+      xs: 10,
+      xe: 50,
+      y: 20,
+      start: "circle",
+      end: "none",
+      cuts: [
+        [10, 14],
+        [20, 30],
+      ],
+    });
+    const piece = (from: number, to: number) =>
+      `<line data-id="c" x1="${from}" y1="20" x2="${to}" y2="20" stroke="#00CC00" stroke-width="2"/>`;
+    // The piece from the start to the first gap has no length and is not written.
+    expect(svgBody(cut)).toEqual([
+      piece(14, 20),
+      piece(30, 50),
+      '<circle data-id="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
+    ]);
+    const map = synthetic({
+      type: "map",
+      address: at("m"),
+      style: style({ stroke: "#00CC00" }),
+      xs: 10,
+      xe: 50,
+      yc: 20,
+      spacing: 4,
+      cuts: [[20, 30]],
+    });
+    expect(svgBody(map)).toEqual([
+      '<polygon data-id="m" points="10,18 20,18 20,22 10,22" fill="none" stroke="#00CC00" stroke-width="1"/>',
+      '<polygon data-id="m" points="30,18 50,18 50,22 30,22" fill="none" stroke="#00CC00" stroke-width="1"/>',
+    ]);
   });
 
   /**
@@ -592,24 +644,24 @@ describe("descriptors", () => {
     const { points } = chevronsOf("groups/group_grandchild", "score");
     expect(points).toEqual([
       [
-        [96.70361328125, 114.66015625],
-        [92.20361328125, 119.16015625],
-        [96.70361328125, 123.66015625],
+        [96.70361328125, 94.68359375],
+        [92.20361328125, 99.18359375],
+        [96.70361328125, 103.68359375],
       ],
       [
-        [92.20361328125, 114.66015625],
-        [87.70361328125, 119.16015625],
-        [92.20361328125, 123.66015625],
+        [92.20361328125, 94.68359375],
+        [87.70361328125, 99.18359375],
+        [92.20361328125, 103.68359375],
       ],
       [
-        [526.70361328125, 114.66015625],
-        [531.20361328125, 119.16015625],
-        [526.70361328125, 123.66015625],
+        [526.70361328125, 94.68359375],
+        [531.20361328125, 99.18359375],
+        [526.70361328125, 103.68359375],
       ],
       [
-        [531.20361328125, 114.66015625],
-        [535.70361328125, 119.16015625],
-        [531.20361328125, 123.66015625],
+        [531.20361328125, 94.68359375],
+        [535.70361328125, 99.18359375],
+        [531.20361328125, 103.68359375],
       ],
     ]);
   });
@@ -630,6 +682,7 @@ describe("descriptors", () => {
       y: 20,
       start: "chevrons",
       end: "chevrons",
+      cuts: [],
     });
     const chevron = (points: string) =>
       `<polyline data-id="a" points="${points}" fill="none" stroke="#00CC00" stroke-width="1" opacity="0.35"/>`;
@@ -655,6 +708,7 @@ describe("descriptors", () => {
       xe: 50,
       yc: 20,
       spacing: 2,
+      cuts: [],
     });
     expect(svgBody(drawing)).toEqual([
       '<polygon data-id="m" points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
@@ -853,14 +907,24 @@ function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] 
 
 /**
  * Every descriptor names the element it was written from: the elements in
- * order, each once at least, its type and address, `shadow` the role of a
- * card's or an ancestor card's shadow alone.
+ * order, each once at least but an unfilled gap without continuations,
+ * which writes none (section 7.2), its type and address, `shadow` the role
+ * of a card's or an ancestor card's shadow alone.
  */
 function sourcesFollowElements(drawing: Drawing): void {
   const descriptors = toDescriptors(drawing);
   const order = descriptors.map((each) => each.source.element);
   expect(order).toEqual([...order].sort((left, right) => left - right));
-  expect([...new Set(order)]).toEqual([...drawing.elements.keys()]);
+  const silent = drawing.elements.flatMap((element, index) =>
+    element.type === "elision" &&
+    element.style.fill === "none" &&
+    element.continuations.length === 0
+      ? [index]
+      : [],
+  );
+  expect([...new Set(order)]).toEqual(
+    [...drawing.elements.keys()].filter((index) => !silent.includes(index)),
+  );
   drawing.elements.forEach((element, index) => {
     const own = descriptors.filter((each) => each.source.element === index);
     const shadowed =
@@ -893,7 +957,7 @@ describe("descriptor sources", () => {
 describe("one command per descriptor", () => {
   it("everything", () => {
     const descriptors = oneCommandPerDescriptor(everything(), 1);
-    expect(descriptors.length).toBe(34);
+    expect(descriptors.length).toBe(36);
     expect(new Set(descriptors.map((each) => each.tag))).toEqual(new Set(Object.keys(KIND)));
   });
 

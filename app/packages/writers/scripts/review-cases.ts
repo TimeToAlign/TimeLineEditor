@@ -12,8 +12,12 @@
  * defaults show, an application layer hides: a root reaching past its
  * member on both sides, one reaching past it to the right, and three roots
  * of three axes behind one frame; four manifests whose elided ancestor cards
- * a rule draws whole, `{element: elision}` hidden; and one with its elisions
- * drawn for a smaller view. Each is also a drawing fixture of the schema
+ * a rule draws whole, `{element: elision}` hidden; one with its elisions
+ * drawn for a smaller view; one whose ancestor card's derived elisions show
+ * their name and coordinate labels, and the same card in the mode `custom`,
+ * which draws it whole while no card elision is stored; a frame whose group
+ * elisions its mode `full` leaves out; and a bundle whose second frame, at
+ * the scale 1.5, draws the gap of the elision on its shared member. Each is also a drawing fixture of the schema
  * package (`fixtures/<version>/drawings/`).
  */
 
@@ -237,6 +241,21 @@ export function reviewCases(): ReviewCase[] {
     "bundle__bundle_elided_layerit__view-1024x640",
     "bundles/bundle_elided_layerit",
     at({ view: { width: 1024, height: 640 } }),
+  );
+  const piece = { addresses: [{ id: "piece", part: ["card"] }] } satisfies Selector;
+  add("group__group_elided_inside__labels", "groups/group_elided_inside", DEFAULT_PLACEMENT, 1, [
+    { rules: [{ select: piece, set: { "elision-display": "ellipsis name coordinate" } }] },
+  ]);
+  add("group__group_elided_inside__custom", "groups/group_elided_inside", DEFAULT_PLACEMENT, 1, [
+    { rules: [{ select: piece, set: { "elision-mode": "custom" } }] },
+  ]);
+  add("group__group_elided_members__full", "groups/group_elided_members", DEFAULT_PLACEMENT, 1, [
+    { rules: [{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }] },
+  ]);
+  add(
+    "bundle__bundle_groupstamp_shared_member__scaled",
+    "bundles/bundle_groupstamp_shared_member",
+    at({ places: { g2: { scale: 1.5 } } }),
   );
   return cases;
 }
