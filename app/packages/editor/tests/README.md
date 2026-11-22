@@ -2621,8 +2621,11 @@ pending); disposed with information shown (the editor unmounting), no timer
 is left pending. The editor gives its components one function posting
 information, through the component context; a component mounted without it
 throws "no component above this one provides inform". In the editor, a
-Copy in the Timestamp tab (a named timestamp selected through the hook)
-posts "Copied …" as information, and a refused file a warning. The editor
+Copy in the Timestamp tab (a named timestamp selected through the hook:
+`bundle_mixed`'s `timestamp_9`, `score`'s origin; the Copy of the value
+of its row "coordinate", picked by its label, since the rows of `score`'s
+maps lie above its line and come first) posts "Copied 0." as information,
+and a refused file a warning. The editor
 gives them a second function posting warnings the same way (a component
 mounted without it throws "no component above this one provides warn");
 a component mounted on its own takes both from one context, the warnings

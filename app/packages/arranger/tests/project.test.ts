@@ -23,6 +23,7 @@ import {
   numbersView,
   placed,
   viewOf,
+  withoutAncestorCards,
 } from "./support.ts";
 
 const view = viewOf(
@@ -241,7 +242,8 @@ describe("livePlacement", () => {
 });
 
 describe("the node of a block placed by its place origin", () => {
-  const moved = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
+  // Drawn without `recording`'s ancestor card, whose room would move the place origin.
+  const moved = placed(withoutAncestorCards(mixedPlain()), A, "annotations", { x: -30, y: -20 });
 
   it("lies left of and above the place origin by the origin times the scale", () => {
     const [only] = project(moved, NOTHING_SELECTED, [], metrics, null);

@@ -25,10 +25,14 @@ import {
   placed,
   viewOf,
   withGrid,
+  withoutAncestorCards,
 } from "./support.ts";
 
-/** `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`: the origin (38, 48.8046875). */
-const shifted = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
+/**
+ * `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`, its ancestor card hidden:
+ * the origin (38, 48.8046875).
+ */
+const shifted = placed(withoutAncestorCards(mixedPlain()), A, "annotations", { x: -30, y: -20 });
 const doubled = changed(shifted, {
   type: "set",
   changes: [{ target: { block: A }, values: { scale: 2 } }],

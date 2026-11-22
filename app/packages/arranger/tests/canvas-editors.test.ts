@@ -33,7 +33,17 @@ import { GRID_FREE, quantize } from "../src/numbers.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
-import { A, B, changed, load, marqueeView, metrics, mixedView, storeOf } from "./support.ts";
+import {
+  A,
+  B,
+  changed,
+  load,
+  marqueeView,
+  metrics,
+  mixedView,
+  storeOf,
+  withoutAncestorCards,
+} from "./support.ts";
 
 interface Mounted {
   current(): { selection: Selection; viewport: Viewport };
@@ -562,7 +572,8 @@ describe("the surroundings of an editor", () => {
   }
 
   it("select by marquee only the elements inside the edited element", async () => {
-    await show(marqueeView());
+    // Without `recording`'s ancestor card, as `marquee.test.ts` draws this view.
+    await show(withoutAncestorCards(marqueeView()));
     open(id("dlt_1"));
     await atZoomOne();
     await marqueeFrom(40, 410, 640, 496.25);

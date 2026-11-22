@@ -31,6 +31,7 @@ import {
   placed as placedItem,
   viewOf,
   withGrid,
+  withoutAncestorCards,
 } from "./support.ts";
 
 type Row = readonly [string, Handle, number, number, Partial<Block>];
@@ -96,9 +97,12 @@ const views: { readonly [name: string]: View } = {
   "audio, no names, at the knee": placed(audio, { length: 22.90185546875 }),
   "bare, width 953.15": placed(bare, { width: 953.154296875 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
-  "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
-    width: 600,
-  }),
+  // Without `piece`'s ancestor card, as every view of a group below: the README derives the
+  // block's width without it.
+  "child member, width 600": placed(
+    withoutAncestorCards(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 })),
+    { width: 600 },
+  ),
 };
 
 describe("handlesFor", () => {
@@ -219,7 +223,9 @@ describe("kept", () => {
 
 describe("the shortening lock, through the block", () => {
   it("keeps a box request in proportion and shrinks the box again", () => {
-    const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 });
+    const shared = withoutAncestorCards(
+      viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 }),
+    );
     expect(check(shared, "box", "right", 585.39013671875, 0)).toStrictEqual({
       width: 1170.7802734375,
     });
@@ -256,7 +262,7 @@ describe("resizeCommand", () => {
 
 describe("resizing a block whose place origin lies inside it", () => {
   it("keeps the node's opposite edge, storing the place origin", () => {
-    const wide = placedItem(mixedPlain(), A, "group_2", { width: 600 });
+    const wide = placedItem(withoutAncestorCards(mixedPlain()), A, "group_2", { width: 600 });
     const view = placedItem(wide, A, "annotations", { x: -30 });
     const [before] = project(view, NOTHING_SELECTED, [], metrics, null);
     expect(before?.data.drawing.origin).toEqual({ x: 38, y: 0 });
@@ -306,7 +312,11 @@ describe("blockStretchPlaces", () => {
 });
 
 describe("stretching a block with placed items", () => {
-  const view = placedItem(mixedPlain(), A, "group_2", { x: 40, y: 200, width: 700 });
+  const view = placedItem(withoutAncestorCards(mixedPlain()), A, "group_2", {
+    x: 40,
+    y: 200,
+    width: 700,
+  });
   const block = blockIn(view, A);
 
   it("stretches the places with the content and keeps the margin's edge under the pointer", () => {

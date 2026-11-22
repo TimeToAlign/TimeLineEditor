@@ -5,11 +5,14 @@ import { FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
 import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, changed, metrics, mixedView } from "./support.ts";
+import { A, changed, metrics, mixedView, withoutAncestorCards } from "./support.ts";
 
-/** The node of block A, at `scale` when one is given. */
+/**
+ * The node of block A, at `scale` when one is given, drawn without `recording`'s ancestor
+ * card, whose room would move the block's place origin.
+ */
 function nodeOf(scale?: number): BlockNode {
-  const mixed = mixedView();
+  const mixed = withoutAncestorCards(mixedView());
   const view =
     scale === undefined
       ? mixed

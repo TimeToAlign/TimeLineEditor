@@ -68,6 +68,7 @@ import {
   STYLED_DRAWN,
   sourceOf,
   viewOf,
+  withoutAncestorCards,
 } from "./support.ts";
 
 function drawingIn(view: View): Drawing {
@@ -202,6 +203,8 @@ describe("boxes in a manifest of one root", () => {
 describe("boxes in a manifest with one group", () => {
   const view = viewOf({ id: A, fixture: CHILD_MEMBER });
   const drawing = drawingIn(view);
+  /** The drawing without `piece`'s ancestor card, whose points the README derives. */
+  const withoutCard = drawingIn(withoutAncestorCards(view));
   const hit = (address: ElementAddress, type?: DrawnElement["type"]) =>
     hitOf(A, drawing, sourceOf(drawing, address, type));
 
@@ -249,27 +252,34 @@ describe("boxes in a manifest with one group", () => {
     ["the block's padding", 4, 4, null],
     ["the right of the frame", 552, 100, null],
   ])("finds under %s the box %j", (_, x, y, expected) => {
-    expect(hitOf(A, drawing, null, { x, y }).within?.key ?? null).toEqual(expected);
+    expect(hitOf(A, withoutCard, null, { x, y }).within?.key ?? null).toEqual(expected);
   });
 
-  it("tells the frame, each card and each shadow", () => {
+  it("tells the ancestor card, the frame, each card and each shadow", () => {
     expect(roles(drawing)).toEqual([
       [0, BUNDLE_ADDRESS, "block"],
-      [1, idAddress("group_1"), "frame"],
-      [3, cardAddress("second-half"), "shadow"],
-      [4, cardAddress("second-half"), "card"],
-      [22, cardAddress("recording"), "shadow"],
-      [23, cardAddress("recording"), "card"],
+      [1, cardAddress("piece"), "shadow"],
+      [2, cardAddress("piece"), "card"],
+      [15, idAddress("group_1"), "frame"],
+      [17, cardAddress("second-half"), "shadow"],
+      [18, cardAddress("second-half"), "card"],
+      [36, cardAddress("recording"), "shadow"],
+      [37, cardAddress("recording"), "card"],
     ]);
   });
 
   it("finds the frame where a hidden card would be", () => {
     const hidden = drawingIn(styled(view, HIDDEN_CARDS));
-    const point = { x: 120.61962890625, y: 139.16015625 };
+    // The start of `recording`'s line, 368 right of where it lies without the ancestor card.
+    const point = { x: 488.61962890625, y: 139.16015625 };
     expect(hitOf(A, hidden, null, point).within?.key).toEqual(cardKey("group_1"));
+    // Left of the frame and below the ancestor card: no box.
+    expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 139.16015625 }).within).toBeNull();
     expect(roles(hidden)).toEqual([
       [0, BUNDLE_ADDRESS, "block"],
-      [1, idAddress("group_1"), "frame"],
+      [1, cardAddress("piece"), "shadow"],
+      [2, cardAddress("piece"), "card"],
+      [15, idAddress("group_1"), "frame"],
     ]);
   });
 
@@ -287,7 +297,9 @@ describe("boxes in a manifest with one group", () => {
 
   it("highlights the innermost box under the pointer, never the block", () => {
     const hover = (address: ElementAddress | null, x: number, y: number) =>
-      hoverOf(hitOf(A, drawing, address === null ? null : sourceOf(drawing, address), { x, y }));
+      hoverOf(
+        hitOf(A, withoutCard, address === null ? null : sourceOf(withoutCard, address), { x, y }),
+      );
     expect(hover(idAddress("recording"), 120.61962890625, 139.16015625)).toEqual({
       box: placeKeyText(cardKey("group_1", "recording")),
       boundary: null,
@@ -376,17 +388,27 @@ describe("the boxes holding part of the selection", () => {
   const held = (...boxes: PlaceKey[]) => ({ block: true, boxes: new Set(boxes.map(placeKeyText)) });
   const g1 = cardKey("group_1");
   const g2 = cardKey("group_2");
+  /** The ancestor card of `recording` behind `group_2`'s frame, aligned to `excerpt`. */
+  const recordingBehindG2: PlaceKey = { item: "group_2", member: "recording" };
 
   it.each([
     ["a member's line", [idAddress("score")], [g1, cardKey("group_1", "score")]],
     ["a member's named timestamp", [idAddress("timestamp_9")], [g1, cardKey("group_1", "score")]],
-    ["a child's line", [idAddress("dlt_1")], [g2, cardKey("group_2", "excerpt")]],
-    ["a region's label", [part("region_3", "label")], [g2, cardKey("group_2", "excerpt")]],
-    ["a member that is a child", [idAddress("excerpt")], [g2, cardKey("group_2", "excerpt")]],
     [
-      "the ancestor line on a member's card",
+      "a child's line",
+      [idAddress("dlt_1")],
+      [g2, cardKey("group_2", "excerpt"), recordingBehindG2],
+    ],
+    ["a region's label", [part("region_3", "label")], [g2, cardKey("group_2", "excerpt")]],
+    [
+      "a member that is a child",
+      [idAddress("excerpt")],
+      [g2, cardKey("group_2", "excerpt"), recordingBehindG2],
+    ],
+    [
+      "the ancestor line on a member's card, and its root's line in the ancestor card",
       [idAddress("recording")],
-      [g2, cardKey("group_2", "excerpt")],
+      [g2, cardKey("group_2", "excerpt"), recordingBehindG2],
     ],
     ["a member's card", [cardAddress("page")], [g2]],
     ["the group itself", [idAddress("group_1")], []],
@@ -434,8 +456,9 @@ describe("the boxes holding part of the selection", () => {
   });
 
   describe("with an item over another", () => {
-    // The README's view `over`: `annotations`' card moved to (8, 60), over `group_1`'s frame.
-    const plain = mixedPlain();
+    // The README's view `over`: `annotations`' card moved to (8, 60), over `group_1`'s frame,
+    // drawn without `recording`'s ancestor card, which would move the place origin.
+    const plain = withoutAncestorCards(mixedPlain());
     const over = changed(plain, itemMoveCommand(plain, A, cardKey("annotations"), 8, 60, metrics));
     const drawing = drawingIn(over);
     const rect = (key: PlaceKey) => {
@@ -487,9 +510,15 @@ describe("the boxes holding part of the selection", () => {
 
     it.each([
       [
-        "drawn on both cards",
+        "drawn on both cards and in the ancestor card",
         twice,
-        [g1, cardKey("group_1", "recording"), g2, cardKey("group_2", "excerpt")],
+        [
+          g1,
+          cardKey("group_1", "recording"),
+          g2,
+          cardKey("group_2", "excerpt"),
+          { item: "group_2", member: "recording" },
+        ],
       ],
       ["hidden on the card of `recording`", hidden, [g2, cardKey("group_2", "excerpt")]],
     ])("holds it in the boxes of each copy drawn, %s", (_, view, boxes) => {

@@ -24,7 +24,7 @@ import {
   stubPointerCapture,
   withScreenMatrix,
 } from "./dom.ts";
-import { A, metrics, mixedView, storeOf, withGrid } from "./support.ts";
+import { A, metrics, mixedView, storeOf, withGrid, withoutAncestorCards } from "./support.ts";
 
 interface Mounted {
   select(next: ReturnType<typeof selectionOf>): void;
@@ -48,8 +48,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** `view` (`bundle_mixed` alone at (40, 80)) shown at (100, 100), zoom 1, with `selected` selected. */
-async function show(selected: readonly Address[], view: View = mixedView()): Promise<void> {
+/**
+ * `view` shown at (100, 100), zoom 1, with `selected` selected; by default `bundle_mixed` alone
+ * at (40, 80), drawn without `recording`'s ancestor card, so that the block's node lies at its
+ * stored place.
+ */
+async function show(
+  selected: readonly Address[],
+  view: View = withoutAncestorCards(mixedView()),
+): Promise<void> {
   store = storeOf(view);
   const instance = mount(Harness, { target: document.body, props: { store, metrics } });
   mounted = instance;

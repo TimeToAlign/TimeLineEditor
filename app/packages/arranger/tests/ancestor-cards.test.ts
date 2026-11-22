@@ -5,7 +5,7 @@
  */
 
 import type { View } from "@timetoalign/tilie-core";
-import { cardAddress, idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
+import { cardAddress, idAddress, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import {
@@ -24,27 +24,14 @@ import { descriptorsOf, drawingOf, raisedEntries } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { editorTargetOf } from "../src/editors.ts";
 import { insideOf } from "../src/project.ts";
-import { A, blockIn, changed, metrics, sourceOf, viewOf } from "./support.ts";
+import { A, blockIn, metrics, sourceOf, viewOf, withoutAncestorCards } from "./support.ts";
 
 const LEVELS: readonly Level[] = ["arranger", "bundle", "group", "timeline"];
 
-/** `fixture` in block `A`, the workspace's `graphical` showing every ancestor card or not. */
+/** `fixture` in block `A`, its ancestor cards shown, as the defaults draw them, or hidden. */
 function viewWith(fixture: string, shown = true): View {
   const view = viewOf({ id: A, fixture: `groups/${fixture}` });
-  if (!shown) return view;
-  return changed(view, {
-    type: "set",
-    changes: [
-      {
-        target: WORKSPACE,
-        values: {
-          graphical: {
-            rules: [{ select: { element: "ancestor_card" }, set: { display: "inline" } }],
-          },
-        },
-      },
-    ],
-  });
+  return shown ? view : withoutAncestorCards(view);
 }
 
 const drawingIn = (view: View): Drawing => drawingOf(blockIn(view, A), view.graphical, metrics);
