@@ -10,8 +10,8 @@
  * rotation a wedge is drawn with layout's.
  */
 
-import type { KnotsOf } from "@timetoalign/tilie-arranger";
-import { drawingOf, namedPin, timelinePin } from "@timetoalign/tilie-arranger";
+import type { Editing, KnotsOf } from "@timetoalign/tilie-arranger";
+import { drawingOf, namedPin, raisedRoot, timelinePin } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   AxisValue,
@@ -236,14 +236,17 @@ export function namedAddress(pin: Pin): Address | null {
 /**
  * The pin of the named timestamp at `address`, read from `view` (its block
  * drawn with `metrics`, under the view's granularity) with the MeasureMap
- * rows `knotsOf` gives for its block's manifest (no server without it);
- * `null` where `address` names none.
+ * rows `knotsOf` gives for its block's manifest (no server without it), on
+ * the lines the canvas shows while `editing`, the innermost open editor, is
+ * open (the arranger's `raisedRoot`: an ancestor card it raises is read
+ * where the frames cover it); `null` where `address` names none.
  */
 export function namedPinOf(
   view: View,
   address: Address,
   metrics: FontMetrics,
   knotsOf?: KnotsOf,
+  editing: Editing | null = null,
 ): Pin | null {
   const block = address.block === undefined ? undefined : view.blocks[address.block];
   if (block === undefined || address.id === undefined) return null;
@@ -254,6 +257,7 @@ export function namedPinOf(
     address.id,
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
+    raisedRoot(block, editing),
   );
 }
 
@@ -265,15 +269,17 @@ export function namedPinOf(
  * number type or at its length, read as any position on `T` is (the
  * arranger's `timelinePin`: its ancestors and the timelines its line
  * crosses), the block drawn with `metrics` under the view's granularity and
- * with the MeasureMap rows `knotsOf` gives (no server without it). `null`
- * for any other address, a timeline the manifest does not hold, and the end
- * of a timeline whose length is not known.
+ * with the MeasureMap rows `knotsOf` gives (no server without it), on the
+ * lines the canvas shows while `editing` is open, as `namedPinOf` reads.
+ * `null` for any other address, a timeline the manifest does not hold, and
+ * the end of a timeline whose length is not known.
  */
 export function boundaryPinOf(
   view: View,
   address: Address,
   metrics: FontMetrics,
   knotsOf?: KnotsOf,
+  editing: Editing | null = null,
 ): Pin | null {
   const block = address.block === undefined ? undefined : view.blocks[address.block];
   const [word, ...rest] = address.part ?? [];
@@ -294,6 +300,8 @@ export function boundaryPinOf(
     position,
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
+    false,
+    raisedRoot(block, editing),
   );
 }
 

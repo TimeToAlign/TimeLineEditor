@@ -26,7 +26,7 @@ import {
   showsSelection,
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
-import { affordancesOf } from "./coordinates.ts";
+import { affordancesOf, raisedRoot } from "./coordinates.ts";
 import { raisedEntries } from "./drawing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import type { GestureOptions } from "./gesture.ts";
@@ -237,15 +237,19 @@ function glows(entry: Entry): boolean {
 
 /**
  * The affordances of the named timestamps that draw nothing (`affordancesOf`),
- * each with its key in the node and the key of the timestamp it shows.
+ * read with the root this node's editor raises (`raisedRoot`), so one in a
+ * stretch of an ancestor card that frames cover appears on the card while it
+ * is raised; each with its key in the node and the key of the timestamp it
+ * shows.
  */
-const affordances = $derived(
-  affordancesOf(data.block.manifest, data.drawing).map((affordance) => {
+const affordances = $derived.by(() => {
+  const raised = raisedRoot(data.block, data.editing);
+  return affordancesOf(data.block.manifest, data.drawing, raised).map((affordance) => {
     const timestamp = addressKey(affordance.address);
     const owner = ownerOf(data.block.manifest, affordance.address);
     return { affordance, timestamp, owner, key: `${timestamp}#${affordance.line}` };
-  }),
-);
+  });
+});
 
 /** The block itself, and its cards and frames, holding part of the selection. */
 const holding = $derived(holdingOf(data.drawing, data.selectedElements));

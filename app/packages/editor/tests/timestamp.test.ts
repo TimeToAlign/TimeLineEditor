@@ -605,6 +605,34 @@ describe("a timeline's start or end mark, selected", () => {
   });
 });
 
+describe("a named timestamp on the root of an ancestor card", () => {
+  it("is read on the card's line while the card is raised, on the ancestor line otherwise", () => {
+    const store = storeOf("groups/group_parent_both");
+    expect(
+      store.dispatch({
+        type: "add",
+        into: { block: A, id: "piece" },
+        timestamp: { name: "At 8", coordinate: [8, 1] },
+      }),
+    ).toBeNull();
+    const id = store.view.blocks[A]?.manifest.graphical?.timestamps?.find(
+      (item) => item.name === "At 8",
+    )?.id;
+    if (id === undefined) throw new Error("no timestamp named");
+    const piece = ["Piece", [row("coordinate", "8", "♩")]];
+    const middle = ["Middle", [row("coordinate", "4", "♩")]];
+    const inspector = drawer(store, true);
+    inspector.selected([{ block: A, id }]);
+    expect([selected(), groups()]).toEqual(["Timestamp", [piece, middle]]);
+    expect(store.open({ block: A, id: "piece" })).toBeNull();
+    flushSync();
+    expect(groups()).toEqual([middle, piece]);
+    store.done();
+    flushSync();
+    expect(groups()).toEqual([piece, middle]);
+  });
+});
+
 describe("coordinates, Editor", () => {
   it("group the rows by timeline, every number exact with its unit", () => {
     const store = mixed();

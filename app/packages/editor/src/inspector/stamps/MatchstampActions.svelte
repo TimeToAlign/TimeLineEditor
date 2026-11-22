@@ -23,16 +23,22 @@ interface Props {
   comparison: MatchStampCheck | null;
   /** What differs (`differencesOf`); empty while it is up to date. */
   differences: readonly Difference[];
-  /** Its block's anchor indexes, and the block's drawing, which an update reads. */
+  /**
+   * Its block's anchor indexes, the block's drawing and the root whose
+   * ancestor cards the open editor raises (`raisedRoot`, `null` for none),
+   * which an update reads its screen order with.
+   */
   indexes: MatchIndexes | null;
   drawing: Drawing | null;
+  raised: string | null;
   /** The tab's drafts: the refusals of `update` and `remove`. */
   drafts: StampDrafts<unknown>;
   /** The MatchStamp shown is now `next`: `null` once removed. */
   onmatch: (next: HeldMatch | null) => void;
 }
 
-let { live, stamp, comparison, differences, indexes, drawing, drafts, onmatch }: Props = $props();
+let { live, stamp, comparison, differences, indexes, drawing, raised, drafts, onmatch }: Props =
+  $props();
 
 const NO_UPDATE =
   "None of its anchors is stated by the current table, so there is nothing to update from.";
@@ -41,7 +47,7 @@ function update(): void {
   const { id } = stamp;
   const next = comparison?.update ?? null;
   if (id === null || next === null || indexes === null || drawing === null) return;
-  const command = updateCommand(stamp.block, id, next, indexes.compared, drawing);
+  const command = updateCommand(stamp.block, id, next, indexes.compared, drawing, raised);
   drafts.send("update", () => dispatchMatchStamp(live, stamp.block, command));
 }
 

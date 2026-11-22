@@ -1210,6 +1210,22 @@ which no position solves).
    pin is kept. The end of `unknown_length`'s root `score` (length not
    known), a mark's label (`["start", "label"]`) and two addresses pin
    nothing: the tab stays as it was.
+   **The tab reads the lines the canvas shows**: a named timestamp is
+   read on the line of its first place under the innermost open editor
+   (the arranger's `namedPin` with `raisedRoot` of its block and that
+   editor), the one place rule the canvas's marks and Show matches read.
+   In `groups/group_parent_both` a named timestamp `At 8` on `piece` at 8
+   quarters lies, on the arranger, on `piece`'s ancestor line in
+   `middle`'s card (`piece`'s ancestor card is covered there by
+   `group_1`'s frame): Piece [`8` ♩], Middle [`4` ♩], top to bottom as
+   that ancestor line lies above `middle`'s line. With `piece`'s timeline
+   editor open (`store.open`), its ancestor card is raised over the frame
+   and the timestamp lies on the card's line, where the card draws
+   `middle`'s row above `piece`'s line: Middle [`4` ♩], Piece [`8` ♩].
+   Closing the editor gives the arranger's rows back. What would be
+   wrong: the tab reading the covered card's line on the arranger, or the
+   ancestor line the raised card hides while the editor is open, so that
+   the tab lists rows in another order than the line the user sees.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its rows in core's order too, top
    to bottom as drawn: the row "coordinate" at its line and one row per map
@@ -1795,6 +1811,24 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      `timestamp_13` on `score` at 5 with `groupstamp: true`, and the named
      MatchStamp's lines show exactly the states the potential one
      showed.
+   **Screen order follows the raised card.** The tab reads every place
+   under the innermost open editor (the arranger's `raisedRoot` of the
+   shown block and that editor, passed to `potentialStamp`, `namedStamp`,
+   `stampToName`, `stampGroups`, `stampLines` and `updateCommand`), as the
+   canvas draws the matches. On `groups/group_parent_both` with a table of
+   one MatchClaim `p_1`, `middle` 1 ↔ `piece` 3 (both fractions), the
+   potential MatchStamp of `middle` 1: on the arranger `piece` 3 has no
+   place (it lies where `group_1`'s frame covers `piece`'s ancestor card
+   and no ancestor line runs) and orders last, so the Coordinates are
+   the groups of `middle` 1 (Piece [`5` ♩], its ancestor; Middle [`1` ♩];
+   Recording [`1.25` s], through `group_1`, since naming stores a
+   GroupStamp on a group member), then Piece [`3` ♩]; with `piece`'s
+   timeline editor open the card is raised, `piece` 3 lies on its line and
+   `middle` 1 has no place (`middle`'s line lies inside the raised card),
+   so Piece [`3` ♩] comes first, then the three groups of `middle` 1;
+   closing the editor (Done) gives the arranger's order back. What would
+   be wrong: the tab ordering by the places of nothing raised while the
+   canvas shows the raised card.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
    journal entry, `add` into the block: match timestamps `timestamp_1`
    (`clt_1` [0, 1]), `timestamp_2` (`cpt_1` 0.0), `timestamp_3` (`dpt_1`

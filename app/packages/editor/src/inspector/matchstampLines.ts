@@ -84,7 +84,9 @@ function groupsThrough(manifest: Manifest, timeline: string, other: string): str
  * coordinate through the arranger's `timelinePin`, nothing stored, read as
  * a GroupStamp exactly where naming stores one (core's
  * `namedAsGroupstamp`), so that the Coordinates show before naming what
- * they show after it, under `granularity` with `knots`. Each group says how its
+ * they show after it, under `granularity` with `knots`, on the lines the
+ * canvas shows while the root `raised` has its ancestor cards raised (the
+ * arranger's `raisedRoot`, `null` for none). Each group says how its
  * timeline takes part (`Through`). A coordinate whose timeline the
  * manifest no longer holds is its text alone, `claimed`. Each group's key
  * is unique among them, two coordinates on one timeline, or on timelines
@@ -97,8 +99,14 @@ export function stampGroups(
   stamp: ShownStamp,
   granularity: Granularity,
   knots: Knots,
+  raised: string | null = null,
 ): StampGroup[] {
-  const stamped = inScreenOrder(drawing, stampedOf(manifest, stamp), (item) => item.coordinate);
+  const stamped = inScreenOrder(
+    drawing,
+    stampedOf(manifest, stamp),
+    (item) => item.coordinate,
+    raised,
+  );
   return stamped.flatMap(({ coordinate, timestamp }, at) => {
     const pin =
       timestamp === null
@@ -111,8 +119,9 @@ export function stampGroups(
             granularity,
             knots,
             namedAsGroupstamp(manifest, coordinate.timeline, coordinate.value),
+            raised,
           )
-        : namedPin(manifest, block, drawing, timestamp.id, granularity, knots);
+        : namedPin(manifest, block, drawing, timestamp.id, granularity, knots, raised);
     if (pin === null) {
       const key = JSON.stringify([at, coordinate.timeline]);
       const text = String(coordinate.value);
@@ -219,11 +228,17 @@ function stampedOf(manifest: Manifest, stamp: ShownStamp): Stamped[] {
  * left-to-right): every timestamp's line at its coordinate's place, and
  * every anchor's connector just before the line of its lower coordinate
  * (an anchor's coordinates are in screen order, so its second), anchors
- * meeting one coordinate by their upper one. A chain of timestamps and
- * anchors therefore alternates as drawn: the top timestamp, the anchor
- * down to the next, that timestamp, and so on.
+ * meeting one coordinate by their upper one, `raised` naming the root whose
+ * ancestor cards are raised (the arranger's `raisedRoot`), else `null`. A
+ * chain of timestamps and anchors therefore alternates as drawn: the top
+ * timestamp, the anchor down to the next, that timestamp, and so on.
  */
-export function stampLines(manifest: Manifest, stamp: ShownStamp, drawing: Drawing): StampLine[] {
+export function stampLines(
+  manifest: Manifest,
+  stamp: ShownStamp,
+  drawing: Drawing,
+  raised: string | null = null,
+): StampLine[] {
   const nameOf = (timeline: string) => {
     const found = findTimeline(manifest, timeline);
     return found === undefined ? timeline : (found.name ?? found.id);
@@ -232,17 +247,20 @@ export function stampLines(manifest: Manifest, stamp: ShownStamp, drawing: Drawi
     const found = findTimeline(manifest, timeline);
     return found === undefined ? String(value) : prettyText(value, found.number_type, found.unit);
   };
-  const anchors = inScreenOrder(drawing, stamp.anchors, (anchor) => anchor.coordinates[0]).map(
-    (anchor): { at: StampCoordinate; line: StampLine } => ({
-      at: anchor.coordinates[1],
-      line: {
-        kind: "anchor",
-        key: JSON.stringify(["anchor", anchor.key]),
-        anchor,
-        names: [nameOf(anchor.coordinates[0].timeline), nameOf(anchor.coordinates[1].timeline)],
-      },
-    }),
-  );
+  const anchors = inScreenOrder(
+    drawing,
+    stamp.anchors,
+    (anchor) => anchor.coordinates[0],
+    raised,
+  ).map((anchor): { at: StampCoordinate; line: StampLine } => ({
+    at: anchor.coordinates[1],
+    line: {
+      kind: "anchor",
+      key: JSON.stringify(["anchor", anchor.key]),
+      anchor,
+      names: [nameOf(anchor.coordinates[0].timeline), nameOf(anchor.coordinates[1].timeline)],
+    },
+  }));
   const timestamps = stampedOf(manifest, stamp).map(
     ({ coordinate, timestamp }, at): { at: StampCoordinate; line: StampLine } => ({
       at: coordinate,
@@ -269,7 +287,7 @@ export function stampLines(manifest: Manifest, stamp: ShownStamp, drawing: Drawi
     }),
   );
   // Stable: at one place an anchor comes before the timestamp it reaches down to.
-  return inScreenOrder(drawing, [...anchors, ...timestamps], (item) => item.at).map(
+  return inScreenOrder(drawing, [...anchors, ...timestamps], (item) => item.at, raised).map(
     (item) => item.line,
   );
 }

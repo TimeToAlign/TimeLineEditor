@@ -471,6 +471,50 @@ describe("Coordinates", () => {
   });
 });
 
+describe("an ancestor card raised", () => {
+  /** A table of one MatchClaim `p_1`: `middle` 1 ↔ `piece` 3 of `group_parent_both`. */
+  function pieceTable(): MatchClaimTable {
+    const columns = matchClaimColumns(
+      [
+        { id: "middle", numberType: "fraction" },
+        { id: "piece", numberType: "fraction" },
+      ],
+      [{ id: "p_1", timelines: [0, 1], start: [q(1), q(3)] }],
+    );
+    const beliefs = {
+      actors: [],
+      offsets: Uint32Array.from([0, 0]),
+      actor: Uint32Array.from([]),
+      word: Uint8Array.from([]),
+    };
+    return { columns, beliefs };
+  }
+
+  it("orders the Coordinates by the places the raised card gives", () => {
+    const store = storeOf("groups/group_parent_both");
+    const table = pieceTable();
+    const { shown } = indexesUnder(table);
+    show(store, potential(shown, "middle", q(1)), tablesWith(table));
+    const group = (heading: string, value: string, unit: string) => [
+      heading,
+      [["coordinate", value, true, unit]],
+    ];
+    const throughMiddle = [
+      group("Piece", "5", "♩"),
+      group("Middle", "1", "♩"),
+      group("Recording", "1.25", "s"),
+    ];
+    const piece = group("Piece", "3", "♩");
+    expect(shownGroups()).toEqual([...throughMiddle, piece]);
+    expect(store.open({ block: A, id: "piece" })).toBeNull();
+    flushSync();
+    expect(shownGroups()).toEqual([piece, ...throughMiddle]);
+    store.done();
+    flushSync();
+    expect(shownGroups()).toEqual([...throughMiddle, piece]);
+  });
+});
+
 describe("Lines", () => {
   /** The lines as [kind, label, the labels of the toggles pressed, disabled]. */
   function lines(): unknown[] {

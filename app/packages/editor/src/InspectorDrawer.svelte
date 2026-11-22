@@ -22,6 +22,7 @@
  * canvas reads too.
  */
 import type {
+  Editing,
   KnotsOf,
   LivePlacement,
   LiveStore,
@@ -112,14 +113,18 @@ const match: ShownMatch | null = $derived(
 );
 let inspector: ReturnType<typeof Inspector> | undefined = $state();
 
+/** The innermost open editor, whose raised ancestor cards the canvas shows; `null` on the arranger. */
+const editing: Editing | null = $derived(live.editing.at(-1) ?? null);
+
 /**
  * The pin of the timestamp shown: an unnamed pin as held, a named
- * timestamp's read anew from the view with the canvas's MeasureMap rows.
+ * timestamp's read anew from the view with the canvas's MeasureMap rows,
+ * on the lines the canvas shows under the open editor.
  */
 const timestamp: Pin | null = $derived.by(() => {
   const address = pin === null ? null : namedAddress(pin.pin);
   if (address === null) return pin?.pin ?? null;
-  return namedPinOf(live.view, address, fontMetrics, knotsOf);
+  return namedPinOf(live.view, address, fontMetrics, knotsOf, editing);
 });
 
 /** The pin of the timestamp the Timestamp tab shows, which the canvas marks; `null` for none. */
@@ -196,8 +201,8 @@ export function selected(addresses: readonly Address[]): void {
     one === null
       ? null
       : namesTimestamp(live.view, one)
-        ? namedPinOf(live.view, one, fontMetrics, knotsOf)
-        : boundaryPinOf(live.view, one, fontMetrics, knotsOf);
+        ? namedPinOf(live.view, one, fontMetrics, knotsOf, editing)
+        : boundaryPinOf(live.view, one, fontMetrics, knotsOf, editing);
   const matchStamp = one === null ? null : namedMatchStampOf(live.view, one);
   if (one !== null && one.block !== undefined && matchStamp !== null) {
     showMatch({ kind: "named", block: one.block, id: matchStamp });

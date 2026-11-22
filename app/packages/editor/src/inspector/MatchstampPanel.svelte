@@ -20,7 +20,7 @@
  * to its sections.
  */
 import type { KnotsOf, LiveStore } from "@timetoalign/tilie-arranger";
-import { drawingOf } from "@timetoalign/tilie-arranger";
+import { drawingOf, raisedRoot } from "@timetoalign/tilie-arranger";
 import type { Block, Manifest } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { MatchClaimTables } from "../matchClaims.svelte.ts";
@@ -103,6 +103,14 @@ const indexes = $derived(blockId === null ? null : indexesOf(blockId));
 const drawing = $derived(
   shownBlock === undefined ? null : drawingOf(shownBlock, view.graphical, fontMetrics),
 );
+/**
+ * The root whose ancestor cards the innermost open editor raises over the
+ * block's frames (`raisedRoot`), else `null`: the tab reads places, and so
+ * screen order and cross-sections, on the lines the canvas shows.
+ */
+const raised = $derived(
+  shownBlock === undefined ? null : raisedRoot(shownBlock, live.editing.at(-1) ?? null),
+);
 /** The named MatchStamp shown, as its manifest holds it. */
 const named = $derived.by(() => {
   if (match === null || match.kind !== "named") return null;
@@ -119,9 +127,11 @@ const comparison = $derived.by(() => {
 const stamp: ShownStamp | null = $derived.by(() => {
   if (match === null || manifest === undefined || drawing === null) return null;
   if (match.kind === "potential") {
-    return potentialStamp(match.block, match.index, match.matchStamp, drawing);
+    return potentialStamp(match.block, match.index, match.matchStamp, drawing, raised);
   }
-  return named === null ? null : namedStamp(match.block, manifest, named, comparison, drawing);
+  return named === null
+    ? null
+    : namedStamp(match.block, manifest, named, comparison, drawing, raised);
 });
 /**
  * What naming the potential MatchStamp shown stores: the whole MatchStamp
@@ -130,7 +140,7 @@ const stamp: ShownStamp | null = $derived.by(() => {
  */
 const naming: ShownStamp | null = $derived.by(() => {
   if (stamp === null || stamp.id !== null || drawing === null) return null;
-  return indexes === null ? stamp : stampToName(stamp, indexes, drawing);
+  return indexes === null ? stamp : stampToName(stamp, indexes, drawing, raised);
 });
 /** Why naming stores more anchors than are shown; `null` when it stores what is shown. */
 const hidden = $derived(
@@ -146,12 +156,13 @@ const groups = $derived(
         stamp,
         view.settings.granularity,
         knotsOf?.(manifest) ?? "no_server",
+        raised,
       ),
 );
 const lines = $derived(
   stamp === null || manifest === undefined || drawing === null
     ? []
-    : stampLines(manifest, stamp, drawing),
+    : stampLines(manifest, stamp, drawing, raised),
 );
 const claims = $derived(
   stamp === null ? [] : claimLines(loaded?.table ?? null, stamp.claims, user.state.user, context),
@@ -244,6 +255,7 @@ function commitName(): void {
         {differences}
         {indexes}
         {drawing}
+        {raised}
         {drafts}
         {onmatch}
       />
