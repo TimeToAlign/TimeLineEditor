@@ -74,16 +74,18 @@ has of its facet, placed by the timeline's band order in
 `graphical.order`. Manifest content and addresses take the semantic words,
 the drawing's containers the graphical ones.
 
-One card stands apart: a root that contains a group member may be drawn
+One card stands apart: a root that contains a group member is drawn
 whole as an **ancestor card** behind the frame of that member's group
-(TimeToShare's drawing specification, section 8.8; hidden unless a style
-rule displays it). It is a card held by the block with no place (its key
-`{item: G, member: R}`, core's holding `"ancestor"`), no bands and no
-`places` entry; layout records it only when displayed, the arranger tells it
-apart with `isAncestorCard` and raises it over the frames while a timeline
-editor is open on its root or on a timeline of it that no group holds
-(`raisedEntries`), and the inspector's "Card behind
-its groups" checkbox shows or hides it.
+(TimeToShare's drawing specification, section 8.8; shown by default,
+hidden by a style rule). It is a card held by the block with no place (its
+key `{item: G, member: R}`, core's holding `"ancestor"`), no bands and no
+`places` entry; layout records it only when displayed, with axes for its
+lines marked `ancestor`. The arranger tells it apart with `isAncestorCard`
+and raises it over the frames while a timeline editor is open on its root
+or on a timeline of it that no group holds (`raisedRoot`, the one decision
+that the drawn order, the pointer, the places of coordinates, the marquee
+and the focus all read), and the inspector's button "Hide card behind its
+groups" or "Show card behind its groups" hides or shows it.
 
 The code treats the four kinds through one model:
 
