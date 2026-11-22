@@ -30,7 +30,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import { crossSectionElement, markReach, rotatedStyle } from "./markers.ts";
+import { crossSectionElement, fadedStyle, markReach, rotatedStyle } from "./markers.ts";
 import { centredLabel, type NameItem, nameOf } from "./names.ts";
 import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
 import { wedgeCorners } from "./rotation.ts";
@@ -47,9 +47,12 @@ import {
   shown,
 } from "./traversal.ts";
 
-/** A label of a stack on an ancestor line: its element, its text measured, a coordinate it shows. */
+/**
+ * A label of a stack on an ancestor line: its element, its text measured, a coordinate it shows
+ * (none for a secondary coordinate without a value, section 6.6).
+ */
 interface StackLabel extends Styled, Measured {
-  readonly coordinate: ShownCoordinate;
+  readonly coordinate: ShownCoordinate | undefined;
 }
 
 /**
@@ -193,9 +196,14 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       const { timeline, start, key, style } = ancestor;
       const marks = ancestor.marks.filter((mark) => shown(mark.style));
       // A label of a stack of `timestamp` at `at` on the member's axis, read on the ancestor's: a
-      // secondary coordinate's `secondary`, as core's `cardStamps` writes it in the ancestor's
-      // number type.
-      const stampStack = (timestamp: NamedTimestamp, at: Real, secondary: Real | undefined) => {
+      // secondary coordinate's `secondary.value`, as core's `cardStamps` writes it in the
+      // ancestor's number type; one without a value (section 6.6) draws no coordinate label and
+      // its wedge faded.
+      const stampStack = (
+        timestamp: NamedTimestamp,
+        at: Real,
+        secondary: { readonly value: Real | null } | undefined,
+      ) => {
         const primary = secondary === undefined;
         const address = idAddress(timestamp.id);
         const coordinates = primary ? ("primary" as const) : ("secondary" as const);
@@ -205,11 +213,12 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
           ...elementKey(type, where, timeline, key),
           coordinates,
         });
-        const own = secondary ?? add(at, negate(start));
+        const own = secondary === undefined ? add(at, negate(start)) : secondary.value;
         const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
           name: timestamp.name,
           id: timestamp.id,
-          coordinate: coordinateText(own, timeline.number_type, timeline.unit),
+          coordinate:
+            own === null ? undefined : coordinateText(own, timeline.number_type, timeline.unit),
         };
         const labels = TIMESTAMP_LABELS.filter(lists).flatMap((word): StackLabel[] => {
           const text = texts[word];
@@ -220,12 +229,13 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
             {
               ...label,
               ...measured(label, text),
-              coordinate: { unit: timeline.unit, value: own },
+              coordinate: own === null ? undefined : { unit: timeline.unit, value: own },
             },
           ];
         });
         const wedge = scope.styled(keyed("wedge", address), style);
-        const turned = { ...wedge, style: rotatedStyle(wedge.style) };
+        const rotated = rotatedStyle(wedge.style);
+        const turned = { ...wedge, style: own === null ? fadedStyle(rotated) : rotated };
         const line = scope.styled(
           elementKey("cross_section", partAddress(address, "line"), timeline, key),
           style,
@@ -249,7 +259,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       // A hidden secondary coordinate takes no room.
       const secondary = (card.secondaries.get(timeline.id) ?? [])
         .map(({ timestamp, position, value }) =>
-          stampStack(timestamp, add(position, origin), value),
+          stampStack(timestamp, add(position, origin), { value }),
         )
         .filter((stack) => stack.wedge !== undefined || stack.labels.length > 0);
       const markStacks: AncestorStack[] = marks.map((mark) => ({

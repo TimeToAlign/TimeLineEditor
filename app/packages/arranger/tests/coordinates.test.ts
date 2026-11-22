@@ -1621,6 +1621,43 @@ describe("a named timestamp's pin", () => {
     ]);
   });
 
+  it.each(["performance", "score"])(
+    "of a groupstamp lists the other member without a value where %s's length is not known",
+    (unknown) => {
+      const view = changed(viewWith("groups/group_groupstamp"), {
+        type: "set",
+        changes: [{ target: inBlock(A, idAddress(unknown)), values: { length: null } }],
+      });
+      const valued = pinIn(viewWith("groups/group_groupstamp"), "timestamp_1");
+      const pin = pinIn(view, "timestamp_1");
+      // Placed by the drawn lengths as before (`performance`'s reach 4.0, `score`'s 8).
+      expect(
+        pin?.spec.members.map(({ timeline, offset, scale, valueless }) => [
+          timeline,
+          offset,
+          scale,
+          valueless,
+        ]),
+      ).toEqual([["performance", q(0), q(1, 2), true]]);
+      expect(valued?.spec.members.map(({ valueless }) => valueless)).toEqual([undefined]);
+      if (pin === null || valued === null) throw new Error("both pins are read");
+      const parts = flagParts(pin);
+      const shown = flagParts(valued);
+      expect(parts.map((part) => [part.timeline, part.name])).toEqual(
+        shown.map((part) => [part.timeline, part.name]),
+      );
+      expect(parts[0]?.rows).toEqual(shown[0]?.rows);
+      const rows = parts.find((part) => part.timeline === "performance")?.rows ?? [];
+      expect(rows.map(({ row, value, editable }) => [row, value, editable])).toEqual([
+        [{ timeline: "performance", map: "cmap_2" }, null, false],
+        [{ timeline: "performance", map: null }, null, false],
+      ]);
+      // Core's one text of a missing group value, on every row of the member.
+      const [first, second] = rows.map((item) => item.missing);
+      expect([typeof first, first === second]).toEqual(["string", true]);
+    },
+  );
+
   it("is null for an ID the manifest does not hold", () => {
     expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
   });

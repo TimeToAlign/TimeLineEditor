@@ -71,6 +71,7 @@ import {
   crossSection,
   frameMemberLines,
   lineAxes,
+  readsAcrossGroup,
   wedgeAt,
 } from "@timetoalign/tilie-layout";
 import type { AffordanceSource, Covered, Stacking } from "./boxes.ts";
@@ -746,7 +747,11 @@ function markedKey(drawing: Drawing, axis: DrawnAxis): string | undefined {
  * from the member's zero (negative for an ancestor) divided by that scale,
  * with the same scale, so that its coordinate is the member's less that
  * offset; each with the maps drawn for it there; then each ancestor of the
- * member its card does not draw (its line hidden) alike, without maps. Each is read at the
+ * member its card does not draw (its line hidden) alike, without maps. Where
+ * that member's length or the length of the member card holding the anchor is
+ * not known (layout's `readsAcrossGroup`), the group gives it no coordinate:
+ * each timeline read for it is `valueless`, listed without a value, its
+ * scale (a drawn length that is a reach) only placing it. Each is read at the
  * ordinate of its line in the member's card, or, while `raised`
  * (`raisedRoot`) names a root whose cards draw the member, in the raised
  * card, on the line of it lifted in the stacking (the first of `linesOf`),
@@ -783,9 +788,15 @@ function withGroupMembers(
    * The member drawn as `line` and every timeline its card draws, at
    * `offset` and `scale`; read by the group (`scale` given), then its
    * ancestors its card does not draw (`ancestorMembers`), without maps or
-   * ordinate, at the same scale.
+   * ordinate, at the same scale; each `valueless` where `valueless`.
    */
-  const read = (line: DrawnAxis, offset: Rational, scale: Rational | undefined): void => {
+  const read = (
+    line: DrawnAxis,
+    offset: Rational,
+    scale: Rational | undefined,
+    valueless = false,
+  ): void => {
+    const marked = valueless ? { valueless } : {};
     const timeline = line.address.id;
     if (timeline === undefined) return;
     const [first] = linesOf(drawing, timeline, stacking);
@@ -799,12 +810,13 @@ function withGroupMembers(
       add(
         scale === undefined
           ? { ...axis, offset: offset.add(own) }
-          : { ...axis, offset: offset.add(own.divide(scale)), scale },
+          : { ...axis, offset: offset.add(own.divide(scale)), scale, ...marked },
       );
     }
     if (scale === undefined) return;
     for (const ancestor of ancestorMembers(manifest, timeline)) {
-      add({ ...ancestor, offset: offset.add(toRational(ancestor.offset).divide(scale)), scale });
+      const at = offset.add(toRational(ancestor.offset).divide(scale));
+      add({ ...ancestor, offset: at, scale, ...marked });
     }
   };
   for (const own of drawing.axes) {
@@ -826,7 +838,7 @@ function withGroupMembers(
       if (line.address.id === undefined || taken.has(line.address.id) || other.numerator === 0n) {
         continue;
       }
-      read(line, at, other.divide(drawnEnd));
+      read(line, at, other.divide(drawnEnd), !readsAcrossGroup(held, line));
     }
   }
   return members.length === 0 ? spec : { ...spec, members: [...spec.members, ...members] };

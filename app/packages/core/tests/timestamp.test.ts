@@ -27,6 +27,7 @@ import {
   timestampAt,
   timestampJson,
   timestampRows,
+  VALUELESS_TEXT,
 } from "../src/maps/timestamp.ts";
 import type { MeasureKnot, MeasureKnots } from "../src/maps/values.ts";
 import { axisCoordinate } from "../src/number/coordinate.ts";
@@ -263,6 +264,52 @@ describe("the cross-section", () => {
       "5 lies outside 'performance' (0 to 4)",
     );
     expect(snapOnRow(spec, row("performance"), 3.13, 0.004)).toEqual(q(313, 100));
+  });
+
+  it("lists a member the group gives no value without one, the anchor's rows as they are", () => {
+    const grouped = load("groups/group_groupstamp.yaml");
+    const performance = findTimeline(grouped, "performance");
+    if (performance === undefined) throw new Error("the group has performance");
+    const member = { ...axisOf(performance), offset: q(0), scale: q(1, 2) };
+    const valued = { ...specOf(grouped, "score", []), members: [member] };
+    const spec = { ...valued, members: [{ ...member, valueless: true }] };
+    const pin = pinOf(spec, q(4));
+    const oracle = pinOf(valued, q(4));
+    expect(pin.timestamp.parts.map((part) => part.timeline)).toEqual(["score", "performance"]);
+    const rows = timestampRows(pin);
+    expect(rows.filter((item) => item.timeline === "score")).toEqual(
+      timestampRows(oracle).filter((item) => item.timeline === "score"),
+    );
+    expect(rows.filter((item) => item.timeline === "performance")).toEqual([
+      {
+        row: row("performance"),
+        timeline: "performance",
+        label: "Performance",
+        value: null,
+        missing: VALUELESS_TEXT,
+        editable: false,
+      },
+      {
+        row: row("performance", "cmap_2"),
+        timeline: "performance",
+        label: "cmap_2",
+        value: null,
+        missing: VALUELESS_TEXT,
+        editable: false,
+      },
+    ]);
+    const { mapping } = timestampJson(oracle) as { mapping: Record<string, unknown> };
+    expect(JSON.stringify(timestampJson(pin))).toBe(
+      JSON.stringify({
+        timeline: "score",
+        coordinate: (timestampJson(oracle) as { coordinate: unknown }).coordinate,
+        mapping: { ...mapping, performance: null, cmap_2: null },
+      }),
+    );
+    for (const refused of [row("performance"), row("performance", "cmap_2")]) {
+      const problem = positionFor(pin, refused, q(3));
+      expect(isCommandError(problem) && problem.message).toBe("'performance' has no value here");
+    }
   });
 
   it("crosses contiguous members both at their boundary, in the order given", () => {

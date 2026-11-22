@@ -333,7 +333,8 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * ["line"]}`, which its timeline's line (or node) holds directly, so that
  * hiding the band leaves the line (sections 2 and 2.2), then the secondary
  * coordinates on its timeline (core's `cardStamps`, in the frame `frame`
- * for a member card), of each the wedge and the labels its `display` lists;
+ * for a member card), of each the wedge and the labels its `display` lists,
+ * but the `coordinate` label of one without a value (section 6.6);
  * every wedge and label of a named timestamp carries `coordinates`, the
  * primary or a secondary one; the regions band its
  * regions, and the flow control band its flow markers, then its jump origins,
@@ -352,12 +353,14 @@ function memberElements(
   const line = elementKey("timeline", idAddress(root.id), root, holder);
   const drawn = cardStamps(manifest, member, frame);
   // The wedge and the labels its `display` lists of a coordinate of `timestamp` on `timeline`,
-  // held by `band` (a markers band or an ancestor line).
+  // held by `band` (a markers band or an ancestor line); no `coordinate` label where the
+  // coordinate has no value (a secondary coordinate of the frame, section 6.6).
   const marks = (
     timestamp: NamedTimestamp,
     timeline: TimelineManifest,
     band: ElementKey,
     coordinates: StampCoordinate,
+    valued = true,
   ) => {
     const at = idAddress(timestamp.id);
     const { display } = timestamp;
@@ -365,15 +368,15 @@ function memberElements(
       keys.push({ ...elementKey("wedge", at, timeline, band), coordinates });
     }
     for (const word of TIMESTAMP_LABELS) {
-      if (display.includes(word)) {
+      if (display.includes(word) && (valued || word !== "coordinate")) {
         keys.push({ ...elementKey("label", partAddress(at, word), timeline, band), coordinates });
       }
     }
   };
   // The secondary coordinates on `timeline` (section 2, core's `cardStamps`).
   const secondary = (timeline: TimelineManifest, band: ElementKey) => {
-    for (const { timestamp } of drawn.secondaries.get(timeline.id) ?? []) {
-      marks(timestamp, timeline, band, "secondary");
+    for (const { timestamp, value } of drawn.secondaries.get(timeline.id) ?? []) {
+      marks(timestamp, timeline, band, "secondary", value !== null);
     }
   };
   for (const { timeline } of member.ancestors) {
@@ -575,9 +578,12 @@ export interface SecondaryStamp extends CardStamp {
    * Its coordinate on that timeline: its exact position, every operand at its exact value (a
    * float's exact binary value), less the timeline's exact start, written in the timeline's
    * number type as timetoalign's `express_as` writes it (an int rounded half to even, held as
-   * an integral exact value).
+   * an integral exact value). `null` for a stamp of the frame where the length of the card's
+   * member or of the member it lies on is not known (section 6.6): a group maps a position by
+   * the proportion of its members' lengths and never carries one member's length to another, so
+   * the coordinate is not defined there; the stamp keeps its position, where its line is drawn.
    */
-  readonly value: Real;
+  readonly value: Real | null;
 }
 
 /** What the card of one member drawing draws of named timestamps. */
@@ -688,6 +694,8 @@ interface ExactCard {
   readonly positions: ReadonlyMap<CardStamp, Rational>;
   readonly start: Rational;
   readonly length: Real;
+  /** Whether the member's length is known: its drawn length is not its reach. */
+  readonly known: boolean;
 }
 
 /** The cards already found, by manifest, member drawing and frame (`NO_FRAME` for none). */
@@ -706,7 +714,9 @@ const NO_FRAME = {};
  * end; an ancestor whose length is not known has no end. A groupstamp of
  * another member `O` of the frame, one of `O`'s own timestamps, lies on
  * this card at the proportion of the member's drawn length at which it lies
- * on `O`'s (section 6.6). Memoised by `manifest`, `member` and `frame`.
+ * on `O`'s (section 6.6); where the member's length or `O`'s is not known,
+ * its secondary coordinates there have no value. Memoised by `manifest`,
+ * `member` and `frame`.
  */
 export function cardStamps(
   manifest: Manifest,
@@ -757,7 +767,8 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
   const memberStart = base ?? zeroOf(root);
   const reaches = new WeakMap<TimelineManifest, Real>();
   // The member's drawn length: its length, or its reach where that is not known (section 3.4).
-  const lambda = lengthOf(root) ?? reachOf(root, manifest, reaches);
+  const memberLength = lengthOf(root);
+  const lambda = memberLength ?? reachOf(root, manifest, reaches);
   const window = [memberStart, addReal(memberStart, lambda)] as const;
   const tree: CardTimeline[] = [];
   // Where each timeline ends as drawn: at its length; a segment of unknown length at the next
@@ -810,6 +821,8 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
     }),
   );
   const others = (frame?.members ?? []).filter((other) => other.timeline.id !== root.id);
+  // The stamps of the frame placed by a drawn length that is a reach: no coordinate is defined.
+  const undefinedHere = new Set<CardStamp>();
   const crossing = others.flatMap((other) => {
     const found = exactCard(manifest, other, null);
     return found.card.stamps.flatMap((stamp): CardStamp[] => {
@@ -818,16 +831,16 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
         return [];
       }
       const proportion = atProportion(exact.subtract(found.start), found.length, lambda);
-      return [
-        placed(
-          {
-            timestamp: stamp.timestamp,
-            position: addReal(memberStart, proportion),
-            source: "frame",
-          },
-          exactBase.add(toRational(proportion)),
-        ),
-      ];
+      const crossed = placed(
+        {
+          timestamp: stamp.timestamp,
+          position: addReal(memberStart, proportion),
+          source: "frame",
+        },
+        exactBase.add(toRational(proportion)),
+      );
+      if (memberLength === null || !found.known) undefinedHere.add(crossed);
+      return [crossed];
     });
   });
   const stamps = [...own, ...inherited, ...crossing];
@@ -845,10 +858,12 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
       .map(
         (stamp): SecondaryStamp => ({
           ...stamp,
-          value: expressed(
-            (positions.get(stamp) ?? toRational(stamp.position)).subtract(lineStart),
-            line.timeline.number_type,
-          ),
+          value: undefinedHere.has(stamp)
+            ? null
+            : expressed(
+                (positions.get(stamp) ?? toRational(stamp.position)).subtract(lineStart),
+                line.timeline.number_type,
+              ),
         }),
       );
     if (held.length > 0) secondaries.set(line.timeline.id, held);
@@ -858,5 +873,6 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
     positions,
     start: exactBase,
     length: lambda,
+    known: memberLength !== null,
   };
 }

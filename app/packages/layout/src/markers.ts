@@ -27,6 +27,7 @@ import { type LinePosition, opposite, type PreparedBand, type Side } from "./ban
 import type { AxisTimestamp } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 import { LABEL_GAP, MARKER_HEIGHT } from "./constants.ts";
+import { FADED_OPACITY } from "./defaults.ts";
 import type {
   MarkerElement,
   ShownCoordinate,
@@ -63,6 +64,16 @@ export const markLabelOffset = (scope: Scope, w: number, line: number, size: num
  */
 export function rotatedStyle(style: Style): Style {
   return style.rotation === null ? { ...style, rotation: 0 } : style;
+}
+
+/**
+ * The style of what marks a position that has no coordinate (section 6.6:
+ * a groupstamp's secondary coordinate where a length of the group is not
+ * known, and the piece of the frame's line over such a member's card): its
+ * opacity times `FADED_OPACITY`, the defaults' opacity of ancestor lines.
+ */
+export function fadedStyle(style: Style): Style {
+  return { ...style, opacity: style.opacity * FADED_OPACITY };
 }
 
 /**
@@ -137,6 +148,11 @@ interface Stamp {
   readonly line: Styled | undefined;
 }
 
+/** A secondary coordinate's value on the timeline it marks; `null` where it has none (section 6.6). */
+interface Secondary {
+  readonly value: Real | null;
+}
+
 /** A stamp with a stack, placed in the band's tiers: its first line and its widest label. */
 interface Stacked {
   readonly stamp: Stamp;
@@ -207,7 +223,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     timeline: TimelineManifest,
     timestamp: NamedTimestamp,
     at: Real,
-    secondary: Real | undefined,
+    secondary: Secondary | undefined,
   ): Stamp => {
     const primary = secondary === undefined;
     const band = source.bands.markers;
@@ -221,13 +237,15 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       coordinates,
     });
     // The value the wedge marks, on the timeline it marks (section 5.2): a secondary coordinate's
-    // as core's `cardStamps` writes it in the timeline's number type.
-    const own = secondary ?? add(at, negate(source.start));
-    // A match timestamp may have no name, and draws no name label then (section 2).
+    // as core's `cardStamps` writes it in the timeline's number type, none where it has no value.
+    const own = secondary === undefined ? add(at, negate(source.start)) : secondary.value;
+    // A match timestamp may have no name, and draws no name label then (section 2); a coordinate
+    // without a value draws no coordinate label (section 6.6).
     const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
       name: timestamp.name,
       id: timestamp.id,
-      coordinate: coordinateText(own, timeline.number_type, timeline.unit),
+      coordinate:
+        own === null ? undefined : coordinateText(own, timeline.number_type, timeline.unit),
     };
     const labels = !banded
       ? []
@@ -237,10 +255,11 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
           const label = styled(keyed("label", partAddress(address, word)), band.style);
           if (!shown(label.style)) return [];
           const coordinate =
-            word === "coordinate" ? { unit: timeline.unit, value: own } : undefined;
+            word === "coordinate" && own !== null ? { unit: timeline.unit, value: own } : undefined;
           return [{ ...label, ...measured(label, text), coordinate }];
         });
-    const wedge = rotated(styled(keyed("wedge", address), band.style));
+    const turned = rotated(styled(keyed("wedge", address), band.style));
+    const wedge = own === null ? { ...turned, style: fadedStyle(turned.style) } : turned;
     return {
       id: timestamp.id,
       at,
@@ -269,7 +288,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   // A hidden secondary coordinate takes no room.
   const secondaries = sources.flatMap((source) =>
     crossingStamps(scope, source)
-      .map(({ timestamp, at, value }) => stampOf(source, source.manifest, timestamp, at, value))
+      .map(({ timestamp, at, value }) => stampOf(source, source.manifest, timestamp, at, { value }))
       .filter((stamp) => stamp.wedge !== undefined || stamp.labels.length > 0),
   );
   const stamps = [...primaries, ...secondaries];
@@ -409,13 +428,14 @@ function rotated(wedge: Styled): Styled {
 /**
  * The named timestamps with a secondary coordinate on the timeline of
  * `source` (section 2, core's `cardStamps` of the card in its frame), each at
- * its position on the root's axis with its coordinate on that timeline, in the
- * canonical order of `graphical.timestamps`.
+ * its position on the root's axis with its coordinate on that timeline (`null`
+ * where it has none, section 6.6), in the canonical order of
+ * `graphical.timestamps`.
  */
 function crossingStamps(
   scope: Scope,
   source: Entry,
-): { readonly timestamp: NamedTimestamp; readonly at: Real; readonly value: Real }[] {
+): { readonly timestamp: NamedTimestamp; readonly at: Real; readonly value: Real | null }[] {
   const card = cardStamps(scope.manifest, scope.member, scope.frame);
   const origin = negate(card.window[0]);
   return (card.secondaries.get(source.manifest.id) ?? []).map(({ timestamp, position, value }) => ({

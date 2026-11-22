@@ -800,7 +800,23 @@ check of who holds what.
     0.0125. On `v` in `g2`, `b`
     and `c` lie at 1/200 / 8 × 800 = 1/2 and 1/40 / 8 × 800 = 5/2, exact
     positions, their values rounded half to even: 0 and 2 (half up would
-    give 1 and 3).
+    give 1 and 3). **A length not known** (§6.6): a group maps a position
+    by the proportion of its members' lengths and never carries one
+    member's length to another, so a groupstamp's secondary coordinate on
+    another member's card has no value (`null`) where that member's length
+    or the length of the member the groupstamp lies on is not known; its
+    position stays at the proportion of the drawn lengths (a reach), where
+    its line is drawn, and its keys lose the `coordinate` label alone.
+    `group_groupstamp.yaml` with `timestamp_1`'s `display` `[wedge, name,
+    coordinate, cross_section]`: with `performance`'s length `null` (its
+    reach the float 4.0, its `length` timestamp's 4.0), `performance`'s
+    card holds `timestamp_1` at 2 with the value `null`, its secondary keys
+    the wedge and the name label, no coordinate label; with `score`'s
+    length `null` instead (its reach the exact 8, its `length` timestamp's),
+    `timestamp_1` lies on a member of unknown length, and `performance`'s
+    card holds it at 2 with the value `null` likewise. With both lengths
+    known the same display lists the coordinate label with the value 2.0,
+    so the label's absence follows from the unknown length alone.
 12. **The selector member `coordinates`** (drawing.md §2.3): it matches
     the wedges of named timestamps and the labels of their stacks (parts
     `name`, `id`, `coordinate`), primary or secondary, and nothing else.
@@ -4402,6 +4418,17 @@ the parity table's manifest with its MeasureMap's expanded rows
    `p = 3.13`, `h = 0.004`: 1.565 on its axis, the reach scaled to 0.002;
    0 places 2, 1 place 1.6, 2 places 1.57 miss, 3 places 1.565 is it:
    **313/100** on `score`'s axis.
+   **A member the group gives no value** (`valueless`: its length, or the
+   anchor member's, is not known, and a group never carries one member's
+   length to another, drawing.md §6.6): the same spec with `performance`
+   `valueless` lists the same parts in the same order (the scale still says
+   where its drawing is crossed), but every row of `performance` (its
+   coordinate and `cmap_2`) has the value `null`, says `VALUELESS_TEXT`
+   instead and is not editable, while `score`'s rows equal those of the
+   valued spec; `timestampJson`'s `mapping` equals the valued one with
+   `performance` and `cmap_2` `null`; `positionFor` on either row is
+   refused, `'performance' has no value here`. What proves it: the valued
+   spec read alongside as the oracle, so only the member's own rows change.
 5. **Contiguous members are both crossed; the caller's order stands.**
    `form` of `segment_line.yaml` with its descendants in traversal order
    (`a` at 0 of 8, `a1` at 0 of 8, `b` at 8 of 12, `b1` at 8 of 6, `b2` at

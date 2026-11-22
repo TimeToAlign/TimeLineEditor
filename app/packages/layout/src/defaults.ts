@@ -3,6 +3,13 @@
 import type { Manifest } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timetoshare";
 
+/**
+ * The opacity the defaults fade ancestor lines and what they hold to; the
+ * opacity, too, a groupstamp's drawing is multiplied by where it marks a
+ * position that has no coordinate (section 6.6).
+ */
+export const FADED_OPACITY = 0.35;
+
 /** The lowest layer of every drawing. */
 export const DEFAULT_LAYER: Graphical = {
   styles: {
@@ -61,7 +68,7 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "alignment_anchor" },
       set: { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" },
     },
-    { select: { element: "ancestor" }, set: { "stroke-width": 3, opacity: 0.35 } },
+    { select: { element: "ancestor" }, set: { "stroke-width": 3, opacity: FADED_OPACITY } },
     {
       select: { element: "ancestor", modality: "continuous" },
       set: { "stroke-dasharray": "none" },
@@ -98,7 +105,7 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "elision" },
       set: { fill: "#F2F2F2", stroke: "#9CA3AF", "stroke-width": 1, "stroke-dasharray": "2 2" },
     },
-    { select: { inside: "ancestor" }, set: { opacity: 0.35 } },
+    { select: { inside: "ancestor" }, set: { opacity: FADED_OPACITY } },
     { select: { element: "cross_section", inside: "ancestor" }, set: { opacity: 1 } },
     { select: { coordinates: "primary", inside: "ancestor" }, set: { opacity: 1 } },
     { select: { element: "label" }, set: { fill: "#000000", "font-size": 9 } },

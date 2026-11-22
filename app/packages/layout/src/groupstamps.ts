@@ -7,13 +7,17 @@
  * other members' coordinates and lines derive from the group (the members of a frame share its start and its
  * length, so one abscissa is one proportion of each member's drawn length)
  * and are never stored; they are drawn in the timestamp's own line style,
- * without wedges or labels.
+ * without wedges or labels. Where a member's length is not known, or the
+ * length of the member the timestamp lies on, the group gives that member no
+ * coordinate (one member's length is never carried to another): the piece
+ * of the line over its card is drawn faded.
  */
 
 import type { Manifest } from "@timetoalign/tilie-core";
 import { idAddress, partAddress, samePlaceKey } from "@timetoalign/tilie-core";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { VerticalLineElement } from "./elements.ts";
+import { fadedStyle } from "./markers.ts";
 import { cut, type Span } from "./stacks.ts";
 
 /**
@@ -41,6 +45,67 @@ export function frameMemberLines(axes: readonly DrawnAxis[], group: string): Dra
       axis.address.id === axis.card.member &&
       axis.marker !== null,
   );
+}
+
+/**
+ * Whether a position read across a group from the member line `own` gives
+ * the member line `other` of the same frame a coordinate (section 6.6): the
+ * group maps it by the proportion of the two members' lengths, so only where
+ * both are known (a member line's `end` is null where its length is not);
+ * the drawn length of a member whose length is not known is its reach, which
+ * places the position on the drawing but defines no coordinate.
+ */
+export function readsAcrossGroup(own: DrawnAxis, other: DrawnAxis): boolean {
+  return own.end !== null && other.end !== null;
+}
+
+/**
+ * The ordinates of the member cards of the frame drawing the line `primary`
+ * over which a groupstamp lying on `primary`'s member has no coordinate
+ * (`readsAcrossGroup`), among the drawn lines `axes` and boxes `boxes`, each
+ * from the card's upper border to its lower one, top first; never the card
+ * drawing `primary`.
+ */
+function valuelessCards(
+  axes: readonly DrawnAxis[],
+  boxes: readonly DrawnBox[],
+  primary: DrawnAxis,
+): Span[] {
+  const lines = frameMemberLines(axes, primary.card.item);
+  const own = lines.find((line) => samePlaceKey(line.card, primary.card));
+  if (own === undefined) return [];
+  return lines
+    .filter((line) => line !== own && !readsAcrossGroup(own, line))
+    .flatMap(({ card }) =>
+      boxes.filter((box) => box.kind === "card" && box.key !== null && samePlaceKey(box.key, card)),
+    )
+    .map(({ y, height }): Span => [y, y + height])
+    .sort(([a], [b]) => a - b);
+}
+
+/**
+ * `span` cut at the spans `faded` (sorted, apart): its pieces from the top,
+ * each marked whether it lies in one of them; none without a length.
+ */
+function fadedPieces(
+  span: Span,
+  faded: readonly Span[],
+): { readonly span: Span; readonly faded: boolean }[] {
+  const pieces: { span: Span; faded: boolean }[] = [];
+  const push = (y1: number, y2: number, inside: boolean) => {
+    if (y1 < y2) pieces.push({ span: [y1, y2], faded: inside });
+  };
+  let at = span[0];
+  for (const [top, bottom] of faded) {
+    const y1 = Math.max(top, at);
+    const y2 = Math.min(bottom, span[1]);
+    if (y1 >= y2) continue;
+    push(at, y1, false);
+    push(y1, y2, true);
+    at = y2;
+  }
+  push(at, span[1], false);
+  return pieces;
 }
 
 /**
@@ -82,9 +147,11 @@ export function groupSpans(
  * that holds it, vertical `cross_section` elements at the timestamp's
  * abscissa there over the frame's spans (`groupSpans`: from the upper border
  * of its topmost member card to the lower border of its bottommost, less the
- * card the timestamp's own line crosses). Their address is the timestamp's
- * line's, `{id, part: ["line"]}`, and their style that line's, at the
- * frame's scale. They take no room.
+ * card the timestamp's own line crosses), cut at the borders of each member
+ * card over which the timestamp has no coordinate (`readsAcrossGroup`). Their
+ * address is the timestamp's line's, `{id, part: ["line"]}`, and their style
+ * that line's, at the frame's scale, faded (`fadedStyle`) over such a card.
+ * They take no room.
  */
 export function groupstampElements(
   manifest: Manifest,
@@ -99,8 +166,19 @@ export function groupstampElements(
       if (!inFrame(axis)) continue;
       const held = axis.timestamps.find((item) => item.id === timestamp.id);
       if (held === undefined || held.line === null) continue;
-      for (const [y1, y2] of groupSpans(axes, boxes, axis)) {
-        lines.push({ type: "cross_section", address, style: held.line, x: held.x, y1, y2 });
+      const valueless = valuelessCards(axes, boxes, axis);
+      for (const whole of groupSpans(axes, boxes, axis)) {
+        for (const { span, faded } of fadedPieces(whole, valueless)) {
+          const style = faded ? fadedStyle(held.line) : held.line;
+          lines.push({
+            type: "cross_section",
+            address,
+            style,
+            x: held.x,
+            y1: span[0],
+            y2: span[1],
+          });
+        }
       }
     }
   }

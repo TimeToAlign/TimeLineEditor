@@ -8,6 +8,7 @@ import { idAddress, partAddress, sameAddress, samePlaceKey } from "@timetoalign/
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import { JsonFloat, type Rule } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
+import { FADED_OPACITY } from "../src/defaults.ts";
 import {
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
@@ -336,5 +337,112 @@ describe("a groupstamp's secondary coordinates on the frame's other members", ()
       ["2 ♩", { unit: "quarters", value: Rational.of(2n) }],
       ["1″", { unit: "seconds", value: 1 }],
     ]);
+  });
+});
+
+describe("a groupstamp where a length of the group is not known", () => {
+  const FADED = { ...STYLE, opacity: FADED_OPACITY };
+  /** The pieces of the frame's line: every piece of `timestamp_1`'s line but its own two. */
+  const framePieces = (drawing: Drawing) => lines(drawing).slice(2);
+
+  it.each(["performance", "score"])(
+    "draws the frame's line faded over the card of a member without a value (%s unknown)",
+    (unknown) => {
+      const drawing = drawn(plain(set(unknown, { length: null })));
+      const score = axisOf(drawing, "score");
+      const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+      expect(lines(drawing).slice(0, 2)).toEqual(lines(drawn()).slice(0, 2));
+      expect(framePieces(drawing)).toEqual([
+        {
+          type: "cross_section",
+          address: LINE,
+          style: expect.objectContaining(STYLE),
+          x: middle,
+          y1: card(drawing, "score").bottom,
+          y2: card(drawing, "performance").top,
+        },
+        {
+          type: "cross_section",
+          address: LINE,
+          style: expect.objectContaining(FADED),
+          x: middle,
+          y1: card(drawing, "performance").top,
+          y2: card(drawing, "performance").bottom,
+        },
+      ]);
+      const [solid, faded] = framePieces(drawing);
+      expect(faded?.style).toEqual({ ...solid?.style, opacity: FADED_OPACITY });
+      // Both lengths known, the frame's line is one piece at the full opacity.
+      expect(framePieces(drawn()).map((piece) => piece.style.opacity)).toEqual([1]);
+    },
+  );
+});
+
+describe("a groupstamp's secondary coordinates where a length of the group is not known", () => {
+  const SHOW: Rule = { select: { coordinates: "secondary" }, set: { display: "inline" } };
+  const wedgesOf = (drawing: Drawing, id: string) =>
+    drawing.elements.filter(
+      (item): item is MarkerElement => item.type === "wedge" && sameAddress(item.address, at(id)),
+    );
+  const labelParts = (drawing: Drawing, id: string) =>
+    drawing.elements
+      .filter((item) => item.type === "label" && item.address.id === id)
+      .map((item) => item.address.part);
+  /** `valued`'s wedges with each secondary one's (turned −45) opacity times `FADED_OPACITY`. */
+  const faded = (valued: readonly MarkerElement[]) =>
+    valued.map(({ x, style }) => ({
+      x,
+      style: style.rotation === -45 ? { ...style, opacity: style.opacity * FADED_OPACITY } : style,
+    }));
+  const placed = (wedges: readonly MarkerElement[]) => wedges.map(({ x, style }) => ({ x, style }));
+
+  it.each(["performance", "score"])(
+    "fade the wedge and draw no coordinate label on the other member (%s unknown)",
+    (unknown) => {
+      const display = set("timestamp_1", {
+        display: ["wedge", "name", "coordinate", "cross_section"],
+      });
+      const valued = drawn(plain(display), [SHOW]);
+      const drawing = drawn(plain(display, set(unknown, { length: null })), [SHOW]);
+      expect(placed(wedgesOf(drawing, "timestamp_1"))).toEqual(
+        faded(wedgesOf(valued, "timestamp_1")),
+      );
+      expect(wedgesOf(valued, "timestamp_1").map((wedge) => wedge.style.opacity)).toEqual([1, 1]);
+      const [, secondary] = wedgesOf(drawing, "timestamp_1");
+      expect(secondary?.yt).toBe(out(drawing, "performance", 1.5));
+      expect(labelParts(valued, "timestamp_1")).toEqual([
+        ["name"],
+        ["coordinate"],
+        ["name"],
+        ["coordinate"],
+      ]);
+      expect(labelParts(drawing, "timestamp_1")).toEqual([["name"], ["coordinate"], ["name"]]);
+    },
+  );
+
+  it("fade the wedges and draw no coordinate label on an ancestor line too", () => {
+    const half = {
+      type: "add",
+      into: target("recording"),
+      timestamp: {
+        name: "Half",
+        coordinate: new JsonFloat(5),
+        display: ["wedge", "name", "coordinate"],
+        groupstamp: true,
+      },
+    };
+    const fixture = "groups/group_child_member_stamps";
+    const valued = drawn(edit(fixture, half), [SHOW]);
+    const drawing = drawn(edit(fixture, half, set("recording", { length: null })), [SHOW]);
+    const secondaries = (wedges: readonly MarkerElement[]) =>
+      wedges.filter((wedge) => wedge.style.rotation === -45).map((wedge) => wedge.style.opacity);
+    // On `middle`'s line and on its ancestor line `piece`, faded by the defaults there.
+    expect(secondaries(wedgesOf(valued, "timestamp_8"))).toEqual([FADED_OPACITY, 1]);
+    expect(placed(wedgesOf(drawing, "timestamp_8"))).toEqual(
+      faded(wedgesOf(valued, "timestamp_8")),
+    );
+    const coordinates = (shown: Drawing) =>
+      labelParts(shown, "timestamp_8").filter((part) => part?.[0] === "coordinate").length;
+    expect([coordinates(valued), coordinates(drawing)]).toEqual([3, 1]);
   });
 });

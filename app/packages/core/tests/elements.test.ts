@@ -637,8 +637,8 @@ describe("the elements of a segment line", () => {
   });
 });
 
-/** A value as the test writes it: an exact one as `n/d`, a float as the number. */
-const shownValue = (value: Real): string | number =>
+/** A value as the test writes it: an exact one as `n/d`, a float as the number, none as `null`. */
+const shownValue = (value: Real | null): string | number | null =>
   value instanceof Rational ? `${value.numerator}/${value.denominator}` : value;
 
 describe("the secondary coordinates of a card", () => {
@@ -810,6 +810,75 @@ describe("the secondary coordinates of a card", () => {
         ],
       ],
     ]);
+  });
+
+  describe("where a length of the group is not known", () => {
+    /**
+     * `group_groupstamp.yaml` with `timestamp_1` listing its coordinate label and the timelines
+     * `unknown` of unknown length.
+     */
+    const grouped = (...unknown: string[]) => {
+      const value = manifestValue("groups/group_groupstamp.yaml");
+      const graphical = value.graphical as { timestamps: { id: string }[] };
+      const timelines = value.timelines as { id: string }[];
+      return loadText(
+        fileText({
+          ...value,
+          timelines: timelines.map((timeline) =>
+            unknown.includes(timeline.id) ? { ...timeline, length: null } : timeline,
+          ),
+          graphical: {
+            ...graphical,
+            timestamps: graphical.timestamps.map((timestamp) =>
+              timestamp.id === "timestamp_1"
+                ? { ...timestamp, display: ["wedge", "name", "coordinate", "cross_section"] }
+                : timestamp,
+            ),
+          },
+        }),
+      );
+    };
+    /** The secondary keys on `performance` but a coordinate label. */
+    const WEDGE_AND_NAME = [
+      ["wedge", id("timestamp_1"), "performance", "block frame timeline band"],
+      ["label", id("timestamp_1", "name"), "performance", "block frame timeline band"],
+    ];
+
+    it("gives the coordinate a value and a label where both lengths are known", () => {
+      const manifest = grouped();
+      expect(written(cardIn(manifest, "performance", "group_1")).secondaries).toEqual([
+        ["performance", [["timestamp_1", 2, 2]]],
+      ]);
+      expect(secondaryKeys(manifest)).toEqual([
+        ...WEDGE_AND_NAME,
+        ["label", id("timestamp_1", "coordinate"), "performance", "block frame timeline band"],
+      ]);
+    });
+
+    it("gives no value on a member of unknown length, where its line is drawn", () => {
+      // `performance`'s reach is its `length` timestamp's 4.0, so `timestamp_1` lies at 2.
+      const manifest = grouped("performance");
+      expect(written(cardIn(manifest, "performance", "group_1"))).toEqual({
+        window: [0, 4],
+        stamps: [
+          ["timestamp_2", 0, "member"],
+          ["timestamp_3", 4, "member"],
+          ["timestamp_1", 2, "frame"],
+        ],
+        secondaries: [["performance", [["timestamp_1", 2, null]]]],
+      });
+      expect(secondaryKeys(manifest)).toEqual(WEDGE_AND_NAME);
+    });
+
+    it("gives the other members no value from a groupstamp on a member of unknown length", () => {
+      // `score`'s reach is its `length` timestamp's exact 8, so `timestamp_1` at 4 is a half.
+      const manifest = grouped("score");
+      expect(written(cardIn(manifest, "score", "group_1")).window).toEqual(["0/1", "8/1"]);
+      expect(written(cardIn(manifest, "performance", "group_1")).secondaries).toEqual([
+        ["performance", [["timestamp_1", 2, null]]],
+      ]);
+      expect(secondaryKeys(manifest)).toEqual(WEDGE_AND_NAME);
+    });
   });
 });
 

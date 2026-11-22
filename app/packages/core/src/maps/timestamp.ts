@@ -103,11 +103,16 @@ export function timelineAxisOf(
  * members of a group start and end together, so its coordinate is the
  * anchor's times its drawn length over the anchor's. Its coordinate at a
  * position `p` on the anchor's axis is `(p − offset) × scale`, `scale` 1
- * where it is not given.
+ * where it is not given. Where the length of such a member, or of the
+ * anchor's member, is not known, the group gives it no coordinate (one
+ * member's length is never carried to another): it is `valueless`, its
+ * `scale` (a drawn length over another) only says where its drawing is
+ * crossed, and none of its rows has a value.
  */
 export interface CrossSectionMember extends TimelineAxis {
   readonly offset: Real;
   readonly scale?: Real;
+  readonly valueless?: boolean;
 }
 
 /** `member`'s own coordinate at `position` on the anchor's axis, exactly: `(position − offset) × scale`. */
@@ -579,7 +584,8 @@ function refused(message: string): Problem {
  * The position on the pin's anchor axis, exact, at which the row `row`
  * takes the edited `value` (read by `parseAxisValue`), through the row's
  * `positionOf`. Refused, each as `invalid_value` at `[]`: a row of a
- * timeline the timestamp does not show, a map its timeline does not draw,
+ * timeline the timestamp does not show, a map its timeline does not draw, a
+ * row of a `valueless` member,
  * a value no position gives (the map is not invertible over its
  * timeline's span, or gives the value nowhere), a position outside the
  * timeline's `[0, length]`, and one outside the anchor's (an ancestor's
@@ -592,6 +598,7 @@ export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Pro
   }
   const axis = rowAxis(pin.spec, row, pin.knots);
   if (axis === null) return refused(`'${timeline}' shows no map '${row.map}'`);
+  if (axis.member.valueless === true) return refused(`'${timeline}' has no value here`);
   const position = axis.positionOf(value);
   if (position === null) return refused(`no position on '${timeline}' gives ${value}`);
   const outside = (own: Rational, name: string, length: Real | null): Problem | null => {
@@ -630,6 +637,9 @@ export function missingValueText(map: Pick<TimestampMap, "missingKnots">): strin
   return map.missingKnots === null ? "no value here" : MISSING_KNOTS_TEXTS[map.missingKnots];
 }
 
+/** What every row of a `valueless` member says instead of a value. */
+export const VALUELESS_TEXT = "no value: a length in the group is not known";
+
 /**
  * One row of a pinned timestamp as every reader lists it: its row, the
  * timeline it belongs to, its label (the timeline's name for its
@@ -661,13 +671,14 @@ function topDown(above: number | undefined, below: number | undefined): number {
  * that `ordinate`, each map at its entry of the timeline's `mapOrdinates`.
  * Both sorts are stable, every part or row without an ordinate after those
  * with one, so a part without ordinates lists its coordinate, then its maps
- * in drawing order. A coordinate is always editable; a map while it is
- * invertible over its timeline's span. The timestamp's own parts keep the
- * anchor first.
+ * in drawing order. A coordinate is editable; a map while it is
+ * invertible over its timeline's span. Every row of a `valueless` member has
+ * no value, says `VALUELESS_TEXT` instead and is not editable. The
+ * timestamp's own parts keep the anchor first.
  */
 export function timestampRows(pin: Pin): TimestampRow[] {
   const reading = readingOf(pin.knots);
-  const axes = new Map<string, TimelineAxis>();
+  const axes = new Map<string, TimelineAxis & { readonly valueless?: boolean }>();
   for (const axis of [pin.spec.anchor, ...pin.spec.members]) {
     if (!axes.has(axis.timeline)) axes.set(axis.timeline, axis);
   }
@@ -677,16 +688,23 @@ export function timestampRows(pin: Pin): TimestampRow[] {
   return parts.flatMap((part) => {
     const { timeline } = part;
     const axis = axes.get(timeline);
+    const valueless = axis?.valueless === true;
     const coordinate: TimestampRow = {
       row: { timeline, map: null },
       timeline,
       label: part.name,
-      value: { unit: part.unit, numberType: part.numberType, value: part.position },
-      missing: null,
-      editable: true,
+      value: valueless
+        ? null
+        : { unit: part.unit, numberType: part.numberType, value: part.position },
+      missing: valueless ? VALUELESS_TEXT : null,
+      editable: !valueless,
     };
     const maps = part.maps.map((map): TimestampRow => {
       const row: Row = { timeline, map: map.id };
+      if (valueless) {
+        const label = map.name ?? map.id;
+        return { row, timeline, label, value: null, missing: VALUELESS_TEXT, editable: false };
+      }
       return {
         row,
         timeline,
@@ -725,18 +743,25 @@ function valueJson(value: Expressed | null): Json {
  * manifest holds them, or, unnamed, `{timeline, coordinate}` (the anchor's
  * coordinate as a bare value on its own axis), then `mapping`, keyed by ID
  * in part order: each crossed timeline but the anchor its coordinate dict,
- * each map of each part its value (`null` where it gives none).
+ * each map of each part its value (`null` where it gives none); every row of
+ * a `valueless` member `null`.
  */
 export function timestampJson(pin: Pin): Json {
   const { parts } = pin.timestamp;
   const [anchor] = parts;
   if (anchor === undefined) throw new Error("a timestamp has its anchor's part");
+  const valueless = new Set(
+    pin.spec.members.filter((member) => member.valueless === true).map(({ timeline }) => timeline),
+  );
   const mapping: { [id: string]: Json } = {};
   for (const [index, part] of parts.entries()) {
+    const none = valueless.has(part.timeline);
     if (index > 0) {
-      mapping[part.timeline] = { ...coordinateDict(part.position, part.unit, part.numberType) };
+      mapping[part.timeline] = none
+        ? null
+        : { ...coordinateDict(part.position, part.unit, part.numberType) };
     }
-    for (const map of part.maps) mapping[map.id] = valueJson(map.value);
+    for (const map of part.maps) mapping[map.id] = none ? null : valueJson(map.value);
   }
   const entry: JsonObject = pin.named ?? {
     timeline: anchor.timeline,

@@ -2762,7 +2762,21 @@ parts `motif` 1, `score` 3, `performance` the float 1.5. In
 `groups/group_groupstamp_child_member` the groupstamp `timestamp_1` at 2
 on `second-half` holds the members `score` at −4 (its ancestor), then
 `performance` at −4, scale 1/2, and the parts `second-half` 2, `score` 6,
-`performance` the float 3.0.
+`performance` the float 3.0. **A length of the group not known**
+(drawing.md §6.6): a group maps a position by the proportion of its
+members' lengths and never carries one member's length to another, so
+where the length of the other member, or of the member card holding the
+timestamp's timeline, is not known (layout's `readsAcrossGroup`), every
+timeline read for that member is `valueless` (core's form: listed, its
+rows without a value, core's one text instead, not editable). In
+`groups/group_groupstamp` with `performance`'s length `null` (its reach
+4.0), and again with `score`'s instead (its reach 8), `timestamp_1`'s pin
+holds `performance` at offset 0, scale 1/2 (the drawn lengths still place
+it), `valueless`; its flag lists the same parts in the same order as with
+both lengths known, `score`'s rows equal, `performance`'s two rows
+(`cmap_2` above its line, then its coordinate) with the value `null`, not
+editable, each the same text. With both lengths known no member is
+`valueless`, the oracle of the rest.
 
 **The flag equals the tab on an ancestor line.** A timestamp named from a
 reading on an ancestor line is read back where it was named: its first
