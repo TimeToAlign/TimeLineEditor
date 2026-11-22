@@ -2110,4 +2110,8 @@ timelines of the first and the last chain are read exactly as often in the
 larger as in the smaller, and the most-read timeline of each is read
 equally often. A tree search per timeline reads every earlier timeline's
 `children` once more for each later one, about 300 against 3,000 reads in
-the two manifests, and fails both equalities.
+the two manifests, and fails both equalities, whether the layout searches
+the tree itself or asks core for each timeline's band order and core
+searches it per question: the draw asks the band order of every timeline
+drawn with a line, so the counts guard core's lookup as much as the
+layout's own walk.
