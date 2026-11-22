@@ -8,7 +8,7 @@
 
 import { idAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
-import { FLOW_MARKER_LABEL_OFFSET, LABEL_GAP } from "./constants.ts";
+import { FLOW_MARKER_LABEL_OFFSET, JUMP_DEPTH, JUMP_PITCH, LABEL_GAP } from "./constants.ts";
 import type { Point } from "./elements.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
 import { centredLabel } from "./names.ts";
@@ -102,8 +102,8 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
   ]);
   const tierRoom = tiers.count * h(size);
   // The first jump row's depth and the jump rows' pitch, each summed whole first.
-  const depth = 4 + S;
-  const pj = 6 + S + h(size);
+  const depth = JUMP_DEPTH + S;
+  const pj = JUMP_PITCH + S + h(size);
   const K = rows.count;
   return {
     facet: "flow_control",

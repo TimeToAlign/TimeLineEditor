@@ -1,9 +1,11 @@
-/** Redraw cost: exact operation counts on a synthetic 1,000-element manifest, no timing. */
+/** Redraw cost: exact operation counts on synthetic manifests, no timing. */
 
 import {
   addressKey,
   type ChildTimeline,
   type ElementAddress,
+  isLoadError,
+  loadManifest,
   type Manifest,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
@@ -17,7 +19,7 @@ import {
 } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
-import { DEFAULT_PLACEMENT, draw } from "../src/index.ts";
+import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw } from "../src/index.ts";
 import { at, load, metrics } from "./support.ts";
 
 const q = (numerator: number, denominator = 1) => [numerator, denominator] as const;
@@ -271,5 +273,77 @@ describe("redraw operation counts", () => {
 
   it("draws the manifest it is given, copying none", () => {
     expect(drawn.listings()).toBe(0);
+  });
+});
+
+/**
+ * `roots` chains of three timelines: the root `r<i>` (4 ♩) holding `c<i>` (2 ♩ at 1 ♩), which
+ * holds `g<i>` (1 ♩ at 0); the last root and its child state their band orders.
+ */
+function chains(roots: number): Manifest {
+  const timelines = Array.from({ length: roots }, (_, index) => ({
+    id: `#r${index}`,
+    unit: "quarters",
+    length: [4, 1],
+    children: [
+      {
+        id: `#c${index}`,
+        unit: "quarters",
+        length: [2, 1],
+        offset: [1, 1],
+        children: [{ id: `#g${index}`, unit: "quarters", length: [1, 1], offset: [0, 1] }],
+      },
+    ],
+  }));
+  const last = roots - 1;
+  const order = { [`#r${last}`]: ["markers", "line"], [`#c${last}`]: ["line", "children"] };
+  const manifest = loadManifest(
+    JSON.stringify({ timetoshare: "0.2.0", timelines, graphical: { order } }),
+  );
+  if (isLoadError(manifest)) throw new Error(`chains: ${manifest.problems[0]?.message}`);
+  return manifest;
+}
+
+/** `manifest` with every read of a timeline's `children` counted, by the timeline's ID. */
+function walked(manifest: Manifest): {
+  readonly manifest: Manifest;
+  readonly reads: ReadonlyMap<string, number>;
+} {
+  const reads = new Map<string, number>();
+  const wrap = <T extends TimelineManifest | ChildTimeline>(timeline: T): T =>
+    new Proxy(
+      { ...timeline, children: timeline.children.map(wrap) },
+      {
+        get: (target, member, receiver) => {
+          if (member === "children") reads.set(target.id, (reads.get(target.id) ?? 0) + 1);
+          return Reflect.get(target, member, receiver);
+        },
+      },
+    );
+  return { manifest: { ...manifest, timelines: manifest.timelines.map(wrap) }, reads };
+}
+
+describe("work per timeline", () => {
+  const readsOf = (roots: number): ReadonlyMap<string, number> => {
+    const { manifest, reads } = walked(chains(roots));
+    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+    return reads;
+  };
+  const small = readsOf(100);
+  const large = readsOf(1000);
+  const chainOf = (reads: ReadonlyMap<string, number>, index: number) =>
+    ["r", "c", "g"].map((prefix) => reads.get(`${prefix}${index}`));
+
+  it("draws 300 and 3,000 timelines, reading every one", () => {
+    expect([small.size, large.size]).toEqual([300, 3000]);
+  });
+
+  it("reads the first and the last chain as often in the larger manifest as in the smaller", () => {
+    expect(chainOf(large, 0)).toEqual(chainOf(small, 0));
+    expect(chainOf(large, 999)).toEqual(chainOf(small, 99));
+  });
+
+  it("reads no timeline more often in the larger manifest than the most-read of the smaller", () => {
+    expect(Math.max(...large.values())).toBe(Math.max(...small.values()));
   });
 });

@@ -11,8 +11,8 @@ is written out below. The drawing fixtures of the schema package, byte-equal
 in the writers' tests, are the serialisation oracle; core is the oracle for
 manifest facts (element keys, ancestry, member drawings). Manifests are
 loaded from the schema package's fixtures or built through core's commands;
-only the groups of one records case and the synthetic manifest of the
-operation-count test are written by hand. The specification marks no
+only the groups of one records case and the synthetic manifests of the
+operation-count tests are written by hand. The specification marks no
 timeline's start or end of its own: every root of the schema package's
 non-corpus fixtures carries the named timestamps an editor gives a new
 root, `origin` at 0 and `length` at its length (none for an unknown
@@ -115,6 +115,35 @@ a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
 band of a member drawing's root, a member that is a child included: every
 markers band is shown, so every named timestamp stays visible. It shows
 every ancestor card (section 8.8): no rule of it sets `display`.
+
+## The constants (`defaults.test.ts`)
+
+The oracle is the specification's own text, read from the installed schema
+package's `docs/drawing.md`, as the default layer is. The table of section
+6.2 is parsed row by row (its first cell the constant's description, its
+second the value in canvas units); the test lists every row it expects and
+fails on a row added, renamed or removed. Each row's value is compared, as
+text, with the text the layout's constants give it:
+
+- a fixed size is the constant itself: `P`, `G`, `d`, `g`, the wedge's base
+  and height (one row, `6, 13`), the label gap, the brace height, the
+  flow-marker label offset, `k`, `Q`, `K`, `F`, the gap after a frame's
+  title and the card shadow offset; `g` is also `1.5 × d`, as its row says;
+- a size depending on the card spacing is the formula of its row with the
+  fixed parts the constants hold: the row pitch `max(10 + S, h(s))`, the
+  region row pitch `6 + 2 + h(9) + S` (the brace height and the label gap),
+  the first jump depth `4 + S` and the jump row pitch `6 + S + h(9)`; the
+  gap between bands is `S` itself;
+- the label separation, 2, has no constant: it is the width of the extent
+  section 6.3 gives a label of width 0 (`[L × u − wi / 2 − 1, L × u + wi /
+  2 + 1]`).
+
+Three numbers the constants hold are stated outside the table, each read
+from its sentence: the card spacing `S`'s default, 4 ("With the default `S
+= 4`", section 6.2), and the frame's, 8 ("`spacing`: 8 for a frame, 4 for a
+card", section 8.6, which states the card's 4 again); and the rotation of a
+groupstamp's wedge that no rule sets, −45 ("but −45 on the wedge of a
+groupstamp", section 2.5, its minus sign U+2212).
 
 ## The cascade (`cascade.test.ts`)
 
@@ -1330,7 +1359,9 @@ the band's side. What proves it:
    by no rule. Each wedge lies at its timestamp's abscissa `X` as its
    line's axis record lists it (`AxisTimestamp.x`), its tip `w / 2 = 1.5`
    from its line's ordinate `y` (both bands start at `c = 0`: `y + 1.5`
-   below, `y − 1.5` above), each corner at `X + dx` and `y + (1.5 + out)`
+   below, `y − 1.5` above; the test states the 1.5 between the line's
+   ordinate and `timestamp_3`'s tip below `melody` and `timestamp_7`'s
+   above `phrase` first), each corner at `X + dx` and `y + (1.5 + out)`
    below, `y − (1.5 + out)` above, `(dx, out)` the rotation's, each
    ordinate summed in item coordinates (`y` less the `y` of `melody`'s
    card, 8) and drawn the card's `y` plus it (section 8.6); its style
@@ -1381,6 +1412,29 @@ seconds 4.0, the groupstamp `timestamp_1` "Bar 2" at 4 on `score`
 `length` timestamps are no groupstamps. Below, `top(T)` and `bottom(T)` are
 the upper and lower borders of `T`'s card in `group_1`'s frame.
 
+**Where the members' lines lie in their cards** (sections 6.5, 8.4, 8.6),
+with the values of "Hand-derived drawings": each member drawing lies in its
+card, `Hm = Hc` high, its root's line `y_root` below the card's top; the
+card margin `V` is 0 and the names are 11, so `h(11) / 2 = 6.40234375`.
+`performance` has nothing above its line and below it the markers band of
+its `origin` and `length` wedges and their coordinate labels, one line of
+labels at its two ends: `y_root = max(8 + 0, 8 + 6.40234375) =
+14.40234375` and `bottom(performance)` lies `Eb + P = 26.9765625 + 8 =
+34.9765625` below its line, in every case here. Without maps or children,
+`score` is drawn alike: its markers band holds `timestamp_1`'s wedge and
+its name label "Bar 2" in the middle besides the `origin` and `length`
+wedges and labels at the ends, one line of labels, so its line lies
+14.40234375 below `top(score)`, its card is `Hc = 14.40234375 + 26.9765625
++ 8 = 49.37890625` high, the frame's spacing 8 separates the two cards, and
+`performance`'s line lies `(49.37890625 − 14.40234375) + 8 + 14.40234375 =
+57.37890625` below `score`'s. With a LinearMap on `score`, its conversion
+maps band (one slot) reaches `Ea = 1.5 + 5 = 6.5` above its line, more than
+6.40234375, so `y_root = 8 + 6.5`, and the cross-section extent, which
+reaches the band's outer edge, starts `P = 8` below `top(score)`. With the
+child `motif`, `score`'s children band reaches `Ea`, at least a row's pitch
+14 out, so again `y_root = 8 + Ea` and the extent, which reaches that
+band's outer edge, starts 8 below `top(score)`.
+
 1. **Neither member draws a cross-section extent** (no children band, no
    conversion maps band): `timestamp_1`'s own line is not drawn (section
    6.6), the group's is, in two pieces around its label "Bar 2" (one line
@@ -1390,12 +1444,15 @@ the upper and lower borders of `T`'s card in `group_1`'s frame.
    is the middle of `performance`'s too (2.0 of 4.0); the first from
    `top(score)` to the label's top `b − a(9)` (`b` the label's baseline;
    equal to the unturned mark's base plus 2), the second from that top plus
-   `h(9)` to `bottom(performance)` (`score` above, `top(score) <
-   score`'s line ordinate, `bottom(performance) >` `performance`'s); style
+   `h(9)` to `bottom(performance)` (`score`'s line 14.40234375 below
+   `top(score)`, `performance`'s 57.37890625 below `score`'s and
+   34.9765625 above `bottom(performance)`); style
    stroke `#1BA1E2`, width 1, dash `3 3` (the default cross-section style).
 2. **The primary draws its own line**: with a LinearMap `tempo` added to
    `score`, `score`'s cross-section extent `[y1, y2]` (its marker's) is
-   drawn by `timestamp_1`'s own line, the first element at its address; the
+   drawn by `timestamp_1`'s own line, the first element at its address
+   (`y1` 8 below `top(score)`, `bottom(performance)` 34.9765625 below
+   `performance`'s line); the
    group's are the next, from `top(score)` to `y1`, then from `y2` down to
    `bottom(performance)`, less the label's lines where they lie below `y2`,
    at the same `x`, with the same style.
@@ -1405,7 +1462,8 @@ the upper and lower borders of `T`'s card in `group_1`'s frame.
    the abscissa of 1 on `motif`'s line (`score`'s abscissa of 3), from
    `top(score)` to `motif`'s label's top, then from that label's bottom to
    `bottom(performance)`: `motif` draws no extent of its own, and no line
-   runs through its label.
+   runs through its label (`score`'s extent starts 8 below `top(score)`,
+   `bottom(performance)` lies 34.9765625 below `performance`'s line).
 4. **None**: `set timestamp_1 {groupstamp: false}`, `{display: ["wedge",
    "name"]}`, or a rule `{addresses: [{id: timestamp_1, part: [line]}]}`
    setting `display: "none"` each leave no element at the address.
@@ -1884,7 +1942,7 @@ is compared.
 
 A band's record says where the band lies, from the band layout of section
 6.4, and which card holds it; every drawn line has an axis whose ends are
-its semantic start and end; `coordinateAt` reads a position exactly.
+its semantic start and end.
 
 **Bands.** A band record, addressed `{id: T, facet: F}` with key null,
 carries its timeline `T`, its facet `F`, signed level, `line` (the ordinate
@@ -2007,19 +2065,6 @@ no coordinates). On `form`: 0, 8 and 32 lie at 49.84033203125,
 149.84033203125 (`x0 + 12.5 · 8`) and 449.84033203125; with a drawn length
 of 0, 0 lies at `xStart`, 49.84033203125.
 
-**`coordinateAt(axis, x)`** is `start + (x − xStart) / (xEnd − xStart) ×
-(end − start)`, every double read as its exact value, computed exactly and
-rounded once into the axis's number type (a fraction kept, an int to the
-nearest integer with ties to even, a float to the nearest double); null
-outside `[xStart, xEnd]` and where the end is not known. On
-`styled__score`'s fraction axis `score` (0 to 8 quarters) it gives 0, 8
-and 4 at `xStart`, `xEnd` and their midpoint (both multiples of 2⁻⁹); on
-`discrete_logical`'s int axis `dlt_1` (0 to 480 ticks) 0, 480 and 240. Over
-`[0, 3]`: from 0 to 1 a fraction axis gives 1/3 at 1; an int axis gives 0
-at 1.5 (1/2, ties to even), 1 at 2.25 and 0 at 0.75, and from 0 to 3, 2 at
-1.5 (3/2); a float axis from 0 to 0.1 gives 0.1 at 3; −0.5 and 3.5 give
-null.
-
 ## First fit (`properties.test.ts`, fast-check)
 
 For generated manifests (a root of length 1 to 64 quarters with 1 to 8
@@ -2048,3 +2093,21 @@ class or element no key has, 0 times; one per address the keys carry, the
 block's `{}` included, as often as core lists keys there. The metrics table is read 203 times, the code points of the eleven distinct
 texts as a multiset; the manifest's keys are listed 0 times, so a draw
 copies nothing. No count is a timing.
+
+**Work per timeline.** A draw's work grows with the number of timelines
+and no faster: no timeline is visited again for every other timeline, as a
+search of the manifest's tree per timeline would. Two manifests of one
+shape, written by hand, prove it: 100 and 1,000 roots of length 4 ♩, root
+`r<i>` holding the child `c<i>` (length 2 ♩ at offset 1 ♩), which holds the
+child `g<i>` (length 1 ♩ at offset 0), so 300 and 3,000 timelines; the
+manifest's `graphical.order` states the band order of the last root,
+`[markers, line]`, and of its child, `[line, children]`, so the last chain
+reads two stated entries and the others inherit the default band order,
+the grandchild through its stated parent. Every timeline is wrapped so that
+each read of its `children` member is counted, the step every walk of the
+tree takes at every timeline. The oracle is the smaller manifest: the six
+timelines of the first and the last chain are read exactly as often in the
+larger as in the smaller, and the most-read timeline of each is read
+equally often. A tree search per timeline reads every earlier timeline's
+`children` once more for each later one, about 300 against 3,000 reads in
+the two manifests, and fails both equalities.

@@ -1,4 +1,9 @@
-/** The constants of the layout (`docs/drawing.md` in TimeToShare, section 6.2). */
+/**
+ * The constants of the layout (`docs/drawing.md` in TimeToShare, section
+ * 6.2; the default spacings of section 8.6 and the groupstamp wedge's
+ * rotation of section 2.5). A distance that depends on the card spacing `S`
+ * holds its fixed part here.
+ */
 
 /** The padding `P`. */
 export const P = 8;
@@ -28,8 +33,17 @@ export const MARKER_BASE = 6;
 export const MARKER_HEIGHT = 13;
 /** The `rotation` of a groupstamp's wedge that no rule sets (section 2.5); every other wedge's is 0. */
 export const GROUPSTAMP_ROTATION = -45;
+/** The label gap, from a marker to its label. */
 export const LABEL_GAP = 2;
+/** The brace height. */
 export const BRACE = 6;
+/** The flow-marker label offset. */
 export const FLOW_MARKER_LABEL_OFFSET = 3;
+/** The fixed part of the row pitch `p = max(10 + S, h(s))`. */
+export const ROW_PITCH = 10;
+/** The fixed part of the first jump depth `4 + S`. */
+export const JUMP_DEPTH = 4;
+/** The fixed part of the jump row pitch `pj = 6 + S + h(9)`. */
+export const JUMP_PITCH = 6;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;

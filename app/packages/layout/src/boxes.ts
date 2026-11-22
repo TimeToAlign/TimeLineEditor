@@ -8,20 +8,12 @@ import type {
   CardPlace,
   ContainerKind,
   ContainerRef,
-  Coordinate,
   ElementAddress,
   Facet,
   ItemPlace,
   PlaceKey,
   Real,
 } from "@timetoalign/tilie-core";
-import {
-  exactCoordinate,
-  fromFloat,
-  Rational,
-  toFloat,
-  toRational,
-} from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Style } from "./cascade.ts";
 import type { WedgeCorner } from "./rotation.ts";
@@ -269,42 +261,4 @@ export interface AxisTimestamp {
    * largest label size); null where it draws no label.
    */
   readonly labels: readonly [number, number] | null;
-}
-
-/**
- * `value` rounded once into `numberType`: a float to the nearest double, an
- * int to the nearest integer (ties to even), a fraction kept; undefined
- * where the result does not fit a coordinate (int64).
- */
-function rounded(value: Rational, unit: TimeUnit, numberType: NumberType): Coordinate | undefined {
-  if (numberType === "float") return exactCoordinate(toFloat(value), unit, numberType);
-  if (numberType === "fraction") return exactCoordinate(value, unit, numberType);
-  const floor = value.floor();
-  const twice = value.subtract(Rational.of(floor)).multiply(Rational.of(2n));
-  const up = twice.compare(Rational.of(1n));
-  const integer = up > 0 || (up === 0 && floor % 2n !== 0n) ? floor + 1n : floor;
-  return exactCoordinate(Rational.of(integer), unit, numberType);
-}
-
-/**
- * The coordinate at the abscissa `x` of `axis`: `start + (x − xStart) /
- * (xEnd − xStart) × (end − start)`, every double read as its exact value,
- * computed exactly and rounded once into the axis's number type. Null
- * outside `[xStart, xEnd]`, where the end is not known, and where the
- * result does not fit a coordinate.
- */
-export function coordinateAt(axis: DrawnAxis, x: number): Coordinate | null {
-  const { xStart, xEnd, start, end } = axis;
-  if (end === null || !(x >= xStart && x <= xEnd)) return null;
-  const from = toRational(start);
-  const value =
-    xEnd === xStart
-      ? from
-      : from.add(
-          fromFloat(x)
-            .subtract(fromFloat(xStart))
-            .divide(fromFloat(xEnd).subtract(fromFloat(xStart)))
-            .multiply(toRational(end).subtract(from)),
-        );
-  return rounded(value, axis.unit, axis.numberType) ?? null;
 }

@@ -27,6 +27,7 @@ import {
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timetoshare";
 import type { Cascade, Style } from "./cascade.ts";
+import { ROW_PITCH } from "./constants.ts";
 import type { LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, reachOf, zero } from "./numbers.ts";
@@ -171,7 +172,7 @@ export const maxSize = (items: readonly Styled[], fallback = 9): number =>
 
 /** The pitch `max(10 + S, h(size))` of a row whose name has font size `size`. */
 export const rowPitch = (scope: Scope, size: number): number =>
-  Math.max(10 + scope.S, scope.h(size));
+  Math.max(ROW_PITCH + scope.S, scope.h(size));
 
 /** How a timeline drawn up to its end ends (section 6.6): an open end with three chevrons. */
 export function endOf(timeline: TimelineManifest, topLevel: boolean, open = false): LineEnd {

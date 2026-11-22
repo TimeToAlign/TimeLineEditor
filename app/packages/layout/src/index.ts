@@ -35,7 +35,6 @@ export type {
   DrawnBox,
   ElementRange,
 } from "./boxes.ts";
-export { coordinateAt } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
 export { GROUPSTAMP_ROTATION } from "./constants.ts";

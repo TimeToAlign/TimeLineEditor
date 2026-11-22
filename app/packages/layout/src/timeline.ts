@@ -13,7 +13,15 @@
  * `children.ts` and `slots.ts`; this module never places a child.
  */
 
-import { bandOrderOf, FACETS, type Facet, LINE } from "@timetoalign/tilie-core";
+import {
+  bandOrderOf,
+  DEFAULT_BAND_ORDER,
+  FACETS,
+  type Facet,
+  LINE,
+  type Manifest,
+  type TimelineManifest,
+} from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
@@ -37,14 +45,14 @@ import { type LevelZero, levelZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
 import { type CrossSectionExtent, type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
 import { regionsBand } from "./regions.ts";
-import type { Entry, Scope } from "./traversal.ts";
+import { type Entry, known, type Scope } from "./traversal.ts";
 
 /** One timeline once every first fit of its own bands is done (section 6.4, the first pass). */
 export interface PreparedTimeline {
   readonly scope: Scope;
   /** Its entry: a timeline drawn with a line of its own. */
   readonly line: Entry;
-  /** Its band order (core's `bandOrderOf`): `line` and its five facets, top to bottom. */
+  /** Its band order (`bandOrdersOf`): `line` and its five facets, top to bottom. */
   readonly order: readonly string[];
   /** The side of its line each of its bands lies on, by its band order (section 6.4, The band order). */
   readonly sides: Readonly<Record<Facet, Side>>;
@@ -231,9 +239,40 @@ export function reachOf(
   };
 }
 
+/** Every timeline's band order by its ID, one map per manifest (`bandOrdersOf`). */
+const bandOrders = new WeakMap<Manifest, ReadonlyMap<string, readonly string[]>>();
+
+/**
+ * The band order of every timeline of `manifest` by its ID, the one core's
+ * `bandOrderOf` gives, found in one walk of the manifest's tree and memoised
+ * by the manifest's identity: a timeline without an entry of its own in
+ * `graphical.order` follows its parent's band order, a root the default band
+ * order, so the walk carries the order down; only a timeline with an entry
+ * of its own asks core, which completes the entry against the order it
+ * inherits. Drawing a manifest so searches its tree once per stated entry,
+ * never once per timeline.
+ */
+function bandOrdersOf(manifest: Manifest): ReadonlyMap<string, readonly string[]> {
+  const memoised = bandOrders.get(manifest);
+  if (memoised !== undefined) return memoised;
+  const stated = manifest.graphical?.order;
+  const orders = new Map<string, readonly string[]>();
+  const visit = (timeline: TimelineManifest, inherited: readonly string[]) => {
+    const order =
+      stated !== undefined && Object.hasOwn(stated, timeline.id)
+        ? bandOrderOf(manifest, timeline.id)
+        : inherited;
+    orders.set(timeline.id, order);
+    for (const child of timeline.children) visit(child, order);
+  };
+  for (const root of manifest.timelines) visit(root, DEFAULT_BAND_ORDER);
+  bandOrders.set(manifest, orders);
+  return orders;
+}
+
 /**
  * The first pass for the timeline drawn with the line `line` (section 6.4):
- * its band order (core's `bandOrderOf` over the scope's manifest), the side
+ * its band order (`bandOrdersOf` over the scope's manifest), the side
  * of each band, each band prepared by its module from `sourcesOf` (markers,
  * conversion maps, regions, flow control; the children band from
  * `children`), the present bands' levels, its maps, its level 0, its own
@@ -242,7 +281,7 @@ export function reachOf(
  */
 export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   const id = line.manifest.id;
-  const order = bandOrderOf(scope.manifest, id);
+  const order = known(bandOrdersOf(scope.manifest), id);
   const sources = sourcesOf(scope, line);
   const children = sources.flatMap((source) =>
     (scope.index.childrenByParent.get(source.manifest.id) ?? []).filter(
