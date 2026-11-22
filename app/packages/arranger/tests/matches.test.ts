@@ -6,7 +6,15 @@
  */
 
 import type { AnchorIndex, Manifest } from "@timetoalign/tilie-core";
-import { addressKey, idAddress, inBlock, partAddress, placeKeyText } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  anchorIndexOf,
+  idAddress,
+  inBlock,
+  matchClaimColumns,
+  partAddress,
+  placeKeyText,
+} from "@timetoalign/tilie-core";
 import type { CoordinateValue } from "@timetoalign/tilie-core/numbers";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { AnchorElement, Drawing } from "@timetoalign/tilie-layout";
@@ -463,6 +471,55 @@ describe("screen order", () => {
     expect(screenPlace(drawn, at("page_2", 0n))).toEqual({ x: 156.85498046875, y: 36.4765625 });
     expect(screenPlace(drawn, at("page_2", 1754n))).toEqual({ x: 256.85498046875, y: 36.4765625 });
     expect(screenPlace(drawn, at("page_2", 1755n))).toBeNull();
+  });
+
+  it("places a member on its own card, before the row an ancestor card draws of it", () => {
+    const parent = viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
+    const drawn = drawingOf(blockIn(parent, A), parent.graphical, metrics);
+    const middle4 = at("middle", Rational.of([4, 1]));
+    const piece8 = at("piece", Rational.of([8, 1]));
+    expect(screenPlace(drawn, middle4)).toEqual({ x: 460.33544921875, y: 81.78125 });
+    expect(screenPlace(drawn, piece8)).toEqual({ x: 460.33544921875, y: 67.78125 });
+    expect(screenPlace(drawn, at("piece", Rational.of([1, 1])))).toEqual({
+      x: 110.33544921875,
+      y: 67.78125,
+    });
+    expect(inScreenOrder(drawn, [middle4, piece8], (item) => item)).toEqual([piece8, middle4]);
+  });
+});
+
+describe("the lines of a table where an ancestor card is drawn", () => {
+  it("holds a member on its own card's line, a timeline no other line holds on the card's", () => {
+    const parent = viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
+    const drawn = drawingOf(blockIn(parent, A), parent.graphical, metrics);
+    const index = anchorIndexOf(
+      matchClaimColumns(
+        [
+          { id: "middle", numberType: "fraction" },
+          { id: "piece", numberType: "fraction" },
+        ],
+        [{ id: "p_1", timelines: [0, 1], start: [Rational.of([2, 1]), Rational.of([6, 1])] }],
+      ),
+    );
+    const { all } = matchLinesOf(drawn, index);
+    expect(
+      all.map(({ card, timeline, y, xStart, xEnd }) => [card, timeline, y, xStart, xEnd]),
+    ).toEqual([
+      [
+        placeKeyText({ item: "group_1", member: "middle" }),
+        0,
+        81.78125,
+        260.33544921875,
+        660.33544921875,
+      ],
+      [
+        placeKeyText({ item: "group_1", member: "piece" }),
+        1,
+        67.78125,
+        60.33544921875,
+        860.33544921875,
+      ],
+    ]);
   });
 });
 

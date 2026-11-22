@@ -201,7 +201,8 @@ const linesByDrawing = new WeakMap<Drawing, { index: AnchorIndex; lines: MatchLi
 
 /**
  * The lines of `drawing` holding a timeline of `index` (matched by ID), once
- * per drawing and index: for every timeline the lines `holdings` gives, in
+ * per drawing and index: for every timeline the lines `holdings` gives (so
+ * an ancestor card's line only for a timeline no other line holds), in
  * the drawing's order of its lines, a timeline of the index before a later
  * one on one line. A line of its own draws its drawn span; a segment's line
  * the part of it the segment covers.
@@ -584,7 +585,9 @@ function heldOn(drawing: Drawing, timeline: string): readonly Holding[] {
 /**
  * Where `coordinate` shows first in `drawing`, in block-local canvas units:
  * of every line holding its timeline (`holdings`, where "Show matches" and
- * a named timestamp put it) whose drawn part holds its value, exactly as
+ * a named timestamp put it: a line of an ancestor card only where no other
+ * line holds the timeline, so a member's own card wins over the row an
+ * ancestor card draws of it) whose drawn part holds its value, exactly as
  * `matchLinesOf` bounds a line (from 0, up to a segment's length, within
  * `start` to `start + drawnLength` on the line's axis), the topmost
  * place, then the leftmost; its abscissa is

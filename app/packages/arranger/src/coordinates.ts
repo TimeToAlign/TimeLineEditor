@@ -15,6 +15,7 @@
  */
 
 import type {
+  Block,
   BlockId,
   ConversionMap,
   CrossSectionMember,
@@ -36,9 +37,12 @@ import type {
   TimestampRow,
 } from "@timetoalign/tilie-core";
 import {
+  addressKey,
   ancestorMembers,
   findTimeline,
+  groupsHolding,
   idAddress,
+  indexOf,
   measureText,
   prettyText,
   samePlaceKey,
@@ -56,7 +60,15 @@ import {
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
-import type { AxisMap, Drawing, DrawnAxis, LineAxis, WedgeMark } from "@timetoalign/tilie-layout";
+import type {
+  AxisMap,
+  Drawing,
+  DrawnAxis,
+  DrawnBox,
+  LineAxis,
+  MarkerElement,
+  WedgeMark,
+} from "@timetoalign/tilie-layout";
 import {
   abscissaOf,
   crossedLines,
@@ -64,9 +76,11 @@ import {
   frameMemberLines,
   lineAxes,
   wedgeAt,
+  wedgePoints,
 } from "@timetoalign/tilie-layout";
 import type { AffordanceSource } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
 
@@ -118,13 +132,15 @@ function measurable(axis: LineAxis): boolean {
 }
 
 const markedByDrawing = new WeakMap<Drawing, ReadonlyMap<string, LineAxis>>();
+const ancestorLinesByDrawing = new WeakMap<Drawing, ReadonlyMap<string, AncestorLine>>();
 const axesByDrawing = new WeakMap<Drawing, ReadonlyMap<string, LineAxis>>();
 
 /**
  * The lines of `drawing` that draw coordinate markers (each one
  * `crossedLines` crosses), once per drawing, keyed as in layout's
- * `lineAxes` and in its order: never an ancestor line, which draws none.
- * A named timestamp has its place on them, whatever their length.
+ * `lineAxes` and in its order, so an ancestor card's lines (section 8.8)
+ * come after every other: never an ancestor line, which draws none. A
+ * named timestamp has its place on them, whatever their length.
  */
 function markedOf(drawing: Drawing): ReadonlyMap<string, LineAxis> {
   let marked = markedByDrawing.get(drawing);
@@ -137,18 +153,134 @@ function markedOf(drawing: Drawing): ReadonlyMap<string, LineAxis> {
   return marked;
 }
 
+/** An ancestor line in a member's card: its line and the key in `markedOf` of the member's line. */
+interface AncestorLine {
+  readonly axis: LineAxis;
+  readonly member: string;
+}
+
 /**
- * The lines of `drawing` a pointer reads a timestamp on, once per drawing:
- * the marked lines (`markedOf`) that are measurable, a line of unknown
- * length over its drawn span, never a zero-length line.
+ * The ancestor lines of `drawing`, the lines of a child member's ancestors
+ * drawn above its line in its card, which draw no markers, once per
+ * drawing, keyed as in `lineAxes` and in its order, each with the key of
+ * the member's own line in that card (`markedOf`), whose cross-section a
+ * reading there reads.
+ */
+function ancestorLinesOf(drawing: Drawing): ReadonlyMap<string, AncestorLine> {
+  let found = ancestorLinesByDrawing.get(drawing);
+  if (found === undefined) {
+    const marked = [...markedOf(drawing)];
+    found = new Map(
+      [...lineAxes(drawing)].flatMap(([key, axis]): [string, AncestorLine][] => {
+        if (markedOf(drawing).has(key)) return [];
+        const member = marked.find(
+          ([, line]) => line.timeline === axis.card.member && samePlaceKey(line.card, axis.card),
+        );
+        return member === undefined ? [] : [[key, { axis, member: member[0] }]];
+      }),
+    );
+    ancestorLinesByDrawing.set(drawing, found);
+  }
+  return found;
+}
+
+/**
+ * The lines of `drawing` a pointer reads a timestamp on, once per drawing,
+ * in `lineAxes`' order: the marked lines (`markedOf`) and the ancestor
+ * lines (`ancestorLinesOf`) that are measurable, a line of unknown length
+ * over its drawn span, never a zero-length line.
  */
 export function axesOf(drawing: Drawing): ReadonlyMap<string, LineAxis> {
   let axes = axesByDrawing.get(drawing);
   if (axes === undefined) {
-    axes = new Map([...markedOf(drawing)].filter(([, axis]) => measurable(axis)));
+    const marked = markedOf(drawing);
+    const ancestors = ancestorLinesOf(drawing);
+    axes = new Map(
+      [...lineAxes(drawing)].filter(
+        ([key, axis]) => (marked.has(key) || ancestors.has(key)) && measurable(axis),
+      ),
+    );
     axesByDrawing.set(drawing, axes);
   }
   return axes;
+}
+
+/**
+ * The box `box` holds the point `point` (both in block-local canvas units):
+ * its rectangle, edges included.
+ */
+function holdsPoint(box: DrawnBox, point: Point): boolean {
+  return (
+    point.x >= box.x &&
+    point.x <= box.x + box.width &&
+    point.y >= box.y &&
+    point.y <= box.y + box.height
+  );
+}
+
+/** Whether a line of a drawing is covered at a point: drawn under a box holding the point. */
+export type Covered = (axis: LineAxis, point: Point) => boolean;
+
+const coversByDrawing = new WeakMap<Drawing, Map<string | null, Covered>>();
+
+/**
+ * Where a line of `drawing` is covered, so that the pointer does not read
+ * it (`lineAt`), `raised` naming the root whose ancestor cards are raised
+ * over every frame (`raisedRoot`), else `null`; once per drawing and root.
+ * An ancestor card (section 8.8) lies behind every frame and every card the
+ * block holds: a line of it is covered inside the rectangle of any of
+ * those drawn (a frame and its member cards, an ungrouped root's card),
+ * and read beyond their borders; once raised, its lines are never
+ * covered, and every other line is covered inside the rectangle of a
+ * raised card. A box whose rectangle is not drawn covers nothing.
+ */
+export function coveredIn(drawing: Drawing, raised: string | null): Covered {
+  let byRoot = coversByDrawing.get(drawing);
+  if (byRoot === undefined) {
+    byRoot = new Map();
+    coversByDrawing.set(drawing, byRoot);
+  }
+  let covered = byRoot.get(raised);
+  if (covered === undefined) {
+    const drawn = drawing.boxes.filter((box) => box.displayed);
+    const above = drawn.filter(
+      (box) => box.ancestor === undefined && (box.kind === "frame" || box.kind === "card"),
+    );
+    const lifted = drawn.filter(
+      (box) => box.ancestor !== undefined && raised !== null && box.address.id === raised,
+    );
+    covered = (axis, point) => {
+      const ofCard = axis.ancestor !== undefined;
+      if (ofCard && raised !== null && axis.card.member === raised) return false;
+      if (lifted.some((box) => holdsPoint(box, point))) return true;
+      return ofCard && above.some((box) => holdsPoint(box, point));
+    };
+    byRoot.set(raised, covered);
+  }
+  return covered;
+}
+
+/**
+ * The root whose ancestor cards block `block` shows raised over every
+ * frame while `editing`, the innermost open editor, is open: the root of
+ * the timeline a timeline editor in this block edits, where that timeline
+ * is no group member and lies in no member (core's `groupsHolding` is
+ * empty); `null` for any other editor, none, or another block's.
+ */
+export function raisedRoot(
+  block: Pick<Block, "id" | "manifest">,
+  editing: Editing | null,
+): string | null {
+  if (editing === null || editing.kind !== "timeline") return null;
+  const { block: id, element } = addressParts(editing.target);
+  const timeline = element?.id;
+  if (id !== block.id || timeline === undefined) return null;
+  const { ancestry } = indexOf(block.manifest);
+  const root = ancestry.get(timeline)?.[0];
+  if (root === undefined || groupsHolding(block.manifest, timeline, ancestry).length > 0) {
+    return null;
+  }
+  return root;
 }
 
 /** `value` held to `[low, high]`. */
@@ -189,17 +321,20 @@ function zoneHit(key: string, axis: LineAxis, point: Point, tolerance: number): 
 
 /**
  * The line `point` hovers among `axes` (`axesOf`), `tolerance` canvas units
- * around: of every line whose zone holds the point (`zoneHit`), the one
- * nearest in ordinate by the line or the map hovered in it, an earlier line
- * on a tie; `null` where none does.
+ * around: of every line whose zone holds the point (`zoneHit`) and that is
+ * not covered there (`covered`, `coveredIn`; nothing is by default), the
+ * one nearest in ordinate by the line or the map hovered in it, an earlier
+ * line on a tie; `null` where none does.
  */
 export function lineAt(
   axes: ReadonlyMap<string, LineAxis>,
   point: Point,
   tolerance: number,
+  covered: Covered = () => false,
 ): LineHit | null {
   let best: LineHit | null = null;
   for (const [key, axis] of axes) {
+    if (covered(axis, point)) continue;
     const hit = zoneHit(key, axis, point, tolerance);
     if (hit !== null && (best === null || hit.distance < best.distance)) best = hit;
   }
@@ -265,6 +400,10 @@ function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
  * at the crossed lines, in the order they are drawn, as the manifest holds
  * them, and at the ordinate of the line it is crossed at in the line's card
  * (`ordinateIn`). No sibling segment of a segment anchor is among them.
+ * On an ancestor line (`ancestorLinesOf`) the cross-section line is its
+ * member's at the same abscissa: the anchor is the ancestor drawn, and
+ * among its descendants the member's line, the lines between, and the
+ * timelines that line crosses, at their offsets from the ancestor's zero.
  */
 function crossedSubtree(
   manifest: Manifest,
@@ -276,6 +415,10 @@ function crossedSubtree(
   readonly root: TimelineAxis;
   readonly descendants: readonly CrossSectionMember[];
 } {
+  const ancestorLine = ancestorLinesOf(drawing).get(lineKey);
+  if (ancestorLine !== undefined) {
+    return crossedSubtree(manifest, drawing, ancestorLine.member, ancestorLine.axis.timeline);
+  }
   const all = lineAxes(drawing);
   const lines = crossedLines(drawing, lineKey).flatMap((key) => {
     const line = all.get(key);
@@ -295,13 +438,20 @@ function crossedSubtree(
       ordinates.set(owner, owned);
     }
   }
-  const crossed = new Set(
-    lines.flatMap((each, index) => [
+  const root = drawnTimeline(manifest, anchor ?? line.timeline);
+  // Read from an ancestor of the line's timeline, that timeline and its ancestors below the
+  // anchor are crossed; none of them lies in a segment anchor's subtree.
+  const below =
+    root.id === line.timeline
+      ? []
+      : [line.timeline, ...ancestorMembers(manifest, line.timeline).map((item) => item.timeline)];
+  const crossed = new Set([
+    ...below,
+    ...lines.flatMap((each, index) => [
       ...(index === 0 ? [] : [each.timeline]),
       ...each.segments.map((segment) => segment.id),
     ]),
-  );
-  const root = drawnTimeline(manifest, anchor ?? line.timeline);
+  ]);
   const descendants: CrossSectionMember[] = [];
   const walk = (timeline: TimelineManifest, from: Rational): void => {
     for (const child of orderedChildren(timeline)) {
@@ -332,10 +482,11 @@ function crossedSubtree(
 }
 
 /**
- * The cross-section read on the line keyed `lineKey` (a key of `markedOf`)
+ * The cross-section read on the line keyed `lineKey` (a key of `axesOf`)
  * of `drawing`, block `block`'s drawing of `manifest`, anchored on the
  * timeline `anchor` (the line's own by default, else a segment the line
- * holds): the anchor's timeline, then as members its ancestors, parent
+ * holds; on an ancestor line its ancestor, read across its member's line,
+ * `crossedSubtree`): the anchor's timeline, then as members its ancestors, parent
  * first, without maps (core's `ancestorMembers`: a parent's coordinate is
  * its child's plus the child's offset, up to the root, whether the anchor
  * is drawn in its parent's card or in a card of its own as a group's
@@ -410,7 +561,9 @@ function spans(axis: LineAxis, position: Rational): boolean {
 /**
  * Where the pinned timestamp `pin` is marked in `drawing`, its block's: on
  * the line keyed `preferred` (the line it was pinned on) while that line
- * draws its anchor, else on the first line of `axesOf` drawing it, at the
+ * draws its anchor, else on the first line of its anchor's own that
+ * `holdings` gives (a member card's before an ancestor card's) and that is
+ * read (`axesOf`), else on the first ancestor line drawing it, at the
  * abscissa of its position, across the group's frame where the pin reads
  * the group (`readsGroup`); `null` where no such line draws its anchor or
  * the position lies outside the line's drawn span.
@@ -423,10 +576,17 @@ export function pinnedPlace(
   const axes = axesOf(drawing);
   const { timeline } = pin.spec.anchor;
   const own = preferred === null ? undefined : axes.get(preferred);
+  const held = holdings(drawing, timeline).find(
+    (holding) => holding.length === null && axes.has(holding.key),
+  );
   const found =
     preferred !== null && own?.timeline === timeline
       ? ([preferred, own] as const)
-      : [...axes].find(([, axis]) => axis.timeline === timeline);
+      : held !== undefined
+        ? ([held.key, held.axis] as const)
+        : [...axes].find(
+            ([key, axis]) => axis.timeline === timeline && !markedOf(drawing).has(key),
+          );
   const [anchor] = pin.timestamp.parts;
   if (found === undefined || anchor === undefined) return null;
   const [key, axis] = found;
@@ -434,6 +594,53 @@ export function pinnedPlace(
   return spans(axis, position)
     ? { key, x: abscissaOf(axis, position), group: readsGroup(pin) }
     : null;
+}
+
+const startMarksByDrawing = new WeakMap<Drawing, Map<string, MarkerElement | null>>();
+
+/**
+ * The mark of the member's start that `drawing` draws on its ancestor line
+ * keyed `lineKey` (`ancestorLinesOf`): of the wedges addressed `{id: M,
+ * part: ["start"]}`, `M` the member, at the line's start, the one whose
+ * tip lies nearest above the line (section 6.6: always above it); `null`
+ * on any other line and where the mark is not drawn. Once per drawing and
+ * line.
+ */
+function startMarkOf(drawing: Drawing, lineKey: string): MarkerElement | null {
+  let byLine = startMarksByDrawing.get(drawing);
+  if (byLine === undefined) {
+    byLine = new Map();
+    startMarksByDrawing.set(drawing, byLine);
+  }
+  const known = byLine.get(lineKey);
+  if (known !== undefined) return known;
+  const line = ancestorLinesOf(drawing).get(lineKey);
+  let found: MarkerElement | null = null;
+  if (line !== undefined && line.axis.card.member !== undefined) {
+    const start = addressKey({ id: line.axis.card.member, part: ["start"] });
+    for (const element of drawing.elements) {
+      if (element.type !== "wedge" || element.x !== line.axis.xStart) continue;
+      if (element.yt > line.axis.y || addressKey(element.address) !== start) continue;
+      if (found === null || element.yt > found.yt) found = element;
+    }
+  }
+  byLine.set(lineKey, found);
+  return found;
+}
+
+/**
+ * The wedge marking a position at the abscissa `x` of the line keyed
+ * `lineKey` in `drawing`: layout's `wedgeAt`, as a named timestamp lying
+ * there draws its own; on an ancestor line, which draws no timestamp, the
+ * mark of the member's start on it (`startMarkOf`) moved to `x`, with its
+ * style; `null` where neither is drawn.
+ */
+export function markWedgeAt(drawing: Drawing, lineKey: string, x: number): WedgeMark | null {
+  const own = wedgeAt(drawing, lineKey, x);
+  if (own !== null) return own;
+  const mark = startMarkOf(drawing, lineKey);
+  if (mark === null) return null;
+  return { points: wedgePoints({ x, yt: mark.yt, corners: mark.corners }), style: mark.style };
 }
 
 /**
@@ -453,26 +660,32 @@ export interface Holding {
  * `timeline`, in their order, each with its timeline's zero on it (0):
  * every line of its own, else every line whose segment it is, at the
  * segment's offset and with its length; none where no such line is drawn.
- * Where a named timestamp, and a coordinate shown by "Show matches", has
- * its place.
+ * The member's own card wins: a line of an ancestor card (section 8.8,
+ * `LineAxis.ancestor`) is among them only where no other line is. Where a
+ * named timestamp, and a coordinate shown by "Show matches", has its
+ * place, and where screen order reads it (`screenPlace`).
  */
 export function holdings(drawing: Drawing, timeline: string): Holding[] {
   const lines = [...markedOf(drawing)];
   const own = lines.filter(([, axis]) => axis.timeline === timeline);
-  if (own.length > 0) return own.map(([key, axis]) => ({ key, axis, offset: ZERO, length: null }));
-  return lines.flatMap(([key, axis]) => {
-    const segment = axis.segments.find((item) => item.id === timeline);
-    return segment === undefined
-      ? []
-      : [
-          {
-            key,
-            axis,
-            offset: toRational(segment.offset),
-            length: toRational(segment.length),
-          },
-        ];
-  });
+  const found: Holding[] =
+    own.length > 0
+      ? own.map(([key, axis]) => ({ key, axis, offset: ZERO, length: null }))
+      : lines.flatMap(([key, axis]) => {
+          const segment = axis.segments.find((item) => item.id === timeline);
+          return segment === undefined
+            ? []
+            : [
+                {
+                  key,
+                  axis,
+                  offset: toRational(segment.offset),
+                  length: toRational(segment.length),
+                },
+              ];
+        });
+  const members = found.filter(({ axis }) => axis.ancestor === undefined);
+  return members.length > 0 ? members : found;
 }
 
 /** The key in `markedOf(drawing)` of the drawn line `axis`; undefined for an ancestor line. */
@@ -731,8 +944,11 @@ export type KnotsOf = (manifest: Manifest) => readonly MeasureKnots[] | KnotsAbs
 /**
  * The reading of the canvas point `point` over `nodes` at `zoom`, with
  * `ratio` device pixels per CSS pixel: of every node whose drawing holds a
- * line `point` hovers (`lineAt`, `HIT_TOLERANCE` device pixels around), the
- * nearest, a later node on a tie; `null` where no line is hovered. The
+ * line `point` hovers (`lineAt`, `HIT_TOLERANCE` device pixels around,
+ * where it is not covered: `coveredIn`, the root raised by the node's
+ * editor, `raisedRoot`), the nearest, a later node on a tie; `null` where
+ * no line is hovered. An ancestor line is read as its ancestor's
+ * (`crossSectionSpec`). The
  * position is core's `snapOnRow` on the hovered row (`rowOf`) of the
  * line's cross-section (`crossSectionSpec`), `p` the pointer's coordinate
  * on the line's axis and `h` half a device pixel there: the line's drawn
@@ -771,7 +987,8 @@ export function readingAt(
     ) {
       continue;
     }
-    const hit = lineAt(axesOf(drawing), local, tolerance);
+    const covered = coveredIn(drawing, raisedRoot(block, node.data.editing));
+    const hit = lineAt(axesOf(drawing), local, tolerance, covered);
     if (
       hit !== null &&
       (found === null || hit.distance * devicePixels <= found.hit.distance * found.devicePixels)
