@@ -1037,17 +1037,19 @@ export function timelinePin(
 
 /**
  * The unnamed pin `pin` of block `manifest`'s drawing `drawing` read again
- * at its anchor's timeline and position (`timelinePin`), as when the
- * raised card changes under it (`raised`, `raisedRoot`): with its knots,
- * its granularity and its group reading (`readsGroup`), on the line keyed
- * `preferred` (the line it was read on) while that line is still a place
- * of its position, else at its first place; `null` where the manifest no
- * longer holds its anchor's timeline.
+ * at its anchor's timeline and position (`timelinePin`), as a fresh reading
+ * there reads it once the open editor changes: under the root raised now
+ * (`raised`, `raisedRoot`), reading a group where `groupstamp` says a fresh
+ * reading does (`groupScoped` of the open editor), with its knots and its
+ * granularity, on the line keyed `preferred` (the line it was read on)
+ * while that line is still a place of its position, else at its first
+ * place; `null` where the manifest no longer holds its anchor's timeline.
  */
 export function rereadPin(
   manifest: Manifest,
   drawing: Drawing,
   pin: Pin,
+  groupstamp: boolean,
   raised: string | null,
   preferred: string | null,
 ): Pin | null {
@@ -1061,7 +1063,7 @@ export function rereadPin(
     toRational(anchor.position),
     pin.spec.granularity,
     pin.knots,
-    readsGroup(pin),
+    groupstamp,
     raised,
     preferred,
   );

@@ -301,11 +301,14 @@ const rereadByPin = new WeakMap<
  * The unnamed pin `pin`, held since it was read as `readOn` says, as
  * shown while `editing` is open: itself while its block raises the same
  * root (`raisedOf`), else read again at its anchor's timeline and position
- * under the root raised now (the arranger's `rereadPin`: its group reading
- * kept, on its line while that line is still a place), its block drawn
- * with `metrics`, once per pin, manifest, root and line, so a change of
- * the view elsewhere shows the same pin; so the tab lists what a flag at
- * its mark reads. Itself where its block or its timeline is gone.
+ * as a fresh reading at its mark reads it under the root raised now: by
+ * the group where naming it would store a groupstamp (`groupstampOf`,
+ * never inside a timeline editor, as a fresh reading reads a group), so its
+ * rows, the GroupStamp toggle and the tab after naming agree (the
+ * arranger's `rereadPin`, on its line while that line is still a place),
+ * its block drawn with `metrics`, once per pin, manifest, root and line, so
+ * a change of the view elsewhere shows the same pin. Itself where its block
+ * or its timeline is gone.
  */
 export function heldPinOf(
   view: View,
@@ -324,7 +327,8 @@ export function heldPinOf(
     return known.pin;
   }
   const drawing = drawingOf(block, view.graphical, metrics);
-  const read = rereadPin(manifest, drawing, pin, raised, readOn.line) ?? pin;
+  const group = groupstampOf(manifest, pin, editing?.kind ?? null);
+  const read = rereadPin(manifest, drawing, pin, group, raised, readOn.line) ?? pin;
   rereadByPin.set(pin, { manifest, raised, line: readOn.line, pin: read });
   return read;
 }

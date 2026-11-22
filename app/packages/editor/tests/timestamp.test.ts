@@ -650,6 +650,14 @@ describe("a pin read on a line", () => {
     return found[0];
   }
 
+  /** Whether the GroupStamp toggle is pressed, as its `aria-pressed`; `null` where none is offered. */
+  function groupstampToggle(): string | null {
+    const button = panel().querySelector<HTMLButtonElement>(
+      '[data-testid="timestamp-groupstamp"] button',
+    );
+    return button === null ? null : button.getAttribute("aria-pressed");
+  }
+
   /** The arranger's pin of `timeline` at `position` in block A of `store`, as a reading on `line` makes it. */
   function readOn(
     store: Store,
@@ -700,7 +708,7 @@ describe("a pin read on a line", () => {
     expect(groups()).toEqual([theme, movement, score]);
   });
 
-  it("is read again when an editor raises or lowers its card, and kept as read in between", () => {
+  it("is read again as a fresh reading when an editor raises or lowers its card, and kept as read in between", () => {
     const store = storeOf("groups/group_parent_both");
     const inspector = drawer(store, true);
     const line = lineIn(store, "middle", "middle");
@@ -713,10 +721,11 @@ describe("a pin read on a line", () => {
     expect(store.open({ block: A, id: "piece" })).toBeNull();
     flushSync();
     const raised = inspector.shownPin();
-    expect([groups(), raised?.named, raised === pin]).toEqual([
-      [middle, piece, recording],
+    expect([groups(), raised?.named, raised === pin, groupstampToggle()]).toEqual([
+      [middle, piece],
       null,
       false,
+      "false",
     ]);
     const again = () =>
       heldPinOf(store.view, pin, fontMetrics, store.editing.at(-1) ?? null, {
@@ -728,6 +737,36 @@ describe("a pin read on a line", () => {
     flushSync();
     expect([groups(), inspector.shownPin()]).toEqual([[piece, middle, recording], pin]);
     expect(inspector.shownPin()).toBe(pin);
+  });
+
+  it("read under a raised card is read again with the group once the card is lowered", () => {
+    const store = storeOf("groups/group_parent_both");
+    expect(store.open({ block: A, id: "piece" })).toBeNull();
+    flushSync();
+    const inspector = drawer(store, true);
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const cardRow = [...lineAxes(drawingOf(block, store.view.graphical, fontMetrics))].find(
+      ([, axis]) => axis.timeline === "middle" && axis.ancestor !== undefined,
+    )?.[0];
+    if (cardRow === undefined) throw new Error("no row of middle in piece's card");
+    const pin = readOn(store, "middle", q(4), cardRow, false, "piece");
+    inspector.pinTimestamp(pin, cardRow);
+    const piece = ["Piece", [row("coordinate", "8", "♩")]];
+    const middle = ["Middle", [row("coordinate", "4", "♩")]];
+    const recording = ["Recording", [row("coordinate", "5.0", "s")]];
+    expect([groups(), inspector.shownPin(), groupstampToggle()]).toEqual([
+      [middle, piece],
+      pin,
+      "false",
+    ]);
+    store.done();
+    flushSync();
+    expect([groups(), inspector.shownPin() === pin, groupstampToggle()]).toEqual([
+      [piece, middle, recording],
+      false,
+      "true",
+    ]);
   });
 });
 

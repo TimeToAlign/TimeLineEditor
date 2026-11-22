@@ -18,7 +18,6 @@ import {
   placesAt,
   raisedRoot,
   readingAt,
-  rowValueText,
   timelinePin,
 } from "../src/coordinates.ts";
 import type { Editing } from "../src/editing.ts";
@@ -56,6 +55,40 @@ function timelinesOf(manifest: Manifest): TimelineManifest[] {
   return found;
 }
 
+/** Each timeline of `manifest` by ID, with its parent's ID (`null` for a root). */
+function parentsOf(manifest: Manifest): Map<string, TimelineManifest & { parent: string | null }> {
+  const found = new Map<string, TimelineManifest & { parent: string | null }>();
+  const walk = (list: readonly TimelineManifest[], parent: string | null) => {
+    for (const timeline of list) {
+      found.set(timeline.id, { ...timeline, parent });
+      walk(timeline.children, timeline.id);
+    }
+  };
+  walk(manifest.timelines, null);
+  return found;
+}
+
+/**
+ * Where `timeline`'s value `value` lies on its root's axis: the value plus
+ * the offsets of `timeline` and of each of its ancestors below the root,
+ * read on their own axes from the manifest, beside the root's ID.
+ */
+function onRoot(
+  timelines: ReadonlyMap<string, TimelineManifest & { parent: string | null }>,
+  timeline: string,
+  value: Rational,
+): { root: string; position: Rational } {
+  let position = value;
+  let at = timelines.get(timeline);
+  while (at?.parent !== null && at?.parent !== undefined) {
+    if (at.offset === undefined) throw new Error(`the child ${at.id} states no offset`);
+    position = position.add(toRational(realOf(axisCoordinate(at.offset, at))));
+    at = timelines.get(at.parent);
+  }
+  if (at === undefined) throw new Error(`no timeline ${timeline}`);
+  return { root: at.id, position };
+}
+
 /**
  * The values sampled on `timeline`: `k × length / 8` for `k` from 0 to 8
  * on its own axis, an int axis's floored, a float axis's rounded to three
@@ -78,13 +111,20 @@ function samples(timeline: TimelineManifest): Rational[] {
   });
 }
 
-/** A flag's parts as `[timeline, name, [row, value text]…]`, values to three places. */
+/**
+ * A flag's parts as `[timeline, name, [row, value]…]`, each value exact: the
+ * row's value itself (integers and rationals written out whole, a float as
+ * the shortest text giving its double back), else why it has none.
+ */
 const shown = (parts: readonly FlagPart[]) =>
-  parts.map(({ timeline, name, rows }) => [
-    timeline,
-    name,
-    rows.map((row) => [row.row.map ?? "coordinate", rowValueText(row, 3)]),
-  ]);
+  JSON.stringify(
+    parts.map(({ timeline, name, rows }) => [
+      timeline,
+      name,
+      rows.map((row) => [row.row.map ?? "coordinate", row.value ?? row.missing]),
+    ]),
+    (_, value: unknown) => (typeof value === "bigint" ? `${value}n` : value),
+  );
 
 /** The states a block is read in: nothing open, then each root its timeline editor raises. */
 function editorsOf(view: View): (Editing | null)[] {
@@ -111,6 +151,8 @@ interface Outcome {
   readonly differing: readonly unknown[];
   /** The places where the reading hovers another line than the place's. */
   readonly elsewhere: readonly unknown[];
+  /** The places whose reading's anchor lies under another root than the timeline, so no value is checked. */
+  readonly unchecked: readonly unknown[];
 }
 
 /** Every place of every sampled value of every timeline of `view`'s block A, read in every editor state. */
@@ -119,12 +161,14 @@ function compareAll(view: View): Outcome {
   let compared = 0;
   const differing: unknown[] = [];
   const elsewhere: unknown[] = [];
+  const unchecked: unknown[] = [];
   for (const editing of editorsOf(view)) {
     const nodes: BlockNode[] = project(view, NOTHING_SELECTED, [], metrics, editing);
     const [node] = nodes;
     if (node === undefined) throw new Error("no node");
     const { drawing } = node.data;
     const raised = raisedRoot(block, editing);
+    const timelines = parentsOf(block.manifest);
     for (const timeline of timelinesOf(block.manifest)) {
       for (const value of samples(timeline)) {
         for (const place of placesAt(drawing, timeline.id, value, raised)) {
@@ -161,15 +205,19 @@ function compareAll(view: View): Outcome {
           );
           const flag = shown(flagParts(reading.pin));
           const made = pin === null ? null : shown(flagParts(pin));
-          const atValue = anchor !== timeline.id || reading.position.compare(value) === 0;
-          if (!atValue || JSON.stringify(flag) !== JSON.stringify(made)) {
+          const read = onRoot(timelines, anchor, reading.position);
+          const sampled = onRoot(timelines, timeline.id, value);
+          if (read.root !== sampled.root) unchecked.push([...where, anchor]);
+          const atValue =
+            read.root !== sampled.root || read.position.compare(sampled.position) === 0;
+          if (!atValue || flag !== made) {
             differing.push([...where, reading.position.toString(), flag, made]);
           }
         }
       }
     }
   }
-  return { compared, differing, elsewhere };
+  return { compared, differing, elsewhere, unchecked };
 }
 
 /** Where a recapitulation segment at 0 is read on the segment ending there: `[raised, timeline, value, line read]`. */
@@ -224,8 +272,8 @@ describe("a reading at every place and the pin made from it", () => {
       const view = viewOf({ id: A, fixture, x: 40, y: 80 });
       const outcomes = [compareAll(view), compareAll(withoutAncestorCards(view))];
       expect(outcomes).toEqual([
-        { compared: shownCount, differing: [], elsewhere: shownElsewhere },
-        { compared: hidden, differing: [], elsewhere: hiddenElsewhere },
+        { compared: shownCount, differing: [], elsewhere: shownElsewhere, unchecked: [] },
+        { compared: hidden, differing: [], elsewhere: hiddenElsewhere, unchecked: [] },
       ]);
     },
   );
