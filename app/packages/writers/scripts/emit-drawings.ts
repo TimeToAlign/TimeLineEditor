@@ -7,9 +7,10 @@
  *
  * The SVGs of `HAND_DERIVED` are derived by hand from the specification and
  * are never written here: each is compared with the writer's output, and a
- * difference or a missing file is reported and fails the run. The fixtures
- * of a released version (tag `v<version>` in the checkout) are frozen, and a
- * directory that names no case is removed.
+ * difference or a missing file is reported and fails the run, as is a
+ * hand-derived figure that no review case draws yet, which is kept. The
+ * fixtures of a released version (tag `v<version>` in the checkout) are
+ * frozen, and any other directory that names no case is removed.
  *
  * Usage, from `app/packages/writers/`: `pnpm emit-drawings --into <TimeToShare checkout>`.
  */
@@ -73,6 +74,8 @@ export const HAND_DERIVED: readonly string[] = [
   "group__group_grandchild__full",
   "group__group_grandchild_parent_on_top__full",
   "group__group_parents_mixed__full",
+  "group__group_elided_members",
+  "bundle__bundle_arranged_roots__horizontal",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */
@@ -134,13 +137,16 @@ function emit(checkout: string): string[] {
   const names = new Set(cases.map((item) => item.name));
   mkdirSync(drawingsDirectory, { recursive: true });
   for (const entry of readdirSync(drawingsDirectory, { withFileTypes: true })) {
-    if (entry.isDirectory() && !names.has(entry.name)) {
-      rmSync(path.join(drawingsDirectory, entry.name), { recursive: true });
-      console.log(`removed ${entry.name}: no such case`);
+    if (!entry.isDirectory() || names.has(entry.name) || HAND_DERIVED.includes(entry.name)) {
+      continue;
     }
+    rmSync(path.join(drawingsDirectory, entry.name), { recursive: true });
+    console.log(`removed ${entry.name}: no such case`);
   }
 
-  const problems: string[] = [];
+  const problems: string[] = HAND_DERIVED.filter((name) => !names.has(name)).map(
+    (name) => `${name}: the hand-derived figure is kept, but no review case draws it`,
+  );
   let changed = 0;
   for (const item of cases) {
     const directory = path.join(drawingsDirectory, item.name);
