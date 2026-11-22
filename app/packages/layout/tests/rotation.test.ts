@@ -175,7 +175,7 @@ describe("both sides of a line", () => {
   ];
 
   it("turns each wedge of melody below its line", () => {
-    expect(axisOf("melody").line).toBeLessThan(wedgeOf("timestamp_3").yt);
+    expect(wedgeOf("timestamp_3").yt - axisOf("melody").line).toBe(1.5);
     for (const [id, rotation] of below) {
       const wedge = wedgeOf(id);
       expect(wedgePoints(wedge), id).toEqual(derived(drawing, "melody", id, rotation, 1));
@@ -184,7 +184,7 @@ describe("both sides of a line", () => {
   });
 
   it("mirrors each wedge of phrase above its line", () => {
-    expect(axisOf("phrase").line).toBeGreaterThan(wedgeOf("timestamp_7").yt);
+    expect(axisOf("phrase").line - wedgeOf("timestamp_7").yt).toBe(1.5);
     for (const [id, rotation] of above) {
       const wedge = wedgeOf(id);
       expect(wedgePoints(wedge), id).toEqual(derived(drawing, "phrase", id, rotation, -1));

@@ -11,6 +11,30 @@ import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core/draw
 import { parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
+  BOUNDARY,
+  BRACE,
+  CARD_SPACING,
+  F,
+  FLOW_MARKER_LABEL_OFFSET,
+  FRAME_SPACING,
+  G,
+  GROUPSTAMP_ROTATION,
+  JUMP_DEPTH,
+  JUMP_PITCH,
+  K,
+  LABEL_GAP,
+  MAP_GAP,
+  MAP_SPACING,
+  MARKER_BASE,
+  MARKER_HEIGHT,
+  P,
+  Q,
+  ROW_PITCH,
+  SHADOW_OFFSET,
+  TITLE_GAP,
+} from "../src/constants.ts";
+import { labelExtent } from "../src/fit.ts";
+import {
   Cascade,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
@@ -38,6 +62,78 @@ function specifiedDefaults(file: string): unknown {
 describe("DEFAULT_LAYER", () => {
   it("equals the JSON block of the specification", () => {
     expect(DEFAULT_LAYER).toEqual(specifiedDefaults(specification));
+  });
+});
+
+/** The text of the section headed `heading` of the drawing specification, up to the next heading. */
+function sectionOf(file: string, heading: string): string {
+  const text = readFileSync(file, "utf8");
+  const start = text.indexOf(`\n${heading}\n`);
+  if (start === -1) throw new Error(`the specification has no section ${heading}`);
+  const end = text.indexOf("\n#", start + heading.length + 2);
+  return text.slice(start, end === -1 ? undefined : end);
+}
+
+/** The rows of the table of section 6.2, description to value, in the specification's order. */
+function specifiedConstants(file: string): [string, string][] {
+  return sectionOf(file, "### 6.2 Constants")
+    .split("\n")
+    .filter((line) => line.startsWith("| ") && !line.startsWith("| Constant |"))
+    .map((line): [string, string] => {
+      const [description, value] = line.slice(2, -2).split(" | ");
+      if (description === undefined || value === undefined)
+        throw new Error(`a row of section 6.2 has no value: ${line}`);
+      return [description, value];
+    });
+}
+
+describe("the constants", () => {
+  // The label separation is the width of a label of width 0's extent (section 6.3).
+  const [left, right] = labelExtent(0, 0);
+  const expected: [string, string][] = [
+    ["padding `P`", `${P}`],
+    ["gap between the name column and the root's start `G`", `${G}`],
+    ["gap between bands", "`S`"],
+    ["row pitch `p`", `max(${ROW_PITCH} + S, h(s))`],
+    ["map double-line spacing `d`", `${MAP_SPACING}`],
+    ["map gap `g` (1.5 × d)", `${MAP_GAP}`],
+    ["wedge: base, height", `${MARKER_BASE}, ${MARKER_HEIGHT}`],
+    ["label gap (marker to label)", `${LABEL_GAP}`],
+    ["label separation (horizontal, between labels)", `${right - left}`],
+    ["brace height", `${BRACE}`],
+    ["region row pitch `pr`", `${BRACE} + ${LABEL_GAP} + h(9) + S`],
+    ["first jump depth", `${JUMP_DEPTH} + S`],
+    ["jump row pitch `pj`", `${JUMP_PITCH} + S + h(9)`],
+    ["flow-marker label offset", `${FLOW_MARKER_LABEL_OFFSET}`],
+    ["boundary half-height `k`", `${BOUNDARY}`],
+    ["group frame padding `Q`", `${Q}`],
+    ["card padding `K`", `${K}`],
+    ["gap after the manifest's title `F`", `${F}`],
+    ["gap after a frame's title", `${TITLE_GAP}`],
+    ["card shadow offset", `${SHADOW_OFFSET}`],
+  ];
+
+  it("give every row of the table of section 6.2 its value", () => {
+    expect(specifiedConstants(specification)).toEqual(expected);
+  });
+
+  it("make the map gap 1.5 times the map double-line spacing", () => {
+    expect(MAP_GAP).toBe(1.5 * MAP_SPACING);
+  });
+
+  it("give the card's and the frame's default spacing as sections 6.2 and 8.6 state them", () => {
+    expect(sectionOf(specification, "### 6.2 Constants")).toContain(
+      `With the default \`S = ${CARD_SPACING}\``,
+    );
+    expect(sectionOf(specification, "### 8.6 Places")).toContain(
+      `- \`spacing\`: ${FRAME_SPACING} for a frame, ${CARD_SPACING} for a card;`,
+    );
+  });
+
+  it("turn a groupstamp's wedge as section 2.5 states it", () => {
+    expect(sectionOf(specification, "### 2.5 The cascade").replace(/\s+/g, " ")).toContain(
+      `but ${String(GROUPSTAMP_ROTATION).replace("-", "\u2212")} on the wedge of a groupstamp.`,
+    );
   });
 });
 

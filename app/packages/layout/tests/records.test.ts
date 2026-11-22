@@ -23,7 +23,6 @@ import { canonicalOrder, type Graphical, validate, withFileIds } from "@timetoal
 import { describe, expect, it } from "vitest";
 import {
   abscissaOf,
-  coordinateAt,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
   type Drawing,
@@ -505,7 +504,6 @@ describe("the axes of the drawn lines", () => {
     const [axis] = drawing.axes;
     expect(exact(axis)).toEqual([at("form"), "quarters", "fraction", "0", "null"]);
     expect([axis?.xStart, axis?.xEnd]).toEqual([49.84033203125, 449.84033203125]);
-    expect(axis && coordinateAt(axis, axis.xStart)).toBeNull();
     expect(String(axis?.drawnEnd)).toBe("17");
   });
 
@@ -591,69 +589,5 @@ describe("lineAxes", () => {
       { timeline: "t", card: { item: "g1", member: "t" } },
       { timeline: "t", card: { item: "g2", member: "t" } },
     ]);
-  });
-});
-
-describe("coordinateAt", () => {
-  const read = (axis: DrawnAxis | undefined, x: (axis: DrawnAxis) => number) =>
-    axis === undefined ? undefined : coordinateAt(axis, x(axis));
-  const start = (axis: DrawnAxis) => axis.xStart;
-  const end = (axis: DrawnAxis) => axis.xEnd;
-  const middle = (axis: DrawnAxis) => (axis.xStart + axis.xEnd) / 2;
-
-  it("gives a fraction axis's exact start, end and midpoint (styled__score)", () => {
-    const [score] = drawFixture("styled__score").axes;
-    const quarters = (value: number) => ({
-      unit: "quarters",
-      numberType: "fraction",
-      value: Rational.of(value),
-    });
-    expect([read(score, start), read(score, end), read(score, middle)]).toEqual([
-      quarters(0),
-      quarters(8),
-      quarters(4),
-    ]);
-  });
-
-  it("gives an int axis's exact start, end and midpoint (discrete_logical)", () => {
-    const [ticks] = drawFixture("discrete_logical").axes;
-    const tick = (value: bigint) => ({ unit: "ticks", numberType: "int", value });
-    expect([read(ticks, start), read(ticks, end), read(ticks, middle)]).toEqual([
-      tick(0n),
-      tick(480n),
-      tick(240n),
-    ]);
-  });
-
-  const axis = (numberType: DrawnAxis["numberType"], last: DrawnAxis["drawnEnd"]): DrawnAxis => ({
-    address: at("t"),
-    card: { item: "t" },
-    line: 0,
-    xStart: 0,
-    xEnd: 3,
-    unit: "quarters",
-    numberType,
-    start: numberType === "float" ? 0 : Rational.of(0),
-    end: last,
-    drawnEnd: last,
-    segments: [],
-    maps: [],
-    marker: null,
-    mark: null,
-  });
-
-  it("computes exactly and rounds once into the axis's number type", () => {
-    const fraction = axis("fraction", Rational.of(1));
-    const int = axis("int", Rational.of(1));
-    const float = axis("float", 0.1);
-    expect(coordinateAt(fraction, 1)?.value).toEqual(Rational.of([1, 3]));
-    expect([1.5, 2.25, 0.75].map((x) => coordinateAt(int, x)?.value)).toEqual([0n, 1n, 0n]);
-    expect(coordinateAt(axis("int", Rational.of(3)), 1.5)?.value).toBe(2n);
-    expect(coordinateAt(float, 3)?.value).toBe(0.1);
-  });
-
-  it("is null outside the axis", () => {
-    const fraction = axis("fraction", Rational.of(1));
-    expect([-0.5, 3.5].map((x) => coordinateAt(fraction, x))).toEqual([null, null]);
   });
 });

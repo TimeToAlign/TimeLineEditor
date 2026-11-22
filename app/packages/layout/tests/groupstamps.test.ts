@@ -109,13 +109,13 @@ describe("a groupstamp's line", () => {
     ]);
     const middle = score.xStart + (score.xEnd - score.xStart) / 2;
     expect(performance.xStart + (performance.xEnd - performance.xStart) / 2).toBe(middle);
-    expect(score.line).toBeLessThan(performance.line);
+    expect(performance.line - score.line).toBe(57.37890625);
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
     expect(top).toBe(wedgeTop(score) + 2);
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
-    expect(first.top).toBeLessThan(score.line);
-    expect(last.bottom).toBeGreaterThan(performance.line);
+    expect(score.line - first.top).toBe(14.40234375);
+    expect(last.bottom - performance.line).toBe(34.9765625);
     const style = STYLE;
     const [above, below, ...others] = lines(drawing);
     expect(others).toEqual([]);
@@ -146,8 +146,8 @@ describe("a groupstamp's line", () => {
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_1"));
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
-    expect(first.top).toBeLessThan(extent.y1);
-    expect(last.bottom).toBeGreaterThan(performance.line);
+    expect(extent.y1 - first.top).toBe(8);
+    expect(last.bottom - performance.line).toBe(34.9765625);
     const pieces: [number, number][] = [
       [first.top, extent.y1],
       ...((top >= extent.y2
@@ -180,8 +180,8 @@ describe("a groupstamp's line", () => {
     const [top, bottom] = labelLine(nameLabel(drawing, "timestamp_6"));
     const first = card(drawing, "score");
     const last = card(drawing, "performance");
-    expect(first.top).toBeLessThan(extent.y1);
-    expect(last.bottom).toBeGreaterThan(performance.line);
+    expect(extent.y1 - first.top).toBe(8);
+    expect(last.bottom - performance.line).toBe(34.9765625);
     const stamp = partAddress(idAddress("timestamp_6"), "line");
     const pieces = drawing.elements.filter((item) => sameAddress(item.address, stamp));
     expect(pieces).toMatchObject([
