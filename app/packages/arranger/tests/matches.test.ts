@@ -764,18 +764,19 @@ describe("the flag", () => {
 
   it("groups by timeline in screen order, what is not drawn last", () => {
     expect(matchFlag(T, manifest, linesOf(T), 0, 3)).toEqual([
-      { timeline: "score", name: "Score", rows: [row(2, "6 ♩")] },
+      { key: "2", timeline: "score", name: "Score", rows: [row(2, "6 ♩")] },
       {
+        key: "4",
         timeline: "take_1",
         name: "Take 1",
         rows: [row(4, "176 400 smp"), row(5, "264 600 smp")],
       },
-      { timeline: "take_2", name: "Take 2", rows: [row(0, "297 675 smp")] },
-      { timeline: "other", name: "other", rows: [row(6, "0.5")] },
+      { key: "0", timeline: "take_2", name: "Take 2", rows: [row(0, "297 675 smp")] },
+      { key: "6", timeline: "other", name: "other", rows: [row(6, "0.5")] },
     ]);
     expect(matchFlag(T, manifest, linesOf(T), 1, 3)).toEqual([
-      { timeline: "score", name: "Score", rows: [row(1, "4 ♩")] },
-      { timeline: "take_1", name: "Take 1", rows: [row(3, "88 200 smp")] },
+      { key: "1", timeline: "score", name: "Score", rows: [row(1, "4 ♩")] },
+      { key: "3", timeline: "take_1", name: "Take 1", rows: [row(3, "88 200 smp")] },
     ]);
   });
 
@@ -801,17 +802,27 @@ describe("the flag", () => {
         rows,
       ]);
 
-    it("lists every coordinate its groupstamps read, in the order they are drawn", () => {
+    it("lists every coordinate its groupstamps read, in the order they are drawn, a timeline once per run", () => {
       expect(flagOf(0, groups)).toEqual([
         ["score", [row(0, "4 ♩")]],
         ["performance", [row(2, "1″"), read("performance", "2", "2″")]],
         ["page", [read("page", "400", "400 px")]],
       ]);
       expect(flagOf(1, groups)).toEqual([
-        ["score", [row(1, "6 ♩"), read("score", "4", "4 ♩")]],
+        ["score", [row(1, "6 ♩")]],
         ["performance", [read("performance", "3", "3″")]],
         ["second-half", [read("second-half", "0", "0 ♩")]],
+        ["score", [read("score", "4", "4 ♩")]],
         ["page", [row(5, "400 px"), read("page", "600", "600 px")]],
+      ]);
+      expect(
+        matchFlag(G, block.manifest, lines, 1, 3, groups).map(({ key, name }) => [key, name]),
+      ).toEqual([
+        ["1", "Score"],
+        ["performance 3", "Performance"],
+        ["second-half 0", "Second half"],
+        ["score 4", "Score"],
+        ["5", "Page"],
       ]);
       expect(flagOf(2, groups)).toEqual([
         ["second-half", [row(4, "2 ♩")]],

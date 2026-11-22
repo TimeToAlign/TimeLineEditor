@@ -357,6 +357,16 @@ describe("hovering and pinning", () => {
         ].join(""),
       ),
     ).toBe(true);
+    const flag = one('[data-testid="match-flag"]');
+    expect([
+      [...flag.querySelectorAll(".tilie-coordinates-head")].map((head) => head.textContent),
+      [...flag.querySelectorAll('[data-testid="match-coordinate"]')].map(
+        (value) => value.textContent,
+      ),
+    ]).toEqual([
+      ["Score", "Performance", "Second half", "Score", "Page"],
+      ["6 ♩", "3″", "0 ♩", "4 ♩", "400 px", "600 px"],
+    ]);
   });
 
   it("draws the pinned one's anchors by the user's belief", async () => {

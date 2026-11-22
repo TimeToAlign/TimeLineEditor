@@ -15,6 +15,7 @@ import {
   drawingOf,
   namedPin,
   raisedRoot,
+  readsGroup,
   rereadPin,
   timelinePin,
 } from "@timetoalign/tilie-arranger";
@@ -292,6 +293,7 @@ const rereadByPin = new WeakMap<
   {
     readonly manifest: Manifest;
     readonly raised: string | null;
+    readonly group: boolean;
     readonly line: string | null;
     readonly pin: Pin;
   }
@@ -300,15 +302,17 @@ const rereadByPin = new WeakMap<
 /**
  * The unnamed pin `pin`, held since it was read as `readOn` says, as
  * shown while `editing` is open: itself while its block raises the same
- * root (`raisedOf`), else read again at its anchor's timeline and position
- * as a fresh reading at its mark reads it under the root raised now: by
- * the group where naming it would store a groupstamp (`groupstampOf`,
- * never inside a timeline editor, as a fresh reading reads a group), so its
- * rows, the GroupStamp toggle and the tab after naming agree (the
- * arranger's `rereadPin`, on its line while that line is still a place),
- * its block drawn with `metrics`, once per pin, manifest, root and line, so
- * a change of the view elsewhere shows the same pin. Itself where its block
- * or its timeline is gone.
+ * root (`raisedOf`) and it reads a group exactly where a fresh reading
+ * reads one (`readsGroup` against `groupstampOf`: by the group where naming
+ * it would store a groupstamp, never inside a timeline editor), else read
+ * again at its anchor's timeline and position as a fresh reading at its
+ * mark reads it under the root raised now and by that group reading, so
+ * its rows, the GroupStamp toggle and the tab after naming agree whichever
+ * editors were open when it was read (the arranger's `rereadPin`, on its
+ * line while that line is still a place), its block drawn with `metrics`,
+ * once per pin, manifest, root, group reading and line, so a change of the
+ * view elsewhere shows the same pin. Itself where its block or its
+ * timeline is gone.
  */
 export function heldPinOf(
   view: View,
@@ -319,17 +323,22 @@ export function heldPinOf(
 ): Pin {
   const block = view.blocks[pin.spec.block];
   if (block === undefined) return pin;
-  const raised = raisedRoot(block, editing);
-  if (raised === readOn.raised) return pin;
   const { manifest } = block;
+  const raised = raisedRoot(block, editing);
+  const group = groupstampOf(manifest, pin, editing?.kind ?? null);
+  if (raised === readOn.raised && readsGroup(pin) === group) return pin;
   const known = rereadByPin.get(pin);
-  if (known?.manifest === manifest && known.raised === raised && known.line === readOn.line) {
+  if (
+    known?.manifest === manifest &&
+    known.raised === raised &&
+    known.group === group &&
+    known.line === readOn.line
+  ) {
     return known.pin;
   }
   const drawing = drawingOf(block, view.graphical, metrics);
-  const group = groupstampOf(manifest, pin, editing?.kind ?? null);
   const read = rereadPin(manifest, drawing, pin, group, raised, readOn.line) ?? pin;
-  rereadByPin.set(pin, { manifest, raised, line: readOn.line, pin: read });
+  rereadByPin.set(pin, { manifest, raised, group, line: readOn.line, pin: read });
   return read;
 }
 

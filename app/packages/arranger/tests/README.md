@@ -3008,10 +3008,11 @@ card's covered `movement` row, at 56.9765625, counted it would be
 [`movement`, `score`, `theme`]); with every ancestor card hidden the same
 order, the lines then at 67.78125, 101.7578125 and 115.7578125.
 
-**The flag** (`matchFlag`, 3 decimals). One group per timeline, named as
-the manifest names it, each coordinate a row in core's `prettyText` with
-the timeline's unit, keyed by its number; rows in screen order (above),
-groups by their first row; what the block does not draw last. Read
+**The flag** (`matchFlag`, 3 decimals). One group per run of rows on one
+timeline, named as the manifest names it and keyed by its first row, each
+coordinate a row in core's `prettyText` with the timeline's unit, keyed by
+its number; rows in screen order (above), what the block does not draw
+last. Read
 without groups (no table here has a group; inside a timeline editor
 every flag is read so) the flag lists the MatchStamp's own coordinates
 alone. MatchStamp 0 of T: `Score` [`6 ♩`], `Take 1`
@@ -3111,9 +3112,12 @@ as the Matchstamp tab's Coordinates read it), each value once per
 timeline, an own coordinate before an equal one read by a group; rows in
 the order they are drawn, top to bottom, then left to right (an own
 coordinate at its screen place, a groupstamp's at the ordinate its pin
-reads the member at, on its coordinate's abscissa), groups by their first
-row. A row read by a group is keyed by its timeline and exact value and
-has no coordinate number. On G (above; `score` 8 quarters,
+reads the member at, on its coordinate's abscissa), grouped by runs: one
+group for each run of consecutive rows on one timeline, keyed by its first
+row, so the flag reads top to bottom exactly as drawn; a timeline whose
+rows lie apart in that order heads each run, one whose rows are adjacent
+heads them once. A row read by a group is keyed by its timeline and exact
+value and has no coordinate number. On G (above; `score` 8 quarters,
 `performance` 4.0 s and `page` 800 px start and end together, so a
 member's value is `score`'s × 1/2, resp. × 100; `second-half` 4 quarters
 at `score`'s 4):
@@ -3121,7 +3125,7 @@ at `score`'s 4):
 | MatchStamp | Groups and rows |
 |---|---|
 | 0 | `score` [c0 `4 ♩`]; `performance` [c2 `1″`, read `2″`]; `page` [read `400 px`] |
-| 1 | `score` [c1 `6 ♩`, read `4 ♩`]; `performance` [read `3″`]; `second-half` [read `0 ♩`]; `page` [c5 `400 px`, read `600 px`] |
+| 1 | `score` [c1 `6 ♩`]; `performance` [read `3″`]; `second-half` [read `0 ♩`]; `score` [read `4 ♩`]; `page` [c5 `400 px`, read `600 px`] |
 | 2 | `second-half` [c4 `2 ♩`]; `score` [read `6 ♩`]; `performance` [c3 `3″`] |
 
 MatchStamp 0: c0 `score` 4 is a groupstamp (`timestamp_1`), read on
@@ -3132,13 +3136,17 @@ MatchStamp 1: c1 `score` 6 reads `performance` 3 and `page` 600; c5
 crossed child `second-half` at 4 − 4 = 0 (230.76953125, above it). So
 by ordinate `score` 6 (82.609375), `performance` 3 (139.98828125),
 `second-half` 0, `score` 4, then `page` 400 and 600 on one line, left to
-right. MatchStamp 2: c3 `performance` 3 reads `score` 6 (82.609375) and
+right: `score` 4 lies below `performance` 3, so `score` heads two runs,
+keyed `1` and `score 4` (the groups' keys `1`, `performance 3`,
+`second-half 0`, `score 4`, `5`), while `page`'s two adjacent rows share
+one head. MatchStamp 2: c3 `performance` 3 reads `score` 6 (82.609375) and
 its crossed child `second-half` 2, equal to c4 and so listed once, as c4
 (68.609375, the topmost); c4 is none. Without the groups read the flags
 are MatchStamp 0 `score` [`4 ♩`], `performance` [`1″`] and MatchStamp 1
 `score` [`6 ♩`], `page` [`400 px`]. What would be wrong: a groupstamp's
 coordinates missing above a timeline editor, listed inside one, listed
-twice, or listed in another order than drawn.
+twice, or listed in another order than drawn (a timeline's rows gathered
+under its first head although another timeline's lie between them).
 
 **Named MatchStamps painted** (`namedPaint`). The named MatchStamps
 compared with T by core's `checkMatchStamp`: `matchstamp_1` (`anchor_1`,
@@ -3868,7 +3876,10 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   the other order: `anchor_1` lists `timestamp_2` first, the connector
   runs from its anchor's lower coordinate, c0. The pointer on `group_1`'s `score` line at score 6 (402.29…,
   82.609375) hovers MatchStamp 1, whose hovered path holds c1's six
-  pieces and c5's two the same way. So a potential MatchStamp shows its
+  pieces and c5's two the same way, and whose flag (no editor open, so
+  the groups read) heads Score, Performance, Second half, Score, Page
+  over `6 ♩`, `3″`, `0 ♩`, `4 ♩`, `400 px`, `600 px`: `matchFlag`'s runs
+  for MatchStamp 1 (above), `score` heading two of them. So a potential MatchStamp shows its
   groupstamps across both frames before it is named, as `timestamp_1`
   does once it is.
 - **The mode split.** With "Show matches" on, exactly the drawn elements
