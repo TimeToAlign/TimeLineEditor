@@ -371,6 +371,66 @@ describe("the rows of a timestamp", () => {
     ]);
   });
 
+  it("list a part's rows top to bottom as they are drawn, map ordinates beside its own", () => {
+    type Placed = { readonly ordinate?: number; readonly maps?: { [map: string]: number } };
+    const placed = (
+      spec: CrossSectionSpec,
+      places: { readonly [timeline: string]: Placed },
+    ): CrossSectionSpec => {
+      const crossed = <T extends TimelineAxis>(axis: T): T => {
+        const place = places[axis.timeline];
+        if (place === undefined) return axis;
+        return {
+          ...axis,
+          ...(place.ordinate === undefined ? {} : { ordinate: place.ordinate }),
+          ...(place.maps === undefined
+            ? {}
+            : { mapOrdinates: new Map(Object.entries(place.maps)) }),
+        };
+      };
+      return { ...spec, anchor: crossed(spec.anchor), members: spec.members.map(crossed) };
+    };
+    const rowsOf = (places: { readonly [timeline: string]: Placed }) =>
+      timestampRows(pinOf(placed(RECORDING, places), q(100000))).map((item) => item.row);
+    const drawn = {
+      recording: { ordinate: 50, maps: { cmap_5: 40 } },
+      excerpt: { ordinate: 20, maps: { cmap_6: 30 } },
+    };
+    expect(rowsOf(drawn)).toEqual([
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+      row("recording", "cmap_5"),
+      row("recording"),
+    ]);
+    expect(rowsOf({ recording: { maps: { cmap_5: 40 } } })).toEqual([
+      row("recording", "cmap_5"),
+      row("recording"),
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+    ]);
+    expect(rowsOf({ recording: { ordinate: 50, maps: { cmap_5: 50 } } })).toEqual([
+      row("recording"),
+      row("recording", "cmap_5"),
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+    ]);
+    expect(rowsOf({ recording: { ordinate: 50 }, excerpt: { ordinate: 20 } })).toEqual([
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+      row("recording"),
+      row("recording", "cmap_5"),
+    ]);
+    expect(rowsOf({})).toEqual([
+      row("recording"),
+      row("recording", "cmap_5"),
+      row("excerpt"),
+      row("excerpt", "cmap_6"),
+    ]);
+    expect(JSON.stringify(timestampJson(pinOf(placed(RECORDING, drawn), q(100000))))).toBe(
+      JSON.stringify(timestampJson(pinOf(RECORDING, q(100000)))),
+    );
+  });
+
   it("are editable exactly where a map is invertible over its timeline's span", () => {
     const rows = timestampRows(pinOf(QUARTERS, q(2)));
     expect(rows.map((item) => [item.row.map, item.editable])).toEqual([

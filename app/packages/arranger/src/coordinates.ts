@@ -232,9 +232,19 @@ function ordinateIn(drawing: Drawing, card: PlaceKey, timeline: string): number 
   return holding;
 }
 
-/** `axis` read at the ordinate `ordinate` (`TimelineAxis.ordinate`); as it is where that is `undefined`. */
-function crossedAt<T extends TimelineAxis>(axis: T, ordinate: number | undefined): T {
-  return ordinate === undefined ? axis : { ...axis, ordinate };
+/**
+ * `axis` read at the ordinate `ordinate` (`TimelineAxis.ordinate`), its maps
+ * drawn at `mapOrdinates` (`TimelineAxis.mapOrdinates`, left out where
+ * empty); as it is where neither is given.
+ */
+function crossedAt<T extends TimelineAxis>(
+  axis: T,
+  ordinate: number | undefined,
+  mapOrdinates?: ReadonlyMap<string, number>,
+): T {
+  const maps = mapOrdinates === undefined || mapOrdinates.size === 0 ? {} : { mapOrdinates };
+  if (ordinate === undefined) return "mapOrdinates" in maps ? { ...axis, ...maps } : axis;
+  return { ...axis, ordinate, ...maps };
 }
 
 /** The timeline `id` of `manifest`, which a drawing of it draws. */
@@ -274,10 +284,15 @@ function crossedSubtree(
   const [line] = lines;
   if (line === undefined) throw new Error(`the line ${lineKey} draws no cross-section`);
   const drawn = new Map<string, ConversionMap[]>();
+  const ordinates = new Map<string, Map<string, number>>();
   for (const { maps } of lines) {
-    for (const { id, owner } of maps) {
+    for (const { id, owner, yc } of maps) {
       const map = drawnTimeline(manifest, owner).conversion_maps.find((item) => item.id === id);
-      if (map !== undefined) drawn.set(owner, [...(drawn.get(owner) ?? []), map]);
+      if (map === undefined) continue;
+      drawn.set(owner, [...(drawn.get(owner) ?? []), map]);
+      const owned = ordinates.get(owner) ?? new Map<string, number>();
+      if (!owned.has(id)) owned.set(id, yc);
+      ordinates.set(owner, owned);
     }
   }
   const crossed = new Set(
@@ -293,7 +308,13 @@ function crossedSubtree(
       const offset = from.add(toRational(realOf(axisCoordinate(child.offset, timeline))));
       if (crossed.has(child.id)) {
         const axis = timelineAxisOf(child, drawn.get(child.id) ?? []);
-        descendants.push(crossedAt({ ...axis, offset }, ordinateIn(drawing, line.card, child.id)));
+        descendants.push(
+          crossedAt(
+            { ...axis, offset },
+            ordinateIn(drawing, line.card, child.id),
+            ordinates.get(child.id),
+          ),
+        );
       }
       walk(child, offset);
     }
@@ -304,6 +325,7 @@ function crossedSubtree(
     root: crossedAt(
       timelineAxisOf(root, drawn.get(root.id) ?? []),
       ordinateIn(drawing, line.card, root.id),
+      ordinates.get(root.id),
     ),
     descendants,
   };
@@ -844,21 +866,23 @@ export function rowValueText(row: TimestampRow, decimals: number): string {
 export interface FlagPart {
   readonly timeline: string;
   readonly name: string;
-  /** Its coordinate's row first, then one row per map drawn for it. */
+  /** Its coordinate's row and one row per map drawn for it, top to bottom as they are drawn. */
   readonly rows: readonly TimestampRow[];
 }
 
 /**
  * The rows of `pin` (core's `timestampRows`) grouped by part in their order,
  * top to bottom where the reading crosses each part's timeline: each part's
- * coordinate row, which carries its name, then its maps' rows.
+ * consecutive rows of one timeline, in their order (its maps drawn above its
+ * line before its coordinate), named by its coordinate row's label.
  */
 export function flagParts(pin: Pin): FlagPart[] {
   const parts: FlagPart[] = [];
   for (const row of timestampRows(pin)) {
     const last = parts.at(-1);
     if (last !== undefined && last.timeline === row.timeline) {
-      parts[parts.length - 1] = { ...last, rows: [...last.rows, row] };
+      const name = row.row.map === null ? row.label : last.name;
+      parts[parts.length - 1] = { ...last, name, rows: [...last.rows, row] };
     } else {
       parts.push({ timeline: row.timeline, name: row.label, rows: [row] });
     }

@@ -92,7 +92,7 @@ export interface ValueRow {
   readonly editable: boolean;
 }
 
-/** The rows of one timeline the timestamp crosses: its coordinate's, then its maps'. */
+/** The rows of one timeline the timestamp crosses: its coordinate's and its maps', top to bottom as drawn. */
 export interface TimelineRows {
   /** Unique among the groups of one timestamp or MatchStamp. */
   readonly key: string;
@@ -162,12 +162,16 @@ function rowsOf(item: TimestampRow): ValueRow[] {
   return valueRows(key, row, label, item.value, item.editable);
 }
 
-/** The rows of `pin`'s timestamp (core's `timestampRows`), grouped by timeline in their order. */
+/**
+ * The rows of `pin`'s timestamp (core's `timestampRows`), grouped by
+ * timeline in their order: each group the consecutive rows of one timeline,
+ * top to bottom as they are drawn, named by its coordinate row's label.
+ */
 export function timelineRows(pin: Pin): TimelineRows[] {
   const groups: TimelineRows[] = [];
   for (const item of timestampRows(pin)) {
     const last = groups.at(-1);
-    if (item.row.map === null || last === undefined || last.timeline !== item.timeline) {
+    if (last === undefined || last.timeline !== item.timeline) {
       groups.push({
         key: item.timeline,
         timeline: item.timeline,
@@ -175,7 +179,8 @@ export function timelineRows(pin: Pin): TimelineRows[] {
         rows: rowsOf(item),
       });
     } else {
-      groups[groups.length - 1] = { ...last, rows: [...last.rows, ...rowsOf(item)] };
+      const name = item.row.map === null ? item.label : last.name;
+      groups[groups.length - 1] = { ...last, name, rows: [...last.rows, ...rowsOf(item)] };
     }
   }
   return groups;

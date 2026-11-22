@@ -1101,8 +1101,9 @@ fraction) with the LinearMaps `cmap_1` (×480 to ticks) and `cmap_2` (×1/2
 to seconds), crossing nothing, its named `origin` (`timestamp_9`) and
 `length` (`timestamp_10`); bundle_mixed holds ten timestamps. An unnamed
 pin is the arranger's pin of `timestamp_9`, moved with `pinAt` and without
-its named timestamp: unnamed at 16/5 its rows are Score `16/5` ♩, `cmap_1`
-`1536` ticks, `cmap_2` `1.6` s. **The example workspace "Timestamps"**
+its named timestamp: unnamed at 16/5 its rows are Score `cmap_2` `1.6` s,
+`cmap_1` `1536` ticks, `16/5` ♩ (both maps drawn above `score`'s line, the
+first in the manifest nearest it). **The example workspace "Timestamps"**
 (the file the Examples menu opens, block `timestamps`): `score` (16
 quarters, fraction) with `bars` (×1/4 to whole notes, fraction), `tempo`
 (×1/2 to seconds, float), `ticks` (×480, int), in this canonical order,
@@ -1112,8 +1113,9 @@ named `Theme` (`timestamp_5`, at 4, the default display), `Climax`
 (`timestamp_6`, at 21/2, all five words), `Silent` (`timestamp_7`, at 14,
 none). Theme crosses `score` and `phrase` at its start, listed top to
 bottom as their lines lie (`phrase`'s above `score`'s, in its children
-band): Phrase `0` ♩, Phrase ticks `0`; Score `4` ♩, Bars `1`, Tempo `2.0`
-s, Ticks `1920`. **A
+band), each timeline's rows top to bottom as drawn (its maps' band above
+its line, the first map nearest the line): Phrase ticks `0`, Phrase `0` ♩;
+Ticks `1920`, Tempo `2.0` s, Bars `1`, Score `4` ♩. **A
 hand-built cross-section** of a line `score` (16 quarters) at 16 whose maps
 give no value (a PiecewiseMap at its last break), need a MeasureMap's rows
 (a MeasureNumberMap without them) or name their outputs (a CombinationMap,
@@ -1166,8 +1168,11 @@ which no position solves).
    known), a mark's label (`["start", "label"]`) and two addresses pin
    nothing: the tab stays as it was.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
-   in core's order, headed by its name; its first row "coordinate", then one
-   row per map labelled by its name, else its ID. A number is a text field
+   in core's order, headed by its name; its rows in core's order too, top
+   to bottom as drawn: the row "coordinate" at its line and one row per map
+   labelled by its name, else its ID, at its drawing (a map drawn above the
+   line before "coordinate", one drawn below after it; a timeline drawn
+   nowhere lists "coordinate", then its maps). A number is a text field
    holding its **exact** text (core's copy text, never rounded by
    `decimals`: `cmap_2` `1.6`, `tempo` `2.0`), its pretty unit beside it
    (core's `prettyUnit`: `♩`, `ticks`, `s` for seconds, `𝅝` for whole
@@ -1578,15 +1583,15 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    a timestamp at that coordinate** (core's `timestampRows` of the
    arranger's `timelinePin`, the cross-section `namedPin` reads a named
    timestamp with, so both tabs share one spec builder): the timeline's
-   group, its coordinate row then the rows of the conversion maps drawn for
-   it, then one group per ancestor, parent first, then one per timeline of
+   group, its coordinate row and the rows of the conversion maps drawn for
+   it, top to bottom as drawn, then one group per ancestor, parent first, then one per timeline of
    its subtree its line crosses, with the maps drawn for each: with the
    LinearMap `rate` "Rate" (seconds → samples,
    scalar 44100, offset 0) added to `cpt_1` by one `add {into: cpt_1,
    map}`, the potential MatchStamp of `cpt_1` 8.0 shows the groups `cpt_1`
-   [coordinate `8.0` s; Rate `352800` smp, disabled, copied `352800`,
-   `352800 samples`, `352 800 smp` (8.0 × 44100 written on the samples
-   axis, an int)] and `dpt_1` [coordinate `352800` smp]. **Ancestors of
+   [Rate `352800` smp, drawn above `cpt_1`'s line, disabled, copied
+   `352800`, `352800 samples`, `352 800 smp` (8.0 × 44100 written on the
+   samples axis, an int); coordinate `8.0` s] and `dpt_1` [coordinate `352800` smp]. **Ancestors of
    the MatchStamp's timelines are listed exactly as the Timestamp tab
    lists them** (one component, one row builder). Both cases below are
    about the timelines of a match timestamp's own subtree and ancestry:
@@ -1602,8 +1607,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    coordinate: 3.0}]], match_claims: ["claim_1"]}}` shows, without a
    table, the groups "Second half" [coordinate `2` ♩], "Score"
    [coordinate `6` ♩: 2 + the offset 4; an ancestor's maps are not
-   listed, as in the Timestamp tab], "Performance" [coordinate `3.0` s;
-   `cmap_3` `132300` smp, 3.0 × 44100], every field disabled; and the
+   listed, as in the Timestamp tab], "Performance" [`cmap_3` `132300` smp,
+   3.0 × 44100, drawn above its line; coordinate `3.0` s], every field
+   disabled; and the
    groups of its match timestamp on `second-half` (the first two) equal,
    heading for heading and row for row ([label, text, unit]), what the
    Timestamp tab shows for that match timestamp's own pin
@@ -1617,7 +1623,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    half" [coordinate `2` ♩: 6 − the offset 4, the child its line crosses,
    drawn above `score`'s line, so listed first], "Score" [coordinate `6` ♩;
    no `cmap_1`, `cmap_2` row: their band is not drawn], "Performance"
-   [coordinate `3.0` s; `cmap_3` `132300` smp];
+   [`cmap_3` `132300` smp; coordinate `3.0` s];
    the groups of its match timestamp on `score` (the first two) equal what
    the Timestamp tab shows for that match timestamp's own pin. A builder
    anchoring on the timeline with all its maps and its ancestors alone
@@ -1693,18 +1699,18 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      `score`, read from `timestamp_11`'s pin: "Second half" crossed [2 ♩,
      6 − its offset 4; drawn above `score`'s line]; "Score" claimed [6 ♩;
      no map row, the band is hidden]; "Performance" group "through group
-     'Performance'" [6.25 s = 6 × 12.5/12, the members' drawn ends; `cmap_3`
-     275625 smp = 6.25 × 44100]. The coordinate on `performance`, read
+     'Performance'" [`cmap_3` 275625 smp = 6.25 × 44100, drawn above its
+     line; 6.25 s = 6 × 12.5/12, the members' drawn ends]. The coordinate on `performance`, read
      from `timestamp_12`'s pin: "Score" group "through group 'Performance'"
      [72/25 ♩ = 3.0 × 12/12.5; "Second half" is not listed, since 72/25
      lies before its offset 4, outside its span]; "Performance" claimed
-     [3.0 s; `cmap_3` 132300 smp]. Bold: exactly the "coordinate" rows of
+     [`cmap_3` 132300 smp; 3.0 s]. Bold: exactly the "coordinate" rows of
      "Score" in the first and of "Performance" in the second coordinate.
    - *The toggle.* Pressing `timestamp_12`'s GroupStamp journals exactly
      `{type: "set", changes: [{target: {block, id: "timestamp_12"},
      values: {groupstamp: false}}]}`; its toggle then shows not pressed,
      and the coordinate on `performance` lists "Performance" claimed alone
-     [3.0 s; `cmap_3` 132300 smp], the first coordinate's groups unchanged.
+     [`cmap_3` 132300 smp; 3.0 s], the first coordinate's groups unchanged.
    - *Both tabs alike.* The Timestamp tab showing `timestamp_11` lists, heading for
      heading and row for row ([label, text, unit]), the first coordinate's
      three groups.
@@ -1734,14 +1740,14 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      pressed (naming takes `timestamp_12` as it is), the line "Score 5 ♩"
      pressed (naming adds a GroupStamp on `score` at 5), both disabled;
      the coordinate on `performance`, read without its group, lists
-     "Performance" claimed alone [3.0 s; `cmap_3` 132300 smp], the last
+     "Performance" claimed alone [`cmap_3` 132300 smp; 3.0 s], the last
      group of the Coordinates, after the coordinate on `score`, read
      through the group: "Second half" crossed [1 ♩, 5 − its offset 4],
      "Score" claimed [5 ♩], "Performance" through group 'Performance'
-     [125/24 s = 5 × 12.5/12, written as the float nearest it,
-     5.208333333333333; `cmap_3` 229688 smp: that float times 44100 is
-     229687.5 in binary64, a tie, which an int axis rounds to the even
-     integer]. Naming it then stores
+     [`cmap_3` 229688 smp: the float below times 44100 is 229687.5 in
+     binary64, a tie, which an int axis rounds to the even integer; 125/24
+     s = 5 × 12.5/12, written as the float nearest it,
+     5.208333333333333]. Naming it then stores
      `timestamp_12` unchanged (`groupstamp: false`) and a new
      `timestamp_13` on `score` at 5 with `groupstamp: true`, and the named
      MatchStamp's lines show exactly the states the potential one

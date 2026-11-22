@@ -64,6 +64,13 @@ export interface TimelineAxis {
    * The rows of a timestamp are listed top to bottom by it (`timestampRows`).
    */
   readonly ordinate?: number;
+  /**
+   * The ordinate, in the same units, of each map's drawing (by the map's ID)
+   * in the card the reading crosses the timeline in; a map drawn nowhere
+   * there has no entry. A part's rows are listed top to bottom by these
+   * and `ordinate` (`timestampRows`).
+   */
+  readonly mapOrdinates?: ReadonlyMap<string, number>;
 }
 
 /** `timeline` as a cross-section reads it, with the maps `maps` (those drawn for it, in drawing order). */
@@ -627,39 +634,37 @@ export interface TimestampRow {
   readonly editable: boolean;
 }
 
-/**
- * The parts of `pin`'s timestamp top to bottom where the reading crosses
- * each one's timeline (its `ordinate` in the spec), stably, so parts at one
- * ordinate keep the timestamp's order, and every part without an ordinate
- * after those with one, in that order too.
- */
-function partsTopDown(pin: Pin): TimestampPart[] {
-  const { spec } = pin;
-  const ordinates = new Map<string, number>();
-  for (const axis of [spec.anchor, ...spec.members]) {
-    if (axis.ordinate !== undefined) ordinates.set(axis.timeline, axis.ordinate);
+/** The order of two ordinates, top first, an absent one after every present one. */
+function topDown(above: number | undefined, below: number | undefined): number {
+  if (above === undefined || below === undefined) {
+    return (above === undefined ? 1 : 0) - (below === undefined ? 1 : 0);
   }
-  return pin.timestamp.parts.toSorted((a, b) => {
-    const above = ordinates.get(a.timeline);
-    const below = ordinates.get(b.timeline);
-    if (above === undefined || below === undefined) {
-      return (above === undefined ? 1 : 0) - (below === undefined ? 1 : 0);
-    }
-    return above - below;
-  });
+  return above - below;
 }
 
 /**
  * The rows of `pin`'s timestamp in order: its parts top to bottom where the
- * reading crosses their timelines (`partsTopDown`), per part its
- * coordinate, then its maps in drawing order. A coordinate is always
- * editable; a map while it is invertible over its timeline's span. The
- * timestamp's own parts keep the anchor first.
+ * reading crosses each one's timeline (its `ordinate` in the spec), and
+ * within a part its rows top to bottom as they are drawn: its coordinate at
+ * that `ordinate`, each map at its entry of the timeline's `mapOrdinates`.
+ * Both sorts are stable, every part or row without an ordinate after those
+ * with one, so a part without ordinates lists its coordinate, then its maps
+ * in drawing order. A coordinate is always editable; a map while it is
+ * invertible over its timeline's span. The timestamp's own parts keep the
+ * anchor first.
  */
 export function timestampRows(pin: Pin): TimestampRow[] {
   const reading = readingOf(pin.knots);
-  return partsTopDown(pin).flatMap((part) => {
+  const axes = new Map<string, TimelineAxis>();
+  for (const axis of [pin.spec.anchor, ...pin.spec.members]) {
+    if (!axes.has(axis.timeline)) axes.set(axis.timeline, axis);
+  }
+  const parts = pin.timestamp.parts.toSorted((a, b) =>
+    topDown(axes.get(a.timeline)?.ordinate, axes.get(b.timeline)?.ordinate),
+  );
+  return parts.flatMap((part) => {
     const { timeline } = part;
+    const axis = axes.get(timeline);
     const coordinate: TimestampRow = {
       row: { timeline, map: null },
       timeline,
@@ -679,7 +684,9 @@ export function timestampRows(pin: Pin): TimestampRow[] {
         editable: axisIn(pin.spec, row, reading)?.invertible ?? false,
       };
     });
-    return [coordinate, ...maps];
+    const ordinateOf = (item: TimestampRow): number | undefined =>
+      item.row.map === null ? axis?.ordinate : axis?.mapOrdinates?.get(item.row.map);
+    return [coordinate, ...maps].toSorted((a, b) => topDown(ordinateOf(a), ordinateOf(b)));
   });
 }
 
