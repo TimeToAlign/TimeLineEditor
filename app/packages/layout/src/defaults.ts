@@ -5,8 +5,8 @@ import type { Graphical } from "@timetoalign/timetoshare";
 
 /**
  * The opacity the defaults fade ancestor lines and what they hold to; the
- * opacity, too, a groupstamp's drawing is multiplied by where it marks a
- * position that has no coordinate (section 6.6).
+ * opacity, too, of a groupstamp's drawing where it marks a position that
+ * has no coordinate (section 6.6).
  */
 export const FADED_OPACITY = 0.35;
 

@@ -345,37 +345,60 @@ describe("a groupstamp where a length of the group is not known", () => {
   /** The pieces of the frame's line: every piece of `timestamp_1`'s line but its own two. */
   const framePieces = (drawing: Drawing) => lines(drawing).slice(2);
 
-  it.each(["performance", "score"])(
-    "draws the frame's line faded over the card of a member without a value (%s unknown)",
-    (unknown) => {
-      const drawing = drawn(plain(set(unknown, { length: null })));
-      const score = axisOf(drawing, "score");
-      const middle = score.xStart + (score.xEnd - score.xStart) / 2;
-      expect(lines(drawing).slice(0, 2)).toEqual(lines(drawn()).slice(0, 2));
-      expect(framePieces(drawing)).toEqual([
-        {
-          type: "cross_section",
-          address: LINE,
-          style: expect.objectContaining(STYLE),
-          x: middle,
-          y1: card(drawing, "score").bottom,
-          y2: card(drawing, "performance").top,
-        },
-        {
-          type: "cross_section",
-          address: LINE,
-          style: expect.objectContaining(FADED),
-          x: middle,
-          y1: card(drawing, "performance").top,
-          y2: card(drawing, "performance").bottom,
-        },
-      ]);
-      const [solid, faded] = framePieces(drawing);
-      expect(faded?.style).toEqual({ ...solid?.style, opacity: FADED_OPACITY });
-      // Both lengths known, the frame's line is one piece at the full opacity.
-      expect(framePieces(drawn()).map((piece) => piece.style.opacity)).toEqual([1]);
-    },
-  );
+  it("draws the frame's line faded over the card of a member of unknown length", () => {
+    const drawing = drawn(plain(set("performance", { length: null })));
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    expect(lines(drawing).slice(0, 2)).toEqual(lines(drawn()).slice(0, 2));
+    expect(framePieces(drawing)).toEqual([
+      {
+        type: "cross_section",
+        address: LINE,
+        style: expect.objectContaining(STYLE),
+        x: middle,
+        y1: card(drawing, "score").bottom,
+        y2: card(drawing, "performance").top,
+      },
+      {
+        type: "cross_section",
+        address: LINE,
+        style: expect.objectContaining(FADED),
+        x: middle,
+        y1: card(drawing, "performance").top,
+        y2: card(drawing, "performance").bottom,
+      },
+    ]);
+    const [solid, faded] = framePieces(drawing);
+    expect(faded?.style).toEqual({ ...solid?.style, opacity: FADED_OPACITY });
+    // Both lengths known, the frame's line is one piece at the full opacity.
+    expect(framePieces(drawn()).map((piece) => piece.style.opacity)).toEqual([1]);
+  });
+
+  it("draws the frame's line faded whole and uncut from a member of unknown length", () => {
+    const drawing = drawn(plain(set("score", { length: null })));
+    const score = axisOf(drawing, "score");
+    const middle = score.xStart + (score.xEnd - score.xStart) / 2;
+    expect(lines(drawing).slice(0, 2)).toEqual(lines(drawn()).slice(0, 2));
+    expect(framePieces(drawing)).toEqual([
+      {
+        type: "cross_section",
+        address: LINE,
+        style: expect.objectContaining(FADED),
+        x: middle,
+        y1: card(drawing, "score").bottom,
+        y2: card(drawing, "performance").bottom,
+      },
+    ]);
+  });
+
+  it("fades a line of a cascaded opacity to the fading opacity, not by it", () => {
+    const half: Rule = {
+      select: { addresses: [at("timestamp_1", "line")] },
+      set: { opacity: 0.5 },
+    };
+    const drawing = drawn(plain(set("performance", { length: null })), [half]);
+    expect(framePieces(drawing).map((piece) => piece.style.opacity)).toEqual([0.5, FADED_OPACITY]);
+  });
 });
 
 describe("a groupstamp's secondary coordinates where a length of the group is not known", () => {
@@ -388,11 +411,11 @@ describe("a groupstamp's secondary coordinates where a length of the group is no
     drawing.elements
       .filter((item) => item.type === "label" && item.address.id === id)
       .map((item) => item.address.part);
-  /** `valued`'s wedges with each secondary one's (turned −45) opacity times `FADED_OPACITY`. */
+  /** `valued`'s wedges with each secondary one's (turned −45) opacity `FADED_OPACITY`. */
   const faded = (valued: readonly MarkerElement[]) =>
     valued.map(({ x, style }) => ({
       x,
-      style: style.rotation === -45 ? { ...style, opacity: style.opacity * FADED_OPACITY } : style,
+      style: style.rotation === -45 ? { ...style, opacity: FADED_OPACITY } : style,
     }));
   const placed = (wedges: readonly MarkerElement[]) => wedges.map(({ x, style }) => ({ x, style }));
 

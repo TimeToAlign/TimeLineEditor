@@ -10,7 +10,8 @@
  * without wedges or labels. Where a member's length is not known, or the
  * length of the member the timestamp lies on, the group gives that member no
  * coordinate (one member's length is never carried to another): the piece
- * of the line over its card is drawn faded.
+ * of the line over its card is drawn faded, the whole line where the
+ * timestamp's own member is the one of unknown length.
  */
 
 import type { Manifest } from "@timetoalign/tilie-core";
@@ -60,20 +61,22 @@ export function readsAcrossGroup(own: DrawnAxis, other: DrawnAxis): boolean {
 }
 
 /**
- * The ordinates of the member cards of the frame drawing the line `primary`
- * over which a groupstamp lying on `primary`'s member has no coordinate
- * (`readsAcrossGroup`), among the drawn lines `axes` and boxes `boxes`, each
- * from the card's upper border to its lower one, top first; never the card
- * drawing `primary`.
+ * Where a groupstamp lying on the member of the line `primary` has no
+ * coordinate in the frame drawing it (`readsAcrossGroup`), among the drawn
+ * lines `axes` and boxes `boxes`: `"everywhere"` where that member's own
+ * length is not known; else the ordinates of each member card whose
+ * member's length is not known, from its upper border to its lower one,
+ * top first (none where every length is known).
  */
 function valuelessCards(
   axes: readonly DrawnAxis[],
   boxes: readonly DrawnBox[],
   primary: DrawnAxis,
-): Span[] {
+): Span[] | "everywhere" {
   const lines = frameMemberLines(axes, primary.card.item);
   const own = lines.find((line) => samePlaceKey(line.card, primary.card));
   if (own === undefined) return [];
+  if (own.end === null) return "everywhere";
   return lines
     .filter((line) => line !== own && !readsAcrossGroup(own, line))
     .flatMap(({ card }) =>
@@ -150,7 +153,8 @@ export function groupSpans(
  * card the timestamp's own line crosses), cut at the borders of each member
  * card over which the timestamp has no coordinate (`readsAcrossGroup`). Their
  * address is the timestamp's line's, `{id, part: ["line"]}`, and their style
- * that line's, at the frame's scale, faded (`fadedStyle`) over such a card.
+ * that line's, at the frame's scale, faded (`fadedStyle`) over such a card,
+ * and whole and uncut where the timestamp's own member has an unknown length.
  * They take no room.
  */
 export function groupstampElements(
@@ -168,7 +172,11 @@ export function groupstampElements(
       if (held === undefined || held.line === null) continue;
       const valueless = valuelessCards(axes, boxes, axis);
       for (const whole of groupSpans(axes, boxes, axis)) {
-        for (const { span, faded } of fadedPieces(whole, valueless)) {
+        const pieces =
+          valueless === "everywhere"
+            ? [{ span: whole, faded: true }]
+            : fadedPieces(whole, valueless);
+        for (const { span, faded } of pieces) {
           const style = faded ? fadedStyle(held.line) : held.line;
           lines.push({
             type: "cross_section",

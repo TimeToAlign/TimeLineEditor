@@ -1719,35 +1719,38 @@ ends `1.5 + 13 + 2 + h(9)` below its line.
 8. **A length of the group not known** (section 6.6): a group maps a
    position by the proportion of its members' lengths and never carries
    one member's length to another, so where the length of a member, or of
-   the member the groupstamp lies on, is not known, the groupstamp has no
-   coordinate on that member; it is still drawn where the drawn lengths
-   (a reach) place it, and the undefinedness is shown. With `performance`'s
-   length `null` (its reach 4.0, its `length` timestamp's, so every abscissa
-   is item 1's): `timestamp_1`'s own two pieces on `score`'s card are item
-   1's, and the frame's line is cut at `top(performance)`: from
+   the member `M` the groupstamp lies on, is not known, the groupstamp has
+   no coordinate on that member; it is still drawn where the drawn lengths
+   (a reach) place it, and the undefinedness is shown by a rule of the
+   drawing: opacity `FADED_OPACITY` (0.35, the defaults' opacity of
+   ancestor lines) in place of the cascaded one. With `performance`'s
+   length `null` (its reach 4.0, its `length` timestamp's, so every
+   abscissa is item 1's): `timestamp_1`'s own two pieces on `score`'s card
+   are item 1's, and the frame's line is cut at `top(performance)`: from
    `bottom(score)` to `top(performance)` in the default style, then from
    `top(performance)` to `bottom(performance)` in that style with opacity
-   `1 × FADED_OPACITY` (0.35, the defaults' opacity of ancestor lines).
-   With `score`'s length `null` instead (its reach the exact 8 of its
-   `length` timestamp) the groupstamp lies on a member of unknown length and
-   gives `performance` no coordinate: the same pieces. With item 6's
-   display and rule, `performance`'s secondary wedge is drawn at item 6's
-   place with its style's opacity `1 × FADED_OPACITY`, and its stack holds
-   the name label alone, no coordinate label. What proves the fading and
-   the missing label is the drawing of the same manifest with both lengths
-   known (item 6) read as the oracle: every other property of the wedge
-   equal, its opacity that one's times `FADED_OPACITY`.
+   0.35; with a rule setting the line's opacity 0.5, the first piece keeps
+   0.5 and the second is 0.35 (replaced, not multiplied). With `score`'s
+   length `null` instead (`M` of unknown length, its reach the exact 8 of
+   its `length` timestamp) the frame's line is one piece, whole and uncut,
+   from `bottom(score)` to `bottom(performance)`, at 0.35. With item 6's
+   display and rule, in either case `performance`'s secondary wedge is
+   drawn at item 6's place with opacity 0.35, and its stack holds the name
+   label alone, no coordinate label. What proves the fading and the missing
+   label is the drawing of the same manifest with both lengths known (item
+   6) read as the oracle: every other property of the wedges equal, the
+   secondary one's opacity 0.35.
 9. **On an ancestor line** (section 8.3): `groups/group_child_member_stamps.yaml`
    (`group_1` of the child `middle`, quarters 8 at 4 in `piece` 16, and
    `recording`, seconds 10.0), with a groupstamp `Half` added on
    `recording` at the float 5.0 (`display` wedge, name, coordinate) and the
    rule of item 6: on `middle`'s card its secondary coordinates lie on
-   `middle`'s line (4) and on its ancestor line `piece` (8). With
-   `recording`'s length known the two wedges have their cascaded opacities
-   (1, and the ancestor line's 0.35) and two coordinate labels are drawn;
-   with it `null` (its reach 10.0, its `length` timestamp's) the same two
-   wedges at the same places, each opacity that one's times
-   `FADED_OPACITY`, and no coordinate label at all.
+   `middle`'s line and on its ancestor line `piece`. With `recording`'s
+   length known the two wedges have their cascaded opacities (the ancestor
+   line's 0.35, then 1) and three coordinate labels are drawn (its primary
+   one and two secondary ones); with it `null` (its reach 10.0, its
+   `length` timestamp's) the same wedges at the same places, both secondary
+   ones at 0.35, and its primary coordinate label alone.
 
 ## Alignment anchors (`anchors.test.ts`)
 

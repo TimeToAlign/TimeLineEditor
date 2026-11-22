@@ -69,11 +69,12 @@ export function rotatedStyle(style: Style): Style {
 /**
  * The style of what marks a position that has no coordinate (section 6.6:
  * a groupstamp's secondary coordinate where a length of the group is not
- * known, and the piece of the frame's line over such a member's card): its
- * opacity times `FADED_OPACITY`, the defaults' opacity of ancestor lines.
+ * known, and the frame's line over such a member's card): its opacity
+ * `FADED_OPACITY`, the defaults' opacity of ancestor lines, in place of the
+ * cascaded one, a rule of the drawing that no style changes.
  */
 export function fadedStyle(style: Style): Style {
-  return { ...style, opacity: style.opacity * FADED_OPACITY };
+  return { ...style, opacity: FADED_OPACITY };
 }
 
 /**
