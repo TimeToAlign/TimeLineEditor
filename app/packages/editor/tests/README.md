@@ -1166,11 +1166,17 @@ which command each control sends, exactly, and which pin is shown after it.
 Specimens. **`bundle_mixed`** (block `0000000000`): `score` (12 quarters,
 fraction) with the LinearMaps `cmap_1` (×480 to ticks) and `cmap_2` (×1/2
 to seconds), crossing nothing, its named `origin` (`timestamp_9`) and
-`length` (`timestamp_10`); bundle_mixed holds ten timestamps. An unnamed
-pin is the arranger's pin of `timestamp_9`, moved with `pinAt` and without
-its named timestamp: unnamed at 16/5 its rows are Score `cmap_2` `1.6` s,
-`cmap_1` `1536` ticks, `16/5` ♩ (both maps drawn above `score`'s line, the
-first in the manifest nearest it). **The example workspace "Timestamps"**
+`length` (`timestamp_10`); bundle_mixed holds ten timestamps. `score` is a
+member of `group_1` "Performance" with `performance` (12.5 seconds, float,
+`cmap_3` ×44100 to samples), whose card below `score`'s spans the same
+width. An unnamed pin is the arranger's `timelinePin` of `score`, read as a
+click on its line on the arranger reads it: by its group, so `performance`
+is read with it at the position × 12.5/12 (its drawn length over
+`score`'s). Unnamed at 16/5 its rows are Score `cmap_2` `1.6` s, `cmap_1`
+`1536` ticks, `16/5` ♩ (both maps drawn above `score`'s line, the first in
+the manifest nearest it), then Performance `cmap_3` `147000` smp and
+`3.3333333333333335` s (16/5 × 12.5/12 = 10/3, the nearest double; × 44100
+on the samples axis, an int). **The example workspace "Timestamps"**
 (the file the Examples menu opens, block `timestamps`): `score` (16
 quarters, fraction) with `bars` (×1/4 to whole notes, fraction), `tempo`
 (×1/2 to seconds, float), `ticks` (×480, int), in this canonical order,
@@ -1182,11 +1188,18 @@ none). Theme crosses `score` and `phrase` at its start, listed top to
 bottom as their lines lie (`phrase`'s above `score`'s, in its children
 band), each timeline's rows top to bottom as drawn (its maps' band above
 its line, the first map nearest the line): Phrase ticks `0`, Phrase `0` ♩;
-Ticks `1920`, Tempo `2.0` s, Bars `1`, Score `4` ♩. **A
-hand-built cross-section** of a line `score` (16 quarters) at 16 whose maps
-give no value (a PiecewiseMap at its last break), need a MeasureMap's rows
-(a MeasureNumberMap without them) or name their outputs (a CombinationMap,
-which no position solves).
+Ticks `1920`, Tempo `2.0` s, Bars `1`, Score `4` ♩. **The end
+of `annotations`** of `bundle_mixed` (12 quarters, in no group), given by
+commands a MeasureMap `measures` and maps that give no value there (the
+PiecewiseMap "Tempo", breaks 0, 4, 12, at its last break), need a
+MeasureMap's rows (the MeasureNumberMap `bars`, read without a server) or
+name their outputs (the CombinationMap "Both", ×1/2 to seconds and ×480 to
+ticks, which no position solves), pinned as a click on its line reads it.
+Its rows lie top to bottom as the maps' slots lie above the line (drawing
+specification, Conversion maps: keys by name, "Both" then "Tempo", the
+unnamed `bars` last, slot 1 nearest the line): `bars` "needs a server to
+expand its measure map", Tempo "no value here", Both · seconds `6.0`, Both ·
+ticks `5760`, coordinate `12` ♩.
 
 1. **Pinning, as a rule** (pure, a table). A pin selects Timestamp and
    remembers the tab shown before it; a second pin moves the pin and keeps
@@ -1295,18 +1308,25 @@ which no position solves).
    shows, once `piece`'s timeline editor is open, the pin read again at
    `middle` 4 under the raised card and without the group: Middle [`4` ♩]
    (the card's row), Piece [`8` ♩], the GroupStamp toggle not pressed; a
-   new unnamed pin, read once per pin, manifest, raised root and line
+   new unnamed pin, read once per pin, manifest, raised root, group reading and line
    (`heldPinOf` asked twice gives the same object, so a change of the view
    elsewhere shows the same pin); after Done the pin held is shown again,
    the same object. The other way round, a pin of `middle` at 4 read on
    the raised card's row of `middle` with `piece`'s editor open (no group:
    Middle [`4` ♩], Piece [`8` ♩], the toggle not pressed) is read again
    after Done on `middle`'s own line, by the group: Piece [`8` ♩], Middle
-   [`4` ♩], Recording [`5.0` s], a new pin, the toggle pressed. What would
-   be wrong: rows that no fresh reading at the mark gives and that naming
-   the pin does not store (the group read kept in a timeline editor, or
-   left out after it), or the rows read before while the canvas marks the
-   pin on the card's row.
+   [`4` ♩], Recording [`5.0` s], a new pin, the toggle pressed. **A held
+   pin read with its group is read again without it inside the member's
+   own timeline editor**, which raises no card: the pin of `middle` at 4
+   read on its own line with nothing open (Piece, Middle, Recording, the
+   toggle pressed) shows, once `middle`'s timeline editor is open, exactly
+   the arranger's `timelinePin` of `middle` at 4 on that line without the
+   group (Piece [`8` ♩], Middle [`4` ♩], the toggle not pressed), and after
+   Done the pin held again, the same object. What would be wrong: rows
+   that no fresh reading at the mark gives and that naming the pin does
+   not store (the group read kept in a timeline editor, the member's own
+   included, or left out after it), or the rows read before while the
+   canvas marks the pin on the card's row.
 3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its rows in core's order too, top
    to bottom as drawn: the row "coordinate" at its line and one row per map
@@ -1349,10 +1369,10 @@ which no position solves).
    seconds`, `2″`), each button its own, and post "Copied 2.0.", "Copied
    2.0 seconds." and "Copied 2″." to the message bar as information. A
    button is shown only where it writes a text of its own: a number
-   without a unit (the CombinationMap's outputs `Both · seconds`, 8.0, and
-   `Both · ticks`, 7680) has neither a `value + unit` button nor a `pretty`
+   without a unit (the CombinationMap's outputs `Both · seconds`, 6.0, and
+   `Both · ticks`, 5760) has neither a `value + unit` button nor a `pretty`
    one, whose text would be the value's again, only the value's button,
-   writing `8.0` and `7680`; their cells stay, empty. A missing value has
+   writing `6.0` and `5760`; their cells stay, empty. A missing value has
    none.
 6. **The format switch** is one component in both tabs: a radio group of
    segments, "Manifest format" with YAML, JSON, TOML, YAML chosen first, and "Timestamp
@@ -1553,8 +1573,13 @@ which no position solves).
     lies in measure "2". Selected while `knotsOf` answers `pending`, the row
     `cmap_1` reads "waiting for the server"; once it answers the rows (a
     reactive source changing, no new selection) the row reads "2", and the
-    shown pin equals, part for part, that pin moved to 6 without its named
-    timestamp and pinned as an unnamed pin: the same rows in the pane. Without
+    shown pin equals, part for part, the arranger's `namedPin` read with
+    those rows. An unnamed pin there, the arranger's `timelinePin` of
+    `score` at 6 read with the same rows as a click on the arranger reads
+    it (by the group `Edition`), shows the same rows and below them MIDI's,
+    read with the same rows: `cmap_3` (`ppq` then the MeasureMap) `2` and
+    coordinate `2880` ticks (6 × 7680/16, `midi`'s 7680 ticks drawn as
+    `score`'s 16 quarters). Without
     `knotsOf` the row reads "needs a server to expand its measure map".
     The drawer gives the same `knotsOf` to the Matchstamp tab, whose
     Coordinates read their conversion-map rows with it: the MatchStamp

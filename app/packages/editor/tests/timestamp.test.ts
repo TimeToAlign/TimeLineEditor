@@ -15,7 +15,6 @@ import { ServerError } from "@timetoalign/tilie-client";
 import type {
   Address,
   ConversionMap,
-  CrossSectionSpec,
   Manifest,
   MeasureKnot,
   MeasureKnots,
@@ -32,7 +31,6 @@ import {
   prettyText,
   rawText,
   readWorkspace,
-  timestampAt,
   timestampJson,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
@@ -105,9 +103,29 @@ function named(store: Store, address: Address, knots: MeasureKnots[] | "no_serve
   return pin;
 }
 
-/** An unnamed pin on `score` of `bundle_mixed` at `position`: `origin`'s pin moved, without its entry. */
+/**
+ * An unnamed pin on `score` of `bundle_mixed` at `position`, as a click on
+ * its line on the arranger reads it: by its group, `score` being a member.
+ */
 function unnamed(store: Store, position: Rational = q(16, 5)): Pin {
-  return { ...pinAt(named(store, ORIGIN), position), named: null };
+  const block = store.view.blocks[A];
+  if (block === undefined) throw new Error("no block A");
+  const drawing = drawingOf(block, store.view.graphical, fontMetrics);
+  const granularity = store.view.settings.granularity;
+  const pin = timelinePin(
+    block.manifest,
+    A,
+    drawing,
+    "score",
+    position,
+    granularity,
+    "no_server",
+    true,
+    null,
+    null,
+  );
+  if (pin === null) throw new Error("no pin of score");
+  return pin;
 }
 
 function linear(id: string, name: string | null, scalar: number, target: TimeUnit) {
@@ -122,7 +140,12 @@ function linear(id: string, name: string | null, scalar: number, target: TimeUni
   };
 }
 
-/** A line `score` (16 quarters) whose maps give no value, need a MeasureMap's rows or name their outputs. */
+/**
+ * The end (12) of `annotations` of `bundle_mixed` (12 quarters, in no
+ * group) in `store`, given by commands a MeasureMap `measures` and maps
+ * that give no value there, need that MeasureMap's rows or name their
+ * outputs, pinned as a click on its line reads it.
+ */
 function others(store: Store): Pin {
   const maps: ConversionMap[] = [
     {
@@ -131,7 +154,7 @@ function others(store: Store): Pin {
       name: "Tempo",
       source_unit: "quarters",
       target_unit: "seconds",
-      breaks: [0, 4, 16],
+      breaks: [0, 4, 12],
       maps: [linear("first", null, 0.5, "seconds"), linear("second", null, 0.6, "seconds")],
     },
     {
@@ -154,20 +177,35 @@ function others(store: Store): Pin {
       },
     },
   ];
-  const spec: CrossSectionSpec = {
-    block: A,
-    granularity: store.view.settings.granularity,
-    anchor: {
-      timeline: "score",
-      name: "Score",
-      unit: "quarters",
-      numberType: "fraction",
-      length: q(16),
-      maps,
+  const into: Address = { block: A, id: "annotations" };
+  for (const command of [
+    {
+      type: "add",
+      into: { block: A },
+      measure_map: { id: "measures", rows: [{ count: 1, qstamp: [0, 1] }] },
     },
-    members: [],
-  };
-  return { spec, knots: "no_server", timestamp: timestampAt(spec, q(16)), named: null };
+    ...maps.map((map) => ({ type: "add", into, map })),
+  ] as const) {
+    const error = store.dispatch(command);
+    if (error !== null) throw new Error(error.message);
+  }
+  const block = store.view.blocks[A];
+  if (block === undefined) throw new Error("no block A");
+  const drawing = drawingOf(block, store.view.graphical, fontMetrics);
+  const pin = timelinePin(
+    block.manifest,
+    A,
+    drawing,
+    "annotations",
+    q(12),
+    store.view.settings.granularity,
+    "no_server",
+    false,
+    null,
+    null,
+  );
+  if (pin === null) throw new Error("no pin of annotations");
+  return pin;
 }
 
 let app: ReturnType<typeof mount> | undefined;
@@ -455,16 +493,17 @@ describe("pinning, in the drawer", () => {
     click("Journal");
     const first = unnamed(store);
     inspector.pinTimestamp(first);
+    // Score and Performance, the member of its group read with it.
     expect([selected(), hint(), groups().length, inspector.shownPin()]).toEqual([
       "Timestamp",
       undefined,
-      1,
+      2,
       first,
     ]);
     expect(areas()).toEqual(["Coordinates", "Properties", "Coordinate granularity"]);
     inspector.pinTimestamp(unnamed(store, q(8)));
     inspector.clickedAt(panel().querySelector("th"));
-    expect([selected(), groups().length]).toEqual(["Timestamp", 1]);
+    expect([selected(), groups().length]).toEqual(["Timestamp", 2]);
     inspector.clickedAt(document.body);
     expect([selected(), inspector.shownPin()]).toEqual(["Journal", null]);
     click("Timestamp");
@@ -486,7 +525,7 @@ describe("pinning, in the drawer", () => {
       document.querySelector('[data-testid="inspector"]')?.hasAttribute("hidden"),
       selected(),
       groups().length,
-    ]).toEqual([false, "Timestamp", 1]);
+    ]).toEqual([false, "Timestamp", 2]);
     click("Manifest");
     click("Timestamp");
     expect(hint()).toBe(HINT);
@@ -516,7 +555,7 @@ describe("pinning, in the drawer", () => {
     inspector.pinTimestamp(unnamed(store));
     store.dispatch({ type: "set", changes: [{ target: { block: B }, values: { x: 40 } }] });
     flushSync();
-    expect([selected(), groups().length]).toEqual(["Timestamp", 1]);
+    expect([selected(), groups().length]).toEqual(["Timestamp", 2]);
     expect(change(store)).toBeNull();
     flushSync();
     expect([selected(), hint(), groups(), inspector.shownPin()]).toEqual([
@@ -773,6 +812,36 @@ describe("a pin read on a line", () => {
     expect(inspector.shownPin()).toBe(pin);
   });
 
+  it("read with its group is read again without it inside the member's own timeline editor, as a fresh reading there is", () => {
+    const store = storeOf("groups/group_parent_both");
+    const inspector = drawer(store, true);
+    const line = lineIn(store, "middle", "middle");
+    const pin = readOn(store, "middle", q(4), line, true, null);
+    inspector.pinTimestamp(pin, line);
+    const piece = ["Piece", [row("coordinate", "8", "♩")]];
+    const middle = ["Middle", [row("coordinate", "4", "♩")]];
+    const recording = ["Recording", [row("coordinate", "5.0", "s")]];
+    expect([groups(), inspector.shownPin(), groupstampToggle()]).toEqual([
+      [piece, middle, recording],
+      pin,
+      "true",
+    ]);
+    expect(store.open({ block: A, id: "middle" })).toBeNull();
+    flushSync();
+    expect([groups(), inspector.shownPin(), groupstampToggle()]).toEqual([
+      [piece, middle],
+      readOn(store, "middle", q(4), line, false, null),
+      "false",
+    ]);
+    store.done();
+    flushSync();
+    expect([groups(), inspector.shownPin() === pin, groupstampToggle()]).toEqual([
+      [piece, middle, recording],
+      true,
+      "true",
+    ]);
+  });
+
   it("read under a raised card is read again with the group once the card is lowered", () => {
     const store = storeOf("groups/group_parent_both");
     expect(store.open({ block: A, id: "piece" })).toBeNull();
@@ -815,6 +884,11 @@ describe("coordinates, Editor", () => {
         // Both maps are drawn above `score`'s line, the first nearest it.
         [row("cmap_2", "1.6", "s"), row("cmap_1", "1536", "ticks"), row("coordinate", "16/5", "♩")],
       ],
+      // Read with its group: 16/5 × 12.5/12 = 10/3 seconds, a float, and × 44100 samples.
+      [
+        "Performance",
+        [row("cmap_3", "147000", "smp"), row("coordinate", "3.3333333333333335", "s")],
+      ],
     ]);
   });
 
@@ -841,19 +915,20 @@ describe("coordinates, Editor", () => {
     const store = mixed();
     const inspector = drawer(store, true);
     inspector.pinTimestamp(others(store));
+    // Top to bottom as the maps' slots lie above the line: keyed `bars` (no name), Tempo, Both.
     expect(groups()).toEqual([
       [
-        "Score",
+        "Annotations",
         [
-          row("coordinate", "16", "♩"),
-          ["Tempo", "no value here", null, null, null],
           ["bars", "needs a server to expand its measure map", null, null, null],
-          ["Both · seconds", "8.0", null, true, READ_ONLY],
-          ["Both · ticks", "7680", null, true, READ_ONLY],
+          ["Tempo", "no value here", null, null, null],
+          ["Both · seconds", "6.0", null, true, READ_ONLY],
+          ["Both · ticks", "5760", null, true, READ_ONLY],
+          row("coordinate", "12", "♩"),
         ],
       ],
     ]);
-    const field = valueField("Both · seconds of Score");
+    const field = valueField("Both · seconds of Annotations");
     expect([field.closest("td")?.getAttribute("title"), described(field)]).toEqual([
       READ_ONLY,
       READ_ONLY,
@@ -995,8 +1070,8 @@ describe("copying", () => {
       ),
     ).toEqual([
       [],
-      ["Copy the value of Both · seconds of Score"],
-      ["Copy the value of Both · ticks of Score"],
+      ["Copy the value of Both · seconds of Annotations"],
+      ["Copy the value of Both · ticks of Annotations"],
     ]);
     const cells = [...panel().querySelectorAll("tr[data-row]")].map(
       (item) => item.querySelectorAll("td.copy").length,
@@ -1006,7 +1081,7 @@ describe("copying", () => {
       for (const button of copies(label)) button.click();
     }
     await vi.waitFor(() => expect(informed).toHaveLength(2));
-    expect(written).toEqual(["8.0", "7680"]);
+    expect(written).toEqual(["6.0", "5760"]);
   });
 });
 
@@ -1051,7 +1126,9 @@ describe("the format switch", () => {
     expect(text()).toBe(dumps(value, { serialization: "json" }));
     if (!isLoaded("yaml")) {
       choose("yaml");
-      expect(panel().querySelector('[role="status"]')?.textContent).toBe("Loading YAML…");
+      expect(area("Coordinates").querySelector('p.status[role="status"]')?.textContent).toBe(
+        "Loading YAML…",
+      );
     }
     await loadCodec("yaml");
     choose("yaml");
@@ -1777,8 +1854,26 @@ describe("a named timestamp's MeasureMaps", () => {
     expect(shown).toEqual(named(store, barTwo, ROWS));
     if (shown === null) throw new Error("the named timestamp is shown");
     const rows = groups();
-    inspector.pinTimestamp({ ...shown, named: null });
-    expect([groups(), measureRow()]).toEqual([rows, "2"]);
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const unnamed = timelinePin(
+      block.manifest,
+      A,
+      drawingOf(block, store.view.graphical, fontMetrics),
+      "score",
+      q(6),
+      store.view.settings.granularity,
+      ROWS,
+      true,
+      null,
+      null,
+    );
+    inspector.pinTimestamp(unnamed);
+    // 6 quarters are 6 × 7680/16 = 2880 ticks of `midi`, read with its group, in measure "2".
+    expect([groups(), measureRow()]).toEqual([
+      [...rows, ["MIDI", [["cmap_3", "2", null, null, null], row("coordinate", "2880", "ticks")]]],
+      "2",
+    ]);
   });
 
   it("are given to the Matchstamp tab, whose conversion-map rows read them", () => {

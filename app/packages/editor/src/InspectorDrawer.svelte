@@ -18,7 +18,8 @@
  * position, as the flag read there (the arranger's `timelinePin`); a
  * timestamp selected or reloaded is read at its first place. An unnamed
  * pin held while an editor opens or closes is read again under the
- * ancestor card raised then (`heldPinOf`). A potential
+ * ancestor card raised then and by the group a fresh reading then reads
+ * (`heldPinOf`). A potential
  * MatchStamp pinned on the canvas, or exactly one named MatchStamp (or one
  * of its anchors) selected, is shown in the Matchstamp tab, opening the
  * drawer; a potential one is shown while its block's anchor index is the
@@ -138,7 +139,8 @@ const editing: Editing | null = $derived(live.editing.at(-1) ?? null);
 
 /**
  * The pin of the timestamp shown: an unnamed pin as held, read again once
- * the open editor raises another ancestor card (`heldPinOf`), a named
+ * the open editor raises another ancestor card or a fresh reading reads
+ * the group otherwise (`heldPinOf`), a named
  * timestamp's read anew from the view with the canvas's MeasureMap rows,
  * on the lines the canvas shows under the open editor; both on the line
  * they were read on while it is a place of their position.
