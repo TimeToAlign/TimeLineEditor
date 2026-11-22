@@ -82,10 +82,13 @@ key `{item: G, member: R}`, core's holding `"ancestor"`), no bands and no
 `places` entry; layout records it only when displayed, with axes for its
 lines marked `ancestor`. The arranger tells it apart with `isAncestorCard`
 and raises it over the frames while a timeline editor is open on its root
-or on a timeline of it that no group holds (`raisedRoot`, the one decision
-that the drawn order, the pointer, the places of coordinates, the marquee
-and the focus all read), and the inspector's button "Hide card behind its
-groups" or "Show card behind its groups" hides or shows it.
+or on a descendant of it that no member card below the root draws, where
+the root is in no group or is a member drawing an ancestor card itself
+(`raisedRoot`, the one decision that the drawn order, the pointer, the
+places of coordinates, the marquee and the focus all read, through one
+stacking, `stackingOf`). The inspector's button "Hide parent timelines"
+or "Show parent timelines", offered on the grouped child and everything
+under the same root, hides or shows it.
 
 The code treats the four kinds through one model:
 
