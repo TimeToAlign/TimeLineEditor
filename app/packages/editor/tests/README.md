@@ -880,33 +880,61 @@ ancestor, has no card).
    of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
-10. **The ancestor-card button** (`inspector-fields.test.ts`). Beside
-    Locked, one button hides and shows the ancestor cards of a root that
-    contains a group member (drawing.md §8.8), its text naming its action:
-    offered when every inspected thing is that one root, its card, its
-    ancestor line or a part of either; in `bundle_mixed` `recording` (the
-    root of the member `excerpt`), by `{id: recording}` and by `{id:
-    recording, part: [card]}`; never for `score`'s card, `excerpt`,
-    `group_1`, the block, or `recording` with `score`. What it offers is
-    read from the drawing, never from the default layer: each case states
-    its layers, so it holds whatever the defaults say of ancestor cards.
-    The root's own rule is the one of the selector `{element:
-    ancestor_card, addresses: [{id: recording, part: [card]}]}`; a rule of
-    the manifest naming `addresses` outranks every rule of a lower layer
-    and every manifest rule naming none (drawing.md §2.5).
+10. **The parent-timelines button** (`inspector-fields.test.ts`).
+    Showing the parent timelines is a property of the grouped child: one
+    button, on its own row directly under the Name field (before the
+    geometry form or hint, never in the row of the container size), hides
+    and shows the ancestor cards of the root `R` of a grouped child
+    (drawing.md §8.8), its text naming its action, "Hide parent
+    timelines" or "Show parent timelines", its title naming the root,
+    "The card of '<R's name, else its ID>' behind the frames of its
+    members' groups". It is offered when every inspected thing is a
+    timeline, a card or a part of either (a part counting as its owner),
+    all of them under one root that has an ancestor card; whichever of
+    them is selected, the button acts on that one root. In `bundle_mixed`
+    (`bmixed0000`) `R` is `recording` (Recording), the root of the member
+    `excerpt` of `group_2`; the four selections the grouped child's card
+    concerns each offer the same button and send the same command: the
+    member's card `{id: excerpt, part: [card]}`, the child timeline
+    `{id: excerpt}`, the parent timeline `{id: recording}` (its ancestor
+    line in `excerpt`'s card), the ancestor card `{id: recording, part:
+    [card]}`, and a part, `excerpt`'s start mark on that ancestor line
+    `{id: excerpt, part: [start]}`. A descendant drawn in that card: in
+    the Sonata bundle (`bshared000`), `recapitulation_first_1`, a
+    grandchild of the member `recapitulation`, drawn in its card, offers
+    the button of `score` (title "The card of 'Score' …"). No button for
+    `score`'s card (a root member with no grouped descendant: no ancestor
+    card), `group_1`, the block, a band of `excerpt` (`{id: excerpt,
+    facet: markers}`), or two roots (`excerpt` with `score`: `recording`
+    and `score`). *One rule, every frame*: `score` has members in two
+    groups, `exposition` in `group_1` and `recapitulation` in `group_2`,
+    so its drawing holds two ancestor cards of `score`, one per frame
+    (§8.8, "Which"); one click of Hide on `{id: recapitulation}` writes
+    the root's own rule once (one journal entry) and the drawing then
+    holds none of them; Show draws both again. *Undo*: after Hide, the
+    store's `undo` gives back the manifest's rules as they were, the
+    card drawn, and the button reading "Hide parent timelines" again.
+    What it offers is read from the drawing, never from the default
+    layer: each case states its layers, so it holds whatever the
+    defaults say of ancestor cards. The root's own rule is the one of the
+    selector `{element: ancestor_card, addresses: [{id: recording, part:
+    [card]}]}`; a rule of the manifest naming `addresses` outranks every
+    rule of a lower layer and every manifest rule naming none
+    (drawing.md §2.5). Each case below is shown by `{id: recording}`;
+    the first two also by `{id: recording, part: [card]}`.
     - *Drawn, no own rule* (the workspace's `graphical` shows every
-      ancestor card): "Hide card behind its groups", enabled; a click
+      ancestor card): "Hide parent timelines", enabled; a click
       sends exactly `{type: style, select: {element: ancestor_card,
       addresses: [{id: recording, part: [card]}]}, set: {display: none},
       blocks: [M]}`, one journal entry, after which the drawing records no
       ancestor card of `recording`.
-    - *Hidden by its own rule* (that state): "Show card behind its
-      groups", enabled; a click sends the same with `display: null`, which
+    - *Hidden by its own rule* (that state): "Show parent
+      timelines", enabled; a click sends the same with `display: null`, which
       removes the rule, leaving the manifest's rules as they were, and the
       card is drawn again.
     - *Hidden by a manifest-wide rule* (the workspace showing every
       ancestor card, the manifest's rule `{element: ancestor_card}`
-      hiding every one): "Show card behind its groups", enabled; a click
+      hiding every one): "Show parent timelines", enabled; a click
       sends the own rule with `display: inline`, which outranks the
       manifest-wide one, and the card is drawn; "Hide" then sends
       `display: none` into that same own rule, and "Show" `display:
@@ -914,12 +942,12 @@ ancestor, has no card).
     - *Hidden by a rule the own one cannot outrank* (the manifest's
       `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
       within: recording}` hiding it: a deeper `within` ranks higher):
-      "Show card behind its groups", disabled; a click sends nothing.
+      "Show parent timelines", disabled; a click sends nothing.
     - *Shown by a rule the own one cannot outrank* (the manifest's
       `{element: ancestor_card, addresses: [{id: recording, part: [card]}],
       within: recording}` with `display: inline`): the Hide command is
       tried as Show's are (applied by core's `preview`, the block drawn),
-      the card stays drawn, so "Hide card behind its groups", disabled; a
+      the card stays drawn, so "Hide parent timelines", disabled; a
       click sends nothing and the journal keeps its length.
     - *Disabled, yet reachable and explained*: a disabled button stays
       focusable (`aria-disabled="true"`, never the `disabled` attribute,

@@ -1,9 +1,9 @@
 /**
  * Ancestor cards (TimeToShare's drawing specification, section 8.8): a root
  * is drawn whole behind the frame of its member's group by default, beyond
- * the frame's borders; the Properties button "Hide card behind its groups"
- * hides it with one style entry and "Show card behind its groups" draws it
- * again; a double-click on it opens the root's timeline editor and raises
+ * the frame's borders; the Properties button "Hide parent timelines",
+ * offered for the root and for its grouped child alike, hides it with one
+ * style entry and "Show parent timelines" draws it again; a double-click on it opens the root's timeline editor and raises
  * it over the frame; Show coordinates reads the card where it is seen and an
  * ancestor line as its ancestor's. The expected values are derived in
  * `README.md` ("ancestor-cards.spec.ts").
@@ -120,6 +120,9 @@ function cardCommand(block: string, display: "none" | null) {
   };
 }
 
+/** The button's title, naming the root. */
+const TITLE = "The card of 'Piece' behind the frames of its members' groups";
+
 test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 
 /**
@@ -144,7 +147,9 @@ async function imported(page: Page): Promise<{ block: string; x: number; y: numb
   return { block, x: place.x, y: place.y };
 }
 
-test("an ancestor card is drawn by default, hidden and shown by one button", async ({ page }) => {
+test("an ancestor card is drawn by default, hidden from its root and shown from its child", async ({
+  page,
+}) => {
   const { block, x, y } = await imported(page);
   await expect(element(page, block, PIECE_CARD)).toHaveCount(2);
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
@@ -156,7 +161,8 @@ test("an ancestor card is drawn by default, hidden and shown by one button", asy
   await page.getByRole("button", { name: "Open inspector" }).click();
   await page.getByRole("tab", { name: "Properties", exact: true }).click();
   const button = page.getByTestId("ancestor-card");
-  await expect(button).toHaveText("Hide card behind its groups");
+  await expect(button).toHaveText("Hide parent timelines");
+  await expect(button).toHaveAttribute("title", TITLE);
   await expect(button).not.toHaveAttribute("aria-disabled", "true");
 
   await button.click();
@@ -168,8 +174,12 @@ test("an ancestor card is drawn by default, hidden and shown by one button", asy
   const kept = await placement(page, block);
   expect([kept.x, kept.y]).toEqual([x, y]);
 
-  await expect(button).toHaveText("Show card behind its groups");
+  await expect(button).toHaveText("Show parent timelines");
   await expect(button).not.toHaveAttribute("aria-disabled", "true");
+
+  await select(page, [{ block, id: "middle" }]);
+  await expect(button).toHaveText("Show parent timelines");
+  await expect(button).toHaveAttribute("title", TITLE);
   await button.click();
   await expect.poll(() => journalLength(page)).toBe(3);
   expect(await newestCommand(page)).toEqual(cardCommand(block, null));
@@ -177,7 +187,7 @@ test("an ancestor card is drawn by default, hidden and shown by one button", asy
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
   expect(await heldBoxes(page, block)).toEqual(HELD_BESIDE_CARD);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x - SHIFT, y));
-  await expect(button).toHaveText("Hide card behind its groups");
+  await expect(button).toHaveText("Hide parent timelines");
 });
 
 test("a double-click on an ancestor card opens its root's editor and raises it", async ({

@@ -2,18 +2,20 @@
 /**
  * The Properties tab: first the name of what is inspected (with nothing
  * selected, the workspace's at the top level, the edited element's in an
- * editor), then, for a selection in one block, the read-only rows
- * of one band, or the form of the selected containers' geometry, or the
- * hint that the selection has none; the stored lock of the inspected
- * timelines stands right of the container size, read-only, and beside it,
- * for a root that contains a group member, a button that hides or shows the
- * root's ancestor cards by one `style` command, its text naming what it
- * does ("Hide card behind its groups", "Show card behind its groups"); where
- * another style rule keeps the card as drawn, the button stays focusable with
- * `aria-disabled` and a visible hint saying why describes it. Typed text is
- * the inspector's `PropertyDrafts`; a commit or a step is one `set`. Below,
- * the group memberships of the selected timelines or group, and the New
- * group button (`groups.ts`), each click one command.
+ * editor); directly under it, on its own row, wherever the card of a
+ * grouped child is concerned (a timeline, a card or a part of either, all
+ * under one root drawn whole behind its groups' frames), a button that
+ * hides or shows that root's ancestor cards by one `style` command, its
+ * text naming what it does ("Hide parent timelines", "Show parent
+ * timelines"); where another style rule keeps the card as drawn, the
+ * button stays focusable with `aria-disabled` and a visible hint saying why
+ * describes it. Then, for a selection in one block, the read-only rows of
+ * one band, or the form of the selected containers' geometry, or the hint
+ * that the selection has none; the stored lock of the inspected timelines
+ * stands right of the container size, read-only. Typed text is the
+ * inspector's `PropertyDrafts`; a commit or a step is one `set`. Below, the
+ * group memberships of the selected timelines or group, and the New group
+ * button (`groups.ts`), each click one command.
  */
 import type {
   Editing,
@@ -99,12 +101,12 @@ const band = $derived(shown === null ? null : bandRows(subjects, shown));
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
 
-/** The ancestor-card button of the inspected root; `null` unless it is offered. */
+/** The parent-timelines button of the inspected subjects' root; `null` unless it is offered. */
 const ancestorCard = $derived(
   block === null || shown === null ? null : ancestorCardOf(view, block, subjects, shown.drawing),
 );
 
-/** The store's refusal of the last ancestor-card command, shown until the next one. */
+/** The store's refusal of the last parent-timelines command, shown until the next one. */
 let ancestorCardProblem = $state<string | null>(null);
 
 /** Hide or show the inspected root's ancestor cards, as the button offers. */
@@ -152,10 +154,7 @@ const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.prop
 /** What the Locked checkbox's tooltip says. */
 const LOCK_TITLE = "Whether the timeline's length is fixed";
 
-/** What the ancestor-card button's tooltip says. */
-const ANCESTOR_CARD_TITLE = "The timeline drawn whole behind the frames of its members' groups";
-
-/** Why the ancestor-card button is disabled: another rule shows the card it would hide, or hides the card it would show. */
+/** Why the parent-timelines button is disabled: another rule shows the card it would hide, or hides the card it would show. */
 const ANCESTOR_CARD_SHOWN = "Shown by another style rule";
 const ANCESTOR_CARD_HIDDEN = "Hidden by another style rule";
 
@@ -261,6 +260,34 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {/if}
 
+{#if ancestorCard !== null}
+  {@const card = ancestorCard}
+  {@const reason =
+    card.command !== null ? null : card.drawn ? ANCESTOR_CARD_SHOWN : ANCESTOR_CARD_HIDDEN}
+  {@const described = [
+    reason === null ? null : `${uid}-ancestor-card-reason`,
+    ancestorCardProblem === null ? null : `${uid}-problem-ancestor-card`,
+  ].filter((id) => id !== null)}
+  <div class="parent-timelines">
+    <button
+      type="button"
+      title={card.title}
+      data-testid="ancestor-card"
+      aria-disabled={reason === null ? undefined : "true"}
+      aria-describedby={described.length === 0 ? undefined : described.join(" ")}
+      onclick={toggleAncestorCard}
+    >
+      {card.label}
+    </button>
+    {#if reason !== null}
+      <p class="hint" id="{uid}-ancestor-card-reason">{reason}</p>
+    {/if}
+    {#if ancestorCardProblem !== null}
+      <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
+    {/if}
+  </div>
+{/if}
+
 {#snippet locked()}
   {#if lock !== null}
     <label class="locked" title={LOCK_TITLE}>
@@ -272,32 +299,6 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       />
       Locked
     </label>
-  {/if}
-  {#if ancestorCard !== null}
-    {@const card = ancestorCard}
-    {@const reason =
-      card.command !== null ? null : card.drawn ? ANCESTOR_CARD_SHOWN : ANCESTOR_CARD_HIDDEN}
-    {@const described = [
-      reason === null ? null : `${uid}-ancestor-card-reason`,
-      ancestorCardProblem === null ? null : `${uid}-problem-ancestor-card`,
-    ].filter((id) => id !== null)}
-    <button
-      type="button"
-      class="ancestor-card"
-      title={ANCESTOR_CARD_TITLE}
-      data-testid="ancestor-card"
-      aria-disabled={reason === null ? undefined : "true"}
-      aria-describedby={described.length === 0 ? undefined : described.join(" ")}
-      onclick={toggleAncestorCard}
-    >
-      {card.drawn ? "Hide card behind its groups" : "Show card behind its groups"}
-    </button>
-    {#if reason !== null}
-      <p class="hint" id="{uid}-ancestor-card-reason">{reason}</p>
-    {/if}
-    {#if ancestorCardProblem !== null}
-      <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
-    {/if}
   {/if}
 {/snippet}
 
@@ -444,19 +445,15 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     color: #b00020;
   }
 
-  /*
-   * The container's width and height side by side, the Locked checkbox and a root's ancestor-card
-   * button to their right.
-   */
+  /* The container's width and height side by side, the Locked checkbox to their right. */
   .properties .size {
     display: grid;
-    grid-template-columns: 1fr 1fr auto auto;
+    grid-template-columns: 1fr 1fr auto;
     gap: 0.25rem 0.5rem;
     align-items: end;
   }
 
-  .size .problem,
-  .size .hint {
+  .size .problem {
     grid-column: 1 / -1;
   }
 
@@ -484,13 +481,21 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     cursor: not-allowed;
   }
 
-  .ancestor-card {
+  /* The parent-timelines button on its own row under the name, its hint and refusal below it. */
+  .parent-timelines {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  .parent-timelines button {
     font: inherit;
-    white-space: nowrap;
   }
 
   /* Disabled yet focusable (`aria-disabled`): greyed, its reason in the hint below it. */
-  .ancestor-card[aria-disabled="true"] {
+  .parent-timelines button[aria-disabled="true"] {
     color: #595959;
     cursor: not-allowed;
   }
