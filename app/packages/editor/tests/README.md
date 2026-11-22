@@ -914,9 +914,12 @@ ancestor, has no card).
       trials are kept per those two objects. Counting the calls of the
       arranger's `drawingOf` (a pass-through spy of the module), a first
       evaluation of the button for the hidden `recording` draws once, a
-      second with the same manifest and layer draws nothing, and one after
-      a command that replaces the manifest draws again. A count, never a
-      timing.
+      second with the same manifest and layer draws nothing, one after
+      a command that replaces the manifest draws again, and so does one
+      after a `set` of the workspace's `graphical` (a rule for frames that
+      leaves the card as it was) that keeps the manifest the same object;
+      a second after that draws nothing. Each key is proven alone. A
+      count, never a timing.
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's
