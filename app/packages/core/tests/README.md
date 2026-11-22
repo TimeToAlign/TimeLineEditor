@@ -2693,6 +2693,184 @@ written `[n, d]`; a message spells a value as canonical YAML does.
    `elision_1` on `bare` is listed with `inside: [block, timeline]` (the
    ungrouped root's card draws it).
 
+## Arrangements (`arrangement.test.ts`)
+
+An arrangement places a bundle's items, its groups and ungrouped roots, in
+an order instead of at their places: one under another (`vertical`) or
+side by side (`horizontal`), where every root the groups hang on is drawn
+once behind the row. Core owns the rules that decide whether and how the
+items stand side by side (TimeToShare's drawing specification, "Drawn
+once"), the two placement states (a block's `arrangement` and the
+workspace's), the commands that set them and the file that holds them;
+where things lie on the canvas is layout's. What proves each part:
+
+- **The rules** are proven by `rowOf` on manifests built for the case: the
+  exact row, the exact roots top to bottom and the exact anchors (group,
+  root, member, start and end on the root's own axis), or the exact
+  conflict (its groups, its roots and its reason, word for word). The
+  oracle is the specification's four sentences applied by hand to each
+  case: a group hangs on a root when one of its members lies inside it, its
+  first such member in display order anchors it there, its stretch runs
+  from the offsets summed down to that member to the member's drawn end
+  (section 3.4); along a root the stretches follow the row without
+  overlapping (touching allowed); in a group the anchors lie in the order of
+  their roots. Where the rules leave the row free it keeps the stored order;
+  roots no group orders follow by ID. A conflict is reported as the first
+  of: two stretches overlapping on a root (the first such root by ID, the
+  first pair in the stored order), the stretches ordering the groups in a
+  cycle, the groups ordering the roots in a cycle; a cycle is named from
+  its first group (or root) in the stored order (or by ID).
+- **The commands** are proven by the block or workspace a `set` leaves
+  (the exact `arrangement` member, or its absence), the exact code, path
+  and message of a refusal, and the journal of the store (one entry per
+  `set`).
+- **The file** is proven by a round trip byte for byte and by the text
+  written: a workspace or block without an arrangement writes no
+  `arrangement` key, so every file written before keeps its bytes.
+- **The guard** is proven by `sideEffect` through the store: the codes,
+  paths and messages of what an element's editor refuses.
+
+The manifests here are built by a small builder in the test file, read
+through core's manifest reader like any file (`loadText`), since the
+cases need shapes no fixture has. The builder writes the one manifest
+`Arranged` (`name: "Arranged"`); every root is a quarters timeline of
+`fraction` number type and length 200 unless stated; groups and timelines
+have no name unless stated, so a reason names them by ID. Notation: roots
+`R`, `S`, `T`; `r1[0,10]` a child `r1` of `R` at offset 0 of length 10 (of
+`S` for `s…`, of `T` for `t…`); `p1`, `q1`, `x1` roots without children
+used as members; `G1 [r1, p1]` a group and its members in display order,
+which the builder states in `graphical.order` (the reader holds a group's
+`members` by ID);
+"stored" the order given to `rowOf` or stored in the block. Values
+written `5` are exact fractions `5/1`; a reason spells them as the pretty
+text does (`5–10 ♩`).
+
+1. **Items and their order.** `G1 [p1, q1]`, `G2 [r1[0,10]]`, ungrouped
+   root `U`: the items are `G1`, `G2`, `U` (groups by ID, then ungrouped
+   roots by ID; `R`, `p1`, `q1` hold or are members and are no items).
+   `itemOrder` of `[U, nope, G2, U]` is `[U, G2, G1]` (an unknown ID
+   passed over, a repeated one taken at its first mention, a left-out item
+   appended in drawing order); of `[]` it is `[G1, G2, U]`.
+2. **The first member inside a root anchors.** `G1 [r1[0,10], r2[5,15]]`,
+   `G2 [r3[20,30]]`: `anchorsOf` is exactly `{G1, R, r1, 0, 10}`,
+   `{G2, R, r3, 20, 30}` (`r2` anchors nothing, its overlap with nothing
+   counts); `rowOf` of `[]` gives the row `[G1, G2]`, the roots `[R]` and
+   those two anchors.
+3. **Depth.** `R` holds `P` at 100 (length 50), `P` holds `m` at 5
+   (length 10); `G1 [m]`, `G2 [r2[50,60]]`: `G1` anchors `m` on `R` from
+   105 to 115 (the offsets summed); `rowOf` of `[]` gives `[G2, G1]`, roots
+   `[R]`, anchors `{G2, R, r2, 50, 60}` then `{G1, R, m, 105, 115}`.
+4. **A root member is no anchor.** `G1 [R]` (the root itself a member) and
+   `G2 [r1[0,10]]` (the schema refuses a member inside another of the same
+   group, so the root and its child stand in two groups): the one anchor
+   is `{G2, R, r1, 0, 10}`; `rowOf` of `[]` gives `[G1, G2]`, roots `[R]`.
+5. **An unknown end is the drawn end.** `G1 [r1[0, unknown]]`, `r1`
+   holding one region from 0 to 10 (its reach 10), `G2 [r2[10,20]]`,
+   stored `[G2, G1]`: `G1` anchors `r1` from 0 to 10, and the row is `[G1,
+   G2]` (touching at 10 allowed).
+6. **The stretches order the row.** `G1 [r1[0,10], p1]`, `G2 [r2[40,50],
+   p2]`, `G3 [r3[80,90], p3]`, stored `[G3, G1, G2]`: row `[G1, G2, G3]`,
+   roots `[R]`, anchors `{G1, R, r1, 0, 10}`, `{G2, R, r2, 40, 50}`,
+   `{G3, R, r3, 80, 90}`.
+7. **Touching is allowed.** `G1 [r1[0,10]]`, `G2 [r2[10,20]]`, stored
+   `[G2, G1]`: row `[G1, G2]`, roots `[R]`.
+8. **Two roots.** `G1 [r1[0,10], x1, s1[0,5]]`, `G2 [r2[20,30], s2[10,15]]`,
+   stored `[G2, G1]`: row `[G1, G2]`, roots `[R, S]`, anchors `{G1, R, r1,
+   0, 10}`, `{G1, S, s1, 0, 5}`, `{G2, R, r2, 20, 30}`, `{G2, S, s2, 10,
+   15}`. `G1 [r1[0,10], s1[0,5]]`, `G2 [r2[10,20], s2[30,40]]`, stored
+   `[G2, G1]`: row `[G1, G2]`, roots `[R, S]` (touching on one root, apart
+   on the other).
+9. **The order kept where free.** `G1 [r1[20,30], s1[20,30]]`, `G2
+   [r2[0,10]]`, `G3 [s2[50,60]]`, stored `[G1, G2, G3]`: row `[G2, G1, G3]`
+   (`G2` before `G1` on `R`, `G1` before `G3` on `S`), roots `[R, S]`.
+10. **A subsequence of roots suffices.** `G1 [r1[0,10], t1[0,10]]`, `G2
+    [r2[20,30], s1[0,10], t2[20,30]]`, stored `[G2, G1]`: row `[G1, G2]`,
+    roots `[R, S, T]` (`S` passes behind `G1`).
+11. **Items hanging on nothing keep the stored order.** `G1 [p1, q1]`,
+    `G2 [r1[0,10]]`, ungrouped `U`, stored `[U, G2, G1]`: row `[U, G2,
+    G1]`, roots `[R]`, the one anchor `{G2, R, r1, 0, 10}`.
+12. **Roots no group orders follow by ID.** `G1 [s1[0,10]]`, `G2
+    [r1[0,10]]`, stored `[G1, G2]`: row `[G1, G2]`, roots `[R, S]`.
+13. **An overlap refuses.** `G1 [r1[0,10]]`, `G2 [r2[5,15]]`: the conflict
+    `{groups: [G1, G2], roots: [R], reason: "\"G1\" and \"G2\" overlap on
+    \"R\" (5–10 ♩)"}`. With the groups named "Theme A" and "Theme B", the
+    root named "Score", `r1[0,8]` and `r2[4,12]`: the reason is `"Theme
+    A" and "Theme B" overlap on "Score" (4–8 ♩)`.
+14. **The stretches order the groups in a cycle.** `G1 [r1[0,10],
+    s1[20,30]]`, `G2 [r2[20,30], s2[0,10]]`: `{groups: [G1, G2], roots:
+    [R, S], reason: "on \"R\" \"G1\" comes first, on \"S\" \"G2\""}`;
+    stored `[G2, G1]`, the cycle is named from `G2`: `{groups: [G2, G1],
+    roots: [S, R], reason: "on \"S\" \"G2\" comes first, on \"R\"
+    \"G1\""}`. Three groups: `G1 [r1[0,10], t2[20,30]]`, `G2 [r2[20,30],
+    s1[0,10]]`, `G3 [s2[20,30], t1[0,10]]`: `{groups: [G1, G2, G3], roots:
+    [R, S, T], reason: "on \"R\" \"G1\" comes before \"G2\", on \"S\"
+    \"G2\" before \"G3\", on \"T\" \"G3\" before \"G1\""}`.
+15. **The groups order the roots in a cycle.** `G1 [r1[0,10], s1[0,10]]`,
+    `G2 [s2[20,30], r2[20,30]]`: `{groups: [G1, G2], roots: [R, S],
+    reason: "\"G1\" holds \"R\" above \"S\", \"G2\" holds \"S\" above
+    \"R\""}`.
+16. **A drop that changes an anchor.** On case 2's manifest,
+    `anchorChange(manifest, G1, [r2, r1])` is `would anchor "r2" on "R"
+    instead of "r1"`; `[r1, r2]` gives `null`. On case 8's first manifest,
+    `G1`'s order `[x1, r1, s1]` gives `null` (a card that anchors nothing
+    moves freely).
+17. **Setting a block's arrangement.** Block `A` holds case 6's manifest.
+    `set {block: A} {arrangement: {direction: "horizontal", order: [G3, G1,
+    G2]}}` leaves `arrangement` exactly `{direction: "horizontal", order:
+    [G1, G2, G3]}` (the row stored, in the same `set`) and the store's
+    journal one entry longer by exactly that command. `{direction:
+    "vertical", order: [G2, nope]}` is stored as given. `arrangement: null`
+    then leaves the block without the member (`Object.hasOwn` false), and
+    another `null` is `invalid_value` at `[{block: A}, "arrangement"]`,
+    "the command changes nothing". On
+    case 13's manifest a horizontal `set` is `arrangement_conflict` at
+    `[{block: A}, "arrangement"]` with case 13's reason as its message, the
+    view unchanged. Shapes: `{direction: "diagonal", order: []}` is
+    `invalid_value` at `[…, "arrangement", "direction"]`, `expected
+    "vertical" or "horizontal"`; `{direction: "vertical"}` `missing_member`
+    at `[…, "order"]`, "missing member order"; `{direction: "vertical",
+    order: [G1, G1]}` `invalid_value` at `[…, "order", 1]`, "'G1' is listed
+    twice"; `{direction: "vertical", order: [], columns: 2}`
+    `unknown_member` at `[…, "columns"]`, "unknown member columns"; `order:
+    [1]` `invalid_value` at `[…, "order"]`, "expected a list of item IDs".
+18. **A later edit breaks side by side; the state is kept.** After the
+    horizontal `set` of item 17, `set {block: A, id: r2} {offset: [5, 1]}`
+    is accepted, the block's `arrangement` is unchanged, and `rowOf` of the
+    new manifest and the stored order is case 13's conflict, `"G1" and "G2"
+    overlap on "R" (5–10 ♩)` with groups `[G1, G2]` and roots `[R]`.
+19. **Setting the workspace's arrangement.** `set {} {arrangement:
+    {direction: "matrix", columns: 3}}` stores it whole, `{direction:
+    "matrix"}` without `columns`, `{direction: "horizontal"}` as given;
+    `null` removes the member. `columnsOf` gives 3 for a matrix of 5
+    blocks without `columns`, 1 for 0 blocks, 2 where `columns: 2` is
+    stated. Refused: `{direction: "vertical", columns: 2}` `invalid_value`
+    at `[{}, "arrangement", "columns"]`, "only a matrix has columns";
+    `{direction: "matrix", columns: 0}` `non_positive_number`, "the number
+    must be positive"; `columns: 2.5` `invalid_value`, "expected a positive
+    safe integer"; `{direction: "diagonal"}` `invalid_value` at `[…,
+    "direction"]`, `expected "vertical", "horizontal" or "matrix"`.
+20. **The file.** A workspace whose block `A` is arranged `{direction:
+    "horizontal", order: [G1, G2, G3]}` and whose view is arranged
+    `{direction: "matrix", columns: 2}`, built by the store, is written and
+    read back equal, and written again byte for byte; its text holds
+    `arrangement` at the top and in the block. A workspace without either
+    writes no `"arrangement"` anywhere in its text. A file stating
+    `"arrangement": null` at the top and in a block reads as a view and a
+    block without the member. A block's `{direction: "vertical", order:
+    ["G1", "G1"]}` in a file is refused with `invalid_value` at `["blocks",
+    A, "arrangement", "order", 1]`.
+21. **The journal is the authority.** A file whose view states an
+    arrangement its journal never set is refused by `createStore` with
+    `JournalMismatchError` at `["arrangement"]`.
+22. **An element's editor never arranges.** With the group editor of `G1`
+    open on block `A` (case 6's manifest, named "Arranged"), a `set` of the
+    block's `arrangement` is `side_effect` at `[{block: A}, "arrangement"]`,
+    "the arrangement of bundle 'Arranged' lies outside group 'G1': an
+    editor changes only what it edits", and a `set {}` of the workspace's
+    at `[{}, "arrangement"]`, "the workspace's arrangement lies outside
+    group 'G1': an editor changes only what it edits". In the bundle editor
+    of `A` the block's `set` is accepted.
+
 ## Named MatchStamps (`matchstamps.test.ts`)
 
 A named MatchStamp is `{id, name, alignment_anchors, match_claims}` in its

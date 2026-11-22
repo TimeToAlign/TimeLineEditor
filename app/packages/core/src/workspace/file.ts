@@ -4,7 +4,9 @@
  * and read losslessly by its `parseJson`. Any other format or version refuses the file before
  * anything else is read; any unknown member and any invalid manifest refuses
  * it too, and so does a session that the journal does not reach exactly
- * once. A file stating no `name` holds a workspace named `untitled`.
+ * once. A file stating no `name` holds a workspace named `untitled`; a
+ * workspace or block without an arrangement states none, and a file stating
+ * `arrangement: null` holds none.
  */
 
 import { dumps, parseJson } from "@timetoalign/timetoshare";
@@ -30,10 +32,12 @@ import { BLOCK_MEMBERS } from "./blocks.ts";
 import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
 import { isSessionEntry, reachedSessions, SESSION_ID } from "./sessions.ts";
 import type { Workspace } from "./store.ts";
-import type { View, WorkspaceSettings } from "./view.ts";
+import type { CanvasArrangement, View, WorkspaceSettings } from "./view.ts";
 import {
   createView,
   PLACEMENT_READERS,
+  readCanvasArrangement,
+  readItemArrangement,
   readSettings,
   structureProblems,
   UNTITLED_WORKSPACE,
@@ -98,9 +102,20 @@ function readBlock(problems: Problem[]): Reader {
     },
   };
   return (value, path) => {
-    const block = readExact(value, path, readers, problems);
+    // The arrangement is the one member a block may leave out.
+    const stated = isJsonObject(value) && Object.hasOwn(value, "arrangement");
+    const block = readExact(
+      value,
+      path,
+      stated ? { ...readers, arrangement: readItemArrangement } : readers,
+      problems,
+    );
     if (block === undefined) return undefined;
-    return Object.fromEntries(BLOCK_MEMBERS.map((member) => [member, block[member]]));
+    const members = BLOCK_MEMBERS.map((member) => [member, block[member]]);
+    if (block.arrangement !== undefined && block.arrangement !== null) {
+      members.splice(BLOCK_MEMBERS.indexOf("places") + 1, 0, ["arrangement", block.arrangement]);
+    }
+    return Object.fromEntries(members);
   };
 }
 
@@ -253,14 +268,16 @@ export function readWorkspace(text: string): Workspace | LoadError {
     }
     return complete ? result : undefined;
   });
-  // The name is the one member a file may leave out.
+  // The name and the arrangement are the members a file may leave out.
   const stated = isJsonObject(value) && Object.hasOwn(value, "name");
+  const arranged = isJsonObject(value) && Object.hasOwn(value, "arrangement");
   const top = readExact(
     value,
     [],
     {
       meta: (meta, path) => readExact(meta, path, META, problems),
       ...(stated ? { name: readName } : {}),
+      ...(arranged ? { arrangement: readCanvasArrangement } : {}),
       settings: (settings, path) => readSettings(settings, path, problems, true),
       graphical: readGraphical,
       blocks,
@@ -275,6 +292,9 @@ export function readWorkspace(text: string): Workspace | LoadError {
     name: stated ? (top.name as string) : UNTITLED_WORKSPACE,
     settings: top.settings as WorkspaceSettings,
     graphical: top.graphical as View["graphical"],
+    ...(top.arrangement === undefined || top.arrangement === null
+      ? {}
+      : { arrangement: top.arrangement as CanvasArrangement }),
     blocks: top.blocks as View["blocks"],
   };
   const structure = structureProblems(view);
@@ -289,9 +309,18 @@ export function readWorkspace(text: string): Workspace | LoadError {
 /** The workspace file's text. */
 export function writeWorkspace(workspace: Workspace): string {
   const { view, journal, sessions } = workspace;
-  const { meta, name, settings, graphical, blocks } = view;
+  const { meta, name, settings, graphical, arrangement, blocks } = view;
   return dumps(
-    { meta, name, settings, graphical, blocks, journal, sessions },
+    {
+      meta,
+      name,
+      settings,
+      graphical,
+      ...(arrangement === undefined ? {} : { arrangement }),
+      blocks,
+      journal,
+      sessions,
+    },
     { serialization: "json" },
   );
 }

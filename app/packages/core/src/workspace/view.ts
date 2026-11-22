@@ -4,7 +4,7 @@ import type { FileForm, Graphical, Serialization } from "@timetoalign/timetoshar
 import { isSerialization, JsonFloat } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
-import type { PathSegment } from "../json.ts";
+import type { JsonObject, PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
 import type { ContainerRef } from "../manifest/containers.ts";
 import {
@@ -25,8 +25,8 @@ import {
   readPlaces,
   readPositive,
 } from "../values.ts";
-import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
-import { BLOCK_ID } from "./blocks.ts";
+import type { Block, BlockId, BlockPlacement, ItemArrangement } from "./blocks.ts";
+import { BLOCK_ID, ITEM_DIRECTIONS } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
@@ -105,6 +105,28 @@ export interface WorkspaceSettings {
   readonly matchClaimFilters: { readonly [block: BlockId]: MatchClaimFilter };
 }
 
+/** The directions the blocks of a workspace may be arranged in. */
+export const CANVAS_DIRECTIONS = ["vertical", "horizontal", "matrix"] as const;
+
+/** A direction the blocks of a workspace may be arranged in. */
+export type CanvasDirection = (typeof CANVAS_DIRECTIONS)[number];
+
+/**
+ * How the blocks of a workspace are arranged instead of standing at their
+ * places: packed one under another, side by side, or in a matrix of
+ * `columns` columns, in the order of their `index`.
+ */
+export interface CanvasArrangement {
+  readonly direction: CanvasDirection;
+  /** A matrix's number of columns, a positive integer; `columnsOf` where not stated. Only a matrix states it. */
+  readonly columns?: number;
+}
+
+/** The number of columns of a matrix of `count` blocks: the stated one, else the smallest whose square holds them (at least 1). */
+export function columnsOf(arrangement: CanvasArrangement, count: number): number {
+  return arrangement.columns ?? Math.max(1, Math.ceil(Math.sqrt(count)));
+}
+
 export interface View {
   readonly meta: WorkspaceMeta;
   /** The workspace's name, the default name of its file (`<name>.tle.json`); never empty. */
@@ -112,6 +134,11 @@ export interface View {
   readonly settings: WorkspaceSettings;
   /** The workspace's default rules, between the built-in defaults and each manifest's own. */
   readonly graphical: Graphical;
+  /**
+   * How the blocks are arranged; absent where they stand at their places, as
+   * a file without the member and a `set` of `null` leave it.
+   */
+  readonly arrangement?: CanvasArrangement;
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
@@ -163,6 +190,94 @@ export const PLACEMENT_READERS: {
   width: readNullablePositive,
   height: readNullablePositive,
 };
+
+/** A direction among `directions`, quoted in the refusal. */
+function readDirection<D extends string>(
+  value: unknown,
+  path: readonly PathSegment[],
+  directions: readonly D[],
+): D | Problem {
+  const found = directions.find((direction) => direction === value);
+  if (found !== undefined) return found;
+  const words = directions.map((direction) => `"${direction}"`);
+  return problem(
+    ErrorCode.invalidValue,
+    `expected ${words.slice(0, -1).join(", ")} or ${words.at(-1)}`,
+    path,
+  );
+}
+
+/** The members of an arrangement object `value` at `path`: an object holding `members` alone, `required` among them. */
+function arrangementObject(
+  value: unknown,
+  path: readonly PathSegment[],
+  members: readonly string[],
+  required: readonly string[],
+): JsonObject | Problem {
+  if (!isJsonObject(value))
+    return problem(ErrorCode.invalidValue, "expected null or an object", path);
+  const extra = Object.keys(value).find((member) => !members.includes(member));
+  if (extra !== undefined) {
+    return problem(ErrorCode.unknownMember, `unknown member ${extra}`, [...path, extra]);
+  }
+  const missing = required.find((member) => !Object.hasOwn(value, member));
+  return missing === undefined
+    ? value
+    : problem(ErrorCode.missingMember, `missing member ${missing}`, [...path, missing]);
+}
+
+/**
+ * A block's arrangement as a `set` gives it or a file states it: `null`
+ * for none, else `{direction, order}`, `direction` `"vertical"` or
+ * `"horizontal"`, `order` a list of IDs, each once; an ID naming no item is
+ * valid (`itemOrder` passes over it).
+ */
+export function readItemArrangement(
+  value: unknown,
+  path: readonly PathSegment[],
+): ItemArrangement | null | Problem {
+  if (value === null) return null;
+  const object = arrangementObject(value, path, ["direction", "order"], ["direction", "order"]);
+  if (isCommandError(object)) return object;
+  const direction = readDirection(object.direction, [...path, "direction"], ITEM_DIRECTIONS);
+  if (isCommandError(direction)) return direction;
+  const { order } = object;
+  if (!Array.isArray(order) || !order.every((item) => typeof item === "string")) {
+    return problem(ErrorCode.invalidValue, "expected a list of item IDs", [...path, "order"]);
+  }
+  const seen = new Set<string>();
+  for (const [index, id] of order.entries()) {
+    if (seen.has(id)) {
+      return problem(ErrorCode.invalidValue, `'${id}' is listed twice`, [...path, "order", index]);
+    }
+    seen.add(id);
+  }
+  return { direction, order: [...order] };
+}
+
+/**
+ * The workspace's arrangement as a `set` gives it or a file states it:
+ * `null` for none, else `{direction, columns?}`, `direction` `"vertical"`,
+ * `"horizontal"` or `"matrix"`, `columns` a positive integer that only a
+ * matrix states.
+ */
+export function readCanvasArrangement(
+  value: unknown,
+  path: readonly PathSegment[],
+): CanvasArrangement | null | Problem {
+  if (value === null) return null;
+  const object = arrangementObject(value, path, ["direction", "columns"], ["direction"]);
+  if (isCommandError(object)) return object;
+  const direction = readDirection(object.direction, [...path, "direction"], CANVAS_DIRECTIONS);
+  if (isCommandError(direction)) return direction;
+  if (!Object.hasOwn(object, "columns")) return { direction };
+  const at = [...path, "columns"];
+  if (direction !== "matrix") {
+    return problem(ErrorCode.invalidValue, "only a matrix has columns", at);
+  }
+  const columns = readPositiveInteger(object.columns, at);
+  return isCommandError(columns) ? columns : { direction, columns };
+}
 
 function readPositiveInteger(value: unknown, path: readonly PathSegment[]): number | Problem {
   const read = readPositive(value, path);
@@ -400,6 +515,9 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
   }
   check(readNonNegative(block.spacing, [...path, "spacing"]));
   check(readNonNegative(block.margin, [...path, "margin"]));
+  if (block.arrangement !== undefined) {
+    check(readItemArrangement(block.arrangement, [...path, "arrangement"]));
+  }
   const places = readPlaces(block.places, [...path, "places"]);
   if (isCommandError(places)) problems.push(places);
   else problems.push(...placeProblems(block, path));

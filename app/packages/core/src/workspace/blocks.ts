@@ -22,6 +22,25 @@ export interface BlockPlacement {
   readonly height: number | null;
 }
 
+/** The directions a block's items may be arranged in. */
+export const ITEM_DIRECTIONS = ["vertical", "horizontal"] as const;
+
+/** A direction a block's items may be arranged in. */
+export type ItemDirection = (typeof ITEM_DIRECTIONS)[number];
+
+/**
+ * How a block's items, its groups and ungrouped roots, are arranged instead
+ * of standing at their places: packed one under another (`vertical`) or side
+ * by side (`horizontal`, every root the groups hang on drawn once behind the
+ * row), in the order `order` gives (`itemOrder`: IDs naming no item are
+ * passed over, items it leaves out follow in drawing order).
+ */
+export interface ItemArrangement {
+  readonly direction: ItemDirection;
+  /** Item IDs, each once. */
+  readonly order: readonly string[];
+}
+
 /**
  * One block: its placement on the canvas and its own manifest, which carries
  * the block's styling in its `graphical` member.
@@ -41,10 +60,16 @@ export interface Block extends BlockPlacement {
    * (`places[G].cards[T]`).
    */
   readonly places: Places;
+  /**
+   * How its items are arranged; absent where they stand at their places, as
+   * a block without the member in its file and a `set` of `null` leave it.
+   * Its items' stated places are kept and not used while it is present.
+   */
+  readonly arrangement?: ItemArrangement;
   readonly manifest: Manifest;
 }
 
-/** The members of a block, in the order a block is built. */
+/** The members every block states, in the order a block is built; `arrangement` follows `places` where present. */
 export const BLOCK_MEMBERS = [
   "id",
   "parent",

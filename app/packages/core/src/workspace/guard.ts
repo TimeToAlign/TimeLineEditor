@@ -36,11 +36,20 @@ import type { Block, BlockId } from "./blocks.ts";
 import type { View } from "./view.ts";
 
 /**
- * The members of a block an element's editor never changes. `x`, `y`,
+ * The members of a block an element's editor never changes (an arrangement
+ * is the block's, an absent one compared as none). `x`, `y`,
  * `width` and `height` are the block adapting to what it holds, and the
  * places and manifest are compared key by key.
  */
-const FIXED_MEMBERS = ["scale", "length", "spacing", "margin", "index", "parent"] as const;
+const FIXED_MEMBERS = [
+  "scale",
+  "length",
+  "spacing",
+  "margin",
+  "index",
+  "parent",
+  "arrangement",
+] as const;
 
 /**
  * The members of a group's place that the editor of one of its members
@@ -448,9 +457,9 @@ function blockChange(
 /**
  * The first change from `before` to `after` that lies outside `target`, the
  * innermost open editor's target, as a `side_effect` refusal; `null` when
- * every change lies inside it. In this order: the workspace's name or its
- * `graphical`; another block; for an element's editor, its block's scale, length, spacing,
- * margin, index or parent, a place of a key the element does not contain (a group
+ * every change lies inside it. In this order: the workspace's name, its
+ * `graphical` or its arrangement; another block; for an element's editor, its block's scale, length, spacing,
+ * margin, index, parent or arrangement, a place of a key the element does not contain (a group
  * member's editor also changes its group's length, scale and width and its
  * siblings' card widths), and the manifest outside the element (the element
  * removed included; a display or band order lies inside when the element
@@ -486,6 +495,9 @@ export function sideEffect(
     if (before.name !== after.name) return refuse("the workspace name", [workspace, "name"]);
     if (!same(before.graphical, after.graphical)) {
       return refuse("the workspace's graphical", [workspace, "graphical"]);
+    }
+    if (!same(before.arrangement ?? null, after.arrangement ?? null)) {
+      return refuse("the workspace's arrangement", [workspace, "arrangement"]);
     }
   }
   const touched =

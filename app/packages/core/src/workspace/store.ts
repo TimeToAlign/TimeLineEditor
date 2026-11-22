@@ -212,7 +212,8 @@ function firstDifference(left: object, right: object): string | undefined {
 
 /**
  * The first path at which `replayed` differs from `view`: its name
- * (`["name"]`), its `graphical` (`["graphical"]`), a block one of them lacks
+ * (`["name"]`), its `graphical` (`["graphical"]`), its arrangement
+ * (`["arrangement"]`, an absent one as none), a block one of them lacks
  * (`["blocks", <id>]`) or a member of a block both hold (`["blocks", <id>,
  * <member>]`), blocks in code-point order of their ids; `undefined` when
  * they are the same. The settings are no command's, so never compared.
@@ -220,6 +221,7 @@ function firstDifference(left: object, right: object): string | undefined {
 function viewDifference(replayed: View, view: View): PathSegment[] | undefined {
   if (replayed.name !== view.name) return ["name"];
   if (!jsonEqual(replayed.graphical, view.graphical)) return ["graphical"];
+  if (!jsonEqual(replayed.arrangement ?? null, view.arrangement ?? null)) return ["arrangement"];
   for (const id of keysOf(replayed.blocks, view.blocks).sort(compareCodePoints)) {
     const was = replayed.blocks[id];
     const now = view.blocks[id];

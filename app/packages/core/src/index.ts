@@ -271,7 +271,8 @@ export {
   resolveElement,
   WORKSPACE,
 } from "./workspace/address.ts";
-export type { Block, BlockId } from "./workspace/blocks.ts";
+export type { Block, BlockId, ItemArrangement, ItemDirection } from "./workspace/blocks.ts";
+export { ITEM_DIRECTIONS } from "./workspace/blocks.ts";
 export { emptyWorkspace, readWorkspace, writeWorkspace } from "./workspace/file.ts";
 export { mintBlockId, nextId } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
@@ -289,6 +290,8 @@ export { createStore } from "./workspace/store.ts";
 export type { User } from "./workspace/user.ts";
 export { DEFAULT_USER, readOrcid, statedBy, TILIE_AGENT, USER_TAG } from "./workspace/user.ts";
 export type {
+  CanvasArrangement,
+  CanvasDirection,
   Granularity,
   ManifestFile,
   MatchClaimFilter,
@@ -296,6 +299,8 @@ export type {
   WorkspaceSettings,
 } from "./workspace/view.ts";
 export {
+  CANVAS_DIRECTIONS,
+  columnsOf,
   createView,
   DEFAULT_GRANULARITY,
   DEFAULT_MATCH_CLAIM_FILTER,

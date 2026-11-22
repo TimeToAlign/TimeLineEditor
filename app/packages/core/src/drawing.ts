@@ -3,10 +3,19 @@
  * 2.1 to 2.3 and 8.1), for the layout and the writers: the elements a
  * manifest draws, the keys a selector tests, the selector test itself, the
  * timelines drawn as roots, the named timestamps each card draws with
- * their primary and secondary coordinates, and the stored elisions of each
- * timeline with the words of their labels.
+ * their primary and secondary coordinates, the stored elisions of each
+ * timeline with the words of their labels, and the arrangement of a bundle's
+ * items side by side.
  */
 
+export type { Anchor, ArrangementConflict, Row } from "./manifest/arrangement.ts";
+export {
+  anchorChange,
+  anchorsOf,
+  isArrangementConflict,
+  itemOrder,
+  rowOf,
+} from "./manifest/arrangement.ts";
 export type {
   CardStamp,
   CardStamps,

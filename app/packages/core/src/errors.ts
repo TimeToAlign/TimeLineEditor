@@ -59,6 +59,7 @@ export const ErrorCode = {
   segmentStructure: "segment_structure",
   cycle: "cycle",
   nestedMember: "nested_member",
+  arrangementConflict: "arrangement_conflict",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

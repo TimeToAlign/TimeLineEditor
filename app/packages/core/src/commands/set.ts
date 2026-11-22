@@ -12,6 +12,7 @@ import { assertNever, ErrorCode, isCommandError, isLoadError, problem } from "..
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { compareCodePoints, isJsonObject } from "../json.ts";
 import { addressKey } from "../manifest/address.ts";
+import { isArrangementConflict, rowOf } from "../manifest/arrangement.ts";
 import type { CardPlace, ContainerRef, ItemPlace } from "../manifest/containers.ts";
 import {
   containersOf,
@@ -58,7 +59,12 @@ import type { Address } from "../workspace/address.ts";
 import { manifestIds } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
-import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
+import {
+  PLACEMENT_READERS,
+  placeMemberProblem,
+  readCanvasArrangement,
+  readItemArrangement,
+} from "../workspace/view.ts";
 import { readElisionEnd, readElisionStart, readElisionWidth, stretchProblem } from "./elisions.ts";
 import { readAnchors, readMatchClaims, rewrittenMatchStamp } from "./matchstamps.ts";
 import type { ChangeSet } from "./mutations.ts";
@@ -159,6 +165,16 @@ const WORKSPACE_SET: Setters<WorkspaceTarget> = {
     if (sameJson(view.graphical, graphical)) return view;
     recordValue(changes, path, null, false, view.graphical, graphical);
     return { ...view, graphical };
+  },
+  /** How the blocks are arranged (`readCanvasArrangement`); `null` for none, which deletes the member. */
+  arrangement: (view, _, value, path, changes) => {
+    const arrangement = readCanvasArrangement(value, path);
+    if (isCommandError(arrangement)) return arrangement;
+    const was = view.arrangement ?? null;
+    if (sameJson(was, arrangement)) return view;
+    recordValue(changes, path, null, false, was, arrangement);
+    const { arrangement: _dropped, ...rest } = view;
+    return arrangement === null ? rest : { ...rest, arrangement };
   },
 };
 
@@ -365,6 +381,30 @@ const BLOCK_SET: Setters<BlockTarget> = {
   margin: blockValue("margin", PLACEMENT_READERS.margin),
   width: blockValue("width", PLACEMENT_READERS.width),
   height: blockValue("height", PLACEMENT_READERS.height),
+  /**
+   * How the block's items are arranged (`readItemArrangement`); `null` for
+   * none, which deletes the member. Side by side, the order stored is the
+   * row the rules give from the order given (`rowOf`), and an arrangement
+   * the rules refuse is `arrangement_conflict` with the conflict's reason.
+   */
+  arrangement: (view, target, value, path, changes) => {
+    const read = readItemArrangement(value, path);
+    if (isCommandError(read)) return read;
+    const { block } = target;
+    let arrangement = read;
+    if (arrangement?.direction === "horizontal") {
+      const row = rowOf(block.manifest, arrangement.order);
+      if (isArrangementConflict(row)) {
+        return problem(ErrorCode.arrangementConflict, row.reason, path);
+      }
+      arrangement = { direction: "horizontal", order: row.row };
+    }
+    const was = block.arrangement ?? null;
+    if (sameJson(was, arrangement)) return view;
+    recordValue(changes, path, block.id, false, was, arrangement);
+    const { arrangement: _dropped, ...rest } = block;
+    return withBlock(view, arrangement === null ? rest : { ...rest, arrangement });
+  },
   manifest: (view, target, value, path, changes) => {
     const manifest = readBlockManifest(value, target.block.id);
     if (isCommandError(manifest)) return manifest;
