@@ -120,8 +120,9 @@ export function stampGroups(
             knots,
             namedAsGroupstamp(manifest, coordinate.timeline, coordinate.value),
             raised,
+            null,
           )
-        : namedPin(manifest, block, drawing, timestamp.id, granularity, knots, raised);
+        : namedPin(manifest, block, drawing, timestamp.id, granularity, knots, raised, null);
     if (pin === null) {
       const key = JSON.stringify([at, coordinate.timeline]);
       const text = String(coordinate.value);

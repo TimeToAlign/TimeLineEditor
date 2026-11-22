@@ -7,13 +7,13 @@
 export const name = "@timetoalign/tilie-arranger" as const;
 
 export type { CardBox, ItemBox } from "./boxes.ts";
-export { blockBox, boxOf, isHeld, isItem, keyedBox } from "./boxes.ts";
+export { blockBox, boxOf, isHeld, isItem, keyedBox, raisedRoot } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";
 export { addCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
 export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
 export type { KnotsOf, MeasureMapsAnswer } from "./coordinates.ts";
-export { namedPin, raisedRoot, rereadPin, timelinePin } from "./coordinates.ts";
+export { namedPin, rereadPin, timelinePin } from "./coordinates.ts";
 export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
 export { changedPlace, placeChange } from "./editing.ts";

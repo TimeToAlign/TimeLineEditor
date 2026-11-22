@@ -6,7 +6,7 @@ import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
-import { raisedRoot } from "./coordinates.ts";
+import { raisedRoot, stackingOf } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 
 interface Memo {
@@ -126,15 +126,14 @@ export function nodePosition(
 }
 
 /**
- * `entries`, the drawn descriptors of block `block` in drawing order, with
- * the ancestor cards of a root raised over every frame while one of its
- * timelines lying in no group is edited: when `editing`, the innermost open
- * editor, raises a root (`raisedRoot`, the one decision of the raise), the
- * entries every displayed ancestor card of that root draws (its rectangle
- * and its drawing, the record's range) follow every other entry, each group
- * in its own order. Anything else, and a timeline whose root has no
- * displayed ancestor card, keeps `entries` as they are (the same array).
- * The drawing itself is never changed: only the order the block shows it in.
+ * `entries`, the drawn descriptors of block `block` in drawing order, in the
+ * order the block shows them (`stackingOf`): when `editing`, the innermost
+ * open editor, raises a root (`raisedRoot`), the entries every displayed
+ * ancestor card of that root draws (its rectangle and its drawing, the
+ * record's range) follow every other entry, each group in its own order.
+ * Anything else, and a timeline whose root has no displayed ancestor card,
+ * keeps `entries` as they are (the same array). The drawing itself is never
+ * changed: only the order the block shows it in.
  */
 export function raisedEntries<E extends { readonly descriptor: Descriptor }>(
   entries: readonly E[],
@@ -144,13 +143,9 @@ export function raisedEntries<E extends { readonly descriptor: Descriptor }>(
 ): readonly E[] {
   const root = raisedRoot(block, editing);
   if (root === null) return entries;
-  const ranges = drawing.boxes
-    .filter((box) => box.ancestor !== undefined && box.address.id === root)
-    .map((box) => box.range);
-  if (ranges.length === 0) return entries;
-  const raised = (entry: E) => {
-    const at = entry.descriptor.source.element;
-    return ranges.some(({ start, end }) => start <= at && at < end);
-  };
-  return [...entries.filter((entry) => !raised(entry)), ...entries.filter(raised)];
+  const { above } = stackingOf(drawing, root);
+  const raised = (entry: E) => above(entry.descriptor.source.element);
+  const lifted = entries.filter(raised);
+  if (lifted.length === 0) return entries;
+  return [...entries.filter((entry) => !raised(entry)), ...lifted];
 }

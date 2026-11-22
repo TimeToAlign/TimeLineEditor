@@ -380,6 +380,9 @@ describe("a position on an ancestor line", () => {
       Rational.of([3, 1]),
       DEFAULT_GRANULARITY,
       "no_server",
+      false,
+      null,
+      null,
     );
     if (pin === null) throw new Error("no pin of piece");
     harness.pin(pin);

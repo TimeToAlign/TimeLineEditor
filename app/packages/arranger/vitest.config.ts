@@ -22,7 +22,7 @@ export default defineConfig({
     name: "arranger",
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    // The budget times the code and runs on its own: `vitest.budget.config.ts`.
-    exclude: ["tests/matches-budget.test.ts"],
+    // The budgets time the code and run on their own: `vitest.budget.config.ts`.
+    exclude: ["tests/matches-budget.test.ts", "tests/coordinates-budget.test.ts"],
   },
 });
