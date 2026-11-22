@@ -4299,7 +4299,9 @@ A timestamp is the cross-section of a timeline, the **anchor**, at a
 position exact on the anchor's axis: the anchor, then every **member** the
 caller lists (the anchor's segments and displayed descendants, each with
 its offset from the anchor's zero) whose closed span `[offset, offset +
-length]` holds the position (`[offset, ∞)` for an unknown length), each
+length]` holds the position (`[offset, offset + reach]` for an unknown
+length with a `reach`, where the caller's drawing ends it; `[offset, ∞)`
+without one), each
 with its coordinate (the position minus its offset, in its number type)
 and the value of each of its maps. A **row** is one value of it: a
 timeline's own coordinate or one of its maps' values. One row abstraction
@@ -4338,7 +4340,14 @@ the parity table's manifest with its MeasureMap's expanded rows
    (559/441); at 200000 `excerpt` is not crossed (155900 > 88200) and the
    timestamp is `recording`'s alone; the span is closed, so at 44100
    `excerpt` is crossed at 0 and at 132300 at 88200. With the member's
-   length unknown (`null`), 200000 crosses it at 155900.
+   length unknown (`null`), 200000 crosses it at 155900. With its length
+   unknown and a `reach` of 100000 (the drawing ending it there), the span
+   ends at the reach, ends included: 144100 crosses it at 100000, 144101
+   does not (`recording` alone), and 200000 does not either. What would be
+   wrong: a member of unknown length listed past where its line ends
+   (the flag naming a timeline its drawn line does not reach). The reach
+   bounds only which positions cross a member: `positionFor` still takes
+   a value past it.
 3. **Ancestors** (`ancestorMembers(manifest, timeline)`): a timestamp
    carries its ancestors' coordinates, a parent's coordinate being its
    child's plus the child's offset, exactly, up to the root. Of

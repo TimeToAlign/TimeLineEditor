@@ -21,6 +21,7 @@ import {
   samePlaceKey,
   timelineAxisOf,
   timestampAt,
+  timestampJson,
 } from "@timetoalign/tilie-core";
 import { axisCoordinate, Rational, realOf, toRational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
@@ -1525,6 +1526,7 @@ describe("a named timestamp's pin", () => {
         unit: "quarters",
         numberType: "fraction",
         length: null,
+        reach: q(0),
         maps: [],
         ordinate: 22.40234375,
       },
@@ -2428,6 +2430,85 @@ describe("what a timestamp's line crosses in its card", () => {
       ["middle", q(6)],
       ["intro", q(2)],
     ]);
+  });
+
+  it("lists a child of unknown length up to where its line ends, not past it", () => {
+    const opened = changed(viewWith("map"), {
+      type: "add",
+      into: inBlock(A, idAddress("melody")),
+      child: {
+        id: "open",
+        unit: "quarters",
+        number_type: "fraction",
+        offset: [1, 1],
+        length: null,
+      },
+    });
+    const view = changed(opened, {
+      type: "add",
+      into: inBlock(A, idAddress("open")),
+      region: { id: "region_open", start: [0, 1], end: [3, 1], meta: {} },
+    });
+    const open = axis(view, "open");
+    expect([open.start, open.length, open.drawnLength]).toEqual([q(0), null, q(3)]);
+    const listed = (pin: Pin) =>
+      pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]);
+    expect(listed(pinOf(view, "melody", q(4)))).toEqual([
+      ["melody", q(4)],
+      ["open", q(3)],
+      ["phrase", q(2)],
+    ]);
+    expect(listed(pinOf(view, "melody", q(5)))).toEqual([
+      ["melody", q(5)],
+      ["phrase", q(3)],
+    ]);
+  });
+
+  describe("an ancestor whose line is hidden", () => {
+    /** `bundle_mixed` with every ancestor line hidden in block A. */
+    const hidden = () =>
+      changed(viewWith(MIXED), {
+        type: "style",
+        select: { element: "ancestor" },
+        set: { display: "none" },
+        blocks: [A],
+      });
+
+    it("is still listed, after the drawn rows, and stored", () => {
+      const view = hidden();
+      expect(
+        drawingIn(view).axes.some(
+          (item) => item.address.id === "recording" && item.card.member === "excerpt",
+        ),
+      ).toBe(false);
+      const excerpt = axis(view, "excerpt");
+      const pin = readAt(view, (excerpt.xStart + excerpt.xEnd) / 2, excerpt.y)?.pin;
+      if (pin === undefined) throw new Error("nothing read on excerpt");
+      expect(pin.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+        ["excerpt", 44100n],
+        ["recording", 88200n],
+        ["page", 960n],
+      ]);
+      expect(flagParts(pin).map(({ timeline }) => timeline)).toEqual(
+        ["excerpt", "page"]
+          .sort((left, right) => drawnY(view, left) - drawnY(view, right))
+          .concat("recording"),
+      );
+      expect(timestampJson(pin)).toMatchObject({
+        mapping: { recording: { unit: "samples", number_type: "int", value: 88200 } },
+      });
+    });
+
+    it("of another group member is read at that member's offset and scale", () => {
+      const view = hidden();
+      const page = axis(view, "page");
+      const pin = readAt(view, (page.xStart + page.xEnd) / 2, page.y)?.pin;
+      expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+        ["page", 960n],
+        ["excerpt", 44100n],
+        ["recording", 88200n],
+      ]);
+    });
   });
 
   it("lists a groupstamp's sibling in its member's card and the other member", () => {

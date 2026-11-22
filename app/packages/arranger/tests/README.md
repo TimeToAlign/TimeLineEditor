@@ -2554,6 +2554,29 @@ ancestors and crossed descendants only) would miss, so it fails on it:
   `score` 6, `bridge` 6 − 2 = 4 (a sibling of the anchor in `score`'s
   card) and, read by the group from `score`'s card, `performance` 3.0 (6
   / 2: 4.0 seconds over 8 quarters); `second-half` is the primary.
+- **A timeline of unknown length ends where its line ends.** `map` with
+  a child `open` of `melody` (offset 1, length unknown) holding a region
+  from 0 to 3: its reach is 3, so its line in `melody`'s card is drawn
+  from `melody` 1 to 4 (layout's record: `start` 0, drawn length 3). The
+  pin of `melody` at 4 lists `open` at 3 (the line's end, ends included);
+  at 5 it does not list `open`, whose line ends left of it. What would be
+  wrong: `open` listed at 5 (at 4, past its drawn end), the flag naming a
+  timeline the cross-section line does not cross.
+- **An ancestor is listed wherever it is drawn or not** (the anchor's
+  ancestors are part of every timestamp, on hover and stored, also for a
+  child taking part in a group). `bundle_mixed` with the rule `{select:
+  {element: ancestor}, set: {display: none}}` for block A: `excerpt`'s
+  card no longer draws `recording`'s ancestor line, yet the reading at
+  the middle of `excerpt`'s line still lists `excerpt` 44100, `recording`
+  88200 (its parent, offset 44100) and, through `group_2`, `page` 960.
+  `recording`, drawn nowhere in the card, has no ordinate: the flag lists
+  it after every drawn row, and `timestampJson`'s `mapping` holds it as
+  `{unit: samples, number_type: int, value: 88200}`. Read from the other
+  member, `page` at the middle of its line (960), the group adds
+  `excerpt` 44100 (960 × 88200 / 1920) and its hidden parent `recording`
+  88200, read at `excerpt`'s offset and scale. What would be wrong:
+  `recording` missing from the flag or the stored timestamp because its
+  line is hidden.
 - **A MatchStamp flag inside a timeline editor** stays the claim's two
   coordinates (`matches.test.ts`): on `bundle_matchstamp_groupstamp` with
   G, `matchFlag` of MatchStamp 1 without group reading lists `Score`
@@ -2710,8 +2733,9 @@ holds on a line of unknown length: `unknown_length`'s `origin`
 (`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
 length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
 `score` 0 alone (`coda` starts at 10), and on a zero-length line: `late`'s
-`origin` (`timestamp_3`, above) reads anchor `late` (length unknown, no
-maps, at its line's ordinate 22.40234375), no members, `late` 0. Where no line draws its timeline (its line
+`origin` (`timestamp_3`, above) reads anchor `late` (length unknown, its
+reach there 0, no maps, at its line's ordinate 22.40234375), no members,
+`late` 0. Where no line draws its timeline (its line
 hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
 editor can still show it), it reads on its own axis with all its own maps
 and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID

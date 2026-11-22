@@ -188,6 +188,20 @@ describe("the cross-section", () => {
     ]);
   });
 
+  it("crosses a member of unknown length up to its reach, ends included", () => {
+    const reached: CrossSectionSpec = {
+      ...RECORDING,
+      members: RECORDING.members.map((member) => ({ ...member, length: null, reach: q(100000) })),
+    };
+    expect(positions(timestampAt(reached, q(144100)))).toEqual([
+      ["recording", 144100n],
+      ["excerpt", 100000n],
+    ]);
+    expect(positions(timestampAt(reached, q(144101)))).toEqual([["recording", 144101n]]);
+    expect(positions(timestampAt(reached, q(200000)))).toEqual([["recording", 200000n]]);
+    expect(positionFor(pinOf(reached, q(144100)), row("excerpt"), q(150000))).toEqual(q(194100));
+  });
+
   it("holds the anchor's ancestors, parent first, each crossed wherever the anchor is", () => {
     const ancestors = ancestorMembers(SEGMENTS, "b2");
     expect(ancestors).toEqual([

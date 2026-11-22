@@ -57,6 +57,7 @@ import {
 } from "@timetoalign/tilie-core";
 import { orderedChildren } from "@timetoalign/tilie-core/drawing";
 import {
+  addReal,
   axisCoordinate,
   Rational,
   realOf,
@@ -292,13 +293,15 @@ function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
 /**
  * A timeline drawn in a card (`cardTimelines`): the timeline, where its
  * zero lies on its root's axis (exact), the ordinate of the line it is
- * crossed at there, and the maps drawn for it in the card with their
- * ordinates, in the order they are drawn.
+ * crossed at there, where the card's drawing of it ends when its length is
+ * not known (its `reach` there, on its own axis), and the maps drawn for it
+ * in the card with their ordinates, in the order they are drawn.
  */
 interface CardTimeline {
   readonly timeline: TimelineManifest;
   readonly zero: Rational;
   readonly ordinate: number;
+  readonly reach?: Real;
   readonly maps: readonly ConversionMap[];
   readonly mapOrdinates: ReadonlyMap<string, number>;
 }
@@ -340,8 +343,10 @@ const cardTimelinesByDrawing = new WeakMap<Drawing, Map<string, readonly CardTim
  * line, once, in traversal order (pre-order, children by offset). All of
  * them share one root (the card's member drawing and its ancestor lines),
  * so each one's `zero` places it against every other. A timeline's
- * ordinate is its own line's, else its segment line's; its maps are those
- * drawn at the card's lines whose owner it is. These are what a
+ * ordinate is its own line's, else its segment line's; where its length is
+ * not known, its reach is where that line ends (its `start` plus its drawn
+ * length), else its drawn span as a segment; its maps are those drawn at
+ * the card's lines whose owner it is. These are what a
  * cross-section line at any abscissa of the card crosses (drawing.md
  * section 2: a timestamp's coordinates in a card), wherever it spans that
  * abscissa. An ancestor card (section 8.8) is a card of its own: its lines
@@ -369,10 +374,16 @@ function cardTimelines(
       (each.ancestor === undefined) === (line.ancestor === undefined),
   );
   const ordinates = new Map<string, number>();
-  for (const each of lines) ordinates.set(each.timeline, each.y);
+  const ends = new Map<string, Real>();
+  for (const each of lines) {
+    ordinates.set(each.timeline, each.y);
+    ends.set(each.timeline, addReal(each.start, each.drawnLength));
+  }
   for (const each of lines) {
     for (const segment of each.segments) {
-      if (!ordinates.has(segment.id)) ordinates.set(segment.id, each.y);
+      if (ordinates.has(segment.id)) continue;
+      ordinates.set(segment.id, each.y);
+      ends.set(segment.id, segment.length);
     }
   }
   const maps = new Map<string, ConversionMap[]>();
@@ -392,22 +403,30 @@ function cardTimelines(
   const rankOf = (id: string): number => ranks.get(id) ?? ranks.size;
   const found = [...ordinates]
     .sort(([left], [right]) => rankOf(left) - rankOf(right))
-    .map(
-      ([id, ordinate]): CardTimeline => ({
-        timeline: drawnTimeline(manifest, id),
+    .map(([id, ordinate]): CardTimeline => {
+      const timeline = drawnTimeline(manifest, id);
+      const reach = timeline.length === null ? ends.get(id) : undefined;
+      return {
+        timeline,
         zero: zeroOf(manifest, id),
         ordinate,
+        ...(reach === undefined ? {} : { reach }),
         maps: maps.get(id) ?? [],
         mapOrdinates: mapOrdinates.get(id) ?? new Map(),
-      }),
-    );
+      };
+    });
   byLine.set(lineKey, found);
   return found;
 }
 
-/** `item`'s axis with the maps drawn for it, read at its ordinate in its card. */
+/** `item`'s axis with the maps drawn for it and its reach there, read at its ordinate in its card. */
 function cardAxis(item: CardTimeline): TimelineAxis {
-  return crossedAt(timelineAxisOf(item.timeline, item.maps), item.ordinate, item.mapOrdinates);
+  const axis = timelineAxisOf(item.timeline, item.maps);
+  return crossedAt(
+    item.reach === undefined ? axis : { ...axis, reach: item.reach },
+    item.ordinate,
+    item.mapOrdinates,
+  );
 }
 
 /**
@@ -419,10 +438,14 @@ function cardAxis(item: CardTimeline): TimelineAxis {
  * the anchor's ancestors, siblings, children and every other timeline of
  * the card, as lines, ancestor lines or segments of a line) at its offset
  * from the anchor's zero, exact, each with the maps drawn for it in the
- * card and at the ordinate of its line there, so its rows are listed top to
- * bottom. Core's `timestampAt` keeps of them those whose span holds the
- * position, ends included. An anchor the card does not draw is read on its
- * own axis without maps.
+ * card, at the ordinate of its line there, so its rows are listed top to
+ * bottom, and, of unknown length, with its reach there; plus the anchor's
+ * ancestors wherever they are drawn or not: an ancestor the card does not
+ * draw (its line hidden) follows at its offset (core's `ancestorMembers`),
+ * without maps or ordinate, so it is listed after the drawn rows. Core's
+ * `timestampAt` keeps of them those whose span holds the position, ends
+ * included. An anchor the card does not draw is read on its own axis
+ * without maps.
  */
 export function crossSectionSpec(
   manifest: Manifest,
@@ -438,13 +461,18 @@ export function crossSectionSpec(
   const timelines = cardTimelines(manifest, drawing, lineKey);
   const own = timelines.find((item) => item.timeline.id === id);
   const zero = own?.zero ?? zeroOf(manifest, id);
+  const drawn = timelines
+    .filter((item) => item !== own)
+    .map((item): CrossSectionMember => ({ ...cardAxis(item), offset: item.zero.subtract(zero) }));
+  const listed = new Set(timelines.map((item) => item.timeline.id));
   return {
     block,
     granularity,
     anchor: own === undefined ? timelineAxisOf(drawnTimeline(manifest, id), []) : cardAxis(own),
-    members: timelines
-      .filter((item) => item !== own)
-      .map((item) => ({ ...cardAxis(item), offset: item.zero.subtract(zero) })),
+    members: [
+      ...drawn,
+      ...ancestorMembers(manifest, id).filter((ancestor) => !listed.has(ancestor.timeline)),
+    ],
   };
 }
 /** Where a timestamp's wedge and cross-section line are drawn: on a line, at an abscissa. */
@@ -717,7 +745,8 @@ function markedKey(drawing: Drawing, axis: DrawnAxis): string | undefined {
  * other timeline of its card at the member's offset plus its own offset
  * from the member's zero (negative for an ancestor) divided by that scale,
  * with the same scale, so that its coordinate is the member's less that
- * offset; each with the maps drawn for it there. Each is read at the
+ * offset; each with the maps drawn for it there; then each ancestor of the
+ * member its card does not draw (its line hidden) alike, without maps. Each is read at the
  * ordinate of its line in the member's card, or, while `raised`
  * (`raisedRoot`) names a root whose cards draw the member, in the raised
  * card, on the line of it lifted in the stacking (the first of `linesOf`),
@@ -751,8 +780,10 @@ function withGroupMembers(
     members.push(member);
   };
   /**
-   * The member drawn as `line` and, read by the group (`scale` given), its
-   * ancestors, then its crossed descendants, at `offset` and `scale`.
+   * The member drawn as `line` and every timeline its card draws, at
+   * `offset` and `scale`; read by the group (`scale` given), then its
+   * ancestors its card does not draw (`ancestorMembers`), without maps or
+   * ordinate, at the same scale.
    */
   const read = (line: DrawnAxis, offset: Rational, scale: Rational | undefined): void => {
     const timeline = line.address.id;
@@ -770,6 +801,10 @@ function withGroupMembers(
           ? { ...axis, offset: offset.add(own) }
           : { ...axis, offset: offset.add(own.divide(scale)), scale },
       );
+    }
+    if (scale === undefined) return;
+    for (const ancestor of ancestorMembers(manifest, timeline)) {
+      add({ ...ancestor, offset: offset.add(toRational(ancestor.offset).divide(scale)), scale });
     }
   };
   for (const own of drawing.axes) {

@@ -56,6 +56,14 @@ export interface TimelineAxis {
   readonly unit: TimeUnit;
   readonly numberType: NumberType;
   readonly length: Real | null;
+  /**
+   * Where `length` is null, the coordinate on the timeline's own axis at
+   * which the drawing the reading crosses it in ends it (its reach there);
+   * absent where it is not drawn there. Only which positions cross the
+   * timeline (`timestampAt`) reads it: a value past it is still a value of
+   * the timeline (`positionFor`).
+   */
+  readonly reach?: Real;
   readonly maps: readonly ConversionMap[];
   /**
    * The ordinate, in canvas units of its block's drawing, of the drawn line
@@ -378,9 +386,13 @@ function withinSpan(own: Rational, length: Real | null): boolean {
   return own.numerator >= 0n && (length === null || compareReal(own, length) <= 0);
 }
 
-/** Whether `member`'s closed span on the anchor's axis, `[offset, offset + length / scale]` (unbounded above for an unknown length), holds `position`. */
+/**
+ * Whether `member`'s closed span on the anchor's axis, `[offset, offset +
+ * end / scale]`, holds `position`: `end` its length, else its `reach`
+ * (where its drawing ends it), else unbounded above.
+ */
 function crosses(member: CrossSectionMember, position: Rational): boolean {
-  return withinSpan(ownAt(member, position), member.length);
+  return withinSpan(ownAt(member, position), member.length ?? member.reach ?? null);
 }
 
 function partOf(
