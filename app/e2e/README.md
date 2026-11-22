@@ -901,7 +901,7 @@ quarters), whose child `middle` (`Middle`, 8 quarters at offset 4) is a
 member of `group_1` beside `recording` (`Recording`, 10.0 seconds), runs on
 to both sides of its member.
 
-*Drawn by default, hidden and shown by one button.* With no rule stating
+*Drawn by default, hidden from its root and shown from its child.* With no rule stating
 anything of it, the block draws `piece`'s ancestor card, shadow and card
 addressed `{id: piece, part: [card]}`, at the layout's record (layout's
 README, "Ancestor cards", case 2): the card at `x="8"` `y="18.8047"`,
@@ -919,14 +919,18 @@ decimals, so the node's transform is compared with the string the same
 browser writes for `translate(<x>px, <y>px)` of the exact position, never
 with one engine's rounding). The card lies behind the frame: its
 rectangle precedes the frame's in the DOM. Selecting `piece` offers in
-Properties the button "Hide card behind its groups" (`ancestor-card`),
-enabled. Pressing it journals exactly one entry, `{type: "style", select:
+Properties the button "Hide parent timelines" (`ancestor-card`),
+enabled, titled "The card of 'Piece' behind the frames of its members'
+groups". Pressing it journals exactly one entry, `{type: "style", select:
 {element: "ancestor_card", addresses: [{id: "piece", part: ["card"]}]},
 set: {display: "none"}, blocks: [<block>]}`, and the card is gone: no
 element is addressed `{id: piece, part: [card]}`, the frame and the cards
 lie at `x` 8 and 16 with the same `y`, widths and heights, the node is at
 the block's place `(x, y)`, which the store keeps throughout. The button
-then reads "Show card behind its groups"; pressing it journals exactly one
+then reads "Show parent timelines", enabled. Showing the parent timelines
+is a property of the grouped child, so selecting the child `middle`
+instead offers the same button, "Show parent timelines" with the same
+title; pressing it journals exactly one
 entry, the same command with `set: {display: null}` (the block's own rule
 hid the card, so Show unstates it rather than stating `inline`), and the
 card and every box are drawn as before Hide. The drawing is compared,

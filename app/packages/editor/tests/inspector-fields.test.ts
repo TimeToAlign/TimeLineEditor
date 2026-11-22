@@ -1,7 +1,7 @@
 /**
- * The name field, the Locked checkbox beside the container size, and a size
- * below its minimum; the expected values are derived in `README.md` ("The
- * Properties form", items 7 to 9).
+ * The name field, the parent-timelines button under it, the Locked checkbox
+ * beside the container size, and a size below its minimum; the expected
+ * values are derived in `README.md` ("The Properties form", items 7 to 10).
  */
 
 import { readFileSync } from "node:fs";
@@ -469,7 +469,7 @@ describe("the Properties panel", () => {
       focused: found !== null && document.activeElement === found && !found.disabled,
     };
   };
-  const TITLE = "The timeline drawn whole behind the frames of its members' groups";
+  const TITLE = "The card of 'Recording' behind the frames of its members' groups";
 
   /** Click the button and let the panel follow the store. */
   function click(): void {
@@ -485,31 +485,124 @@ describe("the Properties panel", () => {
       const rules = blockOf(store).manifest.graphical?.rules;
       expect(recordingCards(store)).toBe(1);
       show(store, elements);
-      expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
+      expect(button()).toEqual(["Hide parent timelines", false, TITLE]);
       const before = store.journal.length;
       click();
       expect(store.journal.length).toBe(before + 1);
       expect(lastCommand(store)).toEqual(ownCommand("none"));
       expect(recordingCards(store)).toBe(0);
-      expect(button()).toEqual(["Show card behind its groups", false, TITLE]);
+      expect(button()).toEqual(["Show parent timelines", false, TITLE]);
       click();
       expect(store.journal.length).toBe(before + 2);
       expect(lastCommand(store)).toEqual(ownCommand(null));
       expect(recordingCards(store)).toBe(1);
       expect(blockOf(store).manifest.graphical?.rules).toEqual(rules);
-      expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
+      expect(button()).toEqual(["Hide parent timelines", false, TITLE]);
     },
   );
 
   it.each<[ElementAddress[]]>([
-    [[{ id: "score", part: ["card"] }]],
+    [[{ id: "excerpt", part: ["card"] }]],
     [[{ id: "excerpt" }]],
+    [[{ id: "recording" }]],
+    [[{ id: "recording", part: ["card"] }]],
+    [[{ id: "excerpt", part: ["start"] }]],
+    [[{ id: "excerpt" }, { id: "excerpt", part: ["card"] }, { id: "recording" }]],
+  ])(
+    "offers recording's button for %j, which hides its card by the root's own rule",
+    (elements) => {
+      const store = storeOf();
+      showAll(store);
+      show(store, elements);
+      expect(button()).toEqual(["Hide parent timelines", false, TITLE]);
+      const before = store.journal.length;
+      click();
+      expect(store.journal.length).toBe(before + 1);
+      expect(lastCommand(store)).toEqual(ownCommand("none"));
+      expect(recordingCards(store)).toBe(0);
+      expect(button()).toEqual(["Show parent timelines", false, TITLE]);
+    },
+  );
+
+  it("puts the button on its own row directly under the name, outside the size row", () => {
+    const store = storeOf();
+    showAll(store);
+    show(store, [{ id: "excerpt", part: ["card"] }]);
+    const row = document.querySelector("label.name")?.nextElementSibling;
+    expect([row?.tagName, row?.firstElementChild === ancestorCard()]).toEqual(["DIV", true]);
+    expect(ancestorCard()?.closest(".size")).toBe(null);
+    expect(ancestorCard()?.closest("form")).toBe(null);
+  });
+
+  it.each<[ElementAddress[]]>([
+    [[{ id: "score", part: ["card"] }]],
     [[{ id: "group_1" }]],
     [[{}]],
+    [[{ id: "excerpt", facet: "markers" }]],
+    [[{ id: "excerpt" }, { id: "score" }]],
     [[{ id: "recording" }, { id: "score" }]],
-  ])("offers no ancestor-card button for %j", (elements) => {
-    show(storeOf(), elements);
+  ])("offers no parent-timelines button for %j", (elements) => {
+    const store = storeOf();
+    showAll(store);
+    show(store, elements);
     expect(ancestorCard()).toBe(null);
+  });
+
+  it("gives back the card and the Hide button when the hiding is undone", () => {
+    const store = storeOf();
+    showAll(store);
+    const rules = blockOf(store).manifest.graphical?.rules;
+    show(store, [{ id: "excerpt" }]);
+    click();
+    expect(recordingCards(store)).toBe(0);
+    store.undo();
+    flushSync();
+    expect(recordingCards(store)).toBe(1);
+    expect(blockOf(store).manifest.graphical?.rules).toEqual(rules);
+    expect(button()).toEqual(["Hide parent timelines", false, TITLE]);
+  });
+
+  describe("on a root with members in two groups", () => {
+    const S = "bshared000";
+
+    /** The ancestor cards of `score` block `S` draws. */
+    const scoreCards = (store: Store) => {
+      const sonata = store.view.blocks[S];
+      if (sonata === undefined) throw new Error(`no block ${S}`);
+      return drawingOf(sonata, store.view.graphical, fontMetrics).boxes.filter(
+        (box) => box.ancestor !== undefined && box.address.id === "score",
+      ).length;
+    };
+
+    const scoreCommand = (display: "none" | null) => ({
+      type: "style",
+      select: { element: "ancestor_card", addresses: [{ id: "score", part: ["card"] }] },
+      set: { display },
+      blocks: [S],
+    });
+    const SCORE_TITLE = "The card of 'Score' behind the frames of its members' groups";
+
+    it.each<[ElementAddress]>([
+      [{ id: "recapitulation" }],
+      [{ id: "recapitulation_first_1" }],
+      [{ id: "score" }],
+    ])("hides both of score's cards by one click on %j and shows both again", (element) => {
+      const store = storeOf();
+      showAll(store);
+      expect(scoreCards(store)).toBe(2);
+      showSelection(store, selectionOf([{ block: S, ...element }]));
+      expect(button()).toEqual(["Hide parent timelines", false, SCORE_TITLE]);
+      const before = store.journal.length;
+      click();
+      expect(store.journal.length).toBe(before + 1);
+      expect(lastCommand(store)).toEqual(scoreCommand("none"));
+      expect(scoreCards(store)).toBe(0);
+      expect(button()).toEqual(["Show parent timelines", false, SCORE_TITLE]);
+      click();
+      expect(store.journal.length).toBe(before + 2);
+      expect(lastCommand(store)).toEqual(scoreCommand(null));
+      expect(scoreCards(store)).toBe(2);
+    });
   });
 
   it("shows a card a manifest-wide rule hides by the own rule, which outranks it", () => {
@@ -523,11 +616,11 @@ describe("the Properties panel", () => {
     });
     expect(recordingCards(store)).toBe(0);
     show(store, [{ id: "recording" }]);
-    expect(button()).toEqual(["Show card behind its groups", false, TITLE]);
+    expect(button()).toEqual(["Show parent timelines", false, TITLE]);
     click();
     expect(lastCommand(store)).toEqual(ownCommand("inline"));
     expect(recordingCards(store)).toBe(1);
-    expect(button()).toEqual(["Hide card behind its groups", false, TITLE]);
+    expect(button()).toEqual(["Hide parent timelines", false, TITLE]);
     click();
     expect(lastCommand(store)).toEqual(ownCommand("none"));
     expect(recordingCards(store)).toBe(0);
@@ -551,9 +644,9 @@ describe("the Properties panel", () => {
     });
     expect(recordingCards(store)).toBe(0);
     show(store, [{ id: "recording" }]);
-    expect(button()).toEqual(["Show card behind its groups", true, TITLE]);
+    expect(button()).toEqual(["Show parent timelines", true, TITLE]);
     expect(reachable()).toEqual({
-      name: "Show card behind its groups",
+      name: "Show parent timelines",
       label: null,
       disabled: "true",
       described: ["Hidden by another style rule"],
@@ -580,9 +673,9 @@ describe("the Properties panel", () => {
     });
     expect(recordingCards(store)).toBe(1);
     show(store, [{ id: "recording" }]);
-    expect(button()).toEqual(["Hide card behind its groups", true, TITLE]);
+    expect(button()).toEqual(["Hide parent timelines", true, TITLE]);
     expect(reachable()).toEqual({
-      name: "Hide card behind its groups",
+      name: "Hide parent timelines",
       label: null,
       disabled: "true",
       described: ["Shown by another style rule"],
@@ -600,7 +693,7 @@ describe("the Properties panel", () => {
     showAll(store);
     show(store, [{ id: "recording" }]);
     expect(reachable()).toEqual({
-      name: "Hide card behind its groups",
+      name: "Hide parent timelines",
       label: null,
       disabled: null,
       described: [],
