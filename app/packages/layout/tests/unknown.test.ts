@@ -243,7 +243,7 @@ describe("a segment line whose segments are of unknown length", () => {
 });
 
 describe("ancestor lines and unknown lengths", () => {
-  it("run on to the right when the member's length is not known, marking its start only", () => {
+  it("run on to the right when the member's length is not known", () => {
     const drawing = drawn(
       edit(
         "groups/group_child_member",
@@ -265,33 +265,21 @@ describe("ancestor lines and unknown lengths", () => {
       end: "unknown",
     });
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
-    // The ancestor marks the member's start alone; the member's own `origin` is its timestamp.
-    expect(addresses(drawing, "wedge").filter((item) => item.id === "second-half")).toEqual([
-      at("second-half", "start"),
-    ]);
-    const marks = drawing.elements.filter(
-      (item) =>
-        item.type === "label" &&
-        (sameAddress(item.address, at("second-half", "start", "label")) ||
-          sameAddress(item.address, at("timestamp_3", "coordinate"))),
-    );
-    expect(marks.map((item) => (item.type === "label" ? item.text : ""))).toEqual(["8 ♩", "0 ♩"]);
+    // No ancestor line marks the member: its start is its own `origin`, on its own line.
+    expect(addresses(drawing, "wedge").filter((item) => item.id === "second-half")).toEqual([]);
+    expect(
+      drawing.elements.flatMap((item) =>
+        item.type === "label" && sameAddress(item.address, at("timestamp_3", "coordinate"))
+          ? [item.text]
+          : [],
+      ),
+    ).toEqual(["0 ♩"]);
   });
 
   it("run on to the right when the ancestor's length is not known", () => {
     const drawing = drawn(edit("groups/group_child_member", set("piece", { length: null })));
     const x0 = line(drawing, "second-half").xs;
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
-    const ends = [at("second-half", "start", "label"), at("second-half", "end", "label")];
-    const markLabels = drawing.elements.flatMap((item) =>
-      item.type === "label" && ends.some((address) => sameAddress(item.address, address))
-        ? [[item.address, item.text]]
-        : [],
-    );
-    expect(markLabels.slice(0, 2)).toEqual([
-      [at("second-half", "start", "label"), "8 ♩"],
-      [at("second-half", "end", "label"), "16 ♩"],
-    ]);
   });
 
   it("end short of the member's end, with their own end, where a timeline between has no length", () => {

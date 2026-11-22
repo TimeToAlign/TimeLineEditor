@@ -699,7 +699,7 @@ describe("the marks at any position", () => {
     ]);
   });
 
-  it("are an ancestor line's mark alone on it, styled by no rule on its marks", () => {
+  it("are an ancestor line's mark alone on it, styled by no rule naming an address", () => {
     const manifest = loadFile("groups/group_child_member");
     const layered = (rules: readonly Rule[]) =>
       draw(
@@ -732,13 +732,14 @@ describe("the marks at any position", () => {
       [97, 99.68359375],
       [103, 99.68359375],
     ]);
+    // The member's `origin` and `length`, whose secondary coordinates lie on that line.
     const restyled = layered([
       {
-        select: { element: "wedge", addresses: [at("second-half", "start")] },
+        select: { element: "wedge", addresses: [at("timestamp_3")] },
         set: { display: "none" },
       },
       {
-        select: { element: "wedge", addresses: [at("second-half", "end")] },
+        select: { element: "wedge", addresses: [at("timestamp_4")] },
         set: { fill: "#FF0000", rotation: 90 },
       },
     ]);
@@ -795,9 +796,10 @@ describe("the marks at any position", () => {
       plain.elements.filter((item) => sameAddress(item.address, at("middle", "start"))),
     ).toEqual([]);
 
+    // `middle`'s `origin`, whose secondary coordinate lies on that line.
     const startRecoloured = layered([
       {
-        select: { element: "wedge", addresses: [at("middle", "start")] },
+        select: { element: "wedge", addresses: [at("timestamp_1")] },
         set: { fill: "#FF0000" },
       },
     ]);

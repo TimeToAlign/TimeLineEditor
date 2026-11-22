@@ -65,7 +65,7 @@ describe("default places reproduce the stacked block", () => {
   it("group_child_member: one frame at (8, 8)", () => {
     const drawing = drawWithoutAncestorCards("groups/group_child_member");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    const size = { width: 537.898681640625, height: 177.5390625 };
+    const size = { width: 537.61962890625, height: 157.5625 };
     expect(itemsOf(drawing)).toEqual([
       {
         kind: "frame",
@@ -152,7 +152,7 @@ describe("an item left of the padding, a width request and a length of its own",
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 563.9150390625,
+        width: 561.052001953125,
         height: 169.234375,
       },
       {
@@ -163,23 +163,23 @@ describe("an item left of the padding, a width request and a length of its own",
         spacing: 8,
         margin: 0,
         width: 700,
-        height: 177.734375,
+        height: 157.7578125,
       },
       {
         x: -30,
-        y: 385.734375,
+        y: 365.7578125,
         length: 300,
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 463.9150390625,
+        width: 461.052001953125,
         height: 71.85546875,
       },
     ]);
   });
 
   it("grows the block to the left and moves the place origin", () => {
-    expect([drawing.width, drawing.height]).toEqual([786, 467.58984375]);
+    expect([drawing.width, drawing.height]).toEqual([786, 447.61328125]);
     expect(drawing.origin).toEqual({ x: 38, y: 0 });
   });
 
@@ -188,10 +188,15 @@ describe("an item left of the padding, a width request and a length of its own",
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 46,
       y: 28.8046875,
-      width: 563.9150390625,
+      width: 561.052001953125,
       height: 169.234375,
     });
-    expect(rect(drawing, at("group_2"))).toEqual({ x: 78, y: 200, width: 700, height: 177.734375 });
+    expect(rect(drawing, at("group_2"))).toEqual({
+      x: 78,
+      y: 200,
+      width: 700,
+      height: 157.7578125,
+    });
     expect(rect(drawing, at("page", "card"))).toEqual({
       x: 86,
       y: 224.8046875,
@@ -200,8 +205,8 @@ describe("an item left of the padding, a width request and a length of its own",
     });
     expect(rect(drawing, at("annotations", "card"))).toEqual({
       x: 8,
-      y: 385.734375,
-      width: 463.9150390625,
+      y: 365.7578125,
+      width: 461.052001953125,
       height: 71.85546875,
     });
   });
@@ -220,7 +225,7 @@ describe("an item left of the padding, a width request and a length of its own",
     expect(line(drawing, "annotations")).toEqual({
       xs: 126.29150390625,
       xe: 426.29150390625,
-      y: 400.13671875,
+      y: 380.16015625,
     });
   });
 });
@@ -325,13 +330,13 @@ describe("a frame's own length and height request, a card's width request", () =
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 8,
       y: 28.8046875,
-      width: 463.9150390625,
+      width: 461.052001953125,
       height: 200,
     });
     expect(rect(drawing, at("score", "card"))).toEqual({
       x: 16,
       y: 53.609375,
-      width: 447.9150390625,
+      width: 445.052001953125,
       height: 78.953125,
     });
     expect(rect(drawing, at("performance", "card"))).toMatchObject({ y: 140.5625 });
@@ -341,8 +346,8 @@ describe("a frame's own length and height request, a card's width request", () =
     expect(rect(drawing, at("group_2"))).toEqual({
       x: 8,
       y: 236.8046875,
-      width: 563.9150390625,
-      height: 177.734375,
+      width: 561.052001953125,
+      height: 157.7578125,
     });
     expect(rect(drawing, at("page", "card"))).toMatchObject({ y: 261.609375 });
   });
@@ -350,21 +355,21 @@ describe("a frame's own length and height request, a card's width request", () =
   it("widens the card to the requested width, its inset in a block of frames included", () => {
     expect(rect(drawing, at("annotations", "card"))).toEqual({
       x: 8,
-      y: 422.5390625,
+      y: 402.5625,
       width: 600,
       height: 71.85546875,
     });
     expect(line(drawing, "annotations")).toEqual({
       xs: 126.29150390625,
       xe: 526.29150390625,
-      y: 436.94140625,
+      y: 416.96484375,
     });
   });
 
   it("sizes the block and reports the places", () => {
     expect([drawing.width, drawing.height, drawing.origin]).toEqual([
       618,
-      504.39453125,
+      484.41796875,
       { x: 0, y: 0 },
     ]);
     expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
@@ -375,7 +380,7 @@ describe("a frame's own length and height request, a card's width request", () =
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 463.9150390625,
+        width: 461.052001953125,
         height: 200,
       },
       {
@@ -385,12 +390,12 @@ describe("a frame's own length and height request, a card's width request", () =
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 563.9150390625,
-        height: 177.734375,
+        width: 561.052001953125,
+        height: 157.7578125,
       },
       {
         x: 8,
-        y: 422.5390625,
+        y: 402.5625,
         length: 400,
         scale: 1,
         spacing: 4,

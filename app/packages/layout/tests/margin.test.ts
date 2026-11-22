@@ -123,15 +123,30 @@ describe("a card's margin", () => {
     });
     const half = at("second-half", "card");
     const recording = at("recording", "card");
-    expect(rect(after, half).height).toBe(111.35546875);
-    expect(inside(after, half).slice(1)).toEqual(moved(inside(before, half).slice(1), MARGIN));
+    expect(rect(after, half).height).toBe(91.37890625);
+    // A cross-section line crosses its card from border to border (section 6.6): of the pieces of
+    // the groupstamps `origin` and `length`, the ends at the card's top and bottom stay on them,
+    // every other end moves with the contents.
+    const [top, bottom] = [rect(before, half).y, rect(before, half).y + rect(before, half).height];
+    const borders = (item: DrawnElement): DrawnElement =>
+      item.type !== "cross_section"
+        ? item
+        : {
+            ...item,
+            y1: item.y1 === top + MARGIN ? top : item.y1,
+            y2: item.y2 === bottom + MARGIN ? bottom + 2 * MARGIN : item.y2,
+          };
+    expect(inside(after, half).slice(1)).toEqual(
+      moved(inside(before, half).slice(1), MARGIN).map(borders),
+    );
+    expect(inside(after, half).filter((item) => item.type === "cross_section").length).toBe(4);
     expect(inside(after, half).some((item) => item.type === "ancestor")).toBe(true);
     expect(inside(after, recording)).toEqual(moved(inside(before, recording), 2 * MARGIN));
     expect([rect(before, recording).y, rect(after, recording).y]).toEqual([
-      128.16015625, 152.16015625,
+      108.18359375, 132.18359375,
     ]);
     expect([rect(before, at("group_1")).height, rect(after, at("group_1")).height]).toEqual([
-      177.5390625, 201.5390625,
+      157.5625, 181.5625,
     ]);
     expect(boxAt(after, half)).toMatchObject({ contentCount: 3, card: { margin: MARGIN } });
   });

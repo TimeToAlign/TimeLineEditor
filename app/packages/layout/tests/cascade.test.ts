@@ -347,9 +347,10 @@ describe("a band's display", () => {
 });
 
 describe("one address drawn twice", () => {
+  // A named timestamp `s` of the member `m`, drawn on an ancestor line and on `m`'s own line.
   const drawingOf = (inside: ElementKey["inside"]): ElementKey => ({
     type: "wedge",
-    address: at("m", "start"),
+    address: at("s"),
     timeline: "m",
     domain: "logical",
     modality: "continuous",
@@ -364,55 +365,58 @@ describe("one address drawn twice", () => {
         {
           rules: [
             { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
-            { select: { addresses: [at("m", "start")] }, set: { fill: "#654321" } },
+            { select: { addresses: [at("s")] }, set: { fill: "#654321" } },
           ],
         },
       ],
       new Map([["m", ["m"]]]),
     );
     const parent = (colour: string) => ({ ...INITIAL_STYLE, stroke: colour });
-    const mark = cascade.resolve(
+    const secondary = cascade.resolve(
       drawingOf(["block", "frame", "timeline", "ancestor"]),
       parent("#111111"),
     );
     const wedge = cascade.resolve(drawingOf(["block", "frame", "timeline"]), parent("#222222"));
-    expect([mark.opacity, mark.fill, mark.stroke]).toEqual([0.5, "#654321", "#111111"]);
+    expect([secondary.opacity, secondary.fill, secondary.stroke]).toEqual([
+      0.5,
+      "#654321",
+      "#111111",
+    ]);
     expect([wedge.opacity, wedge.fill, wedge.stroke]).toEqual([1, "#654321", "#222222"]);
   });
 
   it.each([
-    [at("second-half", "start"), at("timestamp_3")],
-    [at("second-half", "end"), at("timestamp_4")],
-    [at("second-half", "start", "label"), at("timestamp_3", "coordinate")],
-    [at("second-half", "end", "label"), at("timestamp_4", "coordinate")],
+    [at("timestamp_3")],
+    [at("timestamp_4")],
+    [at("timestamp_3", "coordinate")],
+    [at("timestamp_4", "coordinate")],
   ])(
-    "draws %j on the ancestor line only, inside it, and %j on the member's own line",
-    (address, own) => {
+    "draws %j inside the ancestor line on it and outside it on the member's own line",
+    (address) => {
+      // Without the default layer the secondary coordinates are shown (section 2), and the
+      // ancestor card is hidden by a rule of this layer.
       const drawing = draw(
         loadFile("groups/group_child_member"),
         DEFAULT_PLACEMENT,
         [
           {
             rules: [
+              { select: { element: "ancestor_card" }, set: { display: "none" } },
               { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
               { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
-              // Without the default layer the secondary coordinates are shown too (section 2);
-              // this compares the primary ones alone.
-              { select: { coordinates: "secondary" }, set: { display: "none" } },
             ],
           },
         ],
         metrics,
       );
-      const pairs = (wanted: Address) =>
-        drawing.elements
-          .filter((item) => sameAddress(item.address, wanted))
-          .map((item) => [item.style.stroke, item.style.opacity]);
-      expect(pairs(address)).toEqual([["#111111", 0.5]]);
-      // Without the default layer `piece`'s ancestor card is drawn, the member's own timestamp
-      // first on its row there, inside `piece`'s line but in no ancestor line.
-      expect(pairs(own)).toEqual([
-        ["#111111", 1],
+      const pairs = drawing.elements
+        .filter((item) => sameAddress(item.address, address))
+        .map((item) => [item.style.stroke, item.style.opacity]);
+      // The secondary coordinate on `piece`'s ancestor line in the member's card, the primary on
+      // the member's line, then, a groupstamp, the secondary on `recording`'s line in its card.
+      expect(pairs).toEqual([
+        ["#111111", 0.5],
+        ["none", 1],
         ["none", 1],
       ]);
     },
@@ -589,6 +593,23 @@ describe("the elements core enumerates", () => {
             );
       return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
     };
+    // A gap is one drawing of its card, or of its frame, wherever its pieces lie, and its
+    // ellipses, which follow it (section 8.5), are one drawing with it: core lists one ellipsis
+    // key per gap, standing for all of them.
+    const gapOf = (item: DrawnElement, index: number): string => {
+      if (item.type !== "elision") return drawingOf(item, index);
+      const inCard = cards.findIndex(({ range }) => range.start <= index && index < range.end);
+      if (inCard !== -1) return `card ${inCard}`;
+      const frame = frames.find(
+        (box) =>
+          box.x <= item.x1 &&
+          item.x2 <= box.x + box.width &&
+          box.y <= item.yt &&
+          item.yb <= box.y + box.height,
+      );
+      return frame === undefined ? `element ${index}` : `frame ${frames.indexOf(frame)}`;
+    };
+    const lastGap = new Map<string, string>();
     const drawn = new Map<string, { types: string[]; drawings: Set<string> }>();
     drawing.elements.forEach((item, index) => {
       // A default elision and its labels depend on the drawing's geometry, so core lists none.
@@ -596,7 +617,10 @@ describe("the elements core enumerates", () => {
       const own = addressKey(item.address);
       const entry = drawn.get(own) ?? { types: [], drawings: new Set<string>() };
       entry.types.push(item.type);
-      entry.drawings.add(drawingOf(item, index));
+      if (item.type === "elision") lastGap.set(item.address.id ?? "", gapOf(item, index));
+      entry.drawings.add(
+        item.type === "ellipsis" ? `gap ${lastGap.get(item.address.id ?? "")}` : gapOf(item, index),
+      );
       drawn.set(own, entry);
     });
     for (const [address, { types, drawings }] of drawn) {

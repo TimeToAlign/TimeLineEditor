@@ -53,6 +53,8 @@ const plain = (name: string, extra: Graphical[] = []) =>
  * `bundle_elided_layerit`; none for every fixture not listed.
  */
 const ANCESTOR_CARDS: Readonly<Record<string, number>> = {
+  "bundles/bundle_arranged_conflict": 2,
+  "bundles/bundle_arranged_roots": 5,
   "bundles/bundle_elided_layerit": 4,
   "bundles/bundle_elisions_stored": 2,
   "bundles/bundle_mixed": 1,
@@ -60,6 +62,7 @@ const ANCESTOR_CARDS: Readonly<Record<string, number>> = {
   "groups/group_child_member": 1,
   "groups/group_child_member_stamps": 1,
   "groups/group_elided_inside": 1,
+  "groups/group_elided_members": 1,
   "groups/group_grandchild": 1,
   "groups/group_grandchild_parent_on_top": 1,
   "groups/group_parent_both": 1,
@@ -127,7 +130,7 @@ describe("the ancestor card of group_parent_both", () => {
 
   it("lies behind the frame at the proportions of piece's axis, on piece's ancestor row", () => {
     expect(drawing.origin).toEqual({ x: 148.6318359375, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([887.33544921875, 193.5390625]);
+    expect([drawing.width, drawing.height]).toEqual([887.33544921875, 173.5625]);
     expect(card).toEqual({
       kind: "card",
       key: { item: "group_1", member: "piece" },
@@ -137,7 +140,7 @@ describe("the ancestor card of group_parent_both", () => {
       y: 36.20703125,
       width: 869.33544921875,
       height: 63.37890625,
-      range: { start: 1, end: 10 },
+      range: { start: 1, end: 14 },
       displayed: true,
       contentCount: 2,
       ancestor: { group: "group_1", member: "middle" },
@@ -215,7 +218,7 @@ describe("the ancestor card of group_parent_right", () => {
     const drawing = shown("group_parent_right");
     const card = cardOf(drawing, "piece");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([914.70361328125, 193.5390625]);
+    expect([drawing.width, drawing.height]).toEqual([914.70361328125, 173.5625]);
     expect([card.x, card.y, card.width, card.height]).toEqual([
       23.6162109375, 36.20703125, 881.08740234375, 63.37890625,
     ]);
@@ -232,7 +235,7 @@ describe("the ancestor cards of group_parents_mixed", () => {
 
   it("lie behind the one frame, one per root, at their own axes' proportions", () => {
     expect(drawing.origin).toEqual({ x: 423.5276884191177, y: 0 });
-    expect([drawing.width, drawing.height]).toEqual([1732.891295189951, 384.4453125]);
+    expect([drawing.width, drawing.height]).toEqual([1732.891295189951, 324.515625]);
     expect(
       ancestorsOf(drawing).map((box) => [
         box.address.id,
@@ -244,8 +247,8 @@ describe("the ancestor cards of group_parents_mixed", () => {
       ]),
     ).toEqual([
       ["sonata", "exposition", 263.5276884191177, 36.20703125, 690.309326171875, 63.37890625],
-      ["session", "take", 8, 131.66015625, 1486.7344324448532, 63.37890625],
-      ["page", "system", 479.5389188878677, 227.015625, 1243.3523763020833, 63.37890625],
+      ["session", "take", 8, 111.68359375, 1486.7344324448532, 63.37890625],
+      ["page", "system", 479.5389188878677, 187.0625, 1243.3523763020833, 63.37890625],
     ]);
   });
 
@@ -402,8 +405,12 @@ describe("a groupstamp on a child member beside an ancestor card", () => {
   const without = draw(manifest, DEFAULT_PLACEMENT, layers([HIDDEN_ANCESTOR_CARDS]), metrics);
 
   it("crosses the frame's member cards only, as without the card", () => {
+    // The pieces of `timestamp_1` alone: `middle`'s `origin` and `length`, groupstamps of the
+    // fixture, draw their own at `x0` and `x0 + 400`.
     const pieces = (of: Drawing) =>
-      groupstampElements(manifest, of.axes, of.boxes).map(({ x, y1, y2 }) => [x, y1, y2]);
+      groupstampElements(manifest, of.axes, of.boxes)
+        .filter((item) => item.address.id === "timestamp_1")
+        .map(({ x, y1, y2 }) => [x, y1, y2]);
     // At `x0 + 100` of `middle`, from the top of `middle`'s card to the bottom of `recording`'s,
     // less `middle`'s card, which its own cross-section line crosses: from the bottom of
     // `middle`'s card to the bottom of `recording`'s.
@@ -516,7 +523,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
 
   it("lie behind both frames, each at its own frame's proportions", () => {
     expect(drawing.origin).toEqual({ x: 698.6901041666667, y: 3.671875 });
-    expect([drawing.width, drawing.height]).toEqual([1928.0259602864583, 541.1328125]);
+    expect([drawing.width, drawing.height]).toEqual([1928.0259602864583, 501.1796875]);
     expect(
       ancestorsOf(drawing).map((box) => [
         box.key,
@@ -545,7 +552,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         null,
         { group: "group_2", member: "recapitulation" },
         8,
-        274.96875,
+        254.9921875,
         1243.3592936197917,
         154.8828125,
       ],
@@ -579,9 +586,9 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       without.elements
         .filter((item) => item.type === "ancestor" && sameAddress(item.address, at("score")))
         .map((item) => span(item)[0]),
-    ).toEqual([123.5625, 369.7265625]);
+    ).toEqual([123.5625, 349.75]);
     expect(boxesOf(without, "frame")[0]?.y).toBe(28.8046875);
-    expect(without.height).toBe(537.4609375);
+    expect(without.height).toBe(497.5078125);
   });
 
   it("draw score's line twice, keyed by each card", () => {
@@ -608,7 +615,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
       ],
       [
         keys[1],
-        373.3984375,
+        353.421875,
         167.41357421875,
         1234.0802408854167,
         "32",
