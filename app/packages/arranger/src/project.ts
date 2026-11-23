@@ -96,18 +96,34 @@ export interface NodeRect extends PackedSize {
 }
 
 /**
+ * Where an arranged canvas packs its blocks from: the top left of every
+ * block's stated place (`nodePosition`), the least `x` and the least `y`,
+ * so the arrangement stays where it is whichever block comes first;
+ * `undefined` without a block.
+ */
+export function packingOrigin(
+  places: readonly { readonly x: number; readonly y: number }[],
+): { x: number; y: number } | undefined {
+  if (places.length === 0) return undefined;
+  return {
+    x: Math.min(...places.map(({ x }) => x)),
+    y: Math.min(...places.map(({ y }) => y)),
+  };
+}
+
+/**
  * Where the blocks lie on a canvas arranged `arranged` (`arrangedOf` on the
- * arranger), by block id: their nodes, given in index order with their
- * rectangles at their places, packed in that order by layout's `packed`
- * (`docs/drawing.md` in TimeToShare, section 8.6) from `start`, by default
- * the first one's top left corner, `ARRANGEMENT_GAP` apart, in a matrix of
- * `arranged.columns` columns. Each block's stated `x` and `y` are kept and
- * not used; a free canvas uses them again.
+ * arranger), by block id: their nodes, given in the order they are packed
+ * in with their rectangles, packed in that order by layout's `packed`
+ * (`docs/drawing.md` in TimeToShare, section 8.6) from `start` (the
+ * `packingOrigin` of the blocks' stated places), `ARRANGEMENT_GAP` apart,
+ * in a matrix of `arranged.columns` columns. Each block's stated `x` and
+ * `y` are kept and not used; a free canvas uses them again.
  */
 export function arrangedPlaces(
   nodes: readonly (NodeRect & { readonly id: string })[],
   arranged: Arranged,
-  start: { readonly x: number; readonly y: number } | undefined = nodes[0],
+  start: { readonly x: number; readonly y: number } | undefined,
 ): Map<string, { x: number; y: number }> {
   if (start === undefined) return new Map();
   const offsets = packed(nodes, {
@@ -139,9 +155,9 @@ function placedRects(
 }
 
 /**
- * Where every block of `view` lies on the canvas, by id: packed where the
- * workspace arranges its blocks (`arrangedPlaces`), at `nodePosition`
- * otherwise.
+ * Where every block of `view` lies on the canvas, by id: packed in index
+ * order where the workspace arranges its blocks (`arrangedPlaces`, from the
+ * `packingOrigin` of their places), at `nodePosition` otherwise.
  */
 export function blockPlaces(
   view: View,
@@ -154,7 +170,7 @@ export function blockPlaces(
   const arranged = arrangedOf(view, null);
   return arranged === null
     ? new Map(rects.map(({ id, x, y }) => [id, { x, y }]))
-    : arrangedPlaces(rects, arranged);
+    : arrangedPlaces(rects, arranged, packingOrigin(rects));
 }
 
 function sameMembers(

@@ -43,6 +43,7 @@ import type { Descriptor } from "@timetoalign/tilie-writers";
 import { attributeText } from "@timetoalign/tilie-writers";
 import { isItem, keyedBox } from "../boxes.ts";
 import { zeroOf } from "../cardAxis.ts";
+import { holdsAt } from "../coordinates.ts";
 import { raiseUnfold } from "./raise.ts";
 import {
   type Knot,
@@ -159,10 +160,13 @@ function exposureOf(drawing: Drawing, card: DrawnBox): ElisionExposure | undefin
 
 /**
  * The knots of the card `card` of `drawing`: both ends of every line layout
- * records in it (`lineAxes`, one per run of an elided line), and both edges
- * of every gap of its own (not a carried one, whose coordinates lie on
- * another tree), each at the position it draws on the card's root, sorted
- * by abscissa.
+ * records in it (`lineAxes`, one per run of an elided line), an end at a
+ * seam whose position lies on the other run marked `across` (`holdsAt`),
+ * and both edges of every gap of its own (not a carried one, whose
+ * coordinates lie on another tree), an edge at a position a run holds at
+ * another abscissa marked `across` too (a gap ending at a seam, the row
+ * crossing it whole), each at the position it draws on the card's root,
+ * sorted by abscissa.
  */
 export function cardKnots(manifest: Manifest, drawing: Drawing, card: DrawnBox): Knot[] {
   const knots: Knot[] = [];
@@ -170,18 +174,30 @@ export function cardKnots(manifest: Manifest, drawing: Drawing, card: DrawnBox):
     for (const axis of lineAxes(drawing).values()) {
       if (!samePlaceKey(axis.card, card.key)) continue;
       const at = float(zeroOf(manifest, axis.timeline)) + float(axis.start);
-      knots.push({ x: axis.xStart, at }, { x: axis.xEnd, at: at + float(axis.drawnLength) });
+      const start = toRational(axis.start);
+      const end = start.add(toRational(axis.drawnLength));
+      const across = (position: typeof start) =>
+        holdsAt(drawing, axis, position) ? {} : { across: true as const };
+      knots.push(
+        { x: axis.xStart, at, ...across(start) },
+        { x: axis.xEnd, at: at + float(axis.drawnLength), ...across(end) },
+      );
     }
   }
+  // Where a line's run holds a position, a gap's edge there at another abscissa (on a seam's
+  // other side) is across it too.
+  const held = new Map<number, number>();
+  for (const knot of knots) if (knot.across !== true) held.set(knot.at, knot.x);
+  const edge = (x: number, at: number): Knot => {
+    const x0 = held.get(at);
+    return x0 === undefined || x0 === x ? { x, at } : { x, at, across: true };
+  };
   const exposure = exposureOf(drawing, card);
   if (exposure !== undefined && exposure.kind !== "frame") {
     for (const gap of exposure.gaps) {
       if (gap.origin === "carried") continue;
       const zero = float(zeroOf(manifest, gap.timeline));
-      knots.push(
-        { x: gap.x1, at: zero + float(gap.start) },
-        { x: gap.x2, at: zero + float(gap.end) },
-      );
+      knots.push(edge(gap.x1, zero + float(gap.start)), edge(gap.x2, zero + float(gap.end)));
     }
   }
   return knots.sort((a, b) => a.x - b.x || a.at - b.at);

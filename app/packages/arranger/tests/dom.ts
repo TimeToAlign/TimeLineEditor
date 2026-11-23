@@ -193,6 +193,7 @@ export function pressEscape(): void {
 
 /** A recorded call of a node's actions, in the order it was made. */
 export type Call =
+  | { readonly refuse: string }
   | { readonly select: Address }
   | { readonly preview: string; readonly with: NodePreview | null }
   | { readonly dispatch: Command };
@@ -218,6 +219,7 @@ export function recordingActions(
     calls,
     actions: {
       dispatch: (command) => calls.push({ dispatch: command }),
+      refuse: (message) => calls.push({ refuse: message }),
       select: (address) => calls.push({ select: address }),
       preview: (block, preview) => calls.push({ preview: block, with: preview }),
       metrics,

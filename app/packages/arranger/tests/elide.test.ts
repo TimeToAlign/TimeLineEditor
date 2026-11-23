@@ -71,20 +71,28 @@ function between(x1: number, x2: number, v1: number, v2: number, v: number): num
  * Where the Full drawing `full` draws `value` of `timeline` in its ancestor
  * card: on that timeline's own line, which the Full card draws whole.
  */
-function fullAt(full: Drawn, timeline: string, value: number): number {
+/**
+ * The abscissa the Full card draws `value` of `timeline` at, as the `edge` of a piece: a run of
+ * its line starting there for a piece's start, one ending there for its end, so that the two
+ * sides of a seam (where one run ends and the next starts at one value) stay apart.
+ */
+function fullAt(full: Drawn, timeline: string, value: number, edge: "start" | "end"): number {
   const card = ancestorCard(full);
+  let inside: number | undefined;
   for (const axis of lineAxes(full.drawing).values()) {
     if (axis.timeline !== timeline || card.key === null || !samePlaceKey(axis.card, card.key)) {
       continue;
     }
     const start = float(axis.start);
     const end = start + float(axis.drawnLength);
-    if (value >= start && value <= end) return between(axis.xStart, axis.xEnd, start, end, value);
+    if (edge === "start" && value === start) return axis.xStart;
+    if (edge === "end" && value === end) return axis.xEnd;
+    if (value >= start && value <= end) inside = between(axis.xStart, axis.xEnd, start, end, value);
   }
-  throw new Error(`${timeline} ${value} is not drawn whole`);
+  if (inside === undefined) throw new Error(`${timeline} ${value} is not drawn`);
+  return inside;
 }
 
-/** A full run or a strip: its two abscissas in the Elided card and those of its values in the Full card. */
 interface Piece {
   readonly elided: readonly [number, number];
   readonly full: readonly [number, number];
@@ -104,7 +112,7 @@ function piecesOf(elided: Drawn, full: Drawn): Piece[] {
     const end = start + float(axis.drawnLength);
     pieces.push({
       elided: [axis.xStart, axis.xEnd],
-      full: [fullAt(full, axis.timeline, start), fullAt(full, axis.timeline, end)],
+      full: [fullAt(full, axis.timeline, start, "start"), fullAt(full, axis.timeline, end, "end")],
     });
   }
   for (let index = card.range.start; index < card.range.end; index += 1) {
@@ -113,7 +121,10 @@ function piecesOf(elided: Drawn, full: Drawn): Piece[] {
     const { timeline, start, end } = element.elided;
     pieces.push({
       elided: [element.x1, element.x2],
-      full: [fullAt(full, timeline, float(start)), fullAt(full, timeline, float(end))],
+      full: [
+        fullAt(full, timeline, float(start), "end"),
+        fullAt(full, timeline, float(end), "start"),
+      ],
     });
   }
   return pieces;
@@ -153,15 +164,31 @@ function onlyCard(before: Drawn, after: Drawn): CardMotion {
   return card;
 }
 
+/**
+ * The distances the ancestor card's lines move between Elided and Full: none for a row above
+ * the derived elisions' label stacks, one stack line of size 9 (`h(9)` 10.4765625 and the
+ * band's spacing) for every row below them (`README.md`, "Elisions moving", item 18).
+ */
+const ROW_SHIFTS = [0, 19.9765625];
+
 const isLine = (drawn: Drawn, index: number) => {
   const type = drawn.drawing.elements[index]?.type;
   return type === "timeline" || type === "child";
 };
 
+/** The lines of each fixture's ancestor card (one element each) and its default gaps, as drawn. */
+const CARDS = {
+  group_elided_inside: {
+    lines: ["piece", "first", "excerpt", "second"],
+    gaps: ["first", "first", "second"],
+  },
+  group_grandchild: { lines: ["score", "movement", "theme"], gaps: ["score", "movement", "score"] },
+} as const;
+
 describe.each([
   ["group_elided_inside", "piece", []],
   ["group_grandchild", "score", []],
-])("%s between Elided and Full", (fixture, root, hidden) => {
+] as const)("%s between Elided and Full", (fixture, root, hidden) => {
   const { elided, full } = views(fixture);
 
   it("moves the ancestor card alone", () => {
@@ -173,11 +200,29 @@ describe.each([
   it.each([
     ["Elided → Full", elided, full],
     ["Full → Elided", full, elided],
-  ])("keeps every row, %s", (_way, before, after) => {
+  ])("moves each line's row by the change of its ordinate, %s", (_way, before, after) => {
     const card = onlyCard(before, after);
-    for (const index of indexesOf(card, after)) {
-      for (const t of [0, 0.5, 1]) expect(placedAt(card.motionOf(index), t).dy).toBe(0);
+    const rowOf = (drawn: Drawn, timeline: string) => {
+      const key = ancestorCard(drawn).key;
+      const axis = [...lineAxes(drawn.drawing).values()].find(
+        (line) => line.timeline === timeline && key !== null && samePlaceKey(line.card, key),
+      );
+      if (axis === undefined) throw new Error(`no row of ${timeline}`);
+      return axis.y;
+    };
+    const shifts = new Set<number>();
+    for (const index of indexesOf(card, after).filter((at) => isLine(after, at))) {
+      const id = String(after.drawing.elements[index]?.address.id);
+      const shift = rowOf(before, id) - rowOf(after, id);
+      shifts.add(Math.abs(shift));
+      expect([0, 0.5, 1].map((t) => placedAt(card.motionOf(index), t).dy)).toEqual([
+        shift,
+        shift / 2,
+        0,
+      ]);
     }
+    // Elided, the derived elisions' label stacks lower the rows below them (one line of 9).
+    expect([...shifts].sort((left, right) => left - right)).toEqual(ROW_SHIFTS);
   });
 
   it.each([
@@ -189,7 +234,9 @@ describe.each([
       const card = onlyCard(before, after);
       const moved = after.drawing.origin.x - before.drawing.origin.x;
       const lines = indexesOf(card, after).filter((index) => isLine(after, index));
-      expect(lines.length).toBeGreaterThan(0);
+      expect(lines.map((index) => after.drawing.elements[index]?.address.id)).toEqual(
+        CARDS[fixture].lines,
+      );
       for (const index of lines) {
         const element = after.drawing.elements[index];
         if (element?.type !== "timeline" && element?.type !== "child") throw new Error("no line");
@@ -218,7 +265,7 @@ describe.each([
       const element = elided.drawing.elements[index];
       return element?.type === "elision" ? [element] : [];
     });
-    expect(gaps.length).toBeGreaterThan(0);
+    expect(gaps.map((gap) => gap.address.id)).toEqual(CARDS[fixture].gaps);
     const inGap = (left: number, right: number) =>
       gaps.some((gap) => left >= gap.x1 && right <= gap.x2 && left < gap.x2 && right > gap.x1);
     for (const index of indexesOf(card, after)) {
@@ -300,7 +347,7 @@ describe.each([
       (index) =>
         isLine(elided, index) && elided.drawing.elements[index]?.address.id === card.address.id,
     );
-    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.length).toBe(1);
     const [xs, xe] = memberLine();
     const first = motion.motionOf(lines[0] ?? -1).across;
     const last = motion.motionOf(lines.at(-1) ?? -1).across;

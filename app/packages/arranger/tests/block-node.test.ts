@@ -870,9 +870,11 @@ describe("the slide of a reorder", () => {
   });
 
   it("slides every moved element but the dragged card's while a reorder previews an order", async () => {
-    expect(await previewed(false)).toBe(
-      dataOf(REORDERED, A, GROUP).descriptors.length - SCORE.length,
-    );
+    // The block's rectangle is drawn under everything, below a leaving card, and never moves.
+    const { descriptors } = dataOf(REORDERED, A, GROUP);
+    const block = descriptors.filter(({ source }) => source.type === "block");
+    expect(block.length).toBe(1);
+    expect(await previewed(false)).toBe(descriptors.length - SCORE.length - block.length);
   });
 
   it("does not slide under reduced motion", async () => {

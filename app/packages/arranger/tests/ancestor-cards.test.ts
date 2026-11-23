@@ -132,7 +132,7 @@ describe("raised layers", () => {
     }
     const { drawing, entries, layers } = layersIn(view, timelineEditor("piece"));
     const { start, end } = ancestorCard(drawing, "piece").range;
-    expect([start, end]).toEqual([1, 10]);
+    expect([start, end]).toEqual([1, 14]);
     expect(layers).toEqual(raisedOne(drawing, entries, "piece"));
   });
 

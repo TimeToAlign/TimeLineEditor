@@ -666,6 +666,83 @@ export function seenOn(
   return found;
 }
 
+const runsByDrawing = new WeakMap<Drawing, ReadonlyMap<string, readonly LineAxis[]>>();
+
+/**
+ * The runs of the line `axis` of `drawing` is one run of: every line of
+ * `lineAxes` drawing its timeline in its card at its ordinate, `axis`
+ * included, from the left (one where the line is drawn whole).
+ */
+function runsOf(drawing: Drawing, axis: LineAxis): readonly LineAxis[] {
+  let byLine = runsByDrawing.get(drawing);
+  if (byLine === undefined) {
+    const found = new Map<string, LineAxis[]>();
+    for (const line of lineAxes(drawing).values()) {
+      const key = JSON.stringify([placeKeyText(line.card), line.timeline, line.y]);
+      found.set(key, [...(found.get(key) ?? []), line]);
+    }
+    for (const runs of found.values()) runs.sort((left, right) => left.xStart - right.xStart);
+    byLine = found;
+    runsByDrawing.set(drawing, byLine);
+  }
+  return byLine.get(JSON.stringify([placeKeyText(axis.card), axis.timeline, axis.y])) ?? [axis];
+}
+
+/** The position, on its timeline's own axis, at the end of the run `axis`: its start plus its drawn length. */
+const endOf = (axis: LineAxis): Rational =>
+  toRational(axis.start).add(toRational(axis.drawnLength));
+
+/**
+ * Whether the seam between the runs `left` and `right` of an ancestor
+ * card's line of `drawing` (section 8.8, step 2, and "Drawn once") lies at
+ * the start of the card's protected span: `left` ends at the left edge of
+ * the leftmost frame the card lies behind (its member's frame, or the first
+ * anchor's of a root drawn once), where the card's axis jumps by that
+ * frame's room before its member drawings.
+ */
+function startsSpan(drawing: Drawing, left: LineAxis, right: LineAxis): boolean {
+  if (left.ancestor === undefined) return false;
+  const card = drawing.boxes.find(
+    (box) => box.ancestor !== undefined && box.key !== null && samePlaceKey(box.key, left.card),
+  );
+  const groups = card?.ancestor?.groups ?? [];
+  const edges = drawing.boxes
+    .filter(
+      (box) =>
+        box.kind === "frame" && box.key !== null && groups.includes(box.key.item) && box.displayed,
+    )
+    .map((box) => box.x);
+  if (edges.length === 0) return false;
+  const edge = Math.min(...edges);
+  return left.xEnd <= edge && edge < right.xStart;
+}
+
+/**
+ * Whether the run `axis` of a line of `drawing` holds the position `at` of
+ * its timeline's own axis (`docs/drawing.md` in TimeToShare, section 3.2,
+ * Seams): where another run of the line starts where `axis` ends, or ends
+ * where it starts, the two meet at a seam, which leaves nothing out, and a
+ * position at the seam lies on one side of it alone: on the right run at
+ * the seam where an ancestor card's protected span starts (`startsSpan`),
+ * so under the frame, and on the left run at every other one (the span's
+ * end, and between two anchors of a root drawn once, where a line ending
+ * at the seam ends on the left run). Every other position on its span is
+ * held.
+ */
+export function holdsAt(drawing: Drawing, axis: LineAxis, at: Rational): boolean {
+  const runs = runsOf(drawing, axis);
+  if (runs.length < 2) return true;
+  if (at.compare(endOf(axis)) === 0) {
+    const right = runs.find((run) => run !== axis && toRational(run.start).compare(at) === 0);
+    if (right !== undefined && startsSpan(drawing, axis, right)) return false;
+  }
+  if (at.compare(toRational(axis.start)) === 0) {
+    const left = runs.find((run) => run !== axis && endOf(run).compare(at) === 0);
+    if (left !== undefined && !startsSpan(drawing, left, axis)) return false;
+  }
+  return true;
+}
+
 /** A place of a coordinate: a part of a line where its timeline is seen, and its abscissa there. */
 export interface Place extends SeenHolding {
   /** The abscissa of the coordinate on the line, in block-local canvas units (layout's `abscissaOf`). */
@@ -679,9 +756,10 @@ export interface Place extends SeenHolding {
  * lines where the timeline is seen (`seenOn`), in their order, each one
  * holding the value: from 0, up to a segment's length, within the line's
  * drawn span (`start` to `start + drawnLength` on its axis, the segment's
- * offset added), and its abscissa there (layout's `abscissaOf`) within the
- * part, both ends included. None where the user sees no line of the
- * timeline at that value. The one place rule of a coordinate: screen order
+ * offset added) on the side of a seam it lies on (`holdsAt`), and its
+ * abscissa there (layout's `abscissaOf`) within the part, both ends
+ * included. None where the user sees no line of the timeline at that
+ * value. The one place rule of a coordinate: screen order
  * (`screenPlace`), the affordances (`affordancesOf`), the pin's mark
  * (`pinnedPlace`) and the cross-section a timestamp is read with
  * (`timelineSpec`) read it, as "Show matches" reads `seenOn`.
@@ -697,7 +775,7 @@ export function placesAt(
     const { axis, offset, length } = seen;
     if (length !== null && value.compare(length) > 0) return [];
     const onLine = value.add(offset);
-    if (!spans(axis, onLine)) return [];
+    if (!spans(axis, onLine) || !holdsAt(drawing, axis, onLine)) return [];
     const x = abscissaOf(axis, onLine);
     return x < seen.xFrom || x > seen.xTo ? [] : [{ ...seen, x }];
   });
@@ -1138,9 +1216,9 @@ function hoveredSpec(
  * no line is hovered. A node in which the point lies inside a gap of an
  * elision (`gapAt`) reads nothing: the stretch it elides is not drawn
  * there, so nothing is placed, not even the end of a run beside it; every
- * full run of an elided line is a line of its own (`axesOf`), read alike.
- * An ancestor line is read as its ancestor's
- * (`crossSectionSpec`). The
+ * full run of an elided line is a line of its own (`axesOf`), read alike,
+ * and a position read at a seam lies on the run holding it (`seamHit`).
+ * An ancestor line is read as its ancestor's (`crossSectionSpec`). The
  * position is core's `snapOnRow` on the hovered row (`rowOf`) of the
  * line's cross-section (`crossSectionSpec`), `p` the pointer's coordinate
  * on the line's axis and `h` half a device pixel there: the line's drawn
@@ -1193,24 +1271,23 @@ export function readingAt(
     }
   }
   if (found === null) return null;
-  const { node, hit, devicePixels } = found;
+  const { node, devicePixels } = found;
   const { block, drawing } = node.data;
-  const { axis } = hit;
-  const length = toFloat(toRational(axis.drawnLength));
-  const width = axis.xEnd - axis.xStart;
-  const p = toFloat(toRational(axis.start)) + ((hit.x - axis.xStart) / width) * length;
+  const read = found.hit;
+  const length = toFloat(toRational(read.axis.drawnLength));
+  const width = read.axis.xEnd - read.axis.xStart;
+  const p = toFloat(toRational(read.axis.start)) + ((read.x - read.axis.xStart) / width) * length;
   const h = length / width / devicePixels / 2;
-  const spec = hoveredSpec(
-    block,
-    drawing,
-    hit,
-    options.granularity,
-    raisedRoot(block, node.data.editing),
-    groupScoped(node.data.editing),
-  );
+  const raised = raisedRoot(block, node.data.editing);
+  const specOf = (line: LineHit) =>
+    hoveredSpec(block, drawing, line, options.granularity, raised, groupScoped(node.data.editing));
   const knots = options.knotsOf?.(block.manifest) ?? "no_server";
-  const row = rowOf(hit);
-  const position = snapOnRow(spec, row, p, h, knots);
+  const row = rowOf(read);
+  const position = snapOnRow(specOf(read), row, p, h, knots);
+  const hit = seamHit(drawing, read, position, stackingOf(drawing, raised));
+  if (hit === null) return null;
+  const { axis } = hit;
+  const spec = specOf(hit);
   const pin: Pin = { spec, knots, timestamp: timestampAt(spec, position, knots), named: null };
   const [line] = crossSection(drawing, hit.key, 0);
   const top = Math.min(axis.y, ...axis.maps.map((map) => map.yc), line?.y1 ?? axis.y);
@@ -1223,6 +1300,31 @@ export function readingAt(
     at: { x: abscissaOf(axis, position), y: axis.y },
     top,
   };
+}
+
+/**
+ * The line a reading on `hit` lies on once its position `position` (on the
+ * hit line's own axis) is read: `hit` itself, or where the position lies at
+ * a seam on the other side (`holdsAt`), the run of the line holding it, at
+ * the position's abscissa there, with the map hovered where that run draws
+ * it; `null` where that run is covered there, so the position is not seen.
+ */
+function seamHit(
+  drawing: Drawing,
+  hit: LineHit,
+  position: Rational,
+  stacking: Stacking,
+): LineHit | null {
+  if (holdsAt(drawing, hit.axis, position)) return hit;
+  for (const [key, axis] of axesOf(drawing)) {
+    if (!runsOf(drawing, hit.axis).includes(axis) || axis === hit.axis) continue;
+    if (!spans(axis, position) || !holdsAt(drawing, axis, position)) continue;
+    const x = abscissaOf(axis, position);
+    if (stacking.covered(axis, { x, y: axis.y })) return null;
+    const map = hit.map === null ? null : (axis.maps.find(({ id }) => id === hit.map?.id) ?? null);
+    return { key, axis, map, x, distance: hit.distance };
+  }
+  return null;
 }
 
 /**

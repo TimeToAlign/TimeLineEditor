@@ -138,7 +138,7 @@ export function arrangedGesture(
     },
     command(press, value) {
       if (value.refused === null) return commandOf(press, value.order);
-      actions.refuse?.(value.refused);
+      actions.refuse(value.refused);
       return null;
     },
   };

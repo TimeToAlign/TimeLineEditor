@@ -54,28 +54,28 @@ describe("the decision of the raise", () => {
     const drawing = drawingOf(block, VIEW.graphical, metrics);
     const at = (timeline: string, value: Rational, raised: string | null) =>
       placesAt(drawing, timeline, value, raised).map(({ axis, x }) => [axis.card, axis.y, x]);
-    const X = 460.33544921875;
+    const X = 564.0390625;
     const SECOND = { item: "group_2", member: "piece" };
     const CARD = { item: "group_1", member: "piece" };
     const MIDDLE = { item: "group_1", member: "middle" };
     expect([at("piece", q(8), null), at("piece", q(8), "piece")]).toEqual([
       [
         [MIDDLE, 85.18359375, X],
-        [SECOND, 267.3203125, X],
+        [SECOND, 247.34375, X],
       ],
       [
         [CARD, 85.18359375, X],
-        [SECOND, 267.3203125, X],
+        [SECOND, 247.34375, X],
       ],
     ]);
     expect([at("middle", q(4), null), at("middle", q(4), "piece")]).toEqual([
       [
         [MIDDLE, 47.20703125, X],
-        [SECOND, 233.34375, X],
+        [SECOND, 213.3671875, X],
       ],
       [
         [CARD, 51.20703125, X],
-        [SECOND, 233.34375, X],
+        [SECOND, 213.3671875, X],
       ],
     ]);
   });
@@ -111,14 +111,14 @@ describe("the double-click on the covered card", () => {
     expect(before).toEqual([
       "piece:10",
       "piece:8",
-      "group_1:156.6318",
-      "middle:166.6318",
-      "middle:164.6318",
-      "recording:166.6318",
-      "recording:164.6318",
-      "group_2:156.6318",
-      "piece:166.6318",
-      "piece:164.6318",
+      "group_1:260.3354",
+      "middle:270.3354",
+      "middle:268.3354",
+      "recording:270.3354",
+      "recording:268.3354",
+      "group_2:260.3354",
+      "piece:270.3354",
+      "piece:268.3354",
     ]);
     const card = document.querySelector('svg rect[data-id="piece"][data-part="card"][x="8"]');
     if (card === null) throw new Error("no ancestor card");
