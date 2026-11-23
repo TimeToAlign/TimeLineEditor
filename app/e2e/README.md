@@ -274,9 +274,12 @@ less); a stack of `J` maps reaches `1.5 + 5J` above, the maps of a
 segment line's plain segments joining its stack after its own (drawing.md
 section 6.4); a line with a boundary and one tier of segment labels reaches
 `max(1.5 + 5J, 8) + 2 + h(9)` above, 20.4765625 for `J` 0 or 1 and
-23.9765625 for `J = 2`; an ancestor row is `7 + 26.9765625 =
-33.9765625` wide (its marks' labels fill one tier) and starts at the larger
-of `p0 / 2 = 7` and the band before it plus `B = 4`. A frame is `8 + h(11)
+23.9765625 for `J = 2`; an ancestor row lies below the member's line (the
+default band order, drawing.md section 8.3), beyond its markers band, and
+is `7 + 7` wide (nothing but its line is drawn on it: no mark of the
+member's start or end), so a member card holding one ancestor row ends
+`Eb + 4 + 14 + 8` below its line, `26.9765625 + 18 + 8 = 52.9765625`
+with one tier of wedge labels. A frame is `8 + h(11)
 + 4 + Hm1 + 8 + … + 8 + Hmn + 8` high; the first item lies at `Pt = 8 +
 h(11) + 8 = 28.8046875` below the title, each further one 8 below the one
 before, all at `x = 8`.
@@ -284,18 +287,25 @@ before, all at `x = 8`.
 - `bmixed0000`: `score` (two maps, `Ea = 11.5`; below the wedges, 4 and a
   flow control band of one jump row, `8 + 2 + h(9)`, so `Eb = 51.453125`)
   78.953125; `performance` and `page` (one map each) 49.4765625; `excerpt`
-  (one map, then `recording`'s ancestor row from 10.5, `Ea = 44.4765625`)
-  87.453125; `annotations` (both regions in one row, a regions band `6 + 2
-  + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond the wedges) 71.85546875. So
-  `group_1` is 169.234375 high at `y` 28.8046875, `group_2` 177.734375 at
-  206.0390625, and `annotations`' card lies at 391.7734375; the block is `8 +
-  (391.7734375 + 71.85546875 + 2) = 473.62890625` high.
+  (one map, `y_root = 8 + 6.5`, then `recording`'s ancestor row below
+  it) `14.5 + 52.9765625 = 67.4765625`; `annotations` (both regions in one
+  row, a regions band `6 + 2 + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond
+  the wedges) 71.85546875. So `group_1` is 169.234375 high at `y`
+  28.8046875 and `group_2` 157.7578125 at 206.0390625. `recording`'s
+  ancestor card behind `group_2` lies from 288.3203125 and is 87.453125
+  high (the arranger's tests README, "`bundle_mixed`'s `score`", With
+  `recording`'s ancestor card: its markers band holds the name labels of
+  its derived gaps), ending at 375.7734375, below `group_2`'s frame; an
+  item lies 8 below every item before it and their ancestor cards
+  (drawing.md sections 8.6 and 8.8, No room), so `annotations`' card lies
+  at 383.7734375 and the block is `8 + (383.7734375 + 71.85546875 + 2) =
+  465.62890625` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
   `exposition_second`: its line reaches `11.5 + 2 + h(9) = 23.9765625`
   above, its maps and one tier of segment labels, and its conversion maps
-  band at level 1 shares that room; `score`'s row from 27.9765625, `Ea =
-  61.953125`) 104.9296875; `take_1` (one map and a boundary: its line
+  band at level 1 shares that room; `score`'s row below the line) `8 +
+  23.9765625 + 52.9765625 = 84.953125`; `take_1` (one map and a boundary: its line
   reaches `8 + 2 + h(9) = 20.4765625` above, its boundary and one tier of
   segment labels, its conversion maps band sharing that room; no
   ancestor) 63.453125; `recapitulation` (no map, so no conversion maps
@@ -305,10 +315,17 @@ before, all at `x = 8`.
   `recapitulation_first` and `recapitulation_second` in one row, its inner
   half 8 (their boundaries) and its outer half 20.4765625 (a boundary,
   `recapitulation_second`'s map and one tier of phrase labels), so it ends
-  at 52.953125; `score`'s row from 56.953125, `Ea = 90.9296875`)
-  133.90625; `take_2` (plain) 49.37890625. So `group_1` is 209.1875 high at `y` 28.8046875, `group_2`
-  224.08984375 at 245.9921875, and `page`'s card lies at 478.08203125; the
-  block is `8 + (478.08203125 + 49.37890625 + 2) = 537.4609375` high.
+  at 52.953125; `score`'s row below the line) `8 + 52.953125 + 52.9765625
+  = 113.9296875`; `take_2` (plain) 49.37890625. So `group_1` is 189.2109375
+  high at `y` 28.8046875 and `group_2` 204.11328125 at `28.8046875 +
+  189.2109375 + 8 = 226.015625`. `score`'s ancestor card behind `group_2`
+  lies from 251.3203125 and is 180.359375 high (layout's record; the
+  schema package's drawing `bundle__bundle_shared_parent` draws it at
+  `y="254.9922"`, its origin's ordinate 3.671875 above the place origin),
+  ending at 431.6796875, below `group_2`'s frame (430.12890625), so
+  `page`'s card lies 8 below it, at 439.6796875 (No room, as above); the
+  block is `3.671875 + 439.6796875 + 49.37890625 + 2 + 8 = 502.73046875`
+  high.
 
 Their widths are those of the names, the ancestor lines' chevrons and the
 labels at the lines' ends: maps span their lines (a plain segment's map its
@@ -317,7 +334,8 @@ phrase, region and jump labels) is centred at least 43
 inside either end of its line at every length these tests use, against
 half-widths of at most 32.53, so neither the start nor the right margin of
 the one horizontal layout (drawing.md section 8.2) moves. Every item of
-`bmixed0000` is `163.9150390625 + L` wide (563.9150390625 at 400); in
+`bmixed0000` is `161.052001953125 + L` wide (561.052001953125 at 400; the arranger's
+tests README, "`bundle_mixed`'s `score`", Widths); in
 `bshared000` every member's card is `Wc(L) = 151.39013671875 + L` wide and
 every frame and the ungrouped card `16 + Wc(L)`.
 
@@ -916,18 +934,41 @@ lines not already listed (`gchild0000`: `piece`'s card, `piece`,
 `recording`'s card and line; `gmixed0000`: the ancestor cards of `sonata`,
 `session` and `page` in the order of their members; `bshared000`:
 `score`'s card with `score`, `exposition`, `recapitulation` and its two
-segment lines), and the titles their texts. A part drawn twice
-is marked selected in both copies: the start mark of `theme` in
-`ggrand0000`, a member drawn below its two ancestor lines `score` and
-`movement`, each of which marks its start (no line marks its own start);
-and `score`'s line in `bshared000` (at the viewport showing that block,
-`(40, 40 − 952)`, where `(40, 40)` showed it before it moved below the
-others) is drawn as 14 parts, four as the ancestor line in each frame's
-member card and three (line, start, end) in each of `score`'s two
-ancestor cards; five part centres lie inside each frame, the four of its
-member card and the line of the ancestor card behind it, whose start and
-end lie beyond the frame's borders; a click on it selects `{block, id:
-"score"}` and marks all 14. Delete removes a timeline with its subtree from its group (one `remove`
+segment lines, `recapitulation_second` before `recapitulation_first`),
+and the titles their texts. A line elided whole by an ancestor card's
+derived gap is not drawn in that card (drawing.md section 8.9): the card
+of `score` behind `group_1` is drawn at the proportion `r = λ / E =
+12 / 20 = 0.6` (`exposition`'s 12 quarters over the 20 of `score` it
+leaves out, the least bound at the page's pane, 1600 × 968), so its one
+piece, `score` from 12 to 32, natural width `n = 20 × 400 / 12`, is drawn
+`W = 0.6 n = 400` wide, `h = (400 − 32) / 2 = 184`, `h / k = 5.52`, and
+elides `⌊12 + 5.52⌋ = 17` to `⌈32 − 5.52⌉ = 27`: `recapitulation_first`
+(20 to 26) lies in that gap whole, `recapitulation_second` (26 to 32)
+does not, so the latter is drawn first, the former only in the card
+behind `group_2`. An element drawn twice is marked selected in all its
+drawings: `ggrand0000`'s `timestamp_3`, `theme`'s `origin`, a
+groupstamp displaying wedge, coordinate and line, is drawn on `theme`'s
+line in its member card and again in `score`'s ancestor card behind the
+frame, which draws `score`'s tree, `theme` included; a click on its
+coordinate label (two drawn) selects the timestamp `{block, id:
+"timestamp_3"}`, as a part of a named timestamp selects its timestamp,
+and marks, in DOM order, in each card its wedge `{id: timestamp_3}`, its
+coordinate label and its line in two pieces around them (the cut of
+section 6.6), the ancestor card's first, then the groupstamp's frame line
+across `recording`'s card, nine in all. `score`'s line in `bshared000`
+(at the viewport showing that block, `(40, 40 − 952)`, where `(40, 40)`
+showed it before it moved below the others) is drawn as 16 parts: four
+as the ancestor line in each frame's member card (the line, the circle
+at `score`'s start in `exposition`'s card or the arrowhead at its end in
+`recapitulation`'s, and two chevrons where it runs on beyond the member,
+section 8.3), and four in each of `score`'s two ancestor cards (the line
+in two pieces around the card's derived gap, the circle at its start, the
+arrowhead at its end); six part centres lie inside each frame, the four
+of its member card and, of the ancestor card behind it, the piece and
+the mark that lie behind the frame (behind `group_1` the piece from 0 to
+17 and the start circle, behind `group_2` the piece from 17 to 32 and the
+arrowhead), the other piece and mark lying beyond the frame's borders; a
+click on it selects `{block, id: "score"}` and marks all 16. Delete removes a timeline with its subtree from its group (one `remove`
 of `{block, id: T}`) and a region added into `second-half` (`region_1`,
 removed as `{block, id: "region_1"}`), and refuses a selection holding the
 manifest's title whole. Hover marks exactly one box
@@ -936,12 +977,12 @@ enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
 boundary is marked with its card, the mark gone once the pointer is on the
 empty pane at canvas (584, 600), between `bungroup00` and `btwogroups`;
 `gchild0000` at scale 1.5 draws its
-`<svg>` 1382.8480224609375 wide, 1.5 times its drawing's width
-921.898681640625 (layout's record, the fixture table above: the frame's
-553.898681640625, from `second-half`'s end mark label `16 ♩`,
-18.55810546875 wide, centred at 520.61962890625 on `piece`'s line, then 8
-each for the card, the frame and the block, plus the origin shift 368 of
-`piece`'s ancestor card reaching left of the frame); a press on a frame selects the group;
+`<svg>` 1.5 times its drawing's width, the drawing at that scale and at
+the canvas's pane (the arranger's size), as the editor's drawing code
+draws it outside the page: `piece`'s ancestor card is elided at the
+automatic proportion, which reads the scale and the pane (section 8.9),
+so the width is no constant (1001.609814453125 at layout's default view
+and scale 1, the fixture table above); a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
 `data-box="block"`), each in its stated colour. A stretch keeps
@@ -1009,9 +1050,11 @@ cards at `x="268.3354"`, `y` `32.8047` and `108.1836`, both `527.7036`
 wide, `67.3789` and `49.3789` high; the node at `(x − 252.33544921875,
 y)` of the block's place `(x, y)` (each engine prints a transform's
 lengths to its own precision, Chromium and Firefox to six significant
-digits, WebKit to six decimals, so the node's transform is compared
-with the string the same browser writes for `translate(<x>px, <y>px)`
-of the exact position, never with one engine's rounding). The card lies
+digits, WebKit to six decimals, so the node's computed transform is
+compared with the one the same browser computes for `translate(<x>px,
+<y>px)` of the exact position, never with one engine's rounding; computed,
+since WebKit spells one specified transform `translate(0px)` or
+`translate(0px, 0px)` depending on how it was set). The card lies
 behind the frame: its rectangle precedes the frame's in the DOM.
 Selecting `piece` and choosing the Elisions tab offers the root's block,
 its button named `Timeline Parent timeline "Piece" Proportional`,
@@ -1342,8 +1385,8 @@ lies at the block's stated place.
    (560.080078125, 127.9765625), `styled__score` (0, 282.78515625). Every
    block's stated place is unchanged. Free sends `{arrangement: null}` and
    every node returns to its stated place. A node's position is read from
-   its style's `transform`, compared with the browser's own spelling of the
-   exact position (`support.ts`, `placedAt`).
+   its computed `transform`, compared with the one the browser computes for
+   the exact position (`support.ts`, `placedAt`).
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
@@ -1379,15 +1422,19 @@ place; a card moved left of everything drawn grows the box left: in the
 bundle editor at viewport (340, 40), `annotations`' card dragged by
 (−200, 16) is stored at `{x: −192, y: <its y> + 16}`, beyond the left edge
 of `recording`'s ancestor card, which lies `shift − P` left of the place
-origin (`shift` the drawing's origin abscissa, 153.412109375, derived in
-the arranger's tests README, "`bundle_mixed`'s `score`": `recording`'s line
-in the card starts at −73.70849609375, the card's edge its name column
-71.70361328125 further left, at −145.412109375, the block's edge the padding
-8 beyond; the spec holds it as the constant `MIXED_SHIFT`, never read from
-the layout), so the node moves left by `192 − (shift − 8)` = 46.587890625 and
-the frame, drawn at `8 + shift` (`161.4121`), lies as much further right
-in it; two items move together (the frame's and the card's `rect` at
-`48 + shift`, written `201.4121`, while the drag holds); a change outside the edited element is refused (a `set` of
+origin (`shift` the drawing's origin abscissa: `recording`'s card is
+elided at the automatic proportion, which reads the pane, so `shift` is
+the origin of the block's drawing at the canvas's pane, the arranger's
+size with the drawer open, as the editor's drawing code gives it outside
+the page; at layout's default view it is 121.70361328125, derived in the
+arranger's tests README, "`bundle_mixed`'s `score`", which the case first
+checks), so the node moves left by `192 − (shift − 8)`, from `−shift` to
+`−200` (the moved card's edge −192 and the padding 8; the node's computed
+transform compared as below, `arrangement.spec.ts`), and the frame, drawn
+at `8 + shift`, lies as much further right in it; two items move together
+(the frame's and the card's `rect` at `48 + shift` while the drag holds);
+the items' drawn places at the pane equal those at layout's default view;
+a change outside the edited element is refused (a `set` of
 `group_2`'s place in `group_1`'s editor: `side_effect` at the path
 `[addressKey({block: "bmixed0000", id: "group_2"})]`), and a refused
 Delete shows its refusal (`excerpt` deleted in `group_2`'s editor changes
@@ -1408,7 +1455,12 @@ group editor, then again inside the bundle editor) and on the faded frame
 `group_2` of the edited block. The
 places of the bundle's items and the editor's viewport after the drawer changes the canvas's size come
 from the arranger's drawing and focus code run on the fixture outside the
-page; these are the expected values of this spec computed by the code under test.
+page, at the canvas's pane, the arranger's size measured in the page
+(`bmixed0000`'s ancestor card of `recording` is elided at the automatic
+proportion, which reads the pane, so the block's drawing and its bounds
+differ from one pane to another): the view centres the block as drawn
+for the canvas's size, the drawer open and closed; these are the expected
+values of this spec computed by the code under test.
 
 **`selection-motion.spec.ts`** (Chromium, Firefox, WebKit) proves the
 selection through changes and editors on `bundles` (block `bshared000`,
@@ -1445,7 +1497,11 @@ is a real pointer gesture; the stored state is read through the hook.
   editor open; with Shift the click on the faded frame leaves the
   selection as it was; a double-click there closes the editor.
 - **A double-click on the edited element centres the view on it again**:
-  after `group_2`'s editor has opened and the view has stopped moving,
+  after `group_2`'s editor has opened and the view has stopped moving
+  (two readings `2 × PANE_SETTLE` apart agree: the drawer opening with the
+  editor narrows the canvas, whose pane settles 150 ms later, and the
+  block, whose ancestor cards are elided at a proportion the pane gives,
+  is drawn anew and centred again),
   the viewport moved to (40, 80 − 952) returns, after a double-click on
   `group_2`'s frame, to exactly the viewport the opening settled at, the
   editing path, the journal and the session unchanged.
@@ -1467,14 +1523,16 @@ is a real pointer gesture; the stored state is read through the hook.
   card selected, Stretch offers the handles right, bottom-right and bottom;
   the right handle dragged by 20 stores `group_1`'s place `{length: 420}`,
   and both member cards of `group_1`, `score`'s and `performance`'s, are
-  drawn at `x` `169.4121` (16 plus the origin shift 153.412109375 of
-  `recording`'s ancestor card, derived above) and 567.915 wide (the SVG writer's text of
-  567.9150390625: at length 400 every card of the block is 547.9150390625
-  wide, set by `excerpt`'s end mark label `132 300 smp`, 59.2470703125
-  wide, centred at 526.29150390625, so its right edge lies at
-  555.9150390625; the card padding `K` 8 beyond it is the cards' right
-  edge 563.9150390625, and less the card's `x` 16 (the frame's `x` 8 plus
-  its padding `Q` 8) that is 547.9150390625; the stretch adds 20).
+  drawn at `x` `16 + shift` (the frame's `x` 8 plus its padding `Q` 8,
+  plus the origin shift of `recording`'s ancestor card at the canvas's
+  pane, as above) and 565.052 wide (the SVG writer's text of
+  565.052001953125: a held card of the block is `Wc(L) =
+  145.052001953125 + L` wide, `W(L) − 2Q` of the item width `W(L) = s0
+  + L + Mr + K + Q` (the arranger's tests README, "`bundle_mixed`'s
+  `score`", Widths: `s0 = 118.29150390625` for the name column and
+  `recording`'s ancestor line running on to the left, `Mr =
+  26.760498046875`, half of `excerpt`'s `length` label `88 200 smp`
+  beyond the shared end); the stretch adds 20 to `L` 400).
 - **A stretch in the group editor grows as well as shrinks**: in
   `group_2`'s editor at viewport (−400, 80 − 952), zoom 1, a Stretch by the
   right handle of the frame, and of `recapitulation`'s card, by 60 stores
@@ -1541,7 +1599,8 @@ the bundle or group editor or on the arranger; and Delete with only a band
 selected removes nothing. A hovered band keeps its mark only while the
 pointer is on it: on the pane left of every block, at the markers band's
 ordinate (canvas x −180 at viewport (240, 40), since `bmixed0000`'s ancestor
-card of `recording` reaches 153.412109375 left of its place origin), only
+card of `recording` reaches 121.70361328125 left of its place origin at
+layout's default view, and less in a narrower pane), only
 the selection's mark stays.
 
 **`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a

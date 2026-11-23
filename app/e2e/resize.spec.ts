@@ -326,7 +326,8 @@ test.describe("a frame on the arranger", () => {
     ).toEqual({
       group_1: { scale: 2290 / 2048 },
       group_2: { x: 8, y: 206.0390625 },
-      annotations: { x: 8, y: 391.7734375 },
+      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 375.7734375.
+      annotations: { x: 8, y: 383.7734375 },
     });
   });
 });
@@ -355,7 +356,8 @@ test.describe("a frame stretched vertically", () => {
     ).toEqual({
       group_1: { spacing: 52 },
       group_2: { x: 8, y: 206.0390625 },
-      annotations: { x: 8, y: 391.7734375 },
+      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 375.7734375.
+      annotations: { x: 8, y: 383.7734375 },
     });
   });
 });
@@ -383,7 +385,9 @@ test.describe("a member's card in a group", () => {
       await page.mouse.up();
       expect(await journalLength(page)).toBe(before + 1);
     };
-    const others = { group_2: { x: 8, y: 245.9921875 }, page: { x: 8, y: 478.08203125 } };
+    // `group_2` 8 below `group_1`'s frame (28.8046875 + 189.2109375); `page` 8 below `score`'s
+    // ancestor card behind `group_2`, which ends at 431.6796875, below that frame (README.md).
+    const others = { group_2: { x: 8, y: 226.015625 }, page: { x: 8, y: 439.6796875 } };
 
     await select(page, [{ block, ...cardAddress("exposition") }]);
     await chooseMode(page, "box");

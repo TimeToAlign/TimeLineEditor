@@ -152,7 +152,8 @@ test.describe("on bundles", () => {
     expect(await selection(page)).toEqual(SELECTED_F);
 
     // Left of every block, at the markers band's ordinate: only the selection's mark stays.
-    // `bmixed0000`'s ancestor card reaches 153.412109375 left of its place origin, so the view
+    // `bmixed0000`'s ancestor card reaches 121.70361328125 left of its place origin at layout's
+    // default view (less in a narrower pane, its elided proportion reading the pane), so the view
     // first moves right to show the pane beyond it.
     const at = await toCanvas(page, markers.x, markers.y);
     await setViewport(page, { ...VIEW, x: VIEW.x + 200 });

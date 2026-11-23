@@ -8,7 +8,9 @@
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import type { ElementAddress, Manifest } from "../packages/core/src/index.ts";
+import { drawingOf } from "../packages/arranger/src/drawing.ts";
+import type { PaneSource } from "../packages/arranger/src/pane.ts";
+import type { Block, ElementAddress, Manifest } from "../packages/core/src/index.ts";
 import {
   addressKey,
   cardAddress,
@@ -16,12 +18,15 @@ import {
   isLoadError,
   loadManifest,
   partAddress,
+  readWorkspace,
   saveManifest,
   TITLE_ADDRESS,
 } from "../packages/core/src/index.ts";
 import { manifestFileName } from "../packages/editor/src/files.ts";
-import { manifestFixture } from "./schema.ts";
+import type { Drawing } from "../packages/layout/src/index.ts";
+import { FONT_METRICS, manifestFixture } from "./schema.ts";
 import {
+  arranger,
   BUNDLES,
   chooseItem,
   commandsFrom,
@@ -29,6 +34,7 @@ import {
   dragStart,
   element,
   emptyPoint,
+  fixtureText,
   framePoint,
   GROUPS,
   journalLength,
@@ -132,6 +138,27 @@ async function partsInside(
   ).length;
 }
 
+/** The arranger's size in pixels: the pane the canvas's drawings are fitted to. */
+async function paneOf(page: Page): Promise<PaneSource> {
+  const view = await arranger(page).evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
+  return { view };
+}
+
+/**
+ * The drawing of block `id` of `groups.tle.json` with `overrides` of its placement, by the
+ * editor's own drawing code run outside the page, for the canvas's pane `pane`.
+ */
+function groupsDrawing(id: string, overrides: Partial<Block>, pane: PaneSource): Drawing {
+  const workspace = readWorkspace(fixtureText("groups"));
+  if (isLoadError(workspace)) throw new Error("groups.tle.json is refused");
+  const block = workspace.view.blocks[id];
+  if (block === undefined) throw new Error(`block ${id} is missing`);
+  return drawingOf(block, workspace.view.graphical, FONT_METRICS, overrides, pane);
+}
+
 /** Every block's manifest as JSON text, to prove that a refusal or an undo left nothing changed. */
 function manifests(page: Page): Promise<string> {
   return page.evaluate(() => {
@@ -215,17 +242,23 @@ test.describe("a group workspace", () => {
     await expect(element(page, GROUPS.child, cardAddress("recording"))).toHaveCount(2);
   });
 
-  test("selecting a part drawn twice marks both copies", async ({ page }) => {
-    // `theme`'s start is marked on both of its ancestor lines, `score` and `movement`.
-    const start = partAddress(line("theme"), "start");
-    await expect(element(page, GROUPS.grandchild, start)).toHaveCount(2);
-    const { x, y } = await partCentre(page, GROUPS.grandchild, start);
+  test("selecting a timestamp drawn twice marks both drawings", async ({ page }) => {
+    // `theme`'s `origin`, a groupstamp, is drawn on `theme`'s line in its member card and again in
+    // `score`'s ancestor card behind the frame, which draws `score`'s tree, `theme` included.
+    const stamp = idAddress("timestamp_3");
+    const coordinate = partAddress(stamp, "coordinate");
+    const crossSection = partAddress(stamp, "line");
+    await expect(element(page, GROUPS.grandchild, coordinate)).toHaveCount(2);
+    const { x, y } = await partCentre(page, GROUPS.grandchild, coordinate);
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([{ block: GROUPS.grandchild, ...start }]);
-    expect(await marked(page, "selection")).toEqual([
-      markOf(GROUPS.grandchild, start),
-      markOf(GROUPS.grandchild, start),
-    ]);
+    // A part of a named timestamp selects the timestamp.
+    expect(await selection(page)).toEqual([{ block: GROUPS.grandchild, ...stamp }]);
+    // In each card its wedge, its coordinate label and its line in two pieces around them; then
+    // the frame's line of the groupstamp across `recording`'s card.
+    const inCard = [stamp, coordinate, crossSection, crossSection];
+    expect(await marked(page, "selection")).toEqual(
+      [...inCard, ...inCard, crossSection].map((address) => markOf(GROUPS.grandchild, address)),
+    );
   });
 
   test("Delete removes a timeline with its subtree from the group, and a region", async ({
@@ -358,9 +391,12 @@ test.describe("a group workspace", () => {
     );
     expect(refusal).toBeNull();
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.groups + 1);
+    // 1.5 times the block's drawing width at scale 1.5 and the canvas's pane: `piece`'s ancestor
+    // card is elided at the automatic proportion, which reads both (section 8.9).
+    const scaled = groupsDrawing(GROUPS.child, { scale: 1.5 }, await paneOf(page));
     await expect(node(page, GROUPS.child).locator(".tilie-block > svg")).toHaveAttribute(
       "width",
-      "1382.8480224609375",
+      String(scaled.width * 1.5),
     );
     const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
@@ -404,8 +440,10 @@ test.describe("a bundle workspace", () => {
       line("score"),
       line("exposition"),
       line("recapitulation"),
-      line("recapitulation_first"),
+      // The card behind `group_1` elides `score` from 17 to 27, `recapitulation_first` (20–26)
+      // whole: it is first drawn in the card behind `group_2`.
       line("recapitulation_second"),
+      line("recapitulation_first"),
       frame("group_1"),
       title("group_1"),
       cardAddress("exposition"),
@@ -465,16 +503,18 @@ test.describe("a bundle workspace", () => {
   test("selecting an ancestor line drawn in two frames marks both", async ({ page }) => {
     await setViewport(page, SHARED_VIEW);
     const score = line("score");
-    // Four parts in each frame's member card, three (line, start, end) in each of `score`'s two
-    // ancestor cards, whose line passes behind the frame with its start and end beyond its borders.
-    await expect(element(page, BUNDLES.shared, score)).toHaveCount(14);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(5);
-    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(5);
+    // Four parts in each frame's member card (the ancestor line, the circle at `score`'s start or
+    // the arrowhead at its end, two chevrons where it runs on), four in each of `score`'s two
+    // ancestor cards (the line in two pieces around the derived gap, the circle, the arrowhead).
+    // Inside each frame: its member card's four, and the ancestor card's piece and mark behind it.
+    await expect(element(page, BUNDLES.shared, score)).toHaveCount(16);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(6);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(6);
     const { x, y } = await partCentre(page, BUNDLES.shared, score);
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([{ block: BUNDLES.shared, id: "score" }]);
     expect(await marked(page, "selection")).toEqual(
-      Array.from({ length: 14 }, () => markOf(BUNDLES.shared, score)),
+      Array.from({ length: 16 }, () => markOf(BUNDLES.shared, score)),
     );
   });
 

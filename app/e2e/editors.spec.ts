@@ -14,8 +14,10 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
 import { focusViewport } from "../packages/arranger/src/focus.ts";
+import type { PaneSource } from "../packages/arranger/src/pane.ts";
 import type { Address, ElementAddress } from "../packages/core/src/index.ts";
 import { addressKey, cardAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import type { Drawing } from "../packages/layout/src/index.ts";
 import { attributeText } from "../packages/writers/src/svg.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
@@ -42,10 +44,12 @@ import {
   marginPoint,
   newestCommand,
   node,
+  nodeTransform,
   OPENED_JOURNAL,
   open,
   panel,
   partCentre,
+  placedAt,
   placement,
   select,
   selection,
@@ -70,16 +74,25 @@ const mixed = (id: string): Address => ({ block: MIXED, id });
 const BUNDLE: Address = { block: MIXED };
 
 /**
- * The drawn position of every item of `block` in `bundles.tle.json` (each
- * frame and ungrouped card, from the place origin, defaults applied), by
- * the editor's own drawing code run outside the page.
+ * The drawing of `block` in `bundles.tle.json`, by the editor's own drawing
+ * code run outside the page, for the canvas's pane `pane` (layout's default
+ * view without one).
  */
-function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
+function bundlesDrawing(block: string, pane?: PaneSource): Drawing {
   const workspace = readWorkspace(fixtureText("bundles"));
   if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
   const found = workspace.view.blocks[block];
   if (found === undefined) throw new Error(`block ${block} is missing`);
-  const drawing = drawingOf(found, workspace.view.graphical, FONT_METRICS);
+  return drawingOf(found, workspace.view.graphical, FONT_METRICS, undefined, pane);
+}
+
+/**
+ * The drawn position of every item of `block` in `bundles.tle.json` (each
+ * frame and ungrouped card, from the place origin, defaults applied), for
+ * the canvas's pane `pane` (`bundlesDrawing`).
+ */
+function drawnPlaces(block: string, pane?: PaneSource): Record<string, { x: number; y: number }> {
+  const drawing = bundlesDrawing(block, pane);
   return Object.fromEntries(
     drawing.boxes.flatMap(({ key, item }) =>
       key === null || item === undefined ? [] : [[key.item, { x: item.place.x, y: item.place.y }]],
@@ -88,14 +101,42 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
 }
 
 /**
- * How far right of its node's left edge `bmixed0000`'s place origin lies in its drawing: its
- * ancestor card of `recording` reaches that far left of its items. Derived, never read from the
- * layout under test: `recording`'s line in the card starts 200 left of `excerpt`'s, at
- * −73.70849609375; the card's edge lies its name column `8 + w("Recording", 11) + 8 =
- * 71.70361328125` further left, at −145.412109375, and the block's edge the padding 8 beyond it
- * (the arranger's tests README, "`bundle_mixed`'s `score`"; README.md here, `editors.spec.ts`).
+ * The pane the canvas's drawings are fitted to: the arranger's size in pixels
+ * now. The canvas narrowed by the drawer settles its pane at this size
+ * `PANE_SETTLE` later, so a value read from the page waits for the drawing
+ * at it.
  */
-const MIXED_SHIFT = 153.412109375;
+async function paneOf(page: Page): Promise<PaneSource> {
+  const view = await arranger(page).evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
+  return { view };
+}
+
+/**
+ * How far right of its node's left edge `bmixed0000`'s place origin lies in its drawing at the
+ * canvas's pane `pane`: its ancestor card of `recording` reaches that far left of its items. The
+ * card is elided by default, at the automatic proportion, which reads the pane (section 8.9), so
+ * the shift is the drawing's origin abscissa at that pane; at layout's default view it is
+ * 121.70361328125 (the arranger's tests README, "`bundle_mixed`'s `score`", With `recording`'s
+ * ancestor card), which `MIXED_DEFAULT_SHIFT` states and the bundle editor's first case checks.
+ */
+function mixedShift(pane: PaneSource): number {
+  return bundlesDrawing(MIXED, pane).origin.x;
+}
+
+/** `mixedShift` at layout's default view, derived in the arranger's tests README. */
+const MIXED_DEFAULT_SHIFT = 121.70361328125;
+
+/**
+ * A held card's width in `bmixed0000` at length `L`: `Wc(L) = 145.052001953125 + L` (the
+ * arranger's tests README, "`bundle_mixed`'s `score`", Widths: the name column, `recording`'s
+ * ancestor line running on to the left, half of `excerpt`'s `88 200 smp` label beyond the end).
+ */
+function mixedCardWidth(length: number): number {
+  return 145.052001953125 + length;
+}
 
 /** A drawing abscissa as a drawn `rect`'s `x` attribute reads back: the writer's text, as a number. */
 function drawnX(value: number): number {
@@ -532,18 +573,21 @@ test.describe("on bundles", () => {
     }
     expect(annotations.x).toBe(8);
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
-    // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
-    // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
-    const shift = MIXED_SHIFT;
-    const grown = 192 - (shift - 8);
+    expect(bundlesDrawing(MIXED).origin.x).toBe(MIXED_DEFAULT_SHIFT);
 
     // The view leaves room left of the block for the drag.
     const view = { ...VIEW, x: VIEW.x + 300 };
     await enter(page, BUNDLE, view);
-    const nodeBefore = await node(page, MIXED).boundingBox();
-    if (nodeBefore === null) throw new Error("bmixed0000 is not displayed");
+    // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
+    // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
+    const pane = await paneOf(page);
+    expect(drawnPlaces(MIXED, pane)).toEqual(drawn);
+    const shift = mixedShift(pane);
+    const grown = 192 - (shift - 8);
+    await expect.poll(async () => (await frameRect(page)).x).toBe(drawnX(8 + shift));
+    // The node, at the block's place (0, 0) less the drawing's origin, in canvas units.
+    expect(await nodeTransform(page, MIXED)).toBe(await placedAt(page, -shift, 0));
     const frameBefore = await frameRect(page);
-    expect(frameBefore.x).toBe(drawnX(8 + shift));
 
     await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -200, 16);
     await expect.poll(() => entriesLength(page)).toBe(1);
@@ -554,9 +598,10 @@ test.describe("on bundles", () => {
     });
     const { x, y } = await placement(page, MIXED);
     expect({ x, y }).toEqual({ x: 0, y: 0 });
-    await expect
-      .poll(async () => (await node(page, MIXED).boundingBox())?.x)
-      .toBe(nodeBefore.x - grown);
+    // The node moves left by `grown`: the drawing's origin is now the moved card's left edge
+    // and the padding, `192 + 8 = shift + grown`.
+    expect(shift + grown).toBe(200);
+    await expect.poll(() => nodeTransform(page, MIXED)).toBe(await placedAt(page, -200, 0));
     // In drawing units at scale 1: the frame lies `grown` further right in a node as much further left.
     expect(await frameRect(page)).toEqual({ ...frameBefore, x: drawnX(8 + shift + grown) });
   });
@@ -568,10 +613,11 @@ test.describe("on bundles", () => {
     }
     expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     expect([first.x, annotations.x]).toEqual([8, 8]);
-    // Drawn right of the place origin by `recording`'s ancestor card, which stays the leftmost.
-    const shift = MIXED_SHIFT;
 
     await enter(page, BUNDLE, VIEW);
+    // Drawn right of the place origin by `recording`'s ancestor card, which stays the leftmost.
+    const shift = mixedShift(await paneOf(page));
+    await expect.poll(async () => (await frameRect(page)).x).toBe(drawnX(8 + shift));
     const view = await storeText(page, "view");
     const frame = await framePoint(page, MIXED, { id: "group_1" });
     const held = await framePoint(page, MIXED, cardAddress("annotations"));
@@ -918,22 +964,26 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
     const block = workspace.view.blocks[MIXED];
     if (block === undefined) throw new Error(`block ${MIXED} is missing`);
-    const drawing = drawingOf(block, workspace.view.graphical, FONT_METRICS);
-    const bounds = {
-      ...nodePosition(block, drawing),
-      width: drawing.width * block.scale,
-      height: drawing.height * block.scale,
+    /**
+     * The bundle editor's viewport for the arranger's size now: the block's bounds as the
+     * canvas draws it at that size, its pane (its ancestor card of `recording` is elided at the
+     * automatic proportion, which reads the pane: section 8.9).
+     */
+    const focused = async () => {
+      const size = await arranger(page).evaluate((element) => ({
+        width: element.clientWidth,
+        height: element.clientHeight,
+      }));
+      const drawing = drawingOf(block, workspace.view.graphical, FONT_METRICS, undefined, {
+        view: size,
+      });
+      const bounds = {
+        ...nodePosition(block, drawing),
+        width: drawing.width * block.scale,
+        height: drawing.height * block.scale,
+      };
+      return focusViewport(bounds, size, 0);
     };
-    /** The bundle editor's viewport for the arranger's size now. */
-    const focused = async () =>
-      focusViewport(
-        bounds,
-        await arranger(page).evaluate((element) => ({
-          width: element.clientWidth,
-          height: element.clientHeight,
-        })),
-        0,
-      );
 
     expect(await page.evaluate((target) => window.__tilie.open(target), BUNDLE)).toBeNull();
     await expect(drawer(page)).toBeVisible();
@@ -967,6 +1017,7 @@ test.describe("resizing in an editor", () => {
     page,
   }) => {
     await enter(page, mixed("score"), VIEW);
+    const shift = mixedShift(await paneOf(page));
     await select(page, [{ block: MIXED, ...cardAddress("score") }]);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');
@@ -984,8 +1035,10 @@ test.describe("resizing in an editor", () => {
       element(page, MIXED, cardAddress(id))
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    const x = attributeText(16 + MIXED_SHIFT);
-    expect(await drawn("score")).toEqual([x, "567.915"]);
-    expect(await drawn("performance")).toEqual([x, "567.915"]);
+    // 565.052001953125 wide at length 420, written as the writer's text.
+    expect(attributeText(mixedCardWidth(420))).toBe("565.052");
+    const card = [attributeText(16 + shift), "565.052"];
+    expect(await drawn("score")).toEqual(card);
+    expect(await drawn("performance")).toEqual(card);
   });
 });
