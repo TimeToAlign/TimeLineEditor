@@ -97,7 +97,7 @@ export const HIDDEN_ANCESTOR_CARDS: Graphical = {
  * An application layer hiding every elision (section 8.9, Elided and full),
  * which draws every ancestor card whole: the drawings of a test of an
  * ancestor card's geometry (section 8.8) keep the derivations made without
- * strips.
+ * gaps.
  */
 export const FULL_CARDS: Graphical = {
   rules: [{ select: { element: "elision" }, set: { display: "none" } }],

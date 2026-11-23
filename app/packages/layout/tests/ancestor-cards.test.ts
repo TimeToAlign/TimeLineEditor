@@ -281,7 +281,7 @@ describe("the ancestor card of group_parent_right", () => {
 });
 
 describe("the ancestor cards of group_parents_mixed", () => {
-  // Drawn whole: their strips are the subject of `elisions.test.ts`.
+  // Drawn whole: their gaps are the subject of `elisions.test.ts`.
   const drawing = shown("group_parents_mixed", [FULL_CARDS]);
 
   it("lie behind the one frame, one per root, at their own axes' proportions", () => {
@@ -583,7 +583,7 @@ describe("an ancestor card and the alignment anchors", () => {
 });
 
 describe("the ancestor cards of bundle_shared_parent", () => {
-  // Drawn whole: their strips are the subject of `elisions.test.ts`.
+  // Drawn whole: their gaps are the subject of `elisions.test.ts`.
   const drawing = drawFixture("bundles/bundle_shared_parent", [FULL_CARDS]);
   const keys = [
     { item: "group_1", member: "score" },

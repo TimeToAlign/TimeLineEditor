@@ -20,9 +20,9 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import type { Gap, StackLabel } from "./elisions.ts";
+import type { StackLabel } from "./elisions.ts";
 import type { Extent } from "./fit.ts";
-import type { Entry } from "./traversal.ts";
+import type { Entry, Gap } from "./traversal.ts";
 
 /** A side of a timeline's line: up or down, whichever side of its parent's line it lies on. */
 export type Side = "above" | "below";
@@ -51,7 +51,7 @@ export interface LinePosition {
   readonly x0: number;
   /**
    * `x` of an exact position on the root's axis (section 3.2): `x0 + L × u`, on an elided axis
-   * `x0 + (L × u − D)`; a position in a strip has none (`strip`).
+   * `x0 + (L × u − D)`; a position in a gap has none (`gap`).
    */
   readonly x: (value: Real) => number;
   /**
@@ -62,7 +62,7 @@ export interface LinePosition {
   readonly xAfter: (value: Real) => number;
   /**
    * `Xe`, `x` of a timeline's end: `x0 + L` for an end that is the root's open end (section 3.4),
-   * `x0 + (L − D)` on an elided axis, `D` every strip's shrink.
+   * `x0 + (L − D)` on an elided axis, `D` every gap's shrink.
    */
   readonly xEnd: (entry: Entry) => number;
   /**

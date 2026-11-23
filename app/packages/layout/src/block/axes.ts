@@ -9,9 +9,10 @@ import { type MemberDrawing, orderedChildren, reachOf } from "@timetoalign/tilie
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { AxisMap, AxisSegment, DrawnAxis } from "../boxes.ts";
 import type { LineElement } from "../elements.ts";
-import { type CardAxis, outside, type Stretch } from "../elisions.ts";
+import { outside, type Stretch } from "../elisions.ts";
 import type { MemberDrawn } from "../member.ts";
 import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../numbers.ts";
+import type { CardAxis } from "../traversal.ts";
 
 /**
  * The full runs of a line spanning `start` to `end` on its root's axis, the

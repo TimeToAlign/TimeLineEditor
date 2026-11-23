@@ -57,7 +57,7 @@ export interface LineAxis {
 /**
  * The key of a drawn line: the place key text of the card `card` drawing it followed by the
  * address key of its timeline's address `address`, and, from a line's second full run between
- * strips on, the run's number.
+ * gaps on, the run's number.
  */
 const axisKey = (card: PlaceKey, address: ElementAddress, run?: number): string =>
   placeKeyText(card) + addressKey(address) + (run === undefined ? "" : `#${run}`);
@@ -236,7 +236,7 @@ export function timestampSegments(axes: readonly DrawnAxis[], id: string): Cross
  * timeline's displayed descendants drawn with a line of their own in the
  * same member drawing, in traversal order (section 6.1), every one lying in
  * its children band, each with every full run it is drawn in between
- * strips, from the left. A segment without a line of its own is no line: it
+ * gaps, from the left. A segment without a line of its own is no line: it
  * lies on its segment line's axis (`LineAxis.segments`). None where the key
  * names no line, or an ancestor line.
  */
@@ -258,7 +258,7 @@ const runKeys = new WeakMap<Drawing, ReadonlyMap<string, readonly string[]>>();
 
 /**
  * The keys of every drawn line of `drawing` by the key of its first run: a
- * line drawn in runs between strips has one per run, from the left; memoised
+ * line drawn in runs between gaps has one per run, from the left; memoised
  * by the drawing.
  */
 function runsOf(drawing: Drawing): ReadonlyMap<string, readonly string[]> {

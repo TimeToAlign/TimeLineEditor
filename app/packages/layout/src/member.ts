@@ -26,13 +26,7 @@ import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
-import {
-  type CrossingRow,
-  crossingRows,
-  type Gap,
-  gapElements,
-  type StackLabel,
-} from "./elisions.ts";
+import { type CrossingRow, crossingRows, gapElements, type StackLabel } from "./elisions.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
@@ -40,6 +34,7 @@ import { rowSlots } from "./slots.ts";
 import {
   type Context,
   type Entry,
+  type Gap,
   type Holder,
   known,
   nth,

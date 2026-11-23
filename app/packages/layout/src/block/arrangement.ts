@@ -24,10 +24,8 @@ import type { DrawnElement } from "../elements.ts";
 import {
   type AncestorElisions,
   arrangementSource,
-  type CardAxis,
   carriedGaps,
   exposedGap,
-  type Gap,
   type PlacedGap,
   type PlacedSeam,
   placedAxis,
@@ -37,7 +35,15 @@ import {
 import { layoutScope, type MemberLayout } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
 import { add, negate, proportion } from "../numbers.ts";
-import { type Context, type Holder, known, nth, withAxis } from "../traversal.ts";
+import {
+  type CardAxis,
+  type Context,
+  type Gap,
+  type Holder,
+  known,
+  nth,
+  withAxis,
+} from "../traversal.ts";
 import {
   alignedRows,
   alone,

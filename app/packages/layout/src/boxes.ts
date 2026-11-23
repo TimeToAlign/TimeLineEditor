@@ -186,10 +186,9 @@ export interface DrawnAxis {
   /** Where a coordinate marker of its line lies; null for an ancestor line, which draws none. */
   readonly marker: AxisMarker | null;
   /**
-   * The mark of an ancestor line (section 8.3) at the abscissa 0, as its marks of the member's
-   * start and end are drawn: above the line, its tip on the line's edge, with the style of a
-   * wedge held by that line that no named timestamp holds; null for every other line, whose
-   * `marker` holds its wedge.
+   * The mark of an ancestor line (section 8.3) at the abscissa 0: above the line, its tip on the
+   * line's edge, with the style of a wedge held by that line that no named timestamp holds; null
+   * for every other line, whose `marker` holds its wedge.
    */
   readonly mark: AxisWedge | null;
   /**
@@ -206,7 +205,7 @@ export interface DrawnAxis {
    */
   readonly ancestor?: { readonly group: string; readonly member: string };
   /**
-   * Set from the second full run on of a line drawn in runs between the strips of its card
+   * Set from the second full run on of a line drawn in runs between the gaps of its card
    * (sections 3.2 and 8.9): the run's number from 0, from the left. Every run is its own axis,
    * linear, with its timeline's address.
    */
