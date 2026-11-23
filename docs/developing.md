@@ -41,9 +41,12 @@ have, the schema is changed first.
   drawing), `margin` (the empty space above its first item and below its
   last), the requested `width` and `height`, and `places`, the stated
   places of its items and the stated sizes, spacings and margins of its
-  members' cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
-  style layer of its own.
-- The **workspace** is the canvas: its name, its blocks, its default style rules, the settings (outside the journal), and
+  members' cards, a member's card set through its group, and, where it
+  has one, its `arrangement`, which places its items in an order instead
+  of at their places. A block's styling is its manifest's `graphical`;
+  the block has no style layer of its own.
+- The **workspace** is the canvas: its name, its blocks (and, where it
+  has one, how they are arranged), its default style rules, the settings (outside the journal), and
   the command journal that produced them with the sessions of its editors.
   It is one pretty JSON file, written as TimeToShare's schema package
   writes JSON, by default `<name>.tle.json` after its name, format
@@ -103,6 +106,23 @@ what the canvas shows ([`decisions/0035`](../decisions/0035-elision-modes-are-st
 Layout records what each such container decides in `Drawing.elisions`,
 and the arranger's `cardAxis.ts` is the one map between its abscissas and
 the coordinates of its timelines.
+
+Arrangements are placement, never part of the manifest
+([`decisions/0036`](../decisions/0036-arrangements-are-placement.md)). A
+block's `arrangement` takes its items, frames and ungrouped roots' cards,
+in an order: one under another, or side by side in one row, where every
+root that a group hangs on (a member of the group lying inside it) is
+drawn once, by one ancestor card, the **once card**, behind every group
+hanging on it. Core owns the rules (`manifest/arrangement.ts`: the
+anchors, `rowOf`, the refusal and its reason), layout places what they
+give (`block/arrangement.ts`, and `packed`, the one packing function),
+and the arranger reorders: the workspace's `arrangement` packs the
+blocks, an arranged level turns `move` into a drag that reorders, and
+`orderAt` is the one rule of where a content drops. The once card's
+line changes scale only between two groups, in a gap of origin
+`arrangement` or at a **seam**, a jump of its axis that leaves out
+nothing and is no element; seams also lie where an ancestor card's
+member meets its frame's borders.
 
 The code treats the four kinds through one model:
 
