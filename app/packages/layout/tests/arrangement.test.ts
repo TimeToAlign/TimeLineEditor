@@ -141,16 +141,16 @@ describe("horizontal, the worked example of section 8.8", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map((box) => [box.x, box.y, box.width, box.height, box.ancestor])).toEqual([
       [
-        591.36669921875,
+        463.9765625,
         28.8046875,
-        1807.472900390625,
+        1934.863037109375,
         97.35546875,
         { group: "group_1", member: "exposition", groups: ["group_1", "group_2", "group_3"] },
       ],
       [
-        652.52734375,
+        525.13720703125,
         195.5390625,
-        1746.033203125,
+        1873.42333984375,
         63.37890625,
         { group: "group_1", member: "take_a", groups: ["group_1", "group_3"] },
       ],
@@ -178,20 +178,19 @@ describe("horizontal, the worked example of section 8.8", () => {
       .map((exposure) =>
         exposure.gaps.map((gap) => [gap.origin, gap.start, gap.end, gap.x1, gap.x2]),
       );
-    expect(gaps).toEqual([
-      [
-        ["arrangement", gap16(), gap16(), 1150.7802734375, 1366.17041015625],
-        ["arrangement", gap32(), gap32(), 1766.17041015625, 1981.560546875],
-      ],
-      [["arrangement", 33, 44, 1190.7802734375, 1234.8938802083335]],
-    ]);
-    const seams = drawing.elements.filter(
-      (element) => element.type === "elision" && element.address.id === "score",
+    expect(gaps).toEqual([[], [["arrangement", 33, 44, 1190.7802734375, 1234.8938802083335]]]);
+    // A seam draws nothing, and `score`'s line runs whole across both.
+    expect(
+      drawing.elements.filter(
+        (element) => element.type === "elision" && element.address.id === "score",
+      ),
+    ).toEqual([]);
+    const lines = drawing.elements.flatMap((element) =>
+      element.type === "timeline" && element.address.id === "score"
+        ? [[element.xs, element.xe, element.cuts]]
+        : [],
     );
-    expect(seams.map((seam) => (seam.type === "elision" ? seam.continuations : []))).toEqual([
-      [111.7578125],
-      [111.7578125],
-    ]);
+    expect(lines).toEqual([[750.7802734375, 2381.560546875, []]]);
     const ellipses = drawing.elements.filter((element) => element.type === "ellipsis");
     expect(ellipses.map((each) => (each.type === "ellipsis" ? [each.x, each.y] : []))).toEqual([
       [1212.8370768229167, 244.515625],
@@ -219,10 +218,3 @@ describe("a refused horizontal arrangement", () => {
   });
 });
 
-/** 16 and 32 quarters on the score's fraction axis, as exact values. */
-function gap16() {
-  return expect.objectContaining({ numerator: 16n, denominator: 1n });
-}
-function gap32() {
-  return expect.objectContaining({ numerator: 32n, denominator: 1n });
-}

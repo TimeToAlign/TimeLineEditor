@@ -279,9 +279,11 @@ describe("group elisions", () => {
   it("are carried exactly onto the fraction axis of the card behind", () => {
     expect(cardRuns(drawing, "piece")).toEqual([
       ["0", "1"],
-      ["15", "18"],
+      ["15", "16"],
+      ["16", "18"],
       ["24", "76/3"],
-      ["28", "33"],
+      ["28", "32"],
+      ["32", "33"],
       ["47", "48"],
     ]);
   });
@@ -318,9 +320,11 @@ describe("group elisions", () => {
     );
     expect(cardRuns(floated, "piece")).toEqual([
       ["0", "1"],
-      ["15", "18"],
+      ["15", "16"],
+      ["16", "18"],
       ["24", "76/3"],
-      ["28", "33"],
+      ["28", "32"],
+      ["32", "33"],
       ["47", "48"],
     ]);
     expect(
@@ -406,7 +410,8 @@ describe("stored elisions", () => {
 
   it("give score's line one axis per full run, the carried gap's end exact", () => {
     expect(cardRuns(drawing, "score")).toEqual([
-      ["88/5", "32"],
+      ["88/5", "24"],
+      ["24", "32"],
       ["56", "64"],
     ]);
   });
@@ -417,7 +422,8 @@ describe("stored elisions", () => {
     );
     expect(runs.map((axis) => [axis.start, axis.end])).toEqual([
       [0, 30],
-      [35.1, 90],
+      [35.1, 55.5],
+      [55.5, 90],
     ]);
   });
 
@@ -605,6 +611,71 @@ describe("modes", () => {
     const drawing = drawn("groups/group_elided_inside", onCards("piece", { display: "none" }));
     expect(drawing.elisions.map((each) => each.kind)).toEqual(["frame"]);
     expect(drawing.elements.filter((element) => element.type === "elision")).toEqual([]);
+  });
+});
+
+describe("ellipses", () => {
+  it("lie on each line crossing a gap, none on a map", () => {
+    const drawing = drawn("bundles/bundle_shared_parent");
+    const gaps = drawing.elements.filter((element) => element.type === "elision");
+    const crossing = (types: readonly DrawnElement["type"][]) =>
+      gaps.map((gap) =>
+        drawing.elements.flatMap((element) => {
+          if (gap.type !== "elision" || !types.includes(element.type)) return [];
+          if (!("cuts" in element)) return [];
+          if (!element.cuts.some(([a, b]) => a === gap.x1 && b === gap.x2)) return [];
+          const y =
+            element.type === "map"
+              ? element.yc
+              : element.type === "region"
+                ? element.yb
+                : element.y;
+          return [[element.address.id, y]];
+        }),
+      );
+    expect(crossing(["timeline", "child", "ancestor"])).toEqual([
+      [["score", 127.234375]],
+      [["score", 353.421875]],
+    ]);
+    expect(crossing(["map"])).toEqual([
+      [["cmap_1", 127.234375 - 5.5]],
+      [["cmap_1", 353.421875 - 5.5]],
+    ]);
+    expect(
+      gaps.map((gap) =>
+        drawing.elements.flatMap((element) =>
+          gap.type === "elision" &&
+          element.type === "ellipsis" &&
+          element.x === (gap.x1 + gap.x2) / 2
+            ? [element.y]
+            : [],
+        ),
+      ),
+    ).toEqual([[127.234375], [353.421875]]);
+  });
+});
+
+describe("the frame's room", () => {
+  it("puts what lies outside the member's span outside the frame", () => {
+    const drawing = drawn("groups/group_elided_inside");
+    const frame = drawing.boxes.find((box) => box.kind === "frame");
+    if (frame === undefined) throw new Error("no frame");
+    const gaps = of(drawing, "elision", derived("first"));
+    // The gap ending at 8 ends at the frame's left edge, the one starting at 16 starts at its right.
+    const [before, after] = gaps;
+    expect(before?.type === "elision" && before.x2).toBe(frame.x);
+    expect(after?.type === "elision" && after.x1).toBe(frame.x + frame.width);
+    expect(drawing.elements.filter((element) => element.type === "elision")).toHaveLength(3);
+    // `piece`'s run over `excerpt`'s span: from `x0` to `x0 + L'` of the frame.
+    const run = drawing.axes.find(
+      (axis) =>
+        axis.address.id === "piece" && axis.ancestor !== undefined && String(axis.start) === "8",
+    );
+    expect([run?.xStart, run?.xEnd, String(run?.end)]).toEqual([
+      frame.x + 103.70361328125,
+      frame.x + 103.70361328125 + 400,
+      "16",
+    ]);
   });
 });
 

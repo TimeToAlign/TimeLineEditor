@@ -29,6 +29,7 @@ import {
   ancestorProportion,
   carriedGaps,
   exposedGap,
+  type FrameRoom,
   type Stretch,
   storedAncestorAxis,
 } from "../elisions.ts";
@@ -245,7 +246,7 @@ export function elisionsBehind(
   context: Context,
   at: Behind,
   first: MemberLayout,
-  frame: { readonly width: number; readonly height: number },
+  frame: { readonly x: number; readonly width: number; readonly height: number },
   s0: number,
   proportion?: number,
 ): AncestorElisions {
@@ -261,6 +262,7 @@ export function elisionsBehind(
     protectedSpan(at),
     chain,
     carriedGaps(item.elisions, ts, lambda, R.number_type),
+    frameRoom(frame, s0, L - item.DG),
     () => {
       const widest = first.names.length === 0 ? 0 : Math.max(...first.names);
       return ancestorProportion({
@@ -268,7 +270,6 @@ export function elisionsBehind(
         scale: item.scale,
         L,
         drawnLength: L - item.DG,
-        x0: s0,
         width: frame.width,
         height: frame.height,
         sigma: K + widest + (first.names.length === 0 ? 0 : G),
@@ -281,6 +282,20 @@ export function elisionsBehind(
   return proportion === undefined
     ? elisions
     : { ...elisions, automatic: style["elision-proportion"] === "auto" };
+}
+
+/**
+ * The room a frame `frame` leaves left of its member drawings, which start at
+ * `s0`, and right of its members' drawn length `drawnLength` (section 8.8,
+ * step 2), in its item coordinates: the widths of the seams of an ancestor
+ * card behind it, so that what lies outside `M`'s span lies outside the frame.
+ */
+export function frameRoom(
+  frame: { readonly x: number; readonly width: number },
+  s0: number,
+  drawnLength: number,
+): FrameRoom {
+  return { left: s0 - frame.x, right: frame.x + frame.width - (s0 + drawnLength) };
 }
 
 /**

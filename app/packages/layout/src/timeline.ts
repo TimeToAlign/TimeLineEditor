@@ -515,8 +515,10 @@ function linePosition(
           // What lies at the line's own start lies on the run right of a seam there (section 8.8).
           x: (value) =>
             x0 +
-            (compareReal(value, line.start) === 0 ? elided.after(value) : elided.relative(value)),
-          xAfter: (value) => x0 + elided.after(value),
+            (compareReal(value, line.start) === 0
+              ? elided.relativeAt(value, "after")
+              : elided.relative(value)),
+          xAfter: (value) => x0 + elided.relativeAt(value, "after"),
           xEnd: (entry) =>
             x0 + (entry.rootEnd ? scope.L - elided.total : elided.relative(entry.end)),
           gap: (value) => {

@@ -26,7 +26,13 @@ import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement, TextElement } from "./elements.ts";
-import { type CrossingRow, crossingRows, type Gap, gapElements } from "./elisions.ts";
+import {
+  type CrossedRow,
+  type CrossingRow,
+  crossingRows,
+  type Gap,
+  gapElements,
+} from "./elisions.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
@@ -74,7 +80,7 @@ export interface MemberLayout {
 /** A gap of a frame drawn across a member card: the ordinates of the card's rows it crosses, and its labels there. */
 export interface FramedGap {
   readonly gap: Gap;
-  readonly rows: readonly number[];
+  readonly rows: readonly CrossedRow[];
   readonly labels: readonly TextElement[];
 }
 
@@ -226,7 +232,14 @@ export function layoutScope(
           const line = ancestorLinesDrawn[index];
           return line === undefined
             ? []
-            : [{ y: line.y, start: ancestor.start, end: ancestor.right ? null : ancestor.te }];
+            : [
+                {
+                  y: line.y,
+                  start: ancestor.start,
+                  end: ancestor.right ? null : ancestor.te,
+                  line: true,
+                },
+              ];
         }),
         ...placed.flatMap((line, index) => {
           const own = nth(drawn, index);
@@ -234,14 +247,22 @@ export function layoutScope(
           const lineRows: CrossingRow[] =
             own.line.length === 0
               ? []
-              : [{ y: line.place.y, start: entry.start, end: entry.rootEnd ? null : entry.end }];
+              : [
+                  {
+                    y: line.place.y,
+                    start: entry.start,
+                    end: entry.rootEnd ? null : entry.end,
+                    line: true,
+                  },
+                ];
           const mapRows = own.maps.flatMap((map): CrossingRow[] => {
             const member = line.drawing.prepared.maps.find(
               (each) => each.map.address.id === map.address.id,
             );
             if (member === undefined) return [];
             const { entry: spanned } = member;
-            return [{ y: map.yc, start: spanned.start, end: spanned.rootEnd ? null : spanned.end }];
+            const end = spanned.rootEnd ? null : spanned.end;
+            return [{ y: map.yc, start: spanned.start, end, line: false }];
           });
           return [...lineRows, ...mapRows];
         }),
