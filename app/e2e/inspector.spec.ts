@@ -8,14 +8,16 @@
  * beside the heading (a bundle, a group, a timeline, a card), on `bundles`
  * and for a pressed card; and the Timestamp tab's wedge rotation, by the
  * keyboard, a stop and Default, turning the drawn wedge and back, and by a
- * drag, turning it live, cancelled by Escape, journalled once. The
- * method is in `README.md` ("inspector.spec.ts").
+ * drag, turning it live, cancelled by Escape, journalled once; and a
+ * stored elision selected on the canvas showing the Elisions tab, which
+ * stays as chosen afterwards. The method is in `README.md`
+ * ("inspector.spec.ts").
  */
 
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import type { Manifest } from "../packages/core/src/index.ts";
+import type { ElementAddress, Manifest } from "../packages/core/src/index.ts";
 import { isLoadError, loadManifest } from "../packages/core/src/index.ts";
 import { dumps, loads, manifestFixture, validatorDetail } from "./schema.ts";
 import {
@@ -27,12 +29,14 @@ import {
   element,
   field,
   fixtureText,
+  importFixture,
   journalLength,
   marginPoint,
   node,
   nodeDragStart,
   OPENED_JOURNAL,
   open,
+  pane,
   panel,
   placement,
   SMALL,
@@ -709,4 +713,44 @@ test("a drag of the wedge rotation's slider turns the drawn wedge live and journ
     ],
     dragged,
   ]);
+});
+
+test("a stored elision selected on the canvas shows the Elisions tab, which then stays as chosen", async ({
+  page,
+}) => {
+  // The drawer, opened before, is remembered open over the import, Properties shown.
+  const block = await importFixture(page, "bundles/bundle_elisions_stored");
+  await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
+  // `elision_5` draws only its name label, "Development", brought to (400, 400) on the canvas, left of the drawer.
+  const label = element(page, block, { id: "elision_5", part: ["name"] } as ElementAddress);
+  const dot = await label.boundingBox();
+  const canvas = await pane(page).boundingBox();
+  if (dot === null || canvas === null) throw new Error("the label is not displayed");
+  const view = await viewportOf(page);
+  await setViewport(page, {
+    x: view.x + canvas.x + 400 - dot.x,
+    y: view.y + canvas.y + 400 - dot.y,
+    zoom: view.zoom,
+  });
+  const shown = await label.boundingBox();
+  if (shown === null) throw new Error("the label is not displayed");
+  await page.mouse.click(shown.x + shown.width / 2, shown.y + shown.height / 2);
+
+  await expect.poll(() => selection(page)).toEqual([{ block, id: "elision_5" }]);
+  await expect(tab(page, "Elisions")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("elision-form-expand")).toHaveAttribute("aria-expanded", "true");
+
+  await tab(page, "Properties").click();
+  await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
+  await select(page, []);
+  await expect.poll(() => selection(page)).toEqual([]);
+  await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
+  await expect(tab(page, "Elisions")).toHaveAttribute("aria-selected", "false");
+
+  // Selected again, then deselected: the Elisions tab stays, nothing goes back.
+  await select(page, [{ block, id: "elision_5" }]);
+  await expect(tab(page, "Elisions")).toHaveAttribute("aria-selected", "true");
+  await select(page, []);
+  await expect.poll(() => selection(page)).toEqual([]);
+  await expect(tab(page, "Elisions")).toHaveAttribute("aria-selected", "true");
 });

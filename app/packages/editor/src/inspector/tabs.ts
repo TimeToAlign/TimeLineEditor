@@ -1,10 +1,12 @@
 /**
  * The inspector's tab rule: which tabs there are, which one is shown and
- * where the keys move, how a pinned timestamp selects the Timestamp tab and
- * a pinned or selected MatchStamp the Matchstamp tab.
+ * where the keys move, how a pinned timestamp selects the Timestamp tab, a
+ * pinned or selected MatchStamp the Matchstamp tab and a selected elision
+ * the Elisions tab.
  * Pure: the component holds the tab last chosen and the pin, the drawer
- * tells the rule when the inspector is shown or hidden and when a timestamp
- * is pinned, and both read the store's count of editor openings.
+ * tells the rule when the inspector is shown or hidden, when a timestamp
+ * is pinned and when the selection changes, and both read the store's
+ * count of editor openings.
  */
 
 import type { Level } from "@timetoalign/tilie-arranger";
@@ -139,6 +141,33 @@ export function pinned(shown: Shown, held: Held | null): Shown {
 /** What is shown once `tab` is chosen: that tab; any tab but Timestamp clears the pin. */
 export function chosen(shown: Shown, tab: Tab, openings: number): Shown {
   return { picked: { tab, openings }, pin: tab === "timestamp" ? shown.pin : null };
+}
+
+/** Whether `address` names a stored elision of `view` (`{block, id: E}`), whose form the Elisions tab shows. */
+export function namesElision(view: View, address: Address): boolean {
+  if (address.id === undefined) return false;
+  const resolved = resolveAddress(view, address);
+  return "kind" in resolved && resolved.kind === "elision";
+}
+
+/**
+ * What is shown once the selection changed to `addresses`: when they are
+ * exactly one stored elision, the Elisions tab, as though it were chosen
+ * (`chosen`: the pin cleared), remembering no tab to go back to, so the
+ * tab stays once the selection leaves the elision; any other selection,
+ * several things with an elision among them included, changes nothing
+ * (`shown` itself). Told of a change of the selection only, never while
+ * the same elision stays selected, so a tab chosen meanwhile stays.
+ */
+export function elisionSelected(
+  shown: Shown,
+  view: View,
+  addresses: readonly Address[],
+  openings: number,
+): Shown {
+  const [only, ...others] = addresses;
+  if (only === undefined || others.length > 0 || !namesElision(view, only)) return shown;
+  return chosen(shown, "elisions", openings);
 }
 
 /**

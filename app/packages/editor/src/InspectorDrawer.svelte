@@ -24,7 +24,10 @@
  * of its anchors) selected, is shown in the Matchstamp tab, opening the
  * drawer; a potential one is shown while its block's anchor index is the
  * one it was read from (no longer once its table, its filter or the user
- * changed), a named one while it exists. The editor gives the drawer the
+ * changed), a named one while it exists. A selection changed to exactly
+ * one stored elision shows the Elisions tab, as though it were chosen,
+ * without opening the drawer and without going back once the selection
+ * leaves it. The editor gives the drawer the
  * MatchClaim tables and the one function reading their indexes, which the
  * canvas reads too.
  */
@@ -45,6 +48,7 @@ import type { MatchIndexes } from "./inspector/matchstamps.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
 import type { HeldMatch, Picked, ShownMatch, ShownPin } from "./inspector/tabs.ts";
 import {
+  elisionSelected,
   heldOf,
   initialPick,
   matchOutlived,
@@ -241,7 +245,10 @@ export function shownMatch(): HeldMatch | null {
  * (`boundaryPinOf`); any other selection clears a named timestamp shown, an
  * unnamed pin staying. A selection names addresses only, never the line a
  * drawn wedge was pressed on, so a timestamp selected is read at its first
- * place, but for the one shown, which keeps its line.
+ * place, but for the one shown, which keeps its line. Exactly one stored
+ * elision selects the Elisions tab (`elisionSelected`), as a choice of it
+ * would: the pin and the MatchStamp shown are let go, so nothing brings
+ * back the tab shown before; the drawer stays as it is, open or closed.
  */
 export function selected(addresses: readonly Address[]): void {
   const [only, ...others] = addresses;
@@ -263,6 +270,11 @@ export function selected(addresses: readonly Address[]): void {
     shown.named.id === pin.pin.named?.id;
   if (shown !== null) pinTimestamp(shown, again ? readOn.line : null);
   else if (pin !== null && pin.pin.named !== null) pinTimestamp(null);
+  const elided = elisionSelected({ picked, pin }, live.view, addresses, live.openings);
+  if (elided.picked !== picked) {
+    ({ picked, pin } = elided);
+    heldMatch = null;
+  }
 }
 
 // A pin is dropped, the tab kept, once it no longer holds: its values were read from another manifest or granularity.

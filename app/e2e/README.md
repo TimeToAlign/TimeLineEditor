@@ -625,6 +625,15 @@ the rules. A second such drag turns the wedge before the release and
 journals exactly one command on release, the rule stating the slider's
 value then (read from the slider, a pixel's value being the browser's
 own), and the wedge keeps the `points` it showed before the release.
+A selected stored elision selects the Elisions tab: with the drawer
+remembered open and Properties shown, `bundle_elisions_stored` imported,
+a click on the name label "Development" of `elision_5` (the only part it
+draws; the canvas is moved so that the label lies at (400, 400) on it,
+left of the drawer) selects exactly `{block, id: "elision_5"}` and shows
+the Elisions tab, its form's block expanded; Properties chosen then
+stays, and stays once the selection is emptied. Selected again, the
+elision shows the Elisions tab again, which stays when the selection is
+emptied: nothing goes back to the tab shown before.
 
 **`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
 drawer's Properties tab on `bundles`. With `group_1` selected, its frame

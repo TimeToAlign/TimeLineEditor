@@ -1313,6 +1313,30 @@ tab the arrows move to the next or previous tab, wrapping, Home and End to
 the first and last; a key held with Alt, Ctrl or Meta is the browser's and
 is not prevented.
 
+**A selected elision selects the Elisions tab** (`inspector-tabs.test.ts`,
+"a selected elision"), on `bundle_elisions_stored`, whose stored
+elisions include `elision_5` (on `score`) and `elision_3` (a group
+elision of `group_1`). As a rule: exactly the two stored elisions'
+addresses name an elision; `score`, `elision_5`'s ellipsis, `score`'s
+default-elision part, the block and an unknown ID do not. A selection
+of exactly one stored elision gives the Elisions tab, recorded with the
+openings given, and no pin, exactly as a choice of that tab; nothing,
+a timeline, the block, two elisions, an elision with its timeline, or
+an elision's ellipsis alone give the state passed in, the same object.
+The rule remembers no tab: a pin held before (Timestamp shown) is
+cleared, so clearing a pin afterwards changes nothing. A pin or a
+MatchStamp arriving afterwards takes the tab as always, remembering
+Elisions, and letting it go shows Elisions again. In the drawer, told
+of every change of the selection as the editor tells it: open, with
+Properties chosen, `elision_5` selected shows Elisions with the form's
+block expanded (`aria-expanded` "true"); Properties chosen then stays;
+`elision_3` selected shows Elisions again; nothing selected leaves
+Elisions (no form block); both elisions selected leave it; with Journal
+chosen, an elision with `score` and then `score` alone leave Journal.
+Closed, with Journal chosen, `elision_5` selected leaves the drawer
+closed (no tab list rendered); `score` then selected, the drawer opened
+shows Elisions.
+
 **The component** reads the editing path from the real store (open, Done,
 sessions) or from a store whose levels the test sets and announces. The
 drawer renders it only while open: closed, no tab list and no panel

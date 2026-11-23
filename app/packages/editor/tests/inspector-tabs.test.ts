@@ -2,19 +2,29 @@
 
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
+import type { Address, Entry, OpenEditor, Part, Store, View } from "@timetoalign/tilie-core";
 import { listEntries } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import Inspector from "../src/inspector/Inspector.svelte";
 import type { JournalSource } from "../src/inspector/journal.ts";
-import type { Tab } from "../src/inspector/tabs.ts";
-import { initialPick, nextTab, TABS, tabLabel, toggled } from "../src/inspector/tabs.ts";
+import type { Held, HeldMatch, Shown, Tab } from "../src/inspector/tabs.ts";
+import {
+  elisionSelected,
+  initialPick,
+  matchPinned,
+  namesElision,
+  nextTab,
+  pinned,
+  TABS,
+  tabLabel,
+  toggled,
+} from "../src/inspector/tabs.ts";
 import { addStylesOf, fadingsOf } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { informing, noMatchClaims, providing } from "./support.ts";
+import { blockId, informing, noMatchClaims, providing, storeOf } from "./support.ts";
 
 const { A } = MIXED;
 /** The address of block `A`. */
@@ -946,5 +956,164 @@ describe("the Journal panel", () => {
     expect([store.journal, store.listed]).toEqual([journal, listed]);
     expect(store.journal).toBe(journal);
     expect(store.listed).toBe(listed);
+  });
+});
+
+describe("a selected elision", () => {
+  const E = blockId(0);
+  /** `bundle_elisions_stored`, one block: stored elisions `elision_3` (a group's) and `elision_5`. */
+  const stored = () => storeOf("bundles/bundle_elisions_stored");
+  const at = (id: string, part?: Part[]): Address =>
+    part === undefined ? { block: E, id } : { block: E, id, part };
+  const ELISION_5 = at("elision_5");
+  const ELISION_3 = at("elision_3");
+  /** A pin as the rule holds it: carried, never read. */
+  const HELD = { pin: { pinned: "carried" }, manifest: {} } as unknown as Held;
+  const MATCH: HeldMatch = { kind: "named", block: E, id: "matchstamp_1" };
+
+  describe("as a rule", () => {
+    const journal: Shown = { picked: { tab: "journal", openings: 1 }, pin: null };
+
+    it("names a stored elision only", () => {
+      const { view } = stored();
+      expect(
+        [
+          ELISION_5,
+          ELISION_3,
+          at("score"),
+          at("elision_5", ["ellipsis"]),
+          at("score", ["elision"]),
+          { block: E },
+          at("nothing"),
+        ].map((address) => namesElision(view, address)),
+      ).toEqual([true, true, false, false, false, false, false]);
+    });
+
+    it("selects the Elisions tab for exactly one stored elision, as a choice of it", () => {
+      const { view } = stored();
+      expect(elisionSelected(journal, view, [ELISION_5], 3)).toEqual({
+        picked: { tab: "elisions", openings: 3 },
+        pin: null,
+      });
+      expect(elisionSelected(journal, view, [ELISION_3], 1)).toEqual({
+        picked: { tab: "elisions", openings: 1 },
+        pin: null,
+      });
+    });
+
+    it.each<[string, Address[]]>([
+      ["nothing", []],
+      ["a timeline", [at("score")]],
+      ["the block", [{ block: E }]],
+      ["two elisions", [ELISION_5, ELISION_3]],
+      ["an elision and its timeline", [ELISION_5, at("score")]],
+      ["an elision's ellipsis", [at("elision_5", ["ellipsis"])]],
+    ])("changes nothing for %s", (_, addresses) => {
+      expect(elisionSelected(journal, stored().view, addresses, 3)).toBe(journal);
+    });
+
+    it("clears a pin, so that nothing goes back to the tab shown before it", () => {
+      const { view } = stored();
+      const pinnedFirst = pinned(journal, HELD);
+      const elided = elisionSelected(pinnedFirst, view, [ELISION_5], 1);
+      expect([pinnedFirst.picked.tab, elided]).toEqual([
+        "timestamp",
+        { picked: { tab: "elisions", openings: 1 }, pin: null },
+      ]);
+      expect(pinned(elided, null)).toBe(elided);
+    });
+
+    it("leaves the tab to a pin or a MatchStamp arriving afterwards, which give it back", () => {
+      const elided = elisionSelected(journal, stored().view, [ELISION_5], 1);
+      const pinnedAfter = pinned(elided, HELD);
+      const matched = matchPinned({ picked: elided.picked, match: null }, MATCH);
+      expect([pinnedAfter, pinned(pinnedAfter, null)]).toEqual([
+        { picked: { tab: "timestamp", openings: 1 }, pin: { ...HELD, before: "elisions" } },
+        { picked: { tab: "elisions", openings: 1 }, pin: null },
+      ]);
+      expect([matched, matchPinned(matched, null)]).toEqual([
+        { picked: { tab: "matchstamp", openings: 1 }, match: { ...MATCH, before: "elisions" } },
+        { picked: { tab: "elisions", openings: 1 }, match: null },
+      ]);
+    });
+  });
+
+  describe("in the drawer", () => {
+    /**
+     * The drawer over `bundle_elisions_stored`, closed, `score` selected;
+     * `select` changes the selection and tells the drawer, as the editor
+     * does on every change of it.
+     */
+    function drawer() {
+      const selection = holder<Selection>(selectionOf([at("score")]));
+      const shown = mount(providing(InspectorDrawer), {
+        target: document.body,
+        context: informing(),
+        props: {
+          live: liveStore(stored()),
+          get selection() {
+            return selection.value;
+          },
+          placement: null,
+          storageKey: null,
+          ...noMatchClaims(),
+        },
+      });
+      app = shown;
+      flushSync();
+      return {
+        setOpen(open: boolean) {
+          shown.setOpen(open);
+          flushSync();
+        },
+        isOpen: () => shown.isOpen(),
+        select(addresses: Address[]) {
+          selection.value = selectionOf(addresses);
+          shown.selected(addresses);
+          flushSync();
+        },
+      };
+    }
+
+    /** The selected tab's text. */
+    const current = () =>
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim();
+    /** The disclosure state of the selected elision's form block; `null` without it. */
+    const form = () =>
+      document
+        .querySelector('[data-testid="elision-form-expand"]')
+        ?.getAttribute("aria-expanded") ?? null;
+
+    it("shows the Elisions tab with the form open, and keeps a tab chosen afterwards", () => {
+      const inspector = drawer();
+      inspector.setOpen(true);
+      click("Properties");
+      inspector.select([ELISION_5]);
+      expect([current(), form()]).toEqual(["Elisions", "true"]);
+      click("Properties");
+      expect(current()).toBe("Properties");
+      inspector.select([ELISION_3]);
+      expect([current(), form()]).toEqual(["Elisions", "true"]);
+      inspector.select([]);
+      expect([current(), form()]).toEqual(["Elisions", null]);
+      inspector.select([ELISION_5, ELISION_3]);
+      expect(current()).toBe("Elisions");
+      click("Journal");
+      inspector.select([ELISION_5, at("score")]);
+      inspector.select([at("score")]);
+      expect(current()).toBe("Journal");
+    });
+
+    it("leaves a closed drawer closed, the Elisions tab shown when it opens", () => {
+      const inspector = drawer();
+      inspector.setOpen(true);
+      click("Journal");
+      inspector.setOpen(false);
+      inspector.select([ELISION_5]);
+      expect([inspector.isOpen(), document.querySelector('[role="tab"]')]).toEqual([false, null]);
+      inspector.select([at("score")]);
+      inspector.setOpen(true);
+      expect(current()).toBe("Elisions");
+    });
   });
 });
