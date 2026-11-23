@@ -536,7 +536,7 @@ header); the health check is stubbed, answered (`{name, version,
 timetoalign}`) with the user's files on the server stubbed too (`story/`
 holding the table fixture's `manifest.yaml` alone, `other/` its
 `match_claims.parquet`), refused with 503, or held until the test answers
-it. Answered: the table fixture opened from the Fixture
+or refuses it. Answered: the table fixture opened from the Fixture
 menu, its table served beside it, loads it on the `m` key without a dialog
 and with one table request; the same manifest imported from `story/`
 through the file dialog, Show matches (its toolbar button) opens
@@ -565,7 +565,14 @@ message (no offline mark either: nothing has failed), requesting no
 table; once the check is answered, without another key, the table is
 requested exactly once, the one new message is "Loaded the MatchClaims
 of match_claims.parquet.", no dialog opens and the canvas's status is
-gone, the matches drawn. `open-save.spec.ts` proves the table read beside the manifest.
+gone, the matches drawn. Held, then refused instead: `m` adds no
+message; once the check is refused, without another key, the offline
+mark appears and exactly one message is added, the failure followed by
+the sentence on starting a server, as in the refused case; no dialog
+opens, no table is requested, the canvas's status reads "Matches need a
+running tilie-server.", and "Load MatchClaims…" is described by that
+message, no further message appearing. `open-save.spec.ts` proves the
+table read beside the manifest.
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
 `small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is

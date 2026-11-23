@@ -2,7 +2,7 @@
  * A page whose tilie-server is stubbed in the page's routes, for the specs
  * of the MatchClaim tables: the table route replayed from the client's
  * recording, the health check answered, refused or held until the spec
- * answers it, and the user's files on the server (`story/` holding the
+ * answers or refuses it, and the user's files on the server (`story/` holding the
  * table fixture's manifest alone, `other/` its MatchClaim table).
  */
 
@@ -24,36 +24,39 @@ export const ANSWER = readFileSync(
 export const HEALTH_FAILURE =
   "The server did not answer the health check (503 Service Unavailable).";
 
-/** How the health check is met: answered at once, refused with 503, or held until `answer()`. */
+/** How the health check is met: answered at once, refused with 503, or held until `answer()` or `refuse()`. */
 export type Health = "answered" | "refused" | "held";
 
-/** The stubbed server: the table requests it answered, and the answer of a held health check. */
+/** The stubbed server: the table requests it answered, and the outcomes of a held health check. */
 export interface Served {
   readonly requests: number;
   /** Answer the held health check (nothing for one answered or refused already). */
   answer(): void;
+  /** Refuse the held health check with 503 (nothing for one answered or refused already). */
+  refuse(): void;
 }
 
 /**
- * Stub the page's health check as `health` says; the function answering
- * it where it is held (doing nothing otherwise).
+ * Stub the page's health check as `health` says; the function meeting it
+ * where it is held, answered (`true`) or refused (`false`), doing nothing
+ * otherwise.
  */
-async function stubHealth(page: Page, health: Health): Promise<() => void> {
-  let answer: () => void = () => undefined;
-  const answered = new Promise<void>((resolve) => {
-    answer = resolve;
+async function stubHealth(page: Page, health: Health): Promise<(answered: boolean) => void> {
+  let meet: (answered: boolean) => void = () => undefined;
+  const met = new Promise<boolean>((resolve) => {
+    meet = resolve;
   });
   await page.route("**/api/health", async (route) => {
-    if (health === "held") await answered;
-    return health === "refused"
-      ? route.fulfill({ status: 503, body: "" })
-      : route.fulfill({ json: { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" } });
+    const answered = health === "held" ? await met : health === "answered";
+    return answered
+      ? route.fulfill({ json: { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" } })
+      : route.fulfill({ status: 503, body: "" });
   });
-  return answer;
+  return meet;
 }
 
-/** The answers of the health checks `holdHealth` holds, by page. */
-const heldChecks = new WeakMap<Page, () => void>();
+/** How the health checks `holdHealth` holds are met, by page. */
+const heldChecks = new WeakMap<Page, (answered: boolean) => void>();
 
 /**
  * Hold the page's health check, before the page is opened: until
@@ -66,9 +69,9 @@ export async function holdHealth(page: Page): Promise<void> {
 
 /** Answer the health check `holdHealth` held; resolves once the editor has the answer. */
 export async function answerHealth(page: Page): Promise<void> {
-  const answer = heldChecks.get(page);
-  if (answer === undefined) throw new Error("no health check is held");
-  answer();
+  const meet = heldChecks.get(page);
+  if (meet === undefined) throw new Error("no health check is held");
+  meet(true);
   await page.waitForFunction(() => window.__tilie.health() !== null);
 }
 
@@ -79,7 +82,8 @@ export async function answerHealth(page: Page): Promise<void> {
  */
 export async function openPage(page: Page, health: Health = "answered"): Promise<Served> {
   await withoutPickers(page);
-  const seen = { requests: 0, answer: await stubHealth(page, health) };
+  const meet = await stubHealth(page, health);
+  const seen = { requests: 0, answer: () => meet(true), refuse: () => meet(false) };
   await page.route("**/api/match-claims", async (route) => {
     seen.requests += 1;
     await route.fulfill({ status: 200, contentType: "application/octet-stream", body: ANSWER });

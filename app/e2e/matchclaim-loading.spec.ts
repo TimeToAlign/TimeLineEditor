@@ -10,7 +10,8 @@
  * nothing and the message bar says that matches need a running server and
  * how to start one, which Load MatchClaims…, disabled, says too; while the
  * health check is not answered yet, turning it on says nothing, and the
- * table loads once the check answers. The server's table route is
+ * table loads once the check answers, or the message bar says how to start
+ * a server, once, when it is refused then. The server's table route is
  * replayed from the client's recording; loading is started by turning
  * Show matches on, by its key or its toolbar button, or by the Matchstamp
  * tab's Load MatchClaims…, which asks in the same dialog.
@@ -202,4 +203,31 @@ test("M before the health check answers says nothing, and the table loads once i
   await expect(messages).toHaveText([...before, "Loaded the MatchClaims of match_claims.parquet."]);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByTestId("matches-state")).toHaveCount(0);
+});
+
+test("M before the health check is refused says nothing until it is, then how to start a server, once", async ({
+  page,
+}) => {
+  const seen = await openPage(page, "held");
+  await page.getByTestId("fixture-select").selectOption("tables/manifest");
+  await page.getByTestId("fixture-open").click();
+  await expect.poll(() => blocks(page)).toHaveLength(1);
+  const [block] = await blocks(page);
+  const warning = `${HEALTH_FAILURE} ${NO_SERVER}`;
+  const messages = page.getByTestId("message").locator("p");
+  const before = await messages.allTextContents();
+  await pressM(page);
+  await expect(page.getByTestId("matches")).toHaveAttribute("aria-pressed", "true");
+  await expect(messages).toHaveText(before);
+  seen.refuse();
+  await expect(page.locator(".offline")).toHaveAttribute("title", HEALTH_FAILURE);
+  await expect(messages).toHaveText([...before, warning]);
+  await expect(page.getByTestId("matches-state")).toHaveText(NEED);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(await tableStatus(page, block ?? "")).toHaveText("No MatchClaim table loaded.");
+  await expect(page.getByRole("button", { name: "Load MatchClaims…" })).toHaveAccessibleDescription(
+    warning,
+  );
+  await expect(messages).toHaveText([...before, warning]);
+  expect(seen.requests).toBe(0);
 });

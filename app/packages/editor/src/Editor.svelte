@@ -556,16 +556,17 @@ let offline = $state("");
 let matchesShown = false;
 
 /**
- * Ask the server's health check. Answered, the MatchClaim tables can be
- * read: with Show matches already on (turned on while it had not answered
- * yet, so nothing was asked or said), the named tables are loaded now.
+ * Ask the server's health check. With Show matches already on (turned on
+ * while it had not answered yet, so nothing was asked or said), its
+ * outcome is followed as a press now would be: answered, the named tables
+ * are loaded; failed, the message bar says once why none can be (where a
+ * block's manifest names a table it does not hold).
  */
 async function checkHealth(calls: Server): Promise<void> {
   try {
     health = await calls.health();
   } catch (error) {
     offline = `The server did not answer the health check (${messageOf(error)}).`;
-    return;
   }
   if (matchesShown) void session.loadNamedTables();
 }
