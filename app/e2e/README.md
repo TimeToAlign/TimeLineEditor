@@ -913,84 +913,162 @@ schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
 **`ancestor-cards.spec.ts`** (Chromium, Firefox, WebKit) proves an ancestor card (TimeToShare's
-drawing specification, sections 8.8 and 8.9) and its root's elision section on the schema package's
-`groups/group_parent_both`, imported through the File menu, at zoom 1
-with the block's place origin at (240, 80) on the pane, so that the card
-reaching left of the frame stays on screen: the root `piece` (`Piece`, 16
-quarters), whose child `middle` (`Middle`, 8 quarters at offset 4) is a
-member of `group_1` beside `recording` (`Recording`, 10.0 seconds), runs on
-to both sides of its member.
+drawing specification, sections 8.8 and 8.9), the elision sections of the
+Properties tab beside it and a selected elision's gap on the canvas. The
+page is 1920 × 1080, so that the canvas left of the open inspector drawer
+(32 % of the editor's width) is wider than 1112 pixels: where an ancestor
+card's proportion is automatic it depends on the canvas's size (section
+8.9, The proportion), and from that width on it does not for the
+fixtures here (below). The drawing is compared, never pixels; a section
+is found by its test ID (`elisions` the root's, `group-elisions` the
+group's, `elision-form` the selected elision's), a mode by its radio's
+name. A gap draws nothing of its own by default (the defaults' `fill:
+none`, drawing.md section 4, and no `continuation` in its display), so
+each drawing of a gap is seen by its one ellipsis, three dots addressed
+`{id: E, part: [ellipsis]}` for a stored elision and `{id: T, part:
+[elision, ellipsis]}` for a derived one.
 
-*Drawn by default, hidden from its root and shown from its child.* With no rule stating
-anything of it, the block draws `piece`'s ancestor card, shadow and card
-addressed `{id: piece, part: [card]}`, at the layout's record (layout's
-README, "Ancestor cards", case 2): the card at `x="8"` `y="36.207"`
-(36.20703125: it lies on `piece`'s ancestor row, 85.18359375, below
-`middle`'s line, its line 48.9765625 below its top),
-`869.3354` × `63.3789` (869.33544921875 × 63.37890625 to four decimals),
-the frame at `x="156.6318"` (8 + the block's origin shift
-148.6318359375), `543.7036` wide, so the card reaches 148.6318359375
-beyond the frame's left border and 869.33544921875 − 148.6318359375 −
-543.70361328125 = 177 beyond its right one; the member cards at
-`164.6318`, each `y`, width and height as without the card (`8`,
-`32.8047`, `128.1602`; `543.7036` × `177.5391`, `527.7036` × `87.3555`,
-`527.7036` × `49.3789`: `middle`'s card holds its ancestor band below its
-markers band, 3.40234375 higher than with the band above, and
-`recording`'s card lies that much lower); the node at `(x − 148.6318359375, y)` of the
-block's place `(x, y)` (each engine prints a transform's lengths to its own
-precision, Chromium and Firefox to six significant digits, WebKit to six
-decimals, so the node's transform is compared with the string the same
-browser writes for `translate(<x>px, <y>px)` of the exact position, never
-with one engine's rounding). The card lies behind the frame: its
-rectangle precedes the frame's in the DOM. Selecting `piece` offers in
-Properties the section `Parent timeline "Piece"` (`elisions`), its mode
-Elided checked and its status "Elisions: automatic: drawn whole" (`r =
-1`: the card meets the view drawn whole, drawing.md §8.9), Hidden not
-`aria-disabled`. Choosing Hidden journals exactly one entry, `{type:
-"style", select: {element: "ancestor_card", addresses: [{id: "piece",
-part: ["card"]}]}, set: {display: "none"}, blocks: [<block>]}`, and the
-card is gone: no element is addressed `{id: piece, part: [card]}`, the
-frame and the cards lie at `x` 8 and 16 with the same `y`, widths and
-heights, the node is at the block's place `(x, y)`, which the store keeps
-throughout. Hidden is then checked. Showing the parent timelines is a
-property of the grouped child, so selecting the child `middle` instead
-offers the same section, Hidden checked; choosing Elided journals exactly
-one entry, the same command with `set: {display: null}` (the block's own
-rule hid the card, so Elided unstates it rather than stating `inline`),
-and the card and every box are drawn as before. The drawing is compared,
-never pixels.
+The first cases use the schema package's `groups/group_parent_both`,
+imported through the File menu, at zoom 1 with the block's place origin
+at (240, 80) on the pane: the root `piece` (`Piece`, 16 quarters),
+whose child `middle` (`Middle`, 8 quarters at offset 4) is a member of
+`group_1` beside `recording` (`Recording`, 10.0 seconds), runs on to
+both sides of its member. Every number is layout's record of the block
+(layout's README, "Ancestor cards", cases 2, 3 and 8), as the writer
+prints it, four decimals.
 
-*Elided, Full, stored and reset.* On `groups/group_elided_inside`
-imported the same way (the root `piece` of 64 quarters with `first` and
-`second`, the member `excerpt` of 8 at 8 in `first`; drawing.md §8.9
-derives its default elisions `first` 0–8 and 16–32 and `second` 0–32),
-selecting `excerpt` shows Elided checked and the strip of `{id: second,
-part: [elision]}` drawn. Full journals exactly `{type: "style", select:
-{element: "elision", within: "piece"}, set: {display: "none"}, blocks:
-[<block>]}` and no strip is drawn; ArrowLeft from the checked Full moves
-to Elided and journals the same with `display: null`, the strips drawn
-again (the arrow keys move between the options as native radios do).
-Root left and right journals one entry storing `elision_1` on `piece`
-0–8 and `elision_2` 16–64, without `width`, all three words displayed;
-the status reads "Elisions: 2 stored elisions" and the default strips are
-gone. Reset to automatic journals one entry and stores none; the defaults
-are drawn again.
+*Drawn by default, hidden from its root and shown from its child.* With no
+rule stating anything of it, the block draws `piece`'s ancestor card,
+shadow and card addressed `{id: piece, part: [card]}`: the card at
+`x="8"` `y="36.207"` (36.20703125, `piece`'s ancestor row 85.18359375
+less its line's 48.9765625 below its top), `1013.0391` × `63.3789`
+(52.33544921875 + 800 + 9 + 8 + `OL` + `OR`, with the seams `OL` =
+103.70361328125 and `OR` = 40); the block's place origin moved right by
+252.33544921875, so the frame at `x="260.3354"` `y="8"`, `543.7036` ×
+`157.5625` (24.8046875 to its first card, `middle`'s 67.37890625, the
+spacing 8, `recording`'s 49.37890625 and the padding 8), the member
+cards at `x="268.3354"`, `y` `32.8047` and `108.1836`, both `527.7036`
+wide, `67.3789` and `49.3789` high; the node at `(x − 252.33544921875,
+y)` of the block's place `(x, y)` (each engine prints a transform's
+lengths to its own precision, Chromium and Firefox to six significant
+digits, WebKit to six decimals, so the node's transform is compared
+with the string the same browser writes for `translate(<x>px, <y>px)`
+of the exact position, never with one engine's rounding). The card lies
+behind the frame: its rectangle precedes the frame's in the DOM.
+Selecting `piece` offers the root's section `Parent timeline "Piece"`,
+the mode Proportional checked (the mode `auto` with no stored card
+elision draws as `proportional`, and at `r = 1` it derives no gap: the
+member's span 4 to 12 leaves 4 on each side, `λ / E = 1`, and the view
+bounds none), Hidden not `aria-disabled`. Choosing Hidden journals exactly
+one entry, `{type: "style", select: {addresses: [{id: "piece", part:
+["card"]}]}, set: {display: "none"}, blocks: [<block>]}`, the root's one
+rule (every card of `piece`), and the card is gone: nothing is addressed
+`{id: piece, part: [card]}`, the frame and the member cards lie at `x` 8
+and 16 with the same `y`, widths and heights (the cards take no room,
+layout's case 3), the node is at the block's place `(x, y)`, which the
+store keeps throughout. Hidden is then checked. The section is a property
+of the grouped child too, so selecting `middle` instead offers the same
+section, Hidden checked; choosing Proportional journals exactly one
+entry, the same rule with `set: {"elision-mode": null, display: null}`
+(the block's own rule hid the card, so Proportional unstates both rather
+than stating values), and the card and every box are drawn as before,
+Proportional checked.
 
-*A default elision deleted.* Selecting `piece`, the `[×]` named "Delete
-the elision of Second, 0–32 ♩" journals one entry storing the card's other
-defaults, `elision_1` `first` 0–8 and `elision_2` `first` 16–32; no strip
-of `second` is drawn. One undo leaves no stored elision and draws every
-default again.
+*Full and back by the arrow keys.* On `groups/group_elided_inside`
+imported the same way (the root `piece` of 64 quarters with `first`, 32
+at 0, and `second`, 32 at 32; the member `excerpt` of 8 at 8 in
+`first`, a member of `group_1` "Excerpt" beside `recording`), the
+canvas is first checked to be wider than 1112 pixels with the drawer
+open: the automatic proportion is the least of (a) `λ / E × (L' / L)` =
+8 / 56 = 1/7 and (b) the view's two bounds, of which the right one,
+`(B − dr) / (L × uR)` with `B = 0.8 × VW / (2 × 5/7)` = 0.56 × VW, `dr`
+= (543.70361328125 + 8) − 271.851806640625 = 279.851806640625, `L` = 400
+and `uR` = 48 / 8 = 6, reaches 1/7 at `VW` = (2400 / 7 +
+279.851806640625) / 0.56 ≈ 1111.98, so on a wider canvas `r` = 1/7
+(section 8.9's worked example) and the default gaps are `first` 0–8,
+`first` 16–32 and `second` 1–31 (layout's README, "Elisions", point 1).
+Selecting `excerpt` shows Proportional checked and the three dots of
+`second`'s default gap. Full journals exactly `{type: "style",
+select: {addresses: [{id: "piece", part: ["card"]}]}, set:
+{"elision-mode": "full", display: null}, blocks: [<block>]}` and no dot
+of `second`'s gap is drawn; ArrowRight from the checked Full moves to
+Proportional, as a native radio group does, and journals the same rule
+with `set: {"elision-mode": null, display: null}`, the three dots drawn
+again.
 
-*A selected elision's end typed.* Clicking the row of `Second` selects
-`{block, id: second, part: [elision]}` alone; its form, `Elision of
-"Second"`, shows To `32`; `16` and Enter journals one `add` into the block
-of the three defaults, `second` ending at `[16, 1]`.
+*Custom: the drawn defaults stored, Add elision and Remove all.* On the
+same import with `excerpt` selected, Custom with no card elision stored
+journals exactly one entry, the `add` into `{block}` of the gaps as drawn
+(the arranger's tests README, "Elisions on the canvas", point 12), in
+drawing order: `first` `[0, 1]`–`[8, 1]` `{canvas: 57.14285714285714}`,
+`first` `[16, 1]`–`[32, 1]` `{canvas: 114.28571428571428}`, `second`
+`[1, 1]`–`[31, 1]` `{canvas: 128.57142857142856}` (each `W = r × n`,
+`n` = 400, 800 and 1600 at 50 canvas units a quarter, the third's gap
+`W` less the two visible ends of 50), each with the card's
+`elision-display`, initially `["ellipsis", "name"]`; the mode `auto`
+then draws as `custom` (a stored card elision), so no rule is written.
+Custom is checked, the count reads "3 elisions" and the rows (name, else
+"—"; timeline; stretch) read "—", "First", "0–8 ♩"; "—", "First",
+"16–32 ♩"; "—", "Second", "1–31 ♩", and the card draws the stored
+`elision_3` (three dots) in place of `second`'s default (none). Add elision
+journals one `add` into `{block, id: piece}` of `{start: [32, 1], end:
+[48, 1]}`: `excerpt` lies in a group, so the elision goes on the root,
+on the middle third of the longest stretch of `piece` outside the
+protected span 8–16, i.e. 16–64; the count reads "4 elisions". Remove all
+journals one `remove` of every card elision of `piece`'s tree in the
+manifest's canonical order (timeline, then start, then ID):
+`elision_1`, `elision_2` (`first` 0 and 16), `elision_4` (`piece` 32),
+`elision_3` (`second` 1). None is stored after it, Proportional is
+checked again and the three dots of `second`'s default gap are drawn.
 
-*Raised by its editor.* A double-click on a point of the card left of the
-frame, clear of everything drawn on it (`framePoint` of the card's
-address), opens the timeline editor of `{block, id: piece}`, and the card
-is raised over the frame: its rectangle now follows the frame's.
+*A selected gap: its handles, its mode menu and one keyboard edit.* On
+the same import, after Custom has stored the defaults, a click on the
+row of `Second` selects `{block, id: elision_3}` alone; the form reads
+`Elision on "Second"`, From `1`, To `31`. The viewport is moved so that
+the middle dot of its ellipsis lies at (400, 400) on the canvas, left of
+the drawer, where its menu takes clicks. The canvas shows one
+`gap-handle-start` and one `gap-handle-end` (the gap is the whole
+stretch, so both edges are reachable), and the gap mode menu, its
+Coordinates pressed and Width not (`aria-pressed`). A click on Width
+presses it beside Coordinates, a second click releases it again. With
+the arranger focused, `]` chooses the end and ArrowRight moves it one
+grid step, 8 canvas units, under Coordinates: `second`'s gap lies in
+`piece`'s ancestor card at 50 canvas units a quarter on the run beside
+its end (`LA` = 3200 over 64 quarters, scale 1), so the step is 0.16
+quarter and the reach half of it, 0.08; the pointer value 31.16 snaps to
+the first multiple of `1/d` within reach for the divisors `d` of 2520
+ascending (`d` = 1 to 4 give 31, 31, 31 and 31.25, all farther; `d` = 5
+gives 31.2), and no snapping value of `second` (0, 32) lies between 31 and
+31.2. Exactly one entry is journalled, `{type: "set", changes: [{target:
+{block, id: "elision_3"}, values: {end: [156, 5]}}]}`, and `elision_3`
+is stored ending at `[156, 5]`.
+
+*A group's elisions.* On `groups/group_elided_members` imported the same
+way (the group `group_1` "Theme", whose frame elides `elision_1`
+"Development" on `excerpt` 2–8 and `elision_2` on `phrase` 2–6),
+selecting the frame `{block, id: group_1}` offers the group's section
+`Elisions in group "Theme"` and no root's section, Custom checked (the
+frame's `auto` draws its stored elisions), the count "2 elisions" and
+the rows "Development", "Excerpt", "2–8 ♩"; "—", "Phrase", "2–6 ♩";
+`elision_1`'s ellipsis is six dots, one across the frame and one in
+`piece`'s ancestor card, which carries the frame's gaps. Full journals exactly `{type: "style",
+select: {addresses: [{id: "group_1"}]}, set: {"elision-mode": "full"},
+blocks: [<block>]}` and no dot of `elision_1` is drawn, neither across
+the frame nor carried into `piece`'s card; Custom journals the same rule
+with `{"elision-mode": null}` and the six dots are drawn again. Add
+elision journals one `add` into `{block, id: excerpt}`, the frame's
+first member in display order, of `{start: [16, 3], end: [32, 3]}`, the
+middle third of its 16 quarters, exactly; the count reads "3 elisions".
+Remove all journals one `remove` of the group's elisions in canonical
+order, `elision_1` (`excerpt` 2), `elision_3` (`excerpt` 16/3),
+`elision_2` (`phrase`); the count reads "0 elisions", nothing is stored
+and Remove all is disabled.
+
+*Raised by its editor* (back on `group_parent_both`). A double-click on a
+point of the card left of the frame, clear of everything drawn on it
+(`framePoint` of the card's address), opens the timeline editor of
+`{block, id: piece}`, and the card is raised over the frame: its
+rectangle now follows the frame's.
 
 *Unfolded out of the member card* (decision record 0034; the arranger's
 tests README, "A raised card unfolding", derives the motion). The page
@@ -1011,31 +1089,37 @@ layer moved on its way back. Under `prefers-reduced-motion: reduce` the
 same double-click and Done switch at once: the layer never moves and
 first appears unshifted, so no `transform` is recorded.
 
-*Read by Show coordinates* (the points and values derived in the arranger's
-tests README, "Show coordinates", on the same drawing). The points are
-drawing points of the block placed where the arranger puts its node (the
-block read back from the page's workspace text, drawn by `drawingOf` and
-placed by `nodePosition`), the lines found in layout's `lineAxes` of that
-drawing: the card's `piece` line (its axis carries `ancestor`) at y
-85.18359375 from 60.33544921875 to 860.33544921875 (0 to 16, 50 units a
-quarter), the card's `middle` row (its axis carrying `ancestor`) at y
-51.20703125, 4 below `middle`'s own line (47.20703125), and `piece`'s
+*Read by Show coordinates.* The points are drawing points of the block
+placed where the arranger puts its node (the block read back from the
+page's workspace text, drawn by `drawingOf` and placed by
+`nodePosition`; `r` = 1 at any view, so the default view's drawing is the
+page's), the lines found in layout's `lineAxes` of that drawing (layout's
+README, "Ancestor cards", case 8): the card's `piece` line (its axes
+carry `ancestor`) at y 85.18359375 in three runs cut at the seams, 0 to 4
+from 60.33544921875 to 260.33544921875, 4 to 12 from 364.0390625 to
+764.0390625 and 12 to 16 from 804.0390625 to 1004.0390625, 50 units a
+quarter; the card's `middle` row (its axis carrying `ancestor`) at y
+51.20703125, 4 below `middle`'s own line (47.20703125); and `piece`'s
 ancestor line in `middle`'s member card (no `ancestor`) at the same y
-85.18359375 from 260.33544921875 (start 4). The
-viewport's abscissa is moved right by less than a pixel so that the card's
-`piece` line starts on a whole screen pixel; every point lies a whole
-number of units from it (Firefox and WebKit take whole pixels only) and
-its ordinate is rounded to a whole pixel. With Show coordinates on, the
-flag (`coordinate-flag`) holds one part per timeline (`data-timeline`),
-top to bottom, each headed by its timeline's name, and the hovered row
+85.18359375 from 364.0390625 (start 4). The frame spans x 260.33544921875
+to 804.0390625. The viewport's abscissa is moved right by less than a
+pixel so that the card's `piece` line starts on a whole screen pixel;
+every point lies a whole number of units from it (Firefox and WebKit take
+whole pixels only), 50, 504 or 844, and its ordinate is rounded to a whole
+pixel. A reading snaps within half a device pixel, 0.01 quarter at zoom 1,
+so 504 (x 564.33544921875, 4 + 200.29638671875 / 50 = 8.005927734375 on
+`piece`) reads 8 and 844 (x 904.33544921875, 12 + 100.29638671875 / 50 =
+14.005927734375) reads 14. With Show coordinates on, the flag
+(`coordinate-flag`) holds one part per timeline (`data-timeline`), top
+to bottom, each headed by its timeline's name, and the hovered row
 carries `data-hovered="true"`:
 
 | Point (drawing) | Arranger | `piece`'s timeline editor open, the card raised |
 |---|---|---|
-| (110.33544921875, 85.18359375), the card's `piece` line left of the frame | parts `piece` alone, `1 ♩` (50 / 800 × 16), hovered | — |
-| (760.33544921875, 85.18359375), the card's `piece` line right of the frame | parts `piece` alone, `14 ♩`, hovered | — |
-| (460.33544921875, 85.18359375), `piece`'s ancestor line in `middle`'s card | parts `middle`, `piece` (`middle`'s line lies above the ancestor line): `piece` `8 ♩` hovered (the ancestor's row), `middle` `4 ♩` | parts `middle`, `piece` (the card's `middle` row lies above its `piece` line): `piece` `8 ♩` hovered, `middle` `4 ♩` |
-| (460.33544921875, 51.20703125), the card's `middle` row inside the frame | not the card, which the frame covers there: `middle`'s own line, 4 above, within the pointer's 8: parts `middle`, `piece`, `recording` (a member's line reads its group), `middle` `4 ♩` hovered | parts `middle`, `piece`: `middle` `4 ♩` hovered, `piece` `8 ♩` |
+| (110.33544921875, 85.18359375), the card's `piece` line left of the frame | parts `piece` alone, `1 ♩` (50 / 50), hovered | — |
+| (904.33544921875, 85.18359375), the card's `piece` line right of the frame | parts `piece` alone, `14 ♩`, hovered | — |
+| (564.33544921875, 85.18359375), `piece`'s ancestor line in `middle`'s card | parts `middle`, `piece` (`middle`'s line lies above the ancestor line): `piece` `8 ♩` hovered (the ancestor's row), `middle` `4 ♩` | parts `middle`, `piece` (the card's `middle` row lies above its `piece` line): `piece` `8 ♩` hovered, `middle` `4 ♩` |
+| (564.33544921875, 51.20703125), the card's `middle` row inside the frame | not the card, which the frame covers there: `middle`'s own line, 4 above, within the pointer's 8: parts `middle`, `piece`, `recording` (a member's line reads its group), `middle` `4 ♩` hovered | parts `middle`, `piece`: `middle` `4 ♩` hovered, `piece` `8 ♩` |
 
 So the card is read beyond the frame's borders, never through the frame,
 and everywhere while it is raised; an ancestor line in a member's card is
