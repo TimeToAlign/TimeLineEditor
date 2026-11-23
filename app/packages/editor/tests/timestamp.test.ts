@@ -1712,8 +1712,15 @@ describe("the wedge's rotation", () => {
         turned(THEME, 50),
         "50",
       ]);
+      // Firefox ends a native drag on the release: the value at the pointer, `input`, `change`.
+      dragTo(55);
       changed();
-      expect([handed.length, store.journal.length]).toEqual([7, entries + 2]);
+      expect([handed.length, store.journal.length, slider().value, rotation()[2]]).toEqual([
+        7,
+        entries + 2,
+        "50",
+        "50°",
+      ]);
     });
 
     it("shows the stored value again on Escape and moves nothing more in that drag", () => {
@@ -1742,10 +1749,33 @@ describe("the wedge's rotation", () => {
       ended("pointerup");
       changed();
       expect([handed.length, store.journal.length, rotation()[0]]).toEqual([2, entries, "45"]);
+      // Firefox ends a native drag on the release: the value at the pointer, `input`, `change`.
+      dragTo(75);
+      changed();
+      expect([handed.length, store.journal.length, slider().value, rotation()[2]]).toEqual([
+        2,
+        entries,
+        "45",
+        "45°",
+      ]);
+      press(slider(), "PageUp");
+      expect([store.journal.length, lastCommand(store), rotation()[0]]).toEqual([
+        entries + 1,
+        turned(THEME, 135),
+        "135",
+      ]);
+      pressSlider();
+      dragTo(100);
+      ended("pointerup");
+      expect([handed.slice(2), store.journal.length, lastCommand(store)]).toEqual([
+        [shownAt(100), null],
+        entries + 2,
+        turned(THEME, 100),
+      ]);
 
       const idle = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
       slider().dispatchEvent(idle);
-      expect([idle.defaultPrevented, handed.length]).toEqual([false, 2]);
+      expect([idle.defaultPrevented, handed.length]).toEqual([false, 4]);
     });
 
     it("shows the stored value again when the pointer is cancelled", () => {
@@ -1758,8 +1788,9 @@ describe("the wedge's rotation", () => {
       dragTo(80);
       ended("pointercancel");
       expect([handed, slider().value, rotation()[2]]).toEqual([[shownAt(80), null], "45", "45°"]);
+      dragTo(85);
       changed();
-      expect([handed.length, store.journal.length]).toEqual([2, entries]);
+      expect([handed.length, store.journal.length, slider().value]).toEqual([2, entries, "45"]);
     });
 
     it("withdraws what it showed when removed mid-drag", () => {

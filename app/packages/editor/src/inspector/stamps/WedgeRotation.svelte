@@ -9,9 +9,10 @@
  * slider changes or the pointer that dragged it is released, whichever
  * comes first, so it is one command. Escape during a drag, and a cancelled
  * pointer, end it without committing: the value is shown again and the rest
- * of that drag moves nothing. PageUp and PageDown move to the next stop up
- * or down; a stop commits its value; Default, offered while a rule states
- * the rotation, commits `null`. The caller sends the command (`oncommit`).
+ * of that drag moves nothing. Whatever a release fires after it ended the
+ * drag (Firefox's `input` and `change`) moves nothing either. PageUp and
+ * PageDown move to the next stop up or down; a stop commits its value;
+ * Default, offered while a rule states the rotation, commits `null`. The caller sends the command (`oncommit`).
  * Disabled, every control shows greyed, the value beside them muted, and
  * the value is kept.
  */
@@ -42,11 +43,16 @@ let draft: number | null = $state(null);
 const shown = $derived(draft ?? value);
 
 /**
- * The drag under way, from a press on the slider to its release: whether
- * Escape or a cancelled pointer has ended it, and the stop of the window
- * listeners that hear the release; `null` while none is.
+ * The drag under way, from a press on the slider to its release: whether it
+ * is over (Escape, a cancelled pointer or the release ended it), so that
+ * what it still fires moves nothing, and the stop of the window listeners
+ * that hear the release; `null` while none is. An ended drag is kept until
+ * the release's own events have passed (the next task), the next key or
+ * the next press, whichever comes first: Firefox ends a native drag on the
+ * release by setting the value at the pointer and firing `input` and
+ * `change`, which would otherwise show and commit that value again.
  */
-let drag: { cancelled: boolean; readonly unlisten: () => void } | null = null;
+let drag: { over: boolean; readonly unlisten: () => void } | null = null;
 /** The rotation handed to `onpreview` last, so that each step is handed once. */
 let previewed: number | null = null;
 
@@ -73,12 +79,12 @@ function cancel(slider: HTMLInputElement): void {
   draft = null;
   preview(null);
   slider.value = String(value);
-  if (drag !== null) drag.cancelled = true;
+  if (drag !== null) drag.over = true;
 }
 
 function oninput(event: Event & { currentTarget: HTMLInputElement }): void {
   const slider = event.currentTarget;
-  if (drag?.cancelled) {
+  if (drag?.over) {
     slider.value = String(value);
     return;
   }
@@ -92,13 +98,20 @@ function onchange(event: Event & { currentTarget: HTMLInputElement }): void {
   if (draft !== null) commit(Number(event.currentTarget.value));
 }
 
-/** The end of a drag, heard on the window: released, it commits; cancelled, it shows the value. */
+/**
+ * The end of a drag, heard on the window: released, it commits; cancelled,
+ * it shows the value. Either way the drag is over and kept a little longer
+ * (see `drag`).
+ */
 function ended(slider: HTMLInputElement, released: boolean): void {
-  if (drag === null) return;
-  const { cancelled } = drag;
-  drag.unlisten();
-  drag = null;
-  if (cancelled) return;
+  const ending = drag;
+  if (ending === null) return;
+  ending.unlisten();
+  setTimeout(() => {
+    if (drag === ending) drag = null;
+  });
+  if (ending.over) return;
+  ending.over = true;
   if (!released) cancel(slider);
   else if (draft !== null) commit(draft);
 }
@@ -112,7 +125,7 @@ function onpointerdown(event: PointerEvent & { currentTarget: HTMLInputElement }
   window.addEventListener("pointerup", released, true);
   window.addEventListener("pointercancel", cancelled, true);
   drag = {
-    cancelled: false,
+    over: false,
     unlisten: () => {
       window.removeEventListener("pointerup", released, true);
       window.removeEventListener("pointercancel", cancelled, true);
@@ -125,6 +138,7 @@ function onpointerdown(event: PointerEvent & { currentTarget: HTMLInputElement }
  * committed. Escape while a value is dragged: the value shown again.
  */
 function onkeydown(event: KeyboardEvent & { currentTarget: HTMLInputElement }): void {
+  if (drag?.over) drag = null;
   if (event.key === "Escape") {
     if (draft === null) return;
     event.preventDefault();

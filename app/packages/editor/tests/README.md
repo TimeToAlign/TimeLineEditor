@@ -1863,15 +1863,23 @@ ticks `5760`, coordinate `12` ♩.
      value) hands `null`; an `input` at 42 hands 42; its `change` hands
      `null` and journals 42; the release that follows journals nothing
      more. A second drag to 50 released before its `change`: the release
-     journals 50 and hands `null`, the `change` after it journals nothing.
+     journals 50 and hands `null`; an `input` at 55 and a `change` after
+     the release (Firefox ends a native range drag on the release by
+     setting the value at the pointer and firing both) hand and journal
+     nothing, the slider staying "50", "50°".
      *Escape.* Theme turned 45 by its stop, a drag to 60, then Escape on
      the slider: it hands `null`, prevents the key's default, and the
      slider shows the stored 45 again (value "45", "45°"); a further
      `input` at 70 in that drag hands nothing and leaves the slider at
-     "45"; the release and a `change` journal nothing. *A cancelled
-     pointer.* Theme turned 45, a drag to 80 ended by a `pointercancel` on
-     the window: it hands `null`, shows 45, and a `change` after it
-     journals nothing. *Removed mid-drag.* A drag to 90,
+     "45"; the release and a `change` journal nothing, nor do an `input`
+     at 75 and a `change` coming after the release (Firefox ends a native
+     range drag on the release by setting the value at the pointer and
+     firing both): the slider stays "45", "45°", nothing handed; PageUp
+     then commits 135, the next stop, so the ended drag holds no key back,
+     and a new drag to 100 is shown and released as one entry. *A
+     cancelled pointer.* Theme turned 45, a drag to 80 ended by a
+     `pointercancel` on the window: it hands `null`, shows 45, and an
+     `input` at 85 and a `change` after it hand and journal nothing. *Removed mid-drag.* A drag to 90,
      then the drawer unmounted: the last thing handed is `null`. Escape
      with no drag under way is left to the page (not prevented).
    - *A rule by another selector.* `{type: "style", select: {element:
