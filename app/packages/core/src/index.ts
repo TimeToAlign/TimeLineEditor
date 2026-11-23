@@ -153,7 +153,7 @@ export type {
 export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
 export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
-export { express } from "./maps/express.ts";
+export { express, expressAs } from "./maps/express.ts";
 export type { InversionContext } from "./maps/invert.ts";
 export { invert, invertible } from "./maps/invert.ts";
 export type {

@@ -174,7 +174,12 @@ const protectedSpan = (at: Behind): Stretch => [at.below, add(at.below, at.lambd
  * proportion. `first` itself where there is no such gap.
  */
 function rowsAlone(first: MemberLayout, at: Behind): MemberLayout {
-  const carried = carriedGaps(at.item.elisions, at.ts, at.lambda);
+  const carried = carriedGaps(
+    at.item.elisions,
+    at.ts,
+    at.lambda,
+    at.ancestor.root.timeline.number_type,
+  );
   const axis = storedAncestorAxis(first.scope, at.style, protectedSpan(at), carried);
   return axis === undefined ? first : layoutScope(withAxis(first.scope, axis), at.key, undefined);
 }
@@ -285,7 +290,7 @@ export function ancestorCards(
       style,
       protect,
       chain,
-      carriedGaps(item.elisions, ts, lambda),
+      carriedGaps(item.elisions, ts, lambda, R.number_type),
       () => {
         const widest = first.names.length === 0 ? 0 : Math.max(...first.names);
         return ancestorProportion({

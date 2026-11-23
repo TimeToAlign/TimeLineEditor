@@ -8,6 +8,7 @@
 
 import {
   type ElementAddress,
+  expressAs,
   groupsHolding,
   idAddress,
   indexOf,
@@ -114,39 +115,24 @@ function clipped(a: Real, b: Real, [start, end]: Stretch): Stretch {
 /**
  * What of the stretch `[a, b]` lies outside every one of `covered`: none,
  * one or several stretches, from the left, each with a length; ends compare
- * exactly.
+ * exactly, and each end is one of the given values.
  */
-export function outside(a: Real, b: Real, covered: readonly Stretch[]): Stretch[] {
-  let left: Stretch[] = compareReal(a, b) < 0 ? [[a, b]] : [];
+export function outside<T extends Real>(
+  a: T,
+  b: T,
+  covered: readonly (readonly [T, T])[],
+): [T, T][] {
+  let left: [T, T][] = compareReal(a, b) < 0 ? [[a, b]] : [];
   for (const [c, d] of covered) {
-    left = left.flatMap(([p, q]): Stretch[] => {
+    left = left.flatMap(([p, q]): [T, T][] => {
       if (compareReal(d, p) <= 0 || compareReal(q, c) <= 0) return [[p, q]];
-      const kept: Stretch[] = [];
+      const kept: [T, T][] = [];
       if (compareReal(p, c) < 0) kept.push([p, c]);
       if (compareReal(d, q) < 0) kept.push([d, q]);
       return kept;
     });
   }
   return left.sort(([p], [q]) => compareReal(p, q));
-}
-
-/** What of `[p, q]` lies outside every one of `covered`, proportions compared as doubles. */
-function outsideProportions(
-  p: number,
-  q: number,
-  covered: readonly (readonly [number, number])[],
-): [number, number][] {
-  let left: [number, number][] = p < q ? [[p, q]] : [];
-  for (const [c, d] of covered) {
-    left = left.flatMap(([from, to]): [number, number][] => {
-      if (d <= from || to <= c) return [[from, to]];
-      const kept: [number, number][] = [];
-      if (from < c) kept.push([from, c]);
-      if (d < to) kept.push([d, to]);
-      return kept;
-    });
-  }
-  return left.sort(([a], [b]) => a - b);
 }
 
 /**
@@ -159,39 +145,37 @@ export function atProportion(p: number, lambda: Real): Real {
 }
 
 /**
- * The exact proportion `t / λ` (section 8.9, Carried gaps), each operand at
- * its exact value (a float's exact binary value), clipped to `[0, 1]`; 0 when
- * `λ` is 0, as section 3.2 forms a proportion.
+ * The exact quotient `t / λ` (section 8.9, Carried gaps), each operand at its
+ * exact value (a float's exact binary value); 0 when `λ` is 0, as section 3.2
+ * forms a proportion.
  */
-function exactProportion(t: Real, lambda: Real): Rational {
-  const zeroValue = Rational.of(0n);
+function exactQuotient(t: Real, lambda: Real): Rational {
   const length = toRational(lambda);
-  if (compareReal(length, zeroValue) === 0) return zeroValue;
-  const quotient = toRational(t).divide(length);
-  if (compareReal(quotient, zeroValue) < 0) return zeroValue;
-  const one = Rational.of(1n);
-  return compareReal(quotient, one) > 0 ? one : quotient;
+  return length.numerator === 0n ? Rational.of(0n) : toRational(t).divide(length);
 }
 
-/**
- * The product of an exact proportion and `λ` as section 3.1 combines values:
- * exact where `λ` is exact, else the proportion converted to the nearest
- * double and multiplied in binary64.
- */
-function scaled(p: Rational, lambda: Real): Real {
-  return typeof lambda === "number" ? toFloat(p) * lambda : p.multiply(lambda);
+/** An exact proportion clipped to `[0, 1]`. */
+function clippedToUnit(value: Rational): Rational {
+  const zeroValue = Rational.of(0n);
+  const one = Rational.of(1n);
+  if (compareReal(value, zeroValue) < 0) return zeroValue;
+  return compareReal(value, one) > 0 ? one : value;
 }
+
+/** A value as a double: a float as it is, an exact value as the double nearest it. */
+const asFloat = (value: Real): number => (typeof value === "number" ? value : toFloat(value));
 
 /**
  * An exact value written in `numberType` as a coordinate on a timeline of it
- * is (section 2): the exact value on a `fraction` axis, the integer nearest
- * it on an `int` axis (ties to even), the double nearest it on a `float`
- * axis.
+ * is (section 2, core's `expressAs`): the exact value on a `fraction` axis,
+ * the integer nearest it on an `int` axis (ties to even), held as an
+ * integral exact value, the double nearest it on a `float` axis.
  */
 function writtenIn(value: Rational, numberType: NumberType): Real {
-  if (numberType === "fraction") return value;
-  if (numberType === "int") return Rational.fromParts(roundHalfEven(value), 1n);
-  return toFloat(value);
+  const written = expressAs(value, numberType);
+  // `expressAs` refuses only an infinite float, which an exact value never is.
+  if (written === undefined) throw new Error("an exact value is written in every number type");
+  return typeof written === "bigint" ? Rational.fromParts(written, 1n) : written;
 }
 
 /** A label of a gap: its element's key, style and text, measured and cut to its `max-width`. */
@@ -239,7 +223,9 @@ export interface Gap {
   /**
    * A frame's gap: the exact proportions of its ends (section 8.9, Carried gaps), each the exact
    * quotient of the stretch's end on its member's axis and that member's length or reach (a
-   * float at its exact binary value), clipped to `[0, 1]`; absent on a card's gap.
+   * float at its exact binary value), clipped to `[0, 1]`, or, where an earlier piece cut the
+   * stretch, that piece's exact end; `ua` and `ub` are the doubles nearest them. Absent on a
+   * card's gap.
    */
   readonly exact?: readonly [Rational, Rational];
   /** Its natural width `n`, drawn width `g` and shrink `n − g`. */
@@ -869,8 +855,8 @@ export interface FrameElisions {
   /** The frame's axis read by the member drawn in `scope`. */
   viewOf(scope: Scope): CardAxis;
   /**
-   * The elided coordinates of each gap on every timeline the member cards draw (`ExposedGap.members`),
-   * card by card, top first (`elidedOnCard`).
+   * The elided coordinates of each gap at its exact proportions (`Gap.exact`) on every timeline the
+   * member cards draw (`ExposedGap.members`), card by card in display order (`elidedOnCard`).
    */
   membersOf(gap: Gap): ExposedGap["members"];
 }
@@ -934,16 +920,19 @@ function elidedOnCard(
  * each where its gap is displayed and its timeline's line is drawn in the
  * frame, while the frame's `elision-mode` is `auto` or `custom`. Each
  * elision's stretch, carried to the axis of the member `M` it lies under,
- * becomes the proportions `[p, q]` of `M`'s length or reach, clipped to `[0,
- * 1]`; each draws what of its stretch lies outside every piece drawn before
- * it, at the natural width `n = L × q − L × p` and the drawn width its
+ * becomes the exact proportions `[P, Q]` of `M`'s length or reach (the
+ * exact quotients, a float at its exact binary value), clipped to `[0, 1]`;
+ * each draws what of its stretch lies outside every piece drawn before it,
+ * compared exactly, so an end where an earlier piece cut it is that piece's
+ * exact end (`Gap.exact`) and the gaps carried into an ancestor card meet
+ * exactly where the frame's meet. The doubles `p` and `q` nearest them place
+ * the gap, at the natural width `n = L × q − L × p` and the drawn width its
  * `width` sets (`span` read with `M`'s length); an elision that is not drawn
- * takes nothing from the elisions after it. Each gap carries the exact
- * proportions of its ends (`Gap.exact`): an end of the elision's own
- * stretch is the exact quotient, clipped exactly; an end where an earlier
- * piece cut it is that piece's exact end, so the gaps carried into an
- * ancestor card meet exactly where the frame's meet. Undefined where it
- * draws no gap.
+ * takes nothing from the elisions after it. A piece's elided coordinates on
+ * its timeline are the elision's own `start` and `end` where it is the whole
+ * stretch; a cut piece's, on an exact axis, the exact positions at `P` and
+ * `Q` less the timeline's start, written in its number type, and on a float
+ * axis `p × λ` less that start in binary64. Undefined where it draws no gap.
  */
 export function frameElisions(
   members: readonly FrameMember[],
@@ -957,15 +946,10 @@ export function frameElisions(
   const mode = drawnMode(holder.style, true);
   if (mode !== "custom") return undefined;
   const { ancestry } = indexOf(manifest);
-  // The pieces drawn so far, by their proportions as doubles and exactly.
-  const taken: { p: number; q: number; P: Rational; Q: Rational }[] = [];
-  // Each piece with the member it lies under, its timeline there, and whether it is its
-  // elision's whole stretch.
-  const placing: (Placing & {
-    readonly owner: Scope;
-    readonly entry: Entry;
-    readonly whole: boolean;
-  })[] = [];
+  // The pieces drawn so far, by their exact proportions.
+  const taken: (readonly [Rational, Rational])[] = [];
+  // Each piece with the member it lies under and its timeline there.
+  const placing: (Placing & { readonly owner: Scope; readonly entry: Entry })[] = [];
   for (const elision of manifest.graphical?.elisions ?? []) {
     const holding = groupsHolding(manifest, elision.timeline, ancestry) ?? [];
     if (!holding.some((each) => each.id === group)) continue;
@@ -977,22 +961,23 @@ export function frameElisions(
     const timeline = entry.manifest;
     const own = (value: StoredElision["start"]) =>
       add(entry.start, coordinateValue(value, timeline.number_type));
-    const clamp = (value: number) => Math.min(1, Math.max(0, value));
-    const p0 = clamp(owner.u(own(elision.start)));
-    const q0 = clamp(owner.u(own(elision.end)));
-    const P0 = exactProportion(own(elision.start), owner.lambda);
-    const Q0 = exactProportion(own(elision.end), owner.lambda);
+    const from = exactQuotient(own(elision.start), owner.lambda);
+    const to = exactQuotient(own(elision.end), owner.lambda);
     const width = widthOf(elision, timeline);
-    for (const [p, q] of outsideProportions(
-      p0,
-      q0,
-      taken.map((piece) => [piece.p, piece.q] as const),
-    )) {
-      const whole = p === owner.u(own(elision.start)) && q === owner.u(own(elision.end));
-      const onTimeline = (proportionValue: number) =>
-        difference(atProportion(proportionValue, owner.lambda), entry.start);
-      const start = whole ? coordinateValue(elision.start, timeline.number_type) : onTimeline(p);
-      const end = whole ? coordinateValue(elision.end, timeline.number_type) : onTimeline(q);
+    // A cut end on the timeline's own axis: exact on an exact axis, binary64 on a float one.
+    const onTimeline = (P: Rational): Real =>
+      timeline.number_type === "float"
+        ? difference(atProportion(toFloat(P), owner.lambda), entry.start)
+        : writtenIn(
+            P.multiply(toRational(owner.lambda)).subtract(toRational(entry.start)),
+            timeline.number_type,
+          );
+    for (const [P, Q] of outside(clippedToUnit(from), clippedToUnit(to), taken)) {
+      const p = toFloat(P);
+      const q = toFloat(Q);
+      const whole = compareReal(P, from) === 0 && compareReal(Q, to) === 0;
+      const start = whole ? coordinateValue(elision.start, timeline.number_type) : onTimeline(P);
+      const end = whole ? coordinateValue(elision.end, timeline.number_type) : onTimeline(Q);
       const source = sourceOf(
         first,
         timeline,
@@ -1004,10 +989,7 @@ export function frameElisions(
       );
       // A piece that is not drawn takes nothing from the pieces after it.
       if (!entry.drawn || !shown(source.style)) continue;
-      // An end that is not the elision's own lies where an earlier piece ends or starts.
-      const P = p === p0 ? P0 : (taken.find((piece) => piece.q === p)?.Q ?? fromFloat(p));
-      const Q = q === q0 ? Q0 : (taken.find((piece) => piece.p === q)?.P ?? fromFloat(q));
-      taken.push({ p, q, P, Q });
+      taken.push([P, Q]);
       const n = L * q - L * p;
       const wanted =
         width === null
@@ -1028,7 +1010,6 @@ export function frameElisions(
         g: wanted > n ? n : wanted,
         owner,
         entry,
-        whole,
       });
     }
   }
@@ -1068,12 +1049,9 @@ export function frameElisions(
     });
   };
   const membersOf = (gap: Gap): ExposedGap["members"] => {
+    if (gap.exact === undefined) throw new Error("a frame's gap holds its exact proportions");
     const placed = placing.find((each) => each.source === gap.source);
-    // A whole piece at the exact quotients, any other at its doubles' exact binary values.
-    const [p, q] =
-      placed?.whole === true && gap.exact !== undefined
-        ? gap.exact
-        : [fromFloat(gap.ua), fromFloat(gap.ub)];
+    const [p, q] = gap.exact;
     const valueless = placed === undefined || placed.owner.rootEntry.open;
     return members.flatMap(({ scope }) =>
       elidedOnCard(scope, p, q, valueless || scope.rootEntry.open),
@@ -1090,20 +1068,29 @@ export function frameElisions(
 }
 
 /**
- * The gaps of the frame `frame` carried into the ancestor card of a root
- * that starts at `ts` on the axis of the member it is aligned to, of length
- * or reach `lambda` (section 8.9, Carried gaps): each over the root's
- * stretch `−ts + p × λ` to `−ts + q × λ`, `p` and `q` the exact proportions
- * of the frame's gap, exact on an exact axis and combined as section 3.1
- * combines values on a float one, with the frame's widths.
+ * The gaps of the frame `frame` carried into the ancestor card of a root of
+ * number type `numberType` that starts at `ts` on the axis of the member it
+ * is aligned to, of length or reach `lambda` (section 8.9, Carried gaps):
+ * each over the root's stretch `−ts + p × λ` to `−ts + q × λ`, `p` and `q`
+ * the exact proportions of the frame's gap, with the frame's widths. The
+ * root's number type decides, never the kind of `λ` or `ts`: on an exact
+ * axis the stretch is exact, `λ` and `ts` read at their exact values (a
+ * float at its exact binary value); on a float axis it is combined as
+ * section 3.1 combines values, a double.
  */
 export function carriedGaps(
   frame: FrameElisions | undefined,
   ts: Real,
   lambda: Real,
+  numberType: NumberType,
 ): CarriedGap[] {
   if (frame === undefined) return [];
-  const at = (p: Rational) => add(negate(ts), scaled(p, lambda));
+  const at = (p: Rational): Real =>
+    numberType === "float"
+      ? asFloat(
+          add(negate(ts), typeof lambda === "number" ? toFloat(p) * lambda : p.multiply(lambda)),
+        )
+      : p.multiply(toRational(lambda)).subtract(toRational(ts));
   return frame.gaps.map((gap) => {
     if (gap.exact === undefined) throw new Error("a frame's gap holds its exact proportions");
     const [p, q] = gap.exact;
@@ -1247,19 +1234,9 @@ export function widthAs(
         const length = typeof lambda === "number" ? lambda : toFloat(lambda);
         return { span: (gap.drawn * length) / L };
       }
-      const exact = fromFloat(gap.drawn).multiply(lambda).divide(fromFloat(L));
-      if (numberType === "fraction") return { span: exact };
-      return { span: Rational.fromParts(roundHalfEven(exact), 1n) };
+      return {
+        span: writtenIn(fromFloat(gap.drawn).multiply(lambda).divide(fromFloat(L)), numberType),
+      };
     }
   }
-}
-
-/** The integer nearest an exact value, ties to even. */
-function roundHalfEven(value: Rational): bigint {
-  const floor = rounded(value, false);
-  const twice = value.multiply(Rational.of(2n)).subtract(Rational.fromParts(2n * floor, 1n));
-  const order = compareReal(twice, Rational.of(1n));
-  if (order < 0) return floor;
-  if (order > 0) return floor + 1n;
-  return floor % 2n === 0n ? floor : floor + 1n;
 }

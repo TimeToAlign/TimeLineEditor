@@ -1,6 +1,14 @@
-import { type ElementAddress, type Manifest, sameAddress } from "@timetoalign/tilie-core";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import {
+  type ElementAddress,
+  isLoadError,
+  loadManifest,
+  type Manifest,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import type { Graphical } from "@timetoalign/timetoshare";
+import { dumps, type Graphical, JsonFloat, loads } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -14,7 +22,7 @@ import {
   manifestLayer,
   widthAs,
 } from "../src/index.ts";
-import { at, edit, loadFile, metrics, target } from "./support.ts";
+import { at, edit, fixturesDir, loadFile, metrics, target } from "./support.ts";
 
 /** A fixture drawn at the default placement and view, under `extra` layers. */
 function drawn(name: string, extra: readonly Graphical[] = []): Drawing {
@@ -278,6 +286,65 @@ describe("group elisions", () => {
     ]);
   });
 
+  it("are carried exactly where the root's axis is exact, the member's length a float", () => {
+    // `excerpt` turned float before loading; its offset keeps `piece`'s number type.
+    const value = loads(
+      readFileSync(path.join(fixturesDir, "groups/group_elided_members.yaml"), "utf8"),
+    ) as {
+      timelines: { children: Record<string, unknown>[] }[];
+      graphical: {
+        elisions: Record<string, unknown>[];
+        timestamps: { id: string; coordinate: unknown }[];
+      };
+    };
+    const excerpt = value.timelines[0]?.children[0];
+    const elision = value.graphical.elisions[0];
+    if (excerpt?.id !== "#excerpt" || elision?.id !== "#elision_1") {
+      throw new Error("the fixture changed");
+    }
+    Object.assign(excerpt, { number_type: "float", length: new JsonFloat(16) });
+    Object.assign(elision, { start: new JsonFloat(2), end: new JsonFloat(8) });
+    // `excerpt`'s groupstamps, its origin and its length.
+    const floats: Record<string, number> = { "#timestamp_3": 0, "#timestamp_4": 16 };
+    for (const stamp of value.graphical.timestamps) {
+      const float = floats[stamp.id];
+      if (float !== undefined) stamp.coordinate = new JsonFloat(float);
+    }
+    const manifest = loadManifest(dumps(value));
+    if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
+    const floated = drawnManifest(manifest);
+    const runs = floated.axes.filter(
+      (axis) => axis.address.id === "piece" && axis.ancestor !== undefined,
+    );
+    expect(cardRuns(floated, "piece")).toEqual([
+      ["0", "1"],
+      ["15", "18"],
+      ["24", "76/3"],
+      ["28", "33"],
+      ["47", "48"],
+    ]);
+    expect(
+      runs.every((axis) => axis.start instanceof Rational && axis.end instanceof Rational),
+    ).toBe(true);
+    const members = exposureOf(floated, { item: "group_1" }).gaps.map((gap) =>
+      gap.members.filter(({ timeline }) => timeline === "excerpt" || timeline === "piece"),
+    );
+    expect(members).toEqual([
+      [
+        { timeline: "excerpt", start: 2, end: 8 },
+        { timeline: "piece", start: Rational.of(18n), end: Rational.of(24n) },
+      ],
+      [
+        { timeline: "excerpt", start: 9.333333333333334, end: 12 },
+        {
+          timeline: "piece",
+          start: Rational.fromParts(76n, 3n),
+          end: Rational.of(28n),
+        },
+      ],
+    ]);
+  });
+
   it("are left out under the frame's mode full", () => {
     const full = drawn("groups/group_elided_members", [
       { rules: [{ select: { addresses: [{ id: "group_1" }] }, set: { "elision-mode": "full" } }] },
@@ -451,6 +518,42 @@ describe("an elision that is not drawn", () => {
     expect(frame.gaps.map(gapShape)).toEqual([
       [at("elision_3"), "stored", "voice", "0", "12", 200, 32],
       [at("elision_2"), "stored", "phrase", "2", "6", 66.66666666666666, 33.33333333333333],
+    ]);
+  });
+});
+
+describe("a cut piece", () => {
+  const manifest = edit(
+    "groups/group_elided_members",
+    elisionOn("voice", { start: [10, 1], end: [14, 1] }),
+    elisionOn("voice", { start: [12, 1], end: [20, 1] }),
+  );
+  const frame = exposureOf(drawnManifest(manifest, hiding("elision_2")), { item: "group_1" });
+
+  it("keeps the exact end of the piece that cut it", () => {
+    expect(frame.gaps.map(gapShape)).toEqual([
+      [at("elision_1"), "stored", "excerpt", "2", "8", 150, 32],
+      [at("elision_3"), "stored", "voice", "12", "14", 33.33333333333334, 32],
+      [at("elision_4"), "stored", "voice", "14", "20", 100.00000000000003, 32],
+    ]);
+  });
+
+  it("gives its elided coordinates at its exact proportions", () => {
+    expect(frame.gaps.slice(1).map(membersText)).toEqual([
+      [
+        ["excerpt", "8", "28/3"],
+        ["piece", "24", "76/3"],
+        ["voice", "12", "14"],
+        ["phrase", "0", "2"],
+        ["sketch", "null", "null"],
+      ],
+      [
+        ["excerpt", "28/3", "40/3"],
+        ["piece", "76/3", "88/3"],
+        ["voice", "14", "20"],
+        ["phrase", "2", "8"],
+        ["sketch", "null", "null"],
+      ],
     ]);
   });
 });

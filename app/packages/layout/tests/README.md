@@ -1372,7 +1372,17 @@ rectangle being its extent whether it is filled or not.
    = 18` to `16 + 1/2 × 16 = 24`, `elision_2` `16 + 7/12 × 16 = 76/3` to
    `16 + 3/4 × 16 = 28` (not the doubles `0.5833333333333334 × 16`). So
    `piece`'s line in the card is drawn in five runs, one axis each, every
-   end exact: 0–1, 15–18, 24–76/3, 28–33 and 47–48.
+   end exact: 0–1, 15–18, 24–76/3, 28–33 and 47–48. The number type of
+   `piece`'s axis decides, never the kind of `λ`: with `excerpt` turned
+   `float` before loading (`number_type: float`, `length: 16.0`,
+   `elision_1` from `2.0` to `8.0`, its groupstamps at `0.0` and `16.0`;
+   its offset `[16, 1]` keeps `piece`'s number type), `λ = 16.0` is a
+   float, read at its exact binary value 16, and `P = 2.0 / 16.0 = 1/8`
+   exactly, so the five runs are the same exact values, each end a
+   `Rational`, none a JS number. Across the frame the gaps' elided
+   coordinates on `excerpt` are then doubles, `2`–`8` and `28/3 →
+   9.333333333333334`–`12` (each the double nearest the exact position),
+   on `piece` still exact, `18`–`24` and `76/3`–`28`.
 5. **Stored elisions** (`bundle_elisions_stored`). `score`'s ancestor card
    draws, under `auto` read as `custom`: `elision_4` clipped to 0–16
    (natural 800, drawn 400, `{ratio: 0.5}`), the carried `elision_3`
@@ -1467,6 +1477,27 @@ rectangle being its extent whether it is filled or not.
    draws `elision_3` whole, `voice` 0–12, natural `400 × 0.5 = 200`,
    drawn 32, then `elision_2`; were `elision_1` to take `1/8` to `1/2`,
    `elision_3` would be clipped to 0–3 (natural 50).
+12. **A cut piece keeps its exact ends** (section 8.9, Group elisions and
+   Carried gaps). `group_elided_members` with `elision_2` hidden (so it
+   takes nothing) and two overlapping group elisions added into `voice`
+   (`λ = 24`): `elision_3` 10–14 and `elision_4` 12–20, in canonical order
+   after `elision_1` (`excerpt`, `1/8` to `1/2`). Pieces are clipped on
+   exact proportions: `elision_3` (`5/12` to `7/12`) loses `5/12`–`1/2` to
+   `elision_1` and draws `1/2` to `7/12`; `elision_4` (`1/2` to `5/6`)
+   loses `1/2`–`7/12` to the two before it and draws `7/12` to `5/6`, its
+   start cut at `7/12`, the double `0.5833333333333334` of which is not
+   7/12. The frame's gaps: `elision_1` as in point 3, `elision_3` on
+   `voice` 12–14 (natural `400 × 0.5833333333333334 − 400 × 0.5 =
+   33.33333333333334`, the standard 32), `elision_4` on `voice` 14–20
+   (natural `400 × 0.8333333333333334 − 400 × 0.5833333333333334 =
+   100.00000000000003`, 32): a cut piece's elided coordinates on an exact
+   axis are its exact proportions times `λ`, so `elision_4` starts at 14
+   exactly where `elision_3` ends. Their elided coordinates across the
+   frame are exact on every fraction timeline: `elision_3` `excerpt`
+   8–28/3, `piece` 24–76/3, `voice` 12–14, `phrase` 0–2, `sketch` none;
+   `elision_4` `excerpt` 28/3–40/3, `piece` 76/3–88/3, `voice` 14–20,
+   `phrase` 2–8 (its span 12–20 on `voice` holds 14–20, ends included),
+   `sketch` none.
 
 ## Region braces cut at gaps (`region-cuts.test.ts`)
 

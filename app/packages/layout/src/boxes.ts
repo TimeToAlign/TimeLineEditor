@@ -298,8 +298,13 @@ export interface ExposedGap {
   readonly x1: number;
   readonly x2: number;
   /**
-   * Across a frame, the elided coordinates of the gap on every member, top first, each on the
-   * member's own axis, null without a value (section 8.9, Group elisions); none in a card.
+   * Across a frame, the elided coordinates of the gap, at the exact proportions of its piece, on
+   * every timeline a member card draws whose span, its ends included, holds the gap: card by card
+   * in the frame's display order, in each the member, then the other timelines of its tree the
+   * card draws in traversal order, then the ancestors whose lines it draws from the member's
+   * parent up to its root; each on that timeline's own axis and written in its number type, null
+   * without a value, and every timeline of a card null where its member has none (section 8.9,
+   * Group elisions); none in a card.
    */
   readonly members: readonly {
     readonly timeline: string;
