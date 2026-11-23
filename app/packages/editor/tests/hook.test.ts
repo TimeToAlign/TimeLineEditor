@@ -113,6 +113,7 @@ const MAPPED: Drawing = {
   axes: [],
   elements: [],
   unmapped: [],
+  elisions: [],
 };
 
 /** `MAPPED`'s bands as the hook reports them, at the line `line` with the rectangles `rects`. */
@@ -329,7 +330,7 @@ describe("the test hook", () => {
     expect(Array.from(select.options, (option) => option.value)).toEqual(
       FIXTURES.map(({ label }) => label),
     );
-    expect(select.options.length).toBe(200);
+    expect(select.options.length).toBe(206);
     expect(select.labels?.[0]?.textContent?.trim().startsWith("Fixture")).toBe(true);
     expect(document.querySelector('[data-testid="fixture-open"]')?.textContent).toBe("Open");
 

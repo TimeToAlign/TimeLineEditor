@@ -304,7 +304,10 @@ describe("the mounted memberships", () => {
 
   it("lists a group's members, a child indented", () => {
     show(storeOf(), [{ id: "group_1" }]);
-    const labels = [...document.querySelectorAll("fieldset label")];
+    // The memberships' labels; the group's elisions above are `inspector-elision.test.ts`'s.
+    const labels = [...document.querySelectorAll("fieldset label")].filter(
+      (label) => label.closest('[data-testid="group-elisions"]') === null,
+    );
     expect(labels.map((label) => label.textContent?.trim())).toEqual([
       "Annotations",
       "Page",

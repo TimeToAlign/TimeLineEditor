@@ -62,6 +62,7 @@ import { writeText } from "./formats.svelte.ts";
 import type { Result } from "./problems.ts";
 import type { BeliefLine } from "./provenance.ts";
 import { whoOf } from "./provenance.ts";
+import { displayCommand } from "./stamps/commands.ts";
 import type { HeldMatch } from "./tabs.ts";
 import type { TimelineRows } from "./timestamp.ts";
 import { coordinateGroup } from "./timestamp.ts";
@@ -712,10 +713,7 @@ export function anchorDisplayCommand(
   display: readonly AnchorDisplay[],
   word: AnchorDisplay,
 ): Command {
-  const next = display.includes(word)
-    ? display.filter((item) => item !== word)
-    : ANCHOR_DISPLAY.filter((item) => item === word || display.includes(item));
-  return { type: "set", changes: [{ target: { block, id: anchor }, values: { display: next } }] };
+  return displayCommand({ block, id: anchor }, ANCHOR_DISPLAY, display, word);
 }
 
 /**

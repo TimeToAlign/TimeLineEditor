@@ -9,14 +9,14 @@
  * below its container's minimum) returns a notice saying so, which the form
  * posts as information. The name field's draft and refusal belong to the
  * target named in the manifest it was typed against, alike, and so do the
- * drafts and refusals of a selected elision's fields (`elisions.ts`).
+ * drafts and refusals of the elision fields (`elisions.ts`): a selected
+ * elision's, and a root's Proportion, each belonging to its address.
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
 import type { Address, BlockId, Manifest, Store } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
-import type { ElisionField, ElisionForm } from "./elisions.ts";
-import { fieldCommand } from "./elisions.ts";
+import type { ElisionEdit, ElisionField } from "./elisions.ts";
 import type { Edit, Geometry, NameField, Role } from "./properties.ts";
 import {
   commonValue,
@@ -55,12 +55,19 @@ interface NameDraft {
   readonly problem: string | undefined;
 }
 
-/** The texts typed into a selected elision's fields and their refusals, and what they belong to. */
-interface ElisionDraft {
+/** A field of the elisions: a selected elision's, or a root's Proportion. */
+export type ElisionDraftField = ElisionField | "proportion";
+
+/** What elision fields belong to: an address in the manifest they were typed against. */
+export interface ElisionOwner {
   readonly address: Address;
   readonly manifest: Manifest;
-  readonly drafts: { readonly [field in ElisionField]?: string };
-  readonly problems: { readonly [field in ElisionField]?: string };
+}
+
+/** The texts typed into elision fields and their refusals, and what they belong to. */
+interface ElisionDraft extends ElisionOwner {
+  readonly drafts: { readonly [field in ElisionDraftField]?: string };
+  readonly problems: { readonly [field in ElisionDraftField]?: string };
 }
 
 /** What dispatching an edit gave: the refusal's message, or the notice of what it wrote. */
@@ -248,65 +255,73 @@ export class PropertyDrafts {
     this.#name = problem === undefined ? null : { ...draft, problem };
   }
 
-  /** The drafts of `form`'s elision in its manifest; `null` when they were typed for another. */
-  #elisionOf(form: ElisionForm): ElisionDraft | null {
+  /** The drafts of `owner` in its manifest; `null` when they were typed for another. */
+  #elisionOf(owner: ElisionOwner): ElisionDraft | null {
     const draft = this.#elision;
     return draft !== null &&
-      sameAddress(draft.address, form.address) &&
-      draft.manifest === form.block.manifest
+      sameAddress(draft.address, owner.address) &&
+      draft.manifest === owner.manifest
       ? draft
       : null;
   }
 
-  #writeElision(form: ElisionForm, field: ElisionField, text?: string, problem?: string): void {
-    const draft = this.#elisionOf(form);
+  #writeElision(
+    owner: ElisionOwner,
+    field: ElisionDraftField,
+    text?: string,
+    problem?: string,
+  ): void {
+    const draft = this.#elisionOf(owner);
     const { [field]: _text, ...drafts } = draft?.drafts ?? {};
     const { [field]: _problem, ...problems } = draft?.problems ?? {};
     this.#elision = {
-      address: form.address,
-      manifest: form.block.manifest,
+      address: owner.address,
+      manifest: owner.manifest,
       drafts: text === undefined ? drafts : { ...drafts, [field]: text },
       problems: problem === undefined ? problems : { ...problems, [field]: problem },
     };
   }
 
-  /** What an elision's field shows: its draft, else its stored value (a width form's converted one). */
-  elisionValue(form: ElisionForm, field: ElisionField): string {
-    const draft = this.#elisionOf(form)?.drafts[field];
-    if (draft !== undefined) return draft;
-    return field === "start" || field === "end" ? form[field] : form.widths[field];
+  /** What an elision field shows: its draft, else `stored`, the text of the value it holds. */
+  elisionValue(owner: ElisionOwner, field: ElisionDraftField, stored: string): string {
+    return this.#elisionOf(owner)?.drafts[field] ?? stored;
   }
 
-  /** Why the last commit of an elision's field was refused; `undefined` while it was not. */
-  elisionProblem(form: ElisionForm, field: ElisionField): string | undefined {
-    return this.#elisionOf(form)?.problems[field];
+  /** Why the last commit of an elision field was refused; `undefined` while it was not. */
+  elisionProblem(owner: ElisionOwner, field: ElisionDraftField): string | undefined {
+    return this.#elisionOf(owner)?.problems[field];
   }
 
-  /** Keep `text` as the draft of an elision's field; its refusal stays until the next commit. */
-  typeElision(form: ElisionForm, field: ElisionField, text: string): void {
-    this.#writeElision(form, field, text, this.elisionProblem(form, field));
+  /** Keep `text` as the draft of an elision field; its refusal stays until the next commit. */
+  typeElision(owner: ElisionOwner, field: ElisionDraftField, text: string): void {
+    this.#writeElision(owner, field, text, this.elisionProblem(owner, field));
   }
 
-  /** Drop the draft of an elision's field and its refusal. */
-  discardElision(form: ElisionForm, field: ElisionField): void {
-    this.#writeElision(form, field);
+  /** Drop the draft of an elision field and its refusal. */
+  discardElision(owner: ElisionOwner, field: ElisionDraftField): void {
+    this.#writeElision(owner, field);
   }
 
   /**
-   * Commit the draft of an elision's field as one command (`fieldCommand`):
-   * dropped once the store accepts it (a draft of the stored value
+   * Commit the draft of an elision field as the one command `edit` makes of
+   * it: dropped once the store accepts it (a draft of the stored value
    * dispatches nothing), kept with the refusal otherwise.
    */
-  commitElision(form: ElisionForm, field: ElisionField, store: Store): void {
-    const draft = this.#elisionOf(form)?.drafts[field];
+  commitElision(
+    owner: ElisionOwner,
+    field: ElisionDraftField,
+    store: Store,
+    edit: (text: string) => ElisionEdit,
+  ): void {
+    const draft = this.#elisionOf(owner)?.drafts[field];
     if (draft === undefined) return;
-    const edit = fieldCommand(form, field, draft);
-    const refusal = !edit.ok
-      ? edit.problems[0]?.message
-      : edit.value === null
+    const made = edit(draft);
+    const refusal = !made.ok
+      ? made.problems[0]?.message
+      : made.value === null
         ? undefined
-        : store.dispatch(edit.value)?.message;
-    if (refusal === undefined) this.#writeElision(form, field);
-    else this.#writeElision(form, field, draft, refusal);
+        : store.dispatch(made.value)?.message;
+    if (refusal === undefined) this.#writeElision(owner, field);
+    else this.#writeElision(owner, field, draft, refusal);
   }
 }

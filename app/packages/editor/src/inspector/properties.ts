@@ -545,11 +545,16 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
       const target = inBlock(block.id, idAddress(matchstamp.id));
       return { target, name: matchstamp.name, nullable: false, manifest: block.manifest };
     }
+    case "elision": {
+      const { block, elision } = resolved;
+      const target = inBlock(block.id, idAddress(elision.id));
+      return { target, name: elision.name ?? null, nullable: true, manifest: block.manifest };
+    }
     case "anchor":
-    case "elision":
       return null;
     case "part":
-      return namedBy(resolved.owner);
+      // A default elision is a part of its timeline, and has no name of its own.
+      return resolved.word === "elision" ? null : namedBy(resolved.owner);
   }
 }
 
@@ -559,9 +564,10 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
  * address its opening selects, `editedSelection`); else the one inspected
  * thing's. Each wherever the schema gives it a name (the block's manifest, a
  * group, a measure map, a timeline or its card, a conversion map, a region,
- * a flow-control element, a named timestamp, a MatchStamp; a part names its
- * element's); a match timestamp's name may be emptied, a named timestamp's
- * and a MatchStamp's not; `null` for a band, an alignment anchor or several
+ * a flow-control element, a named timestamp, a MatchStamp, a stored elision;
+ * a part names its element's, a default elision none); a match timestamp's
+ * and an elision's name may be emptied, a named timestamp's and a
+ * MatchStamp's not; `null` for a band, an alignment anchor or several
  * things.
  */
 export function nameOf(

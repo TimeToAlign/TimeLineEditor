@@ -1,37 +1,49 @@
 /**
- * The elision section of the Properties tab and the form of a selected
- * elision. The expected values are derived in `README.md` ("The elision
- * section").
+ * The elision section of the Properties tab: the root's block, the group's
+ * block and the form of a selected elision. The expected values are derived
+ * in `README.md` ("The elision section").
  */
 
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import type { Selection, Subject } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, Block, CommandEntry, ElementAddress, Store } from "@timetoalign/tilie-core";
-import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import type { Editing, Selection, Subject } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  liveStore,
+  resolveSelection,
+  selectionOf,
+  styleLayers,
+} from "@timetoalign/tilie-arranger";
+import type {
+  Address,
+  Block,
+  Command,
+  CommandEntry,
+  ElementAddress,
+  Store,
+} from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
+import { draw } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ElisionForm, ElisionSection } from "../src/inspector/elisions.ts";
-import { elisionFormOf, elisionSectionOf } from "../src/inspector/elisions.ts";
-import { groupsOf } from "../src/inspector/groups.ts";
-import { describesNothing, shownOf } from "../src/inspector/metadata/frame.ts";
+import { afterEach, describe, expect, it } from "vitest";
+import ElisionSection from "../src/inspector/ElisionSection.svelte";
+import type { ElisionForm, GroupElisions, RootElisions } from "../src/inspector/elisions.ts";
+import {
+  elisionFormOf,
+  fieldCommand,
+  groupElisionsOf,
+  rootElisionsOf,
+} from "../src/inspector/elisions.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
-import { lockOf, nameOf } from "../src/inspector/properties.ts";
+import { nameOf } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { blockId, informing, storeOf, withFullCards } from "./support.ts";
-
-// The arranger itself, its `drawingOf` counted: the section's trials are counted through it.
-vi.mock("@timetoalign/tilie-arranger", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@timetoalign/tilie-arranger")>();
-  return { ...actual, drawingOf: vi.fn(actual.drawingOf) };
-});
+import { blockId, informing, storeOf } from "./support.ts";
 
 const B = blockId(0);
 const INSIDE = "groups/group_elided_inside";
 const STORED = "bundles/bundle_elisions_stored";
+const MEMBERS = "groups/group_elided_members";
+const ARRANGED = "bundles/bundle_arranged_roots";
 
 function blockOf(store: Store): Block {
   const block = store.view.blocks[B];
@@ -39,70 +51,70 @@ function blockOf(store: Store): Block {
   return block;
 }
 
-/** The subjects of `elements` of `B` in the store. */
 function subjectsOf(store: Store, elements: readonly ElementAddress[]): Subject[] {
   const selection = selectionOf(elements.map((element) => ({ block: B, ...element })));
   return resolveSelection(store.view, selection, null, fontMetrics);
 }
 
-/** The section `elements` of `B` are offered. */
-function sectionOf(store: Store, ...elements: ElementAddress[]): ElisionSection | null {
-  const block = blockOf(store);
-  const drawing = drawingOf(block, store.view.graphical, fontMetrics);
-  return elisionSectionOf(store.view, block, subjectsOf(store, elements), drawing);
+function drawn(store: Store) {
+  return drawingOf(blockOf(store), store.view.graphical, fontMetrics);
 }
 
-/** The form of the one selected `element` of `B`. */
+function rootOf(store: Store, ...elements: ElementAddress[]): RootElisions | null {
+  return rootElisionsOf(blockOf(store), subjectsOf(store, elements), drawn(store));
+}
+
+function groupOf(
+  store: Store,
+  edited: string | null,
+  ...elements: ElementAddress[]
+): GroupElisions | null {
+  return groupElisionsOf(blockOf(store), subjectsOf(store, elements), drawn(store), edited);
+}
+
 function formOf(store: Store, element: ElementAddress): ElisionForm | null {
-  const block = blockOf(store);
-  const drawing = drawingOf(block, store.view.graphical, fontMetrics);
-  return elisionFormOf(block, subjectsOf(store, [element]), drawing);
+  return elisionFormOf(blockOf(store), subjectsOf(store, [element]), drawn(store));
 }
 
-/** The rows of a section as plain text: timeline, stretch, width. */
-function rowsOf(section: ElisionSection | null): string[][] {
-  return (section?.rows ?? []).map((row) => [row.timeline, row.stretch, row.width]);
-}
+const rowsOf = (rows: readonly { name: string; timeline: string; stretch: string }[]) =>
+  rows.map((row) => [row.name, row.timeline, row.stretch]);
 
-/** The strips the block's drawing holds. */
-function strips(store: Store): number {
-  return drawingOf(blockOf(store), store.view.graphical, fontMetrics).elements.filter(
-    (element) => element.type === "elision",
-  ).length;
-}
-
-/** The ancestor cards of `root` the block's drawing holds. */
-function cards(store: Store, root: string): number {
-  return drawingOf(blockOf(store), store.view.graphical, fontMetrics).boxes.filter(
-    (box) => box.ancestor !== undefined && box.address.id === root,
-  ).length;
-}
-
-function lastCommand(store: Store): unknown {
-  return (store.journal.at(-1) as CommandEntry | undefined)?.command;
-}
-
-/** The style command of `select` in `B` setting `display`. */
-const style = (select: unknown, display: "none" | "inline" | null) => ({
+const rootRule = (root: string) => ({ addresses: [{ id: root, part: ["card"] }] });
+const rootStyle = (root: string, set: object) => ({
   type: "style",
-  select,
-  set: { display },
+  select: rootRule(root),
+  set,
   blocks: [B],
 });
-const within = (root: string) => ({ element: "elision", within: root });
-const card = (root: string) => ({
-  element: "ancestor_card",
-  addresses: [{ id: root, part: ["card"] }],
-});
+const at = (id: string): Address => ({ block: B, id });
 
-describe("where the section is offered", () => {
+/** `piece` of `group_elided_inside` made the one member of a new group "Whole". */
+function insideWithPieceGrouped(): Store {
+  const store = storeOf(INSIDE);
+  const error = store.dispatch({
+    type: "add",
+    into: { block: B },
+    group: { id: "group_2", name: "Whole", members: ["piece"] },
+  });
+  if (error !== null) throw new Error(error.message);
+  return store;
+}
+
+describe("where the blocks are offered", () => {
   it.each<[ElementAddress[]]>([
     [[{ id: "excerpt", part: ["card"] }]],
     [[{ id: "first" }]],
     [[{ id: "piece" }]],
     [[{ id: "second", part: ["elision"] }]],
-  ])("offers piece's section for %j", (elements) => {
-    expect(sectionOf(storeOf(INSIDE), ...elements)?.title).toBe('Parent timeline "Piece"');
+  ])("offers piece's block for %j", (elements) => {
+    const root = rootOf(storeOf(INSIDE), ...elements);
+    expect(root?.title).toBe('Parent timeline "Piece"');
+    expect(root?.options.map((option) => option.mode)).toEqual([
+      "hidden",
+      "full",
+      "proportional",
+      "custom",
+    ]);
   });
 
   it.each<[ElementAddress[]]>([
@@ -110,197 +122,217 @@ describe("where the section is offered", () => {
     [[{}]],
     [[{ id: "group_1" }]],
     [[{ id: "excerpt" }, { id: "recording" }]],
-  ])("offers none for %j", (elements) => {
-    expect(sectionOf(storeOf(INSIDE), ...elements)).toBe(null);
+  ])("offers no root's block for %j", (elements) => {
+    expect(rootOf(storeOf(INSIDE), ...elements)).toBe(null);
   });
 
-  it("offers an ungrouped root's section with two modes", () => {
-    const section = sectionOf(storeOf(STORED), { id: "page" });
-    expect(section?.title).toBe('Elisions of "Page"');
-    expect(section?.options.map((option) => option.mode)).toEqual(["elided", "full"]);
+  it("offers an ungrouped root's block with Full and Custom", () => {
+    const root = rootOf(storeOf(STORED), { id: "page" });
+    expect(root?.title).toBe('Elisions of "Page"');
+    expect(root?.options.map((option) => option.mode)).toEqual(["full", "custom"]);
+  });
+
+  it.each<[ElementAddress[]]>([
+    [[{ id: "theme" }]],
+    [[{ id: "group_1" }]],
+    [[{ id: "elision_3" }]],
+  ])("offers group_1's block for %j", (elements) => {
+    const group = groupOf(storeOf(STORED), null, ...elements);
+    expect(group?.title).toBe('Elisions in group "Theme"');
+    expect(group?.options.map((option) => option.mode)).toEqual(["full", "custom"]);
+  });
+
+  it("offers group_1's block in its editor with nothing selected", () => {
+    expect(groupOf(storeOf(STORED), "group_1")?.group).toBe("group_1");
+    expect(groupOf(storeOf(STORED), null)).toBe(null);
+  });
+
+  it.each<[ElementAddress[]]>([[[{ id: "score" }]], [[{ id: "page" }]]])(
+    "offers no group's block for %j",
+    (elements) => {
+      expect(groupOf(storeOf(STORED), null, ...elements)).toBe(null);
+    },
+  );
+
+  it("offers no root's block for a group elision on a member root", () => {
+    expect(rootOf(storeOf(STORED), { id: "elision_3" })).toBe(null);
   });
 });
 
-describe("what the section reads", () => {
-  it("reads piece's default elisions", () => {
-    const section = sectionOf(storeOf(INSIDE), { id: "piece" });
-    expect(section?.mode).toBe("elided");
-    expect(section?.status).toBe("automatic, 0.1429 of their length");
-    expect(rowsOf(section)).toEqual([
-      ["First", "0–8 ♩, 16–32 ♩", "automatic"],
-      ["Second", "0–32 ♩", "automatic"],
-    ]);
-    expect(section?.rows.map((row) => row.address)).toEqual([
-      { block: B, id: "first", part: ["elision"] },
-      { block: B, id: "second", part: ["elision"] },
-    ]);
-    expect(section?.rootLeftRight).toEqual({
-      type: "add",
-      into: { block: B },
-      elision: [
-        { timeline: "piece", start: [0, 1], end: [8, 1] },
-        { timeline: "piece", start: [16, 1], end: [64, 1] },
+describe("what the blocks read", () => {
+  it("reads piece's Proportional settings", () => {
+    const root = rootOf(storeOf(INSIDE), { id: "piece" });
+    expect(root?.mode).toBe("proportional");
+    expect(root?.proportional).toEqual({
+      automatic: true,
+      proportion: "0.142857",
+      depthsAutomatic: true,
+      depths: [
+        { depth: 2, names: "First, Second", chosen: true },
+        { depth: 1, names: "Piece", chosen: true },
       ],
+      display: ["ellipsis"],
     });
-    expect(section?.reset).toBe(null);
-    expect(section?.options).toEqual([
-      { mode: "elided", commands: [], reason: null },
-      { mode: "full", commands: [style(within("piece"), "none")], reason: null },
-      { mode: "hidden", commands: [style(card("piece"), "none")], reason: null },
-    ]);
+    expect(root?.custom).toBe(null);
   });
 
-  it("reads score's stored elisions with their widths", () => {
-    const section = sectionOf(storeOf(STORED), { id: "score" });
-    expect([section?.mode, section?.status]).toEqual(["elided", "4 stored elisions"]);
-    expect(rowsOf(section)).toEqual([
-      ["Score", "0–16 ♩", "0.5 of its length"],
-      ["Score", "32–48 ♩", "as wide as 4 ♩"],
-      ["Score", "48–56 ♩", "30 px"],
+  it("reads score's stored card elisions", () => {
+    const root = rootOf(storeOf(STORED), { id: "score" });
+    expect(root?.mode).toBe("custom");
+    expect(root?.proportional).toBe(null);
+    expect(rowsOf(root?.custom?.rows ?? [])).toEqual([
+      ["—", "Score", "0–16 ♩"],
+      ["Development", "Score", "32–48 ♩"],
+      ["—", "Score", "48–56 ♩"],
     ]);
-    expect(section?.reset).toEqual({
+    expect(root?.custom?.removeAll).toEqual({
       type: "remove",
-      targets: ["elision_1", "elision_4", "elision_5", "elision_6"].map((id) => ({ block: B, id })),
+      targets: ["elision_1", "elision_4", "elision_5", "elision_6"].map(at),
+    });
+    expect(root?.custom?.add).toEqual({
+      type: "add",
+      into: at("score"),
+      elision: { start: [112, 3], end: [152, 3] },
     });
   });
 
-  it("reads session drawn whole by its own rule", () => {
-    const section = sectionOf(storeOf(STORED), { id: "session" });
-    expect([section?.mode, section?.status, rowsOf(section)]).toEqual([
-      "full",
-      "1 stored elision",
-      [],
+  it("reads session Full and page Custom", () => {
+    const store = storeOf(STORED);
+    expect(rootOf(store, { id: "session" })?.mode).toBe("full");
+    const page = rootOf(store, { id: "page" });
+    expect(page?.mode).toBe("custom");
+    expect(rowsOf(page?.custom?.rows ?? [])).toEqual([["Appendix", "Page", "600–1 754 px"]]);
+    expect(page?.custom?.add).toEqual({
+      type: "add",
+      into: at("page"),
+      elision: { start: 585, end: 1169 },
+    });
+  });
+
+  it("reads group_1's elisions", () => {
+    const store = storeOf(STORED);
+    const group = groupOf(store, null, { id: "theme" });
+    expect(group?.mode).toBe("custom");
+    expect(group?.count).toBe("1 elision");
+    expect(rowsOf(group?.rows ?? [])).toEqual([["—", "Recording", "0″–2″"]]);
+    expect(group?.removeAll).toEqual({ type: "remove", targets: [at("elision_3")] });
+    expect(group?.add).toEqual({
+      type: "add",
+      into: at("theme"),
+      elision: { start: [8, 3], end: [16, 3] },
+    });
+    expect(groupOf(store, null, { id: "recording" })?.add).toEqual({
+      type: "add",
+      into: at("recording"),
+      elision: { start: 3.3333333333333335, end: 6.666666666666667 },
+    });
+  });
+
+  it("reads a frame's two elisions and adds into its first member", () => {
+    const group = groupOf(storeOf(MEMBERS), null, { id: "group_1" });
+    expect(group?.count).toBe("2 elisions");
+    expect(rowsOf(group?.rows ?? [])).toEqual([
+      ["Development", "Excerpt", "2–8 ♩"],
+      ["—", "Phrase", "2–6 ♩"],
     ]);
-    expect(section?.options[0]).toEqual({
-      mode: "elided",
-      commands: [style(within("session"), null)],
-      reason: null,
+    expect(group?.add).toEqual({
+      type: "add",
+      into: at("excerpt"),
+      elision: { start: [16, 3], end: [32, 3] },
     });
   });
 
-  it("reads the ungrouped page", () => {
-    const section = sectionOf(storeOf(STORED), { id: "page" });
-    expect([section?.mode, section?.status, rowsOf(section)]).toEqual([
-      "elided",
-      "1 stored elision",
-      [["Page", "600–1 754 px", "automatic"]],
-    ]);
-  });
-
-  it("reads the Full view of the workspace's layer as held, Elided outranking it", () => {
-    const store = withFullCards(storeOf(INSIDE));
-    const section = sectionOf(store, { id: "piece" });
-    expect(section?.mode).toBe("full");
-    expect(section?.options[0]?.commands).toEqual([style(within("piece"), "inline")]);
-    expect(section?.status).toBe("automatic, 0.1429 of their length");
-  });
-
-  it("tries its commands once per manifest and workspace layer", () => {
-    const store = storeOf(INSIDE);
-    const calls = () => vi.mocked(drawingOf).mock.calls.length;
-    const block = blockOf(store);
-    const drawing = drawingOf(block, store.view.graphical, fontMetrics);
-    const subjects = subjectsOf(store, [{ id: "piece" }]);
-    elisionSectionOf(store.view, block, subjects, drawing);
-    const before = calls();
-    elisionSectionOf(store.view, block, subjects, drawing);
-    expect(calls() - before).toBe(0);
-    const refused = store.dispatch({
-      type: "set",
-      changes: [{ target: { block: B }, values: { name: "Op. 1" } }],
+  it("disables Custom for a root whose elisions belong to its group", () => {
+    const root = rootOf(insideWithPieceGrouped(), { id: "piece" });
+    expect(root?.options.find((option) => option.mode === "custom")).toEqual({
+      mode: "custom",
+      commands: [],
+      reason: 'its elisions belong to group "Whole"',
     });
-    expect(refused).toBe(null);
-    const renamed = blockOf(store);
-    const again = calls();
-    elisionSectionOf(store.view, renamed, subjectsOf(store, [{ id: "piece" }]), drawing);
-    expect(calls() - again).toBe(4);
   });
 });
 
 describe("a selected elision's form", () => {
-  it("reads a default elision, its widths converted from the drawn one", () => {
-    const form = formOf(storeOf(INSIDE), { id: "second", part: ["elision"] });
-    expect({
-      title: form?.title,
-      start: form?.start,
-      end: form?.end,
-      unit: form?.unit,
-      share: form?.share,
-      form: form?.form,
-      widths: form?.widths,
-      proportion: form?.proportion,
-      display: form?.display,
-    }).toEqual({
-      title: 'Elision of "Second"',
-      start: "0",
-      end: "32",
-      unit: "♩",
-      share: "0 % … 100 % of Second",
-      form: "automatic",
-      widths: { ratio: "0.1429", span: "4.5714", canvas: "228.57" },
-      proportion: "0.1429",
-      display: ["strip", "name", "coordinate"],
+  it("reads a span width and converts the others through layout", () => {
+    const form = formOf(storeOf(STORED), { id: "elision_5" });
+    expect(form?.title).toBe('Elision on "Score"');
+    expect([form?.start, form?.end, form?.unit, form?.form]).toEqual(["32", "48", "♩", "span"]);
+    expect(form?.widths).toEqual({ ratio: "0.25", span: "4", canvas: "200" });
+    expect(form?.also).toBe(null);
+  });
+
+  it.each([
+    ["elision_4", "ratio", { ratio: "0.5", span: "8", canvas: "400" }],
+    ["elision_6", "canvas", { ratio: "0.075", span: "3/5", canvas: "30" }],
+  ])("reads %s's widths", (id, form, widths) => {
+    const read = formOf(storeOf(STORED), { id });
+    expect(read?.form).toBe(form);
+    expect(read?.widths).toEqual(widths);
+  });
+
+  it("reads a group elision with what it also elides", () => {
+    const form = formOf(storeOf(MEMBERS), { id: "elision_1" });
+    expect(form?.title).toBe('Elision on "Excerpt"');
+    expect(form?.form).toBe("standard");
+    expect(form?.widths).toEqual({ ratio: "0.21333333333333335", span: "32/25", canvas: "32" });
+    expect(form?.also).toEqual([
+      { timeline: "Piece", stretch: "18–24 ♩" },
+      { timeline: "Voice", stretch: "3–12 ♩" },
+      { timeline: "Sketch", stretch: "—" },
+    ]);
+    const seconds = formOf(storeOf(STORED), { id: "elision_3" });
+    expect([seconds?.start, seconds?.end, seconds?.unit]).toEqual(["0.0", "2.0", "s"]);
+    expect(seconds?.also).toEqual([
+      { timeline: "Theme", stretch: "0–1 3/5 ♩" },
+      { timeline: "Score", stretch: "16–17 3/5 ♩" },
+      { timeline: "Take", stretch: "0″–5.1″" },
+      { timeline: "Session", stretch: "30″–35.1″" },
+    ]);
+  });
+
+  it("keeps a numerator past 2^53 whole", () => {
+    const form = formOf(storeOf(STORED), { id: "elision_5" });
+    if (form === null) throw new Error("no form");
+    expect(fieldCommand(form, "start", "9007199254740993/2")).toEqual({
+      ok: true,
+      value: {
+        type: "set",
+        changes: [{ target: at("elision_5"), values: { start: [9007199254740993n, 2] } }],
+      },
     });
   });
 
-  it("reads a stored elision as stored", () => {
-    const form = formOf(storeOf(STORED), { id: "elision_5" });
-    expect([form?.start, form?.end, form?.form, form?.widths.span]).toEqual([
-      "32",
-      "48",
-      "span",
-      "4",
-    ]);
-    expect(formOf(storeOf(STORED), { id: "elision_2" })?.proportion).toBe("0.5199");
+  it("names a stored elision and no default one", () => {
+    const store = storeOf(STORED);
+    expect(nameOf(store.view, subjectsOf(store, [{ id: "elision_5" }]), null)).toEqual({
+      target: at("elision_5"),
+      name: "Development",
+      nullable: true,
+      manifest: blockOf(store).manifest,
+    });
+    expect(nameOf(store.view, subjectsOf(store, [{ id: "elision_4" }]), null)?.name).toBe(null);
+    const inside = storeOf(INSIDE);
+    expect(
+      nameOf(inside.view, subjectsOf(inside, [{ id: "second", part: ["elision"] }]), null),
+    ).toBe(null);
+  });
+
+  it("reads a default elision read-only", () => {
+    const form = formOf(storeOf(INSIDE), { id: "second", part: ["elision"] });
+    expect(form?.title).toBe('Elision on "Second"');
+    expect([form?.start, form?.end, form?.stored]).toEqual(["1", "31", null]);
   });
 
   it("is absent for anything but one elision", () => {
-    const store = storeOf(INSIDE);
-    expect(formOf(store, { id: "piece" })).toBe(null);
-  });
-});
-
-describe("a stored elision's other fields", () => {
-  /** The end-to-end `bundles` workspace with `elision_1` added to the timeline `score`. */
-  function storeWithElision(): Store {
-    const text = readFileSync(
-      path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures", "bundles.tle.json"),
-      "utf8",
-    );
-    const read = readWorkspace(text);
-    if (isLoadError(read)) throw new Error("bundles.tle.json is refused");
-    const store = createStore(read);
-    const error = store.dispatch({
-      type: "add",
-      into: { block: "bmixed0000", id: "score" },
-      elision: { start: [1, 1], end: [2, 1] },
-    });
-    if (error !== null) throw new Error(error.message);
-    return store;
-  }
-
-  it("has no statements, name, lock or groups", () => {
-    const { view } = storeWithElision();
-    const subjects = resolveSelection(
-      view,
-      selectionOf([{ block: "bmixed0000", id: "elision_1" }]),
-      null,
-      fontMetrics,
-    );
-    expect(subjects.map((subject) => subject.resolved.kind)).toEqual(["elision"]);
-    expect(shownOf(view, subjects, null)).toEqual({
-      kind: "none",
-      hint: describesNothing("elision 'elision_1' in bundle 'Mixed'"),
-    });
-    expect(nameOf(view, subjects, null)).toBeNull();
-    expect(lockOf(subjects)).toBeNull();
-    expect(groupsOf(view, subjects, null)).toBeNull();
+    expect(formOf(storeOf(INSIDE), { id: "piece" })).toBe(null);
   });
 });
 
 describe("the section in the Properties tab", () => {
   let app: ReturnType<typeof mount> | undefined;
   let selected: Address[] = [];
+  /** The journal's length when the panel was mounted: the block's own `add` before it. */
+  let base = 0;
 
   afterEach(() => {
     if (app !== undefined) unmount(app);
@@ -308,12 +340,13 @@ describe("the section in the Properties tab", () => {
     document.body.innerHTML = "";
   });
 
-  /** Mount the panel on `store` for `elements` of `B`. */
-  function show(store: Store, ...elements: ElementAddress[]): void {
+  /** Mount the panel on `store` for `elements` of `B`, in `editing`. */
+  function show(store: Store, elements: ElementAddress[], editing: Editing | null = null): void {
     const live = liveStore(store);
     const selection: Selection = selectionOf(elements.map((element) => ({ block: B, ...element })));
-    const subjects = () => resolveSelection(live.view, selection, null, fontMetrics);
+    const subjects = () => resolveSelection(live.view, selection, editing, fontMetrics);
     selected = [];
+    base = store.journal.length;
     app = mount(PropertiesPanel, {
       target: document.body,
       context: informing([]),
@@ -328,7 +361,7 @@ describe("the section in the Properties tab", () => {
         get subjects() {
           return subjects();
         },
-        editing: null,
+        editing,
         placement: null,
         drafts: new PropertyDrafts(),
         onselect: (address: Address) => selected.push(address),
@@ -337,229 +370,458 @@ describe("the section in the Properties tab", () => {
     flushSync();
   }
 
-  const radio = (word: string) =>
-    [...document.querySelectorAll<HTMLInputElement>('.mode input[type="radio"]')].find(
+  const part = (testid: string) => document.querySelector(`[data-testid="${testid}"]`);
+  const radio = (testid: string, word: string) =>
+    [...(part(testid)?.querySelectorAll<HTMLInputElement>('.mode input[type="radio"]') ?? [])].find(
       (input) => input.parentElement?.textContent?.trim() === word,
     );
-  const checked = () =>
-    [...document.querySelectorAll<HTMLInputElement>('.mode input[type="radio"]')]
+  const checked = (testid: string) =>
+    [...(part(testid)?.querySelectorAll<HTMLInputElement>('.mode input[type="radio"]') ?? [])]
       .filter((input) => input.checked)
       .map((input) => input.value);
-  const status = () =>
-    document.querySelector('[data-testid="elision-status"]')?.textContent?.trim();
-  const button = (text: string) =>
-    [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+  const button = (text: string, within: Element | null = document.body) =>
+    [...(within?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
       (found) => found.textContent?.trim() === text,
     );
+  const input = (name: string, within: Element | null = document.body) =>
+    within?.querySelector<HTMLInputElement>(`input[name="${name}"]`) ?? null;
 
-  /** Choose a radio as a click does. */
-  function choose(input: HTMLInputElement | undefined): void {
-    input?.click();
-    flushSync();
-  }
-
-  function click(found: HTMLButtonElement | undefined | null): void {
+  function click(found: HTMLElement | undefined | null): void {
     found?.click();
     flushSync();
   }
 
-  function enter(name: string, text: string): HTMLInputElement | null {
-    const input = document.querySelector<HTMLInputElement>(
-      `[data-testid="elision-form"] input[name="${name}"]`,
-    );
-    if (input === null) return null;
-    input.value = text;
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  function enter(field: HTMLInputElement | null, text: string): void {
+    if (field === null) throw new Error("no field");
+    field.value = text;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     flushSync();
-    return input;
   }
 
+  const commands = (store: Store) =>
+    store.journal.map((entry) => (entry as CommandEntry | undefined)?.command);
+  const last = (store: Store) => commands(store).at(-1);
+
   it("stands directly under the name, outside the geometry form", () => {
-    show(storeOf(INSIDE), { id: "excerpt", part: ["card"] });
-    const section = document.querySelector('[data-testid="elisions"]');
-    expect(document.querySelector("label.name")?.nextElementSibling).toBe(section);
+    show(storeOf(INSIDE), [{ id: "excerpt", part: ["card"] }]);
+    const section = part("elisions");
+    expect(section?.previousElementSibling?.matches("label.name")).toBe(true);
     expect(section?.closest("form")).toBe(null);
-    expect(section?.querySelector("h3")?.textContent).toBe('Parent timeline "Piece"');
   });
 
-  it("switches to Full by one command, and undo gives Elided back", () => {
+  it("switches to Full and back by undo, one entry each", () => {
     const store = storeOf(INSIDE);
-    const rules = blockOf(store).manifest.graphical?.rules;
-    show(store, { id: "excerpt" });
-    expect(checked()).toEqual(["elided"]);
-    expect(strips(store)).toBe(3);
-    const before = store.journal.length;
-    choose(radio("Full"));
-    expect(store.journal.length).toBe(before + 1);
-    expect(lastCommand(store)).toEqual(style(within("piece"), "none"));
-    expect(strips(store)).toBe(0);
-    expect(checked()).toEqual(["full"]);
-    expect(status()).toBe("Elisions: automatic, 0.1429 of their length");
+    show(store, [{ id: "piece" }]);
+    expect(checked("elisions")).toEqual(["proportional"]);
+    click(radio("elisions", "Full"));
+    expect(store.journal.length - base).toBe(1);
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "full", display: null }));
+    expect(checked("elisions")).toEqual(["full"]);
     store.undo();
     flushSync();
-    expect(blockOf(store).manifest.graphical?.rules).toEqual(rules);
-    expect(checked()).toEqual(["elided"]);
+    expect(checked("elisions")).toEqual(["proportional"]);
   });
 
-  it("hides the card, and shows it Elided by one command or Full by two", () => {
+  it("hides the card and shows it Proportional again, leaving no rule", () => {
     const store = storeOf(INSIDE);
-    show(store, { id: "piece" });
-    const before = store.journal.length;
-    choose(radio("Hidden"));
-    expect(lastCommand(store)).toEqual(style(card("piece"), "none"));
-    expect([cards(store, "piece"), checked()]).toEqual([0, ["hidden"]]);
-    choose(radio("Elided"));
-    expect(store.journal.length).toBe(before + 2);
-    expect(lastCommand(store)).toEqual(style(card("piece"), null));
-    expect([cards(store, "piece"), strips(store), checked()]).toEqual([1, 3, ["elided"]]);
-    choose(radio("Hidden"));
-    choose(radio("Full"));
-    expect(store.journal.length).toBe(before + 5);
-    expect(store.journal.slice(-2).map((entry) => (entry as CommandEntry).command)).toEqual([
-      style(card("piece"), null),
-      style(within("piece"), "none"),
-    ]);
-    expect([cards(store, "piece"), strips(store), checked()]).toEqual([1, 0, ["full"]]);
+    show(store, [{ id: "piece" }]);
+    click(radio("elisions", "Hidden"));
+    expect(last(store)).toEqual(rootStyle("piece", { display: "none" }));
+    expect(checked("elisions")).toEqual(["hidden"]);
+    expect(drawn(store).boxes.filter((box) => box.ancestor !== undefined)).toEqual([]);
+    click(radio("elisions", "Proportional"));
+    expect(store.journal.length - base).toBe(2);
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": null, display: null }));
+    expect(checked("elisions")).toEqual(["proportional"]);
+    expect(blockOf(store).manifest.graphical?.rules).toEqual([]);
   });
 
-  it.each([
-    ["inline", "Hidden", "Hidden: Shown by another style rule"],
-    ["none", "Elided", "Elided: Hidden by another style rule"],
-    ["none", "Full", "Full: Hidden by another style rule"],
-  ] as const)(
-    "holds %s by a rule the own one cannot outrank: %s reachable and explained",
-    (display, word, hint) => {
-      const store = storeOf(INSIDE);
-      expect(
-        store.dispatch(
-          style({ ...card("piece"), within: "piece" }, display) as Parameters<Store["dispatch"]>[0],
-        ),
-      ).toBe(null);
-      show(store, { id: "piece" });
-      const input = radio(word);
-      const described = (input?.getAttribute("aria-describedby") ?? "")
-        .split(" ")
-        .map((id) => document.getElementById(id)?.textContent?.trim());
-      expect([input?.getAttribute("aria-disabled"), input?.disabled, described]).toEqual([
-        "true",
-        false,
-        [hint],
-      ]);
-      const journal = store.journal;
-      choose(input);
-      expect(store.journal).toBe(journal);
-    },
-  );
-
-  it("stores the root left and right in one entry and resets it in one", () => {
+  it("stores the drawn defaults in one add and removes them all in one", () => {
     const store = storeOf(INSIDE);
-    show(store, { id: "piece" });
-    const before = store.journal.length;
-    click(button("Root left and right"));
-    expect(store.journal.length).toBe(before + 1);
-    expect(blockOf(store).manifest.graphical?.elisions?.map((each) => each.id)).toEqual([
-      "elision_1",
-      "elision_2",
-    ]);
-    expect(status()).toBe("Elisions: 2 stored elisions");
-    click(button("Reset to automatic"));
-    expect(store.journal.length).toBe(before + 2);
-    expect(lastCommand(store)).toEqual({
+    show(store, [{ id: "piece" }]);
+    click(radio("elisions", "Custom"));
+    expect(store.journal.length - base).toBe(1);
+    expect(last(store)).toEqual({
+      type: "add",
+      into: { block: B },
+      elision: [
+        {
+          timeline: "first",
+          start: [0, 1],
+          end: [8, 1],
+          width: { canvas: 57.14285714285714 },
+          display: ["ellipsis"],
+        },
+        {
+          timeline: "first",
+          start: [16, 1],
+          end: [32, 1],
+          width: { canvas: 114.28571428571428 },
+          display: ["ellipsis"],
+        },
+        {
+          timeline: "second",
+          start: [1, 1],
+          end: [31, 1],
+          width: { canvas: 128.57142857142856 },
+          display: ["ellipsis"],
+        },
+      ],
+    });
+    expect(checked("elisions")).toEqual(["custom"]);
+    expect(part("elisions")?.querySelectorAll(".rows li")).toHaveLength(3);
+    click(button("Remove all", part("elisions")));
+    expect(store.journal.length - base).toBe(2);
+    expect(last(store)).toEqual({
       type: "remove",
-      targets: [
-        { block: B, id: "elision_1" },
-        { block: B, id: "elision_2" },
-      ],
+      targets: ["elision_1", "elision_2", "elision_3"].map(at),
     });
-    expect(status()).toBe("Elisions: automatic, 0.1429 of their length");
+    expect(checked("elisions")).toEqual(["proportional"]);
   });
 
-  it("selects a row, and deletes a default one by storing the others, undone at once", () => {
+  it("keeps stored elisions in the background through Full and Proportional", () => {
+    const store = storeOf(STORED);
+    show(store, [{ id: "score" }]);
+    click(radio("elisions", "Full"));
+    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": "full", display: null }));
+    click(radio("elisions", "Custom"));
+    expect(last(store)).toEqual(rootStyle("score", { "elision-mode": null, display: null }));
+    expect(checked("elisions")).toEqual(["custom"]);
+    click(radio("elisions", "Proportional"));
+    expect(last(store)).toEqual(
+      rootStyle("score", { "elision-mode": "proportional", display: null }),
+    );
+    expect(store.journal.length - base).toBe(3);
+  });
+
+  it("starts Custom from full timelines with nothing stored", () => {
     const store = storeOf(INSIDE);
-    show(store, { id: "piece" });
-    click(document.querySelector<HTMLButtonElement>("button.row:last-of-type"));
-    const rows = [...document.querySelectorAll<HTMLButtonElement>("button.row")];
-    click(rows[1]);
-    expect(selected).toEqual([{ block: B, id: "second", part: ["elision"] }]);
-    const before = store.journal.length;
-    click(document.querySelectorAll<HTMLButtonElement>("button.delete")[1]);
-    expect(store.journal.length).toBe(before + 1);
-    expect(lastCommand(store)).toEqual({
-      type: "add",
-      into: { block: B },
-      elision: [
-        { timeline: "first", start: [0, 1], end: [8, 1] },
-        { timeline: "first", start: [16, 1], end: [32, 1] },
-      ],
+    show(store, [{ id: "piece" }]);
+    click(radio("elisions", "Full"));
+    click(radio("elisions", "Custom"));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-mode": "custom", display: null }));
+    expect(checked("elisions")).toEqual(["custom"]);
+  });
+
+  it("switches a frame between Full and Custom", () => {
+    const store = storeOf(STORED);
+    show(store, [{ id: "theme" }]);
+    const frame = (set: object) => ({
+      type: "style",
+      select: { addresses: [{ id: "group_1" }] },
+      set,
+      blocks: [B],
     });
+    click(radio("group-elisions", "Full"));
+    expect(last(store)).toEqual(frame({ "elision-mode": "full" }));
+    expect(checked("group-elisions")).toEqual(["full"]);
+    click(radio("group-elisions", "Custom"));
+    expect(last(store)).toEqual(frame({ "elision-mode": null }));
+    expect(checked("group-elisions")).toEqual(["custom"]);
+  });
+
+  it("shows the group's block in its editor with nothing selected", () => {
+    show(storeOf(STORED), [], { kind: "group", target: { block: B, id: "group_1" } });
+    expect(part("group-elisions")?.querySelector("h3")?.textContent).toBe(
+      'Elisions in group "Theme"',
+    );
+  });
+
+  it("holds Custom with its reason where the root's elisions belong to its group", () => {
+    const store = insideWithPieceGrouped();
+    show(store, [{ id: "piece" }]);
+    const custom = radio("elisions", "Custom");
+    expect(custom?.getAttribute("aria-disabled")).toBe("true");
+    const hint = document.getElementById(custom?.getAttribute("aria-describedby") ?? "");
+    expect(hint?.textContent).toBe('Custom: its elisions belong to group "Whole"');
+    click(custom);
+    expect(store.journal.length - base).toBe(0);
+    expect(checked("elisions")).toEqual(["proportional"]);
+  });
+
+  it("states the proportion, types it and gives it back to Automatic", () => {
+    const store = storeOf(INSIDE);
+    show(store, [{ id: "piece" }]);
+    const section = part("elisions");
+    click(input("proportion-automatic", section));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": 0.142857 }));
+    expect(input("proportion-automatic", section)?.checked).toBe(false);
+    expect(input("proportion", section)?.value).toBe("0.142857");
+    enter(input("proportion", section), "0.5");
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": 0.5 }));
+    enter(input("proportion", section), "2");
+    expect(store.journal.length - base).toBe(2);
+    expect(input("proportion", section)?.getAttribute("aria-invalid")).toBe("true");
+    expect(section?.querySelector(".problem")?.textContent).toBe(
+      "2 is no proportion: write a number above 0 and at most 1",
+    );
+    click(input("proportion-automatic", section));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": null }));
+    expect(store.journal.length - base).toBe(3);
+  });
+
+  it("chooses the rows by depth, never none", () => {
+    const store = storeOf(INSIDE);
+    show(store, [{ id: "piece" }]);
+    const section = part("elisions");
+    click(input("depths-automatic", section));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-depths": "1 2" }));
+    const depth = (n: number) =>
+      section?.querySelector<HTMLInputElement>(`input[name="depth"][value="${n}"]`) ?? null;
+    click(depth(2));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-depths": "1" }));
+    expect(depth(1)?.disabled).toBe(true);
+    expect(store.journal.length - base).toBe(2);
+  });
+
+  it("toggles what every default elision shows", () => {
+    const store = storeOf(INSIDE);
+    show(store, [{ id: "piece" }]);
+    click(button("Name", part("elisions")));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-display": "ellipsis name" }));
     store.undo();
     flushSync();
-    expect(blockOf(store).manifest.graphical?.elisions).toEqual([]);
+    click(button("Ellipsis", part("elisions")));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-display": "none" }));
   });
 
-  it("stores the defaults with a typed end of a default elision", () => {
-    const store = storeOf(INSIDE);
-    show(store, { id: "second", part: ["elision"] });
-    enter("end", "16");
-    expect(lastCommand(store)).toEqual({
-      type: "add",
-      into: { block: B },
-      elision: [
-        { timeline: "first", start: [0, 1], end: [8, 1] },
-        { timeline: "first", start: [16, 1], end: [32, 1] },
-        { timeline: "second", start: [0, 1], end: [16, 1] },
-      ],
-    });
+  it("selects a row and deletes one stored elision", () => {
+    const store = storeOf(STORED);
+    show(store, [{ id: "score" }]);
+    const rows = part("elisions")?.querySelectorAll<HTMLButtonElement>(".rows .row");
+    click(rows?.[1]);
+    expect(selected).toEqual([at("elision_5")]);
+    click(part("elisions")?.querySelectorAll<HTMLButtonElement>(".rows .delete")[0]);
+    expect(last(store)).toEqual({ type: "remove", targets: [at("elision_4")] });
+    expect(store.journal.length - base).toBe(1);
   });
 
   it("edits a stored elision exactly, one command each", () => {
     const store = storeOf(STORED);
-    show(store, { id: "elision_5" });
-    const target = { block: B, id: "elision_5" };
-    enter("start", "33.5");
-    expect(lastCommand(store)).toEqual({
+    show(store, [{ id: "elision_5" }]);
+    const form = () => part("elision-form");
+    enter(input("start", form()), "33.5");
+    expect(last(store)).toEqual({
       type: "set",
-      changes: [{ target, values: { start: [67, 2] } }],
+      changes: [{ target: at("elision_5"), values: { start: [67, 2] } }],
     });
-    const before = store.journal.length;
-    const refused = enter("start", "x");
-    expect(store.journal.length).toBe(before);
-    expect(refused?.getAttribute("aria-invalid")).toBe("true");
-    expect(
-      document.getElementById(refused?.getAttribute("aria-describedby") ?? "")?.textContent,
-    ).toBe('"x" is no fraction value; write an integer, n/d, a b/c or a decimal');
-    const name = [...document.querySelectorAll<HTMLInputElement>('input[name="display"]')].find(
-      (input) => input.value === "name",
+    enter(input("start", form()), "x");
+    expect(store.journal.length - base).toBe(1);
+    expect(input("start", form())?.getAttribute("aria-invalid")).toBe("true");
+    expect(form()?.querySelector(".problem")?.textContent).toBe(
+      '"x" is no fraction value; write an integer, n/d, a b/c or a decimal',
     );
-    name?.click();
-    flushSync();
-    expect(lastCommand(store)).toEqual({
-      type: "set",
-      changes: [{ target, values: { display: ["strip", "coordinate"] } }],
-    });
-    click(button("Delete elision"));
-    expect(lastCommand(store)).toEqual({ type: "remove", targets: [target] });
+    expect(store.journal.length - base).toBe(1);
   });
 
-  it("chooses Fixed with the drawn width, so that it does not jump", () => {
+  it("converts a width form, toggles a word and deletes, one command each", () => {
     const store = storeOf(STORED);
-    show(store, { id: "elision_5" });
-    const drawn = drawingOf(blockOf(store), store.view.graphical, fontMetrics).elements.find(
-      (element) => element.type === "elision" && element.address.id === "elision_5",
-    );
-    const width = drawn?.type === "elision" ? drawn.x2 - drawn.x1 : Number.NaN;
-    const fixed = document.querySelector<HTMLInputElement>('input[type="radio"][value="canvas"]');
-    fixed?.click();
-    flushSync();
-    expect(lastCommand(store)).toEqual({
+    show(store, [{ id: "elision_5" }]);
+    const form = () => part("elision-form");
+    const widthRadio = (value: string) =>
+      part("elision-form")?.querySelector<HTMLInputElement>(
+        `.width input[type="radio"][value="${value}"]`,
+      ) ?? null;
+    click(widthRadio("canvas"));
+    expect(last(store)).toEqual({
       type: "set",
-      changes: [
-        {
-          target: { block: B, id: "elision_5" },
-          values: { width: { canvas: Number(width.toFixed(2)) } },
-        },
-      ],
+      changes: [{ target: at("elision_5"), values: { width: { canvas: 200 } } }],
     });
+    click(widthRadio("ratio"));
+    expect(last(store)).toEqual({
+      type: "set",
+      changes: [{ target: at("elision_5"), values: { width: { ratio: 0.25 } } }],
+    });
+    click(widthRadio("standard"));
+    expect(last(store)).toEqual({
+      type: "set",
+      changes: [{ target: at("elision_5"), values: { width: null } }],
+    });
+    click(button("Ellipsis", form()));
+    expect(last(store)).toEqual({
+      type: "set",
+      changes: [{ target: at("elision_5"), values: { display: ["ellipsis", "name"] } }],
+    });
+    click(button("Delete elision", form()));
+    expect(last(store)).toEqual({ type: "remove", targets: [at("elision_5")] });
+    expect(store.journal.length - base).toBe(5);
+  });
+
+  it("shows a default elision read-only", () => {
+    show(storeOf(INSIDE), [{ id: "second", part: ["elision"] }]);
+    const form = part("elision-form");
+    expect(form?.querySelector("legend")?.textContent).toBe('Elision on "Second"');
+    expect([input("start", form)?.value, input("end", form)?.value]).toEqual(["1", "31"]);
+    expect([input("start", form)?.disabled, input("end", form)?.disabled]).toEqual([true, true]);
+    expect(form?.querySelector(".hint")?.textContent).toBe("Choose Custom to edit");
+    expect(form?.querySelector(".width")).toBe(null);
+    expect(button("Delete elision", form)).toBe(undefined);
+  });
+});
+
+describe("a root drawn once behind a row side by side", () => {
+  /** The block of `store` drawn side by side, as layout draws the placement's arrangement. */
+  function sideBySide(store: Store): Drawing {
+    const block = blockOf(store);
+    return draw(
+      block.manifest,
+      {
+        length: block.length,
+        spacing: block.spacing,
+        margin: block.margin,
+        width: block.width,
+        height: block.height,
+        places: block.places,
+        arrangement: { direction: "horizontal", order: ["page", "group_3", "group_1", "group_2"] },
+      },
+      styleLayers(store.view.graphical, block.manifest),
+      fontMetrics,
+    );
+  }
+
+  function arrangedRoot(store: Store, ...elements: ElementAddress[]): RootElisions | null {
+    return rootElisionsOf(blockOf(store), subjectsOf(store, elements), sideBySide(store));
+  }
+
+  function dispatched(...commands: Command[]): Store {
+    const store = storeOf(ARRANGED);
+    for (const command of commands) {
+      const error = store.dispatch(command);
+      if (error !== null) throw new Error(error.message);
+    }
+    return store;
+  }
+
+  const SESSION_ELISION: Command = {
+    type: "add",
+    into: at("session"),
+    elision: { start: 50.0, end: 80.0 },
+  };
+
+  const arrangedOf = (root: RootElisions | null) =>
+    root?.arranged.map((gap) => [gap.between, gap.stretch]);
+
+  it("records one card per root, under the first group's key, behind every group", () => {
+    const cards = sideBySide(storeOf(ARRANGED)).boxes.flatMap((box) =>
+      box.ancestor === undefined ? [] : [[box.key, box.ancestor.groups]],
+    );
+    expect(cards).toEqual([
+      [{ item: "group_1", member: "score" }, ["group_1", "group_2", "group_3"]],
+      [{ item: "group_1", member: "session" }, ["group_1", "group_3"]],
+    ]);
+  });
+
+  it.each<[ElementAddress, string]>([
+    [{ id: "exposition" }, "score"],
+    [{ id: "development" }, "score"],
+    [{ id: "recapitulation" }, "score"],
+    [{ id: "take_a" }, "session"],
+    [{ id: "take_b" }, "session"],
+  ])("reads the once card for %j", (element, root) => {
+    const read = arrangedRoot(storeOf(ARRANGED), element);
+    expect(read?.root).toBe(root);
+    expect(read?.mode).toBe("proportional");
+  });
+
+  it("lists the arrangement's seams and gap read-only", () => {
+    const store = storeOf(ARRANGED);
+    expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([
+      ['between "Exposition" and "Development"', "seam at 16 ♩"],
+      ['between "Development" and "Recapitulation"', "seam at 32 ♩"],
+    ]);
+    expect(arrangedOf(arrangedRoot(store, { id: "take_b" }))).toEqual([
+      ['between "Exposition" and "Recapitulation"', "33″–44″"],
+    ]);
+    expect(arrangedOf(rootOf(store, { id: "development" }))).toEqual([]);
+  });
+
+  it("offers no form for the address the arrangement's gaps share", () => {
+    const store = storeOf(ARRANGED);
+    const subjects = subjectsOf(store, [{ id: "score", part: ["elision"] }]);
+    expect(elisionFormOf(blockOf(store), subjects, sideBySide(store))).toBe(null);
+  });
+
+  it("stores none of them when Proportional turns Custom", () => {
+    const root = arrangedRoot(storeOf(ARRANGED), { id: "development" });
+    expect(root?.options.find((option) => option.mode === "custom")?.commands).toEqual([
+      {
+        type: "style",
+        select: rootRule("score"),
+        set: { "elision-mode": "custom", display: null },
+        blocks: [B],
+      },
+    ]);
+  });
+
+  it("keeps a stored elision between two anchors, listed as not drawn", () => {
+    const store = dispatched(SESSION_ELISION);
+    const free = rootOf(store, { id: "take_b" });
+    expect(free?.mode).toBe("custom");
+    expect(
+      free?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
+    ).toEqual([["—", "Session", "50″–1′20″", null]]);
+    const arranged = arrangedRoot(store, { id: "take_b" });
+    expect(arranged?.mode).toBe("custom");
+    expect(
+      arranged?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
+    ).toEqual([["—", "Session", "50″–1′20″", "not drawn while arranged side by side"]]);
+    expect(arranged?.custom?.rows[0]?.remove).toEqual({
+      type: "remove",
+      targets: [at("elision_1")],
+    });
+    expect(arranged?.custom?.removeAll).toEqual({ type: "remove", targets: [at("elision_1")] });
+  });
+
+  it("shows the gap and the undrawn elision in the section", () => {
+    const store = dispatched(SESSION_ELISION);
+    const app = mount(ElisionSection, {
+      target: document.body,
+      props: {
+        store,
+        block: blockOf(store),
+        subjects: subjectsOf(store, [{ id: "take_b" }]),
+        drawing: sideBySide(store),
+        edited: null,
+        drafts: new PropertyDrafts(),
+        onselect: () => {},
+      },
+    });
+    flushSync();
+    try {
+      const section = document.querySelector('[data-testid="elisions"]');
+      const gaps = [...(section?.querySelectorAll('[data-testid="arranged-gaps"] li') ?? [])];
+      expect(gaps.map((gap) => gap.textContent)).toEqual([
+        'between "Exposition" and "Recapitulation" 33″–44″',
+      ]);
+      expect(section?.querySelector(".count")?.textContent).toBe("1 elision");
+      expect(section?.querySelector(".rows .note")?.textContent).toBe(
+        "not drawn while arranged side by side",
+      );
+    } finally {
+      unmount(app);
+      document.body.innerHTML = "";
+    }
+  });
+
+  it("shows the least of the anchors' proportions", () => {
+    const store = dispatched({
+      type: "add",
+      into: at("development"),
+      elision: { start: [4, 1], end: [12, 1] },
+    });
+    const free = drawn(store).elisions.flatMap((exposure) =>
+      exposure.kind === "ancestor_card" && exposure.key.member === "score"
+        ? [[exposure.key.item, exposure.proportion]]
+        : [],
+    );
+    expect(free).toEqual([
+      ["group_1", 0.5],
+      ["group_2", 0.29],
+      ["group_3", 0.5],
+    ]);
+    const root = arrangedRoot(store, { id: "recapitulation" });
+    expect(root?.proportional?.automatic).toBe(true);
+    expect(root?.proportional?.proportion).toBe("0.29");
   });
 });
