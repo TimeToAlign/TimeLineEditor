@@ -1126,6 +1126,117 @@ and everywhere while it is raised; an ancestor line in a member's card is
 read as its ancestor's. The raised card is opened through the hook
 (`enter`), the viewport set back to the one measured.
 
+**`arrangement.spec.ts`** (Chromium, Firefox, WebKit) proves the Arrange
+menu (TimeToShare's drawing specification, sections 1, 8.5, 8.6 and 8.8,
+Drawn once) in a browser: a bundle's items switched side by side and back,
+reordered by a drag and by a key, side by side refused with its reason,
+and the canvas's blocks in a matrix. Reduced motion is emulated, so that
+nothing a press aims at is moving (the motions themselves are the
+arranger's tests'); the page is 1920 × 1080 at device scale 1, so that a
+drawing of the four groups one under another fits the canvas at zoom 1.
+The menu opens from the canvas controls' `arrange` toggle (`aria-expanded`)
+as the panel `arrange-menu`, one button per arrangement,
+`arrange-<free|vertical|horizontal|matrix>`, the one stated `aria-pressed`;
+every choice is one `set`, one entry more and read as the newest entry of the bundle editor's
+session (`newestCommand`) or of the journal, and the store's arrangement is
+read through the hook. Drawn boxes are read from the DOM as the writer
+prints their rectangle's `x`, `y` (four decimals), the frame `{id: G}` by its
+last part, its rectangle after its shadow; the ancestor cards from the
+hook's container records (`boxes`), whose keys `{item: G, member: R}` say
+behind which group each card is recorded. A value that depends on the pane
+the canvas fits drawings to (an ancestor card's automatic proportion,
+section 8.9: the abscissas of the groups drawn one under another) is never
+compared; every value below is the same at every pane.
+
+The bundle is the schema package's `bundles/bundle_elided_layerit`,
+imported through Import manifest… (no fixture workspace holds it, so none
+was added): the root `clt_1` "Suite bergamasque" (1616 quarters) holds four
+movements, each holding the excerpt that is its group's first member, so
+each group anchors on `clt_1` with the stretch of its excerpt, offsets
+summed: `group_1` 0–16, `group_2` 476–488 (356 + 120), `group_3` 668–695,
+`group_4` 1600–1616; the four stretches follow the drawing order without
+overlapping, so core's row is `[group_1, group_2, group_3, group_4]`
+whatever order is asked, and `clt_1` is the one root any group hangs on.
+Each group's frame holds its excerpt's card (a grandchild: 81.37890625
+high, `group_3`'s Clair de Lune 129.35546875) and its recording's
+(49.37890625), so a frame is `8 + h(11) + 4 + Hm1 + 8 + Hm2 + 8` high
+(the drawing facts above): 171.5625, `group_3` 219.5390625, every frame
+622.8037109375 wide. Without an arrangement and one under another
+(section 8.6, the block's spacing 8 between items), the first frame lies at
+`y` 88.52734375 in the drawing (its title gap 28.8046875 below the place
+origin, which the first ancestor card lifts by 59.72265625), each next one
+8 below the previous one's bottom, so the four tops are 88.52734375,
+268.08984375 (`+ 171.5625 + 8`), 447.65234375 and 675.19140625; each group
+draws its own ancestor card of `clt_1` behind it, recorded in item order,
+so `{id: clt_1, part: ["card"]}` is drawn four times (eight parts, each a
+rectangle after its shadow). Side by side (section 8.8, Drawn once) the
+row is packed from the once card's room: the frames' tops are all 48.57421875,
+their left edges 179.890625, then each `622.8037109375 + 48` further
+(the standard gap 32 plus 8 each side, the block's spacing being less):
+850.6943359375, 1521.498046875, 2192.3017578125; `clt_1` is drawn once,
+the card recorded behind the first group of the row, key `{item: group_1,
+member: clt_1}`, two parts; the drawing's origin is `(0, 0)`, so the node
+lies at the block's stated place.
+
+1. **Side by side and back.** In the block's bundle editor the menu offers
+   Free (pressed), Vertical and Horizontal, no Matrix; Horizontal is
+   enabled. Horizontal sends `set {block} {arrangement: {direction:
+   horizontal, order: [group_1, group_2, group_3, group_4]}}` (the items
+   as shown), the store holds it and Horizontal is pressed; the frames,
+   the once card and the node are as stated above; the block's stated `x`
+   and `y` are unchanged. Free sends `{arrangement: null}`: the block holds
+   no arrangement, Free is pressed, the four ancestor cards and the four
+   tops one under another return, the place still unchanged.
+2. **Reordered by a drag and by a key.** Vertical sends `{direction:
+   vertical, order: [group_1, …, group_4]}` and draws as without one.
+   The viewport puts the node's top left corner at (40, 40) of the pane,
+   zoom 1, so a drawing ordinate is a screen pixel. `group_1`'s frame is
+   pressed (`framePoint`) and dragged straight down to the drawing ordinate
+   440, below `group_2`'s middle (`268.08984375 + 171.5625 / 2 =
+   353.87109375`) and above `group_3`'s (557.421875), and released: one
+   `set` of `{direction: vertical, order: [group_2, group_1, group_3,
+   group_4]}` (`orderAt`, the middles along the direction), the dragged
+   frame selected; the tops are 88.52734375 (`group_2`), 268.08984375,
+   447.65234375 and 675.19140625, and the ancestor cards are recorded in
+   that order. With the arranger focused, ArrowDown moves the selected
+   frame one place on (`arrangedStep`): one `set` of `[group_2, group_3,
+   group_1, group_4]`, tops 88.52734375, 268.08984375, `+ 219.5390625 + 8
+   = 495.62890625` and `+ 171.5625 + 8 = 675.19140625`. Horizontal then
+   sends that order as shown, and core stores its row: the store holds
+   `[group_1, group_2, group_3, group_4]` and the frames lie as in case 1.
+3. **Side by side refused.** `bundles/bundle_arranged_conflict`: Theme A
+   (0–16) and Theme B (8–24) hang on Score and overlap on 8–16, so no row
+   holds both (rule 2). In the bundle editor Horizontal is disabled, its
+   title `Horizontal: "Theme A" and "Theme B" overlap on "Score" (8–16 ♩)`
+   (core's reason for the drawing order, its numbers in quarters, the
+   unit's symbol ♩), the menu's note `arrange-refused` says the same; Free
+   (pressed) and Vertical stay enabled, and the journal is unchanged.
+4. **Blocks in a matrix.** `small`, on the arranger: the menu offers Free
+   (pressed), Vertical, Horizontal and Matrix. The five blocks are packed
+   in index order (`bare`, `nested`, `map`, `flow_control`,
+   `styled__score`) from the first one's node, `(0, 0)`, 32 apart, each
+   node its drawing's size, each column as wide as its widest node, each
+   row as tall as its tallest (section 8.6); every drawing's origin is
+   `(0, 0)`, so a node lies at its place. The sizes are those of the
+   drawing facts above, but `flow_control` is drawn 122.80859375 high
+   (layout's `draw` today; the table above still reads 102.33203125).
+   Matrix sends `set {} {arrangement: {direction: matrix, columns: 3}}`
+   (`⌈√5⌉` columns when first chosen), shows `Columns 3`, and places the
+   nodes in three columns 518.256591796875 (`flow_control`),
+   528.080078125 (`styled__score`) and 490.53662109375 wide and two rows
+   95.9765625 and 136.921875 high: `bare` (0, 0), `nested`
+   (550.256591796875, 0), `map` (1110.336669921875, 0), `flow_control` (0,
+   127.9765625), `styled__score` (550.256591796875, 127.9765625). Fewer
+   columns sends `{direction: matrix, columns: 2}`, shows `Columns 2`, and
+   the columns are 528.080078125 and 518.256591796875 wide, the rows
+   95.9765625, 122.80859375 and 136.921875 high: `bare` (0, 0), `nested`
+   (560.080078125, 0), `map` (0, 127.9765625), `flow_control`
+   (560.080078125, 127.9765625), `styled__score` (0, 282.78515625). Every
+   block's stated place is unchanged. Free sends `{arrangement: null}` and
+   every node returns to its stated place. A node's position is read from
+   its style's `transform`, compared with the browser's own spelling of the
+   exact position (`ancestor-cards.spec.ts`, `placedAt`).
+
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
 imported and its segment `b` selected, Delete and Backspace each show
