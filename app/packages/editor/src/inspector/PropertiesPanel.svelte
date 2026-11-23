@@ -28,6 +28,7 @@ import { sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
 import { informOf } from "../messages.svelte.ts";
+import { paneOf } from "../pane.ts";
 import ElisionSection from "./ElisionSection.svelte";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
@@ -62,6 +63,8 @@ let {
 const uid = $props.id();
 /** Posts what a commit wrote other than what was typed (a size below its minimum) to the message bar. */
 const inform = informOf();
+/** The canvas's pane, which every drawing read here is drawn at. */
+const pane = paneOf();
 
 /** Post `notice`, if there is one. */
 function notify(notice: string | null): void {
@@ -81,7 +84,7 @@ const name = $derived(nameOf(view, subjects, live.editing.at(-1) ?? null));
 const shown: Shown | null = $derived.by(() => {
   if (block === null) return null;
   if (placement?.id === block.id) return placement;
-  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics) };
+  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics, undefined, pane) };
 });
 
 /** The group whose editor is the innermost one open; `null` for none. */
@@ -99,12 +102,12 @@ const elided = $derived.by(() => {
   const edited = view.blocks[editing.target.block ?? ""];
   return edited === undefined
     ? null
-    : { block: edited, drawing: drawingOf(edited, view.graphical, fontMetrics) };
+    : { block: edited, drawing: drawingOf(edited, view.graphical, fontMetrics, undefined, pane) };
 });
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
 const geometry = $derived(
-  block === null || shown === null ? null : geometryOf(block, subjects, shown, editing),
+  block === null || shown === null ? null : geometryOf(block, subjects, shown, editing, pane),
 );
 
 /** The read-only rows of the one band selected; else `null`. */

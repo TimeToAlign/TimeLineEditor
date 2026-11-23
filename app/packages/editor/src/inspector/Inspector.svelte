@@ -20,6 +20,7 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { MatchClaimTables } from "../matchClaims.svelte.ts";
+import { paneOf } from "../pane.ts";
 import EditingBar from "./EditingBar.svelte";
 import JournalPanel from "./JournalPanel.svelte";
 import { journalRows } from "./journal.ts";
@@ -148,7 +149,9 @@ function onTabKey(event: KeyboardEvent, from: Tab): void {
 }
 
 /** The selection, resolved once for the panels. */
-const subjects = $derived(resolveSelection(view, selection, innermost ?? null, fontMetrics));
+/** The canvas's pane, which every drawing read here is drawn at. */
+const pane = paneOf();
+const subjects = $derived(resolveSelection(view, selection, innermost ?? null, fontMetrics, pane));
 const block = $derived(selectedBlock(view, subjects));
 
 /** Without a block, and without unapplied text, the Manifest tab shows only a hint. */

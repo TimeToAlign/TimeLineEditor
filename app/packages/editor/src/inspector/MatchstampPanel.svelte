@@ -24,6 +24,7 @@ import { drawingOf, raisedRoot } from "@timetoalign/tilie-arranger";
 import type { Block, Manifest } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { MatchClaimTables } from "../matchClaims.svelte.ts";
+import { paneOf } from "../pane.ts";
 import { userOf } from "../user.svelte.ts";
 import type { Format } from "./formats.svelte.ts";
 import { stampGroups, stampLines } from "./matchstampLines.ts";
@@ -100,8 +101,12 @@ const manifest: Manifest | undefined = $derived(shownBlock?.manifest);
 const context: unknown = $derived(manifest?.["@context"]);
 const loaded = $derived(blockId === null ? null : tables.of(blockId));
 const indexes = $derived(blockId === null ? null : indexesOf(blockId));
+/** The canvas's pane, which the block is drawn at as the canvas draws it. */
+const pane = paneOf();
 const drawing = $derived(
-  shownBlock === undefined ? null : drawingOf(shownBlock, view.graphical, fontMetrics),
+  shownBlock === undefined
+    ? null
+    : drawingOf(shownBlock, view.graphical, fontMetrics, undefined, pane),
 );
 /**
  * The root whose ancestor cards the innermost open editor raises over the

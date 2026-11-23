@@ -65,6 +65,7 @@ import {
 } from "./inspector/timestamp.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 import type { MatchClaimTables } from "./matchClaims.svelte.ts";
+import { paneOf } from "./pane.ts";
 
 interface Props {
   live: LiveStore;
@@ -96,6 +97,8 @@ let { live, selection, placement, storageKey, knotsOf, tables, indexesOf, onsele
   $props();
 
 const id = $props.id();
+/** The canvas's pane, which every block read here is drawn at. */
+const pane = paneOf();
 
 /** The remembered state; closed when nothing is remembered or storage is unavailable. */
 function remembered(key: string | null): boolean {
@@ -151,8 +154,8 @@ const editing: Editing | null = $derived(live.editing.at(-1) ?? null);
 const timestamp: Pin | null = $derived.by(() => {
   if (pin === null) return null;
   const address = namedAddress(pin.pin);
-  if (address === null) return heldPinOf(live.view, pin.pin, fontMetrics, editing, readOn);
-  return namedPinOf(live.view, address, fontMetrics, knotsOf, editing, readOn.line);
+  if (address === null) return heldPinOf(live.view, pin.pin, fontMetrics, editing, readOn, pane);
+  return namedPinOf(live.view, address, fontMetrics, knotsOf, editing, readOn.line, pane);
 });
 
 /**
@@ -247,8 +250,8 @@ export function selected(addresses: readonly Address[]): void {
     one === null
       ? null
       : namesTimestamp(live.view, one)
-        ? namedPinOf(live.view, one, fontMetrics, knotsOf, editing)
-        : boundaryPinOf(live.view, one, fontMetrics, knotsOf, editing);
+        ? namedPinOf(live.view, one, fontMetrics, knotsOf, editing, null, pane)
+        : boundaryPinOf(live.view, one, fontMetrics, knotsOf, editing, pane);
   const matchStamp = one === null ? null : namedMatchStampOf(live.view, one);
   if (one !== null && one.block !== undefined && matchStamp !== null) {
     showMatch({ kind: "named", block: one.block, id: matchStamp });
