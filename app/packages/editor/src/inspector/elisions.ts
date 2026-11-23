@@ -1301,7 +1301,7 @@ export const KIND_WORDS: { readonly [kind in BlockKind]: string } = {
 };
 
 /** What the Elisions tab says with nothing to show. */
-export const ELISIONS_HINT = "Select a timeline, a card or a group's frame to edit its elisions.";
+export const ELISIONS_HINT = "Select one timeline, card or group frame to edit its elisions.";
 
 /** One block as its collapsed line shows it, and the open state it reads. */
 export interface ElisionBlock {

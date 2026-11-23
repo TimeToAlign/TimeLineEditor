@@ -1048,7 +1048,8 @@ closed by a click stays closed when `score` is selected again.
 
 **Nothing to configure.** With nothing to configure (nothing selected
 outside an editor, or the block alone selected) the tab shows only
-"Select a timeline, a card or a group's frame to edit its elisions."
+"Select one timeline, card or group frame to edit its elisions.", which is
+also true of a selection lying in several roots or blocks.
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
 "0.142857" (held beside it exactly, `0.14285714285714285`); Rows Automatic, the depths deepest first `2` "First, Second"

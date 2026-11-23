@@ -681,7 +681,7 @@ describe("the Elisions tab", () => {
       show(storeOf(STORED), elements);
       expect(blocks()).toEqual([]);
       expect(document.body.textContent?.trim()).toBe(
-        "Select a timeline, a card or a group's frame to edit its elisions.",
+        "Select one timeline, card or group frame to edit its elisions.",
       );
       hide();
     }
