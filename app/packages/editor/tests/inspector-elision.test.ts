@@ -8,8 +8,10 @@ import type { Editing, Selection, Subject } from "@timetoalign/tilie-arranger";
 import {
   drawingOf,
   liveStore,
+  Pane,
   resolveSelection,
   selectionOf,
+  stretchText,
   styleLayers,
 } from "@timetoalign/tilie-arranger";
 import type {
@@ -37,6 +39,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { nameOf } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
+import { paneContext } from "../src/pane.ts";
 import { blockId, informing, storeOf } from "./support.ts";
 
 const B = blockId(0);
@@ -82,12 +85,21 @@ function formOf(store: Store, element: ElementAddress): ElisionForm | null {
  * elision's display, which the editor never states itself.
  */
 function layoutDisplay(store: Store): readonly string[] {
-  const exposure = drawn(store).elisions.find(
+  return pieceExposure(drawn(store)).display;
+}
+
+/** The exposure of `piece`'s ancestor card in `drawing` of `group_elided_inside`. */
+function pieceExposure(drawing: Drawing) {
+  const exposure = drawing.elisions.find(
     (each) => each.kind === "ancestor_card" && each.key.member === "piece",
   );
   if (exposure === undefined) throw new Error("piece draws no ancestor card");
-  return exposure.display;
+  return exposure;
 }
+
+/** Where `piece`'s card draws each of its gaps: its elision's address and its edges. */
+const gapEdges = (drawing: Drawing) =>
+  pieceExposure(drawing).gaps.map((gap) => [gap.address, gap.x1, gap.x2]);
 
 const rowsOf = (rows: readonly { name: string; timeline: string; stretch: string }[]) =>
   rows.map((row) => [row.name, row.timeline, row.stretch]);
@@ -180,6 +192,7 @@ describe("what the blocks read", () => {
     expect(root?.proportional).toEqual({
       automatic: true,
       proportion: "0.142857",
+      value: 0.14285714285714285,
       depthsAutomatic: true,
       depths: [
         { depth: 2, names: "First, Second", chosen: true },
@@ -355,15 +368,23 @@ describe("the section in the Properties tab", () => {
   });
 
   /** Mount the panel on `store` for `elements` of `B`, in `editing`. */
-  function show(store: Store, elements: ElementAddress[], editing: Editing | null = null): void {
+  function show(
+    store: Store,
+    elements: ElementAddress[],
+    editing: Editing | null = null,
+    pane: Pane | null = null,
+  ): void {
     const live = liveStore(store);
     const selection: Selection = selectionOf(elements.map((element) => ({ block: B, ...element })));
-    const subjects = () => resolveSelection(live.view, selection, editing, fontMetrics);
+    const subjects = () =>
+      resolveSelection(live.view, selection, editing, fontMetrics, pane ?? undefined);
     selected = [];
     base = store.journal.length;
+    const context: Map<unknown, unknown> = informing([]);
+    if (pane !== null) for (const [key, value] of paneContext(pane)) context.set(key, value);
     app = mount(PropertiesPanel, {
       target: document.body,
-      context: informing([]),
+      context,
       props: {
         get view() {
           return live.view;
@@ -559,8 +580,11 @@ describe("the section in the Properties tab", () => {
     const store = storeOf(INSIDE);
     show(store, [{ id: "piece" }]);
     const section = part("elisions");
+    const before = gapEdges(drawn(store));
     click(input("proportion-automatic", section));
-    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": 0.142857 }));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": 0.14285714285714285 }));
+    expect(pieceExposure(drawn(store)).automatic).toBe(false);
+    expect(gapEdges(drawn(store))).toEqual(before);
     expect(input("proportion-automatic", section)?.checked).toBe(false);
     expect(input("proportion", section)?.value).toBe("0.142857");
     enter(input("proportion", section), "0.5");
@@ -574,6 +598,25 @@ describe("the section in the Properties tab", () => {
     click(input("proportion-automatic", section));
     expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": null }));
     expect(store.journal.length - base).toBe(3);
+  });
+
+  it("reads the proportion the canvas draws at its pane", () => {
+    const store = storeOf(INSIDE);
+    const pane = new Pane();
+    pane.measure(1100, 800);
+    const block = blockOf(store);
+    const canvas = pieceExposure(
+      drawingOf(block, store.view.graphical, fontMetrics, undefined, pane),
+    ).proportion;
+    const paneless = pieceExposure(drawn(store)).proportion;
+    expect(paneless).toBe(0.14285714285714285);
+    expect(canvas).not.toBe(paneless);
+    if (canvas === null) throw new Error("piece's card takes no proportion");
+    show(store, [{ id: "piece" }], null, pane);
+    const section = part("elisions");
+    expect(input("proportion", section)?.value).toBe(String(Number(canvas.toFixed(6))));
+    click(input("proportion-automatic", section));
+    expect(last(store)).toEqual(rootStyle("piece", { "elision-proportion": canvas }));
   });
 
   it("chooses the rows by depth, never none", () => {
@@ -771,6 +814,29 @@ describe("a root drawn once behind a row side by side", () => {
       ['between "Exposition" and "Recapitulation"', "33″–44″"],
     ]);
     expect(arrangedOf(rootOf(store, { id: "development" }))).toEqual([]);
+  });
+
+  it("names a gap by the anchors its stretch separates, past a seam", () => {
+    const store = dispatched({
+      type: "set",
+      changes: [
+        { target: at("score"), values: { length: [56, 1] } },
+        { target: at("recapitulation"), values: { offset: [40, 1] } },
+      ],
+    });
+    const drawing = sideBySide(store);
+    const exposure = drawing.elisions.find(
+      (each) => each.kind === "ancestor_card" && each.key.member === "score",
+    );
+    const gaps = exposure?.gaps.filter((gap) => gap.origin === "arrangement") ?? [];
+    expect(gaps.length).toBe(1);
+    const [gap] = gaps;
+    if (gap === undefined) throw new Error("no gap");
+    const score = blockOf(store).manifest.timelines.find((timeline) => timeline.id === "score");
+    if (score === undefined) throw new Error("no score");
+    expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([
+      ['between "Development" and "Recapitulation"', stretchText(score, gap.start, gap.end)],
+    ]);
   });
 
   it("offers no form for the address the arrangement's gaps share", () => {

@@ -370,7 +370,7 @@ export function heldPinOf(
 /**
  * The pin of the position a timeline's start or end mark stands for, when
  * `address` names exactly such a mark, `{block, id: T, part: ["start"]}` or
- * `["end"]` (a member's marks on its ancestor lines, a segment's boundary):
+ * `["end"]` (a segment's boundary):
  * unnamed, of the timeline `T` of the block's manifest at the zero of its
  * number type or at its length, read as any position on `T` is (the
  * arranger's `timelinePin`: its ancestors and the timelines its line

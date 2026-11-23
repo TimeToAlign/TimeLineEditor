@@ -10,8 +10,8 @@
  * depths chosen) and what every default elision shows; in Custom the list of
  * the stored elisions the card draws, a click selecting one, `[×]` deleting
  * it, Add elision and Remove all. A root drawn once behind a row of groups
- * side by side also lists, read-only, the gaps and seams between two of its
- * groups, and its stored elisions lying there, kept and not drawn, with a
+ * side by side also lists, read-only, the gaps between two of its groups,
+ * and its stored elisions lying there, kept and not drawn, with a
  * note saying so. The group's block wherever the selection
  * lies in a group's frame, or in its editor: Full or Custom, the group's
  * elisions, Add elision and Remove all. Below, the form of one selected

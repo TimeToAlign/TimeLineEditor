@@ -12,8 +12,8 @@
  * journal entry. A root drawn once behind a row of groups side by side
  * (section 8.8, Drawn once) is read through the one ancestor card the drawing
  * records for it, whose `ancestor.groups` lists every group it lies behind;
- * the gaps and seams the arrangement cuts between two of them are listed
- * read-only, never edited.
+ * the gaps the arrangement cuts between two of them are listed read-only,
+ * never edited (a seam leaves out nothing and is no gap, so none is listed).
  */
 
 import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
@@ -55,11 +55,10 @@ import {
   inBlock,
   indexOf,
   parseAxisValue,
-  prettyText,
   prettyUnit,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
-import { memberDrawings, reachOf } from "@timetoalign/tilie-core/drawing";
+import { anchorsOf, memberDrawings, reachOf } from "@timetoalign/tilie-core/drawing";
 import type { CoordinateValue, Real } from "@timetoalign/tilie-core/numbers";
 import {
   axisCoordinate,
@@ -163,15 +162,15 @@ export interface ElisionRow {
 }
 
 /**
- * A gap or a seam a root drawn once behind a row cuts between two groups
- * hanging on it (section 8.8, Drawn once): read-only, no card elision.
+ * A gap a root drawn once behind a row cuts between two groups hanging on it
+ * (section 8.8, Drawn once): read-only, no card elision.
  */
 export interface ArrangedGap {
   /** The two groups' IDs, joined: the pair is one per root. */
   readonly key: string;
   /** `between "G1" and "G2"`, the groups by name, else by ID, left to right. */
   readonly between: string;
-  /** `start–end` with the unit for a gap; `seam at t` for a seam, which leaves out nothing. */
+  /** Its elided stretch, `start–end` with the unit. */
   readonly stretch: string;
 }
 
@@ -194,14 +193,16 @@ export interface RootElisions {
   readonly mode: RootMode;
   /** Hidden, Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root. */
   readonly options: readonly ModeOption<RootMode>[];
-  /** The gaps and seams between the groups of a row it is drawn behind once, left to right; none elsewhere. */
+  /** The gaps between the groups of a row it is drawn behind once, left to right; none elsewhere. */
   readonly arranged: readonly ArrangedGap[];
   /** What Proportional shows; `null` in any other mode. */
   readonly proportional: {
     /** Whether `elision-proportion` is `auto`. */
     readonly automatic: boolean;
-    /** The proportion its default elisions take, as the field shows it. */
+    /** The proportion its default elisions take, as the field shows it: at most six decimals. */
     readonly proportion: string;
+    /** That proportion exactly as the drawing takes it, which unticking Automatic states. */
+    readonly value: number;
     readonly depthsAutomatic: boolean;
     /** Deepest first, as the rows lie in the card. */
     readonly depths: readonly DepthRow[];
@@ -752,10 +753,13 @@ function groupName(manifest: Manifest, id: string): string {
 }
 
 /**
- * The gaps and seams the arrangement cuts in a root's card drawn once behind
- * a row (exposure origin `arrangement`), left to right: the `k`-th lies
- * between the `k`-th and the next group the card lies behind, which are in
- * the row's order, as the anchors whose stretches it separates.
+ * The gaps the arrangement cuts in a root's card drawn once behind a row
+ * (exposure origin `arrangement`; a seam is none), left to right, each named
+ * by the two groups whose anchors' stretches it separates on the root's
+ * axis: the group whose anchor ends last at or before the gap's start, and
+ * the one whose anchor starts first at or after its end, among the groups
+ * the card lies behind. Pairing by stretch, never by position in the list,
+ * keeps a gap with its groups where touching anchors (a seam) come before it.
  */
 function arrangedGaps(
   manifest: Manifest,
@@ -763,18 +767,39 @@ function arrangedGaps(
   exposure: ElisionExposure | undefined,
 ): ArrangedGap[] {
   const gaps = exposure?.gaps.filter((gap) => gap.origin === "arrangement") ?? [];
-  return gaps.flatMap((gap, index) => {
-    const left = of.groups[index];
-    const right = of.groups[index + 1];
+  if (gaps.length === 0) return [];
+  const anchors = anchorsOf(manifest)
+    .filter((anchor) => anchor.root === of.root.id && of.groups.includes(anchor.group))
+    .map((anchor) => ({
+      group: anchor.group,
+      start: toRational(anchor.start),
+      end: toRational(anchor.end),
+    }));
+  return gaps.flatMap((gap) => {
+    const start = toRational(gap.start);
+    const end = toRational(gap.end);
+    let left: (typeof anchors)[number] | undefined;
+    let right: (typeof anchors)[number] | undefined;
+    for (const anchor of anchors) {
+      if (
+        anchor.end.compare(start) <= 0 &&
+        (left === undefined || anchor.end.compare(left.end) > 0)
+      ) {
+        left = anchor;
+      }
+      if (
+        anchor.start.compare(end) >= 0 &&
+        (right === undefined || anchor.start.compare(right.start) < 0)
+      ) {
+        right = anchor;
+      }
+    }
     if (left === undefined || right === undefined) return [];
-    const seam = toRational(gap.start).compare(toRational(gap.end)) === 0;
-    const at = valueAt(gap.start, of.root);
-    const point = at === undefined ? "" : prettyText(at, of.root.number_type, of.root.unit);
     return [
       {
-        key: JSON.stringify([left, right]),
-        between: `between "${groupName(manifest, left)}" and "${groupName(manifest, right)}"`,
-        stretch: seam ? `seam at ${point}` : stretchText(of.root, gap.start, gap.end),
+        key: JSON.stringify([left.group, right.group]),
+        between: `between "${groupName(manifest, left.group)}" and "${groupName(manifest, right.group)}"`,
+        stretch: stretchText(of.root, gap.start, gap.end),
       },
     ];
   });
@@ -784,7 +809,7 @@ function arrangedGaps(
  * The stored card elisions of a root drawn once behind a row that its card
  * does not draw and that lie, on its axis, between its first group's anchor
  * and its last one's (section 8.8, Drawn once: the stretch between two anchors
- * is the arrangement's gap or seam whatever the mode); none for a card behind
+ * is the arrangement's whatever the mode); none for a card behind
  * one group.
  */
 function undrawnBetween(manifest: Manifest, of: RootOf, exposure: ElisionExposure): Elision[] {
@@ -832,6 +857,7 @@ export function rootElisionsOf(
       ? {
           automatic: exposure.automatic,
           proportion: proportionText(exposure.proportion ?? 1),
+          value: exposure.proportion ?? 1,
           depthsAutomatic: depthsStated === undefined || depthsStated === "auto",
           depths: depthRows(manifest, exposure.chain, exposure.depths),
           display: exposure.display,
@@ -873,13 +899,14 @@ function rootStyle(section: RootElisions, set: StyleCommand["set"]): StyleComman
 
 /**
  * The command of Proportion's Automatic: ticked, `elision-proportion` back
- * to its initial `auto`; unticked, the shown proportion stated.
+ * to its initial `auto`; unticked, the proportion the drawing takes stated
+ * exactly (never the field's rounded text), so no derived gap moves.
  */
 export function proportionAutomaticCommand(section: RootElisions): StyleCommand | null {
   const shown = section.proportional;
   if (shown === null) return null;
   return rootStyle(section, {
-    "elision-proportion": shown.automatic ? Number(shown.proportion) : null,
+    "elision-proportion": shown.automatic ? shown.value : null,
   });
 }
 
@@ -952,7 +979,7 @@ function groupConcerned(manifest: Manifest, subject: Subject): string | null {
 }
 
 /**
- * The member `T` an Add of the group's block lies on (section 5.6): the
+ * The member `T` an Add of the group's block lies on: the
  * subject's timeline where it lies in `G`, else the member whose card holds
  * the selection, else `G`'s first member in display order.
  */
@@ -1167,7 +1194,7 @@ export function elisionFormOf(
   }
   const of = rootOf(block, subjects, drawing);
   const exposure = of === null ? undefined : exposureAt(drawing, of.key);
-  // A gap or seam the arrangement cuts has a default elision's address, but no form: it is read-only.
+  // A gap the arrangement cuts has a default elision's address, but no form: it is read-only.
   const [gap] =
     exposure === undefined
       ? []
