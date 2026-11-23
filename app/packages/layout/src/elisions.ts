@@ -278,11 +278,24 @@ function axisOf(
     return before;
   };
   const shrinkBefore = (value: Real): number => gapsBefore(value) - seamsBefore(value, "facing");
+  // `D` again, from the left, leaving out a seam at `value` that a position there lies left of.
+  const endAt = (value: Real): number => {
+    let shrink = 0;
+    for (const { gap, seam } of events) {
+      if (seam !== undefined) {
+        if (seam.inclusive || compareReal(seam.at, value) !== 0) shrink = shrink - seam.width;
+      } else if (gap !== undefined) {
+        shrink = shrink + (gap.n - gap.g);
+      }
+    }
+    return L - shrink;
+  };
   return {
     gaps,
     seams: seams.map((seam) => seam.at),
     runs,
     total: D,
+    endAt,
     relative: (value) => L * u(value) - shrinkBefore(value),
     relativeAt: (value, side) => L * u(value) - (gapsBefore(value) - seamsBefore(value, side)),
     startAt: (value) => L * u(value) - shrinkBefore(value),
@@ -361,11 +374,14 @@ export function placedAxis(
   const inclusiveAt = (value: Real) =>
     seams.some((seam) => seam.inclusive && compareReal(seam.at, value) === 0);
   const relative = (value: Real) => at(value, inclusiveAt(value));
+  // How far short of `L` a position lies: the axis's `D` there.
+  const shortOfL = (value: Real) => L - relative(value);
   return {
     gaps: placed,
     seams: cuts.flatMap(([a, b]) => (compareReal(a, b) === 0 ? [a] : [])),
     runs,
-    total: L - relative(lambda),
+    total: shortOfL(lambda),
+    endAt: (value) => L - shortOfL(value),
     relative,
     relativeAt: (value, side) => at(value, side === "after"),
     startAt: (value) =>

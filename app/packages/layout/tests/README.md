@@ -1351,6 +1351,31 @@ the chevrons of the ancestor line running on to the right, but in
    card's top to the wedge's tip, `51.20703125 + 1.5 = 52.70703125`, and
    from its base, `65.70703125`, to the card's bottom; `crossedLines` is
    its key alone.
+13. **A root of unknown length ending at the end seam** (section 3.2: a
+   position at a seam lies on the side the section placing it states;
+   section 8.8, step 2: at either seam, the side of `M`'s span). In
+   `group_parent_both` with `piece`'s length set to null by core's `set`,
+   `piece`'s reach is `middle`'s end, 12, so its open end lies exactly at
+   the seam at the end of `middle`'s span: on the span's side, under the
+   frame, and nothing of the root lies right of that seam. `ts = −4`, `λ =
+   8`, `te = −4 + 12 = 8`: `ue = 1`, `xe = s0 + 400`, `LA = 600`. So the
+   card is `piece` drawn alone (core's `remove` of `group_1` and
+   `recording`, at `L = 600`; its width `s0' + 600 + 9.5w + 8 =
+   688.83544921875`, the open end's three chevrons `9.5w = 28.5` past its
+   end, "Timelines of unknown length") moved to the card's corner and then
+   through the start seam alone: every abscissa at or right of `middle`'s
+   start (`260.33544921875` there) `OL = 103.70361328125` further right,
+   none by `OR`, the chevrons following the open end they mark. The card
+   is `688.83544921875 + OL = 792.5390625` wide, its record otherwise point
+   2's (corner `(8, 36.20703125)`, height 63.37890625, range `[1, 14)`);
+   it ends inside the frame, so the block is the hiding layer's moved by
+   the origin `(252.33544921875, 0)`: `W = 559.70361328125 +
+   252.33544921875 = 812.0390625`. `piece`'s axes in the card: from
+   `60.33544921875` to `260.33544921875` (0 to 4, drawn end 4) and from
+   `364.0390625` to `764.0390625` (4 on, its end not known, drawn end 12),
+   the second run ending where `middle`'s line ends, at the members' drawn
+   end, not `OR = 40` further right; `piece`'s line element from
+   `60.33544921875` to `764.0390625 + 4w = 776.0390625`.
 
 ## Elisions (`elisions.test.ts`)
 

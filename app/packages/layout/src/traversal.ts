@@ -247,6 +247,12 @@ export interface CardAxis {
   /** The sum of every shrink, a seam's its negated width: `D` at the root's end, `DG` of a frame. */
   readonly total: number;
   /**
+   * `L − D` at the open end of a root of unknown length lying at `value` (section 3.2): `D` the
+   * sum of every shrink, summed from the left, a seam at `value` counted on the side facing the
+   * protected span, so the end lies left of the seam at the span's end.
+   */
+  endAt(value: Real): number;
+  /**
    * `L × u − D` of a position in no gap; a position at a seam lies on the side of the seam that
    * faces the protected span.
    */

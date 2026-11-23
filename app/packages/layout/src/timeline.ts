@@ -501,7 +501,8 @@ function linePosition(
   // the drawing's top.
   const near = top + (P + scope.V);
   const far = top + (Hc - P - scope.V);
-  // On an elided axis a position lies `D` further left, an open root end `D` short of `x0 + L`.
+  // On an elided axis a position lies `D` further left, an open root end `D` short of `x0 + L`,
+  // a seam at it counted on the side facing the protected span (section 3.2).
   const axis: Pick<LinePosition, "x" | "xAfter" | "xEnd" | "gap" | "cuts"> =
     elided === undefined
       ? {
@@ -518,7 +519,7 @@ function linePosition(
             (compareReal(value, line.start) === 0 ? elided.startAt(value) : elided.relative(value)),
           xAfter: (value) => x0 + elided.startAt(value),
           xEnd: (entry) =>
-            x0 + (entry.rootEnd ? scope.L - elided.total : elided.relative(entry.end)),
+            x0 + (entry.rootEnd ? elided.endAt(entry.end) : elided.relative(entry.end)),
           gap: (value) => {
             const gap = elided.gapOf(value);
             return gap === undefined ? undefined : [x0 + gap.left, x0 + gap.right];

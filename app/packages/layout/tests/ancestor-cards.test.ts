@@ -260,6 +260,91 @@ describe("the ancestor card of group_parent_both", () => {
   });
 });
 
+describe("the ancestor card of a root of unknown length ending at the end seam", () => {
+  const unknown = set("piece", { length: null });
+  const manifest = edit("groups/group_parent_both", unknown);
+  const drawing = draw(
+    manifest,
+    DEFAULT_PLACEMENT,
+    [DEFAULT_LAYER, manifestLayer(manifest)],
+    metrics,
+  );
+  const card = cardOf(drawing, "piece");
+
+  it("is piece drawn alone at its reach, moved through the start seam alone", () => {
+    const reference = edit("groups/group_parent_both", unknown, {
+      type: "remove",
+      targets: ["group_1", "recording"].map((id) => ({ block: BLOCK, id })),
+    });
+    const alone = draw(
+      reference,
+      { ...DEFAULT_PLACEMENT, length: 600 },
+      [DEFAULT_LAYER, manifestLayer(reference)],
+      metrics,
+    );
+    const [, rootCard] = alone.boxes;
+    if (rootCard === undefined) throw new Error("the reference draws no card");
+    expect(rootCard.width).toBe(688.83544921875);
+    expect([card.x, card.y, card.width, card.height, card.range]).toEqual([
+      8,
+      36.20703125,
+      792.5390625,
+      63.37890625,
+      { start: 1, end: 14 },
+    ]);
+    // `OL` at `middle`'s start, nothing by `OR`: the open end lies at the end seam, on the span's
+    // side, its chevrons with it (README).
+    const moved = drawnBy(alone, rootCard).map((item) =>
+      seamed(
+        item,
+        card.x - rootCard.x,
+        card.y - rootCard.y,
+        [260.33544921875, 660.33544921875],
+        [103.70361328125, 0],
+      ),
+    );
+    const [rectangle, ...rest] = drawnBy(drawing, card);
+    expect(rectangle).toEqual({ ...moved[0], type: "ancestor_card" });
+    expect(rest).toEqual(moved.slice(1));
+    expect(span(lineOf(rest, "timeline", at("piece")))).toEqual([
+      85.18359375, 60.33544921875, 776.0390625,
+    ]);
+  });
+
+  it("ends inside the frame: the block is the hiding layer's moved by the origin", () => {
+    const without = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)],
+      metrics,
+    );
+    expect(drawing.origin).toEqual({ x: 252.33544921875, y: 0 });
+    expect([without.width, drawing.width, drawing.height]).toEqual([
+      559.70361328125,
+      812.0390625,
+      without.height,
+    ]);
+  });
+
+  it("ends piece's last run at the members' drawn end, not across the end seam", () => {
+    const own = drawing.axes.filter((axis) => axis.ancestor !== undefined);
+    expect(
+      own.map((axis) => [
+        axis.address.id,
+        axis.xStart,
+        axis.xEnd,
+        String(axis.start),
+        String(axis.end),
+        String(axis.drawnEnd),
+      ]),
+    ).toEqual([
+      ["piece", 60.33544921875, 260.33544921875, "0", "4", "4"],
+      ["piece", 364.0390625, 764.0390625, "4", "null", "12"],
+      ["middle", 364.0390625, 764.0390625, "0", "8", "8"],
+    ]);
+  });
+});
+
 describe("the ancestor card of group_parent_right", () => {
   it("runs on to the right only", () => {
     const drawing = shown("group_parent_right");

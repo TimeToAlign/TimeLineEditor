@@ -126,9 +126,10 @@ export function axesOf(
   // A run's start and end: at a seam on its right and its left side.
   const runX = (value: Real, side: "before" | "after") =>
     elided === undefined ? L * proportion(value, lambda) : elided.relativeAt(value, side);
-  // `Xe` of a span's end: `x0 + L` at the root's open end, less every shrink on an elided axis.
+  // `Xe` of a span's end: `x0 + L` at the root's open end, less on an elided axis the shrinks
+  // before it, a seam there counted on the side facing the protected span (section 3.2).
   const endX = (span: Pick<Span, "rootEnd" | "end">) =>
-    x0 + (span.rootEnd ? (elided === undefined ? L : L - elided.total) : relativeX(span.end));
+    x0 + (span.rootEnd ? (elided === undefined ? L : elided.endAt(span.end)) : relativeX(span.end));
   const spans = spansOf(manifest, root, lambda);
   const rootOpen = spans.get(root.id)?.open === true;
   // The timeline each map spans, by the map's ID, and the line each timeline's maps are drawn
