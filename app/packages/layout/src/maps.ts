@@ -131,7 +131,7 @@ export function conversionMapsBand(members: readonly MapMember[]): PreparedBand 
  * Conversion maps): the map in slot `j` centred `c + w / 2 + j × (g + d) −
  * d / 2` out from the line, summed in that order, `w` the slots' largest
  * stroke width, spanning its own timeline from `Xs` to `Xe`. A map whose
- * start lies in a strip starts at the strip's right edge, one whose end does
+ * start lies in a gap starts at the gap's right edge, one whose end does
  * ends at its left edge, and one whose start and end so meet or cross is not
  * drawn (section 6.6, Elisions).
  */

@@ -1072,7 +1072,7 @@ hiding layer pin (`group__group_parent_both__ancestor-cards-hidden` and
 the others, byte for byte); the defaults show the cards, and the layer
 `HIDDEN_ANCESTOR_CARDS`, `{rules: [{select: {element: ancestor_card}, set:
 {display: none}}]}`, hides them. A card whose default proportion is below
-1 draws strips (section 8.9; "Elisions" below derives them); where its
+1 draws gaps (section 8.9; "Elisions" below derives them); where its
 whole geometry is the subject, it is drawn with the layer `FULL_CARDS`,
 `{rules: [{select: {element: elision}, set: {display: none}}]}`, which
 draws every ancestor card whole (section 8.9, Elided and full), as
@@ -1147,7 +1147,7 @@ the chevrons of the ancestor line running on to the right, but in
    row in `middle`'s card, below `middle`'s line (section 8.3; the
    quantities of "Ancestor lines"), `y = 85.18359375` in the block, so its
    top is `85.18359375 − 48.9765625 = 36.20703125`. In the block: the
-   card's record at `x = 8`, `y = 36.20703125`, `869.33544921875 ×
+   card's record at `x = 8`, `y = 36.20703125`, `1013.0390625 ×
    63.37890625`, key
    `{item: group_1, member: piece}`, address `{id: piece, part: [card]}`,
    holder null, `ancestor {group: group_1, member: middle}`, no `item` or

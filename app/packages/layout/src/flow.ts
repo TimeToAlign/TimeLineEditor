@@ -37,7 +37,7 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * with its manifestation. A flow marker runs from the flow row to
  * `at.flowMarkerEnd`, its label starting at `x + 3` in its tier, tier 1
  * touching the flow row on the line's side of it. A flow marker whose
- * coordinate lies in a strip is not drawn, nor is its label; nor is a jump
+ * coordinate lies in a gap is not drawn, nor is its label; nor is a jump
  * whose from, to or the midpoint of the two does, with its label (section
  * 6.6, Elisions).
  */

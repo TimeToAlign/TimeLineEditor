@@ -46,7 +46,7 @@ export interface LineGeometry {
  * stops (short of a diamond), its start circle or two left chevrons, and its
  * end mark: the arrowhead, `3w` long and `3w` wide; the circle; the diamond,
  * `1.2w` high; three chevrons where its length is not known, two where it
- * runs on; no mark at an end that lies in a strip (section 6.6, Elisions). A
+ * runs on; no mark at an end that lies in a gap (section 6.6, Elisions). A
  * chevron's arms lie `w`, `2.5w` and `4w` from the end, each tip `1.5w`
  * further, the inner one first.
  */

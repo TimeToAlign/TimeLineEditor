@@ -476,7 +476,7 @@ layer); `group_elided_inside`, `group_grandchild`,
 `group_grandchild_parent_on_top` and `group_parents_mixed` with the layer
 `{element: elision}` `display: none`, which draws every ancestor card whole
 (`group__<file>__full`; the last three equal, byte for byte, their
-manifests' drawings before ancestor cards drew strips); and
+manifests' drawings before ancestor cards drew gaps); and
 `bundle_elided_layerit` drawn for the view `{width: 1024, height: 640}`
 (`bundle__bundle_elided_layerit__view-1024x640`, the one case whose
 `inputs.json` states a `view`: a case states the placement's `view` only

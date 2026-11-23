@@ -113,15 +113,15 @@ export interface RectElement extends Addressed {
 
 /**
  * How a line starts: with its circle, running on in a double chevron (section 8.3), or `none`
- * where its start lies in a strip and it starts at the strip's right edge (section 6.6, Elisions).
+ * where its start lies in a gap and it starts at the gap's right edge (section 6.6, Elisions).
  */
 export type LineStart = "circle" | "chevrons" | "none";
 
 /**
  * How a line ends (sections 6.6 and 8.3): `unknown`, three chevrons, where its
  * own length is not known; `chevrons`, a double chevron, where an ancestor
- * line runs on; `none`, without a mark, where its end lies in a strip and it
- * ends at the strip's left edge (section 6.6, Elisions).
+ * line runs on; `none`, without a mark, where its end lies in a gap and it
+ * ends at the gap's left edge (section 6.6, Elisions).
  */
 export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "unknown" | "chevrons" | "none";
 
