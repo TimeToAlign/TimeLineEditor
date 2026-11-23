@@ -55,6 +55,12 @@ export interface LinePosition {
    */
   readonly x: (value: Real) => number;
   /**
+   * `x` of a position as the start of what follows it: at a seam of a root drawn once (section
+   * 8.8, Drawn once), on the run right of it, where a region starts or a jump lands; `x` elsewhere.
+   * `x` itself reads the line's own start so, and so its named timestamps there.
+   */
+  readonly xAfter: (value: Real) => number;
+  /**
    * `Xe`, `x` of a timeline's end: `x0 + L` for an end that is the root's open end (section 3.4),
    * `x0 + (L − D)` on an elided axis, `D` every strip's shrink.
    */

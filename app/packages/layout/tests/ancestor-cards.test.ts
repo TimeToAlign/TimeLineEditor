@@ -143,7 +143,7 @@ describe("the ancestor card of group_parent_both", () => {
       range: { start: 1, end: 14 },
       displayed: true,
       contentCount: 2,
-      ancestor: { group: "group_1", member: "middle" },
+      ancestor: { group: "group_1", member: "middle", groups: ["group_1"] },
     });
     const own = drawnBy(drawing, card);
     expect(own[0]?.type).toBe("ancestor_card");
@@ -222,7 +222,11 @@ describe("the ancestor card of group_parent_right", () => {
     expect([card.x, card.y, card.width, card.height]).toEqual([
       23.6162109375, 36.20703125, 881.08740234375, 63.37890625,
     ]);
-    expect(card.ancestor).toEqual({ group: "group_1", member: "first-half" });
+    expect(card.ancestor).toEqual({
+      group: "group_1",
+      member: "first-half",
+      groups: ["group_1"],
+    });
     expect(span(lineOf(drawnBy(drawing, card), "timeline", at("piece")))[1]).toBe(
       79.70361328125 + 8,
     );
@@ -540,7 +544,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         keys[0],
         { id: "score", part: ["card"] },
         null,
-        { group: "group_1", member: "exposition" },
+        { group: "group_1", member: "exposition", groups: ["group_1"] },
         674.6666666666667,
         28.8046875,
         1243.3592936197915,
@@ -550,7 +554,7 @@ describe("the ancestor cards of bundle_shared_parent", () => {
         keys[1],
         { id: "score", part: ["card"] },
         null,
-        { group: "group_2", member: "recapitulation" },
+        { group: "group_2", member: "recapitulation", groups: ["group_2"] },
         8,
         254.9921875,
         1243.3592936197917,

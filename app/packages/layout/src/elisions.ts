@@ -249,8 +249,13 @@ export interface CardAxis {
   readonly runs: readonly Run[];
   /** The sum of every shrink: `D` at the root's end, `DG` of a frame. */
   readonly total: number;
-  /** `L × u − D` of a position in no gap. */
+  /** `L × u − D` of a position in no gap; at a seam, the end of the run left of it. */
   relative(value: Real): number;
+  /**
+   * The distance of a position as the start of what follows it: at a seam (section 8.8, Drawn
+   * once) the start of the run right of it, elsewhere `relative`.
+   */
+  after(value: Real): number;
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
   /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
@@ -318,9 +323,77 @@ function axisOf(
     runs,
     total: D,
     relative: (value) => L * u(value) - shrinkBefore(value),
+    after: (value) => L * u(value) - shrinkBefore(value),
     gapOf: (value) => gaps.find((gap) => comparing.inside(gap, value)),
     shrinkBefore,
     crosses: (gap, start, end) => comparing.holds(gap, start, end),
+  };
+}
+
+/** A gap whose edges its caller places: its stretch, its widths and its edges' distances from `x0`. */
+export interface PlacedGap {
+  readonly source: GapSource;
+  readonly a: Real;
+  readonly b: Real;
+  readonly n: number;
+  readonly g: number;
+  readonly left: number;
+  readonly right: number;
+  readonly entry: Entry | undefined;
+}
+
+/**
+ * The axis of a card whose runs each have their own scale (section 8.8, Drawn
+ * once): `at(value, after)` the distance of a position from `x0`, on the run
+ * right of a seam where `after`; `gaps` from the left, each with its edges.
+ * A **seam**, a gap whose start is its end, leaves out nothing: no position
+ * lies in it, and a row crosses it when it starts before it and ends after
+ * it, compared exactly. Each run between two gaps is linear, and `runs`
+ * states it as `L × u − D` at its two ends; `shrinkBefore` is `L × u` less
+ * the distance, so `relative` keeps its meaning `L × u − D`.
+ */
+export function placedAxis(
+  scope: Pick<Scope, "L" | "u" | "lambda" | "rootEntry">,
+  gaps: readonly PlacedGap[],
+  at: (value: Real, after: boolean) => number,
+): CardAxis {
+  const { L, u, lambda } = scope;
+  const start = zero(scope.rootEntry.manifest.number_type);
+  const seam = (gap: Pick<Gap, "a" | "b">) => compareReal(gap.a, gap.b) === 0;
+  const placed: Gap[] = gaps.map((gap) => ({
+    ...gap,
+    ua: u(gap.a),
+    ub: u(gap.b),
+    shrink: gap.n - gap.g,
+  }));
+  const runs: Run[] = [];
+  const run = (from: Real | null, to: Real) => {
+    const u0 = from === null ? 0 : u(from);
+    const u1 = u(to);
+    const x0 = from === null ? at(start, false) : at(from, true);
+    const x1 = at(to, false);
+    const scale = u1 === u0 ? L : (x1 - x0) / (u1 - u0);
+    runs.push({ u0, u1, L: scale, D: scale * u0 - x0 });
+  };
+  let from: Real | null = null;
+  for (const gap of placed) {
+    run(from, gap.a);
+    from = gap.b;
+  }
+  run(from, lambda);
+  const relative = (value: Real) => at(value, false);
+  return {
+    gaps: placed,
+    runs,
+    total: L - relative(lambda),
+    relative,
+    after: (value) => at(value, true),
+    gapOf: (value) => placed.find((gap) => !seam(gap) && EXACT.inside(gap, value)),
+    shrinkBefore: (value) => L * u(value) - relative(value),
+    crosses: (gap, start, end) =>
+      seam(gap)
+        ? compareReal(start, gap.a) < 0 && (end === null || compareReal(gap.a, end) < 0)
+        : EXACT.holds(gap, start, end),
   };
 }
 
@@ -608,12 +681,12 @@ function derivedPieces(
 }
 
 /** An integer as a value of `numberType`: the integer, the double equal to it, or `[n, 1]`. */
-function wholeUnit(value: bigint, numberType: NumberType): Real {
+export function wholeUnit(value: bigint, numberType: NumberType): Real {
   return numberType === "float" ? Number(value) : Rational.fromParts(value, 1n);
 }
 
 /** `⌊value⌋` or `⌈value⌉` of a value of the tower, as an integer. */
-function rounded(value: Real, up: boolean): bigint {
+export function rounded(value: Real, up: boolean): bigint {
   if (typeof value === "number") return BigInt(up ? Math.ceil(value) : Math.floor(value));
   const { numerator, denominator } = value;
   const quotient = numerator / denominator;
@@ -793,6 +866,37 @@ function derivedGaps(
   });
 }
 
+/**
+ * What a gap or seam between two anchors of the root of `scope` drawn once
+ * behind a row draws (section 8.8, Drawn once): an elision the card derives on
+ * its root, `{id: R, part: ["elision"]}`, eliding `start` to `end`, its label
+ * stack centred at the proportion `um`. A gap draws by the card's
+ * `elision-display` (its style `style`), as every derived gap; a seam, which
+ * leaves out nothing, draws its continuations on the rows crossing it whatever
+ * its display lists, and no ellipsis and no label, while it is displayed.
+ */
+export function arrangementSource(
+  scope: Scope,
+  style: Style,
+  start: Real,
+  end: Real,
+  um: number,
+): GapSource {
+  const { rootEntry } = scope;
+  const timeline = rootEntry.manifest;
+  const seam = compareReal(start, end) === 0;
+  const source = sourceOf(
+    scope,
+    timeline,
+    partAddress(idAddress(timeline.id), "elision"),
+    rootEntry,
+    seam ? [] : derivedDisplay(style),
+    { name: nameOf(timeline), coordinate: stretchText(timeline, start, end) },
+    { origin: "arrangement", start, end, um, framed: false },
+  );
+  return seam ? { ...source, continuation: shown(source.style) } : source;
+}
+
 /** What the proportion of an ancestor card reads (section 8.9), in its frame's item coordinates. */
 export interface ProportionInputs {
   /** The view's width `VW` and height `VH`. */
@@ -852,7 +956,11 @@ export interface FrameElisions {
   readonly runs: readonly Run[];
   /** `DG`, the sum of every shrink. */
   readonly total: number;
-  /** The frame's axis read by the member drawn in `scope`. */
+  /**
+   * The frame's axis read by the member drawn in `scope`, each gap over its stretch on the
+   * member's axis at its exact proportions (`Gap.exact`): exact on an exact axis, `p × λ` in
+   * binary64 on a float one.
+   */
   viewOf(scope: Scope): CardAxis;
   /**
    * The elided coordinates of each gap at its exact proportions (`Gap.exact`) on every timeline the
@@ -1023,13 +1131,20 @@ export function frameElisions(
   const frame = axisOf(L, (value) => value as number, placing, byProportion);
   const viewOf = (scope: Scope): CardAxis => {
     const { u, lambda, rootEntry } = scope;
+    // A gap's stretch on the member's axis at its exact proportions: exact on an exact axis, `p ×
+    // λ` in binary64 on a float one, by the member's number type, never by the kind of `λ`.
+    const exactAxis = rootEntry.manifest.number_type !== "float";
+    const at = (P: Rational): Real =>
+      exactAxis ? P.multiply(toRational(lambda)) : atProportion(toFloat(P), lambda);
     const viewed = frame.gaps.map((gap): Placing => {
       const placed = placing.find((each) => each.source === gap.source);
       const labelled = placed?.owner === scope ? placed.entry : undefined;
+      if (gap.exact === undefined) throw new Error("a frame's gap holds its exact proportions");
+      const [P, Q] = gap.exact;
       return {
         source: gap.source,
-        a: atProportion(gap.ua, lambda),
-        b: atProportion(gap.ub, lambda),
+        a: at(P),
+        b: at(Q),
         ua: gap.ua,
         ub: gap.ub,
         n: gap.n,

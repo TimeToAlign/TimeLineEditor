@@ -99,7 +99,8 @@ function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<
  *
  * On the elided axis `elided` of a card drawing gaps (sections 3.2 and
  * 8.9), a line is drawn in full runs between its gaps, and has one axis
- * per run, each linear, from the run's start to its end at their elided x,
+ * per run, each linear, from the run's start to its end at their elided x
+ * (a run starting at a seam at the start of the run right of it),
  * with the coordinates there, every one with the timeline's address (`run`
  * telling them apart from the second on) and the named timestamps whose
  * cross-section lines lie on it.
@@ -118,6 +119,9 @@ export function axesOf(
   const lambda = lengthValue(root) ?? reachOf(root, manifest);
   const relativeX = (value: Real) =>
     elided === undefined ? L * proportion(value, lambda) : elided.relative(value);
+  // A run starting at a seam starts on the run right of it (section 8.8, Drawn once).
+  const afterX = (value: Real) =>
+    elided === undefined ? L * proportion(value, lambda) : elided.after(value);
   // `Xe` of a span's end: `x0 + L` at the root's open end, less every shrink on an elided axis.
   const endX = (span: Pick<Span, "rootEnd" | "end">) =>
     x0 + (span.rootEnd ? (elided === undefined ? L : L - elided.total) : relativeX(span.end));
@@ -197,7 +201,7 @@ export function axesOf(
       const opening = compareReal(from, span.start) === 0;
       const closing = compareReal(to, span.end) === 0;
       const own = (value: Real) => add(value, negate(span.start));
-      const xStart = opening ? element.xs : x0 + relativeX(from);
+      const xStart = opening ? element.xs : x0 + afterX(from);
       const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
       return {
         ...whole,
@@ -251,7 +255,7 @@ export function axesOf(
     return runs.map(([from, to], run): DrawnAxis => {
       const opening = compareReal(from, 0) === 0;
       const closing = compareReal(to, reach) === 0;
-      const xStart = opening ? whole.xStart : x0 + relativeX(from);
+      const xStart = opening ? whole.xStart : x0 + afterX(from);
       const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
       return {
         ...whole,

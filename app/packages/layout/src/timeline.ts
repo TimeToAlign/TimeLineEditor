@@ -14,6 +14,7 @@
  */
 
 import { bandOrderOf, FACETS, type Facet, LINE } from "@timetoalign/tilie-core";
+import { compareReal } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
   bandStart,
@@ -501,16 +502,21 @@ function linePosition(
   const near = top + (P + scope.V);
   const far = top + (Hc - P - scope.V);
   // On an elided axis a position lies `D` further left, an open root end `D` short of `x0 + L`.
-  const axis: Pick<LinePosition, "x" | "xEnd" | "gap" | "cuts"> =
+  const axis: Pick<LinePosition, "x" | "xAfter" | "xEnd" | "gap" | "cuts"> =
     elided === undefined
       ? {
           x: (value) => x0 + scope.relativeX(value),
+          xAfter: (value) => x0 + scope.relativeX(value),
           xEnd: (entry) => x0 + scope.relativeEnd(entry),
           gap: () => undefined,
           cuts: () => [],
         }
       : {
-          x: (value) => x0 + elided.relative(value),
+          // What lies at the line's own start lies on the run right of a seam there (section 8.8).
+          x: (value) =>
+            x0 +
+            (compareReal(value, line.start) === 0 ? elided.after(value) : elided.relative(value)),
+          xAfter: (value) => x0 + elided.after(value),
           xEnd: (entry) =>
             x0 + (entry.rootEnd ? scope.L - elided.total : elided.relative(entry.end)),
           gap: (value) => {

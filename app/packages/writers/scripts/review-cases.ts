@@ -17,7 +17,12 @@
  * their name and coordinate labels, and the same card in the mode `custom`,
  * which draws it whole while no card elision is stored; a frame whose group
  * elisions its mode `full` leaves out; and a bundle whose second frame, at
- * the scale 1.5, draws the gap of the elision on its shared member. Each is also a drawing fixture of the schema
+ * the scale 1.5, draws the gap of the elision on its shared member; and
+ * five arranged bundles: one under another in a stored order, and side by
+ * side with every root that groups hang on drawn once behind the row, the
+ * bundle "Arranged" in a stored order the row repairs, the LayerIt suite, a
+ * bundle with a root member, and one whose groups overlap on their root, which
+ * is refused and drawn one under another. Each is also a drawing fixture of the schema
  * package (`fixtures/<version>/drawings/`).
  */
 
@@ -257,16 +262,38 @@ export function reviewCases(): ReviewCase[] {
     "bundles/bundle_groupstamp_shared_member",
     at({ places: { g2: { scale: 1.5 } } }),
   );
+  const stored = ["page", "group_3", "group_1", "group_2"];
+  add(
+    "bundle__bundle_arranged_roots__vertical",
+    "bundles/bundle_arranged_roots",
+    at({ arrangement: { direction: "vertical", order: stored } }),
+  );
+  add(
+    "bundle__bundle_arranged_roots__horizontal",
+    "bundles/bundle_arranged_roots",
+    at({ arrangement: { direction: "horizontal", order: stored } }),
+  );
+  for (const stem of [
+    "bundle_elided_layerit",
+    "bundle_shared_parent",
+    "bundle_arranged_conflict",
+  ]) {
+    add(
+      `bundle__${stem}__horizontal`,
+      `bundles/${stem}`,
+      at({ arrangement: { direction: "horizontal", order: [] } }),
+    );
+  }
   return cases;
 }
 
 /**
  * The text of a case's `inputs.json`, in pretty JSON: everything `draw` and
  * the writers need besides the files, the manifest named by its file; the
- * placement's `view` only where the case states one.
+ * placement's `view` and `arrangement` only where the case states them.
  */
 export function inputsText(item: ReviewCase): string {
-  const { length, spacing, width, height, places, view } = item.placement;
+  const { length, spacing, width, height, places, view, arrangement } = item.placement;
   return dumps(
     {
       manifest: `${item.manifest}.yaml`,
@@ -277,6 +304,7 @@ export function inputsText(item: ReviewCase): string {
         height,
         places,
         ...(view === undefined ? {} : { view }),
+        ...(arrangement === undefined || arrangement === null ? {} : { arrangement }),
       },
       scale: item.scale,
       layers: item.settings,

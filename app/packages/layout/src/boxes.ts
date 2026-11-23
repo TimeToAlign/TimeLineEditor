@@ -89,9 +89,15 @@ export interface DrawnBox {
   /**
    * An ancestor card (section 8.8), a card the block holds behind the frame of the group `group`,
    * aligned to its member `member`; it has no place, no `item` and no `card` record, and only a
-   * displayed one is recorded.
+   * displayed one is recorded. `groups` lists every group whose frame it lies behind: `[group]`,
+   * or for a root drawn once behind a row every group hanging on it, in the row's order, `group`
+   * the first (section 8.8, Drawn once).
    */
-  readonly ancestor?: { readonly group: string; readonly member: string };
+  readonly ancestor?: {
+    readonly group: string;
+    readonly member: string;
+    readonly groups: readonly string[];
+  };
   /** A band: its timeline, facet, level, the elements it holds and its timeline's line. */
   readonly band?: {
     readonly timeline: string;
@@ -287,7 +293,7 @@ export interface ExposedGap {
   /** Its elision's address: `{id: E}` for a stored elision, `{id: T, part: ["elision"]}` for a derived one. */
   readonly address: ElementAddress;
   /** A stored elision's gap, a derived one's, or a group elision's carried into an ancestor card. */
-  readonly origin: "stored" | "default" | "carried";
+  readonly origin: "stored" | "default" | "carried" | "arrangement";
   /** The timeline the elision lies on, and the elided coordinates of the gap on its own axis. */
   readonly timeline: string;
   readonly start: Real;

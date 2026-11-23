@@ -89,7 +89,7 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
           type: "region",
           address: region.address,
           style: region.style,
-          x1: at.x(region.start),
+          x1: at.xAfter(region.start),
           x2: at.x(region.end),
           xm: at.x(middle),
           yb: at.yAt(side, arms(index)),

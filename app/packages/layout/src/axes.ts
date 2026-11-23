@@ -39,8 +39,9 @@ export interface LineAxis {
   readonly length: Real | null;
   /**
    * The coordinates from `xStart` to `xEnd` as drawn: `length` where the end
-   * is known, else up to the reach's (section 3.2), on the scale every line
-   * of its member drawing shares.
+   * is known, else up to the reach's (section 3.2), on the scale of its run:
+   * one scale per run of an elided card, a root drawn once behind a row
+   * taking each anchor's frame's (section 8.8, Drawn once).
    */
   readonly drawnLength: Real;
   readonly numberType: NumberType;

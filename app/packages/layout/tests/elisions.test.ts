@@ -615,3 +615,22 @@ describe("a member's start and end", () => {
     expect(parts.filter((part) => part === "start" || part === "end")).toEqual([]);
   });
 });
+
+describe("a member reads its frame's gaps at their exact proportions", () => {
+  it("on a fraction axis, over 14 to 18 of voice exactly", () => {
+    const drawing = drawn("groups/group_elided_members");
+    const runs = (id: string) =>
+      drawing.axes
+        .filter((axis) => axis.address.id === id && axis.ancestor === undefined)
+        .map((axis) => [String(axis.start), String(axis.end)]);
+    expect(runs("voice")).toEqual([
+      ["0", "3"],
+      ["12", "14"],
+      ["18", "24"],
+    ]);
+    expect(runs("phrase")).toEqual([
+      ["0", "2"],
+      ["6", "8"],
+    ]);
+  });
+});
