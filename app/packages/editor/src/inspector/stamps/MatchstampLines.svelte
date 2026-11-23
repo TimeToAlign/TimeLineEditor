@@ -14,7 +14,7 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { AnchorDisplay, TimestampDisplay } from "@timetoalign/tilie-core";
-import { DEFAULTS } from "@timetoalign/timetoshare";
+import { DEFAULTS, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 import type { AnchorLine, StampLine, TimestampLine } from "../matchstampLines.ts";
 import type { ShownStamp } from "../matchstamps.ts";
 import { anchorDisplayCommand } from "../matchstamps.ts";
@@ -23,9 +23,8 @@ import {
   GROUPSTAMP_WORDS,
   groupstampCommand,
   groupstampHint,
-  timestampDisplayCommand,
 } from "../timestamp.ts";
-import { dispatchMatchStamp } from "./commands.ts";
+import { dispatchMatchStamp, displayCommand } from "./commands.ts";
 import DisplayToggles from "./DisplayToggles.svelte";
 import type { StampDrafts } from "./drafts.svelte.ts";
 
@@ -66,7 +65,7 @@ function toggleTimestamp(line: TimestampLine, word: TimestampDisplay): void {
   const { timestamp } = line;
   if (timestamp === null) return;
   const target = { block: stamp.block, id: timestamp.id };
-  const command = timestampDisplayCommand(target, timestamp.display, word);
+  const command = displayCommand(target, TIMESTAMP_DISPLAY, timestamp.display, word);
   drafts.send(line.key, () => dispatchMatchStamp(live, stamp.block, command));
 }
 

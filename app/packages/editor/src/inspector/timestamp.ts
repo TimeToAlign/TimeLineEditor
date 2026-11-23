@@ -64,6 +64,7 @@ import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetosh
 import type { Format, Text } from "./formats.svelte.ts";
 import { writeText } from "./formats.svelte.ts";
 import type { Result } from "./problems.ts";
+import { displayCommand as displayToggle } from "./stamps/commands.ts";
 
 /**
  * What the Copy buttons of one value write, `null` where there is no such
@@ -493,25 +494,9 @@ export function displayOf(pin: Pin): readonly TimestampDisplay[] {
   return pin.named?.display ?? DEFAULTS.timestamp.display;
 }
 
-/**
- * The `set` of the `display` of the named timestamp at `target`, `shown`
- * now, with `word` toggled, in the canonical order: the one display toggle
- * of a timestamp, in the Timestamp tab and in a MatchStamp's lines.
- */
-export function timestampDisplayCommand(
-  target: Address,
-  shown: readonly TimestampDisplay[],
-  word: TimestampDisplay,
-): Command {
-  const display = shown.includes(word)
-    ? shown.filter((item) => item !== word)
-    : TIMESTAMP_DISPLAY.filter((item) => item === word || shown.includes(item));
-  return { type: "set", changes: [{ target, values: { display } }] };
-}
-
 /** The `set` of the named timestamp's `display` with `word` toggled, in the canonical order. */
 export function displayCommand(pin: Pin, word: TimestampDisplay): Command {
-  return timestampDisplayCommand(named(pin), displayOf(pin), word);
+  return displayToggle(named(pin), TIMESTAMP_DISPLAY, displayOf(pin), word);
 }
 
 /**
