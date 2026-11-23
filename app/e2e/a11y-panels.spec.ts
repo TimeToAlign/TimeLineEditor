@@ -20,6 +20,7 @@ import {
   BUNDLES,
   chooseItem,
   dispatch,
+  importFixture,
   open,
   panel,
   SMALL,
@@ -287,6 +288,22 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
       "MatchClaims the belief filter leaves out",
     );
     await expect(page.getByRole("button", { name: "Save MatchClaims…" })).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+  });
+
+  test("axe-core reports no violation in the Elisions tab with its three blocks shown", async ({
+    page,
+  }) => {
+    const block = await importFixture(page, "groups/group_elided_members");
+    await select(page, [{ block, id: "elision_1" }]);
+    await openInspector(page);
+    await tab(page, "Elisions").click();
+    const shown = await panel(page, "Elisions");
+    await shown.getByTestId("elisions-expand").click();
+    for (const testid of ["elisions", "group-elisions", "elision-form"]) {
+      await expect(shown.getByTestId(`${testid}-expand`)).toHaveAttribute("aria-expanded", "true");
+    }
+    await expect(shown.getByRole("button", { name: "Delete elision" })).toBeVisible();
     expect(await violations(page)).toEqual([]);
   });
 

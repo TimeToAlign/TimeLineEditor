@@ -680,7 +680,12 @@ bundle editor session on `bare` (one rename, "Plain") and a set of `x`
 that is undone, the session's disclosure ("… (1 change)") expanded and
 the undone entry listed (`[data-undone]`). On `bundles`: the Timestamp
 tab of `bmixed0000`'s `timestamp_7`, on the group member `performance`,
-showing the group "Group" with its GroupStamp toggle. With TimeToShare's
+showing the group "Group" with its GroupStamp toggle. On
+`group_elided_members` imported: the Elisions tab with `elision_1` (a
+group elision of `excerpt`) selected, the timeline's block of `piece`
+expanded by its button, the group's block of "Theme" open by the
+selection and the elision's form shown with its Delete elision button.
+With TimeToShare's
 table fixture imported with its MatchClaim table (the user `Ana` with
 the ORCID iD the fixture's `claim_1` belief names; the table route
 replayed from the client's recording, after a belief from the same
