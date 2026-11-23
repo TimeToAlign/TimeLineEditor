@@ -1102,7 +1102,7 @@ is pressed and sends `{elision-display: none}`.
 
 **At the canvas's pane.** The automatic proportion depends on the pane
 the canvas is drawn at (drawing.md §8.9, `B`), and the editor shares the
-canvas's pane with the Properties tab through component context. Mounted
+canvas's pane with the inspector's tabs through component context. Mounted
 with a `Pane` measured at 1100 × 800 on `group_elided_inside`
 (`elision-proportion: auto` on `piece`'s ancestor card), the panel's
 Proportion shows the six-decimal text of the proportion of the drawing the
