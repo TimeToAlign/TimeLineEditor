@@ -796,6 +796,96 @@ describe("where a timeline drawn only in an ancestor card is seen", () => {
     ]);
   });
 
+  describe("a coordinate at a seam", () => {
+    /** The table S of `README.md`: `middle` m ↔ `piece` p for (0, 4), (8, 12). */
+    const S = anchorIndexOf(
+      matchClaimColumns(
+        [
+          { id: "middle", numberType: "fraction" },
+          { id: "piece", numberType: "fraction" },
+        ],
+        [
+          [0, 4],
+          [8, 12],
+        ].map(([m, p], at) => ({
+          id: `s_${at + 1}`,
+          timelines: [0, 1],
+          start: [fraction(m as number), fraction(p as number)],
+        })),
+      ),
+    );
+    const ON_MIDDLE = [32.8046875, 100.18359375];
+    const ON_CARD = [36.20703125, 99.5859375];
+
+    it("is numbered as README.md derives it", () => {
+      expect([...S.coordinates.timeline]).toEqual([0, 0, 1, 1]);
+      expect([...S.coordinates.position]).toEqual([0, 8, 4, 12]);
+      expect([...S.matchStamps.of]).toEqual([0, 1, 0, 1]);
+    });
+
+    it("is drawn once, on the run of the span's side, raised or not", () => {
+      const stamps = (root: string | null) =>
+        [0, 1].map((stamp) => {
+          const { lines, connectors } = shape(stampOverlay(S, matchLinesOf(drawn, S, root), stamp));
+          return { lines: lines.toSorted(([a], [b]) => (a as number) - (b as number)), connectors };
+        });
+      const expected = (on: number[]) => [
+        {
+          lines: [
+            [0, 364.0390625, ...on],
+            [2, 364.0390625, ...on],
+          ],
+          connectors: [],
+        },
+        {
+          lines: [
+            [1, 764.0390625, ...on],
+            [3, 764.0390625, ...on],
+          ],
+          connectors: [],
+        },
+      ];
+      expect(stamps(null)).toEqual(expected(ON_MIDDLE));
+      expect(stamps(raised)).toEqual(expected(ON_CARD));
+      for (const root of [null, raised]) {
+        const view = overlayOf(S, matchLinesOf(drawn, S, root), PLACED, SCREEN);
+        // One line per device pixel column of a card: `piece`'s line comes before `middle`'s.
+        expect(view.lines.map(({ coordinate, x }) => [coordinate, x])).toEqual([
+          [2, 364.0390625],
+          [3, 764.0390625],
+        ]);
+        expect(view.connectors).toEqual([]);
+      }
+    });
+
+    it("is hit where it is drawn, never at the frame's borders", () => {
+      const hits = (root: string | null) => {
+        const lines = matchLinesOf(drawn, S, root);
+        const { connectors } = overlayOf(S, lines, PLACED, SCREEN);
+        return [
+          { x: LEFT, y: 85.18359375 },
+          { x: RIGHT, y: 85.18359375 },
+          { x: 364.0390625, y: 85.18359375 },
+        ].map((point) => {
+          const hit = matchHitAt(S, lines, connectors, point, 8);
+          return hit === null
+            ? null
+            : [hit.stamp, hit.coordinate, hit.anchor, hit.distance, hit.at.x, hit.at.y, hit.at.top];
+        });
+      };
+      expect(hits(null)).toEqual([
+        null,
+        null,
+        [0, 2, null, 0, 364.0390625, 85.18359375, 32.8046875],
+      ]);
+      expect(hits(raised)).toEqual([
+        null,
+        null,
+        [0, 2, null, 0, 364.0390625, 85.18359375, 36.20703125],
+      ]);
+    });
+  });
+
   it("is seen on its ancestor line alone where every ancestor card is hidden", () => {
     const hidden = withoutAncestorCards(parent);
     const plain = drawingOf(blockIn(hidden, A), hidden.graphical, metrics);

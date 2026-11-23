@@ -51,7 +51,7 @@ import {
   lineAxes,
 } from "@timetoalign/tilie-layout";
 import { attributeText } from "@timetoalign/tilie-writers";
-import { placesAt, seenOn, timelinePin } from "./coordinates.ts";
+import { holdsAt, placesAt, seenOn, timelinePin } from "./coordinates.ts";
 import type { Point } from "./gesture.ts";
 
 /**
@@ -159,9 +159,25 @@ export interface MatchLine {
   readonly length: number;
   /** Where the timeline's zero lies on the line's axis: 0, or a segment's offset. */
   readonly offset: number;
-  /** The positions on the timeline's own axis the line draws, both included. */
+  /**
+   * The positions on the timeline's own axis the line draws, from `from` to `to`, each end
+   * included unless the line's run does not hold it: a position at a seam where the run meets
+   * another run of its line lies on one of the two alone (`holdsAt`, `docs/drawing.md` in
+   * TimeToShare, section 3.2, Seams), so a coordinate there is drawn once.
+   */
   readonly from: number;
   readonly to: number;
+  /** Whether the line draws the position `from`, and the position `to`. */
+  readonly fromHeld: boolean;
+  readonly toHeld: boolean;
+}
+
+/** Whether the line `line` draws the position `position` of its timeline's own axis. */
+function draws(line: MatchLine, position: number): boolean {
+  return (
+    (position > line.from || (position === line.from && line.fromHeld)) &&
+    (position < line.to || (position === line.to && line.toHeld))
+  );
 }
 
 /**
@@ -213,7 +229,8 @@ const linesByDrawing = new WeakMap<
  * timeline of the index before a later one on one line, the parts of one
  * line left to right. A line of its own draws its drawn span; a segment's
  * line the part of it the segment covers; a part of a line the positions
- * from its left end to its right end. On an ancestor line a coordinate's
+ * from its left end to its right end, an end at a seam its run does not
+ * hold left out (`holdsAt`). On an ancestor line a coordinate's
  * line spans the cross-section of the member's line it belongs to, which
  * reaches the ancestor line on whichever side it lies.
  */
@@ -229,12 +246,19 @@ export function matchLinesOf(
   for (const [id, timeline] of index.timelineNumbers) {
     for (const seen of seenOn(drawing, id, raised)) {
       const { key, axis, offset, length } = seen;
-      const start = toFloat(toRational(axis.start));
+      const first = toRational(axis.start);
+      const last = first.add(toRational(axis.drawnLength));
+      const start = toFloat(first);
       const drawnLength = toFloat(toRational(axis.drawnLength));
       const width = axis.xEnd - axis.xStart;
       const zero = toFloat(offset);
       const segment = crossSectionSegment(drawing, seen.section, axis.xStart);
-      const end = length === null ? Number.POSITIVE_INFINITY : zero + toFloat(length);
+      // The run's own ends, unless the timeline starts after its start or ends before its end (a
+      // segment on its segment line), exact, so that a coordinate at a seam meets them exactly.
+      const opens = first.compare(offset) >= 0;
+      const closes = length === null || last.compare(offset.add(length)) <= 0;
+      const lower = opens ? first : offset;
+      const upper = closes || length === null ? last : offset.add(length);
       const line: MatchLine = {
         key,
         card: placeKeyText(axis.card),
@@ -247,8 +271,10 @@ export function matchLinesOf(
         start,
         length: drawnLength > 0 && width > 0 ? drawnLength : 0,
         offset: zero,
-        from: Math.max(start, zero) - zero,
-        to: Math.min(start + drawnLength, end) - zero,
+        from: toFloat(lower.subtract(offset)),
+        to: toFloat(upper.subtract(offset)),
+        fromHeld: !opens || holdsAt(drawing, axis, first),
+        toHeld: !closes || holdsAt(drawing, axis, last),
       };
       if (seen.xFrom === axis.xStart && seen.xTo === axis.xEnd) {
         found.push(line);
@@ -256,7 +282,15 @@ export function matchLinesOf(
       }
       const from = Math.max(line.from, positionAt(line, seen.xFrom));
       const to = Math.min(line.to, positionAt(line, seen.xTo));
-      if (from <= to) found.push({ ...line, from, to });
+      if (from <= to) {
+        found.push({
+          ...line,
+          from,
+          to,
+          fromHeld: from === line.from ? line.fromHeld : true,
+          toHeld: to === line.to ? line.toHeld : true,
+        });
+      }
     }
   }
   found.sort(
@@ -327,7 +361,7 @@ function placesOf(
   const position = index.coordinates.position[coordinate] as number;
   const held = lines.byTimeline.get(index.coordinates.timeline[coordinate] as number) ?? [];
   return held.flatMap((line) =>
-    position >= line.from && position <= line.to ? [{ line, x: abscissa(line, position) }] : [],
+    draws(line, position) ? [{ line, x: abscissa(line, position) }] : [],
   );
 }
 
@@ -413,6 +447,10 @@ export function overlayOf(
     }
     let [c, end] = coordinatesWithin(index, line.timeline, from, to);
     while (c < end) {
+      if (!draws(line, positions[c] as number)) {
+        c += 1;
+        continue;
+      }
       const x = abscissa(line, positions[c] as number);
       const column = columnOf(x);
       if (column >= columns) break;
@@ -550,7 +588,7 @@ export function matchHitAt(
     );
     if (near < 0) continue;
     const position = index.coordinates.position[near] as number;
-    if (position < line.from || position > line.to) continue;
+    if (!draws(line, position)) continue;
     const x = abscissa(line, position);
     const distance = Math.hypot(x - point.x, dy);
     if (distance > tolerance || (best !== null && distance >= best.distance)) continue;

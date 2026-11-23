@@ -3785,6 +3785,40 @@ upper to its lower border, layout's record of that card), and its screen
 place is the point on the ancestor line. What would be wrong: `piece`
 drawn nowhere, its ancestor line not taken for a line it is seen on.
 
+**A coordinate at a seam is drawn once** (`docs/drawing.md` in
+TimeToShare, section 3.2, Seams; section 8.8, step 2): the card's runs
+meet at the seams at 4 and 12, and a position at a seam lies on one side
+of it alone, the side of `middle`'s span, so on the run from 4 to 12 (the
+place rule, "Show coordinates": `holdsAt`). A line's part ends at a
+position it draws, both ends included, except an end at a seam the run
+does not hold: the run from 0 to 4 does not draw 4, the run from 12 to 16
+does not draw 12. P has no coordinate at a seam; the table S does:
+`middle` (fraction) and `piece` (fraction), `s_1` `middle` 0 ↔ `piece`
+4, `s_2` `middle` 8 ↔ `piece` 12; by core's numbering c0 `middle` 0, c1
+`middle` 8, c2 `piece` 4, c3 `piece` 12, the anchors a0 (c0, c2), a1 (c1,
+c3), MatchStamps 0 = {c0, c2}, 1 = {c1, c3}. Each MatchStamp, hovered
+or pinned, draws each of its coordinates exactly once, its two at one
+abscissa, so neither has a connector of any length:
+
+| MatchStamp | Arranger | Card raised |
+|---|---|---|
+| 0 | c0 [0, 364.0390625, 32.8046875, 100.18359375] on `middle`'s line, c2 [2, 364.0390625, 32.8046875, 100.18359375] on the ancestor line | c0 and c2 at 364.0390625 from 36.20703125 to 99.5859375, on the card's row and its run from 4 to 12 |
+| 1 | c1 and c3 at 764.0390625 from 32.8046875 to 100.18359375 | c1 and c3 at 764.0390625 from 36.20703125 to 99.5859375 |
+
+The whole view (1000 × 600 at (0, 0), as below) draws c2 at 364.0390625
+and c3 at 764.0390625 and nothing else, raised or not: one line per device
+pixel column of a card, and `piece`'s line comes before `middle`'s in the
+drawing's order in either card (the ancestor line in `middle`'s card, the
+run from 4 to 12 in the raised card); no connector. Nothing is drawn at the
+frame's borders, 260.33544921875 (the run from 0 to 4 ending at 4) and
+804.0390625 (the run from 12 to 16 starting at 12), and nothing is hit there (tolerance 8, raised or not); a press at
+(364.0390625, 85.18359375) hits c2, MatchStamp 0, distance 0: on the
+arranger on the ancestor line, top 32.8046875 (tied with c0 on `middle`'s
+line, the earlier line wins), raised on the card's run, top 36.20703125.
+What would be wrong: a coordinate at a seam drawn on both runs (a
+connector between its two drawings' MatchStamp partners 103.70361328125
+or 40 long), or on neither.
+
 **What is drawn, in view.** At the view (0, 0), zoom 1, one device pixel
 per CSS pixel, the canvas 1000 × 600, everything is in view. Line by line
 in the drawing's order, each by position: c1 at 261.0927734375 and c2 at
