@@ -9,7 +9,11 @@
  * the proportion, the depths and every gap are read from the exposure the
  * drawing gives of each card and frame (`Drawing.elisions`), never from a
  * drawing tried with a command applied. Every action is one command, so one
- * journal entry.
+ * journal entry. A root drawn once behind a row of groups side by side
+ * (section 8.8, Drawn once) is read through the one ancestor card the drawing
+ * records for it, whose `ancestor.groups` lists every group it lies behind;
+ * the gaps and seams the arrangement cuts between two of them are listed
+ * read-only, never edited.
  */
 
 import type { Subject } from "@timetoalign/tilie-arranger";
@@ -121,6 +125,9 @@ export const WIDTH_FORMS: readonly WidthForm[] = ["standard", "ratio", "span", "
 /** The hint of a default elision's form. */
 export const DEFAULT_HINT = "Choose Custom to edit";
 
+/** The note of a stored elision lying between two groups of a row, which the root's card does not draw (section 8.8). */
+export const NOT_DRAWN_ARRANGED = "not drawn while arranged side by side";
+
 // --- Shapes ---------------------------------------------------------------------------------------
 
 /** One option of a mode's radio group. */
@@ -141,8 +148,23 @@ export interface ElisionRow {
   readonly timeline: string;
   /** Its elided coordinates on that timeline's axis, `start–end` with the unit; pieces joined. */
   readonly stretch: string;
+  /** Why the card does not draw it (`NOT_DRAWN_ARRANGED`); `null` where it is drawn or not listed for it. */
+  readonly note: string | null;
   /** Its `[×]`: one `remove`. */
   readonly remove: RemoveCommand;
+}
+
+/**
+ * A gap or a seam a root drawn once behind a row cuts between two groups
+ * hanging on it (section 8.8, Drawn once): read-only, no card elision.
+ */
+export interface ArrangedGap {
+  /** The two groups' IDs, joined: the pair is one per root. */
+  readonly key: string;
+  /** `between "G1" and "G2"`, the groups by name, else by ID, left to right. */
+  readonly between: string;
+  /** `start–end` with the unit for a gap; `seam at t` for a seam, which leaves out nothing. */
+  readonly stretch: string;
 }
 
 /** One depth of the root's Rows: the timelines at that depth, and whether it is chosen. */
@@ -164,6 +186,8 @@ export interface RootElisions {
   readonly mode: RootMode;
   /** Hidden, Full, Proportional, Custom for an ancestor card; Full and Custom for an ungrouped root. */
   readonly options: readonly ModeOption<RootMode>[];
+  /** The gaps and seams between the groups of a row it is drawn behind once, left to right; none elsewhere. */
+  readonly arranged: readonly ArrangedGap[];
   /** What Proportional shows; `null` in any other mode. */
   readonly proportional: {
     /** Whether `elision-proportion` is `auto`. */
@@ -175,7 +199,11 @@ export interface RootElisions {
     readonly depths: readonly DepthRow[];
     readonly display: readonly ElisionWord[];
   } | null;
-  /** What Custom shows: the stored card elisions the card draws; `null` in any other mode. */
+  /**
+   * What Custom shows: the stored card elisions the card draws, then, drawn
+   * once behind a row, those lying between its first and last group, which
+   * it keeps undrawn (`note`); `null` in any other mode.
+   */
   readonly custom: {
     readonly rows: readonly ElisionRow[];
     /** One `add` of an elision at the middle of the subject's timeline; `null` where none fits. */
@@ -406,12 +434,31 @@ function timelineOf(resolved: ResolvedAddress): string | null {
   }
 }
 
-/** The group whose ancestor card a subject's box is, or whose frame holds it; `null` for neither. */
-function behindOf(box: DrawnBox | null): string | null {
-  if (box === null) return null;
-  if (box.ancestor !== undefined) return box.ancestor.group;
-  if (box.kind === "frame") return box.key?.item ?? null;
-  return box.key?.member !== undefined ? box.key.item : (box.holder?.item ?? null);
+/**
+ * The groups a subject's box concerns: the groups whose frames an ancestor
+ * card lies behind (`ancestor.groups`, every group of a row for a root drawn
+ * once), else the group whose frame it is or holds it; none for neither.
+ */
+function groupsBehind(box: DrawnBox | null): readonly string[] {
+  if (box === null) return [];
+  if (box.ancestor !== undefined) return box.ancestor.groups;
+  const group =
+    box.kind === "frame" || box.key?.member !== undefined
+      ? (box.key?.item ?? null)
+      : (box.holder?.item ?? null);
+  return group === null ? [] : [group];
+}
+
+/**
+ * The ancestor card of `root` the drawing records behind the frame of
+ * `group`: the one whose `ancestor.groups` lists it (a root drawn once behind
+ * a row lies behind every group hanging on it, under the first one's key);
+ * `undefined` where none is recorded (hidden).
+ */
+function drawnCardOf(drawing: Drawing, root: string, group: string): DrawnBox | undefined {
+  return drawing.boxes.find(
+    (box) => box.ancestor?.groups.includes(group) === true && box.key?.member === root,
+  );
 }
 
 /** The root a block acts on, the card it reads, and whether that is an ancestor card. */
@@ -420,8 +467,14 @@ interface RootOf {
   readonly ancestor: boolean;
   /** The card's place key: `{item: G, member: R}` for an ancestor card, `{item: R}` for an ungrouped card. */
   readonly key: PlaceKey;
-  /** The member the ancestor card is aligned to, and its offset on `R`'s axis; `null` for an ungrouped card. */
+  /**
+   * The stretch of `R`'s axis its anchors cover: the member the ancestor card
+   * is aligned to, from its start to its end; behind a row, from the first
+   * group's anchor's start to the last one's end; `null` for an ungrouped card.
+   */
   readonly protected: { readonly from: Real; readonly to: Real } | null;
+  /** The groups the card lies behind, left to right (`ancestor.groups`); none for an ungrouped card. */
+  readonly groups: readonly string[];
   /** The timeline of the one subject; `null` for several. */
   readonly subject: string | null;
 }
@@ -433,14 +486,14 @@ interface RootOf {
  * the card read is the one behind the group the selection concerns, else the
  * first; else `null`.
  */
-function rootOf(block: Block, subjects: readonly Subject[]): RootOf | null {
+function rootOf(block: Block, subjects: readonly Subject[], drawing: Drawing): RootOf | null {
   const { manifest } = block;
   const { ancestry } = indexOf(manifest);
-  const concerns: { timeline: string; group: string | null }[] = [];
+  const concerns: { timeline: string; groups: readonly string[] }[] = [];
   for (const subject of subjects) {
     const timeline = subject.block === block.id ? timelineOf(subject.resolved) : null;
     if (timeline === null) return null;
-    concerns.push({ timeline, group: behindOf(subject.box) });
+    concerns.push({ timeline, groups: groupsBehind(subject.box) });
   }
   const roots = new Set(concerns.map(({ timeline }) => ancestry.get(timeline)?.[0]));
   const [id, ...others] = roots;
@@ -451,23 +504,32 @@ function rootOf(block: Block, subjects: readonly Subject[]): RootOf | null {
   const drawings = memberDrawings(manifest);
   const cards = drawings.ancestorCards.filter((card) => card.root.timeline.id === id);
   const card =
-    cards.find((each) => concerns.some(({ group }) => group === each.group.id)) ?? cards[0];
+    cards.find((each) => concerns.some(({ groups }) => groups.includes(each.group.id))) ?? cards[0];
   if (card !== undefined) {
-    let from: Real = Rational.of(0n);
-    for (const { timeline, offset } of card.member.ancestors) {
-      from = toRational(realOf(axisCoordinate(offset, timeline))).add(toRational(from));
+    const drawn = drawnCardOf(drawing, id, card.group.id);
+    const groups = drawn?.ancestor?.groups ?? [card.group.id];
+    let from: Rational | null = null;
+    let to: Rational | null = null;
+    for (const each of cards.filter((other) => groups.includes(other.group.id))) {
+      let start = Rational.of(0n);
+      for (const { timeline, offset } of each.member.ancestors) {
+        start = toRational(realOf(axisCoordinate(offset, timeline))).add(start);
+      }
+      const end = toRational(extentOf(each.member.timeline, manifest)).add(start);
+      if (from === null || start.compare(from) < 0) from = start;
+      if (to === null || end.compare(to) > 0) to = end;
     }
-    const to = toRational(extentOf(card.member.timeline, manifest)).add(toRational(from));
     return {
       root,
       ancestor: true,
-      key: { item: card.group.id, member: id },
-      protected: { from, to },
+      key: drawn?.key ?? { item: card.group.id, member: id },
+      protected: from === null || to === null ? null : { from, to },
+      groups,
       subject: only,
     };
   }
   if (drawings.ungrouped.some((drawn) => drawn.timeline.id === id)) {
-    return { root, ancestor: false, key: { item: id }, protected: null, subject: only };
+    return { root, ancestor: false, key: { item: id }, protected: null, groups: [], subject: only };
   }
   return null;
 }
@@ -508,14 +570,19 @@ function exposedRows(block: Block, gaps: readonly ExposedGap[]): ElisionRow[] {
         name: stored.name ?? "—",
         timeline: nameOf(timeline),
         stretch: pieces.map((gap) => stretchText(gap.start, gap.end, timeline)).join(", "),
+        note: null,
         remove: { type: "remove", targets: [address] },
       },
     ];
   });
 }
 
-/** One row per stored elision, as the manifest stores it. */
-function storedRows(block: Block, elisions: readonly Elision[]): ElisionRow[] {
+/** One row per stored elision, as the manifest stores it, each with `note`. */
+function storedRows(
+  block: Block,
+  elisions: readonly Elision[],
+  note: string | null = null,
+): ElisionRow[] {
   return elisions.flatMap((elision) => {
     const timeline = findTimeline(block.manifest, elision.timeline);
     if (timeline === undefined) return [];
@@ -527,6 +594,7 @@ function storedRows(block: Block, elisions: readonly Elision[]): ElisionRow[] {
         name: elision.name ?? "—",
         timeline: nameOf(timeline),
         stretch: stretchText(start, end, timeline),
+        note,
         remove: { type: "remove", targets: [address] },
       },
     ];
@@ -686,6 +754,66 @@ function addOnRoot(block: Block, of: RootOf): AddCommand | null {
   };
 }
 
+/** The name of a group, else its ID. */
+function groupName(manifest: Manifest, id: string): string {
+  return manifest.groups.find((group) => group.id === id)?.name ?? id;
+}
+
+/**
+ * The gaps and seams the arrangement cuts in a root's card drawn once behind
+ * a row (exposure origin `arrangement`), left to right: the `k`-th lies
+ * between the `k`-th and the next group the card lies behind, which are in
+ * the row's order, as the anchors whose stretches it separates.
+ */
+function arrangedGaps(
+  manifest: Manifest,
+  of: RootOf,
+  exposure: ElisionExposure | undefined,
+): ArrangedGap[] {
+  const gaps = exposure?.gaps.filter((gap) => gap.origin === "arrangement") ?? [];
+  return gaps.flatMap((gap, index) => {
+    const left = of.groups[index];
+    const right = of.groups[index + 1];
+    if (left === undefined || right === undefined) return [];
+    const seam = toRational(gap.start).compare(toRational(gap.end)) === 0;
+    const at = valueAt(gap.start, of.root);
+    const point = at === undefined ? "" : prettyText(at, of.root.number_type, of.root.unit);
+    return [
+      {
+        key: JSON.stringify([left, right]),
+        between: `between "${groupName(manifest, left)}" and "${groupName(manifest, right)}"`,
+        stretch: seam ? `seam at ${point}` : stretchText(gap.start, gap.end, of.root),
+      },
+    ];
+  });
+}
+
+/**
+ * The stored card elisions of a root drawn once behind a row that its card
+ * does not draw and that lie, on its axis, between its first group's anchor
+ * and its last one's (section 8.8, Drawn once: the stretch between two anchors
+ * is the arrangement's gap or seam whatever the mode); none for a card behind
+ * one group.
+ */
+function undrawnBetween(manifest: Manifest, of: RootOf, exposure: ElisionExposure): Elision[] {
+  const span = of.protected;
+  if (of.groups.length < 2 || span === null) return [];
+  const from = toRational(span.from);
+  const to = toRational(span.to);
+  const drawn = new Set(
+    exposure.gaps.filter((gap) => gap.origin === "stored").map((gap) => gap.address.id),
+  );
+  return elisionsUnder(manifest, of.root.id).filter((elision) => {
+    const timeline = findTimeline(manifest, elision.timeline);
+    if (drawn.has(elision.id) || timeline === undefined) return false;
+    const offset = offsetOnRoot(manifest, timeline.id);
+    const [start, end] = storedStretch(elision, timeline);
+    return (
+      toRational(start).add(offset).compare(to) < 0 && toRational(end).add(offset).compare(from) > 0
+    );
+  });
+}
+
 /**
  * The root's block of the inspected subjects, all in `block` and drawn as
  * `drawing`: offered where every subject is a timeline, a card, a part of
@@ -697,7 +825,7 @@ export function rootElisionsOf(
   subjects: readonly Subject[],
   drawing: Drawing,
 ): RootElisions | null {
-  const of = rootOf(block, subjects);
+  const of = rootOf(block, subjects, drawing);
   if (of === null) return null;
   const exposure = exposureOf(drawing, of.key);
   if (exposure === undefined && !of.ancestor) return null;
@@ -719,10 +847,13 @@ export function rootElisionsOf(
   const custom =
     mode === "custom" && exposure !== undefined
       ? {
-          rows: exposedRows(
-            block,
-            exposure.gaps.filter((gap) => gap.origin === "stored"),
-          ),
+          rows: [
+            ...exposedRows(
+              block,
+              exposure.gaps.filter((gap) => gap.origin === "stored"),
+            ),
+            ...storedRows(block, undrawnBetween(manifest, of, exposure), NOT_DRAWN_ARRANGED),
+          ],
           add: addOnRoot(block, of),
           removeAll: removalOf(block.id, elisionsUnder(manifest, root)),
         }
@@ -736,6 +867,7 @@ export function rootElisionsOf(
     manifest,
     mode,
     options: rootOptions(block, of, mode, exposure),
+    arranged: arrangedGaps(manifest, of, exposure),
     proportional,
     custom,
   };
@@ -820,8 +952,9 @@ function groupConcerned(manifest: Manifest, subject: Subject): string | null {
   const timeline = timelineOf(resolved);
   if (timeline === null) return null;
   const holding = groupsHolding(manifest, timeline).map((group) => group.id);
-  const framed = box === null || box.ancestor !== undefined ? null : behindOf(box);
-  if (framed !== null && holding.includes(framed)) return framed;
+  const framed = box === null || box.ancestor !== undefined ? [] : groupsBehind(box);
+  const held = holding.find((id) => framed.includes(id));
+  if (held !== undefined) return held;
   return holding[0] ?? null;
 }
 
@@ -966,8 +1099,8 @@ function storedGap(
   const holding = groupsHolding(manifest, elision.timeline);
   const address = idAddress(elision.id);
   if (holding.length > 0) {
-    const framed = behindOf(subject.box);
-    const group = holding.find((each) => each.id === framed) ?? holding[0];
+    const framed = groupsBehind(subject.box);
+    const group = holding.find((each) => framed.includes(each.id)) ?? holding[0];
     const exposure = group === undefined ? undefined : exposureOf(drawing, { item: group.id });
     const lineage = indexOf(manifest).ancestry.get(elision.timeline) ?? [];
     const member = lineage.find((id) => group?.members.includes(id));
@@ -990,7 +1123,7 @@ function storedGap(
       also,
     };
   }
-  const of = rootOf(block, [subject]);
+  const of = rootOf(block, [subject], drawing);
   const exposure = of === null ? undefined : exposureOf(drawing, of.key);
   const [gap] = exposure === undefined ? [] : gapsOf(exposure, address);
   if (of === null || exposure === undefined || gap === undefined) return { gap: null, also: null };
@@ -1045,12 +1178,15 @@ export function elisionFormOf(
   ) {
     return null;
   }
-  const of = rootOf(block, subjects);
+  const of = rootOf(block, subjects, drawing);
   const exposure = of === null ? undefined : exposureOf(drawing, of.key);
+  // A gap or seam the arrangement cuts has a default elision's address, but no form: it is read-only.
   const [gap] =
     exposure === undefined
       ? []
-      : gapsOf(exposure, { id: resolved.owner.at.timeline.id, part: ["elision"] });
+      : gapsOf(exposure, { id: resolved.owner.at.timeline.id, part: ["elision"] }).filter(
+          (each) => each.origin === "default",
+        );
   const timeline = resolved.owner.at.timeline;
   if (of === null || exposure === undefined || gap === undefined) return null;
   const shown = { gap, L: lengthOf(exposure), lambda: extentOf(of.root, manifest) };

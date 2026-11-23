@@ -5,11 +5,27 @@
  */
 
 import type { Editing, Selection, Subject } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, Block, CommandEntry, ElementAddress, Store } from "@timetoalign/tilie-core";
+import {
+  drawingOf,
+  liveStore,
+  resolveSelection,
+  selectionOf,
+  styleLayers,
+} from "@timetoalign/tilie-arranger";
+import type {
+  Address,
+  Block,
+  Command,
+  CommandEntry,
+  ElementAddress,
+  Store,
+} from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
+import { draw } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
+import ElisionSection from "../src/inspector/ElisionSection.svelte";
 import type { ElisionForm, GroupElisions, RootElisions } from "../src/inspector/elisions.ts";
 import {
   elisionFormOf,
@@ -27,6 +43,7 @@ const B = blockId(0);
 const INSIDE = "groups/group_elided_inside";
 const STORED = "bundles/bundle_elisions_stored";
 const MEMBERS = "groups/group_elided_members";
+const ARRANGED = "bundles/bundle_arranged_roots";
 
 function blockOf(store: Store): Block {
   const block = store.view.blocks[B];
@@ -640,5 +657,171 @@ describe("the section in the Properties tab", () => {
     expect(form?.querySelector(".hint")?.textContent).toBe("Choose Custom to edit");
     expect(form?.querySelector(".width")).toBe(null);
     expect(button("Delete elision", form)).toBe(undefined);
+  });
+});
+
+describe("a root drawn once behind a row side by side", () => {
+  /** The block of `store` drawn side by side, as layout draws the placement's arrangement. */
+  function sideBySide(store: Store): Drawing {
+    const block = blockOf(store);
+    return draw(
+      block.manifest,
+      {
+        length: block.length,
+        spacing: block.spacing,
+        margin: block.margin,
+        width: block.width,
+        height: block.height,
+        places: block.places,
+        arrangement: { direction: "horizontal", order: ["page", "group_3", "group_1", "group_2"] },
+      },
+      styleLayers(store.view.graphical, block.manifest),
+      fontMetrics,
+    );
+  }
+
+  function arrangedRoot(store: Store, ...elements: ElementAddress[]): RootElisions | null {
+    return rootElisionsOf(blockOf(store), subjectsOf(store, elements), sideBySide(store));
+  }
+
+  function dispatched(...commands: Command[]): Store {
+    const store = storeOf(ARRANGED);
+    for (const command of commands) {
+      const error = store.dispatch(command);
+      if (error !== null) throw new Error(error.message);
+    }
+    return store;
+  }
+
+  const SESSION_ELISION: Command = {
+    type: "add",
+    into: at("session"),
+    elision: { start: 50.0, end: 80.0 },
+  };
+
+  const arrangedOf = (root: RootElisions | null) =>
+    root?.arranged.map((gap) => [gap.between, gap.stretch]);
+
+  it("records one card per root, under the first group's key, behind every group", () => {
+    const cards = sideBySide(storeOf(ARRANGED)).boxes.flatMap((box) =>
+      box.ancestor === undefined ? [] : [[box.key, box.ancestor.groups]],
+    );
+    expect(cards).toEqual([
+      [{ item: "group_1", member: "score" }, ["group_1", "group_2", "group_3"]],
+      [{ item: "group_1", member: "session" }, ["group_1", "group_3"]],
+    ]);
+  });
+
+  it.each<[ElementAddress, string]>([
+    [{ id: "exposition" }, "score"],
+    [{ id: "development" }, "score"],
+    [{ id: "recapitulation" }, "score"],
+    [{ id: "take_a" }, "session"],
+    [{ id: "take_b" }, "session"],
+  ])("reads the once card for %j", (element, root) => {
+    const read = arrangedRoot(storeOf(ARRANGED), element);
+    expect(read?.root).toBe(root);
+    expect(read?.mode).toBe("proportional");
+  });
+
+  it("lists the arrangement's seams and gap read-only", () => {
+    const store = storeOf(ARRANGED);
+    expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([
+      ['between "Exposition" and "Development"', "seam at 16 ♩"],
+      ['between "Development" and "Recapitulation"', "seam at 32 ♩"],
+    ]);
+    expect(arrangedOf(arrangedRoot(store, { id: "take_b" }))).toEqual([
+      ['between "Exposition" and "Recapitulation"', "33″–44″"],
+    ]);
+    expect(arrangedOf(rootOf(store, { id: "development" }))).toEqual([]);
+  });
+
+  it("offers no form for the address the arrangement's gaps share", () => {
+    const store = storeOf(ARRANGED);
+    const subjects = subjectsOf(store, [{ id: "score", part: ["elision"] }]);
+    expect(elisionFormOf(blockOf(store), subjects, sideBySide(store))).toBe(null);
+  });
+
+  it("stores none of them when Proportional turns Custom", () => {
+    const root = arrangedRoot(storeOf(ARRANGED), { id: "development" });
+    expect(root?.options.find((option) => option.mode === "custom")?.commands).toEqual([
+      {
+        type: "style",
+        select: rootRule("score"),
+        set: { "elision-mode": "custom", display: null },
+        blocks: [B],
+      },
+    ]);
+  });
+
+  it("keeps a stored elision between two anchors, listed as not drawn", () => {
+    const store = dispatched(SESSION_ELISION);
+    const free = rootOf(store, { id: "take_b" });
+    expect(free?.mode).toBe("custom");
+    expect(
+      free?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
+    ).toEqual([["—", "Session", "50″–1′20″", null]]);
+    const arranged = arrangedRoot(store, { id: "take_b" });
+    expect(arranged?.mode).toBe("custom");
+    expect(
+      arranged?.custom?.rows.map((row) => [row.name, row.timeline, row.stretch, row.note]),
+    ).toEqual([["—", "Session", "50″–1′20″", "not drawn while arranged side by side"]]);
+    expect(arranged?.custom?.rows[0]?.remove).toEqual({
+      type: "remove",
+      targets: [at("elision_1")],
+    });
+    expect(arranged?.custom?.removeAll).toEqual({ type: "remove", targets: [at("elision_1")] });
+  });
+
+  it("shows the gap and the undrawn elision in the section", () => {
+    const store = dispatched(SESSION_ELISION);
+    const app = mount(ElisionSection, {
+      target: document.body,
+      props: {
+        store,
+        block: blockOf(store),
+        subjects: subjectsOf(store, [{ id: "take_b" }]),
+        drawing: sideBySide(store),
+        edited: null,
+        drafts: new PropertyDrafts(),
+        onselect: () => {},
+      },
+    });
+    flushSync();
+    try {
+      const section = document.querySelector('[data-testid="elisions"]');
+      const gaps = [...(section?.querySelectorAll('[data-testid="arranged-gaps"] li') ?? [])];
+      expect(gaps.map((gap) => gap.textContent)).toEqual([
+        'between "Exposition" and "Recapitulation" 33″–44″',
+      ]);
+      expect(section?.querySelector(".count")?.textContent).toBe("1 elision");
+      expect(section?.querySelector(".rows .note")?.textContent).toBe(
+        "not drawn while arranged side by side",
+      );
+    } finally {
+      unmount(app);
+      document.body.innerHTML = "";
+    }
+  });
+
+  it("shows the least of the anchors' proportions", () => {
+    const store = dispatched({
+      type: "add",
+      into: at("development"),
+      elision: { start: [4, 1], end: [12, 1] },
+    });
+    const free = drawn(store).elisions.flatMap((exposure) =>
+      exposure.kind === "ancestor_card" && exposure.key.member === "score"
+        ? [[exposure.key.item, exposure.proportion]]
+        : [],
+    );
+    expect(free).toEqual([
+      ["group_1", 0.5],
+      ["group_2", 0.29],
+      ["group_3", 0.5],
+    ]);
+    const root = arrangedRoot(store, { id: "recapitulation" });
+    expect(root?.proportional?.automatic).toBe(true);
+    expect(root?.proportional?.proportion).toBe("0.29");
   });
 });

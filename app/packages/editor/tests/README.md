@@ -995,7 +995,7 @@ member: no ancestor card).
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
 "0.142857"; Rows Automatic, the depths deepest first `2` "First, Second"
-and `1` "Piece", both chosen; Show `[ellipsis]` (T157); no list. `score`:
+and `1` "Piece", both chosen; Show `[ellipsis]`; no list. `score`:
 mode Custom; three rows, name, timeline, stretch: "—" Score "0–16 ♩",
 "Development" Score "32–48 ♩", "—" Score "48–56 ♩" (the pieces drawn,
 `elision_1` none); Remove all one `remove` of `elision_1`, `elision_4`,
@@ -1087,6 +1087,52 @@ group elision) as `λ`, exact on an exact axis.
 - The default `{id: second, part: [elision]}` (inside): title `Elision on
   "Second"`, From "1", To "31", both fields disabled, the hint "Choose
   Custom to edit", no width, Show or Delete.
+
+**Side by side** (drawing.md §8.8, Drawn once). A fourth fixture,
+`bundles/bundle_arranged_roots`, drawn in `B` by layout with the placement
+`arrangement: {direction: horizontal, order: [page, group_3, group_1,
+group_2]}` (the arranger does not pass an arrangement yet, so the test
+draws it itself and resolves the selection as the canvas does): the row
+`page`, `group_1` "Exposition", `group_2` "Development", `group_3`
+"Recapitulation"; `score` (48 ♩, the anchors `exposition`
+0–16, `development` 16–32, `recapitulation` 32–48) and `session` (130.0
+s, `take_a` 0.0–30.0 in `group_1`, `take_b` 100.0–130.0 in `group_3`)
+each drawn once. The drawing records ONE ancestor card per root, under the
+key of the first group of the row hanging on it, `{item: group_1, member:
+R}`, its `ancestor.groups` every group it lies behind, left to right. What
+proves the reading:
+- **One card, found from any group.** The root's block reads that card for
+  a subject in any of the groups: `{id: development}` (`group_2`'s member,
+  whose own card is not recorded) and `{id: recapitulation}` show `score`
+  drawn Proportional, as `{id: exposition}` does, not Hidden (which is what
+  reading the card `{item: group_2, member: score}` would give: nothing
+  recorded there). `{id: take_b}` shows `session` the same way.
+- **The arrangement's gaps, read-only.** `score`'s block lists, under "Side
+  by side", `between "Exposition" and "Development"` `seam at 16 ♩` and
+  `between "Development" and "Recapitulation"` `seam at 32 ♩` (the stretches
+  touch, so the gaps leave out nothing); `session`'s `between "Exposition"
+  and "Recapitulation"` with its elided stretch as layout exposes it,
+  "33″–44″". They are not card elisions: in Custom the count and the rows
+  hold none of them; the default elision `{id: score, part: [elision]}`,
+  which is their address, has no form (only a gap of origin `default`
+  has), and Proportional → Custom stores none of them. In the free drawing
+  the block lists none.
+- **Stored elisions between two anchors.** `session` given a card
+  elision 50.0–80.0 (one `add`), which lies between `take_a` and `take_b`:
+  the free drawing draws it and lists it plainly; side by side the card
+  draws it not (the stretch between two anchors is the arrangement's gap
+  whatever the mode), yet it is kept: Custom lists it "—" Session
+  "50″–1′20″" with the note "not drawn while arranged side by side", counts
+  it, and its `[×]` and Remove all remove it. Mounted (the section alone,
+  given that drawing): "Side by side" holds the one item `between
+  "Exposition" and "Recapitulation" 33″–44″`, the count reads "1 elision",
+  and the row carries the note.
+- **The least proportion.** With a group elision on `development`
+  4–12 the free drawing exposes the proportions 0.5 (behind `group_1`),
+  0.29 (`group_2`) and 0.5 (`group_3`) for `score`; side by side the once
+  card's Proportion shows "0.29", Automatic ticked: the least, read from the
+  exposure, equal to the least of the free cards' (an oracle the editor
+  never computes).
 
 **The display command** is one (`stamps/commands.ts`): a named timestamp's,
 an anchor's and a stored elision's `display` toggle through it, taking a

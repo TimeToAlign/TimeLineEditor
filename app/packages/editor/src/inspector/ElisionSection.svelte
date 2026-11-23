@@ -9,7 +9,10 @@
  * proportion (Automatic, or a number), the rows by depth (Automatic, or the
  * depths chosen) and what every default elision shows; in Custom the list of
  * the stored elisions the card draws, a click selecting one, `[×]` deleting
- * it, Add elision and Remove all. The group's block wherever the selection
+ * it, Add elision and Remove all. A root drawn once behind a row of groups
+ * side by side also lists, read-only, the gaps and seams between two of its
+ * groups, and its stored elisions lying there, kept and not drawn, with a
+ * note saying so. The group's block wherever the selection
  * lies in a group's frame, or in its editor: Full or Custom, the group's
  * elisions, Add elision and Remove all. Below, the form of one selected
  * elision: From and To in its timeline's unit, typed exactly, its gap's
@@ -198,6 +201,9 @@ function toggled(
             <span>{row.name}</span>
             <span>{row.timeline}</span>
             <span>{row.stretch}</span>
+            {#if row.note !== null}
+              <span class="note">{row.note}</span>
+            {/if}
           </button>
           <button
             type="button"
@@ -265,6 +271,16 @@ function toggled(
   <section class="elisions" aria-labelledby="{uid}-root" data-testid="elisions">
     <h3 id="{uid}-root">{shown.title}</h3>
     {@render modes(shown.options, shown.mode, MODE_WORDS, rootKey)}
+    {#if shown.arranged.length > 0}
+      <div class="arranged" data-testid="arranged-gaps">
+        <span class="label" id="{uid}-arranged">Side by side</span>
+        <ul aria-labelledby="{uid}-arranged">
+          {#each shown.arranged as gap (gap.key)}
+            <li><span>{gap.between}</span> <span>{gap.stretch}</span></li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
     {#if shown.proportional !== null}
       {@const settings = shown.proportional}
       <div class="setting" role="group" aria-labelledby="{uid}-proportion">
@@ -479,7 +495,8 @@ function toggled(
   }
 
   .rows,
-  .also ul {
+  .also ul,
+  .arranged ul {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -505,6 +522,11 @@ function toggled(
 
   .row[aria-pressed="true"] {
     font-weight: 600;
+  }
+
+  .note {
+    grid-column: 1 / -1;
+    color: #595959;
   }
 
   .actions {
@@ -533,7 +555,8 @@ function toggled(
 
   .stretch,
   .form,
-  .also {
+  .also,
+  .arranged {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
