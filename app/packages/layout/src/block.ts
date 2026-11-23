@@ -18,11 +18,16 @@ import {
 } from "@timetoalign/tilie-core/drawing";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { anchorElements } from "./anchors.ts";
-import { alignedRows, ancestorCards, type LaidAncestorCard } from "./block/ancestors.ts";
+import {
+  alignedRows,
+  ancestorCards,
+  elidedRoots,
+  frameBoxes,
+  type LaidAncestorCard,
+} from "./block/ancestors.ts";
 import { rowLayout } from "./block/arrangement.ts";
 import { emitDrawing } from "./block/emit.ts";
-import { columnsOf, horizontalOf } from "./block/horizontal.ts";
-import { drawItem, type LaidItem, layoutItem } from "./block/items.ts";
+import { type LaidItem, laidOut } from "./block/items.ts";
 import { placeItems, titleOf } from "./block/places.ts";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import { Cascade } from "./cascade.ts";
@@ -37,8 +42,11 @@ import type { Context, Holder } from "./traversal.ts";
  * and its ungrouped roots as cards, each item at its place (section 8.6).
  * The items are placed and their member drawings laid out; the block's one
  * horizontal layout is found over every member drawing; each item is laid
- * out by it; the displayed ancestor cards are laid out behind their frames
- * (section 8.8); the block is grown around them all; the lines its groupstamps
+ * out by it; where ancestor cards are drawn behind frames, their roots are
+ * laid out alone on their elided axes, reading the frames so laid out, and
+ * the member cards below them laid out again with their ancestor rows at the
+ * heights of those layouts (section 8.3); the displayed ancestor cards are
+ * laid out behind their frames (section 8.8); the block is grown around them all; the lines its groupstamps
  * draw across the members of their groups' frames, then the alignment
  * anchors of its named MatchStamps are drawn last, over everything (section
  * 8.7).
@@ -83,25 +91,33 @@ export function draw(
     ancestors = side.once;
   } else {
     // The member cards whose ancestor rows lie at their roots' heights (section 8.3) are laid out
-    // again once the block's columns place the ancestor cards behind them; nothing else moves.
+    // again on the rows of the ancestor cards behind them, which read their frames as first laid
+    // out; nothing else moves.
     const order = arrangement === undefined ? {} : { order: arrangement.row };
     const placed = placeItems(context, block, Pt, new Map(), [], order);
-    const { aligned, alone } = alignedRows(context, block, placed, columnsOf(placed));
-    const items =
-      aligned.size === 0 ? placed : placeItems(context, block, Pt, aligned, placed, order);
-    const columns = columnsOf(items);
-    const drawings = items.map((item) => drawItem(manifest, item, columns));
-    // A frame with group elisions is drawn shorter by its gaps' shrinks (section 8.2).
-    const horizontal = horizontalOf(
-      columns,
-      items,
-      drawings.flatMap(({ item, drawn }) =>
-        drawn.map(({ elements }) => ({ elements, L: item.length - item.DG })),
-      ),
-      measure,
+    const before = laidOut(context, placed, measure);
+    const rootOf = elidedRoots(context, block, frameBoxes(before.laid), before.horizontal.s0);
+    const aligned = alignedRows(
+      context,
+      block,
+      placed,
+      before.horizontal,
+      (at) => rootOf(at)?.layout,
     );
-    laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-    ancestors = ancestorCards(context, block, items, drawings, laid, horizontal, measure, alone);
+    const final =
+      aligned.size === 0
+        ? before
+        : laidOut(context, placeItems(context, block, Pt, aligned, placed, order), measure);
+    laid = final.laid;
+    ancestors = ancestorCards(
+      context,
+      block,
+      final.items,
+      final.drawings,
+      final.horizontal,
+      measure,
+      rootOf,
+    );
   }
   const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
     ...groupstampElements(manifest, axes, boxes),

@@ -1385,20 +1385,29 @@ elision without `display` draws `["ellipsis", "name"]`.
    `0.8228571428571427`, round outwards to their own ends), natural 400 and
    800, drawn `57.14285714285714` and `114.28571428571428`; `second` 1–31,
    its natural width `1500` (30 quarters at 50 canvas units each), drawn
-   `128.57142857142856` = `W − 50 − 50`. Each gap draws one ellipsis at the
-   middle of the card, which reaches from 16.23046875 to 113.5859375, so at
-   `ym = 64.908203125`, and its name label (`elision-display` `ellipsis
-   name`) below it, `First` twice and `Second`, the baseline at `ym + 4 +
-   a(9) = 77.26220703125`; no continuation; it writes no rectangle (its
-   `fill` is `none`). `piece`'s line in the card is cut at all three gaps,
-   `first`'s at its two (it starts at the first's edge and ends at the
-   second's), `second`'s at its one. The labels take their room in the
-   markers band of `first` and `second`, below their row, between it and
-   `piece`'s line: `first` lies `7 + (w/2 + 13 + 2 + h(9)) = 7 + 26.9765625`
-   above `piece` on the card behind, while in `excerpt`'s card its ancestor
-   line keeps 14 from `piece`'s, `dr` counting no derived stack (section
-   8.3, the exception of a derived elision's labels); `piece`'s line and
-   its ancestor line lie at one height.
+   `128.57142857142856` = `W − 50 − 50`. `r` reads the frame laid out
+   before its rows align (section 8.9, `Fw` and `Fh`), `543.70361328125 ×
+   171.5625`, so it is the worked example's. The labels take their room
+   in the markers band of `first` and `second`, below their row, between
+   it and `piece`'s line: `first` lies `7 + (w/2 + 13 + 2 + h(9)) = 7 +
+   26.9765625 = 33.9765625` above `piece` on the card behind, and `dr`
+   counts that stack (section 8.3: every stack the card draws, derived
+   ones included), so in `excerpt`'s card `piece`'s ancestor row lies
+   `Δ1 = max(33.9765625, 7 + 7) = 33.9765625` beyond `first`'s, not 14:
+   the card, its frame and every row below `first`'s are `33.9765625 − 14
+   = 19.9765625` lower or higher than with 14 (the frame `171.5625 +
+   19.9765625 = 191.5390625` high), and the ancestor card, `97.35546875`
+   high, its line on `piece`'s ancestor line, reaches from `16.23046875 +
+   19.9765625 = 36.20703125` to `113.5859375 + 19.9765625 = 133.5625`
+   (16.23046875 and 113.5859375 its ends with 14). Each gap draws one
+   ellipsis at the middle of the card, at `ym = 84.884765625`, and its
+   name label (`elision-display` `ellipsis name`) below it, `First` twice
+   and `Second`, the baseline at `ym + 4 + a(9) = 97.23876953125`; no
+   continuation; it writes no rectangle (its `fill` is `none`). `piece`'s
+   line in the card is cut at all three gaps, `first`'s at its two (it
+   starts at the first's edge and ends at the second's), `second`'s at its
+   one. `piece`'s line and its ancestor line lie at one height, and so do
+   `first`'s line and its ancestor line.
 2. **Middles on a fraction axis** (`bundle_elided_layerit`, the card of
    `clt_1` behind `group_3`): `r = 0.016991818753933293`; the gaps leave out
    Prelude 1–355, Menuet 1–311, Clair de Lune 28–323 and Passepied 4–620,
@@ -1513,7 +1522,8 @@ elision without `display` draws `["ellipsis", "name"]`.
 9. **Rows at the heights of the card behind** (section 8.3): in
    `group_elided_inside`, the member card's ancestor lines of `first` and
    `piece` lie at the ordinates of `first`'s and `piece`'s lines in the
-   ancestor card behind.
+   ancestor card behind, the derived gaps' name labels between them
+   counted (point 1).
 10. **The row distance counts a stored card elision's labels** (section
    8.3, `dr`). `group_grandchild` with one more elision added by core's
    `add` into `movement`: `elision_1` from 1 to 6, named `Intro`, `display
@@ -1619,6 +1629,30 @@ elision without `display` draws `["ellipsis", "name"]`.
    `end` its own ends, natural and drawn width 0, `x(b) − x(a) = 0`; the
    offset `h / k` is 0 where `h` is 0, never `0 / 0` (`k = n / (b − a) =
    0`), so the drawing does not fail.
+17. **The row distance counts a derived elision's labels at a stated
+   proportion** (section 8.3, `dr`; the shape of a suite drawn behind an
+   excerpt at a telling proportion). `bundle_elided_layerit` under a layer
+   of one rule on `{id: clt_1, part: [card]}`, `elision-mode:
+   proportional` and `elision-proportion: 0.125`: every one of the four
+   ancestor cards of `clt_1` takes `r = 0.125` (not automatic) and derives
+   on depths 1 and 2, each movement's pieces outside the protected span a
+   derived gap named by its movement (`Prelude`, `Menuet`, `Clair de
+   Lune`, `Passepied`), one label in one tier of that movement's markers
+   band, below its line: one piece of each movement per card, and two of
+   `Menuet` behind `group_2`, whose excerpt lies at 120–132 inside it, so
+   4, 5, 4 and 4 name labels. `clt_2`
+   (Prelude) lies in the row of `clt_1`'s children band nearest `clt_1`'s
+   line, so, as in point 10, `clt_2`'s line lies `26.9765625 + 7 =
+   33.9765625` above `clt_1`'s on the card behind it, `dr = 33.9765625`.
+   In the card of
+   `clt_6` (Prelude mm. 1–4, its ancestors `clt_1` and `clt_2`), laid out
+   as `theme`'s in point 10 (one row of the member, the ancestor band from
+   `c0 = 30.9765625` below its line), `clt_2`'s row lies `30.9765625 + 7`
+   below `clt_6`'s line and `clt_1`'s `33.9765625` beyond it, the band `7
+   + 33.9765625 + 7 = 47.9765625` wide and the card `14.40234375 +
+   30.9765625 + 47.9765625 + 8 = 101.35546875` high, not `81.37890625`
+   (`Δ1 = 14`). In each of the four member cards every ancestor line lies
+   at the ordinate of its timeline's line in the card behind.
 
 ## Arrangements (`arrangement.test.ts`)
 

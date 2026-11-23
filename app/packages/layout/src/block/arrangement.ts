@@ -51,7 +51,7 @@ import {
 } from "./ancestors.ts";
 import { axesOf } from "./axes.ts";
 import { columnsOf, contentRight, type Horizontal, horizontalOf } from "./horizontal.ts";
-import { drawItem, type ItemDrawing, type LaidItem, layoutItem } from "./items.ts";
+import { type ItemDrawing, type LaidItem, laidOut } from "./items.ts";
 import { type Item, placeItems } from "./places.ts";
 
 /** The half of the standard gap a gap or seam between two anchors keeps on either side of `c`. */
@@ -119,26 +119,12 @@ export function rowLayout(
 ): RowLayout {
   const { placement } = context;
   const order = row.row;
-  // The once card of each root is the ancestor card behind the first group of the row hanging on
-  // it; only it aligns its frame's rows (section 8.3).
-  const firstGroup = new Map<string, string>();
-  for (const anchor of row.anchors) {
-    if (!firstGroup.has(anchor.root)) firstGroup.set(anchor.root, anchor.group);
-  }
-  const isOnce = (at: Behind) => firstGroup.get(at.ancestor.root.timeline.id) === at.key.item;
+  // The once cards are found on the items as first laid out: what they read of the row, its
+  // frames' places, widths and heights and the block's columns, no ancestor row moves.
   const placed = placeItems(context, block, top, new Map(), [], { order });
-  const { aligned, alone: layouts } = alignedRows(
-    context,
-    block,
-    placed,
-    columnsOf(placed),
-    isOnce,
-  );
-  const items =
-    aligned.size === 0 ? placed : placeItems(context, block, top, aligned, placed, { order });
-  const first = laidOut(context, items, measure);
-  const { horizontal } = first;
-  const widths = first.laid.map(({ item, boxes }) => ({
+  const before = laidOut(context, placed, measure);
+  const { horizontal } = before;
+  const widths = before.laid.map(({ item, boxes }) => ({
     width: item.scale * (boxes[0]?.width ?? 0),
     height: 0,
   }));
@@ -149,20 +135,20 @@ export function rowLayout(
     );
 
   const ats = new Map(
-    behind(context, block, items, horizontal.s0).map((at) => [placeKeyText(at.key), at] as const),
+    behind(context, block, placed, horizontal.s0).map((at) => [placeKeyText(at.key), at] as const),
   );
   const anchored = (anchor: Anchor): Anchored | undefined => {
     const key: PlaceKey = { item: anchor.group, member: anchor.root };
     const at = ats.get(placeKeyText(key));
     if (at === undefined) return undefined;
-    return { anchor, at, first: layouts.get(placeKeyText(key)) ?? alone(context, block, at) };
+    return { anchor, at, first: alone(context, block, at) };
   };
   const byRoot = row.roots.map((root) =>
     row.anchors
       .filter((anchor) => anchor.root === root)
       .flatMap((anchor) => anchored(anchor) ?? []),
   );
-  const frames = first.laid.map(({ boxes }) => boxes[0] ?? { x: 0, width: 0, height: 0 });
+  const frames = before.laid.map(({ boxes }) => boxes[0] ?? { x: 0, width: 0, height: 0 });
   // The least proportion of every ancestor card of a root (section 8.8): each as section 8.9 gives it.
   const proportions = byRoot.map((anchors) =>
     Math.min(
@@ -186,6 +172,19 @@ export function rowLayout(
     xs = lefts(start);
     once = onceAt(start);
   }
+
+  // The once card of each root is the ancestor card behind the first group of the row hanging on
+  // it; only it aligns its frame's rows, on its own rows (section 8.3), every label stack it draws
+  // counted.
+  const onceRows = new Map(
+    once.map((card) => [placeKeyText(nth(card.anchors, 0).at.key), card.layout] as const),
+  );
+  const aligned = alignedRows(context, block, placed, horizontal, (at) =>
+    onceRows.get(placeKeyText(at.key)),
+  );
+  const items =
+    aligned.size === 0 ? placed : placeItems(context, block, top, aligned, placed, { order });
+  const first = aligned.size === 0 ? before : laidOut(context, items, measure);
 
   // The lines of the roots, one under another (section 8.8, Vertically): the first at 0, each
   // further one below the card above and as low as each group lying on both needs.
@@ -283,30 +282,6 @@ export function rowLayout(
 /** Every group hanging on `root`, in the row's order. */
 function groupsOn(row: Row, root: string): string[] {
   return [...new Set(row.anchors.filter((anchor) => anchor.root === root).map((a) => a.group))];
-}
-
-/** The items laid out (section 8.2): their member drawings, the block's one horizontal layout, each laid. */
-function laidOut(
-  context: Context,
-  items: readonly Item[],
-  measure: TextMeasure,
-): { items: readonly Item[]; drawings: ItemDrawing[]; horizontal: Horizontal; laid: LaidItem[] } {
-  const columns = columnsOf(items);
-  const drawings = items.map((item) => drawItem(context.manifest, item, columns));
-  const horizontal = horizontalOf(
-    columns,
-    items,
-    drawings.flatMap(({ item, drawn }) =>
-      drawn.map(({ elements }) => ({ elements, L: item.length - item.DG })),
-    ),
-    measure,
-  );
-  return {
-    items,
-    drawings,
-    horizontal,
-    laid: drawings.map((d) => layoutItem(d, horizontal, measure)),
-  };
 }
 
 /**
