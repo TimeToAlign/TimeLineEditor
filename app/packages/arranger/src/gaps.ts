@@ -613,10 +613,10 @@ function changeOf(
 
 /**
  * The change a drag of the `edge` handle of `subject` by `dx` block units
- * makes under `modes` (section 7.2 of the elision design's table): the
- * edge's value moves by `dx / k`, `k` the block units per unit of the
- * timeline on the run beside that edge (`CardAxis.edgeScale`), to the
- * snapping value (`targetsOf`) within `tolerance` block units of it, else
+ * makes under `modes` (Coordinates, Width, or both: then the drawn width
+ * follows the natural one): the edge's value moves by `dx / k`, `k` the
+ * block units per unit of the timeline on the run beside that edge
+ * (`CardAxis.edgeScale`), to the snapping value (`targetsOf`) within `tolerance` block units of it, else
  * the simplest value within `reach` block units, held where the edge may
  * lie; the width by `dx` (the start's handle mirrored), the simplest
  * within `reach`. `null` where nothing changes.
@@ -750,11 +750,11 @@ const STANDARD_GAP = 32;
 /**
  * The command storing the default elisions the card `key` of `drawing`
  * (block `block` of `view`) draws, as it draws them (the switch from
- * Proportional to Custom, elision design 3.2): one `add` into the block of
- * every default gap of the card in drawing order, each with its elided
- * coordinates exactly, `width` `{canvas: g}` unless it is the standard gap,
- * `display` the card's `elision-display`, no `name` (core mints the IDs).
- * Refused where the card draws no default gap.
+ * Proportional to Custom, which keeps every gap where it is drawn): one
+ * `add` into the block of every default gap of the card in drawing order,
+ * each with its elided coordinates exactly, `width` `{canvas: g}` unless it
+ * is the standard gap, `display` the card's `elision-display`, no `name`
+ * (core mints the IDs). Refused where the card draws no default gap.
  */
 export function defaultsStored(
   view: View,
@@ -789,7 +789,7 @@ export function defaultsStored(
 
 /**
  * The command returning the root `root` of block `block` of `view` to its
- * defaults (Remove all, elision design 3.2): one `remove` of every card
+ * defaults (Remove all, back to the derived gaps): one `remove` of every card
  * elision of its tree (core's `elisionsUnder`; group elisions are the
  * frames'); `null` where it stores none.
  */
