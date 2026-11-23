@@ -11,7 +11,12 @@
  * right border with them. An ancestor card shown or hidden also unfolds out
  * of its member card or folds back into it: its rows travel as a raise's
  * (`raise.ts`) while everything left and right of the member's span opens
- * out of the member card's ends.
+ * out of the member card's ends. An item whose place changes (an arranged
+ * block's items reordered, or switched to another arrangement) travels
+ * whole from its old place to its new one; when a block's items start or
+ * stop standing side by side, the ancestor cards that are no longer drawn
+ * fade out and those drawn again fade in, a root drawn once moving
+ * sideways from the card of its first group.
  */
 
 import type { Manifest } from "@timetoalign/tilie-core";
@@ -36,7 +41,7 @@ import type {
 import { boundsOf, lineAxes } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { attributeText } from "@timetoalign/tilie-writers";
-import { keyedBox } from "../boxes.ts";
+import { isItem, keyedBox } from "../boxes.ts";
 import { zeroOf } from "../cardAxis.ts";
 import { raiseUnfold } from "./raise.ts";
 import {
@@ -497,20 +502,65 @@ function drawsMember(drawing: Drawing, card: DrawnBox): boolean {
   );
 }
 
+/** Whether `drawing` draws its items side by side, the roots they hang on drawn once. */
+function sideBySide(drawing: Drawing): boolean {
+  const { arrangement } = drawing;
+  return arrangement?.direction === "horizontal" && arrangement.refused === undefined;
+}
+
+/** An element blending in where it is drawn, or (read backwards) fading out where it was. */
+const FADES: Motion = { across: null, dy: 0, enters: true };
+
 /**
- * What moves when a block is drawn `after` instead of `before`: each card
+ * How every item of `after` (a group's frame, an ungrouped root's card)
+ * whose place on the canvas `before` drew elsewhere moves: each element of
+ * its range translated, from where `before` drew the item (its place less
+ * the place origin's, so a moved origin is no move) to where `after` draws
+ * it; an item drawn at the same place moves nothing.
+ */
+export function itemMotions(before: Drawing, after: Drawing): CardMotion[] {
+  return after.boxes.flatMap((box): CardMotion[] => {
+    if (!isItem(box)) return [];
+    const was = keyedBox(before, box.key);
+    if (was === undefined) return [];
+    const dx = box.x - after.origin.x - (was.x - before.origin.x);
+    const dy = box.y - after.origin.y - (was.y - before.origin.y);
+    if (dx === 0 && dy === 0) return [];
+    const motion: Motion = {
+      across: { left: 0, right: 0, fromLeft: -dx, fromRight: -dx },
+      dy: -dy,
+      enters: false,
+    };
+    const { start, end } = box.range;
+    return [
+      {
+        key: placeKeyText(box.key),
+        holds: (index) => index >= start && index < end,
+        motionOf: () => motion,
+      },
+    ];
+  });
+}
+
+/**
+ * What moves when a block is drawn `after` instead of `before`: first every
+ * item whose place changed travels whole (`itemMotions`), its contents taking
+ * no motion of their own; then each card
  * both draw whose elisions changed (its own, or its frame's for a member
  * card) moves sideways (`sidewaysMotion`), each frame whose group elisions
  * changed with it (`frameMotion`); each ancestor card only `after` draws,
  * whose member card `before` drew, unfolds out of it (`unfoldingMotion`);
  * each ancestor card only `before` draws, whose member card `after` draws,
  * folds back into it, read in `before` and moved by the change of the place
- * origin. Nothing else moves.
+ * origin. Where the items start or stop standing side by side, an ancestor
+ * card drawn only `after` fades in and one drawn only `before` fades out
+ * instead. Nothing else moves.
  */
 export function blockMotion(before: Drawn, after: Drawn, measure: TextMeasure): BlockMotion {
   const was = cardsOf(before.drawing);
   const now = cardsOf(after.drawing);
-  const cards: CardMotion[] = [];
+  const switched = sideBySide(before.drawing) !== sideBySide(after.drawing);
+  const cards: CardMotion[] = itemMotions(before.drawing, after.drawing);
   for (const [key, card] of now) {
     const old = was.get(key);
     if (old !== undefined) {
@@ -518,6 +568,8 @@ export function blockMotion(before: Drawn, after: Drawn, measure: TextMeasure): 
         elisionsText(exposureOf(before.drawing, old)) !==
         elisionsText(exposureOf(after.drawing, card));
       if (changed) cards.push(sidewaysMotion(before, old, after, card, measure));
+    } else if (card.ancestor !== undefined && switched) {
+      cards.push(rangeMotion(after.drawing, card, measure, () => FADES));
     } else if (card.ancestor !== undefined && drawsMember(before.drawing, card)) {
       cards.push(unfoldingMotion(after, card, measure));
     }
@@ -533,8 +585,11 @@ export function blockMotion(before: Drawn, after: Drawn, measure: TextMeasure): 
   const dx = after.drawing.origin.x - before.drawing.origin.x;
   const dy = after.drawing.origin.y - before.drawing.origin.y;
   for (const [key, card] of was) {
-    if (now.has(key) || card.ancestor === undefined || !drawsMember(after.drawing, card)) continue;
-    const motion = unfoldingMotion(before, card, measure);
+    if (now.has(key) || card.ancestor === undefined) continue;
+    if (!switched && !drawsMember(after.drawing, card)) continue;
+    const motion = switched
+      ? rangeMotion(before.drawing, card, measure, () => FADES)
+      : unfoldingMotion(before, card, measure);
     const descriptors = before.descriptors.filter(
       ({ source }) => source.element >= card.range.start && source.element < card.range.end,
     );

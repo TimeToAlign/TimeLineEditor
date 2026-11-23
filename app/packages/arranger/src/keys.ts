@@ -15,13 +15,21 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
 import { nudgeCommand, removeCommand, type ZOrderAction, zOrderCommand } from "./commands.ts";
-import type { LevelRules } from "./containers.ts";
+import type { Arranged, LevelRules } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import type { GapEdge, GapModes } from "./gaps.ts";
 import { gapCommand, gapStep, isDefaultGap, isGap, piecesOf, subjectOf } from "./gaps.ts";
 import type { PaneSource } from "./pane.ts";
+import { blocksInOrder } from "./project.ts";
+import {
+  blockIndexCommand,
+  itemArrangementCommand,
+  rowRefusal,
+  shownItemOrder,
+  steppedOrder,
+} from "./reorder.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 import { NOTHING_SELECTED, selectedBand, selectionOf } from "./selection.ts";
@@ -180,6 +188,83 @@ function gapArrow(context: KeyContext, event: KeyboardEvent): boolean | null {
 }
 
 /**
+ * How many places an arrow moves a content of an arrangement: along it,
+ * Up and Down one place in a column, Left and Right in a row, and in a
+ * matrix Left and Right one place in its row, Up and Down one row (the
+ * number of columns); 0 for an arrow across a column or a row.
+ */
+export function arrangedStep(arranged: Arranged, key: string): number {
+  const back = key === "ArrowLeft" || key === "ArrowUp" ? -1 : 1;
+  const vertical = key === "ArrowUp" || key === "ArrowDown";
+  switch (arranged.direction) {
+    case "vertical":
+      return vertical ? back : 0;
+    case "horizontal":
+      return vertical ? 0 : back;
+    case "matrix":
+      return vertical ? back * arranged.columns : back;
+  }
+}
+
+/**
+ * The item of the edited block the one selected address names (a group's
+ * frame, an ungrouped root or its card), with its block; `null` otherwise.
+ */
+function selectedItem(context: KeyContext) {
+  if (context.selection.size !== 1 || context.editing === null) return null;
+  const [address] = context.selection.values();
+  if (address === undefined) return null;
+  const { block: id, element } = addressParts(address);
+  const block = context.view.blocks[id];
+  if (block === undefined || element === null || element.id === undefined) return null;
+  if (element.facet !== undefined) return null;
+  if (element.part !== undefined && (element.part.length !== 1 || element.part[0] !== "card")) {
+    return null;
+  }
+  return shownItemOrder(block).includes(element.id) ? { block, item: element.id } : null;
+}
+
+/**
+ * An arrow on an arranged level (`rules.arranged`): the one selected block on
+ * the arranger, or the one selected item in the bundle editor, moves
+ * `arrangedStep` places along the arrangement, one `set` (a block's new
+ * `index`, a block's arrangement's order); nothing beyond the first or the
+ * last place. Side by side, an order the stretches refuse (`rowRefusal`)
+ * is refused with its reason. `null` where the level is not arranged or
+ * nothing it arranges is selected.
+ */
+function arrangedArrow(context: KeyContext, event: KeyboardEvent): boolean | null {
+  const { arranged } = context.rules;
+  if (arranged === undefined) return null;
+  const step = arrangedStep(arranged, event.key);
+  if (context.editing === null) {
+    const ids = selectedBlocks(context);
+    const [id] = ids;
+    if (id === undefined) return null;
+    if (ids.length > 1) return true;
+    const order = blocksInOrder(context.view).map((block) => block.id);
+    const next = steppedOrder(order, id, step);
+    const moved = next === null ? null : blockIndexCommand(context.view, next, id);
+    if (moved !== null) context.dispatch(moved);
+    return true;
+  }
+  const selected = selectedItem(context);
+  if (selected === null) return null;
+  const { block, item } = selected;
+  const next = steppedOrder(shownItemOrder(block), item, step);
+  const direction = block.arrangement?.direction;
+  if (next === null || direction === undefined) return true;
+  const refused = direction === "horizontal" ? rowRefusal(block.manifest, next, item) : null;
+  if (refused !== null) {
+    context.refuse(refused);
+    return true;
+  }
+  const moved = itemArrangementCommand(block, { direction, order: next });
+  if (moved !== null) context.dispatch(moved);
+  return true;
+}
+
+/**
  * Delete on default gaps (`{id: T, part: ["elision"]}`): an automatic
  * elision is never deleted on its own, its root's Custom mode edits them;
  * refused. `null` when the selection holds none.
@@ -237,10 +322,11 @@ export const KEYS: readonly KeyRow[] = [
   },
   {
     // The arrows nudge the selected blocks where the level nudges: on the arranger. On the one
-    // selected elision, Left and Right move its chosen edge under the gap modes.
+    // selected elision, Left and Right move its chosen edge under the gap modes; on an arranged
+    // level they move the selected block or item to another place of the arrangement.
     match: (event) => plain(event) && Object.hasOwn(ARROWS, event.key),
     run(context, event) {
-      const moved = gapArrow(context, event);
+      const moved = gapArrow(context, event) ?? arrangedArrow(context, event);
       if (moved !== null) return moved;
       const ids = selectedBlocks(context);
       const arrow = ARROWS[event.key];

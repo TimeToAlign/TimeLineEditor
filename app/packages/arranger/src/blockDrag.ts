@@ -1,15 +1,19 @@
 /**
  * Dragging blocks on the arranger: Svelte Flow drags the nodes, and the
  * canvas snaps the dragged ones to the grid and to the other blocks' edges
- * and origins (`snap`).
+ * and origins (`snap`); on an arranged canvas the dragged block moves to
+ * another place of the arrangement instead, the others making room for it.
  */
 
 import type { Command, View, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { moveCommand } from "./commands.ts";
+import type { Arranged } from "./containers.ts";
+import { nodePosition } from "./drawing.ts";
 import type { BlockNode, LivePlacement } from "./node.ts";
 import type { PaneSource } from "./pane.ts";
-import { livePlacement } from "./project.ts";
+import { arrangedPlaces, livePlacement } from "./project.ts";
+import { blockIndexCommand, orderAt } from "./reorder.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, isSelected, selectionOf } from "./selection.ts";
 import type { Box, Guide } from "./snap.ts";
@@ -60,6 +64,56 @@ export function snapOffset(
   };
 }
 
+/** The rectangle of `node` on the canvas at `position` (its own by default). */
+function rectOf(node: BlockNode, position = node.position) {
+  const { drawing, block } = node.data;
+  return {
+    id: node.id,
+    x: position.x,
+    y: position.y,
+    width: node.width ?? drawing.width * block.scale,
+    height: node.height ?? drawing.height * block.scale,
+  };
+}
+
+/** Where a block dragged on an arranged canvas drops: the blocks' new order and their places in it. */
+export interface ArrangedDrop {
+  /** Every block's id in the new order. */
+  readonly order: readonly string[];
+  /** Where each block lies in that order. */
+  readonly places: ReadonlyMap<string, { x: number; y: number }>;
+}
+
+/**
+ * Where the block `dragged`, shown at `position`, drops on a canvas arranged
+ * `arranged` whose blocks `projected` shows (in index order, at their packed
+ * places): the order `orderAt` gives at the middle of its node, read
+ * against the places before the drop, and the places of every block packed
+ * in that order (`arrangedPlaces`) from where the first block of that
+ * order is stated to lie (`nodePosition`), as the canvas packs them once
+ * the order is stored.
+ */
+export function arrangedDrop(
+  projected: readonly BlockNode[],
+  dragged: BlockNode,
+  position: { readonly x: number; readonly y: number },
+  arranged: Arranged,
+): ArrangedDrop {
+  const rects = projected.map((node) => rectOf(node));
+  const moved = rectOf(dragged, position);
+  const middle = { x: moved.x + moved.width / 2, y: moved.y + moved.height / 2 };
+  const order = orderAt(rects, dragged.id, middle, arranged.direction);
+  const byId = new Map(rects.map((rect) => [rect.id, rect]));
+  const inOrder = order.flatMap((id) => {
+    const rect = byId.get(id);
+    return rect === undefined ? [] : [rect];
+  });
+  const first = projected.find((node) => node.id === order[0]);
+  const start =
+    first === undefined ? undefined : nodePosition(first.data.block, first.data.drawing);
+  return { order, places: arrangedPlaces(inOrder, arranged, start) };
+}
+
 /** What a block drag reads from the canvas and does through it. */
 export interface DragHost {
   view(): View;
@@ -75,6 +129,8 @@ export interface DragHost {
   selection(): Selection;
   select(next: Selection): void;
   guides(guides: readonly Guide[]): void;
+  /** How the canvas's blocks are arranged (`arrangedOf`); `null` where they lie at their places. */
+  arranged(): Arranged | null;
   /** Runs a command; whether the store accepted it. */
   dispatch(command: Command): boolean;
   /** The placement of the one block under drag, as shown; `null` once the drag ends. */
@@ -92,7 +148,10 @@ export interface NodeDrag {
  * the grid and to the other blocks, fixed for one gesture; the release
  * stores one move, or shows the projection again when nothing is stored.
  * Dragging a block that is not selected selects it, unless the selection
- * lies inside it.
+ * lies inside it. On an arranged canvas nothing snaps: the leading block
+ * follows the pointer while the others are shown at their places in the
+ * order its drop gives (`arrangedDrop`), and the release stores that order
+ * as one new `index` of the leading block (`blockIndexCommand`).
  */
 export class BlockDrag {
   readonly #host: DragHost;
@@ -108,20 +167,31 @@ export class BlockDrag {
     const host = this.#host;
     const ids = new Set(nodes.map(({ id }) => id));
     this.#dragging = [...ids];
-    this.#boxes = anchors(host.projected(), ids);
+    this.#boxes = host.arranged() === null ? anchors(host.projected(), ids) : [];
     const selection = host.selection();
     if (targetNode !== null && !isSelected(selection, { block: targetNode.id })) {
       const inside = [...selection.values()].some((address) => blockOf(address) === targetNode.id);
       if (!inside) host.select(selectionOf([...ids].map((block) => ({ block }))));
     }
     const lead = targetNode ?? nodes[0];
-    if (lead !== undefined) host.report(this.#placed(lead, 0, 0));
+    if (lead !== undefined && host.arranged() === null) host.report(this.#placed(lead, 0, 0));
   }
 
   drag({ targetNode, nodes }: NodeDrag): void {
     const host = this.#host;
     const lead = targetNode ?? nodes[0];
     if (lead === undefined) return;
+    const arranged = host.arranged();
+    if (arranged !== null) {
+      const { places } = arrangedDrop(host.projected(), lead, lead.position, arranged);
+      host.show(
+        host.shown().map((node) => {
+          const place = places.get(node.id);
+          return node.id === lead.id || place === undefined ? node : { ...node, position: place };
+        }),
+      );
+      return;
+    }
     const { dx, dy, guides } = this.#offset(lead);
     host.guides(guides);
     host.report(this.#placed(lead, dx, dy));
@@ -145,6 +215,14 @@ export class BlockDrag {
     host.report(null);
     const lead = targetNode ?? nodes[0];
     if (lead === undefined) return;
+    const arranged = host.arranged();
+    if (arranged !== null) {
+      this.#boxes = [];
+      const { order } = arrangedDrop(host.projected(), lead, lead.position, arranged);
+      const command = blockIndexCommand(host.view(), order, lead.id);
+      if (command === null || !host.dispatch(command)) host.show([...host.projected()]);
+      return;
+    }
     const { dx, dy } = this.#offset(lead);
     this.#boxes = [];
     const moves = nodes.map(({ id, position }) => ({ id, x: position.x + dx, y: position.y + dy }));

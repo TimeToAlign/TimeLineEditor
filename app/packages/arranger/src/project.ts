@@ -2,10 +2,13 @@
 
 import type { Block, ElementAddress, Manifest, View } from "@timetoalign/tilie-core";
 import { addressKey, contains } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
+import type { Drawing, PackedSize } from "@timetoalign/tilie-layout";
+import { packed } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { affectedBy } from "./affected.ts";
 import { raisedRoot } from "./boxes.ts";
+import type { Arranged } from "./containers.ts";
+import { arrangedOf } from "./containers.ts";
 import { affordancesOf } from "./coordinates.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
@@ -83,6 +86,77 @@ export function blocksInOrder(view: View): readonly Block[] {
   return found;
 }
 
+/** The gap, in canvas units, between two blocks of an arranged canvas, and between two rows or columns. */
+export const ARRANGEMENT_GAP = 32;
+
+/** A block's node rectangle on the canvas: its top left corner and its size. */
+export interface NodeRect extends PackedSize {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * Where the blocks lie on a canvas arranged `arranged` (`arrangedOf` on the
+ * arranger), by block id: their nodes, given in index order with their
+ * rectangles at their places, packed in that order by layout's `packed`
+ * (`docs/drawing.md` in TimeToShare, section 8.6) from `start`, by default
+ * the first one's top left corner, `ARRANGEMENT_GAP` apart, in a matrix of
+ * `arranged.columns` columns. Each block's stated `x` and `y` are kept and
+ * not used; a free canvas uses them again.
+ */
+export function arrangedPlaces(
+  nodes: readonly (NodeRect & { readonly id: string })[],
+  arranged: Arranged,
+  start: { readonly x: number; readonly y: number } | undefined = nodes[0],
+): Map<string, { x: number; y: number }> {
+  if (start === undefined) return new Map();
+  const offsets = packed(nodes, {
+    direction: arranged.direction,
+    gap: ARRANGEMENT_GAP,
+    start: { x: start.x, y: start.y },
+    columns: arranged.columns,
+  });
+  return new Map(nodes.map((node, index) => [node.id, offsets[index] ?? { x: node.x, y: node.y }]));
+}
+
+/**
+ * The node rectangles of every block of `view` at their places, in index
+ * order: each at `nodePosition`, sized as its drawing times its scale.
+ */
+function placedRects(
+  view: View,
+  draw: (block: Block) => Drawing,
+): (NodeRect & { readonly id: string })[] {
+  return blocksInOrder(view).map((block) => {
+    const drawing = draw(block);
+    return {
+      id: block.id,
+      ...nodePosition(block, drawing),
+      width: drawing.width * block.scale,
+      height: drawing.height * block.scale,
+    };
+  });
+}
+
+/**
+ * Where every block of `view` lies on the canvas, by id: packed where the
+ * workspace arranges its blocks (`arrangedPlaces`), at `nodePosition`
+ * otherwise.
+ */
+export function blockPlaces(
+  view: View,
+  metrics: FontMetrics,
+  pane?: PaneSource,
+): Map<string, { x: number; y: number }> {
+  const rects = placedRects(view, (block) =>
+    drawingOf(block, view.graphical, metrics, undefined, pane),
+  );
+  const arranged = arrangedOf(view, null);
+  return arranged === null
+    ? new Map(rects.map(({ id, x, y }) => [id, { x, y }]))
+    : arrangedPlaces(rects, arranged);
+}
+
 function sameMembers(
   left: ReadonlyMap<string, ElementAddress>,
   right: ReadonlyMap<string, ElementAddress>,
@@ -110,7 +184,7 @@ function elementsByBlock(selection: Selection): Map<string, Map<string, ElementA
 
 /**
  * One node per block of `view`, in index order. A node lies at
- * `nodePosition`; its size is the drawing's times the block's scale,
+ * `nodePosition`, or where an arranged workspace packs it (`blockPlaces`); its size is the drawing's times the block's scale,
  * given as `width`, `height` and `measured` so Svelte Flow never measures
  * it, and its `zIndex` is the block's rank among its siblings. With
  * `editing`, the innermost open editor, every node of another block is
@@ -133,12 +207,13 @@ export function project(
   const elements = elementsByBlock(selection);
   const ranks = new Map<string, number>();
   const edited = editing === null ? null : addressParts(editing.target);
+  const places = blockPlaces(view, metrics, pane);
   return blocksInOrder(view).map((block) => {
     const siblings = block.parent ?? "";
     const zIndex = ranks.get(siblings) ?? 0;
     ranks.set(siblings, zIndex + 1);
     const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
-    const position = nodePosition(block, drawing);
+    const position = places.get(block.id) ?? nodePosition(block, drawing);
     const outside = edited !== null && edited.block !== block.id;
     const inside = outside
       ? NO_ELEMENTS

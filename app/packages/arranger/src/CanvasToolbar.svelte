@@ -1,6 +1,8 @@
 <script lang="ts">
 import type { Viewport, XYPosition } from "@xyflow/svelte";
-import { ControlButton, Controls, useSvelteFlow } from "@xyflow/svelte";
+import { ControlButton, Controls, Panel, useSvelteFlow } from "@xyflow/svelte";
+import type { ComponentProps } from "svelte";
+import ArrangeMenu from "./ArrangeMenu.svelte";
 import { roving } from "./roving.ts";
 
 interface Props {
@@ -14,6 +16,11 @@ interface Props {
   matches: boolean;
   /** Whether the lock may be toggled: not on a read-only canvas. */
   lockable?: boolean;
+  /**
+   * The Arrange menu of the level shown (`ArrangeMenu`): the arranger's
+   * blocks or a bundle editor's items; `null` at a level arranging nothing.
+   */
+  arrange?: ComponentProps<typeof ArrangeMenu> | null;
 }
 
 let {
@@ -22,7 +29,11 @@ let {
   coordinates = $bindable(),
   matches = $bindable(),
   lockable = true,
+  arrange = null,
 }: Props = $props();
+
+/** Whether the Arrange menu is open beside the toolbar. */
+let arranging = $state(false);
 
 const flow = useSvelteFlow();
 
@@ -121,6 +132,20 @@ export function toCanvas(client: XYPosition): XYPosition {
       {/if}
     </svg>
   </ControlButton>
+  {#if arrange !== null}
+    <ControlButton
+      class="tilie-toggle"
+      data-testid="arrange"
+      aria-expanded={arranging}
+      aria-label="Arrange"
+      title="Arrange the {arrange.level === 'arranger' ? 'blocks' : 'items'}"
+      onclick={() => (arranging = !arranging)}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M2 3h12v11H2zM18 3h12v11H18zM2 18h12v11H2zM18 18h12v11H18z" />
+      </svg>
+    </ControlButton>
+  {/if}
   <ControlButton
     class="tilie-toggle"
     data-testid="marquee"
@@ -175,3 +200,8 @@ export function toCanvas(client: XYPosition): XYPosition {
     </svg>
   </ControlButton>
 </Controls>
+{#if arrange !== null && arranging}
+  <Panel position="bottom-left" class="tilie-arrange-panel" data-testid="arrange-menu">
+    <ArrangeMenu {...arrange} />
+  </Panel>
+{/if}

@@ -21,6 +21,12 @@ export interface NodePreview {
 export interface NodeActions {
   /** Runs a command; the canvas shows a refusal in the status line. */
   dispatch(command: Command): void;
+  /**
+   * Shows in the canvas's status region why a gesture stored nothing, where
+   * no command was refused: a drop the arrangement's rules refuse. Left out,
+   * the reason is not shown.
+   */
+  refuse?(message: string): void;
   /** Selects one address, replacing the selection: the press that starts a gesture. */
   select(address: Address): void;
   /** Draws the block with the preview, or as it is stored when the preview is null. */

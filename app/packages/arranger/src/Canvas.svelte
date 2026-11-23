@@ -1,5 +1,15 @@
 <script lang="ts">
-import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  CanvasDirection,
+  Command,
+  Granularity,
+  Manifest,
+  Pin,
+  Store,
+} from "@timetoalign/tilie-core";
+import { columnsOf } from "@timetoalign/tilie-core";
+import { isArrangementConflict, rowOf } from "@timetoalign/tilie-core/drawing";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -16,7 +26,7 @@ import CoordinateFlag from "./CoordinateFlag.svelte";
 import CoordinateMarks from "./CoordinateMarks.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
-import { levelOf, rulesOf } from "./containers.ts";
+import { arrangedOf, levelOf, rulesOf } from "./containers.ts";
 import type { KnotsOf, MarkPlace, MeasureMapsAnswer, PlacedMarks } from "./coordinates.ts";
 import {
   FrameCoalescer,
@@ -72,6 +82,7 @@ import { CanvasNodes } from "./nodes.svelte.ts";
 import { Pane } from "./pane.ts";
 import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
+import { canvasArrangementCommand, itemArrangementCommand, shownItemOrder } from "./reorder.ts";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
@@ -236,8 +247,70 @@ const editing: Editing | null = $derived.by(() => {
   return innermost === undefined ? null : { target: innermost.target, kind: innermost.kind };
 });
 const level: Level = $derived(levelOf(editing));
+/** How the contents of the level shown are arranged (`arrangedOf`); `null` where they lie free. */
+const arranged = $derived(arrangedOf(view, editing));
 /** What the canvas allows now: the one answer every key and pointer path asks. */
-const rules = $derived(rulesOf(editing, { locked, readonly }));
+const rules = $derived(rulesOf(editing, { locked, readonly, arranged }));
+
+/**
+ * The Arrange menu of the level shown: the arranger's blocks, or the items
+ * of the block a bundle editor edits, Horizontal refused with the rules'
+ * reason where its items cannot stand side by side; none in a group or
+ * timeline editor. A choice is one `set` (`canvasArrangementCommand`,
+ * `itemArrangementCommand`): a block's items keep the order they are
+ * shown in, and a matrix states its columns, `columnsOf` the blocks when
+ * first chosen.
+ */
+const arrangeMenu = $derived.by(() => {
+  const disabled = locked || readonly;
+  if (editing === null) {
+    const stated = view.arrangement;
+    const count = Object.keys(view.blocks).length;
+    const columns =
+      stated === undefined ? columnsOf({ direction: "matrix" }, count) : columnsOf(stated, count);
+    return {
+      level: "arranger" as const,
+      chosen: stated?.direction ?? ("free" as const),
+      columns,
+      refused: null,
+      disabled,
+      onchoose: (choice: "free" | CanvasDirection) =>
+        arrangeCanvas(
+          choice === "free"
+            ? null
+            : { direction: choice, ...(choice === "matrix" ? { columns } : {}) },
+        ),
+      oncolumns: (next: number) => arrangeCanvas({ direction: "matrix", columns: next }),
+    };
+  }
+  if (editing.kind !== "bundle") return null;
+  const block = view.blocks[addressParts(editing.target).block];
+  if (block === undefined) return null;
+  const order = shownItemOrder(block);
+  const row = rowOf(block.manifest, block.arrangement?.order ?? order);
+  return {
+    level: "bundle" as const,
+    chosen: block.arrangement?.direction ?? ("free" as const),
+    columns: 1,
+    refused: isArrangementConflict(row) ? row.reason : null,
+    disabled,
+    onchoose: (choice: "free" | CanvasDirection) => {
+      const arrangement =
+        choice === "vertical" || choice === "horizontal"
+          ? { direction: choice, order: [...order] }
+          : null;
+      const command = itemArrangementCommand(block, arrangement);
+      if (command !== null) dispatch(command);
+    },
+    oncolumns: () => {},
+  };
+});
+
+/** Arrange the canvas's blocks as `arrangement` states, `null` placing each at its own place. */
+function arrangeCanvas(arrangement: Parameters<typeof canvasArrangementCommand>[1]): void {
+  const command = canvasArrangementCommand(view, arrangement);
+  if (command !== null) dispatch(command);
+}
 
 let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
 let root: HTMLElement | undefined = $state();
@@ -338,6 +411,7 @@ const drag = new BlockDrag({
   selection: () => selection,
   select: (next) => (selection = next),
   guides: (next) => (guides = next),
+  arranged: () => (editing === null ? (rules.arranged ?? null) : null),
   dispatch,
   report: (placement) => onlive?.(placement),
 });
@@ -456,6 +530,9 @@ setNodeActions({
   },
   select(address) {
     selection = selectionOf([address]);
+  },
+  refuse(message) {
+    hint = message;
   },
   preview(block, shown) {
     if (shown !== null) nodes.preview = { id: block, view: shown.view };
@@ -1074,6 +1151,7 @@ function onkeydowncapture(event: KeyboardEvent) {
   style:--tilie-zoom={viewport.zoom}
   data-reading={reading === null && matchHover === null ? undefined : ""}
   data-picking={picking === null ? undefined : ""}
+  data-arranged={editing === null && arranged !== null ? "" : undefined}
   bind:clientWidth={null,
   (next) => {
     canvasWidth = next ?? 0;
@@ -1122,7 +1200,8 @@ function onkeydowncapture(event: KeyboardEvent) {
       zoomOnScroll={false}
       zoomOnDoubleClick={false}
       zoomActivationKey={ZOOM_KEYS}
-      nodesDraggable={rules.move && picking === null}
+      nodesDraggable={(rules.move || (editing === null && rules.arranged !== undefined)) &&
+        picking === null}
       nodesConnectable={false}
       proOptions={{ hideAttribution: true }}
       onnodeclick={pointer.nodeclick}
@@ -1174,6 +1253,7 @@ function onkeydowncapture(event: KeyboardEvent) {
         bind:coordinates={() => coordinates, setCoordinates}
         bind:matches={() => showMatches, setMatches}
         lockable={rules.lock}
+        arrange={arrangeMenu}
       />
     </SvelteFlow>
   {:catch error}
