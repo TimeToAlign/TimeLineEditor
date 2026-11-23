@@ -7,7 +7,6 @@
  */
 
 import {
-  type ElementAddress,
   expressAs,
   groupsHolding,
   idAddress,
@@ -17,7 +16,7 @@ import {
   partAddress,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
-import { type ElementKey, elementKey } from "@timetoalign/tilie-core/drawing";
+import { elementKey } from "@timetoalign/tilie-core/drawing";
 import {
   compareReal,
   fromFloat,
@@ -39,7 +38,7 @@ import {
   MARKER_HEIGHT,
   STANDARD_GAP,
 } from "./constants.ts";
-import type { DrawnElement, EllipsisElement, GapOrigin, TextElement, View } from "./elements.ts";
+import type { DrawnElement, EllipsisElement, TextElement, View } from "./elements.ts";
 import { cleanText } from "./metrics.ts";
 import { cutText, nameOf } from "./names.ts";
 import {
@@ -52,17 +51,26 @@ import {
   times,
   zero,
 } from "./numbers.ts";
-import { type Entry, type Holder, type Scope, shown } from "./traversal.ts";
+import {
+  type CardAxis,
+  type Entry,
+  type Gap,
+  type GapLabel,
+  type GapSource,
+  type Holder,
+  type Scope,
+  shown,
+} from "./traversal.ts";
 
 /** The words of an elision's `display`, in their canonical order (section 2). */
 export const ELISION_WORDS = ["ellipsis", "name", "id", "coordinate", "continuation"] as const;
 
 export type ElisionWord = (typeof ELISION_WORDS)[number];
 
-/** The three labels of an elision, in the order of their stack (section 5.3). */
-const LABEL_WORDS = ["name", "id", "coordinate"] as const;
+type LabelWord = GapLabel["word"];
 
-type LabelWord = (typeof LABEL_WORDS)[number];
+/** The three labels of an elision, in the order of their stack (section 5.3). */
+const LABEL_WORDS: readonly LabelWord[] = ["name", "id", "coordinate"];
 
 /** `Z`, the double nearest 5/7: the zoom at which a row of the default pitch 14 lies 10 from the next. */
 const LEGIBLE_ZOOM = 5 / 7;
@@ -176,109 +184,6 @@ function writtenIn(value: Rational, numberType: NumberType): Real {
   // `expressAs` refuses only an infinite float, which an exact value never is.
   if (written === undefined) throw new Error("an exact value is written in every number type");
   return typeof written === "bigint" ? Rational.fromParts(written, 1n) : written;
-}
-
-/** A label of a gap: its element's key, style and text, measured and cut to its `max-width`. */
-export interface GapLabel {
-  readonly word: LabelWord;
-  readonly address: ElementAddress;
-  readonly style: Style;
-  readonly text: string;
-  readonly width: number;
-}
-
-/**
- * What a gap draws, shared by every drawing of it (sections 2.4, 6.6 and
- * 8.9): its address and key, its cascaded style and its ellipses' (null
- * where it draws none), whether it draws continuations, its displayed
- * labels, the timeline it lies on with the elided coordinates of its piece
- * on that timeline's own axis, and the proportion its label stack is
- * centred on at full scale.
- */
-export interface GapSource {
-  readonly origin: GapOrigin;
-  readonly address: OwnerAddress;
-  readonly key: ElementKey;
-  readonly style: Style;
-  readonly ellipsis: Style | null;
-  readonly continuation: boolean;
-  readonly labels: readonly GapLabel[];
-  readonly timeline: TimelineManifest;
-  readonly start: Real;
-  readonly end: Real;
-  readonly um: number;
-  /** It belongs to a frame: drawn across it after every item, never by a card (section 8.5). */
-  readonly framed: boolean;
-}
-
-/** A gap of an elided axis (section 3.2), with its widths and its edges. */
-export interface Gap {
-  readonly source: GapSource;
-  /** Its stretch on the axis of the card's root: exact for a card's gap, `p × λ` for a frame's. */
-  readonly a: Real;
-  readonly b: Real;
-  /** The proportions of its ends. */
-  readonly ua: number;
-  readonly ub: number;
-  /**
-   * A frame's gap: the exact proportions of its ends (section 8.9, Carried gaps), each the exact
-   * quotient of the stretch's end on its member's axis and that member's length or reach (a
-   * float at its exact binary value), clipped to `[0, 1]`, or, where an earlier piece cut the
-   * stretch, that piece's exact end; `ua` and `ub` are the doubles nearest them. Absent on a
-   * card's gap.
-   */
-  readonly exact?: readonly [Rational, Rational];
-  /** Its natural width `n`, drawn width `g` and shrink `n − g`. */
-  readonly n: number;
-  readonly g: number;
-  readonly shrink: number;
-  /** `L × u − D` at its two ends: its edges `x(a)` and `x(b)` less `x0`. */
-  readonly left: number;
-  readonly right: number;
-  /** The timeline in the card whose markers band holds its label stack; none where it has none there. */
-  readonly entry: Entry | undefined;
-}
-
-/**
- * The elided axis of a card (section 3.2): its gaps from the left, its runs,
- * and the distance `L × u − D` of a position from the root's start, `D` the
- * shrinks of the gaps ending at or before it, summed from the left.
- */
-export interface CardAxis {
-  readonly gaps: readonly Gap[];
-  /**
-   * The positions of its seams, from the left: an ancestor card's room under its frame's borders
-   * (section 8.8, step 2), where its axis jumps right by the seam's width and nothing is left out.
-   */
-  readonly seams: readonly Real[];
-  readonly runs: readonly Run[];
-  /** The sum of every shrink, a seam's its negated width: `D` at the root's end, `DG` of a frame. */
-  readonly total: number;
-  /**
-   * `L × u − D` of a position in no gap; a position at a seam lies on the side of the seam that
-   * faces the protected span.
-   */
-  relative(value: Real): number;
-  /**
-   * `L × u − D` of a position as the end (`"before"`) or the start (`"after"`) of a run: at a seam
-   * on its left or its right side, elsewhere as `relative`.
-   */
-  relativeAt(value: Real, side: "before" | "after"): number;
-  /**
-   * `L × u − D` of a position as the start of a line, of a region or as a jump's target: at a
-   * seam that puts starts on its right side (between two anchors of a root drawn once, section
-   * 8.8), the start of the run right of it, elsewhere as `relative`.
-   */
-  startAt(value: Real): number;
-  /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
-  gapOf(value: Real): Gap | undefined;
-  /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
-  shrinkBefore(value: Real): number;
-  /**
-   * Whether a row spanning `start` to `end` (`null`: open, as the root's open end or an ancestor
-   * line running on to the right) crosses `gap`: its span holds the whole gap (section 6.6).
-   */
-  crosses(gap: Gap, start: Real, end: Real | null): boolean;
 }
 
 /** A gap to place on an axis: its stretch, its widths, what it draws. */

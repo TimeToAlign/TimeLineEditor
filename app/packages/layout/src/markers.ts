@@ -34,7 +34,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import { type Gap, type StackLabel, stackLabelBelow } from "./elisions.ts";
+import { type StackLabel, stackLabelBelow } from "./elisions.ts";
 import { type Extent, labelExtent } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue, negate } from "./numbers.ts";
@@ -42,6 +42,7 @@ import { type WedgeCorner, type WedgeOffset, wedgeCorners, wedgeSpan } from "./r
 import { carried, cut, gapOf, type Span, tiersOf } from "./stacks.ts";
 import {
   type Entry,
+  type Gap,
   known,
   type Measured,
   maxSize,
@@ -181,7 +182,7 @@ export interface MarkersBand extends PreparedBand {
    * Every named timestamp it holds, in the order it places them, with the abscissa of its
    * cross-section line at the line placed at `at`, whether or not that line is drawn: where the
    * alignment anchors joining its timestamp meet it (section 8.7), the card's span `span`; and
-   * that line's style; none at a position in a strip, which has no abscissa.
+   * that line's style; none at a position in a gap, which has no abscissa.
    */
   timestamps(at: LinePosition, span: Span): AxisTimestamp[];
   /**
@@ -224,7 +225,7 @@ export interface MarkersBand extends PreparedBand {
  * its wedge carries it. A cross-section line is held by its timeline's line,
  * not by the band: it is drawn when its timestamp's `display` lists it and
  * its own display is `inline`, whatever the band's, and takes no room. A
- * wedge, its labels and its cross-section line at a position in a strip are
+ * wedge, its labels and its cross-section line at a position in a gap are
  * not drawn (section 6.6, Elisions), and that position takes its room all the
  * same.
  */
