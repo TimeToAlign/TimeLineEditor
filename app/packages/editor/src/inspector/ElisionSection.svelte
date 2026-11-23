@@ -21,7 +21,7 @@
  * the inspector's `PropertyDrafts`; every action is one command.
  */
 import type { Subject } from "@timetoalign/tilie-arranger";
-import type { Address, Block, Command, Store } from "@timetoalign/tilie-core";
+import type { Address, Block, Command, Store, View } from "@timetoalign/tilie-core";
 import { addressKey, sameAddress } from "@timetoalign/tilie-core";
 import type { Drawing, WidthForm } from "@timetoalign/tilie-layout";
 import type { ElisionField, ElisionForm, ElisionRow, ElisionWord, ModeOption } from "./elisions.ts";
@@ -49,6 +49,7 @@ import type { ElisionDraftField, ElisionOwner, PropertyDrafts } from "./property
 import DisplayToggles from "./stamps/DisplayToggles.svelte";
 
 let {
+  view,
   store,
   block,
   subjects,
@@ -57,6 +58,8 @@ let {
   drafts,
   onselect,
 }: {
+  /** The workspace as the store holds it now, `block` among its blocks. */
+  view: View;
   store: Store;
   block: Block;
   /** The selection, resolved. */
@@ -72,7 +75,7 @@ let {
 
 const uid = $props.id();
 
-const root = $derived(rootElisionsOf(block, subjects, drawing));
+const root = $derived(rootElisionsOf(view, block, subjects, drawing));
 const group = $derived(groupElisionsOf(block, subjects, drawing, edited));
 const form = $derived(elisionFormOf(block, subjects, drawing));
 

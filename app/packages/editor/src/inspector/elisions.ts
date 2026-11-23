@@ -16,7 +16,15 @@
  * read-only, never edited.
  */
 
-import type { Subject } from "@timetoalign/tilie-arranger";
+import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
+import {
+  cardAxisAt,
+  defaultsRemoval,
+  defaultsStored,
+  exposureAt,
+  piecesOf,
+  stretchText,
+} from "@timetoalign/tilie-arranger";
 import type {
   AddCommand,
   Address,
@@ -32,6 +40,7 @@ import type {
   SetCommand,
   StyleCommand,
   TimelineManifest,
+  View,
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
@@ -48,7 +57,6 @@ import {
   parseAxisValue,
   prettyText,
   prettyUnit,
-  sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
 import { memberDrawings, reachOf } from "@timetoalign/tilie-core/drawing";
@@ -209,7 +217,7 @@ export interface RootElisions {
     /** One `add` of an elision at the middle of the subject's timeline; `null` where none fits. */
     readonly add: AddCommand | null;
     /** One `remove` of every card elision of `R`; `null` without one. */
-    readonly removeAll: RemoveCommand | null;
+    readonly removeAll: Command | null;
   } | null;
 }
 
@@ -268,21 +276,36 @@ export interface ElisionForm {
 /** What a typed field or a chosen form gives: the command, `null` where it changes nothing, or a refusal. */
 export type ElisionEdit = Result<Command | null>;
 
-// --- Reading the exposure (the arranger's gap readers replace these after the merge) --------------
+// --- Reading the exposure -----------------------------------------------------------------------
 
-/** The exposure of the container at `key` in `drawing`: a card's, an ancestor card's or a frame's. */
-export function exposureOf(drawing: Drawing, key: PlaceKey): ElisionExposure | undefined {
-  return drawing.elisions.find((exposure) => samePlaceKey(exposure.key, key));
+/**
+ * The gaps of the elision at `address` that `drawing` draws in the
+ * container `exposure` records, from the left: the arranger's pieces of it
+ * held by that container.
+ */
+function gapsIn(
+  drawing: Drawing,
+  exposure: ElisionExposure,
+  address: ElementAddress,
+): ExposedGap[] {
+  return piecesOf(drawing, address)
+    .filter((piece) => samePlaceKey(piece.exposure.key, exposure.key))
+    .map((piece) => piece.gap);
 }
 
-/** The gaps at `address` an exposure draws, from the left: the pieces of one elision. */
-export function gapsOf(exposure: ElisionExposure, address: ElementAddress): ExposedGap[] {
-  return exposure.gaps.filter((gap) => sameAddress(gap.address, address));
-}
-
-/** The graphical length `L` a card's or frame's gaps are read with: its full runs' scale. */
-export function lengthOf(exposure: ElisionExposure): number {
-  return exposure.runs[0]?.L ?? 0;
+/**
+ * What the width of a gap of `timeline` in the container of `axis` is read
+ * with (layout's `widthAs`): the container's full scale `L` and the length or
+ * reach `λ` of the timeline its axis reads `timeline` on; `null` where the
+ * axis does not draw `timeline`.
+ */
+function widthScale(
+  axis: CardAxis | null,
+  timeline: string,
+): { readonly L: number; readonly lambda: Real } | null {
+  const base = axis?.baseOf(timeline) ?? null;
+  if (axis === null || base === null) return null;
+  return { L: axis.exposure.runs[0]?.L ?? 0, lambda: base.lambda };
 }
 
 // --- Values ---------------------------------------------------------------------------------------
@@ -313,15 +336,6 @@ function axisValueAt(value: Real, timeline: TimelineManifest): AxisValue | undef
 /** A value of the axis of `timeline` as an exact coordinate value; `undefined` where it does not fit. */
 function valueAt(value: Real, timeline: TimelineManifest): CoordinateValue | undefined {
   return exactCoordinate(value, timeline.unit, timeline.number_type)?.value;
-}
-
-/** The pretty text `start–end` of a stretch on `timeline`'s axis, the unit after the end. */
-function stretchText(start: Real, end: Real, timeline: TimelineManifest): string {
-  const { number_type: numberType, unit } = timeline;
-  const from = valueAt(start, timeline);
-  const to = valueAt(end, timeline);
-  if (from === undefined || to === undefined) return "";
-  return `${prettyText(from, numberType, unit === "seconds" ? unit : null)}–${prettyText(to, numberType, unit)}`;
 }
 
 /** The text a field shows of an exact value: as Copy writes it, so that typing it back gives it. */
@@ -569,7 +583,7 @@ function exposedRows(block: Block, gaps: readonly ExposedGap[]): ElisionRow[] {
         address,
         name: stored.name ?? "—",
         timeline: nameOf(timeline),
-        stretch: pieces.map((gap) => stretchText(gap.start, gap.end, timeline)).join(", "),
+        stretch: pieces.map((gap) => stretchText(timeline, gap.start, gap.end)).join(", "),
         note: null,
         remove: { type: "remove", targets: [address] },
       },
@@ -593,7 +607,7 @@ function storedRows(
         address,
         name: elision.name ?? "—",
         timeline: nameOf(timeline),
-        stretch: stretchText(start, end, timeline),
+        stretch: stretchText(timeline, start, end),
         note,
         remove: { type: "remove", targets: [address] },
       },
@@ -610,33 +624,6 @@ function removalOf(block: string, elisions: readonly Elision[]): RemoveCommand |
   };
 }
 
-/**
- * The `add` storing the default elisions an ancestor card draws, as drawn
- * (drawing.md section 8.9, Modes; the switch from Proportional to Custom):
- * one entry per gap, its elided coordinates exact, `{canvas: g}` where its
- * drawn width is not the standard 32, the card's `elision-display`, no name;
- * `null` where the card draws none.
- */
-export function defaultsStored(block: Block, exposure: ElisionExposure): AddCommand | null {
-  const elision = exposure.gaps.flatMap((gap) => {
-    if (gap.origin !== "default") return [];
-    const timeline = findTimeline(block.manifest, gap.timeline);
-    const start = timeline && axisValueAt(gap.start, timeline);
-    const end = timeline && axisValueAt(gap.end, timeline);
-    if (start === undefined || end === undefined) return [];
-    return [
-      {
-        timeline: gap.timeline,
-        start,
-        end,
-        ...(gap.drawn === 32 ? {} : { width: { canvas: gap.drawn } }),
-        display: [...exposure.display],
-      },
-    ];
-  });
-  return elision.length === 0 ? null : { type: "add", into: { block: block.id }, elision };
-}
-
 /** The mode a root's exposure shows; Hidden where its card is not drawn. */
 function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): RootMode {
   if (exposure === undefined) return "hidden";
@@ -646,7 +633,9 @@ function rootModeOf(exposure: ElisionExposure | undefined, ancestor: boolean): R
 
 /** The options of a root's radio group (drawing.md section 8.9, Modes; one switch, one entry). */
 function rootOptions(
+  view: View,
   block: Block,
+  drawing: Drawing,
   of: RootOf,
   mode: RootMode,
   exposure: ElisionExposure | undefined,
@@ -664,8 +653,11 @@ function rootOptions(
     commands: target === mode || reason !== null ? [] : commands,
     reason,
   });
-  const defaults =
-    mode === "proportional" && exposure !== undefined ? defaultsStored(block, exposure) : null;
+  const persisted =
+    mode === "proportional" && exposure !== undefined
+      ? defaultsStored(view, block.id, drawing, of.key)
+      : null;
+  const defaults = persisted === null || "refused" in persisted ? null : persisted;
   const custom: Command[] = stored
     ? [style({ "elision-mode": null, display: null })]
     : defaults !== null
@@ -782,7 +774,7 @@ function arrangedGaps(
       {
         key: JSON.stringify([left, right]),
         between: `between "${groupName(manifest, left)}" and "${groupName(manifest, right)}"`,
-        stretch: seam ? `seam at ${point}` : stretchText(gap.start, gap.end, of.root),
+        stretch: seam ? `seam at ${point}` : stretchText(of.root, gap.start, gap.end),
       },
     ];
   });
@@ -821,13 +813,14 @@ function undrawnBetween(manifest: Manifest, of: RootOf, exposure: ElisionExposur
  * is an ungrouped root; `null` otherwise.
  */
 export function rootElisionsOf(
+  view: View,
   block: Block,
   subjects: readonly Subject[],
   drawing: Drawing,
 ): RootElisions | null {
   const of = rootOf(block, subjects, drawing);
   if (of === null) return null;
-  const exposure = exposureOf(drawing, of.key);
+  const exposure = exposureAt(drawing, of.key);
   if (exposure === undefined && !of.ancestor) return null;
   const root = of.root.id;
   const { manifest } = block;
@@ -855,7 +848,7 @@ export function rootElisionsOf(
             ...storedRows(block, undrawnBetween(manifest, of, exposure), NOT_DRAWN_ARRANGED),
           ],
           add: addOnRoot(block, of),
-          removeAll: removalOf(block.id, elisionsUnder(manifest, root)),
+          removeAll: defaultsRemoval(view, block.id, root),
         }
       : null;
   const name = nameOf(of.root);
@@ -866,7 +859,7 @@ export function rootElisionsOf(
     address: inBlock(block.id, { id: root, part: ["card"] }),
     manifest,
     mode,
-    options: rootOptions(block, of, mode, exposure),
+    options: rootOptions(view, block, drawing, of, mode, exposure),
     arranged: arrangedGaps(manifest, of, exposure),
     proportional,
     custom,
@@ -1007,7 +1000,7 @@ export function groupElisionsOf(
     group = concerned;
   }
   if (group === null) return null;
-  const exposure = exposureOf(drawing, { item: group });
+  const exposure = exposureAt(drawing, { item: group });
   const found = manifest.groups.find((each) => each.id === group);
   if (exposure === undefined || found === undefined) return null;
   const mode: FrameMode = exposure.drawn === "custom" ? "custom" : "full";
@@ -1101,36 +1094,30 @@ function storedGap(
   if (holding.length > 0) {
     const framed = groupsBehind(subject.box);
     const group = holding.find((each) => framed.includes(each.id)) ?? holding[0];
-    const exposure = group === undefined ? undefined : exposureOf(drawing, { item: group.id });
-    const lineage = indexOf(manifest).ancestry.get(elision.timeline) ?? [];
-    const member = lineage.find((id) => group?.members.includes(id));
-    const holder = member === undefined ? undefined : findTimeline(manifest, member);
-    const [gap] = exposure === undefined ? [] : gapsOf(exposure, address);
+    const exposure = group === undefined ? undefined : exposureAt(drawing, { item: group.id });
+    const [gap] = exposure === undefined ? [] : gapsIn(drawing, exposure, address);
     const also = (gap?.members ?? [])
       .filter((each) => each.timeline !== elision.timeline)
       .flatMap((each) => {
         const on = findTimeline(manifest, each.timeline);
         if (on === undefined) return [];
         const stretch =
-          each.start === null || each.end === null ? "—" : stretchText(each.start, each.end, on);
+          each.start === null || each.end === null ? "—" : stretchText(on, each.start, each.end);
         return [{ timeline: nameOf(on), stretch }];
       });
-    if (exposure === undefined || gap === undefined || holder === undefined) {
-      return { gap: null, also };
-    }
-    return {
-      gap: { gap, L: lengthOf(exposure), lambda: extentOf(holder, manifest) },
-      also,
-    };
+    const scale =
+      group === undefined
+        ? null
+        : widthScale(cardAxisAt(manifest, drawing, { item: group.id }), elision.timeline);
+    if (gap === undefined || scale === null) return { gap: null, also };
+    return { gap: { gap, ...scale }, also };
   }
   const of = rootOf(block, [subject], drawing);
-  const exposure = of === null ? undefined : exposureOf(drawing, of.key);
-  const [gap] = exposure === undefined ? [] : gapsOf(exposure, address);
-  if (of === null || exposure === undefined || gap === undefined) return { gap: null, also: null };
-  return {
-    gap: { gap, L: lengthOf(exposure), lambda: extentOf(of.root, manifest) },
-    also: null,
-  };
+  const exposure = of === null ? undefined : exposureAt(drawing, of.key);
+  const [gap] = exposure === undefined ? [] : gapsIn(drawing, exposure, address);
+  const scale = of === null ? null : widthScale(cardAxisAt(manifest, drawing, of.key), of.root.id);
+  if (gap === undefined || scale === null) return { gap: null, also: null };
+  return { gap: { gap, ...scale }, also: null };
 }
 
 /**
@@ -1179,17 +1166,18 @@ export function elisionFormOf(
     return null;
   }
   const of = rootOf(block, subjects, drawing);
-  const exposure = of === null ? undefined : exposureOf(drawing, of.key);
+  const exposure = of === null ? undefined : exposureAt(drawing, of.key);
   // A gap or seam the arrangement cuts has a default elision's address, but no form: it is read-only.
   const [gap] =
     exposure === undefined
       ? []
-      : gapsOf(exposure, { id: resolved.owner.at.timeline.id, part: ["elision"] }).filter(
+      : gapsIn(drawing, exposure, { id: resolved.owner.at.timeline.id, part: ["elision"] }).filter(
           (each) => each.origin === "default",
         );
   const timeline = resolved.owner.at.timeline;
-  if (of === null || exposure === undefined || gap === undefined) return null;
-  const shown = { gap, L: lengthOf(exposure), lambda: extentOf(of.root, manifest) };
+  const scale = of === null ? null : widthScale(cardAxisAt(manifest, drawing, of.key), of.root.id);
+  if (exposure === undefined || gap === undefined || scale === null) return null;
+  const shown = { gap, ...scale };
   return {
     block,
     address,

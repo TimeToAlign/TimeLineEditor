@@ -255,6 +255,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 
 {#if elided !== null}
   <ElisionSection
+    {view}
     {store}
     block={elided.block}
     {subjects}

@@ -61,7 +61,7 @@ function drawn(store: Store) {
 }
 
 function rootOf(store: Store, ...elements: ElementAddress[]): RootElisions | null {
-  return rootElisionsOf(blockOf(store), subjectsOf(store, elements), drawn(store));
+  return rootElisionsOf(store.view, blockOf(store), subjectsOf(store, elements), drawn(store));
 }
 
 function groupOf(
@@ -716,7 +716,12 @@ describe("a root drawn once behind a row side by side", () => {
   }
 
   function arrangedRoot(store: Store, ...elements: ElementAddress[]): RootElisions | null {
-    return rootElisionsOf(blockOf(store), subjectsOf(store, elements), sideBySide(store));
+    return rootElisionsOf(
+      store.view,
+      blockOf(store),
+      subjectsOf(store, elements),
+      sideBySide(store),
+    );
   }
 
   function dispatched(...commands: Command[]): Store {
@@ -813,6 +818,7 @@ describe("a root drawn once behind a row side by side", () => {
     const app = mount(ElisionSection, {
       target: document.body,
       props: {
+        view: store.view,
         store,
         block: blockOf(store),
         subjects: subjectsOf(store, [{ id: "take_b" }]),
