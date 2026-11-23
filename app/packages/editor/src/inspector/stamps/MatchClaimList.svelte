@@ -21,6 +21,7 @@ import { eventsFailure, provenanceFailure } from "../../matchClaims.svelte.ts";
 import { informOf, warnOf } from "../../messages.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import { claimEntryLine, entryOf, followedMatch } from "../claimProvenance.ts";
+import DisclosureButton from "../DisclosureButton.svelte";
 import type { ClaimLine, MatchIndexes, ShownStamp, SideLine } from "../matchstamps.ts";
 import { claimDetails } from "../matchstamps.ts";
 import { dayOf } from "../metadata/edits.ts";
@@ -147,9 +148,10 @@ function readOf(id: string): ClaimProvenanceEntry | null | undefined {
   return provenanceRead?.fulfilled ? entryOf(provenanceRead.value, id) : undefined;
 }
 
-function toggle(id: string): void {
-  if (expanded.has(id)) expanded.delete(id);
-  else expanded.add(id);
+/** Expand MatchClaim `id`, or collapse it. */
+function setExpanded(id: string, open: boolean): void {
+  if (open) expanded.add(id);
+  else expanded.delete(id);
 }
 
 /**
@@ -228,18 +230,13 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     {#each claims as claim, index (claim.id)}
       {@const open = expanded.has(claim.id)}
       <li data-claim={claim.id}>
-        <button
-          type="button"
-          class="toggle"
-          aria-expanded={open}
-          aria-controls="{uid}-claim-{index}"
-          onclick={() => toggle(claim.id)}
+        <DisclosureButton
+          bind:expanded={() => open, (next) => setExpanded(claim.id, next)}
+          controls="{uid}-claim-{index}"
+          fill={false}
         >
-          <svg class="chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-            <path d="M6 3.5 10.5 8 6 12.5" />
-          </svg>
           <code class="stamp-code">{claim.id}</code>
-        </button>
+        </DisclosureButton>
         <div class="claim" id="{uid}-claim-{index}" hidden={!open}>
           {#if !claim.held}
             <p class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</p>
@@ -277,44 +274,6 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.1rem 0;
-    border: none;
-    background: none;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .toggle:focus-visible {
-    outline: 2px solid #0a84ff;
-    outline-offset: 1px;
-  }
-
-  .chevron {
-    flex: none;
-    fill: none;
-    stroke: #1d4f91;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 120ms ease-out;
-  }
-
-  .toggle[aria-expanded="true"] .chevron {
-    transform: rotate(90deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .chevron {
-      transition: none;
-    }
   }
 
   /* A MatchClaim expanded, under its ID. */

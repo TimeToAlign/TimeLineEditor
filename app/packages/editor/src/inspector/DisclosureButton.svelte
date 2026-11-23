@@ -5,7 +5,8 @@
  * or Space) shows or hides the region; `expanded` is bindable, so the
  * caller decides where the state lives. The caller wraps it in its heading
  * and renders the region with `controls` as its ID, `hidden` while
- * collapsed. The Metadata tab's tiles and the Elisions tab's blocks share it.
+ * collapsed. The Metadata tab's tiles, the Elisions tab's blocks and the
+ * Matchstamp tab's MatchClaims share it.
  */
 import type { Snippet } from "svelte";
 
@@ -13,6 +14,7 @@ let {
   expanded = $bindable(false),
   controls,
   testid,
+  fill = true,
   children,
 }: {
   /** Whether the region is shown. */
@@ -21,6 +23,8 @@ let {
   controls: string;
   /** The button's `data-testid`, where tests read it. */
   testid?: string | undefined;
+  /** Whether the button spans its container's width (a tile's heading); else as wide as its words. */
+  fill?: boolean;
   /** The words after the chevron, which name the button. */
   children: Snippet;
 } = $props();
@@ -28,7 +32,7 @@ let {
 
 <button
   type="button"
-  class="disclosure"
+  class={["disclosure", { fill }]}
   data-testid={testid}
   aria-expanded={expanded}
   aria-controls={controls}
@@ -45,7 +49,6 @@ let {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    width: 100%;
     padding: 0.1rem 0;
     border: none;
     background: none;
@@ -53,6 +56,10 @@ let {
     color: inherit;
     text-align: left;
     cursor: pointer;
+  }
+
+  .fill {
+    width: 100%;
   }
 
   .disclosure:focus-visible {
