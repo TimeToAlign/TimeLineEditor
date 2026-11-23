@@ -159,7 +159,7 @@ from its sentence: the card spacing `S`'s default, 4 ("With the default `S
 card", section 8.6, which states the card's 4 again); and the initial
 `rotation`, 0, and the four elision properties' initial values, the last of
 section 2.5's ("`rotation` 0, `elision-mode` `auto`, `elision-proportion`
-`auto`, `elision-depths` `auto`, `elision-display` `ellipsis`."): no wedge
+`auto`, `elision-depths` `auto`, `elision-display` `ellipsis name`."): no wedge
 has another initial rotation, a secondary coordinate's −45 being a default
 rule's (section 4). The table's last two rows are the standard gap of an
 elision, 32, and an ellipsis's dot radius 2, dot spacing 6 and narrowest
@@ -222,10 +222,8 @@ timestamp's own line in its card; the pieces themselves are counted under
 "Groupstamps". Without core's frame keys `groups/group_groupstamp` fails:
 `timestamp_1`'s line is drawn twice (its own line in `score`'s card and
 `group_1`'s pieces). A gap of an elision is one drawing of the card or
-the frame it lies in, and its ellipses, written after it (section 8.5),
-are one drawing with it: core lists one ellipsis key per gap, standing for
-all its ellipses (`bundle_elisions_stored`, `bundle_groupstamp_shared_member`
-and `group_elided_members` draw several on one gap). An address drawn
+the frame it lies in, and its one ellipsis, written after it (section
+8.5), is one drawing with it: core lists one ellipsis key per gap. An address drawn
 twice matches `inside` by each drawing's own holders: in
 `group_child_member` without the default layer (so the secondary
 coordinates shown) and with its ancestor card hidden by a rule, the
@@ -1093,11 +1091,12 @@ card's axis has a seam at each end of the protected span, where it jumps
 right without leaving anything out, `OL = s0` wide at its start (the
 frame's left edge lies at 0 in item coordinates) and `OR = Fw − (s0 +
 L')` wide at its end, `Fw` the frame's width; a position at a seam lies
-on the span's side, but a line's own start, a region's start and a jump's
-target at the span's end, which lie right of it (one seam concept with the
-seams of a root drawn once, "Arrangements" point 4: a jump of the card's
-axis that leaves out nothing and draws nothing, no rectangle, ellipsis,
-continuation or label, and that the exposure lists as no gap). So `dx = xs + DL − s0'` with `DL` counting `−OL`:
+on the span's side (one seam concept with the seams of a root drawn once,
+"Arrangements" point 4, section 3.2: a jump of the card's axis that leaves
+out nothing and draws nothing, no rectangle, ellipsis, continuation or
+label, that the exposure lists as no gap; only a seam between two anchors
+puts a line's start, a region's start and a jump's target at it on its
+right side). So `dx = xs + DL − s0'` with `DL` counting `−OL`:
 everything left of the span, the card's names and left edge included,
 lies `OL` further left than without the seams, the span stays over the
 member's line, everything right of it lies `OR` further right, and the
@@ -1364,9 +1363,19 @@ a container decides of its elisions is read from the drawing's
 `elisions` (one record per ungrouped root's card, drawn ancestor card and
 frame: its cascaded and resolved mode, its proportion and depths, its gaps
 with their origin, elided coordinates and widths, and its runs); what it
-draws, from the elements: a gap writes an `elision` element, its rows'
-ellipses `ellipsis` elements and its labels `label` elements, the gap's
-rectangle being its extent whether it is filled or not.
+draws, from the elements: a gap writes an `elision` element, its one
+ellipsis an `ellipsis` element and its labels `label` elements, the gap's
+rectangle being its extent whether it is filled or not. **One ellipsis per
+gap** (section 6.6): a gap draws, where its display lists `ellipsis` and it
+is at least 20 wide, exactly one, at its middle `xm = (x(a) + x(b)) / 2`
+and the middle `ym = (yt + yb) / 2` of the card drawing it (of a frame's
+member cards together for a group elision); its labels, whether or not the
+ellipsis is drawn, are centred on `xm` just below it, the `i`-th with its
+baseline at `ym + 2 + 2 + (i − 1) × h(9) + a(9)` (`a(9) = 1901 × 9 / 2048 =
+8.35400390625`, `h(9) = 2384 × 9 / 2048 = 10.4765625`), their room still
+taken in the markers band of their timeline (section 6.4). The defaults
+name every elision: `elision-display` starts as `ellipsis name`, a stored
+elision without `display` draws `["ellipsis", "name"]`.
 
 1. **Derived elisions with their middles left out** (`group_elided_inside`,
    `auto` read as `proportional`): `r = 0.14285714285714285`, set by (a);
@@ -1376,12 +1385,20 @@ rectangle being its extent whether it is filled or not.
    `0.8228571428571427`, round outwards to their own ends), natural 400 and
    800, drawn `57.14285714285714` and `114.28571428571428`; `second` 1–31,
    its natural width `1500` (30 quarters at 50 canvas units each), drawn
-   `128.57142857142856` = `W − 50 − 50`. Each gap draws one ellipsis on each
-   row crossing it, `piece`'s and its own timeline's (two each), no label
-   (`elision-display` `ellipsis`), no continuation; it writes no rectangle
-   (its `fill` is `none`). `piece`'s line in the card is cut at all three
-   gaps, `first`'s at its two (it starts at the first's edge and ends at the
-   second's), `second`'s at its one.
+   `128.57142857142856` = `W − 50 − 50`. Each gap draws one ellipsis at the
+   middle of the card, which reaches from 16.23046875 to 113.5859375, so at
+   `ym = 64.908203125`, and its name label (`elision-display` `ellipsis
+   name`) below it, `First` twice and `Second`, the baseline at `ym + 4 +
+   a(9) = 77.26220703125`; no continuation; it writes no rectangle (its
+   `fill` is `none`). `piece`'s line in the card is cut at all three gaps,
+   `first`'s at its two (it starts at the first's edge and ends at the
+   second's), `second`'s at its one. The labels take their room in the
+   markers band of `first` and `second`, below their row, between it and
+   `piece`'s line: `first` lies `7 + (w/2 + 13 + 2 + h(9)) = 7 + 26.9765625`
+   above `piece` on the card behind, while in `excerpt`'s card its ancestor
+   line keeps 14 from `piece`'s, `dr` counting no derived stack (section
+   8.3, the exception of a derived elision's labels); `piece`'s line and
+   its ancestor line lie at one height.
 2. **Middles on a fraction axis** (`bundle_elided_layerit`, the card of
    `clt_1` behind `group_3`): `r = 0.016991818753933293`; the gaps leave out
    Prelude 1–355, Menuet 1–311, Clair de Lune 28–323 and Passepied 4–620,
@@ -1404,11 +1421,15 @@ rectangle being its extent whether it is filled or not.
    `elision_2` (`7/12` to `3/4`, exact): `excerpt` 28/3–12, `piece`
    76/3–28, `voice` 14–18, `phrase` 2–6 (14–18 less its offset 12),
    `sketch` none. `elision_1`'s label stack, `Development`
-   and `2–8 ♩`, is drawn once (in `excerpt`'s markers band of the frame);
-   `elision_2` draws no label. Its gap's ellipses lie on every row of the
-   three cards that crosses it: `elision_1` on `piece`'s ancestor line and
-   `excerpt`'s line (its card), `voice` and `sketch`, four; `elision_2` on
-   those and `phrase`, five. The groupstamp `timestamp_1` at 15 of `voice`
+   and `2–8 ♩`, is drawn once, its room in `excerpt`'s markers band;
+   `elision_2`, which states no `display`, draws its name `Phrase`, its
+   room in `phrase`'s band. Each gap across the frame draws one ellipsis,
+   centred on the member cards together, from the top of `excerpt`'s card,
+   32.8046875, to the bottom of `sketch`'s, `210.61328125 + 49.37890625`, at
+   `ym = 146.3984375`, its labels below it at `ym + 4 + a(9)` and `ym + 4 +
+   h(9) + a(9)`; carried into the ancestor card (46.68359375 to
+   130.63671875) each draws one more, at that card's middle
+   88.66015625, and no label. The groupstamp `timestamp_1` at 15 of `voice`
    lies in the second gap: no element carries its address; `timestamp_2` at
    21 is drawn, its frame line over `sketch` faded (opacity 0.35).
 4. **The ancestor card behind a frame with group elisions** (`piece` in
@@ -1443,8 +1464,8 @@ rectangle being its extent whether it is filled or not.
    (natural 80, drawn 32), `elision_5` (800, 200 by `{span: 4}`) and
    `elision_6` clipped to 48–56 (400, 30 by `{canvas: 30}`); `elision_1`
    (on `coda`, whose line a rule hides) is not drawn. `elision_4` draws its
-   ellipsis, its `id` label `elision_4` and a continuation on each of its
-   rows; `elision_5` its `name` label `Development` alone; `elision_6`
+   one ellipsis at the middle of its gap and of its card, its `id` label
+   `elision_4` and a continuation on each row whose line or map it cuts; `elision_5` its `name` label `Development` alone; `elision_6`
    nothing but its gap. `session`'s card (`full`) draws the carried
    `elision_3` alone, `elision_7` kept. The frame's gap of `elision_3`:
    natural 80, drawn 32, on `theme` 0–8/5. `page`'s ungrouped card draws
@@ -1565,16 +1586,17 @@ rectangle being its extent whether it is filled or not.
    run ends at its own 2 and its second starts at 6. Read at the double's
    exact binary value, the second run would end at
    15762598695796737/1125899906842624 instead of 14.
-14. **An ellipsis on each line, none on a map** (section 6.6, Elisions, as
-   this package draws it: maps lie a slot pitch `g + d = 5` apart, closer
-   than an ellipsis is high, so their dots would merge into a block). In
-   `bundle_shared_parent`, drawn with the defaults, each of `score`'s two
-   ancestor cards derives one gap that cuts `score`'s line and its map
-   `cmap_1` (the line and the map list the gap among their cuts): each gap
-   draws one ellipsis, at `score`'s line's ordinate (127.234375 behind
-   `group_1`, 353.421875 behind `group_2`, the ordinates of point 11 of
-   "Ancestor cards"), centred on the gap's middle, and none at `cmap_1`'s
-   centre 5.5 above it. The map still stops and resumes at the gap.
+14. **One ellipsis per gap, on no row** (section 6.6). Over every manifest
+   fixture drawn with the defaults, each drawing of a gap in a member,
+   block-held card or across a frame writes at most one ellipsis, at
+   `(xm, ym)`, none in a gap narrower than 20, and its labels at `xm` with
+   the baselines above (an ancestor card's elements are drawn in its own
+   coordinates and moved, so its middles are the moved ones: its gaps are
+   covered by points 1, 3 and 16). In `bundle_shared_parent` each of
+   `score`'s two ancestor cards derives one gap cutting `score`'s map
+   `cmap_1` and its line (121.734375 and 127.234375, 347.921875 and
+   353.421875): its one ellipsis lies at the middle of its card, not on a
+   row, its name `Score` below it.
 15. **The frame's room** ("Ancestor cards", The frame's room). In
    `group_elided_inside` (`r` and the gaps of point 1), the ancestor card
    of `piece` has a seam at each end of `excerpt`'s span, 8 and 16 on
@@ -1587,6 +1609,16 @@ rectangle being its extent whether it is filled or not.
    `excerpt`'s line, from `x0` to `x0 + L'`: what lies outside the span
    lies outside the frame. No gap, ellipsis or label is drawn for a seam:
    the card draws the three gaps of point 1 alone.
+16. **An ancestor card of length 0** (`warnings/several_depths`, its
+   manifest: `perf`, of unknown length and no reach, the one member of
+   `together`, a child of `score` (32 quarters) at 4). `perf` draws at
+   length 0, so `score`'s card behind the frame does too, `LA = 0`, and
+   `r = (λ / E) × (L' / L) = 0` (`L' = 0`). Its derived pieces 0–4 and
+   4–32 have the natural width `n = LA × Δu = 0`, so `W = r × n = 0`, `h =
+   0` and nothing of either is kept: each is elided whole, `start` and
+   `end` its own ends, natural and drawn width 0, `x(b) − x(a) = 0`; the
+   offset `h / k` is 0 where `h` is 0, never `0 / 0` (`k = n / (b − a) =
+   0`), so the drawing does not fail.
 
 ## Arrangements (`arrangement.test.ts`)
 
@@ -1623,12 +1655,20 @@ specification orders the operations.
    frames at 34.57421875; Exposition (`group_1`) and Recapitulation are
    232.94140625 high, Development 157.5625, the card of `take_a` padded to
    `y` 192.13671875 (34.57421875 + 157.5625), as `take_b`'s; the block is
-   2429.560546875 × 275.515625, its origin `(0, 0)`. Two ancestor cards are
+   2429.560546875 × 289.4921875, its origin `(0, 0)` (its bottom the once
+   card of `session`'s, 279.4921875, plus the shadow 2 and `P`). Two ancestor cards are
    recorded, the once cards, each the card behind `group_1`: `score`'s at
    `(463.9765625, 28.8046875)`, 1934.863037109375 × 97.35546875, its
    `ancestor` `{group: group_1, member: exposition, groups: [group_1,
    group_2, group_3]}`, then `session`'s at `(525.13720703125, 195.5390625)`,
-   1873.42333984375 × 63.37890625, `groups: [group_1, group_3]`; no other
+   1873.42333984375 × 83.953125, `groups: [group_1, group_3]`: its gap's
+   name label `Session` (section 6.6, the default `elision-display`
+   `ellipsis name`) takes its room in `session`'s markers band, below the
+   line by the default band order and empty without it, which is so
+   present and `w/2 + 13 + 2 + h(9) = 1.5 + 13 + 2 + 10.4765625 =
+   26.9765625` wide, more than the name's half height `h(11)/2 =
+   6.40234375` it replaces below the line: `63.37890625 − 6.40234375 +
+   26.9765625`, the line still `48.9765625` below the card's top; no other
    ancestor card is recorded or written. Both lie `s1 × OL` further left
    than their first stretch puts them, and are as much wider: the room
    `OL = x0 = 127.39013671875` `group_1`'s frame leaves left of its member
@@ -1652,7 +1692,11 @@ specification orders the operations.
    `session`'s line, at 244.515625, has two runs, 0.0–33.0 to
    1190.7802734375 and 44.0–130.0 from 1234.8938802083335, its gap of
    origin `arrangement` eliding 33.0 to 44.0 (floats, the session's axis
-   being float) with one ellipsis on the line at 1212.8370768229167.
+   being float) with its one ellipsis at `(1212.8370768229167,
+   237.515625)`, the middle of the card's height `(195.5390625 +
+   279.4921875) / 2`, and its label `Session` centred on the same `x`
+   with its baseline at `237.515625 + 2 + 2 + a(9) = 249.86962890625`,
+   `a(9) = 1901 × 9 / 2048 = 8.35400390625`.
 5. **The fallback**: `bundle_arranged_conflict` asked `horizontal` is
    refused: the drawing states `{direction: horizontal, row: [group_1,
    group_2], roots: [], refused: {groups: [group_1, group_2], roots:

@@ -134,7 +134,7 @@ describe("horizontal, the worked example of section 8.8", () => {
       drawing.boxes.find((box) => box.key?.item === item && box.key.member === member)?.y;
     expect(card("group_1", "take_a")).toBe(192.13671875);
     expect(card("group_3", "take_b")).toBe(192.13671875);
-    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 275.515625]);
+    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 289.4921875]);
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
   });
   it("draws each root once, behind the first group hanging on it", () => {
@@ -151,7 +151,7 @@ describe("horizontal, the worked example of section 8.8", () => {
         525.13720703125,
         195.5390625,
         1873.42333984375,
-        63.37890625,
+        83.953125,
         { group: "group_1", member: "take_a", groups: ["group_1", "group_3"] },
       ],
     ]);
@@ -193,7 +193,16 @@ describe("horizontal, the worked example of section 8.8", () => {
     expect(lines).toEqual([[750.7802734375, 2381.560546875, []]]);
     const ellipses = drawing.elements.filter((element) => element.type === "ellipsis");
     expect(ellipses.map((each) => (each.type === "ellipsis" ? [each.x, each.y] : []))).toEqual([
-      [1212.8370768229167, 244.515625],
+      [1212.8370768229167, 237.515625],
+    ]);
+    // Its name label, centred just below it (section 6.6).
+    const label = drawing.elements.find(
+      (element) => element.type === "label" && element.address.id === "session",
+    );
+    expect(label?.type === "label" && [label.x, label.baseline, label.text]).toEqual([
+      1212.8370768229167,
+      249.86962890625,
+      "Session",
     ]);
   });
 });
@@ -217,4 +226,3 @@ describe("a refused horizontal arrangement", () => {
     expect(rest).toEqual(drawn("bundle_arranged_conflict"));
   });
 });
-

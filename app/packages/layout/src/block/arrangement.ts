@@ -29,9 +29,9 @@ import {
   exposedGap,
   type Gap,
   type PlacedGap,
+  type PlacedSeam,
   placedAxis,
   rounded,
-  type Seam,
   wholeUnit,
 } from "../elisions.ts";
 import { layoutScope, type MemberLayout } from "../member.ts";
@@ -458,7 +458,7 @@ function onceCard(
     entry: entryOf(gap),
   });
   const gaps: PlacedGap[] = leftGaps.map((gap) => fromCard(gap, s1));
-  const seams: Pick<Seam, "at" | "inclusive">[] = [];
+  const seams: PlacedSeam[] = [];
   anchors.forEach((each, index) => {
     const { at } = each;
     const scale = at.item.scale;
@@ -478,7 +478,7 @@ function onceCard(
     if (room === undefined) return;
     const { start, end, XA, XB } = room;
     if (compareReal(start, end) === 0) {
-      seams.push({ at: start, inclusive: false });
+      seams.push({ at: start, inclusive: false, startsRight: true });
       return;
     }
     const left = local(start, false);
@@ -501,7 +501,10 @@ function onceCard(
     });
   });
   gaps.push(...rightGaps.map((gap) => fromCard(gap, sN)));
-  seams.push({ at: protectedStart, inclusive: true }, { at: protectedEnd, inclusive: false });
+  seams.push(
+    { at: protectedStart, inclusive: true, startsRight: false },
+    { at: protectedEnd, inclusive: false, startsRight: false },
+  );
   const axis = placedAxis(scope, gaps, seams, local);
   const layout = layoutScope(withAxis(scope, axis), head.at.key, undefined);
   const columns = columnsOf([aloneItem(head, layout)]);

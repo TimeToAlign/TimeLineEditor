@@ -264,6 +264,12 @@ export interface CardAxis {
    * on its left or its right side, elsewhere as `relative`.
    */
   relativeAt(value: Real, side: "before" | "after"): number;
+  /**
+   * `L × u − D` of a position as the start of a line, of a region or as a jump's target: at a
+   * seam that puts starts on its right side (between two anchors of a root drawn once, section
+   * 8.8), the start of the run right of it, elsewhere as `relative`.
+   */
+  startAt(value: Real): number;
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
   /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
@@ -372,6 +378,7 @@ function axisOf(
     total: D,
     relative: (value) => L * u(value) - shrinkBefore(value),
     relativeAt: (value, side) => L * u(value) - (gapsBefore(value) - seamsBefore(value, side)),
+    startAt: (value) => L * u(value) - shrinkBefore(value),
     gapOf: (value) => gaps.find((gap) => comparing.inside(gap, value)),
     shrinkBefore,
     crosses: (gap, start, end) => comparing.holds(gap, start, end),
@@ -391,6 +398,17 @@ export interface PlacedGap {
 }
 
 /**
+ * A seam whose sides its caller places (section 8.8, Drawn once): its position, whether a
+ * position at it lies right of it (`inclusive`), and whether the start of a line, of a region and
+ * a jump's target there lie right of it (`startsRight`).
+ */
+export interface PlacedSeam {
+  readonly at: Real;
+  readonly inclusive: boolean;
+  readonly startsRight: boolean;
+}
+
+/**
  * The axis of a card whose runs each have their own scale (section 8.8, Drawn
  * once): `at(value, after)` the distance of a position from `x0`, on the run
  * right of a seam where `after`; `gaps` from the left, each with its edges;
@@ -402,7 +420,7 @@ export interface PlacedGap {
 export function placedAxis(
   scope: Pick<Scope, "L" | "u" | "lambda" | "rootEntry">,
   gaps: readonly PlacedGap[],
-  seams: readonly Pick<Seam, "at" | "inclusive">[],
+  seams: readonly PlacedSeam[],
   at: (value: Real, after: boolean) => number,
 ): CardAxis {
   const { L, u, lambda } = scope;
@@ -443,6 +461,10 @@ export function placedAxis(
     total: L - relative(lambda),
     relative,
     relativeAt: (value, side) => at(value, side === "after"),
+    startAt: (value) =>
+      seams.some((seam) => seam.startsRight && compareReal(seam.at, value) === 0)
+        ? at(value, true)
+        : relative(value),
     gapOf: (value) => placed.find((gap) => EXACT.inside(gap, value)),
     shrinkBefore: (value) => L * u(value) - relative(value),
     crosses: (gap, start, end) => EXACT.holds(gap, start, end),
@@ -783,8 +805,11 @@ function middleOf(
   const h = (W - Math.min(STANDARD_GAP, W)) / 2;
   const span = difference(b, a);
   const k = n / (typeof span === "number" ? span : toFloat(span));
-  const lower = wholeUnit(rounded(add(a, h / k), false), numberType);
-  const upper = wholeUnit(rounded(add(b, -(h / k)), true), numberType);
+  // `h / k` on the timeline's axis; 0 where nothing is left out (`h = 0`), which a card of length
+  // 0 (`n = 0`, so `k = 0`) would otherwise make `0 / 0`.
+  const shift = h === 0 ? 0 : h / k;
+  const lower = wholeUnit(rounded(add(a, shift), false), numberType);
+  const upper = wholeUnit(rounded(add(b, -shift), true), numberType);
   const start = compareReal(lower, a) > 0 ? lower : a;
   const end = compareReal(upper, b) < 0 ? upper : b;
   const startR = add(entry.start, start);
@@ -1305,28 +1330,30 @@ export interface CrossingRow {
   readonly start: Real;
   /** Its end; null where it is open to the right. */
   readonly end: Real | null;
-  /** It is a line, which holds an ellipsis in a gap it crosses; a map holds none. */
-  readonly line: boolean;
 }
 
-/** A row crossing a gap: its ordinate, and whether it is a line, holding an ellipsis there. */
-export interface CrossedRow {
-  readonly y: number;
-  readonly line: boolean;
+/**
+ * The ordinates of the rows among `rows` (in the order of section 8.5) that
+ * cross `gap` on `axis`.
+ */
+export function crossingRows(axis: CardAxis, gap: Gap, rows: readonly CrossingRow[]): number[] {
+  return rows.filter((row) => axis.crosses(gap, row.start, row.end)).map((row) => row.y);
 }
 
-/** The rows among `rows` (in the order of section 8.5) that cross `gap` on `axis`. */
-export function crossingRows(axis: CardAxis, gap: Gap, rows: readonly CrossingRow[]): CrossedRow[] {
-  return rows
-    .filter((row) => axis.crosses(gap, row.start, row.end))
-    .map(({ y, line }) => ({ y, line }));
-}
+/**
+ * A label of a gap's stack (section 6.6): drawn centred on the gap's middle
+ * just below its ellipsis, its baseline `below` under the ellipsis's
+ * ordinate `ym`, which the card or frame drawing the gap gives.
+ */
+export type StackLabel = Omit<TextElement, "x" | "baseline"> & { readonly below: number };
 
 /**
  * The elements of one drawing of a gap (sections 6.6, 7.2 and 8.5): its
  * rectangle from `x1` to `x2` and `yt` to `yb` with its continuations on the
- * rows `rows`, where listed; its ellipses on those of them that are lines,
- * where the gap is at least 20 wide; then its labels `labels`.
+ * rows `rows`, where listed; its one ellipsis at the gap's middle `xm` and
+ * the middle `ym = (yt + yb) / 2` of its height, where the gap is at least 20
+ * wide; then its labels `labels`, centred on `xm` just below `ym`, whether or
+ * not the ellipsis is drawn.
  */
 export function gapElements(
   gap: Gap,
@@ -1334,25 +1361,26 @@ export function gapElements(
   x2: number,
   yt: number,
   yb: number,
-  rows: readonly CrossedRow[],
-  labels: readonly TextElement[],
+  rows: readonly number[],
+  labels: readonly StackLabel[],
 ): DrawnElement[] {
   const { source } = gap;
   const xm = (x1 + x2) / 2;
+  const ym = (yt + yb) / 2;
   const ellipses: EllipsisElement[] =
     source.ellipsis === null || x2 - x1 < ELLIPSIS_GAP
       ? []
-      : rows
-          .flatMap(({ y, line }) => (line ? [y] : []))
-          .map((y) => ({
+      : [
+          {
             type: "ellipsis",
             address: partAddress(source.address, "ellipsis"),
-            style: source.ellipsis ?? source.style,
+            style: source.ellipsis,
             x: xm,
-            y,
+            y: ym,
             r: ELLIPSIS_RADIUS,
             spacing: ELLIPSIS_SPACING,
-          }));
+          },
+        ];
   return [
     {
       type: "elision",
@@ -1362,14 +1390,25 @@ export function gapElements(
       x2,
       yt,
       yb,
-      continuations: source.continuation ? rows.map(({ y }) => y) : [],
+      continuations: source.continuation ? [...rows] : [],
       elided: { timeline: source.timeline.id, start: source.start, end: source.end },
       origin: source.origin,
     },
     ...ellipses,
-    ...labels,
+    ...labels.map(
+      ({ below, ...label }): TextElement => ({ ...label, x: xm, baseline: ym + below }),
+    ),
   ];
 }
+
+/**
+ * The distance of the baseline of the `i`-th label, from 1, of a gap's stack
+ * below its ellipsis's ordinate (section 6.6): the dot radius, the label gap,
+ * `i − 1` lines `h` high and the ascent `a`, of the font size of the markers
+ * band that takes the stack's room.
+ */
+export const stackLabelBelow = (i: number, h: number, a: number): number =>
+  ELLIPSIS_RADIUS + LABEL_GAP + (i - 1) * h + a;
 
 /**
  * The label stack of a gap in a markers band, at its unturned place (section
