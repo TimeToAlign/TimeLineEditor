@@ -13,7 +13,6 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { cardAddress, idAddress } from "../packages/core/src/index.ts";
 import { attributeText } from "../packages/writers/src/svg.ts";
-import { manifestFixture } from "./schema.ts";
 import {
   arranger,
   boxesOf,
@@ -21,17 +20,17 @@ import {
   enter,
   entriesLength,
   framePoint,
-  journalLength,
+  importFixture,
   newestCommand,
   node,
+  nodeTransform,
   open,
-  pick,
+  placedAt,
   placement,
   SMALL,
   selection,
   setViewport,
   viewportOf,
-  withoutPickers,
 } from "./support.ts";
 
 /** Reduced motion: nothing a press aims at moves; a wide page: four frames one under another fit. */
@@ -45,19 +44,6 @@ const GROUPS = ["group_1", "group_2", "group_3", "group_4"] as const;
 
 /** The root every group of the LayerIt bundle hangs on: its card is the ancestor card. */
 const ROOT = "clt_1";
-
-/** Open the editor and import the manifest fixture `name`; the new block's ID. */
-async function importFixture(page: Page, name: string): Promise<string> {
-  await withoutPickers(page);
-  await page.goto("/");
-  await page.waitForFunction(() => window.__tilie !== undefined);
-  const file = `${name.slice(name.indexOf("/") + 1)}.yaml`;
-  await pick(page, "Import manifest…", file, manifestFixture(name));
-  await expect.poll(() => journalLength(page)).toBe(1);
-  const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
-  if (block === undefined) throw new Error("the import added no block");
-  return block;
-}
 
 /** Import `name` and open its block's bundle editor; the block's ID. */
 async function inBundleEditor(page: Page, name: string): Promise<string> {
@@ -143,7 +129,7 @@ async function cardsBehind(page: Page, block: string): Promise<string[]> {
 }
 
 /** The frames' tops one under another in the drawing order (README). */
-const TOPS = [88.52734375, 268.08984375, 447.65234375, 675.19140625];
+const TOPS = [68.55078125, 268.08984375, 467.62890625, 735.12109375];
 
 /** The frames side by side, in row order (README): `x`, `y` as the writer prints them. */
 const SIDE_BY_SIDE = [179.890625, 850.6943359375, 1521.498046875, 2192.3017578125].map((x) => [
@@ -173,27 +159,6 @@ async function expectSideBySide(page: Page, block: string): Promise<void> {
   await expect.poll(() => framesAt(page, block, GROUPS)).toEqual(SIDE_BY_SIDE);
   expect(await cardsBehind(page, block)).toEqual(["group_1"]);
   await expect(element(page, block, cardAddress(ROOT))).toHaveCount(2);
-}
-
-/** Block `block`'s node transform, as the browser holds it in its style. */
-function nodeTransform(page: Page, block: string): Promise<string> {
-  return node(page, block).evaluate((item) => (item as HTMLElement).style.transform);
-}
-
-/**
- * The transform placing a node at `(x, y)`, as this browser writes it: each
- * engine prints a length to its own precision, so a node's transform is
- * compared with the engine's own spelling of the exact position.
- */
-function placedAt(page: Page, x: number, y: number): Promise<string> {
-  return page.evaluate(
-    ([left, top]) => {
-      const probe = document.createElement("div");
-      probe.style.transform = `translate(${left}px, ${top}px)`;
-      return probe.style.transform;
-    },
-    [x, y],
-  );
 }
 
 /** The stated `x` and `y` of every block of `blocks`. */
@@ -275,7 +240,7 @@ test("arranged items are reordered by a drag and by a key, and side by side stor
     page,
     block,
     stepped,
-    [88.52734375, 268.08984375, 495.62890625, 675.19140625],
+    [68.55078125, 268.08984375, 535.58203125, 735.12109375],
   );
 
   expect(await choose(page, "horizontal")).toEqual(

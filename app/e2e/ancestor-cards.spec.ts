@@ -23,7 +23,7 @@ import type { ElementAddress } from "../packages/core/src/index.ts";
 import { cardAddress, idAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import { lineAxes } from "../packages/layout/src/axes.ts";
 import { attributeText } from "../packages/writers/src/svg.ts";
-import { FONT_METRICS, manifestFixture } from "./schema.ts";
+import { FONT_METRICS } from "./schema.ts";
 import {
   addressSelector,
   arranger,
@@ -32,17 +32,18 @@ import {
   element,
   enter,
   framePoint,
+  importFixture,
   journalLength,
   newestCommand,
   node,
+  nodeTransform,
   pane,
-  pick,
+  placedAt,
   placement,
   select,
   setViewport,
   toScreen,
   viewportOf,
-  withoutPickers,
 } from "./support.ts";
 
 const PIECE_CARD = cardAddress("piece");
@@ -66,28 +67,6 @@ function heldBoxes(page: Page, block: string): Promise<(string | null)[][]> {
     [FRAME, cardAddress("middle"), cardAddress("recording")].map((address) =>
       attributes(box(page, block, address)),
     ),
-  );
-}
-
-/** Block `block`'s node transform, as the browser holds it in its style. */
-function nodeTransform(page: Page, block: string): Promise<string> {
-  return node(page, block).evaluate((item) => (item as HTMLElement).style.transform);
-}
-
-/**
- * The transform placing a node at `(x, y)`, as this browser writes it: each
- * engine prints a length to its own precision (Chromium and Firefox to six
- * significant digits, WebKit to six decimals), so the node's transform is
- * compared with the engine's own spelling of the exact position.
- */
-function placedAt(page: Page, x: number, y: number): Promise<string> {
-  return page.evaluate(
-    ([left, top]) => {
-      const probe = document.createElement("div");
-      probe.style.transform = `translate(${left}px, ${top}px)`;
-      return probe.style.transform;
-    },
-    [x, y],
   );
 }
 
@@ -155,19 +134,6 @@ async function properties(page: Page): Promise<void> {
  * `group_elided_inside`'s card no longer depends on the view (README).
  */
 test.use({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-
-/** Open the editor and import the manifest fixture `name`; the new block's ID. */
-async function importFixture(page: Page, name: string): Promise<string> {
-  await withoutPickers(page);
-  await page.goto("/");
-  await page.waitForFunction(() => window.__tilie !== undefined);
-  const file = `${name.slice(name.indexOf("/") + 1)}.yaml`;
-  await pick(page, "Import manifest…", file, manifestFixture(name));
-  await expect.poll(() => journalLength(page)).toBe(1);
-  const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
-  if (block === undefined) throw new Error("the import added no block");
-  return block;
-}
 
 /**
  * Import `group_parent_both` and place the block's place origin at (240,
