@@ -6,8 +6,9 @@
  * tab (a closed session expanded, an undone entry greyed), on the
  * Matchstamp tab (a loaded MatchClaim table with its filter, a named
  * MatchStamp with its MatchClaim expanded and its provenance open under
- * Show matches, then the table changed by a belief), and in the tables
- * dialog. Derivation in `README.md` ("a11y-panels.spec.ts").
+ * Show matches, then the table changed by a belief), in the tables
+ * dialog, and on the Elisions tab (a selected group elision's three
+ * blocks shown). Derivation in `README.md` ("a11y-panels.spec.ts").
  */
 
 import { readFileSync } from "node:fs";
@@ -304,22 +305,6 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
     expect(await violations(page)).toEqual([]);
   });
 
-  test("axe-core reports no violation in the Elisions tab with its three blocks shown", async ({
-    page,
-  }) => {
-    const block = await importFixture(page, "groups/group_elided_members");
-    await select(page, [{ block, id: "elision_1" }]);
-    await openInspector(page);
-    await tab(page, "Elisions").click();
-    const shown = await panel(page, "Elisions");
-    await shown.getByTestId("elisions-expand").click();
-    for (const testid of ["elisions", "group-elisions", "elision-form"]) {
-      await expect(shown.getByTestId(`${testid}-expand`)).toHaveAttribute("aria-expanded", "true");
-    }
-    await expect(shown.getByRole("button", { name: "Delete elision" })).toBeVisible();
-    expect(await violations(page)).toEqual([]);
-  });
-
   test("axe-core reports no violation in the tables dialog, before and after a URL is entered", async ({
     page,
   }) => {
@@ -339,6 +324,24 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
       .getByRole("textbox", { name: "URL of the MatchClaim table" })
       .fill("https://tables.example.org/package/match_claims.parquet");
     await expect(load).toBeEnabled();
+    expect(await violations(page)).toEqual([]);
+  });
+});
+
+test.describe("the Elisions tab", () => {
+  test("axe-core reports no violation in the Elisions tab with its three blocks shown", async ({
+    page,
+  }) => {
+    const block = await importFixture(page, "groups/group_elided_members");
+    await select(page, [{ block, id: "elision_1" }]);
+    await openInspector(page);
+    await tab(page, "Elisions").click();
+    const shown = await panel(page, "Elisions");
+    await shown.getByTestId("elisions-expand").click();
+    for (const testid of ["elisions", "group-elisions", "elision-form"]) {
+      await expect(shown.getByTestId(`${testid}-expand`)).toHaveAttribute("aria-expanded", "true");
+    }
+    await expect(shown.getByRole("button", { name: "Delete elision" })).toBeVisible();
     expect(await violations(page)).toEqual([]);
   });
 });

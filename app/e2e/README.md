@@ -686,31 +686,27 @@ focused one and Escape clears the selection.
 
 **`a11y-panels.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on
 the whole page in the states a user meets the later panels in and
-requires an empty violation list in each. On `small`: the Timestamp tab
-showing `bare`'s named `timestamp_1` (the selection opens the tab; its
-"Wedge rotation" slider and an enabled Delete shown); the Timestamp tab
-showing the unnamed pin a selected start mark gives (`{block:
-"map0000000", id: "phrase", part: ["start"]}`, its "coordinate of
-Phrase" field shown, Delete disabled); the Journal tab after a closed
+requires an empty violation list in each, in the order of the cases. On
+`small`: the Timestamp tab showing `bare`'s named `timestamp_1` (the
+selection opens the tab; its "Wedge rotation" slider and an enabled
+Delete shown); the Timestamp tab showing the unnamed pin a selected
+start mark gives (`{block: "map0000000", id: "phrase", part:
+["start"]}`, its "coordinate of Phrase" field shown, Delete disabled).
+On `bundles`: the Timestamp tab of `bmixed0000`'s `timestamp_7`, on the
+group member `performance`, showing the group "Group" with its
+GroupStamp toggle. On `small` again: the Journal tab after a closed
 bundle editor session on `bare` (one rename, "Plain") and a set of `x`
 that is undone, the session's disclosure ("… (1 change)") expanded and
-the undone entry listed (`[data-undone]`). On `bundles`: the Timestamp
-tab of `bmixed0000`'s `timestamp_7`, on the group member `performance`,
-showing the group "Group" with its GroupStamp toggle. On
-`group_elided_members` imported: the Elisions tab with `elision_1` (a
-group elision of `excerpt`) selected, the timeline's block of `piece`
-expanded by its button, the group's block of "Theme" open by the
-selection and the elision's form shown with its Delete elision button.
-With TimeToShare's
-table fixture imported with its MatchClaim table (the user `Ana` with
-the ORCID iD the fixture's `claim_1` belief names; the table route
-replayed from the client's recording, after a belief from the same
-recording with `claim_1`'s belief `false`, as `matchclaim-beliefs.spec.ts`
-does; the provenance and events of `claim_1` as there; the belief route
+the undone entry listed (`[data-undone]`). With TimeToShare's table
+fixture imported with its MatchClaim table (the user `Ana` with the
+ORCID iD the fixture's `claim_1` belief names; the table route replayed
+from the client's recording, after a belief from the same recording
+with `claim_1`'s belief `false`, as `matchclaim-beliefs.spec.ts` does;
+the provenance and events of `claim_1` as there; the belief route
 answered by Parquet bytes; the health check held until the import is
-done, as there): the block selected on the Matchstamp tab
-(status "match_claims.parquet: 15 MatchClaims", the hint, the filter's
-four timeline checkboxes); the named MatchStamp "Downbeat" (`claim_1`)
+done, as there): the block selected on the Matchstamp tab (status
+"match_claims.parquet: 15 MatchClaims", the hint, the filter's four
+timeline checkboxes); the named MatchStamp "Downbeat" (`claim_1`)
 selected under Show matches, `claim_1` expanded (events "note_1 “C4”",
 "onset_1", "0.75"), its provenance open ("Ana", "manual",
 "2026-11-20"), the user's belief True pressed; then, after False, the
@@ -721,10 +717,14 @@ table changed ("…, changed", "Save MatchClaims…" shown, the difference
 manifest imported from `story/` through the file dialog): the tables
 dialog "match_claims.parquet is not beside The manifest, at
 story/manifest.yaml" that Show matches opens, with "Locate…" and Load
-disabled, and again once a URL is entered. The unnamed pin (the
-rotation's degree readout beside its disabled slider) and the Journal tab
-(an undone entry's text, time and author) are checked for contrast like
-every other state.
+disabled, and again once a URL is entered. On `group_elided_members`
+imported: the Elisions tab with `elision_1` (a group elision of
+`excerpt`) selected, the timeline's block of `piece` expanded by its
+button, the group's block of "Theme" open by the selection and the
+elision's form shown with its Delete elision button. The unnamed pin
+(the rotation's degree readout beside its disabled slider) and the
+Journal tab (an undone entry's text, time and author) are checked for
+contrast like every other state.
 
 **`metadata.spec.ts`** (Chromium, Firefox, WebKit) imports the LayerIt recording
 (`statements/layerit_recording.yaml` through Import manifest…) into a
