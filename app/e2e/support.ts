@@ -20,7 +20,7 @@ import type {
 } from "../packages/core/src/index.ts";
 import { addressKey, idAddress, partAddress, TITLE_ADDRESS } from "../packages/core/src/index.ts";
 import type { HookBand, HookBox, TestHook } from "../packages/editor/src/testHook.ts";
-import { FONT_METRICS } from "./schema.ts";
+import { FONT_METRICS, manifestFixture } from "./schema.ts";
 
 export type { Handle, ResizeMode } from "../packages/arranger/src/resize.ts";
 export type { HookBand, HookBox } from "../packages/editor/src/testHook.ts";
@@ -155,6 +155,45 @@ export function viewportOf(page: Page): Promise<Viewport> {
 
 export function node(page: Page, id: string): Locator {
   return page.locator(`.svelte-flow__node[data-id=${cssString(id)}]`);
+}
+
+/** Block `block`'s node transform, as the browser holds it in its style. */
+export function nodeTransform(page: Page, block: string): Promise<string> {
+  return node(page, block).evaluate((item) => (item as HTMLElement).style.transform);
+}
+
+/**
+ * The transform placing a node at `(x, y)`, as this browser writes it: each
+ * engine prints a length to its own precision (Chromium and Firefox to six
+ * significant digits, WebKit to six decimals), so a node's transform is
+ * compared with the engine's own spelling of the exact position.
+ */
+export function placedAt(page: Page, x: number, y: number): Promise<string> {
+  return page.evaluate(
+    ([left, top]) => {
+      const probe = document.createElement("div");
+      probe.style.transform = `translate(${left}px, ${top}px)`;
+      return probe.style.transform;
+    },
+    [x, y],
+  );
+}
+
+/**
+ * Open the editor without the file pickers and import the schema package's
+ * manifest fixture `name` (a path below its fixtures folder, without
+ * `.yaml`) through Import manifest…; the new block's ID.
+ */
+export async function importFixture(page: Page, name: string): Promise<string> {
+  await withoutPickers(page);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__tilie !== undefined);
+  const file = `${name.slice(name.indexOf("/") + 1)}.yaml`;
+  await pick(page, "Import manifest…", file, manifestFixture(name));
+  await expect.poll(() => journalLength(page)).toBe(1);
+  const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
+  if (block === undefined) throw new Error("the import added no block");
+  return block;
 }
 
 /**

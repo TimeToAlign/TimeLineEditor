@@ -234,7 +234,7 @@ fixtures of the installed schema version):
 | `bare` | 476.5771484375 | 67.37890625 | 49.5771484375 | 8, 8, 458.5771484375, 49.37890625 |
 | `nested` | 477.194580078125 | 95.9765625 | 49.91552734375 | 8, 8, 459.194580078125, 77.9765625 |
 | `map` | 490.53662109375 | 85.4765625 | 63.53662109375 | 8, 8, 472.53662109375, 67.4765625 |
-| `flow_control` | 518.256591796875 | 102.33203125 | 90.9775390625 | 8, 8, 500.256591796875, 84.33203125 |
+| `flow_control` | 518.256591796875 | 122.80859375 | 90.9775390625 | 8, 8, 500.256591796875, 104.80859375 |
 | `styled__score` | 528.080078125 | 136.921875 | 98.080078125 | 8, 8, 510.080078125, 118.921875 |
 
 `width − origin − length` is 27 for `bare` and `map` (the line's 17 to the
@@ -1159,14 +1159,29 @@ overlapping, so core's row is `[group_1, group_2, group_3, group_4]`
 whatever order is asked, and `clt_1` is the one root any group hangs on.
 Each group's frame holds its excerpt's card (a grandchild: 81.37890625
 high, `group_3`'s Clair de Lune 129.35546875) and its recording's
-(49.37890625), so a frame is `8 + h(11) + 4 + Hm1 + 8 + Hm2 + 8` high
-(the drawing facts above): 171.5625, `group_3` 219.5390625, every frame
-622.8037109375 wide. Without an arrangement and one under another
-(section 8.6, the block's spacing 8 between items), the first frame lies at
-`y` 88.52734375 in the drawing (its title gap 28.8046875 below the place
-origin, which the first ancestor card lifts by 59.72265625), each next one
-8 below the previous one's bottom, so the four tops are 88.52734375,
-268.08984375 (`+ 171.5625 + 8`), 447.65234375 and 675.19140625; each group
+(49.37890625). One under another, each group draws its own ancestor card
+of `clt_1`, whose derived elisions are named (`elision-display`
+`ellipsis name`), and the member card's rows align with the rows of that
+card, whose distances count every label stack it draws (section 8.3): a
+member row beyond a derived elision's stack lies one name line,
+19.9765625, lower (the schema package's drawings README derives it for
+`group_elided_inside`, whose member hangs on its root as each excerpt
+here does), and its card grows by as much. The upstream drawing
+`bundle__bundle_elided_layerit` draws one such stack between the
+excerpt's line and its ancestor rows in the cards behind `group_1`,
+`group_2` and `group_4`, two behind `group_3`: the excerpt cards are
+101.35546875 and, for `group_3`, 169.30859375 high, so a frame, `8 + h(11)
++ 4 + Hm1 + 8 + Hm2 + 8` (the drawing facts above), is 191.5390625 high,
+`group_3`'s 259.4921875, every frame 622.8037109375 wide. Without an
+arrangement and one under another (section 8.6, the block's spacing 8
+between items), the first frame lies at `y` 68.55078125 in the drawing
+(its title gap 28.8046875 below the place origin, which the first
+ancestor card lifts by 59.72265625 − 19.9765625 = 39.74609375: the card's
+top follows the member's ancestor row down by the stack), each next one 8
+below the previous one's bottom, so the four tops are 68.55078125,
+268.08984375 (`+ 191.5390625 + 8`), 467.62890625 and 735.12109375 (`+
+259.4921875 + 8`), as the upstream drawing has them (68.5508, 268.0898,
+467.6289, 735.1211, at its default view and at 1024 × 640 alike); each group
 draws its own ancestor card of `clt_1` behind it, recorded in item order,
 so `{id: clt_1, part: ["card"]}` is drawn four times (eight parts, each a
 rectangle after its shadow). Side by side (section 8.8, Drawn once) the
@@ -1192,16 +1207,17 @@ lies at the block's stated place.
    The viewport puts the node's top left corner at (40, 40) of the pane,
    zoom 1, so a drawing ordinate is a screen pixel. `group_1`'s frame is
    pressed (`framePoint`) and dragged straight down to the drawing ordinate
-   440, below `group_2`'s middle (`268.08984375 + 171.5625 / 2 =
-   353.87109375`) and above `group_3`'s (557.421875), and released: one
+   440, below `group_2`'s middle (`268.08984375 + 191.5390625 / 2 =
+   363.859375`) and above `group_3`'s (`467.62890625 + 259.4921875 / 2 =
+   597.375`), and released: one
    `set` of `{direction: vertical, order: [group_2, group_1, group_3,
    group_4]}` (`orderAt`, the middles along the direction), the dragged
-   frame selected; the tops are 88.52734375 (`group_2`), 268.08984375,
-   447.65234375 and 675.19140625, and the ancestor cards are recorded in
-   that order. With the arranger focused, ArrowDown moves the selected
+   frame selected; the tops are 68.55078125 (`group_2`, whose ancestor
+   card lifts it as `group_1`'s does), 268.08984375, 467.62890625 and
+   735.12109375, and the ancestor cards are recorded in that order. With the arranger focused, ArrowDown moves the selected
    frame one place on (`arrangedStep`): one `set` of `[group_2, group_3,
-   group_1, group_4]`, tops 88.52734375, 268.08984375, `+ 219.5390625 + 8
-   = 495.62890625` and `+ 171.5625 + 8 = 675.19140625`. Horizontal then
+   group_1, group_4]`, tops 68.55078125, 268.08984375, `+ 259.4921875 + 8
+   = 535.58203125` and `+ 191.5390625 + 8 = 735.12109375`. Horizontal then
    sends that order as shown, and core stores its row: the store holds
    `[group_1, group_2, group_3, group_4]` and the frames lie as in case 1.
 3. **Side by side refused.** `bundles/bundle_arranged_conflict`: Theme A
@@ -1218,8 +1234,7 @@ lies at the block's stated place.
    node its drawing's size, each column as wide as its widest node, each
    row as tall as its tallest (section 8.6); every drawing's origin is
    `(0, 0)`, so a node lies at its place. The sizes are those of the
-   drawing facts above, but `flow_control` is drawn 122.80859375 high
-   (layout's `draw` today; the table above still reads 102.33203125).
+   drawing facts above.
    Matrix sends `set {} {arrangement: {direction: matrix, columns: 3}}`
    (`⌈√5⌉` columns when first chosen), shows `Columns 3`, and places the
    nodes in three columns 518.256591796875 (`flow_control`),
@@ -1235,7 +1250,7 @@ lies at the block's stated place.
    block's stated place is unchanged. Free sends `{arrangement: null}` and
    every node returns to its stated place. A node's position is read from
    its style's `transform`, compared with the browser's own spelling of the
-   exact position (`ancestor-cards.spec.ts`, `placedAt`).
+   exact position (`support.ts`, `placedAt`).
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`

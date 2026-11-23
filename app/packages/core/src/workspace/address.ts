@@ -462,13 +462,13 @@ function baseOf(
  * wedges of a member drawing's named timestamps with their labels, a
  * segment's boundary (of every segment but the first) and label, the label
  * of a region, a flow marker or a jump origin, a named timestamp's label
- * and cross-section line (`line`), a stored elision's ellipses and labels,
+ * and cross-section line (`line`), a stored elision's ellipsis and labels,
  * and the cards. A named timestamp and a stored elision themselves resolve
  * with the timeline they lie on, drawn or not; a named MatchStamp and an
  * alignment anchor, which belong to no timeline, resolve by their IDs, the
  * anchor with the MatchStamp holding it. A derived elision, which the
  * drawing derives and which has no ID, resolves as the part `elision` of
- * the timeline `T` it lies on (`{id: T, part: ["elision"]}`, its ellipses
+ * the timeline `T` it lies on (`{id: T, part: ["elision"]}`, its ellipsis
  * `["elision", "ellipsis"]`, its labels `["elision", "name"]` and
  * `["elision", "coordinate"]`) wherever `T` may carry one
  * (`defaultElisionTimelines`), never as an invented ID. `undefined` for
@@ -497,7 +497,7 @@ export function resolveElement(
 
 /**
  * The words below `elision` in the address of a derived elision's parts:
- * its ellipses and its labels but the ID, which it does not have.
+ * its ellipsis and its labels but the ID, which it does not have.
  */
 const DERIVED_ELISION_PARTS: readonly Part[] = ["ellipsis", "name", "coordinate"];
 
