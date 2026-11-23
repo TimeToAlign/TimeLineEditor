@@ -391,6 +391,7 @@ const editorFocus = new EditorFocus({
   nodes: () => nodes.byId,
   metrics: () => metrics,
   root: () => root,
+  pane: () => pane,
   reducedMotion: () => reducedMotion.current,
 });
 

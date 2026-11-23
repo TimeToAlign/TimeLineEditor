@@ -30,6 +30,7 @@ import { boxOf, itemOf } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
+import { PANE_SETTLE } from "../src/pane.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
@@ -670,6 +671,31 @@ describe("the view when the canvas changes size", () => {
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
     await resizeArranger(6000, 10000);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
+  });
+
+  it("centres it again on its drawing for the new size once the pane settles", async () => {
+    await show();
+    await resizeArranger(1600, 1000);
+    open(blockA);
+    await settle();
+    await resizeArranger(600, 1000);
+    const early = viewport();
+    await wait(PANE_SETTLE);
+    const settled = viewport();
+    // `recording`'s ancestor card is elided at a proportion the pane gives: the block is drawn
+    // anew for the narrower pane, narrower, and centred again as drawn now.
+    expect(settled).not.toEqual(early);
+    harness.showAt({ x: 5, y: 6, zoom: 1 });
+    await settle();
+    await doubleClick(background(A));
+    expect(viewport()).toEqual(settled);
+
+    await resizeArranger(1600, 1000);
+    harness.showAt({ x: 5, y: 6, zoom: 1 });
+    await settle();
+    await wait(PANE_SETTLE);
+    expect(viewport()).toEqual({ x: 5, y: 6, zoom: 1 });
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
   });
 });
 

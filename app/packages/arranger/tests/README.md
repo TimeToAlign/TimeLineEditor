@@ -4680,7 +4680,15 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    from. A level opened during a move returns to where that move was
    heading. A canvas that changes size centres the edited element again
    (6000 px wide: x `3000 − 4 × 328.5260009765625 = 1685.89599609375`),
-   unless the size is the one it was focused at. A double-click on the
+   unless the size is the one it was focused at. The pane settles at the
+   new size `PANE_SETTLE` later and the block is drawn anew for it
+   (`bundle_mixed`'s ancestor card of `recording` is elided at the
+   automatic proportion, which reads the pane): in the bundle editor of
+   block A, opened at 1600 × 1000 and narrowed to 600 px, the view then
+   moves again, to exactly the viewport a double-click on the block
+   centres it at once settled (the oracle: the opening's centring run on
+   the drawing shown); a view moved by the user before the pane settles
+   stays where it was moved. A double-click on the
    edited element (in `group_1`'s editor, on its frame) moves a view
    panned away back to exactly the viewport opening gave, and changes
    neither the editing path nor the journal; under reduced motion at once,

@@ -2,7 +2,8 @@
  * The view follows the store's editing path: opening an editor moves the
  * view to the edited element, closing it moves the view back to where its
  * level was entered from, and a canvas that changes size with an editor
- * open centres the edited element again.
+ * open centres the edited element again, and again once its pane settles at
+ * that size and the drawings are drawn for it.
  */
 
 import type { Address, OpenEditor, Store } from "@timetoalign/tilie-core";
@@ -11,6 +12,7 @@ import { tick, untrack } from "svelte";
 import type { Viewport } from "./focus.ts";
 import { elidedReach, FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
 import type { BlockNode } from "./node.ts";
+import type { PaneSource } from "./pane.ts";
 import { blockOf } from "./selection.ts";
 
 /** What the focus reads from the canvas and does through it. */
@@ -24,6 +26,8 @@ export interface FocusHost {
   metrics(): FontMetrics;
   /** The canvas's element, measured for the area an edited element is centred in. */
   root(): HTMLElement | undefined;
+  /** The pane the canvas's drawings are fitted to, read in a reaction to follow it settling. */
+  pane(): PaneSource;
   reducedMotion(): boolean;
 }
 
@@ -43,6 +47,8 @@ export class EditorFocus {
   #followed: { readonly store: Store; readonly editing: readonly OpenEditor[] } | null = null;
   /** The canvas's size in screen pixels when the view last moved to an edited element. */
   #focusedAt: { readonly width: number; readonly height: number } | null = null;
+  /** The viewport the view last moved to an edited element at; `null` before the first. */
+  #focused: Viewport | null = null;
 
   constructor(host: FocusHost) {
     this.#host = host;
@@ -52,6 +58,11 @@ export class EditorFocus {
       const store = host.store();
       untrack(() => this.follow(store, store.editing));
       return store.subscribe(() => this.follow(store, store.editing));
+    });
+    // The pane is read for its settling alone: the drawings are drawn again for it.
+    $effect(() => {
+      void host.pane().view;
+      untrack(() => this.settled());
     });
   }
 
@@ -125,7 +136,26 @@ export class EditorFocus {
       throw error;
     }
     this.#focusedAt = { width: root.clientWidth, height: root.clientHeight };
-    this.moveTo(focusViewport(bounds, this.#focusedAt, 0, elidedReach(node, target)));
+    this.#focused = focusViewport(bounds, this.#focusedAt, 0, elidedReach(node, target));
+    this.moveTo(this.#focused);
+  }
+
+  /**
+   * The pane has settled at a new size, `PANE_SETTLE` after the canvas
+   * last changed size, and every drawing is drawn again for it (an ancestor
+   * card's automatic proportion reads the pane): the centring done when the
+   * canvas changed size measured the drawing of the size before. With an
+   * editor open and the view still where it was last centred (or heading
+   * there), the edited element is centred again on its new drawing; a view
+   * moved since is left where it is.
+   */
+  settled(): void {
+    const innermost = this.#host.store().editing.at(-1);
+    const focused = this.#focused;
+    if (innermost === undefined || focused === null) return;
+    const { x, y, zoom } = this.#heading ?? this.#host.viewport();
+    if (x !== focused.x || y !== focused.y || zoom !== focused.zoom) return;
+    void this.focusOn(innermost.target);
   }
 
   /**
