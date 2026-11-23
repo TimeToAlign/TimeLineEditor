@@ -157,23 +157,32 @@ export function node(page: Page, id: string): Locator {
   return page.locator(`.svelte-flow__node[data-id=${cssString(id)}]`);
 }
 
-/** Block `block`'s node transform, as the browser holds it in its style. */
+/** Block `block`'s node transform, as the browser computes it (a `matrix(…)`). */
 export function nodeTransform(page: Page, block: string): Promise<string> {
-  return node(page, block).evaluate((item) => (item as HTMLElement).style.transform);
+  return node(page, block).evaluate((item) => getComputedStyle(item).transform);
 }
 
 /**
- * The transform placing a node at `(x, y)`, as this browser writes it: each
- * engine prints a length to its own precision (Chromium and Firefox to six
- * significant digits, WebKit to six decimals), so a node's transform is
- * compared with the engine's own spelling of the exact position.
+ * The transform placing a node at `(x, y)`, as this browser computes it: a
+ * probe element given `translate(<x>px, <y>px)`, its computed `matrix(…)`.
+ * Each engine prints a length to its own precision (Chromium and Firefox to
+ * six significant digits, WebKit to six decimals), so a node's transform is
+ * compared with the engine's own spelling of the exact position; and a
+ * computed value, since WebKit spells one specified transform two ways
+ * (`translate(0px)` where the style attribute was parsed, `translate(0px,
+ * 0px)` where the property was set).
  */
 export function placedAt(page: Page, x: number, y: number): Promise<string> {
   return page.evaluate(
     ([left, top]) => {
       const probe = document.createElement("div");
+      probe.style.position = "absolute";
+      probe.style.visibility = "hidden";
       probe.style.transform = `translate(${left}px, ${top}px)`;
-      return probe.style.transform;
+      document.body.append(probe);
+      const computed = getComputedStyle(probe).transform;
+      probe.remove();
+      return computed;
     },
     [x, y],
   );
