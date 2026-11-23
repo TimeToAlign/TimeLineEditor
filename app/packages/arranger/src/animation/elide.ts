@@ -18,6 +18,7 @@ import type { Manifest } from "@timetoalign/tilie-core";
 import {
   addressKey,
   idAddress,
+  indexOf,
   partAddress,
   placeKeyText,
   samePlaceKey,
@@ -38,7 +39,16 @@ import { attributeText } from "@timetoalign/tilie-writers";
 import { keyedBox } from "../boxes.ts";
 import { zeroOf } from "../cardAxis.ts";
 import { raiseUnfold } from "./raise.ts";
-import { type Knot, type Motion, type Placed, placedAt, positionAt, startOf } from "./unfold.ts";
+import {
+  type Knot,
+  type Motion,
+  type Placed,
+  pairRows,
+  placedAt,
+  positionAt,
+  type Row,
+  startOf,
+} from "./unfold.ts";
 
 /** A drawing with what it was drawn from and what draws it. */
 export interface Drawn {
@@ -190,8 +200,9 @@ export function frameKnots(exposure: ElisionExposure): Knot[] {
 
 /**
  * What a container's elisions are, to tell whether a change moved them: its
- * drawn mode, then each gap's address, elided coordinates and widths, in
- * order; empty for a container recording no gap.
+ * drawn mode and the words its derived gaps show, then each gap's address,
+ * elided coordinates and widths, in order; empty for a container recording
+ * none.
  */
 export function elisionsText(exposure: ElisionExposure | undefined): string {
   if (exposure === undefined) return "";
@@ -199,7 +210,7 @@ export function elisionsText(exposure: ElisionExposure | undefined): string {
     (gap) =>
       `${addressKey(gap.address)} ${float(gap.start)} ${float(gap.end)} ${gap.natural} ${gap.drawn}`,
   );
-  return [exposure.drawn, ...gaps].join(";");
+  return [exposure.drawn, exposure.display.join(" "), ...gaps].join(";");
 }
 
 /** Whether `low` to `high` lies in one of `stretches` and reaches into its inside. */
@@ -220,7 +231,7 @@ function gapHolding(
  * How an element of extent `left` to `right` (block coordinates of the
  * drawing after) moves when its container reads `to` after and `from`
  * before (`startOf`, the place origin's move `offset` added), shifted down
- * by `dy`: inside a gap the drawing before drew too (one at its address in
+ * by `dyOf` its index: inside a gap the drawing before drew too (one at its address in
  * the same container), it travels with that gap; inside a new gap, or at
  * positions a gap before left out, it enters.
  */
@@ -228,11 +239,12 @@ function sideways(
   from: readonly Knot[],
   to: readonly Knot[],
   offset: number,
-  dy: number,
+  dyOf: (index: number) => number,
   gaps: { readonly after: readonly ExposedGap[]; readonly before: readonly ExposedGap[] },
   hidden: readonly (readonly [number, number])[],
-): (extent: readonly [number, number]) => Motion {
-  return ([left, right]) => {
+): (extent: readonly [number, number], index: number) => Motion {
+  return ([left, right], index) => {
+    const dy = dyOf(index);
     const inside = gapHolding(gaps.after, left, right);
     if (inside !== undefined) {
       const key = addressKey(inside.address);
@@ -276,8 +288,30 @@ function hiddenBy(exposure: ElisionExposure | undefined, knots: readonly Knot[])
 }
 
 /**
+ * The rows of a card in two drawings (its lines' ordinates, each relative to
+ * its drawing's place origin), paired by timeline (`pairRows`): how far
+ * down each row of `card` starts from where `was` drew it. A row moves only
+ * where elision labels shown or hidden change its band (section 2.1).
+ */
+function rowShifts(before: Drawn, was: DrawnBox, after: Drawn, card: DrawnBox) {
+  const rowsOf = ({ drawing }: Drawn, box: DrawnBox): Row[] => {
+    const rows: Row[] = [];
+    if (box.key === null) return rows;
+    for (const axis of lineAxes(drawing).values()) {
+      if (samePlaceKey(axis.card, box.key)) {
+        rows.push({ key: axis.timeline, y: axis.y - drawing.origin.y });
+      }
+    }
+    return rows;
+  };
+  return pairRows(rowsOf(before, was), rowsOf(after, card));
+}
+
+/**
  * How the card `card` of the drawing `after` moves from the card under the
- * same place key `before` draws (`was`): rows kept, each element starting
+ * same place key `before` draws (`was`): rows kept but where elision labels
+ * shown or hidden move them (`rowShifts`, the card top's move for an element
+ * of no row), each element starting
  * where `before` draws the positions its extent draws (`startOf` over both
  * cards' knots, the move of the place origin added) and shifted down by
  * the move of the card's top (`sideways`).
@@ -293,17 +327,24 @@ export function sidewaysMotion(
   const to = cardKnots(after.manifest, after.drawing, card);
   const offset = after.drawing.origin.x - before.drawing.origin.x;
   const dy = was.y - before.drawing.origin.y - (card.y - after.drawing.origin.y);
+  const rows = rowShifts(before, was, after, card);
+  const { owners } = indexOf(after.manifest);
+  const dyOf = (index: number): number => {
+    const id = after.drawing.elements[index]?.address.id;
+    const timeline = id === undefined ? undefined : owners.get(id);
+    return (timeline === undefined ? undefined : rows.get(timeline)?.shift) ?? dy;
+  };
   const old = exposureOf(before.drawing, was);
   const now = exposureOf(after.drawing, card);
   const motion = sideways(
     from,
     to,
     offset,
-    dy,
+    dyOf,
     { after: now?.gaps ?? [], before: old?.gaps ?? [] },
     hiddenBy(old, from),
   );
-  return rangeMotion(after.drawing, card, measure, (extent) => motion(extent));
+  return rangeMotion(after.drawing, card, measure, motion);
 }
 
 /**
@@ -329,7 +370,7 @@ export function frameMotion(
     from,
     to,
     offset,
-    0,
+    () => 0,
     { after: now.gaps, before: was.gaps },
     hiddenBy(was, from),
   );
@@ -359,7 +400,7 @@ export function frameMotion(
   const motions = new Map<number, Motion>();
   for (const index of owned) {
     const element = drawing.elements[index];
-    if (element !== undefined) motions.set(index, motion(extentOf(element, measure)));
+    if (element !== undefined) motions.set(index, motion(extentOf(element, measure), index));
   }
   return {
     key: placeKeyText(now.key),

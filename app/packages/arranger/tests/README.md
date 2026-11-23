@@ -1255,6 +1255,24 @@ first piece holding it, linear in it (an end exactly at its abscissa).
     stays (a gap changed) travels with it instead, from the same share of
     the gap before.
 
+**A group elision changed** (`group_elided_members`, `elision_1` set to
+`{canvas: 60}`): the frame and every card drawing its gaps move, nothing
+else: the member cards of `excerpt`, `voice` and `sketch`, `piece`'s
+ancestor card (its carried gaps) and the frame `{item: group_1}` itself.
+The frame's rectangle starts where the drawing before drew it: its left
+side as it was (moved by the place origin), its right side as far right of
+the frame axis's end before (the last run's end, `place.x + scale × (x0 +
+L × u1 − D)`) as it lies right of that end after, so the right border
+travels with the gaps.
+
+**Elision labels shown** (`group_elided_inside`, a rule on `{id: piece,
+part: [card]}` setting `elision-display` to `ellipsis name coordinate`):
+the labels take room in their markers bands, so the card's rows move
+(section 2.1 of the drawing specification: rows stay unless elision labels
+are shown): every line of the ancestor card starts `dy` below its own row,
+the row's ordinate before less its ordinate after (each from its drawing's
+place origin), and some row moves.
+
 **Hidden ↔ Elided** (`withoutAncestorCards` against the defaults, the
 same two fixtures):
 
@@ -3967,6 +3985,13 @@ design's table: the right edge dragged by `Δx`, the left one mirrored):
    standard gap) +50 to `{canvas: 82}`, a standard gap being written in
    canvas units; never wider than the natural width: the frame's
    `elision_2` +50 is `{ratio: 1}`.
+   A canvas width is in the frame's own units: in
+   `bundle_groupstamp_shared_member` with `g2`'s place `scale` set to
+   1.5, `elision_1` (on the shared `t`, `{canvas: 24}`) dragged 15 right
+   in `g2`'s frame is `{canvas: 34}` (24 + 15 / 1.5), in `g1`'s (scale 1)
+   `{canvas: 39}`. Each frame drawing the shared member's elision records
+   its own gap: a gap written after every item belongs to the frame whose
+   box holds it.
 9. **Both**: the drawn width follows the natural width, so what lies
    beyond the edge stays: `elision_5`'s end +50 sets end 49 and `{span:
    5}`; `elision_6`'s end +50 end 57 and `{canvas: 80}`; the frame's

@@ -72,9 +72,9 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
  * How far the elided ancestor cards behind the frame of the group `target`
  * reach out from the frame's horizontal centre `c`, in canvas units: the
  * largest of `c` less a card's left edge and its right edge less `c`, over
- * the displayed ancestor cards of that frame that elide (their record's
- * drawn mode Proportional, whose proportion fits them even where it draws
- * no gap at `r = 1`, or Custom with at least one gap). `null` for a target
+ * the displayed ancestor cards of that frame that elide: that draw a gap,
+ * or that Proportional fits at `r = 1` (drawing none, since the whole card
+ * fits). `null` for a target
  * that is no group, for a group whose frame is not drawn, and where no such
  * card is drawn: every card drawn whole.
  */
@@ -98,8 +98,8 @@ export function elidedReach(node: BlockNode, target: Address): number | null {
     );
     const elides =
       exposure !== undefined &&
-      (exposure.drawn === "proportional" ||
-        (exposure.drawn === "custom" && exposure.gaps.length > 0));
+      (exposure.gaps.length > 0 ||
+        (exposure.drawn === "proportional" && exposure.proportion === 1));
     if (!elides) continue;
     const card = rectOnCanvas(node, box);
     reach = Math.max(reach ?? 0, c - card.x, card.x + card.width - c);

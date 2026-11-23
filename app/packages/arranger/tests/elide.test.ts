@@ -16,7 +16,21 @@ import { blockMotion, unfoldingMotion } from "../src/animation/elide.ts";
 import { raiseUnfold } from "../src/animation/raise.ts";
 import { placedAt, spanAt } from "../src/animation/unfold.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
-import { A, blockIn, metrics, viewOf, withFullCards, withoutAncestorCards } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  metrics,
+  viewOf,
+  withFullCards,
+  withoutAncestorCards,
+} from "./support.ts";
+
+/** One `set` of `values` on the elision `id` of block A. */
+const setOf = (id: string, values: object) => ({
+  type: "set",
+  changes: [{ target: { block: A, id }, values }],
+});
 
 const measure = new TextMeasure(metrics);
 const float = (value: Parameters<typeof toRational>[0]) => toFloat(toRational(value));
@@ -320,5 +334,89 @@ describe.each([
     const [one] = folding.descriptors;
     if (one === undefined) throw new Error("no descriptor");
     expect(folding.placedAt(one, 0)).toEqual({ sx: 1, dx, dy, opacity: 1 });
+  });
+});
+
+describe("a group elision changed", () => {
+  const view = viewOf({ id: A, fixture: "groups/group_elided_members" });
+  const before = drawnOf(view);
+  const after = drawnOf(changed(view, setOf("elision_1", { width: { canvas: 60 } })));
+
+  it("moves the frame, its member cards and the ancestor card behind it", () => {
+    const { cards, leaving } = blockMotion(before, after, measure);
+    expect(leaving).toEqual([]);
+    expect(cards.map((card) => card.key).sort()).toEqual(
+      [
+        { item: "group_1", member: "excerpt" },
+        { item: "group_1", member: "piece" },
+        { item: "group_1", member: "sketch" },
+        { item: "group_1", member: "voice" },
+        { item: "group_1" },
+      ]
+        .map(placeKeyText)
+        .sort(),
+    );
+  });
+
+  it("starts the frame's rectangle where the drawing before drew it", () => {
+    const frame = blockMotion(before, after, measure).cards.find(
+      (card) => card.key === placeKeyText({ item: "group_1" }),
+    );
+    const index = after.drawing.elements.findIndex((element) => element.type === "frame");
+    const was = before.drawing.elements.find((element) => element.type === "frame");
+    const motion = frame?.motionOf(index).across;
+    if (was?.type !== "frame" || motion == null) throw new Error("no frame motion");
+    const offset = after.drawing.origin.x - before.drawing.origin.x;
+    // The axis's end: the last run's end at `x = place.x + scale × (x0 + L × u1 − D)`.
+    const end = ({ drawing }: Drawn) => {
+      const exposure = drawing.elisions.find(({ kind }) => kind === "frame");
+      const run = exposure?.runs.at(-1);
+      if (exposure === undefined || run === undefined) throw new Error("no frame axis");
+      const { place, x0 } = exposure;
+      return place.x + place.scale * (x0 + (run.L * run.u1 - run.D));
+    };
+    const now = after.drawing.elements[index];
+    if (now?.type !== "frame") throw new Error("no frame");
+    expect(spanAt(motion, 0)).toEqual({
+      left: was.x + offset,
+      right: end(before) + offset + (now.x + now.width - end(after)),
+    });
+  });
+});
+
+describe("elision labels shown", () => {
+  const view = viewOf({ id: A, fixture: "groups/group_elided_inside" });
+  const before = drawnOf(view);
+  const after = drawnOf(
+    changed(view, {
+      type: "style",
+      select: { addresses: [{ id: "piece", part: ["card"] }] },
+      set: { "elision-display": "ellipsis name coordinate" },
+      blocks: [A],
+    }),
+  );
+
+  it("moves the card's rows down by their new bands", () => {
+    const card = ancestorCard(after);
+    const [motion] = blockMotion(before, after, measure).cards;
+    if (motion === undefined || card.key === null) throw new Error("nothing moves");
+    const rowOf = ({ drawing }: Drawn, timeline: string) => {
+      for (const axis of lineAxes(drawing).values()) {
+        if (axis.timeline === timeline && card.key !== null && samePlaceKey(axis.card, card.key)) {
+          return axis.y - drawing.origin.y;
+        }
+      }
+      throw new Error(`no row of ${timeline}`);
+    };
+    let moved = false;
+    for (const index of indexesOf(motion, after)) {
+      const element = after.drawing.elements[index];
+      if (element?.type !== "timeline" && element?.type !== "child") continue;
+      const timeline = String(element.address.id);
+      const shift = rowOf(before, timeline) - rowOf(after, timeline);
+      expect(motion.motionOf(index).dy, timeline).toBe(shift);
+      moved ||= shift !== 0;
+    }
+    expect(moved).toBe(true);
   });
 });

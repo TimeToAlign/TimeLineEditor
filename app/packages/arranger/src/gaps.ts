@@ -62,7 +62,7 @@ import type {
 } from "@timetoalign/tilie-layout";
 import { lineAxes, widthAs } from "@timetoalign/tilie-layout";
 import type { DrawingPoint, Stacking } from "./boxes.ts";
-import { raisedRoot, stackingOf } from "./boxes.ts";
+import { keyedBox, raisedRoot, stackingOf } from "./boxes.ts";
 import type { CardAxis, GapEdge } from "./cardAxis.ts";
 import { cardAxisOf, zeroOf } from "./cardAxis.ts";
 import type { BlockNode } from "./node.ts";
@@ -114,15 +114,29 @@ export function gapsOf(drawing: Drawing): readonly GapPiece[] {
       const key = cards.findLast(({ range }) => range.start <= index && index < range.end)?.key;
       const holders =
         key == null
-          ? drawing.elisions.filter((exposure) => exposure.kind === "frame")
+          ? drawing.elisions.filter((exposure) => {
+              // A frame's gap spans its member cards, so it lies inside the frame's box.
+              const frame = exposure.kind === "frame" ? keyedBox(drawing, exposure.key) : undefined;
+              return (
+                frame !== undefined && frame.y <= element.yt && element.yb <= frame.y + frame.height
+              );
+            })
           : drawing.elisions.filter(
               (exposure) => exposure.kind !== "frame" && samePlaceKey(exposure.key, key),
             );
+      // A gap drawn in several frames (a shared member's) belongs to the one recording it there.
+      let found: GapPiece | undefined;
       for (const exposure of holders) {
         const gap = exposedOf(exposure, element);
-        if (gap !== undefined) return [{ index, element, exposure, gap }];
+        if (gap === undefined) continue;
+        if (
+          found === undefined ||
+          Math.abs(gap.x1 - element.x1) < Math.abs(found.gap.x1 - element.x1)
+        ) {
+          found = { index, element, exposure, gap };
+        }
       }
-      return [];
+      return found === undefined ? [] : [found];
     });
     piecesByDrawing.set(drawing, found.length === 0 ? NO_PIECES : found);
   }

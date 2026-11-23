@@ -45,7 +45,7 @@ import { pickable } from "../src/picking.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
 import { pressedIn } from "../src/selectionRules.ts";
-import { A, blockIn, metrics, storeOf, viewOf } from "./support.ts";
+import { A, blockIn, changed, metrics, storeOf, viewOf } from "./support.ts";
 
 const STORED = viewOf({ id: A, fixture: "bundles/bundle_elisions_stored" });
 const MEMBERS = viewOf({ id: A, fixture: "groups/group_elided_members" });
@@ -247,6 +247,20 @@ describe("handles and keys", () => {
     );
     expect(dragged(MEMBERS, ELISION("elision_2"), "end", 50, WIDTH, FRAME)).toEqual(
       set("elision_2", { width: { ratio: 1 } }),
+    );
+  });
+
+  it("writes a canvas width in the frame's own units, its scale divided out", () => {
+    const shared = viewOf({ id: A, fixture: "bundles/bundle_groupstamp_shared_member" });
+    const scaled = changed(shared, {
+      type: "set",
+      changes: [{ target: { block: A, id: "g2" }, values: { place: { scale: 1.5 } } }],
+    });
+    expect(dragged(scaled, ELISION("elision_1"), "end", 15, WIDTH, { item: "g2" })).toEqual(
+      set("elision_1", { width: { canvas: 34 } }),
+    );
+    expect(dragged(scaled, ELISION("elision_1"), "end", 15, WIDTH, { item: "g1" })).toEqual(
+      set("elision_1", { width: { canvas: 39 } }),
     );
   });
 
