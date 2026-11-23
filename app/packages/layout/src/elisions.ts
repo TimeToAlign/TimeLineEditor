@@ -899,26 +899,6 @@ export function ancestorElisions(
 }
 
 /**
- * The gaps of an ancestor card that its proportion does not decide (section
- * 8.3): the gaps `carried` from its frame and, where its mode is `custom`,
- * the pieces of its stored card elisions around the protected span
- * `protect`; never the elisions it derives. The ancestor-row distance `dr`
- * reads the card's root laid out alone on this axis, so it counts the label
- * stacks of the stored card elisions the card draws and of no derived one.
- * Undefined where there is no such gap.
- */
-export function storedAncestorAxis(
-  scope: Scope,
-  style: Style,
-  protect: Stretch,
-  carried: readonly CarriedGap[],
-): CardAxis | undefined {
-  const stored = cardElisionsOf(scope);
-  const custom = drawnMode(style, stored.length > 0) === "custom";
-  return ancestorAxis(scope, custom ? storedPieces(scope, stored, protect) : [], carried);
-}
-
-/**
  * The axis of an ancestor card's own pieces, its carried gaps and its seams; undefined without
  * any.
  */
@@ -926,7 +906,7 @@ function ancestorAxis(
   scope: Scope,
   pieces: readonly CardPiece[],
   carried: readonly CarriedGap[],
-  seams: readonly Seam[] = [],
+  seams: readonly Seam[],
 ): CardAxis | undefined {
   if (pieces.length === 0 && carried.length === 0 && seams.length === 0) return undefined;
   const placedCarried = carried.map(

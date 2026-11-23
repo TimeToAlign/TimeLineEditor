@@ -151,6 +151,31 @@ function lineOf(
   return found;
 }
 
+/** The elements of the card of `member` in the frame of `group`, by its record's range. */
+function cardElements(drawing: Drawing, group: string, member: string): readonly DrawnElement[] {
+  const box = drawing.boxes.find(
+    (each) =>
+      each.kind === "card" && JSON.stringify(each.key) === JSON.stringify({ item: group, member }),
+  );
+  if (box === undefined) throw new Error(`no card of ${member} in ${group}`);
+  return drawing.elements.slice(box.range.start, box.range.end);
+}
+
+/** The ordinate of the line of `id` drawn as `type` in the card of `member` in `group`. */
+function lineIn(
+  drawing: Drawing,
+  group: string,
+  member: string,
+  type: LineElement["type"],
+  id: string,
+): number {
+  const line = cardElements(drawing, group, member).find(
+    (element): element is LineElement => element.type === type && element.address.id === id,
+  );
+  if (line === undefined) throw new Error(`no ${type} line of ${id} in ${member}'s card`);
+  return line.y;
+}
+
 const cardAt = (drawing: Drawing, root: string) =>
   drawing.elements.findIndex(
     (element) => element.type === "ancestor_card" && element.address.id === root,
@@ -181,9 +206,9 @@ describe("derived elisions with their middles left out", () => {
   });
 
   it("draw one ellipsis per gap at the middle of the card, its name below it, no rectangle", () => {
-    // The card from 16.23046875 to 113.5859375: `ym` 64.908203125, the name's baseline `ym + 2 + 2
-    // + a(9)`.
-    const ym = (16.23046875 + 113.5859375) / 2;
+    // The card from 36.20703125 to 133.5625, 19.9765625 lower than with `dr` 14 (its ends then
+    // 16.23046875 and 113.5859375): `ym` 84.884765625, the name's baseline `ym + 2 + 2 + a(9)`.
+    const ym = (16.23046875 + 19.9765625 + (113.5859375 + 19.9765625)) / 2;
     const shown = (id: string) =>
       of(drawing, "ellipsis", { id, part: ["elision", "ellipsis"] }).map(
         (element) => element.type === "ellipsis" && element.y,
@@ -214,16 +239,20 @@ describe("derived elisions with their middles left out", () => {
     expect(lineOf(drawing, "child", at("second"), from).cuts).toHaveLength(1);
   });
 
-  it("leave the member card's ancestor rows at the heights of the card behind, but where a derived label widens a band", () => {
+  it("leave the member card's ancestor rows at the heights of the card behind, its derived labels counted", () => {
     const from = cardAt(drawing, "piece");
     const piece = lineOf(drawing, "timeline", at("piece"), from).y;
+    const first = lineOf(drawing, "child", at("first"), from).y;
     expect(lineOf(drawing, "ancestor", at("piece")).y).toBe(piece);
+    expect(lineOf(drawing, "ancestor", at("first")).y).toBe(first);
     // `first`'s markers band, between its line and `piece`'s on the card behind, takes the room of
     // the derived gaps' name labels, `w/2 + 13 + 2 + h(9)` (section 6.4): `first` lies `7 + 26.9765625`
-    // above `piece` there; `dr` counts no derived stack (section 8.3), so `first`'s ancestor line
-    // keeps its distance of 14 in the member's card.
-    expect(piece - lineOf(drawing, "child", at("first"), from).y).toBe(7 + 1.5 + 13 + 2 + H9);
-    expect(piece - lineOf(drawing, "ancestor", at("first")).y).toBe(14);
+    // above `piece` there, and `dr` counts that stack (section 8.3), so the member's card keeps it.
+    expect(piece - first).toBe(7 + 1.5 + 13 + 2 + H9);
+    expect(piece - lineOf(drawing, "ancestor", at("first")).y).toBe(33.9765625);
+    // The frame `171.5625 + 19.9765625` high, its proportion read before its rows align.
+    expect(drawing.boxes.find((box) => box.kind === "frame")?.height).toBe(191.5390625);
+    expect(card.proportion).toBe(0.14285714285714285);
   });
 });
 
@@ -546,6 +575,71 @@ describe("the ancestor-row distance", () => {
         box.kind === "card" && JSON.stringify(box.key) === '{"item":"group_1","member":"theme"}',
     );
     expect(card?.height).toBe(101.35546875);
+  });
+});
+
+describe("the ancestor-row distance at a stated proportion", () => {
+  // The suite behind each excerpt at a telling proportion: one rule on its cards.
+  const drawing = drawn(
+    "bundles/bundle_elided_layerit",
+    onCards("clt_1", { "elision-mode": "proportional", "elision-proportion": 0.125 }),
+  );
+  const groups = ["group_1", "group_2", "group_3", "group_4"];
+  // Each group's excerpt and the movement holding it.
+  const members = [
+    ["clt_6", "clt_2"],
+    ["clt_7", "clt_3"],
+    ["clt_8", "clt_4"],
+    ["clt_9", "clt_5"],
+  ] as const;
+
+  it("derives every movement's gap, named, at r = 0.125", () => {
+    for (const group of groups) {
+      const card = exposureOf(drawing, { item: group, member: "clt_1" });
+      expect([card.drawn, card.proportion, card.automatic], group).toEqual([
+        "proportional",
+        0.125,
+        false,
+      ]);
+    }
+    // Each card derives one piece per movement outside its protected span, two of Menuet behind
+    // `group_2`, whose excerpt lies at 120–132 inside it: a name label per gap.
+    expect(
+      ["clt_2", "clt_3", "clt_4", "clt_5"].map((id) => labelTexts(drawing, derived(id))),
+    ).toEqual([
+      Array(4).fill("Prelude"),
+      Array(5).fill("Menuet"),
+      Array(4).fill("Clair de Lune"),
+      Array(4).fill("Passepied"),
+    ]);
+  });
+
+  it("counts the derived labels in dr, so every ancestor row lies at its height on the card behind", () => {
+    const cards = drawing.elements.flatMap((element, index) =>
+      element.type === "ancestor_card" ? [index] : [],
+    );
+    expect(cards).toHaveLength(4);
+    members.forEach(([member, movement], index) => {
+      const from = cards[index] ?? 0;
+      const group = groups[index] ?? "";
+      expect(lineIn(drawing, group, member, "ancestor", movement), member).toBe(
+        lineOf(drawing, "child", at(movement), from).y,
+      );
+      expect(lineIn(drawing, group, member, "ancestor", "clt_1"), member).toBe(
+        lineOf(drawing, "timeline", at("clt_1"), from).y,
+      );
+    });
+    // In `clt_6`'s card `clt_2`'s row lies `30.9765625 + 7` below `clt_6`'s line and `clt_1`'s
+    // `dr = 7 + 26.9765625` beyond it; the card is `14.40234375 + 30.9765625 + 47.9765625 + 8` high.
+    const prelude = drawing.boxes.find(
+      (box) =>
+        box.kind === "card" && JSON.stringify(box.key) === '{"item":"group_1","member":"clt_6"}',
+    );
+    const y6 = lineIn(drawing, "group_1", "clt_6", "timeline", "clt_6");
+    const clt2 = lineIn(drawing, "group_1", "clt_6", "ancestor", "clt_2");
+    const clt1 = lineIn(drawing, "group_1", "clt_6", "ancestor", "clt_1");
+    expect([clt2 - y6, clt1 - clt2]).toEqual([30.9765625 + 7, 33.9765625]);
+    expect(prelude?.height).toBe(101.35546875);
   });
 });
 

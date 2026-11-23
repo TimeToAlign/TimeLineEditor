@@ -15,9 +15,15 @@ import { derivedDisplay, drawnMode, exposedGap, gapElements } from "../elisions.
 import { rightEdge } from "../geometry.ts";
 import type { MemberDrawn } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
-import { shown } from "../traversal.ts";
+import { type Context, shown } from "../traversal.ts";
 import { axesOf } from "./axes.ts";
-import { type Columns, contentRight, type Horizontal } from "./horizontal.ts";
+import {
+  type Columns,
+  columnsOf,
+  contentRight,
+  type Horizontal,
+  horizontalOf,
+} from "./horizontal.ts";
 import type { Card, Item, Title } from "./places.ts";
 
 /** An item with each card's member drawing drawn at the shared start `s0`, in item coordinates. */
@@ -45,6 +51,39 @@ export interface LaidItem {
   /** The right and bottom edges it draws, its cards' shadows included, for the block's size. */
   readonly rights: readonly number[];
   readonly bottoms: readonly number[];
+}
+
+/** Items laid out: their member drawings, the block's one horizontal layout over them, each laid. */
+export interface LaidOut {
+  readonly items: readonly Item[];
+  readonly drawings: readonly ItemDrawing[];
+  readonly horizontal: Horizontal;
+  readonly laid: readonly LaidItem[];
+}
+
+/**
+ * The items `items` laid out (section 8.2): their cards' member drawings at
+ * the block's columns, the block's one horizontal layout over them, a frame
+ * with group elisions drawn shorter by its gaps' shrinks, and each item laid
+ * out by it.
+ */
+export function laidOut(context: Context, items: readonly Item[], measure: TextMeasure): LaidOut {
+  const columns = columnsOf(items);
+  const drawings = items.map((item) => drawItem(context.manifest, item, columns));
+  const horizontal = horizontalOf(
+    columns,
+    items,
+    drawings.flatMap(({ item, drawn }) =>
+      drawn.map(({ elements }) => ({ elements, L: item.length - item.DG })),
+    ),
+    measure,
+  );
+  return {
+    items,
+    drawings,
+    horizontal,
+    laid: drawings.map((drawing) => layoutItem(drawing, horizontal, measure)),
+  };
 }
 
 /** A title's name element at `x` with its baseline at `baseline`. */
