@@ -34,7 +34,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import type { Gap } from "./elisions.ts";
+import { type Gap, type StackLabel, stackLabelBelow } from "./elisions.ts";
 import { type Extent, labelExtent } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue, negate } from "./numbers.ts";
@@ -196,7 +196,7 @@ export interface MarkersBand extends PreparedBand {
    * gap's middle `xm`, each at its line of the band's tiers at its unturned place. A gap's labels
    * are held by the gap and written with its other descriptors (section 8.5).
    */
-  elisionLabels(at: LinePosition, start: number, side: Side): Map<Gap, TextElement[]>;
+  elisionLabels(): Map<Gap, StackLabel[]>;
 }
 
 /**
@@ -229,7 +229,7 @@ export interface MarkersBand extends PreparedBand {
  * same.
  */
 export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]): MarkersBand {
-  const { relativeX, h, cascade, styled, measured } = scope;
+  const { relativeX, h, a, cascade, styled, measured } = scope;
   const stampOf = (
     source: Entry,
     timeline: TimelineManifest,
@@ -324,9 +324,6 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       width: gapWidest(gap),
     })),
   ]);
-  const gapFirst = new Map(
-    gaps.map((gap, index) => [gap, nth(tiers.first, withStacks.length + index)]),
-  );
   const stacks = new Map<Stamp, Stacked>(
     withStacks.map((stamp, index) => [
       stamp,
@@ -437,27 +434,23 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
               },
             ],
       ),
-    elisionLabels: (at, start, side) =>
+    // A gap's stack is drawn below its ellipsis, its `x` the gap's middle, which the gap gives
+    // (section 6.6); its lines `h(s)` high, `s` the band's size, as the room the band takes.
+    elisionLabels: () =>
       new Map(
-        gaps.map((gap) => {
-          const n1 = gapFirst.get(gap) ?? 1;
-          const placed = carried(0, start + w / 2, n1, gap.source.labels.length, 0, h(size));
-          const xm = (at.x0 + gap.left + (at.x0 + gap.right)) / 2;
-          return [
-            gap,
-            gap.source.labels.map(
-              (label, index): TextElement => ({
-                type: "label",
-                address: label.address,
-                style: label.style,
-                x: xm,
-                baseline: at.beyond(side, at.yAt(side, nth(placed.starts, index)), size),
-                anchor: "middle",
-                text: label.text,
-              }),
-            ),
-          ];
-        }),
+        gaps.map((gap) => [
+          gap,
+          gap.source.labels.map(
+            (label, index): StackLabel => ({
+              type: "label",
+              address: label.address,
+              style: label.style,
+              below: stackLabelBelow(index + 1, h(size), a(size)),
+              anchor: "middle",
+              text: label.text,
+            }),
+          ),
+        ]),
       ),
     unnamed: {
       wedge: cascade.resolveUnaddressed(

@@ -90,6 +90,28 @@ describe("row names", () => {
     expect(drawing.elements[0]).toMatchObject({ width: 48.806640625, height: 28.8046875 });
   });
 
+  it("draws the manifest's title whole, wider than a name's max-width", () => {
+    // The defaults cut every name at 160 but the manifest's title, whose rule sets no
+    // max-width (README): its text is the whole name, and the block is as wide as it needs.
+    const name = "LayerIt, Clair de lune mm. 1–6 (Pires)";
+    const source = loadFile("bundles/bundle_mixed");
+    const manifest = loadManifest(
+      dumps({ ...source, name, timelines: [], groups: [], graphical: {} }),
+    );
+    if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
+    const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+    const [, title] = drawing.elements;
+    expect(title?.type === "name" && [title.address, title.text]).toEqual([TITLE_ADDRESS, name]);
+    const cut = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, { rules: [{ select: { element: "name" }, set: { "max-width": 160 } }] }],
+      metrics,
+    );
+    const [, shortened] = cut.elements;
+    expect(shortened?.type === "name" && shortened.text).toBe("LayerIt, Clair de lune mm. …");
+  });
+
   it("is P plus x0 wide and P high when the block holds no frame, no card and no title", () => {
     // The same manifest with its title hidden: xn = P + K = 16, no row name,
     // so x0 = 16, the block P + x0 = 24 wide and P = 8 high.

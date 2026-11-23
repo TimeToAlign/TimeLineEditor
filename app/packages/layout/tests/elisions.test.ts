@@ -22,7 +22,7 @@ import {
   manifestLayer,
   widthAs,
 } from "../src/index.ts";
-import { at, edit, fixturesDir, loadFile, metrics, target } from "./support.ts";
+import { at, edit, fixturesDir, loadFile, manifestNames, metrics, target } from "./support.ts";
 
 /** A fixture drawn at the default placement and view, under `extra` layers. */
 function drawn(name: string, extra: readonly Graphical[] = []): Drawing {
@@ -87,6 +87,39 @@ const of = (drawing: Drawing, type: DrawnElement["type"], address: ElementAddres
 
 const derived = (id: string): ElementAddress => ({ id, part: ["elision"] });
 
+/** `a(9)` and `h(9)` of the bundled font metrics (section 5.1): 1901 and 1901 + 483 of 2048. */
+const A9 = (1901 * 9) / 2048;
+const H9 = ((1901 + 483) * 9) / 2048;
+
+/**
+ * Every drawing of a gap with what follows it in the drawing: its ellipses and its labels, the
+ * elements of the gap's address written right after it (section 8.5).
+ */
+function gapDrawings(drawing: Drawing) {
+  // An ancestor card's elements are laid out in its own coordinates and then moved (section 8.8),
+  // so their middles are the moved middles of the card's own drawing: left to their own tests.
+  const moved = drawing.boxes.filter((box) => box.ancestor !== undefined).map((box) => box.range);
+  return drawing.elements.flatMap((element, index) => {
+    if (element.type !== "elision") return [];
+    if (moved.some((range) => range.start <= index && index < range.end)) return [];
+    const following: DrawnElement[] = [];
+    for (const next of drawing.elements.slice(index + 1)) {
+      if (next.type !== "ellipsis" && next.type !== "label") break;
+      following.push(next);
+    }
+    return [{ gap: element, following }];
+  });
+}
+
+/** The ordinates of the rows whose line, map or region a gap drawn from `x1` to `x2` cuts. */
+const crossingYs = (drawing: Drawing, x1: number, x2: number) =>
+  drawing.elements.flatMap((element) => {
+    if (!("cuts" in element) || !element.cuts.some(([a, b]) => a === x1 && b === x2)) return [];
+    return [
+      element.type === "map" ? element.yc : element.type === "region" ? element.yb : element.y,
+    ];
+  });
+
 /** The elided coordinates of a frame's gap, timeline by timeline, as text. */
 const membersText = (gap: ExposedGap) =>
   gap.members.map(({ timeline, start, end }) => [timeline, String(start), String(end)]);
@@ -138,7 +171,7 @@ describe("derived elisions with their middles left out", () => {
     expect([card.chain, card.depths, card.display]).toEqual([
       ["piece", "first"],
       [1, 2],
-      ["ellipsis"],
+      ["ellipsis", "name"],
     ]);
     expect(card.gaps.map(gapShape)).toEqual([
       [derived("first"), "default", "first", "0", "8", 400, 57.14285714285714],
@@ -147,12 +180,23 @@ describe("derived elisions with their middles left out", () => {
     ]);
   });
 
-  it("draw an ellipsis on each row crossing a gap, no label, no rectangle", () => {
-    expect(of(drawing, "ellipsis", { id: "first", part: ["elision", "ellipsis"] })).toHaveLength(4);
-    expect(of(drawing, "ellipsis", { id: "second", part: ["elision", "ellipsis"] })).toHaveLength(
-      2,
-    );
-    expect(labelTexts(drawing, derived("first"))).toEqual([]);
+  it("draw one ellipsis per gap at the middle of the card, its name below it, no rectangle", () => {
+    // The card from 16.23046875 to 113.5859375: `ym` 64.908203125, the name's baseline `ym + 2 + 2
+    // + a(9)`.
+    const ym = (16.23046875 + 113.5859375) / 2;
+    const shown = (id: string) =>
+      of(drawing, "ellipsis", { id, part: ["elision", "ellipsis"] }).map(
+        (element) => element.type === "ellipsis" && element.y,
+      );
+    expect(shown("first")).toEqual([ym, ym]);
+    expect(shown("second")).toEqual([ym]);
+    expect(labelTexts(drawing, derived("first"))).toEqual(["First", "First"]);
+    expect(labelTexts(drawing, derived("second"))).toEqual(["Second"]);
+    expect(
+      of(drawing, "label", { id: "second", part: ["elision", "name"] }).map(
+        (element) => element.type === "label" && element.baseline,
+      ),
+    ).toEqual([ym + 2 + 2 + A9]);
     const gaps = drawing.elements.filter((element) => element.type === "elision");
     expect(
       gaps.map((gap) => gap.type === "elision" && [gap.style.fill, gap.continuations]),
@@ -170,12 +214,16 @@ describe("derived elisions with their middles left out", () => {
     expect(lineOf(drawing, "child", at("second"), from).cuts).toHaveLength(1);
   });
 
-  it("leave the member card's ancestor rows at the heights of the card behind", () => {
+  it("leave the member card's ancestor rows at the heights of the card behind, but where a derived label widens a band", () => {
     const from = cardAt(drawing, "piece");
-    for (const id of ["piece", "first"]) {
-      const behind = lineOf(drawing, id === "piece" ? "timeline" : "child", at(id), from);
-      expect(lineOf(drawing, "ancestor", at(id)).y).toBe(behind.y);
-    }
+    const piece = lineOf(drawing, "timeline", at("piece"), from).y;
+    expect(lineOf(drawing, "ancestor", at("piece")).y).toBe(piece);
+    // `first`'s markers band, between its line and `piece`'s on the card behind, takes the room of
+    // the derived gaps' name labels, `w/2 + 13 + 2 + h(9)` (section 6.4): `first` lies `7 + 26.9765625`
+    // above `piece` there; `dr` counts no derived stack (section 8.3), so `first`'s ancestor line
+    // keeps its distance of 14 in the member's card.
+    expect(piece - lineOf(drawing, "child", at("first"), from).y).toBe(7 + 1.5 + 13 + 2 + H9);
+    expect(piece - lineOf(drawing, "ancestor", at("first")).y).toBe(14);
   });
 });
 
@@ -231,28 +279,26 @@ describe("group elisions", () => {
     ]);
   });
 
-  it("draw their labels once and an ellipsis on every crossing row", () => {
+  it("draw one ellipsis centred on the member cards together, their labels once below it", () => {
+    // `elision_2` states no `display`: the default, its ellipsis and its name.
     expect(labelTexts(drawing, at("elision_1"))).toEqual(["Development", "2–8 ♩"]);
-    expect(labelTexts(drawing, at("elision_2"))).toEqual([]);
+    expect(labelTexts(drawing, at("elision_2"))).toEqual(["Phrase"]);
     const ys = (id: string) =>
       of(drawing, "ellipsis", { id, part: ["ellipsis"] }).map(
         (element) => element.type === "ellipsis" && element.y,
       );
-    const y = (type: LineElement["type"], id: string) => lineOf(drawing, type, at(id)).y;
-    const frameGaps = ys("elision_1").slice(-4);
-    expect(frameGaps).toEqual([
-      y("ancestor", "piece"),
-      y("timeline", "excerpt"),
-      y("timeline", "voice"),
-      y("timeline", "sketch"),
-    ]);
-    expect(ys("elision_2").slice(-5)).toEqual([
-      y("ancestor", "piece"),
-      y("timeline", "excerpt"),
-      y("timeline", "voice"),
-      y("child", "phrase"),
-      y("timeline", "sketch"),
-    ]);
+    // Carried into the ancestor card (46.68359375 to 130.63671875), then across the frame, from the
+    // top of `excerpt`'s card, 32.8046875, to the bottom of `sketch`'s, 210.61328125 + 49.37890625.
+    const card = (46.68359375 + 130.63671875) / 2;
+    const frame = (32.8046875 + (210.61328125 + 49.37890625)) / 2;
+    expect(ys("elision_1")).toEqual([card, frame]);
+    expect(ys("elision_2")).toEqual([card, frame]);
+    const baselines = (id: string) =>
+      drawing.elements.flatMap((element) =>
+        element.type === "label" && element.address.id === id ? [element.baseline] : [],
+      );
+    expect(baselines("elision_1")).toEqual([frame + 4 + A9, frame + 4 + H9 + A9]);
+    expect(baselines("elision_2")).toEqual([frame + 4 + A9]);
   });
 
   it("leave out what marks a position in a gap", () => {
@@ -279,9 +325,11 @@ describe("group elisions", () => {
   it("are carried exactly onto the fraction axis of the card behind", () => {
     expect(cardRuns(drawing, "piece")).toEqual([
       ["0", "1"],
-      ["15", "18"],
+      ["15", "16"],
+      ["16", "18"],
       ["24", "76/3"],
-      ["28", "33"],
+      ["28", "32"],
+      ["32", "33"],
       ["47", "48"],
     ]);
   });
@@ -318,9 +366,11 @@ describe("group elisions", () => {
     );
     expect(cardRuns(floated, "piece")).toEqual([
       ["0", "1"],
-      ["15", "18"],
+      ["15", "16"],
+      ["16", "18"],
       ["24", "76/3"],
-      ["28", "33"],
+      ["28", "32"],
+      ["32", "33"],
       ["47", "48"],
     ]);
     expect(
@@ -398,15 +448,20 @@ describe("stored elisions", () => {
     expect(of(drawing, "ellipsis", at("elision_6", "ellipsis"))).toEqual([]);
     expect(of(drawing, "elision", at("elision_1"))).toEqual([]);
     const fourth = of(drawing, "elision", at("elision_4"))[0];
-    const rows = of(drawing, "ellipsis", at("elision_4", "ellipsis")).map(
-      (element) => element.type === "ellipsis" && element.y,
-    );
-    expect(fourth?.type === "elision" && fourth.continuations).toEqual(rows);
+    if (fourth?.type !== "elision") throw new Error("elision_4 draws no gap");
+    // A continuation on each row it crosses, one ellipsis in the middle.
+    expect(fourth.continuations).toEqual(crossingYs(drawing, fourth.x1, fourth.x2));
+    expect(
+      of(drawing, "ellipsis", at("elision_4", "ellipsis")).map(
+        (element) => element.type === "ellipsis" && [element.x, element.y],
+      ),
+    ).toEqual([[(fourth.x1 + fourth.x2) / 2, (fourth.yt + fourth.yb) / 2]]);
   });
 
   it("give score's line one axis per full run, the carried gap's end exact", () => {
     expect(cardRuns(drawing, "score")).toEqual([
-      ["88/5", "32"],
+      ["88/5", "24"],
+      ["24", "32"],
       ["56", "64"],
     ]);
   });
@@ -417,7 +472,8 @@ describe("stored elisions", () => {
     );
     expect(runs.map((axis) => [axis.start, axis.end])).toEqual([
       [0, 30],
-      [35.1, 90],
+      [35.1, 55.5],
+      [55.5, 90],
     ]);
   });
 
@@ -608,6 +664,81 @@ describe("modes", () => {
   });
 });
 
+describe("ellipses", () => {
+  it("are one per drawing of a gap, at its middle and the middle of its height, its labels below", () => {
+    // Every fixture drawn with the defaults (section 6.6), in its member and block-held cards and
+    // across its frames: a gap at least 20 wide whose display lists
+    // `ellipsis` draws exactly one, at `xm` and `ym`; its labels follow at `xm`, the `i`-th with its
+    // baseline at `ym + 2 + 2 + (i − 1) × h(9) + a(9)`.
+    for (const name of manifestNames()) {
+      for (const { gap, following } of gapDrawings(drawn(name))) {
+        if (gap.type !== "elision") continue;
+        const xm = (gap.x1 + gap.x2) / 2;
+        const ym = (gap.yt + gap.yb) / 2;
+        const ellipses = following.filter((element) => element.type === "ellipsis");
+        expect(ellipses.length).toBeLessThanOrEqual(1);
+        for (const ellipsis of ellipses) {
+          expect(ellipsis.type === "ellipsis" && [ellipsis.x, ellipsis.y]).toEqual([xm, ym]);
+        }
+        if (gap.x2 - gap.x1 < 20) expect(ellipses).toEqual([]);
+        const labels = following.filter((element) => element.type === "label");
+        expect(labels.map((label) => label.type === "label" && [label.x, label.baseline])).toEqual(
+          labels.map((_, index) => [xm, ym + 4 + index * H9 + A9]),
+        );
+      }
+    }
+  });
+
+  it("is none on a crossing row but the gap's middle", () => {
+    const drawing = drawn("bundles/bundle_shared_parent");
+    const gaps = drawing.elements.filter((element) => element.type === "elision");
+    // Each of `score`'s two ancestor cards derives one gap cutting `score`'s line and its map
+    // `cmap_1`; the gap keeps one ellipsis, at the middle of its card, and the name `Score` below.
+    expect(
+      gaps.map((gap) => (gap.type === "elision" ? crossingYs(drawing, gap.x1, gap.x2) : [])),
+    ).toEqual([
+      [127.234375 - 5.5, 127.234375],
+      [353.421875 - 5.5, 353.421875],
+    ]);
+    expect(
+      gaps.map((gap) =>
+        drawing.elements.flatMap((element) =>
+          gap.type === "elision" &&
+          element.type === "ellipsis" &&
+          element.x === (gap.x1 + gap.x2) / 2
+            ? [element.y === (gap.yt + gap.yb) / 2]
+            : [],
+        ),
+      ),
+    ).toEqual([[true], [true]]);
+    expect(labelTexts(drawing, derived("score"))).toEqual(["Score", "Score"]);
+  });
+});
+
+describe("the frame's room", () => {
+  it("puts what lies outside the member's span outside the frame", () => {
+    const drawing = drawn("groups/group_elided_inside");
+    const frame = drawing.boxes.find((box) => box.kind === "frame");
+    if (frame === undefined) throw new Error("no frame");
+    const gaps = of(drawing, "elision", derived("first"));
+    // The gap ending at 8 ends at the frame's left edge, the one starting at 16 starts at its right.
+    const [before, after] = gaps;
+    expect(before?.type === "elision" && before.x2).toBe(frame.x);
+    expect(after?.type === "elision" && after.x1).toBe(frame.x + frame.width);
+    expect(drawing.elements.filter((element) => element.type === "elision")).toHaveLength(3);
+    // `piece`'s run over `excerpt`'s span: from `x0` to `x0 + L'` of the frame.
+    const run = drawing.axes.find(
+      (axis) =>
+        axis.address.id === "piece" && axis.ancestor !== undefined && String(axis.start) === "8",
+    );
+    expect([run?.xStart, run?.xEnd, String(run?.end)]).toEqual([
+      frame.x + 103.70361328125,
+      frame.x + 103.70361328125 + 400,
+      "16",
+    ]);
+  });
+});
+
 describe("a member's start and end", () => {
   it("are marked on no ancestor line", () => {
     const drawing = drawn("groups/group_child_member");
@@ -631,6 +762,31 @@ describe("a member reads its frame's gaps at their exact proportions", () => {
     expect(runs("phrase")).toEqual([
       ["0", "2"],
       ["6", "8"],
+    ]);
+  });
+});
+
+describe("an ancestor card of length 0", () => {
+  it("elides each derived piece whole at drawn width 0 (several_depths)", () => {
+    const file = path.join(fixturesDir, "..", "warnings", "0.2.0", "several_depths.yaml");
+    const { manifest: value } = loads(readFileSync(file, "utf8")) as { manifest: unknown };
+    const manifest = loadManifest(dumps(value));
+    if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
+    const drawing = drawnManifest(manifest);
+    const card = drawing.elisions.filter((exposure) => exposure.kind === "ancestor_card");
+    expect(card.map((exposure) => [exposure.mode, exposure.proportion])).toEqual([["auto", 0]]);
+    expect(
+      card[0]?.gaps.map((gap) => [
+        gap.origin,
+        String(gap.start),
+        String(gap.end),
+        gap.natural,
+        gap.drawn,
+        gap.x2 - gap.x1,
+      ]),
+    ).toEqual([
+      ["default", "0", "4", 0, 0, 0],
+      ["default", "4", "32", 0, 0, 0],
     ]);
   });
 });

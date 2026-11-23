@@ -15,14 +15,17 @@ import { add, coordinateValue, lengthValue, negate, proportion, zero } from "../
 
 /**
  * The full runs of a line spanning `start` to `end` on its root's axis, the
- * stretches of the gaps of `axis` elided: what `outside` leaves of the span,
- * or, for a line of drawn length 0, the point itself where no gap holds it
- * (`CardAxis.gapOf`), and nothing where one does.
+ * stretches of the gaps of `axis` elided and the span cut at its seams: what
+ * `outside` leaves of the span, or, for a line of drawn length 0, the point
+ * itself where no gap holds it (`CardAxis.gapOf`), and nothing where one does.
  */
 function runsOf(start: Real, end: Real, axis: CardAxis | undefined): Stretch[] {
   if (axis === undefined) return [[start, end]];
   if (compareReal(start, end) === 0) return axis.gapOf(start) === undefined ? [[start, end]] : [];
-  const stretches = axis.gaps.map((gap): Stretch => [gap.a, gap.b]);
+  const stretches = [
+    ...axis.gaps.map((gap): Stretch => [gap.a, gap.b]),
+    ...axis.seams.map((seam): Stretch => [seam, seam]),
+  ];
   return outside(start, end, stretches);
 }
 
@@ -119,9 +122,9 @@ export function axesOf(
   const lambda = lengthValue(root) ?? reachOf(root, manifest);
   const relativeX = (value: Real) =>
     elided === undefined ? L * proportion(value, lambda) : elided.relative(value);
-  // A run starting at a seam starts on the run right of it (section 8.8, Drawn once).
-  const afterX = (value: Real) =>
-    elided === undefined ? L * proportion(value, lambda) : elided.after(value);
+  // A run's start and end: at a seam on its right and its left side.
+  const runX = (value: Real, side: "before" | "after") =>
+    elided === undefined ? L * proportion(value, lambda) : elided.relativeAt(value, side);
   // `Xe` of a span's end: `x0 + L` at the root's open end, less every shrink on an elided axis.
   const endX = (span: Pick<Span, "rootEnd" | "end">) =>
     x0 + (span.rootEnd ? (elided === undefined ? L : L - elided.total) : relativeX(span.end));
@@ -201,8 +204,8 @@ export function axesOf(
       const opening = compareReal(from, span.start) === 0;
       const closing = compareReal(to, span.end) === 0;
       const own = (value: Real) => add(value, negate(span.start));
-      const xStart = opening ? element.xs : x0 + afterX(from);
-      const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
+      const xStart = opening ? element.xs : x0 + runX(from, "after");
+      const xEnd = closing ? whole.xEnd : x0 + runX(to, "before");
       return {
         ...whole,
         xStart,
@@ -255,8 +258,8 @@ export function axesOf(
     return runs.map(([from, to], run): DrawnAxis => {
       const opening = compareReal(from, 0) === 0;
       const closing = compareReal(to, reach) === 0;
-      const xStart = opening ? whole.xStart : x0 + afterX(from);
-      const xEnd = closing ? whole.xEnd : x0 + relativeX(to);
+      const xStart = opening ? whole.xStart : x0 + runX(from, "after");
+      const xEnd = closing ? whole.xEnd : x0 + runX(to, "before");
       return {
         ...whole,
         xStart,

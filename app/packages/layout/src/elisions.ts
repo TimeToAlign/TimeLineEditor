@@ -246,16 +246,30 @@ export interface Gap {
  */
 export interface CardAxis {
   readonly gaps: readonly Gap[];
+  /**
+   * The positions of its seams, from the left: an ancestor card's room under its frame's borders
+   * (section 8.8, step 2), where its axis jumps right by the seam's width and nothing is left out.
+   */
+  readonly seams: readonly Real[];
   readonly runs: readonly Run[];
-  /** The sum of every shrink: `D` at the root's end, `DG` of a frame. */
+  /** The sum of every shrink, a seam's its negated width: `D` at the root's end, `DG` of a frame. */
   readonly total: number;
-  /** `L × u − D` of a position in no gap; at a seam, the end of the run left of it. */
+  /**
+   * `L × u − D` of a position in no gap; a position at a seam lies on the side of the seam that
+   * faces the protected span.
+   */
   relative(value: Real): number;
   /**
-   * The distance of a position as the start of what follows it: at a seam (section 8.8, Drawn
-   * once) the start of the run right of it, elsewhere `relative`.
+   * `L × u − D` of a position as the end (`"before"`) or the start (`"after"`) of a run: at a seam
+   * on its left or its right side, elsewhere as `relative`.
    */
-  after(value: Real): number;
+  relativeAt(value: Real, side: "before" | "after"): number;
+  /**
+   * `L × u − D` of a position as the start of a line, of a region or as a jump's target: at a
+   * seam that puts starts on its right side (between two anchors of a root drawn once, section
+   * 8.8), the start of the run right of it, elsewhere as `relative`.
+   */
+  startAt(value: Real): number;
   /** The gap a position lies in, its ends excluded; undefined for a position in no gap. */
   gapOf(value: Real): Gap | undefined;
   /** `D` at a position: the shrinks of the gaps ending at or before it, summed from the left. */
@@ -290,19 +304,46 @@ interface Comparing {
   readonly holds: (gap: Placing, start: Real, end: Real | null) => boolean;
 }
 
-/** The axis of `placing`, sorted from the left, at the graphical length `L` and proportions `u`. */
+/**
+ * A seam of an ancestor card's axis (section 8.8, step 2): at the position `at` of the root's axis,
+ * at the proportion `u`, the axis jumps right by `width`, leaving nothing out. A position at `at`
+ * lies right of the jump where `inclusive` (the seam at the protected span's start) and left of
+ * it otherwise (the seam at its end), so on the side facing the protected span.
+ */
+export interface Seam {
+  readonly at: Real;
+  readonly u: number;
+  readonly width: number;
+  readonly inclusive: boolean;
+}
+
+/**
+ * The axis of `placing` and `seams`, sorted from the left, at the graphical length `L` and
+ * proportions `u`; a seam before a gap starting where it lies.
+ */
 function axisOf(
   L: number,
   u: (value: Real) => number,
   placing: readonly Placing[],
   comparing: Comparing,
+  seams: readonly Seam[] = [],
 ): CardAxis {
-  const ordered = [...placing].sort((left, right) => left.ua - right.ua);
+  const events = [
+    ...placing.map((gap) => ({ ua: gap.ua, ub: gap.ub, gap, seam: undefined })),
+    ...seams.map((seam) => ({ ua: seam.u, ub: seam.u, gap: undefined, seam })),
+  ].sort((left, right) => left.ua - right.ua || left.ub - right.ub);
   const gaps: Gap[] = [];
   const runs: Run[] = [];
   let D = 0;
   let from = 0;
-  for (const gap of ordered) {
+  for (const { gap, seam } of events) {
+    if (seam !== undefined) {
+      runs.push({ u0: from, u1: seam.u, L, D });
+      D = D - seam.width;
+      from = seam.u;
+      continue;
+    }
+    if (gap === undefined) continue;
     runs.push({ u0: from, u1: gap.ua, L, D });
     const shrink = gap.n - gap.g;
     const left = L * gap.ua - D;
@@ -311,19 +352,33 @@ function axisOf(
     from = gap.ub;
   }
   runs.push({ u0: from, u1: 1, L, D });
-  const shrinkBefore = (value: Real): number => {
+  // The widths of the seams a position lies right of, `side` deciding at a seam itself.
+  const seamsBefore = (value: Real, side: "before" | "after" | "facing"): number => {
+    let width = 0;
+    for (const seam of seams) {
+      const order = compareReal(seam.at, value);
+      const right =
+        order < 0 || (order === 0 && (side === "after" || (side === "facing" && seam.inclusive)));
+      if (right) width = width + seam.width;
+    }
+    return width;
+  };
+  const gapsBefore = (value: Real): number => {
     let before = 0;
     gaps.forEach((gap) => {
       if (comparing.before(gap, value)) before = before + gap.shrink;
     });
     return before;
   };
+  const shrinkBefore = (value: Real): number => gapsBefore(value) - seamsBefore(value, "facing");
   return {
     gaps,
+    seams: seams.map((seam) => seam.at),
     runs,
     total: D,
     relative: (value) => L * u(value) - shrinkBefore(value),
-    after: (value) => L * u(value) - shrinkBefore(value),
+    relativeAt: (value, side) => L * u(value) - (gapsBefore(value) - seamsBefore(value, side)),
+    startAt: (value) => L * u(value) - shrinkBefore(value),
     gapOf: (value) => gaps.find((gap) => comparing.inside(gap, value)),
     shrinkBefore,
     crosses: (gap, start, end) => comparing.holds(gap, start, end),
@@ -343,29 +398,44 @@ export interface PlacedGap {
 }
 
 /**
+ * A seam whose sides its caller places (section 8.8, Drawn once): its position, whether a
+ * position at it lies right of it (`inclusive`), and whether the start of a line, of a region and
+ * a jump's target there lie right of it (`startsRight`).
+ */
+export interface PlacedSeam {
+  readonly at: Real;
+  readonly inclusive: boolean;
+  readonly startsRight: boolean;
+}
+
+/**
  * The axis of a card whose runs each have their own scale (section 8.8, Drawn
  * once): `at(value, after)` the distance of a position from `x0`, on the run
- * right of a seam where `after`; `gaps` from the left, each with its edges.
- * A **seam**, a gap whose start is its end, leaves out nothing: no position
- * lies in it, and a row crosses it when it starts before it and ends after
- * it, compared exactly. Each run between two gaps is linear, and `runs`
- * states it as `L × u − D` at its two ends; `shrinkBefore` is `L × u` less
- * the distance, so `relative` keeps its meaning `L × u − D`.
+ * right of a seam where `after`; `gaps` from the left, each with its edges;
+ * `seams` where the axis jumps and leaves nothing out, a position at one lying
+ * right of it where it is `inclusive`. Each run between two gaps or seams is
+ * linear, and `runs` states it as `L × u − D` at its two ends; `shrinkBefore`
+ * is `L × u` less the distance, so `relative` keeps its meaning `L × u − D`.
  */
 export function placedAxis(
   scope: Pick<Scope, "L" | "u" | "lambda" | "rootEntry">,
   gaps: readonly PlacedGap[],
+  seams: readonly PlacedSeam[],
   at: (value: Real, after: boolean) => number,
 ): CardAxis {
   const { L, u, lambda } = scope;
   const start = zero(scope.rootEntry.manifest.number_type);
-  const seam = (gap: Pick<Gap, "a" | "b">) => compareReal(gap.a, gap.b) === 0;
   const placed: Gap[] = gaps.map((gap) => ({
     ...gap,
     ua: u(gap.a),
     ub: u(gap.b),
     shrink: gap.n - gap.g,
   }));
+  // The cuts of the axis from the left, a seam before a gap starting where it lies.
+  const cuts = [
+    ...placed.map((gap): Stretch => [gap.a, gap.b]),
+    ...seams.map((seam): Stretch => [seam.at, seam.at]),
+  ].sort(([a1, b1], [a2, b2]) => compareReal(a1, a2) || compareReal(b1, b2));
   const runs: Run[] = [];
   const run = (from: Real | null, to: Real) => {
     const u0 = from === null ? 0 : u(from);
@@ -376,24 +446,28 @@ export function placedAxis(
     runs.push({ u0, u1, L: scale, D: scale * u0 - x0 });
   };
   let from: Real | null = null;
-  for (const gap of placed) {
-    run(from, gap.a);
-    from = gap.b;
+  for (const [a, b] of cuts) {
+    run(from, a);
+    from = b;
   }
   run(from, lambda);
-  const relative = (value: Real) => at(value, false);
+  const inclusiveAt = (value: Real) =>
+    seams.some((seam) => seam.inclusive && compareReal(seam.at, value) === 0);
+  const relative = (value: Real) => at(value, inclusiveAt(value));
   return {
     gaps: placed,
+    seams: cuts.flatMap(([a, b]) => (compareReal(a, b) === 0 ? [a] : [])),
     runs,
     total: L - relative(lambda),
     relative,
-    after: (value) => at(value, true),
-    gapOf: (value) => placed.find((gap) => !seam(gap) && EXACT.inside(gap, value)),
+    relativeAt: (value, side) => at(value, side === "after"),
+    startAt: (value) =>
+      seams.some((seam) => seam.startsRight && compareReal(seam.at, value) === 0)
+        ? at(value, true)
+        : relative(value),
+    gapOf: (value) => placed.find((gap) => EXACT.inside(gap, value)),
     shrinkBefore: (value) => L * u(value) - relative(value),
-    crosses: (gap, start, end) =>
-      seam(gap)
-        ? compareReal(start, gap.a) < 0 && (end === null || compareReal(gap.a, end) < 0)
-        : EXACT.holds(gap, start, end),
+    crosses: (gap, start, end) => EXACT.holds(gap, start, end),
   };
 }
 
@@ -601,11 +675,15 @@ function midpointOf(a: Real, b: Real): Real {
   return typeof sum === "number" ? sum / 2 : sum.multiply(Rational.of([1n, 2n]));
 }
 
-/** The card's axis of `pieces` and the carried gaps `carried`, exact on its root's axis. */
+/**
+ * The card's axis of `pieces`, the carried gaps `carried` and the seams `seams`, exact on its
+ * root's axis.
+ */
 function cardAxisOf(
   scope: Scope,
   pieces: readonly CardPiece[],
   carried: readonly Placing[],
+  seams: readonly Seam[] = [],
 ): CardAxis {
   const { L, u } = scope;
   const placing = pieces.map((piece): Placing => {
@@ -614,7 +692,7 @@ function cardAxisOf(
     const n = L * ub - L * ua;
     return { ...piece, ua, ub, n, g: piece.width(n) };
   });
-  return axisOf(L, u, [...placing, ...carried], EXACT);
+  return axisOf(L, u, [...placing, ...carried], EXACT, seams);
 }
 
 /**
@@ -727,8 +805,11 @@ function middleOf(
   const h = (W - Math.min(STANDARD_GAP, W)) / 2;
   const span = difference(b, a);
   const k = n / (typeof span === "number" ? span : toFloat(span));
-  const lower = wholeUnit(rounded(add(a, h / k), false), numberType);
-  const upper = wholeUnit(rounded(add(b, -(h / k)), true), numberType);
+  // `h / k` on the timeline's axis; 0 where nothing is left out (`h = 0`), which a card of length
+  // 0 (`n = 0`, so `k = 0`) would otherwise make `0 / 0`.
+  const shift = h === 0 ? 0 : h / k;
+  const lower = wholeUnit(rounded(add(a, shift), false), numberType);
+  const upper = wholeUnit(rounded(add(b, -shift), true), numberType);
   const start = compareReal(lower, a) > 0 ? lower : a;
   const end = compareReal(upper, b) < 0 ? upper : b;
   const startR = add(entry.start, start);
@@ -756,12 +837,25 @@ export interface AncestorElisions {
 }
 
 /**
+ * The room an ancestor card leaves under its frame on either side of its protected span (section
+ * 8.8, step 2): `left` from the frame's left edge to the start `x0` of its member drawings, `right`
+ * from the end `x0 + L'` of its members' drawn length to its right edge, in its item coordinates.
+ */
+export interface FrameRoom {
+  readonly left: number;
+  readonly right: number;
+}
+
+/**
  * The elisions of the ancestor card of the root of `scope` aligned to a
  * member whose ancestors are `chain` (section 8.9): its protected span
  * `protect`; the gaps `carried` from its frame, drawn in every mode; under
  * `custom` its stored card elisions, under `proportional` the elisions it
  * derives at the proportion `r` (`proportionOf`, called only where it is
- * read) while `r < 1`, each clipped around the protected span.
+ * read) while `r < 1`, each clipped around the protected span; and the seams
+ * at the protected span's ends as wide as the room `room` its frame leaves
+ * there (section 8.8, step 2), so that what lies outside the span lies
+ * outside the frame.
  */
 export function ancestorElisions(
   scope: Scope,
@@ -769,6 +863,7 @@ export function ancestorElisions(
   protect: Stretch,
   chain: readonly string[],
   carried: readonly CarriedGap[],
+  room: FrameRoom,
   proportionOf: () => number,
 ): AncestorElisions {
   const stored = cardElisionsOf(scope);
@@ -789,7 +884,17 @@ export function ancestorElisions(
     if (r < 1)
       pieces = derivedGaps(scope, derivedPieces(scope, protect, chain, depths), r, display);
   }
-  const axis = ancestorAxis(scope, pieces, carried);
+  // The seams lie on the root's axis in its number type: exact on an exact axis, though `λ` be a
+  // float, binary64 on a float one.
+  const onRoot = (value: Real): Real =>
+    scope.rootEntry.manifest.number_type === "float" ? asFloat(value) : toRational(value);
+  const start = onRoot(protect[0]);
+  const end = onRoot(protect[1]);
+  const seams: Seam[] = [
+    { at: start, u: scope.u(start), width: room.left, inclusive: true },
+    { at: end, u: scope.u(end), width: room.right, inclusive: false },
+  ];
+  const axis = ancestorAxis(scope, pieces, carried, seams);
   return { mode, proportion: r, automatic, depths, display, axis };
 }
 
@@ -813,13 +918,17 @@ export function storedAncestorAxis(
   return ancestorAxis(scope, custom ? storedPieces(scope, stored, protect) : [], carried);
 }
 
-/** The axis of an ancestor card's own pieces and its carried gaps; undefined without either. */
+/**
+ * The axis of an ancestor card's own pieces, its carried gaps and its seams; undefined without
+ * any.
+ */
 function ancestorAxis(
   scope: Scope,
   pieces: readonly CardPiece[],
   carried: readonly CarriedGap[],
+  seams: readonly Seam[] = [],
 ): CardAxis | undefined {
-  if (pieces.length === 0 && carried.length === 0) return undefined;
+  if (pieces.length === 0 && carried.length === 0 && seams.length === 0) return undefined;
   const placedCarried = carried.map(
     ({ gap, a, b }): Placing => ({
       source: gap.source,
@@ -832,7 +941,7 @@ function ancestorAxis(
       entry: undefined,
     }),
   );
-  return cardAxisOf(scope, pieces, placedCarried);
+  return cardAxisOf(scope, pieces, placedCarried, seams);
 }
 
 /** The gaps of derived pieces at the proportion `r`, each with its middle left out. */
@@ -867,13 +976,12 @@ function derivedGaps(
 }
 
 /**
- * What a gap or seam between two anchors of the root of `scope` drawn once
- * behind a row draws (section 8.8, Drawn once): an elision the card derives on
- * its root, `{id: R, part: ["elision"]}`, eliding `start` to `end`, its label
- * stack centred at the proportion `um`. A gap draws by the card's
- * `elision-display` (its style `style`), as every derived gap; a seam, which
- * leaves out nothing, draws its continuations on the rows crossing it whatever
- * its display lists, and no ellipsis and no label, while it is displayed.
+ * What a gap between two anchors of the root of `scope` drawn once behind a
+ * row draws (section 8.8, Drawn once): an elision the card derives on its
+ * root, `{id: R, part: ["elision"]}`, eliding `start` to `end`, its label
+ * stack centred at the proportion `um`, by the card's `elision-display` (its
+ * style `style`), as every derived gap. Where the two anchors leave no room for
+ * a gap the card's axis has a seam, which draws nothing.
  */
 export function arrangementSource(
   scope: Scope,
@@ -884,29 +992,26 @@ export function arrangementSource(
 ): GapSource {
   const { rootEntry } = scope;
   const timeline = rootEntry.manifest;
-  const seam = compareReal(start, end) === 0;
-  const source = sourceOf(
+  return sourceOf(
     scope,
     timeline,
     partAddress(idAddress(timeline.id), "elision"),
     rootEntry,
-    seam ? [] : derivedDisplay(style),
+    derivedDisplay(style),
     { name: nameOf(timeline), coordinate: stretchText(timeline, start, end) },
     { origin: "arrangement", start, end, um, framed: false },
   );
-  return seam ? { ...source, continuation: shown(source.style) } : source;
 }
 
 /** What the proportion of an ancestor card reads (section 8.9), in its frame's item coordinates. */
 export interface ProportionInputs {
   /** The view's width `VW` and height `VH`. */
   readonly view: View;
-  /** The frame's scale `sG`, graphical length `L`, its members' drawn length `L'` and start `x0`. */
+  /** The frame's scale `sG`, graphical length `L` and its members' drawn length `L'`. */
   readonly scale: number;
   readonly L: number;
   readonly drawnLength: number;
-  readonly x0: number;
-  /** The frame's width `Fw` and height `Fh` as drawn, its requests included. */
+  /** The frame's width `Fw` and height `Fh` as drawn, its requests included, its left edge at 0. */
   readonly width: number;
   readonly height: number;
   /** `σ = K + N' + G'` of the root's drawing alone. */
@@ -923,18 +1028,20 @@ const isZero = (value: Real): boolean => compareReal(value, 0) === 0;
  * The proportion `r` of an ancestor card under `elision-proportion: auto`
  * (section 8.9): `min(1, λ / E × (L' / L), (B − dl) / (L × uL), (B − dr) /
  * (L × uR))`, a term left out where its stretch is 0 or, for a side, where
- * `B` is no larger than that side's reach.
+ * `B` is no larger than that side's reach: `dl = c + σ` and `dr = (Fw + K) −
+ * c`, the card's line leaving the frame at its edges (section 8.8, step 2).
  */
 export function ancestorProportion(inputs: ProportionInputs): number {
-  const { view, scale, L, drawnLength, x0, width, height, sigma, lambda, EL, ER } = inputs;
+  const { view, scale, L, drawnLength, width, height, sigma, lambda, EL, ER } = inputs;
   const wide = times(4n, 5n, view.width);
   const high = times(4n, 5n, view.height);
   const zG = Math.min(4, wide / (scale * width), high / (scale * height));
   const zb = Math.min(zG, LEGIBLE_ZOOM);
   const B = wide / (2 * zb * scale);
+  // The card's line leaves the frame at its left and right edges (section 8.8, step 2).
   const c = width / 2;
-  const dl = c - x0 + sigma;
-  const dr = x0 + drawnLength + K - c;
+  const dl = c + sigma;
+  const dr = width + K - c;
   const terms = [1];
   const E = add(EL, ER);
   if (!isZero(E)) terms.push(proportion(lambda, E) * (drawnLength / L));
@@ -1234,10 +1341,19 @@ export function crossingRows(axis: CardAxis, gap: Gap, rows: readonly CrossingRo
 }
 
 /**
+ * A label of a gap's stack (section 6.6): drawn centred on the gap's middle
+ * just below its ellipsis, its baseline `below` under the ellipsis's
+ * ordinate `ym`, which the card or frame drawing the gap gives.
+ */
+export type StackLabel = Omit<TextElement, "x" | "baseline"> & { readonly below: number };
+
+/**
  * The elements of one drawing of a gap (sections 6.6, 7.2 and 8.5): its
  * rectangle from `x1` to `x2` and `yt` to `yb` with its continuations on the
- * rows `rows`, where listed; its ellipses on those rows, where the gap is at
- * least 20 wide; then its labels `labels`.
+ * rows `rows`, where listed; its one ellipsis at the gap's middle `xm` and
+ * the middle `ym = (yt + yb) / 2` of its height, where the gap is at least 20
+ * wide; then its labels `labels`, centred on `xm` just below `ym`, whether or
+ * not the ellipsis is drawn.
  */
 export function gapElements(
   gap: Gap,
@@ -1246,22 +1362,25 @@ export function gapElements(
   yt: number,
   yb: number,
   rows: readonly number[],
-  labels: readonly TextElement[],
+  labels: readonly StackLabel[],
 ): DrawnElement[] {
   const { source } = gap;
   const xm = (x1 + x2) / 2;
+  const ym = (yt + yb) / 2;
   const ellipses: EllipsisElement[] =
     source.ellipsis === null || x2 - x1 < ELLIPSIS_GAP
       ? []
-      : rows.map((y) => ({
-          type: "ellipsis",
-          address: partAddress(source.address, "ellipsis"),
-          style: source.ellipsis ?? source.style,
-          x: xm,
-          y,
-          r: ELLIPSIS_RADIUS,
-          spacing: ELLIPSIS_SPACING,
-        }));
+      : [
+          {
+            type: "ellipsis",
+            address: partAddress(source.address, "ellipsis"),
+            style: source.ellipsis,
+            x: xm,
+            y: ym,
+            r: ELLIPSIS_RADIUS,
+            spacing: ELLIPSIS_SPACING,
+          },
+        ];
   return [
     {
       type: "elision",
@@ -1276,9 +1395,20 @@ export function gapElements(
       origin: source.origin,
     },
     ...ellipses,
-    ...labels,
+    ...labels.map(
+      ({ below, ...label }): TextElement => ({ ...label, x: xm, baseline: ym + below }),
+    ),
   ];
 }
+
+/**
+ * The distance of the baseline of the `i`-th label, from 1, of a gap's stack
+ * below its ellipsis's ordinate (section 6.6): the dot radius, the label gap,
+ * `i − 1` lines `h` high and the ascent `a`, of the font size of the markers
+ * band that takes the stack's room.
+ */
+export const stackLabelBelow = (i: number, h: number, a: number): number =>
+  ELLIPSIS_RADIUS + LABEL_GAP + (i - 1) * h + a;
 
 /**
  * The label stack of a gap in a markers band, at its unturned place (section

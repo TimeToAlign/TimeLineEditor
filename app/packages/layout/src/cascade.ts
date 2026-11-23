@@ -75,7 +75,7 @@ export const INITIAL_STYLE: Style = {
   "elision-mode": "auto",
   "elision-proportion": "auto",
   "elision-depths": "auto",
-  "elision-display": "ellipsis",
+  "elision-display": "ellipsis name",
 };
 
 type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };

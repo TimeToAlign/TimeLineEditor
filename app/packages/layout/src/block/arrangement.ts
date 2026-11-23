@@ -29,6 +29,7 @@ import {
   exposedGap,
   type Gap,
   type PlacedGap,
+  type PlacedSeam,
   placedAxis,
   rounded,
   wholeUnit,
@@ -43,6 +44,7 @@ import {
   type Behind,
   behind,
   elisionsBehind,
+  frameRoom,
   type LaidAncestorCard,
   lineAt,
   protectedSpan,
@@ -160,7 +162,7 @@ export function rowLayout(
       .filter((anchor) => anchor.root === root)
       .flatMap((anchor) => anchored(anchor) ?? []),
   );
-  const frames = first.laid.map(({ boxes }) => boxes[0] ?? { width: 0, height: 0 });
+  const frames = first.laid.map(({ boxes }) => boxes[0] ?? { x: 0, width: 0, height: 0 });
   // The least proportion of every ancestor card of a root (section 8.8): each as section 8.9 gives it.
   const proportions = byRoot.map((anchors) =>
     Math.min(
@@ -347,7 +349,7 @@ function onceCard(
   context: Context,
   anchors: readonly Anchored[],
   xs: readonly number[],
-  frames: readonly { readonly width: number; readonly height: number }[],
+  frames: readonly { readonly x: number; readonly width: number; readonly height: number }[],
   horizontal: Horizontal,
   r: number,
   measure: TextMeasure,
@@ -407,8 +409,16 @@ function onceCard(
     (gap) => compareReal(gap.a, protectedEnd) >= 0,
   );
   const sN = last.at.item.scale;
-  // A position left of the first stretch lies `s1 × DL` right of the first run, one right of the
-  // last stretch `sN × DR` left of the last run.
+  // The room the first and the last group's frames leave left and right of their member drawings
+  // (section 8.8, step 2), the widths of the card's seams at the ends of its stretches.
+  const roomOf = ({ at }: Anchored) =>
+    frameRoom(nth(frames, at.frameAt), s0, at.item.length - at.item.DG);
+  const OL = s1 * roomOf(head).left;
+  const OR = sN * roomOf(last).right;
+  // A position left of the first stretch lies `s1 × DL` right of the first run less `s1 × OL`, one
+  // right of the last stretch `sN × DR` left of the last run and `sN × OR` right of it; a position
+  // at the first stretch's start lies on its run but as the end of what lies left of it, one at
+  // the last stretch's end on its run but as the start of what lies right of it.
   const shrinks = (gaps: readonly Gap[], counted: (gap: Gap) => boolean) =>
     gaps.reduce((sum, gap) => (counted(gap) ? sum + gap.shrink : sum), 0);
   const X = (t: Real, after: boolean): number => {
@@ -421,11 +431,13 @@ function onceCard(
       index++;
     }
     const value = nth(runs, index)(t);
-    if (index === 0 && compareReal(t, protectedStart) < 0) {
-      return value + s1 * shrinks(leftGaps, (gap) => compareReal(gap.a, t) >= 0);
+    const toStart = compareReal(t, protectedStart);
+    if (index === 0 && (toStart < 0 || (toStart === 0 && !after))) {
+      return value + s1 * shrinks(leftGaps, (gap) => compareReal(gap.a, t) >= 0) - OL;
     }
-    if (index === runs.length - 1 && compareReal(t, protectedEnd) > 0) {
-      return value - sN * shrinks(rightGaps, (gap) => compareReal(gap.b, t) <= 0);
+    const toEnd = compareReal(t, protectedEnd);
+    if (index === runs.length - 1 && (toEnd > 0 || (toEnd === 0 && after))) {
+      return value - sN * shrinks(rightGaps, (gap) => compareReal(gap.b, t) <= 0) + OR;
     }
     return value;
   };
@@ -446,6 +458,7 @@ function onceCard(
     entry: entryOf(gap),
   });
   const gaps: PlacedGap[] = leftGaps.map((gap) => fromCard(gap, s1));
+  const seams: PlacedSeam[] = [];
   anchors.forEach((each, index) => {
     const { at } = each;
     const scale = at.item.scale;
@@ -464,6 +477,10 @@ function onceCard(
     const room = between[index];
     if (room === undefined) return;
     const { start, end, XA, XB } = room;
+    if (compareReal(start, end) === 0) {
+      seams.push({ at: start, inclusive: false, startsRight: true });
+      return;
+    }
     const left = local(start, false);
     const right = local(end, true);
     gaps.push({
@@ -480,11 +497,15 @@ function onceCard(
       g: (XB(end) - XA(start)) / s1,
       left,
       right,
-      entry: compareReal(start, end) === 0 ? undefined : scope.rootEntry,
+      entry: scope.rootEntry,
     });
   });
   gaps.push(...rightGaps.map((gap) => fromCard(gap, sN)));
-  const axis = placedAxis(scope, gaps, local);
+  seams.push(
+    { at: protectedStart, inclusive: true, startsRight: false },
+    { at: protectedEnd, inclusive: false, startsRight: false },
+  );
+  const axis = placedAxis(scope, gaps, seams, local);
   const layout = layoutScope(withAxis(scope, axis), head.at.key, undefined);
   const columns = columnsOf([aloneItem(head, layout)]);
   const own = layout.drawAt(columns.s0, columns.n, 0, layout.height);

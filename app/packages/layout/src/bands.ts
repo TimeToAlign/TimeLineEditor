@@ -20,7 +20,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import type { Gap } from "./elisions.ts";
+import type { Gap, StackLabel } from "./elisions.ts";
 import type { Extent } from "./fit.ts";
 import type { Entry } from "./traversal.ts";
 
@@ -153,7 +153,7 @@ export interface LineElements {
    * The labels of the gaps whose label stacks its markers band places (section 6.4, Markers), by
    * gap, each gap's in stack order: written with the gap, not with the band (section 8.5).
    */
-  readonly gapLabels: readonly (readonly [Gap, readonly TextElement[]])[];
+  readonly gapLabels: readonly (readonly [Gap, readonly StackLabel[]])[];
   /**
    * Where a coordinate marker of its line lies, with its line (one, when its line is drawn): what
    * the line's axis carries for an editor's marks (`DrawnAxis.marker`).

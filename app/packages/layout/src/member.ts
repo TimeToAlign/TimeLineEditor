@@ -25,8 +25,14 @@ import {
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
 import type { AxisMarker, AxisTimestamp, AxisWedge, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
-import type { DrawnElement, TextElement } from "./elements.ts";
-import { type CrossingRow, crossingRows, type Gap, gapElements } from "./elisions.ts";
+import type { DrawnElement } from "./elements.ts";
+import {
+  type CrossingRow,
+  crossingRows,
+  type Gap,
+  gapElements,
+  type StackLabel,
+} from "./elisions.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
@@ -75,7 +81,7 @@ export interface MemberLayout {
 export interface FramedGap {
   readonly gap: Gap;
   readonly rows: readonly number[];
-  readonly labels: readonly TextElement[];
+  readonly labels: readonly StackLabel[];
 }
 
 /** A member drawing drawn in its item, in item coordinates. */

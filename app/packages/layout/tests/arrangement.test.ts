@@ -134,24 +134,24 @@ describe("horizontal, the worked example of section 8.8", () => {
       drawing.boxes.find((box) => box.key?.item === item && box.key.member === member)?.y;
     expect(card("group_1", "take_a")).toBe(192.13671875);
     expect(card("group_3", "take_b")).toBe(192.13671875);
-    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 275.515625]);
+    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 289.4921875]);
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
   });
   it("draws each root once, behind the first group hanging on it", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map((box) => [box.x, box.y, box.width, box.height, box.ancestor])).toEqual([
       [
-        591.36669921875,
+        463.9765625,
         28.8046875,
-        1807.472900390625,
+        1934.863037109375,
         97.35546875,
         { group: "group_1", member: "exposition", groups: ["group_1", "group_2", "group_3"] },
       ],
       [
-        652.52734375,
+        525.13720703125,
         195.5390625,
-        1746.033203125,
-        63.37890625,
+        1873.42333984375,
+        83.953125,
         { group: "group_1", member: "take_a", groups: ["group_1", "group_3"] },
       ],
     ]);
@@ -178,23 +178,31 @@ describe("horizontal, the worked example of section 8.8", () => {
       .map((exposure) =>
         exposure.gaps.map((gap) => [gap.origin, gap.start, gap.end, gap.x1, gap.x2]),
       );
-    expect(gaps).toEqual([
-      [
-        ["arrangement", gap16(), gap16(), 1150.7802734375, 1366.17041015625],
-        ["arrangement", gap32(), gap32(), 1766.17041015625, 1981.560546875],
-      ],
-      [["arrangement", 33, 44, 1190.7802734375, 1234.8938802083335]],
-    ]);
-    const seams = drawing.elements.filter(
-      (element) => element.type === "elision" && element.address.id === "score",
+    expect(gaps).toEqual([[], [["arrangement", 33, 44, 1190.7802734375, 1234.8938802083335]]]);
+    // A seam draws nothing, and `score`'s line runs whole across both.
+    expect(
+      drawing.elements.filter(
+        (element) => element.type === "elision" && element.address.id === "score",
+      ),
+    ).toEqual([]);
+    const lines = drawing.elements.flatMap((element) =>
+      element.type === "timeline" && element.address.id === "score"
+        ? [[element.xs, element.xe, element.cuts]]
+        : [],
     );
-    expect(seams.map((seam) => (seam.type === "elision" ? seam.continuations : []))).toEqual([
-      [111.7578125],
-      [111.7578125],
-    ]);
+    expect(lines).toEqual([[750.7802734375, 2381.560546875, []]]);
     const ellipses = drawing.elements.filter((element) => element.type === "ellipsis");
     expect(ellipses.map((each) => (each.type === "ellipsis" ? [each.x, each.y] : []))).toEqual([
-      [1212.8370768229167, 244.515625],
+      [1212.8370768229167, 237.515625],
+    ]);
+    // Its name label, centred just below it (section 6.6).
+    const label = drawing.elements.find(
+      (element) => element.type === "label" && element.address.id === "session",
+    );
+    expect(label?.type === "label" && [label.x, label.baseline, label.text]).toEqual([
+      1212.8370768229167,
+      249.86962890625,
+      "Session",
     ]);
   });
 });
@@ -218,11 +226,3 @@ describe("a refused horizontal arrangement", () => {
     expect(rest).toEqual(drawn("bundle_arranged_conflict"));
   });
 });
-
-/** 16 and 32 quarters on the score's fraction axis, as exact values. */
-function gap16() {
-  return expect.objectContaining({ numerator: 16n, denominator: 1n });
-}
-function gap32() {
-  return expect.objectContaining({ numerator: 32n, denominator: 1n });
-}

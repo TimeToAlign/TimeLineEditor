@@ -114,6 +114,7 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "name" },
       set: { fill: "#000000", "font-size": 11, "max-width": 160 },
     },
+    { select: { addresses: [{ part: ["name"] }] }, set: { "max-width": "none" } },
     {
       select: { element: "name", inside: "ancestor" },
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
