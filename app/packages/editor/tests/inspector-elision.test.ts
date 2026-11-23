@@ -59,6 +59,19 @@ function formOf(store: Store, element: ElementAddress): ElisionForm | null {
   return elisionFormOf(blockOf(store), subjectsOf(store, [element]), drawn(store));
 }
 
+/**
+ * What layout resolves `piece`'s `elision-display` to in `group_elided_inside`
+ * (its initial value, drawing.md section 2.4): the oracle of every default
+ * elision's display, which the editor never states itself.
+ */
+function layoutDisplay(store: Store): readonly string[] {
+  const exposure = drawn(store).elisions.find(
+    (each) => each.kind === "ancestor_card" && each.key.member === "piece",
+  );
+  if (exposure === undefined) throw new Error("piece draws no ancestor card");
+  return exposure.display;
+}
+
 const rowsOf = (rows: readonly { name: string; timeline: string; stretch: string }[]) =>
   rows.map((row) => [row.name, row.timeline, row.stretch]);
 
@@ -144,7 +157,8 @@ describe("where the blocks are offered", () => {
 
 describe("what the blocks read", () => {
   it("reads piece's Proportional settings", () => {
-    const root = rootOf(storeOf(INSIDE), { id: "piece" });
+    const store = storeOf(INSIDE);
+    const root = rootOf(store, { id: "piece" });
     expect(root?.mode).toBe("proportional");
     expect(root?.proportional).toEqual({
       automatic: true,
@@ -154,7 +168,7 @@ describe("what the blocks read", () => {
         { depth: 2, names: "First, Second", chosen: true },
         { depth: 1, names: "Piece", chosen: true },
       ],
-      display: ["ellipsis"],
+      display: layoutDisplay(store),
     });
     expect(root?.custom).toBe(null);
   });
@@ -422,6 +436,7 @@ describe("the section in the Properties tab", () => {
 
   it("stores the drawn defaults in one add and removes them all in one", () => {
     const store = storeOf(INSIDE);
+    const display = layoutDisplay(store);
     show(store, [{ id: "piece" }]);
     click(radio("elisions", "Custom"));
     expect(store.journal.length - base).toBe(1);
@@ -434,21 +449,21 @@ describe("the section in the Properties tab", () => {
           start: [0, 1],
           end: [8, 1],
           width: { canvas: 57.14285714285714 },
-          display: ["ellipsis"],
+          display: [...display],
         },
         {
           timeline: "first",
           start: [16, 1],
           end: [32, 1],
           width: { canvas: 114.28571428571428 },
-          display: ["ellipsis"],
+          display: [...display],
         },
         {
           timeline: "second",
           start: [1, 1],
           end: [31, 1],
           width: { canvas: 128.57142857142856 },
-          display: ["ellipsis"],
+          display: [...display],
         },
       ],
     });
@@ -561,10 +576,30 @@ describe("the section in the Properties tab", () => {
   it("toggles what every default elision shows", () => {
     const store = storeOf(INSIDE);
     show(store, [{ id: "piece" }]);
-    click(button("Name", part("elisions")));
-    expect(last(store)).toEqual(rootStyle("piece", { "elision-display": "ellipsis name" }));
-    store.undo();
+    const shown = layoutDisplay(store);
+    const pressed = () =>
+      [...(part("elisions")?.querySelectorAll<HTMLButtonElement>(".toggle") ?? [])]
+        .filter((toggle) => toggle.getAttribute("aria-pressed") === "true")
+        .map((toggle) => toggle.textContent?.trim());
+    const LABELS: { [word: string]: string } = {
+      ellipsis: "Ellipsis",
+      name: "Name",
+      coordinate: "Coordinate",
+      continuation: "Lines",
+    };
+    expect(pressed()).toEqual(shown.map((word) => LABELS[word]));
+    click(button("Lines", part("elisions")));
+    expect(last(store)).toEqual(
+      rootStyle("piece", { "elision-display": [...shown, "continuation"].join(" ") }),
+    );
+    store.dispatch({
+      type: "style",
+      select: { addresses: [{ id: "piece", part: ["card"] }] },
+      set: { "elision-display": "ellipsis" },
+      blocks: [B],
+    });
     flushSync();
+    expect(pressed()).toEqual(["Ellipsis"]);
     click(button("Ellipsis", part("elisions")));
     expect(last(store)).toEqual(rootStyle("piece", { "elision-display": "none" }));
   });

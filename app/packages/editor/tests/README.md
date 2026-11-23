@@ -995,7 +995,9 @@ member: no ancestor card).
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
 "0.142857"; Rows Automatic, the depths deepest first `2` "First, Second"
-and `1` "Piece", both chosen; Show `[ellipsis]` (T157); no list. `score`:
+and `1` "Piece", both chosen; Show exactly the `elision-display` layout
+resolves for the card (its initial value is the specification's and
+layout's, never the editor's), its words pressed; no list. `score`:
 mode Custom; three rows, name, timeline, stretch: "—" Score "0–16 ♩",
 "Development" Score "32–48 ♩", "—" Score "48–56 ♩" (the pieces drawn,
 `elision_1` none); Remove all one `remove` of `elision_1`, `elision_4`,
@@ -1026,8 +1028,9 @@ Proportional → Custom with nothing stored is one `add {into: {block:
 B}, elision: [...]}` of the three default gaps as drawn: `first` `[0,
 1]`–`[8, 1]` `{canvas: 57.14285714285714}`, `first` `[16, 1]`–`[32, 1]`
 `{canvas: 114.28571428571428}`, `second` `[1, 1]`–`[31, 1]` `{canvas:
-128.57142857142856}`, each `display: [ellipsis]` (the card's
-`elision-display`); the mode then reads Custom (`auto`) with those three
+128.57142857142856}`, each `display` the card's resolved
+`elision-display` as layout exposes it); the mode then reads Custom
+(`auto`) with those three
 rows, and Remove all, one `remove` of the three, gives Proportional back.
 With stored elisions (`score`) Full sends `{elision-mode: full, display:
 null}` and Custom then `{elision-mode: null, display: null}`, the stored
@@ -1053,8 +1056,10 @@ and at most 1", the field `aria-invalid`, nothing sent; ticking Automatic
 sends `{elision-proportion: null}`. Unticking Rows' Automatic sends
 `{elision-depths: "1 2"}`; then unchecking depth 2 sends
 `{elision-depths: "1"}`, after which depth 1, the last chosen, is
-disabled. Show's Name sends `{elision-display: "ellipsis name"}`; with
-Ellipsis alone shown, Ellipsis sends `{elision-display: none}`.
+disabled. Show's Lines (`continuation`, in no initial display) sends
+`{elision-display: "<the resolved words> continuation"}`, in canonical
+order; with the rule stating `elision-display: ellipsis`, Ellipsis alone
+is pressed and sends `{elision-display: none}`.
 
 **A selected elision.** The form reads the gap the drawing draws of it and
 converts widths through layout's `widthAs`, with the card's or frame's
