@@ -3,7 +3,14 @@
  * (`docs/drawing.md` in TimeToShare, sections 1, 6.6 and 8).
  */
 
-import type { ElementAddress, Places, Real } from "@timetoalign/tilie-core";
+import type {
+  ElementAddress,
+  ItemArrangement,
+  ItemDirection,
+  Places,
+  Real,
+} from "@timetoalign/tilie-core";
+import type { ArrangementConflict } from "@timetoalign/tilie-core/drawing";
 import type { TimeUnit } from "@timetoalign/timetoshare";
 import type { DrawnAxis, DrawnBox, ElisionExposure } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
@@ -35,6 +42,25 @@ export interface Placement {
    * 8.9) and nothing else. Left out, the default view.
    */
   readonly view?: View;
+  /**
+   * The block's arrangement (sections 1 and 8.6): its items placed in an order, one under another
+   * or side by side, instead of at the `x` and `y` their places state; left out or null, each item
+   * lies at its place.
+   */
+  readonly arrangement?: ItemArrangement | null;
+}
+
+/**
+ * The arrangement a drawing states (section 1): its direction as asked, the IDs of its items in
+ * the order they are drawn (for `horizontal` the row, else the item order), the roots drawn once,
+ * top to bottom (none unless drawn side by side), and, where `horizontal` is refused and the block
+ * drawn `vertical`, the conflict.
+ */
+export interface DrawnArrangement {
+  readonly direction: ItemDirection;
+  readonly row: readonly string[];
+  readonly roots: readonly string[];
+  readonly refused?: ArrangementConflict;
 }
 
 /** A view: the screen area a drawing is meant for, in canvas units at the scale 1 (section 1). */
@@ -240,8 +266,12 @@ export interface ElisionElement extends Addressed {
   readonly origin: GapOrigin;
 }
 
-/** Where a gap comes from (section 8.9). */
-export type GapOrigin = "stored" | "default" | "carried";
+/**
+ * Where a gap comes from (sections 8.8 and 8.9): a stored elision, a derived one, a group
+ * elision carried into an ancestor card, or the gap or seam between two anchors of a root drawn
+ * once behind a row.
+ */
+export type GapOrigin = "stored" | "default" | "carried" | "arrangement";
 
 /**
  * The ellipsis of an elision on one row that crosses its gap (section 6.6):
@@ -300,4 +330,6 @@ export interface Drawing {
    */
   readonly elisions: readonly ElisionExposure[];
   readonly unmapped: readonly number[];
+  /** The arrangement it is drawn in (section 1); absent where the placement asks for none. */
+  readonly arrangement?: DrawnArrangement;
 }

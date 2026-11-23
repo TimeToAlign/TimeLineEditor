@@ -489,7 +489,21 @@ coordinate labels shown) and with `elision-mode: custom`
 elision is stored); `group_elided_members` with `{addresses: [{id:
 group_1}]}` `elision-mode: full` (`group__group_elided_members__full`,
 the frame without its group elisions); and `bundle_groupstamp_shared_member`
-with `places.g2.scale` 1.5 (`bundle__bundle_groupstamp_shared_member__scaled`).
+with `places.g2.scale` 1.5 (`bundle__bundle_groupstamp_shared_member__scaled`);
+and five arranged bundles, each `inputs.json` stating the placement's
+`arrangement` (only these do): `bundle_arranged_roots` with `{direction:
+vertical, order: [page, group_3, group_1, group_2]}`
+(`bundle__bundle_arranged_roots__vertical`, the items one under another in
+that order, each ancestor card behind its frame), the same order
+`horizontal` (`bundle__bundle_arranged_roots__horizontal`, hand-derived:
+the worked example of drawing.md §8.8, Drawn once), and `{direction:
+horizontal, order: []}` for `bundle_elided_layerit` (the suite drawn once
+behind four frames of four scales, its gaps between them),
+`bundle_shared_parent` (a root member in a group, an ungrouped root at the
+row's end) and `bundle_arranged_conflict` (Theme A and Theme B overlap on
+the score, so the row is refused and the block drawn one under another in
+the item order, which the empty order leaves the drawing order: its SVG
+equals `bundle__bundle_arranged_conflict`'s byte for byte).
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
 member, once in each frame: the four member cards are written, shadow and
 card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards
@@ -577,7 +591,7 @@ fill="#000000">Bar 2, downbeat (take 1)</text>` (the middle 82.18359375
 plus `(a(9) − d(9)) / 2`), in TikZ `\path[draw=ts1BA1E2,line width=1pt,dash
 pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);` (`H =
 202.94140625`).
-There are 99 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
+There are 111 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

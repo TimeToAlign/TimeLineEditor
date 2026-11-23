@@ -14,6 +14,8 @@ export const name = "@timetoalign/tilie-layout" as const;
 export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
 export type { AnchorLine } from "./anchors.ts";
 export { anchorLine } from "./anchors.ts";
+export type { PackedDirection, PackedOffset, PackedSize, Packing } from "./arrangement.ts";
+export { packed } from "./arrangement.ts";
 export type { CrossSection, CrossSectionSegment, LineAxis, WedgeMark } from "./axes.ts";
 export {
   abscissaOf,
@@ -46,6 +48,7 @@ export type {
   BlockElement,
   Cut,
   Drawing,
+  DrawnArrangement,
   DrawnElement,
   ElisionElement,
   EllipsisElement,

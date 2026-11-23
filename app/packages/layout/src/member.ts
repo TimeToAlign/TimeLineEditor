@@ -38,6 +38,7 @@ import {
   known,
   nth,
   type Scope,
+  shown,
   traverse,
 } from "./traversal.ts";
 
@@ -253,6 +254,9 @@ export function layoutScope(
           framed.push({ gap, rows: crossing, labels });
           continue;
         }
+        // A gap that is not displayed draws nothing; only a root's gap between two anchors stays
+        // on the axis so, the scale changing there (section 8.8, Drawn once).
+        if (!shown(gap.source.style)) continue;
         elements.push(
           ...gapElements(gap, x0 + gap.left, x0 + gap.right, top, bottom, crossing, labels),
         );

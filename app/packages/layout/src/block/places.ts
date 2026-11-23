@@ -131,6 +131,19 @@ export interface Item {
 export type AlignedRows = ReadonlyMap<string, ReadonlyMap<string, number>>;
 
 /**
+ * How `placeItems` places the items of an arranged block (section 8.6,
+ * Arrangements): `order`, the IDs of every item, the order to take them in,
+ * each at its default `x` and `y` in that order, its stated `x` and `y` kept
+ * and not used; `padding`, by a member card's place key text, how much lower
+ * that card lies than section 8.4 lays it, the gap above it grown so (section
+ * 8.8, Drawn once).
+ */
+export interface Arranged {
+  readonly order?: readonly string[];
+  readonly padding?: ReadonlyMap<string, number>;
+}
+
+/**
  * The title at `address` of a group or the manifest named `name`, held by
  * `holder` (section 8.1): its name, else its whole ID, unless its
  * style's `content` replaces it; undefined when it is not displayed. Its
@@ -219,8 +232,10 @@ function cardOf(
  * axis where its group elisions draw gaps (section 8.9), a block-held card's
  * on its own where its mode draws its stored card elisions. Each member card
  * of `aligned` places its ancestor rows on its root's side at the distances
- * its ordinates give (section 8.3); an item none of whose cards it names is
- * taken from `previous` where that holds it, its content kept.
+ * its ordinates give (section 8.3); an item none of whose cards it names and
+ * none of whose cards `arranged` pads is taken from `previous` where that
+ * holds it, its content kept. An arranged block's items are taken in the
+ * order `arranged` gives instead of drawing order, each at its default place.
  */
 export function placeItems(
   context: Context,
@@ -228,7 +243,10 @@ export function placeItems(
   top: number,
   aligned: AlignedRows = new Map(),
   previous: readonly Item[] = [],
+  arranged: Arranged = {},
 ): Item[] {
+  const padding = arranged.padding ?? new Map<string, number>();
+  const free = arranged.order === undefined;
   const { placement, measure } = context;
   const { frames, ungrouped } = memberDrawings(context.manifest);
   let lowest: number | undefined;
@@ -245,15 +263,18 @@ export function placeItems(
     const margin = stated.margin ?? 0;
     const before = previous.find((item) => samePlaceKey(item.key, key));
     const kept = before?.cards.every(
-      (card) => card.ref.key === null || !aligned.has(placeKeyText(card.ref.key)),
+      (card) =>
+        card.ref.key === null ||
+        (!aligned.has(placeKeyText(card.ref.key)) && !padding.has(placeKeyText(card.ref.key))),
     );
     const laid: Content =
       kept === true && before !== undefined
         ? { cards: before.cards, height: before.content, elisions: before.elisions, DG: before.DG }
         : content(length, spacing, margin);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
-    const x = stated.x ?? P;
-    const y = stated.y ?? (lowest === undefined ? top : lowest + placement.spacing);
+    const x = (free ? stated.x : undefined) ?? P;
+    const y =
+      (free ? stated.y : undefined) ?? (lowest === undefined ? top : lowest + placement.spacing);
     const bottom = y + scale * height;
     lowest = lowest === undefined ? bottom : Math.max(lowest, bottom);
     // A block-held card is as high as its item.
@@ -276,7 +297,7 @@ export function placeItems(
     };
   };
 
-  const framed = frames.map((drawn) => {
+  const framed = frames.map((drawn) => () => {
     const { group, members } = drawn;
     const item: PlaceKey = { item: group.id };
     const ref = containerOf(context, item);
@@ -318,6 +339,7 @@ export function placeItems(
         const height =
           stated.height === undefined ? layout.height : Math.max(layout.height, stated.height);
         if (index > 0) y = y + Sf;
+        y = y + (padding.get(placeKeyText(key)) ?? 0);
         const cardTop = y;
         y = y + height;
         return {
@@ -335,7 +357,7 @@ export function placeItems(
       return { cards, height: y + Q, elisions, DG: elisions?.total ?? 0 };
     });
   });
-  const loose = ungrouped.map((member) => {
+  const loose = ungrouped.map((member) => () => {
     const key: PlaceKey = { item: member.timeline.id };
     return place(key, null, (L, spacing, margin) => {
       const { scope, ...card } = cardOf(context, member, block, key, L, spacing, margin, null);
@@ -356,5 +378,16 @@ export function placeItems(
       };
     });
   });
-  return [...framed, ...loose];
+  // Each item is placed in turn, its default `y` below the items placed before it.
+  const byId = new Map<string, () => Item>(
+    [
+      ...frames.map((drawn, index) => [drawn.group.id, framed[index]] as const),
+      ...ungrouped.map((member, index) => [member.timeline.id, loose[index]] as const),
+    ].flatMap(([id, thunk]) => (thunk === undefined ? [] : [[id, thunk] as const])),
+  );
+  const order = arranged.order ?? [...byId.keys()];
+  return order.flatMap((id) => {
+    const thunk = byId.get(id);
+    return thunk === undefined ? [] : [thunk()];
+  });
 }

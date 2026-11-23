@@ -151,7 +151,7 @@ export function flowControlBand(scope: Scope, sources: readonly Entry[]): Prepar
           const ya = at.yAt(side, apex(row));
           const w = jump.style["stroke-width"];
           const xf = at.x(jump.from);
-          const xt = at.x(jump.to);
+          const xt = at.xAfter(jump.to);
           const q = (xt - xf) / 4;
           const yc = yf + times(4n, 3n, ya - yf);
           const cx = xt - q;

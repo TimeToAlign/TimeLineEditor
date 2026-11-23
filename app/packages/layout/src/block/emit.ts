@@ -67,7 +67,7 @@ export function emitDrawing(
   measure: TextMeasure,
 ): Drawing {
   const placed = (card: LaidAncestorCard) => {
-    const { x, y, scale } = card.item;
+    const { x, y, scale } = card.place;
     return { left: x + scale * card.x, top: y + scale * card.y };
   };
   const xs = [
@@ -101,7 +101,7 @@ export function emitDrawing(
     titleBottom = top + measure.lineHeight(size);
   }
   for (const card of block.ancestors) {
-    const { x, y, scale } = card.item;
+    const { x, y, scale } = card.place;
     const start = 1 + elements.length;
     for (const element of card.elements) elements.push(placedAt(element, x, y, scale));
     const { left, top } = placed(card);
@@ -114,7 +114,7 @@ export function emitDrawing(
       range: { start, end: 1 + elements.length },
       displayed: true,
       contentCount: card.contentCount,
-      ancestor: { group: card.group, member: card.member },
+      ancestor: { group: card.group, member: card.member, groups: card.groups },
     });
     for (const right of card.rights) rights.push(x + scale * right);
     for (const bottom of card.bottoms) bottoms.push(y + scale * bottom);
@@ -143,7 +143,7 @@ export function emitDrawing(
   // The ancestor cards' axes after every item's, so that a timeline's first drawn line is always
   // a line of a card of an item.
   for (const card of block.ancestors) {
-    const { x, y, scale } = card.item;
+    const { x, y, scale } = card.place;
     for (const axis of card.axes) axes.push(placedAxis(axis, x, y, scale));
   }
 

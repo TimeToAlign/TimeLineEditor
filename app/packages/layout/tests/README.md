@@ -1498,6 +1498,79 @@ rectangle being its extent whether it is filled or not.
    `elision_4` `excerpt` 28/3–40/3, `piece` 76/3–88/3, `voice` 14–20,
    `phrase` 2–8 (its span 12–20 on `voice` holds 14–20, ends included),
    `sketch` none.
+13. **A member reads its frame's gaps at their exact proportions** (section
+   8.9, Carried gaps: the number type of the axis decides). In
+   `group_elided_members` the card of `voice` (`λ = 24`, fraction) draws
+   `elision_2` (`phrase` 2–6, `7/12` to `3/4` of `voice`) on its own axis
+   over `7/12 × 24 = 14` to `3/4 × 24 = 18` exactly, not over the doubles
+   `0.5833333333333334 × 24` and `0.75 × 24` taken at their exact binary
+   values: `voice`'s line has three runs, the second ending at `voice` 14
+   and the third starting at 18, written `14` and `18`; `phrase`'s first
+   run ends at its own 2 and its second starts at 6. Read at the double's
+   exact binary value, the second run would end at
+   15762598695796737/1125899906842624 instead of 14.
+
+## Arrangements (`arrangement.test.ts`)
+
+Sections 1, 8.5, 8.6 (Arrangements) and 8.8 (Drawn once) are the oracle; the
+row, the roots and the anchors are core's (`rowOf`, proven in core's tests),
+so these tests prove what the layout places from them. The numbers are the
+worked example of section 8.8 and its figure's derivation in TimeToShare's
+drawings README, every one compared exactly, in binary64 as the
+specification orders the operations.
+
+1. **Packing** (`packed`, section 8.6 and the arranger's levels). Five
+   contents of sizes 10 × 5, 20 × 15, 5 × 8, 7 × 3 and 12 × 9, gap 2, from
+   `(1, 1)`: `vertical` at `x` 1 and `y` 1, 8, 25, 35, 40 (each the previous
+   `y` plus its height plus 2); `horizontal` at `y` 1 and `x` 1, 13, 35, 42,
+   51; `matrix` in 2 columns, the columns 12 and 20 wide (the widest of
+   10, 5, 12 and of 20, 7), the rows 15, 8 and 9 high, so the columns start
+   at 1 and 15 and the rows at 1, 18 and 28: `(1, 1)`, `(15, 1)`, `(1,
+   18)`, `(15, 18)`, `(1, 28)`. A matrix of 0 or 1.5 columns is a
+   `RangeError`. Nothing contents: no offsets.
+2. **Vertical in the item order**: `bundle_arranged_roots` with `{direction:
+   vertical, order: [page, group_3, group_1, group_2]}` and a place stating
+   `group_1` at `x` 500, `y` 300: the items are recorded and written in that
+   order, `page` at the first item's default top `28.8046875` and every
+   item at `x = P = 8` in place coordinates (the block grows to the left for
+   the ancestor cards), the stated `x` and `y` kept in the place record's
+   `stated` and not used; the drawing states `{direction: vertical, row:
+   [page, group_3, group_1, group_2], roots: []}`, and the ancestor cards
+   are recorded in the item order, `group_3`'s first.
+3. **Horizontal, the worked example** (`bundle_arranged_roots` with
+   `{direction: horizontal, order: [page, group_3, group_1, group_2]}`): the
+   drawing states the row `[page, group_1, group_2, group_3]` and the roots
+   `[score, session]`; the items lie at `x` 8, 623.39013671875,
+   1238.7802734375 and 1854.17041015625, `page` at `y` 28.8046875 and the
+   frames at 34.57421875; Exposition (`group_1`) and Recapitulation are
+   232.94140625 high, Development 157.5625, the card of `take_a` padded to
+   `y` 192.13671875 (34.57421875 + 157.5625), as `take_b`'s; the block is
+   2429.560546875 × 275.515625, its origin `(0, 0)`. Two ancestor cards are
+   recorded, the once cards, each the card behind `group_1`: `score`'s at
+   `(591.36669921875, 28.8046875)`, 1807.472900390625 × 97.35546875, its
+   `ancestor` `{group: group_1, member: exposition, groups: [group_1,
+   group_2, group_3]}`, then `session`'s at `(652.52734375, 195.5390625)`,
+   1746.033203125 × 63.37890625, `groups: [group_1, group_3]`; no other
+   ancestor card is recorded or written.
+4. **Runs, seams and the gap.** `score`'s line lies at 111.7578125 in three
+   runs, 0–16 from 750.7802734375 to 1150.7802734375, 16–32 from
+   1366.17041015625 to 1766.17041015625 and 32–48 from 1981.560546875 to
+   2381.560546875; `exposition` ends on the left run (at 1150.7802734375),
+   `development` starts on the right one (at 1366.17041015625). The card's
+   exposure lists two gaps of origin `arrangement`, the seams at 16 and at
+   32 (start equal to end, exact), from 1150.7802734375 to
+   1366.17041015625 and from 1766.17041015625 to 1981.560546875, each
+   writing one continuation, on `score`'s line, and no ellipsis.
+   `session`'s line, at 244.515625, has two runs, 0.0–33.0 to
+   1190.7802734375 and 44.0–130.0 from 1234.8938802083335, its gap of
+   origin `arrangement` eliding 33.0 to 44.0 (floats, the session's axis
+   being float) with one ellipsis on the line at 1212.8370768229167.
+5. **The fallback**: `bundle_arranged_conflict` asked `horizontal` is
+   refused: the drawing states `{direction: horizontal, row: [group_1,
+   group_2], roots: [], refused: {groups: [group_1, group_2], roots:
+   [score], reason: "\"Theme A\" and \"Theme B\" overlap on \"Score\"
+   (8–16 ♩)"}}` and draws every element and record as the bundle drawn
+   without an arrangement (the item order being the drawing order).
 
 ## Region braces cut at gaps (`region-cuts.test.ts`)
 
