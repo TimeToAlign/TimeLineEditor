@@ -90,7 +90,7 @@ or on a descendant of it that no member card below the root draws, where
 the root is in no group or is a member drawing an ancestor card itself
 (`raisedRoot`, the one decision that the drawn order, the pointer, the
 places of coordinates, the marquee and the focus all read, through one
-stacking, `stackingOf`). The Properties tab's elision section hides it
+stacking, `stackingOf`). The Elisions tab's timeline block hides it
 (the mode Hidden, a `display` of `none` on the root's cards) or chooses
 which elisions it draws.
 
