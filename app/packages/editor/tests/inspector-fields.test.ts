@@ -340,7 +340,11 @@ describe("the Properties panel", () => {
     const store = storeOf();
     expect(store.open({ block: M, id: "group_1" })).toBe(null);
     showSelection(store, NOTHING_SELECTED, "group");
-    expect([...document.querySelectorAll("input")].map((item) => item.name)).toEqual(["name"]);
+    // Beside the name, only the group's elisions (`inspector-elision.test.ts`).
+    const outside = [...document.querySelectorAll("input")].filter(
+      (item) => item.closest('[data-testid="group-elisions"]') === null,
+    );
+    expect(outside.map((item) => item.name)).toEqual(["name"]);
     expect(input("name").value).toBe("Performance");
     const before = store.entries.length;
     type("name", "Duo");

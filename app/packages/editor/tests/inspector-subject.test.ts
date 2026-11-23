@@ -84,12 +84,6 @@ describe("inspectedSubject", () => {
       [at(MIXED, { id: "score" }), named("Timeline", "Score")],
       [at(MIXED, { id: "score", part: ["card"] }), named("Card of timeline", "Score")],
       [at(MIXED, { id: "score", part: ["name"] }), named("Name of timeline", "Score")],
-      [at(MIXED, { id: "excerpt", part: ["start"] }), named("Start of timeline", "Excerpt")],
-      [at(MIXED, { id: "excerpt", part: ["end"] }), named("End of timeline", "Excerpt")],
-      [
-        at(MIXED, { id: "excerpt", part: ["end", "label"] }),
-        named("Label of end of timeline", "Excerpt"),
-      ],
       [at(MIXED, { id: "timestamp_9" }), named("Timestamp", "origin")],
       [
         at(MIXED, { id: "timestamp_9", part: ["coordinate"] }),
@@ -244,6 +238,7 @@ describe("inspectedSubject", () => {
     ["no selection", []],
     ["an address naming nothing", [at(MIXED, { id: "nothing" })]],
     ["a part its element does not have", [at(MIXED, { id: "region_1", part: ["start"] })]],
+    ["a member's start, marked nowhere", [at(MIXED, { id: "excerpt", part: ["start"] })]],
     ["a part of a card", [at(MIXED, { id: "score", part: ["card", "name"] })]],
     ["a block that does not exist", [at("0000000009")]],
     ["a band with a part", [at(MIXED, { id: "score", facet: "regions", part: ["label"] })]],

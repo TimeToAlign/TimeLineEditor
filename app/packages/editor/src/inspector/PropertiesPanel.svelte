@@ -5,8 +5,9 @@
  * editor); directly under it, wherever the selection lies wholly under one
  * root whose drawing can carry elisions (an ancestor card behind its
  * groups' frames, or its card as an ungrouped root), the elision section
- * (`ElisionSection.svelte`): the root's mode Elided, Full or Hidden, its
- * elisions and the form of a selected one. Then, for a selection in one block, the read-only rows of
+ * (`ElisionSection.svelte`): the root's mode and settings, its elisions, the
+ * elisions of the group whose frame holds the selection or whose editor is
+ * open, and the form of a selected elision. Then, for a selection in one block, the read-only rows of
  * one band, or the form of the selected containers' geometry, or the hint
  * that the selection has none; the stored lock of the inspected timelines
  * stands right of the container size, read-only. Typed text is the
@@ -81,6 +82,24 @@ const shown: Shown | null = $derived.by(() => {
   if (block === null) return null;
   if (placement?.id === block.id) return placement;
   return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics) };
+});
+
+/** The group whose editor is the innermost one open; `null` for none. */
+const editedGroup = $derived(
+  editing?.kind === "group" && editing.target.id !== undefined ? editing.target.id : null,
+);
+
+/**
+ * The block and drawing the elisions are read in: the selection's, else, with
+ * nothing selected, the block of the group editor open; `null` for neither.
+ */
+const elided = $derived.by(() => {
+  if (shown !== null && block !== null) return { block, drawing: shown.drawing };
+  if (subjects.length > 0 || editing === null || editedGroup === null) return null;
+  const edited = view.blocks[editing.target.block ?? ""];
+  return edited === undefined
+    ? null
+    : { block: edited, drawing: drawingOf(edited, view.graphical, fontMetrics) };
 });
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
@@ -234,13 +253,13 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {/if}
 
-{#if block !== null && shown !== null}
+{#if elided !== null}
   <ElisionSection
-    {view}
     {store}
-    {block}
+    block={elided.block}
     {subjects}
-    drawing={shown.drawing}
+    drawing={elided.drawing}
+    edited={editedGroup}
     {drafts}
     {onselect}
   />
