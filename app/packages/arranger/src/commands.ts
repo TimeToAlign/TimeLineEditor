@@ -28,6 +28,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { addressParts, type Editing } from "./editing.ts";
 import { GRID_FREE, positionStep, quantize, sameSequence } from "./numbers.ts";
+import type { PaneSource } from "./pane.ts";
 import { blocksInOrder } from "./project.ts";
 import { type Selection, selectedBand } from "./selection.ts";
 
@@ -55,12 +56,15 @@ function placing(
   moves: readonly Move[],
   step: number,
   metrics: FontMetrics,
+  pane: PaneSource | undefined,
 ): SetCommand | null {
   const changes: Change[] = [];
   for (const move of moves) {
     const block = view.blocks[move.id];
     const origin =
-      block === undefined ? NO_ORIGIN : drawingOf(block, view.graphical, metrics).origin;
+      block === undefined
+        ? NO_ORIGIN
+        : drawingOf(block, view.graphical, metrics, undefined, pane).origin;
     const scale = block?.scale ?? 1;
     const x = quantize(quantize(move.x, step) + origin.x * scale, GRID_FREE);
     const y = quantize(quantize(move.y, step) + origin.y * scale, GRID_FREE);
@@ -83,8 +87,9 @@ export function moveCommand(
   view: View,
   moves: readonly Move[],
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): SetCommand | null {
-  return placing(view, moves, GRID_FREE, metrics);
+  return placing(view, moves, GRID_FREE, metrics, pane);
 }
 
 /**
@@ -99,6 +104,7 @@ export function nudgeCommand(
   dx: number,
   dy: number,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): SetCommand | null {
   if (dx === 0 && dy === 0) return null;
   const { grid } = view.settings;
@@ -106,10 +112,10 @@ export function nudgeCommand(
   for (const id of ids) {
     const block = view.blocks[id];
     if (block === undefined) continue;
-    const node = nodePosition(block, drawingOf(block, view.graphical, metrics));
+    const node = nodePosition(block, drawingOf(block, view.graphical, metrics, undefined, pane));
     moves.push({ id, x: node.x + dx * grid.size, y: node.y + dy * grid.size });
   }
-  return placing(view, moves, positionStep(grid), metrics);
+  return placing(view, moves, positionStep(grid), metrics, pane);
 }
 
 /** The visible part of the canvas: Svelte Flow's transform and the pane's size in screen pixels. */
@@ -171,6 +177,7 @@ export function addCommand(
   manifest: Manifest,
   visible: Visible,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): AddCommand {
   const { grid } = view.settings;
   const step = positionStep(grid);
@@ -185,10 +192,12 @@ export function addCommand(
   const block = isCommandError(added) ? undefined : added.blocks[id];
   // A manifest core refuses is refused by the dispatch too; where it would lie does not matter.
   if (block === undefined) return command();
-  const drawing = drawingOf(block, view.graphical, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
   let others = Object.values(view.blocks)
     .filter((other) => other.parent === null)
-    .map((other) => grown(nodeRect(other, drawingOf(other, view.graphical, metrics)), grid.size));
+    .map((other) =>
+      grown(nodeRect(other, drawingOf(other, view.graphical, metrics, undefined, pane)), grid.size),
+    );
   for (;;) {
     const rect = nodeRect({ x, y, scale: block.scale }, drawing);
     const met = others.filter((other) => overlaps(rect, other));

@@ -23,6 +23,7 @@ import { offeredBands } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { sameSequence } from "./numbers.ts";
+import type { PaneSource } from "./pane.ts";
 import { offersBand, selectedBand } from "./selection.ts";
 
 /** The direction of a step (`bandStep`): the arrow pressed with Ctrl or Cmd. */
@@ -160,12 +161,13 @@ export function bandStepCommand(
   direction: BandDirection,
   editing: Editing | null,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): SetCommand | null {
   const selected = selectedBand(view, address);
   if (selected === null || !offersBand(view, selected, editing)) return null;
   const block = view.blocks[selected.block];
   if (block === undefined) return null;
-  const drawing = drawingOf(block, view.graphical, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
   const drawn = offeredBands(drawing, selected.timeline).find(
     (band) => band.band.facet === selected.facet,
   );

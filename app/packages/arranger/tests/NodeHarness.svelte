@@ -15,12 +15,14 @@ const IDLE: NodeActions = {
   select() {},
   preview() {},
   metrics: fontMetrics,
+  pane: () => undefined,
   view() {
     throw new Error("no test edits this node");
   },
   zoom: () => 1,
   rules: () => LEVELS.arranger,
   reducedMotion: () => false,
+  previewing: () => false,
   coordinates: () => false,
   matches: () => false,
   matchPaint: () => NO_PAINT,
@@ -39,10 +41,12 @@ setNodeActions({
   get metrics() {
     return current().metrics;
   },
+  pane: () => current().pane(),
   view: () => current().view(),
   zoom: () => current().zoom(),
   rules: () => current().rules(),
   reducedMotion: () => current().reducedMotion(),
+  previewing: (block) => current().previewing(block),
   coordinates: () => current().coordinates(),
   matches: () => current().matches(),
   matchPaint: (block) => current().matchPaint(block),

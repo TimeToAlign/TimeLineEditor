@@ -4,7 +4,7 @@
  * canvas's rules (`rulesOf`) whether it may run, and nothing else.
  */
 
-import type { Address, Command, View } from "@timetoalign/tilie-core";
+import type { Address, Command, Granularity, View } from "@timetoalign/tilie-core";
 import {
   holdingOf,
   isCommandError,
@@ -16,7 +16,12 @@ import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
 import { nudgeCommand, removeCommand, type ZOrderAction, zOrderCommand } from "./commands.ts";
 import type { LevelRules } from "./containers.ts";
+import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
+import type { GapEdge, GapModes } from "./gaps.ts";
+import { gapCommand, gapStep, isDefaultGap, isGap, piecesOf, subjectOf } from "./gaps.ts";
+import type { PaneSource } from "./pane.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 import { NOTHING_SELECTED, selectedBand, selectionOf } from "./selection.ts";
@@ -45,6 +50,17 @@ export interface KeyContext {
   /** The canvas's rules now (`rulesOf`). */
   readonly rules: LevelRules;
   readonly metrics: FontMetrics;
+  /** The pane the canvas's drawings are fitted to (`Pane.view`). */
+  readonly pane: PaneSource | undefined;
+  /** How finely a key moving an elision's edge picks its value: the canvas's granularity. */
+  readonly granularity: Granularity;
+  /** What a selected elision's handles and arrows change (the gap mode menu's toggles). */
+  readonly gapModes: GapModes;
+  /** Presses or releases one of the gap modes; releasing the last pressed one does nothing. */
+  toggleGapMode(mode: keyof GapModes): void;
+  /** The edge of a selected elision the arrows move: `[` chooses the start, `]` the end. */
+  readonly gapEdge: GapEdge;
+  chooseGapEdge(edge: GapEdge): void;
   /** How many editors are open: Escape closes the innermost. */
   readonly editors: number;
   select(next: Selection): void;
@@ -89,6 +105,12 @@ const ARROWS: { readonly [key: string]: readonly [number, number] } = {
 
 const MODE_KEYS: { readonly [key: string]: ResizeMode } = { 1: "scale", 2: "box", 3: "stretch" };
 
+/** The keys of the gap mode menu, read on a selected elision before the resize modes. */
+const GAP_MODE_KEYS: { readonly [key: string]: keyof GapModes } = { 1: "coordinates", 2: "width" };
+
+/** The keys choosing a selected elision's edge, by the character typed (`event.key`). */
+const GAP_EDGE_KEYS: { readonly [key: string]: GapEdge } = { "[": "start", "]": "end" };
+
 const Z_ORDER: { readonly [code: string]: readonly [ZOrderAction, ZOrderAction] } = {
   BracketRight: ["forward", "front"],
   BracketLeft: ["backward", "back"],
@@ -106,6 +128,70 @@ function selectedBlocks({ view, selection }: KeyContext): string[] {
       ? [address.block]
       : [],
   );
+}
+
+/** The one selected address, when it is an elision's gap, with its block's drawing. */
+function selectedGap(context: KeyContext) {
+  if (context.selection.size !== 1) return null;
+  const [address] = context.selection.values();
+  if (address === undefined) return null;
+  const { block: id, element } = addressParts(address);
+  const block = context.view.blocks[id];
+  if (block === undefined || element === null || !isGap(block.manifest, element)) return null;
+  const drawing = drawingOf(
+    block,
+    context.view.graphical,
+    context.metrics,
+    undefined,
+    context.pane,
+  );
+  return { block, drawing, element };
+}
+
+/**
+ * Left or Right on the one selected stored elision: its chosen edge (`[`
+ * the start, `]` the end; the other where its pieces show only that one)
+ * moves one grid step under the canvas's gap modes (`gapStep`), one `set`.
+ * `null` when no elision is selected; a default or carried gap takes the
+ * key and changes nothing.
+ */
+function gapArrow(context: KeyContext, event: KeyboardEvent): boolean | null {
+  const gap = selectedGap(context);
+  if (gap === null) return null;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return true;
+  if (!context.rules.resize) return true;
+  const { block, drawing, element } = gap;
+  const { manifest } = block;
+  const subjects = piecesOf(drawing, element).flatMap((piece) => {
+    const subject = subjectOf(manifest, drawing, piece);
+    return subject === null || subject.edges.length === 0 ? [] : [subject];
+  });
+  const chosen = context.gapEdge;
+  const subject = subjects.find(({ edges }) => edges.includes(chosen)) ?? subjects[0];
+  const edge = subject?.edges.includes(chosen) ? chosen : subject?.edges[0];
+  if (subject === undefined || edge === undefined) return true;
+  const direction = event.key === "ArrowLeft" ? -1 : 1;
+  const step = context.view.settings.grid.size;
+  const gapContext = { block: block.id, manifest, drawing, granularity: context.granularity };
+  const change = gapStep(gapContext, subject, edge, direction, step, context.gapModes);
+  const command = change === null ? null : gapCommand(context.view, block.id, subject, change);
+  if (command !== null) context.dispatch(command);
+  return true;
+}
+
+/**
+ * Delete on default gaps (`{id: T, part: ["elision"]}`): an automatic
+ * elision is never deleted on its own, its root's Custom mode edits them;
+ * refused. `null` when the selection holds none.
+ */
+function deleteDefaultGaps(context: KeyContext): boolean | null {
+  const defaults = [...context.selection.values()].filter((address) => {
+    const { element } = addressParts(address);
+    return element !== null && isDefaultGap(element);
+  });
+  if (defaults.length === 0) return null;
+  context.refuse("Automatic elisions are not deleted one by one: choose Custom to edit them.");
+  return true;
 }
 
 /** The key table, in the order the rows are read. */
@@ -127,6 +213,7 @@ export const KEYS: readonly KeyRow[] = [
           direction,
           context.editing,
           context.metrics,
+          context.pane,
         );
         if (step !== null) context.dispatch(step);
       }
@@ -149,23 +236,40 @@ export const KEYS: readonly KeyRow[] = [
     },
   },
   {
-    // The arrows nudge the selected blocks where the level nudges: on the arranger.
+    // The arrows nudge the selected blocks where the level nudges: on the arranger. On the one
+    // selected elision, Left and Right move its chosen edge under the gap modes.
     match: (event) => plain(event) && Object.hasOwn(ARROWS, event.key),
     run(context, event) {
+      const moved = gapArrow(context, event);
+      if (moved !== null) return moved;
       const ids = selectedBlocks(context);
       const arrow = ARROWS[event.key];
       if (ids.length === 0 || arrow === undefined || !context.rules.nudge) return false;
       const step = event.shiftKey ? LARGE_STEP : 1;
       const [dx, dy] = arrow;
-      const nudged = nudgeCommand(context.view, ids, dx * step, dy * step, context.metrics);
+      const nudged = nudgeCommand(
+        context.view,
+        ids,
+        dx * step,
+        dy * step,
+        context.metrics,
+        context.pane,
+      );
       if (nudged !== null) context.dispatch(nudged);
       return true;
     },
   },
   {
-    // A locked or read-only canvas offers no resize, so its mode is not chosen either.
+    // A locked or read-only canvas offers no resize, so its mode is not chosen either. On a
+    // selected elision `1` and `2` press or release the gap modes Coordinates and Width instead.
     match: (event) => plain(event) && Object.hasOwn(MODE_KEYS, event.key),
     run(context, event) {
+      const gapMode = GAP_MODE_KEYS[event.key];
+      if (selectedGap(context) !== null) {
+        if (gapMode === undefined) return true;
+        if (context.rules.resize) context.toggleGapMode(gapMode);
+        return true;
+      }
       const chosen = MODE_KEYS[event.key];
       if (chosen === undefined || !context.rules.resize) return false;
       context.setMode(chosen);
@@ -176,6 +280,8 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && (event.key === "Delete" || event.key === "Backspace"),
     run(context) {
       if (context.selection.size === 0 || !context.rules.remove) return false;
+      const defaults = deleteDefaultGaps(context);
+      if (defaults !== null) return defaults;
       // An ancestor card stands for no element of its own: Delete leaves it, and its root, alone.
       const selection = selectionOf(
         [...context.selection.values()].filter(
@@ -186,6 +292,17 @@ export const KEYS: readonly KeyRow[] = [
       const removed = removeCommand(context.view, selection, context.editing);
       if ("refused" in removed) context.refuse(removed.refused);
       else if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
+      return true;
+    },
+  },
+  {
+    // `[` and `]` (the characters typed, whatever the layout) choose the edge of a selected
+    // elision the arrows move: the start and the end.
+    match: (event) => plain(event) && Object.hasOwn(GAP_EDGE_KEYS, event.key),
+    run(context, event) {
+      const edge = GAP_EDGE_KEYS[event.key];
+      if (edge === undefined || selectedGap(context) === null) return false;
+      context.chooseGapEdge(edge);
       return true;
     },
   },

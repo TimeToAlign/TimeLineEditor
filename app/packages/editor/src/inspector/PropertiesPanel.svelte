@@ -2,14 +2,11 @@
 /**
  * The Properties tab: first the name of what is inspected (with nothing
  * selected, the workspace's at the top level, the edited element's in an
- * editor); directly under it, on its own row, wherever the card of a
- * grouped child is concerned (a timeline, a card or a part of either, all
- * under one root drawn whole behind its groups' frames), a button that
- * hides or shows that root's ancestor cards by one `style` command, its
- * text naming what it does ("Hide parent timelines", "Show parent
- * timelines"); where another style rule keeps the card as drawn, the
- * button stays focusable with `aria-disabled` and a visible hint saying why
- * describes it. Then, for a selection in one block, the read-only rows of
+ * editor); directly under it, wherever the selection lies wholly under one
+ * root whose drawing can carry elisions (an ancestor card behind its
+ * groups' frames, or its card as an ungrouped root), the elision section
+ * (`ElisionSection.svelte`): the root's mode Elided, Full or Hidden, its
+ * elisions and the form of a selected one. Then, for a selection in one block, the read-only rows of
  * one band, or the form of the selected containers' geometry, or the hint
  * that the selection has none; the stored lock of the inspected timelines
  * stands right of the container size, read-only. Typed text is the
@@ -30,17 +27,10 @@ import { sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
 import { informOf } from "../messages.svelte.ts";
+import ElisionSection from "./ElisionSection.svelte";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
-import {
-  ancestorCardOf,
-  bandRows,
-  fieldLabel,
-  geometryOf,
-  isSize,
-  lockOf,
-  nameOf,
-} from "./properties.ts";
+import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
 let {
@@ -51,6 +41,7 @@ let {
   editing,
   placement,
   drafts,
+  onselect = () => {},
 }: {
   view: View;
   store: Store;
@@ -63,6 +54,8 @@ let {
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
+  /** Select `address` alone, as a click on the canvas does: a row of the elision section. */
+  onselect?: (address: Address) => void;
 } = $props();
 
 const uid = $props.id();
@@ -101,21 +94,6 @@ const band = $derived(shown === null ? null : bandRows(subjects, shown));
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
 
-/** The parent-timelines button of the inspected subjects' root; `null` unless it is offered. */
-const ancestorCard = $derived(
-  block === null || shown === null ? null : ancestorCardOf(view, block, subjects, shown.drawing),
-);
-
-/** The store's refusal of the last parent-timelines command, shown until the next one. */
-let ancestorCardProblem = $state<string | null>(null);
-
-/** Hide or show the inspected root's ancestor cards, as the button offers. */
-function toggleAncestorCard(): void {
-  const command = ancestorCard?.command ?? null;
-  if (command === null) return;
-  ancestorCardProblem = store.dispatch(command)?.message ?? null;
-}
-
 /** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
 const memberships = $derived(
   block === null ? null : (groupsOf(view, subjects, editing) ?? membersOf(view, subjects, editing)),
@@ -153,10 +131,6 @@ const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.prop
 
 /** What the Locked checkbox's tooltip says. */
 const LOCK_TITLE = "Whether the timeline's length is fixed";
-
-/** Why the parent-timelines button is disabled: another rule shows the card it would hide, or hides the card it would show. */
-const ANCESTOR_CARD_SHOWN = "Shown by another style rule";
-const ANCESTOR_CARD_HIDDEN = "Hidden by another style rule";
 
 /** What the tab shows for a selection without one role of geometry. */
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
@@ -260,32 +234,16 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {/if}
 
-{#if ancestorCard !== null}
-  {@const card = ancestorCard}
-  {@const reason =
-    card.command !== null ? null : card.drawn ? ANCESTOR_CARD_SHOWN : ANCESTOR_CARD_HIDDEN}
-  {@const described = [
-    reason === null ? null : `${uid}-ancestor-card-reason`,
-    ancestorCardProblem === null ? null : `${uid}-problem-ancestor-card`,
-  ].filter((id) => id !== null)}
-  <div class="parent-timelines">
-    <button
-      type="button"
-      title={card.title}
-      data-testid="ancestor-card"
-      aria-disabled={reason === null ? undefined : "true"}
-      aria-describedby={described.length === 0 ? undefined : described.join(" ")}
-      onclick={toggleAncestorCard}
-    >
-      {card.label}
-    </button>
-    {#if reason !== null}
-      <p class="hint" id="{uid}-ancestor-card-reason">{reason}</p>
-    {/if}
-    {#if ancestorCardProblem !== null}
-      <p class="problem" id="{uid}-problem-ancestor-card">{ancestorCardProblem}</p>
-    {/if}
-  </div>
+{#if block !== null && shown !== null}
+  <ElisionSection
+    {view}
+    {store}
+    {block}
+    {subjects}
+    drawing={shown.drawing}
+    {drafts}
+    {onselect}
+  />
 {/if}
 
 {#snippet locked()}
@@ -477,25 +435,6 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     flex-direction: row;
     align-items: center;
     gap: 0.25rem;
-    color: #595959;
-    cursor: not-allowed;
-  }
-
-  /* The parent-timelines button on its own row under the name, its hint and refusal below it. */
-  .parent-timelines {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.1rem;
-    margin: 0.25rem 0 0.5rem;
-  }
-
-  .parent-timelines button {
-    font: inherit;
-  }
-
-  /* Disabled yet focusable (`aria-disabled`): greyed, its reason in the hint below it. */
-  .parent-timelines button[aria-disabled="true"] {
     color: #595959;
     cursor: not-allowed;
   }

@@ -9,6 +9,8 @@ export const name = "@timetoalign/tilie-arranger" as const;
 export type { CardBox, ItemBox } from "./boxes.ts";
 export { blockBox, boxOf, isHeld, isItem, keyedBox, raisedRoot } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";
+export type { AxisBase, CardAxis, GapEdge } from "./cardAxis.ts";
+export { cardAxisAt, cardAxisOf, exposureAt, zeroOf } from "./cardAxis.ts";
 export { addCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
 export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
@@ -18,6 +20,20 @@ export { drawingOf, styleLayers } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
 export { changedPlace, placeChange } from "./editing.ts";
 export type { Viewport } from "./focus.ts";
+export type { GapChange, GapPiece, GapSubject, StoredEntry } from "./gaps.ts";
+export {
+  defaultsRemoval,
+  defaultsStored,
+  gapCommand,
+  gapOf,
+  isDefaultGap,
+  isGap,
+  piecesOf,
+  storedAs,
+  storedElision,
+  stretchText,
+  subjectOf,
+} from "./gaps.ts";
 export type { ShownValues } from "./items.ts";
 export { placeEdit, shownValues } from "./items.ts";
 export { isTextInput, within } from "./keys.ts";
@@ -31,6 +47,7 @@ export type {
 } from "./matches.ts";
 export { inScreenOrder, screenOrder, screenPlace } from "./matches.ts";
 export type { LivePlacement, TransientCommand } from "./node.ts";
+export { PANE_SETTLE, Pane } from "./pane.ts";
 export { blocksInOrder } from "./project.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";

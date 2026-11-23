@@ -913,7 +913,7 @@ schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
 **`ancestor-cards.spec.ts`** (Chromium, Firefox, WebKit) proves an ancestor card (TimeToShare's
-drawing specification, section 8.8) on the schema package's
+drawing specification, sections 8.8 and 8.9) and its root's elision section on the schema package's
 `groups/group_parent_both`, imported through the File menu, at zoom 1
 with the block's place origin at (240, 80) on the pane, so that the card
 reaching left of the frame stays on screen: the root `piece` (`Piece`, 16
@@ -943,22 +943,49 @@ decimals, so the node's transform is compared with the string the same
 browser writes for `translate(<x>px, <y>px)` of the exact position, never
 with one engine's rounding). The card lies behind the frame: its
 rectangle precedes the frame's in the DOM. Selecting `piece` offers in
-Properties the button "Hide parent timelines" (`ancestor-card`),
-enabled, titled "The card of 'Piece' behind the frames of its members'
-groups". Pressing it journals exactly one entry, `{type: "style", select:
-{element: "ancestor_card", addresses: [{id: "piece", part: ["card"]}]},
-set: {display: "none"}, blocks: [<block>]}`, and the card is gone: no
-element is addressed `{id: piece, part: [card]}`, the frame and the cards
-lie at `x` 8 and 16 with the same `y`, widths and heights, the node is at
-the block's place `(x, y)`, which the store keeps throughout. The button
-then reads "Show parent timelines", enabled. Showing the parent timelines
-is a property of the grouped child, so selecting the child `middle`
-instead offers the same button, "Show parent timelines" with the same
-title; pressing it journals exactly one
-entry, the same command with `set: {display: null}` (the block's own rule
-hid the card, so Show unstates it rather than stating `inline`), and the
-card and every box are drawn as before Hide. The drawing is compared,
+Properties the section `Parent timeline "Piece"` (`elisions`), its mode
+Elided checked and its status "Elisions: automatic: drawn whole" (`r =
+1`: the card meets the view drawn whole, drawing.md §8.9), Hidden not
+`aria-disabled`. Choosing Hidden journals exactly one entry, `{type:
+"style", select: {element: "ancestor_card", addresses: [{id: "piece",
+part: ["card"]}]}, set: {display: "none"}, blocks: [<block>]}`, and the
+card is gone: no element is addressed `{id: piece, part: [card]}`, the
+frame and the cards lie at `x` 8 and 16 with the same `y`, widths and
+heights, the node is at the block's place `(x, y)`, which the store keeps
+throughout. Hidden is then checked. Showing the parent timelines is a
+property of the grouped child, so selecting the child `middle` instead
+offers the same section, Hidden checked; choosing Elided journals exactly
+one entry, the same command with `set: {display: null}` (the block's own
+rule hid the card, so Elided unstates it rather than stating `inline`),
+and the card and every box are drawn as before. The drawing is compared,
 never pixels.
+
+*Elided, Full, stored and reset.* On `groups/group_elided_inside`
+imported the same way (the root `piece` of 64 quarters with `first` and
+`second`, the member `excerpt` of 8 at 8 in `first`; drawing.md §8.9
+derives its default elisions `first` 0–8 and 16–32 and `second` 0–32),
+selecting `excerpt` shows Elided checked and the strip of `{id: second,
+part: [elision]}` drawn. Full journals exactly `{type: "style", select:
+{element: "elision", within: "piece"}, set: {display: "none"}, blocks:
+[<block>]}` and no strip is drawn; ArrowLeft from the checked Full moves
+to Elided and journals the same with `display: null`, the strips drawn
+again (the arrow keys move between the options as native radios do).
+Root left and right journals one entry storing `elision_1` on `piece`
+0–8 and `elision_2` 16–64, without `width`, all three words displayed;
+the status reads "Elisions: 2 stored elisions" and the default strips are
+gone. Reset to automatic journals one entry and stores none; the defaults
+are drawn again.
+
+*A default elision deleted.* Selecting `piece`, the `[×]` named "Delete
+the elision of Second, 0–32 ♩" journals one entry storing the card's other
+defaults, `elision_1` `first` 0–8 and `elision_2` `first` 16–32; no strip
+of `second` is drawn. One undo leaves no stored elision and draws every
+default again.
+
+*A selected elision's end typed.* Clicking the row of `Second` selects
+`{block, id: second, part: [elision]}` alone; its form, `Elision of
+"Second"`, shows To `32`; `16` and Enter journals one `add` into the block
+of the three defaults, `second` ending at `[16, 1]`.
 
 *Raised by its editor.* A double-click on a point of the card left of the
 frame, clear of everything drawn on it (`framePoint` of the card's

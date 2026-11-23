@@ -23,6 +23,7 @@ import { resizes } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { editorTargetOf } from "./editors.ts";
+import { gapOf } from "./gaps.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
 import { insideOf } from "./project.ts";
@@ -129,7 +130,9 @@ export function ownerOf(manifest: Manifest, element: ElementAddress): Owner | nu
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
  * the band or the element it hit, a named timestamp for any of its parts
  * but a match timestamp's line, and a named MatchStamp for that line and
- * for any alignment anchor's line or label (`ownerOf`), a timestamp for its affordance, whose source carries the
+ * for any alignment anchor's line or label (`ownerOf`), the gap of an
+ * elision for itself, its ellipses and its labels (`gapOf`: `{id: E}`
+ * stored, `{id: T, part: ["elision"]}` default), a timestamp for its affordance, whose source carries the
  * timestamp's own address, or the block where it hit the block itself; `null`
  * off every block and outside the edited element, where a press changes
  * nothing. A band is hit only with a drawing point: a key selects none.
@@ -141,8 +144,12 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
     hit === null || node === undefined ? null : pressSelection(hit, editing, node.data.inside);
   if (address === null || node === undefined) return null;
   const { element } = addressParts(address);
-  const owner = element === null ? null : ownerOf(node.data.block.manifest, element);
-  return owner === null ? address : inBlock(node.id, owner.selects);
+  if (element === null) return address;
+  const { manifest } = node.data.block;
+  const owner = ownerOf(manifest, element);
+  if (owner !== null) return inBlock(node.id, owner.selects);
+  const gap = gapOf(manifest, element);
+  return gap === null ? address : inBlock(node.id, gap);
 }
 
 /**

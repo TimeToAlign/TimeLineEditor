@@ -16,6 +16,7 @@ import type { Editing } from "./editing.ts";
 import type { Rect } from "./marquee.ts";
 import { rectOnCanvas } from "./marquee.ts";
 import type { BlockNode, LivePlacement } from "./node.ts";
+import type { PaneSource } from "./pane.ts";
 import { livePlacement, project } from "./project.ts";
 import type { Selection } from "./selection.ts";
 
@@ -25,6 +26,8 @@ export interface Projected {
   readonly selection: Selection;
   readonly metrics: FontMetrics;
   readonly editing: Editing | null;
+  /** The pane of the canvas (`Pane.view`). */
+  readonly pane: PaneSource | undefined;
 }
 
 /** The block a gesture or a transient command previews, and the view its command gives. */
@@ -34,10 +37,15 @@ export interface Preview {
 }
 
 /** The node `node` drawn as `view` holds its block: a preview's. */
-function drawnAt(node: BlockNode, view: View, metrics: FontMetrics): BlockNode {
+function drawnAt(
+  node: BlockNode,
+  view: View,
+  metrics: FontMetrics,
+  pane: PaneSource | undefined,
+): BlockNode {
   const block = view.blocks[node.id];
   if (block === undefined) return node;
-  const drawing = drawingOf(block, view.graphical, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
   const width = drawing.width * block.scale;
   const height = drawing.height * block.scale;
   return {
@@ -67,8 +75,8 @@ export class CanvasNodes {
 
   /** One node per block of the view: re-run when the view, the selection or the editor changes. */
   readonly projected: readonly BlockNode[] = $derived.by(() => {
-    const { view, selection, metrics, editing } = this.#input();
-    this.#previous = project(view, selection, this.#previous, metrics, editing);
+    const { view, selection, metrics, editing, pane } = this.#input();
+    this.#previous = project(view, selection, this.#previous, metrics, editing, pane);
     return this.#previous;
   });
 
@@ -84,9 +92,9 @@ export class CanvasNodes {
   readonly previewed: BlockNode | null = $derived.by(() => {
     const preview = this.preview ?? this.#transient();
     const node = preview === null ? undefined : this.byId.get(preview.id);
-    return preview === null || node === undefined
-      ? null
-      : drawnAt(node, preview.view, this.#input().metrics);
+    if (preview === null || node === undefined) return null;
+    const { metrics, pane } = this.#input();
+    return drawnAt(node, preview.view, metrics, pane);
   });
 
   /**

@@ -708,6 +708,7 @@ if (withTestHook) {
       knotsOf={(manifest) => canvas?.knotsOf(manifest)}
       tables={session.tables}
       {indexesOf}
+      onselect={(address) => (session.selection = selectionOf([address]))}
     />
   </main>
 

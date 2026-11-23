@@ -5,10 +5,16 @@
  * ends at by a key; each row of the end drawing travels from its paired
  * row's ordinate to its own, a row with no pair travels with its paired
  * neighbours and blends in, and a rectangle opens from one box to another.
+ * Sideways, a card's abscissas are read through knots, each an abscissa and
+ * the position it draws on the card's root: an element of the end drawing
+ * starts where the other drawing draws the same positions and travels to
+ * its own, stretched between its two ends (an elided card turning whole,
+ * or unfolding out of its member card).
  * Pure: no DOM and no drawing type, so any motion between two drawings of
  * the canvas reuses it with its own reading of the records (`raise.ts` for
- * a raised ancestor card); one progress value drives it
- * (`unfolding.svelte.ts`). Every distance is in drawing units.
+ * a raised ancestor card, `elide.ts` for a card's elisions); one progress
+ * value drives it (`unfolding.svelte.ts`, `cardMotions.svelte.ts`). Every
+ * distance is in drawing units.
  */
 
 import { cubicInOut } from "svelte/easing";
@@ -121,4 +127,173 @@ export function rectAt(from: Rect, to: Rect, t: number): Rect {
  */
 export function durationOf(from: number, to: number, reduced: boolean): number {
   return reduced ? 0 : Math.abs(to - from) * UNFOLD_DURATION;
+}
+
+/**
+ * A point of a card's horizontal axis: the abscissa `x` and the position
+ * `at` it draws, on the card's root's own axis, as a float. A card's knots,
+ * sorted by `x`, draw its positions piecewise linearly between them: a full
+ * run at its own scale, a gap at its own width.
+ */
+export interface Knot {
+  readonly x: number;
+  readonly at: number;
+}
+
+/**
+ * The position the abscissa `x` draws among `knots` (sorted by `x`): linear
+ * between the two knots around it, a knot's own position exactly at it,
+ * the first or the last knot's beyond them; `null` without knots.
+ */
+export function positionAt(knots: readonly Knot[], x: number): number | null {
+  const first = knots[0];
+  const last = knots.at(-1);
+  if (first === undefined || last === undefined) return null;
+  if (x <= first.x) return first.at;
+  if (x >= last.x) return last.at;
+  for (let index = 1; index < knots.length; index += 1) {
+    const right = knots[index];
+    const left = knots[index - 1];
+    if (right === undefined || left === undefined || x > right.x) continue;
+    if (x === right.x) return right.at;
+    if (x === left.x) return left.at;
+    return left.at + ((right.at - left.at) * (x - left.x)) / (right.x - left.x);
+  }
+  return last.at;
+}
+
+/**
+ * The abscissa drawing the position `at` among `knots` (sorted by `x`, so by
+ * `at` too): linear between the two knots around it, a knot's own abscissa
+ * exactly at its position, the first or the last knot's beyond them (a
+ * position the knots do not reach is drawn at their nearer end); `null`
+ * without knots.
+ */
+export function abscissaAt(knots: readonly Knot[], at: number): number | null {
+  const first = knots[0];
+  const last = knots.at(-1);
+  if (first === undefined || last === undefined) return null;
+  if (at <= first.at) return first.x;
+  if (at >= last.at) return last.x;
+  for (let index = 1; index < knots.length; index += 1) {
+    const right = knots[index];
+    const left = knots[index - 1];
+    if (right === undefined || left === undefined || at > right.at) continue;
+    if (at === right.at) return right.x;
+    if (at === left.at) return left.x;
+    return left.x + ((right.x - left.x) * (at - left.at)) / (right.at - left.at);
+  }
+  return last.x;
+}
+
+/**
+ * Where the motion starts the abscissa `x` of the end drawing, whose card
+ * draws through `to`: at the abscissa the start drawing's card draws the
+ * same position through `from`, plus `offset` (the move of the place origin
+ * between the two drawings, so both are read on the canvas); `x` itself
+ * moved by `offset` where either drawing has no knots. An abscissa beyond
+ * `to`'s first or last knot starts as far beyond that knot's start, so a
+ * card's names and padding travel with its line's ends.
+ */
+export function startOf(
+  from: readonly Knot[],
+  to: readonly Knot[],
+  offset: number,
+  x: number,
+): number {
+  const first = to[0];
+  const last = to.at(-1);
+  if (first === undefined || last === undefined) return x + offset;
+  const held = x < first.x ? first : x > last.x ? last : null;
+  const at = positionAt(to, held === null ? x : held.x);
+  const start = at === null ? null : abscissaAt(from, at);
+  if (start === null) return x + offset;
+  return held === null ? start + offset : start + offset + (x - held.x);
+}
+
+/**
+ * How an element moves sideways: `left` and `right` its extent at rest,
+ * `fromLeft` and `fromRight` where the motion starts them (equal ends for
+ * an element drawn at one abscissa, a text or a mark, which moves without
+ * stretching).
+ */
+export interface Across {
+  readonly left: number;
+  readonly right: number;
+  readonly fromLeft: number;
+  readonly fromRight: number;
+}
+
+/**
+ * How an element of a card moves between two drawings: sideways `across`
+ * (`null`: it does not), down by `dy` at the start (its start's ordinate
+ * less its own), and whether it `enters`, blending in.
+ */
+export interface Motion {
+  readonly across: Across | null;
+  readonly dy: number;
+  readonly enters: boolean;
+}
+
+/**
+ * An element's extent at a progress: each end linearly from where the
+ * motion starts it to its own, exactly its start at 0 and its own at 1.
+ */
+export function spanAt(
+  across: Across,
+  t: number,
+): { readonly left: number; readonly right: number } {
+  if (t >= 1) return { left: across.left, right: across.right };
+  if (t <= 0) return { left: across.fromLeft, right: across.fromRight };
+  return {
+    left: across.fromLeft + (across.left - across.fromLeft) * t,
+    right: across.fromRight + (across.right - across.fromRight) * t,
+  };
+}
+
+/**
+ * Where an element lies at a progress, as the map `x ↦ sx · x + dx`,
+ * `y ↦ y + dy` and its opacity times its own: the identity with opacity 1
+ * at rest.
+ */
+export interface Placed {
+  readonly sx: number;
+  readonly dx: number;
+  readonly dy: number;
+  readonly opacity: number;
+}
+
+/** Where an element lies at rest. */
+export const AT_REST: Placed = { sx: 1, dx: 0, dy: 0, opacity: 1 };
+
+/**
+ * Where an element moving by `motion` lies at progress `t`: its extent
+ * `spanAt` (stretched from its start's to its own, moved without
+ * stretching where it has no width), shifted down by `dy × (1 − t)`, at
+ * opacity `t` when it enters and 1 otherwise; exactly `AT_REST` at 1.
+ */
+export function placedAt(motion: Motion, t: number): Placed {
+  if (t >= 1) return AT_REST;
+  const dy = motion.dy * (1 - t);
+  const opacity = motion.enters ? t : 1;
+  if (motion.across === null) return { sx: 1, dx: 0, dy, opacity };
+  const { left, right } = motion.across;
+  const span = spanAt(motion.across, t);
+  const sx = right > left ? (span.right - span.left) / (right - left) : 1;
+  return { sx, dx: span.left - sx * left, dy, opacity };
+}
+
+/** A raise's frame (`frameAt`) as the map `placedAt` gives. */
+export function framePlaced({ dy, opacity }: Frame): Placed {
+  return { sx: 1, dx: 0, dy, opacity };
+}
+
+/** `inner`, then `outer`: the map of both, the opacities multiplied. */
+export function composed(outer: Placed, inner: Placed): Placed {
+  return {
+    sx: outer.sx * inner.sx,
+    dx: outer.sx * inner.dx + outer.dx,
+    dy: outer.dy + inner.dy,
+    opacity: outer.opacity * inner.opacity,
+  };
 }

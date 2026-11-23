@@ -8,9 +8,11 @@ import { ADDRESS_ATTRIBUTES, attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
 import { tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import { CardMotions } from "./animation/cardMotions.svelte.ts";
+import { placedAttributes } from "./animation/elide.ts";
 import type { CardUnfold } from "./animation/raise.ts";
 import { raiseUnfold } from "./animation/raise.ts";
-import { frameAt, rectAt } from "./animation/unfold.ts";
+import { AT_REST, composed, frameAt, framePlaced, rectAt } from "./animation/unfold.ts";
 import { Unfolding } from "./animation/unfolding.svelte.ts";
 import type { BandBox, Hover, Role } from "./boxes.ts";
 import {
@@ -141,6 +143,23 @@ const unfolding = new Unfolding(
 );
 
 /**
+ * The block's elisions moving (decision record 0034): each new drawing moves
+ * the cards and frames whose gaps changed sideways from the drawing before,
+ * and unfolds an ancestor card shown out of its member card; never while the
+ * block is drawn at a preview, which must lie where the pointer or the
+ * control puts it, nor under reduced motion.
+ */
+const cardMotions = new CardMotions(
+  () => ({ manifest: data.block.manifest, drawing: data.drawing, descriptors: data.descriptors }),
+  measure,
+  () => actions.reducedMotion(),
+  () => actions.previewing(data.block.id),
+);
+
+/** An entry's own opacity, which a motion's is multiplied with. */
+const ownOpacity = (entry: Entry): number => Number(entry.attributes.opacity ?? 1);
+
+/**
  * The drawing's entries (`drawnEntries`, keyed once per drawing) in the
  * layers the block shows them in (`raisedLayers`): every entry no raised
  * card draws, then each raised card of the root `unfolding` shows, with how
@@ -156,6 +175,13 @@ const raisedCards = $derived(
   })),
 );
 
+/**
+ * The entries below the raised cards, split where the cards an elision
+ * change hides fold back: the block's own rectangle first, then the rest.
+ */
+const backdrop = $derived(layers.below.filter((entry) => entry.role === "block"));
+const drawnBelow = $derived(layers.below.filter((entry) => entry.role !== "block"));
+
 /** Every entry in the order the block shows it: below the raised cards, then theirs. */
 const entries = $derived(
   layers.raised.length === 0
@@ -165,17 +191,15 @@ const entries = $derived(
 
 /**
  * What an entry of a raised card adds to its attributes at the progress
- * `t` of its unfolding (`frameAt`): its shift as a `transform` and its
- * opacity times its own; nothing at rest.
+ * `t` of its unfolding (`frameAt`), composed with its elisions' motion
+ * (`CardMotions`): its map as a `transform` and its opacity times its own;
+ * nothing at rest.
  */
 function unfoldAttributes(entry: Entry, unfold: CardUnfold, t: number): Record<string, string> {
-  if (t >= 1) return {};
-  const { dy, opacity } = frameAt(unfold.motionOf(entry.descriptor.source.element), t);
-  const own = Number(entry.attributes.opacity ?? 1);
-  return {
-    ...(dy === 0 ? {} : { transform: `translate(0 ${attributeText(dy)})` }),
-    ...(opacity === 1 ? {} : { opacity: attributeText(own * opacity) }),
-  };
+  const element = entry.descriptor.source.element;
+  const raise = t < 1 ? framePlaced(frameAt(unfold.motionOf(element), t)) : AT_REST;
+  const placed = composed(raise, cardMotions.placedOf(element) ?? AT_REST);
+  return placed === AT_REST ? {} : placedAttributes(placed, ownOpacity(entry));
 }
 
 /**
@@ -587,15 +611,47 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
     {onpointerleave}
     {@attach bandMoves}
   >
-    {#each layers.below as entry (entry.key)}
+    {#each backdrop as entry (entry.key)}
       <svelte:element
         this={entry.descriptor.tag}
         {...attributesOf(entry)}
+        data-selected={glows(entry) ? "" : undefined}
+        data-affected={isAffected(entry) ? "" : undefined}
+        data-outside={isOutside(entry.addressKey) ? "" : undefined}
+        {@attach drawn(entry.descriptor.source)}
+        {@attach gestureOf(entry.box)}>{entry.descriptor.text}</svelte:element
+      >
+    {/each}
+    <!--
+      An ancestor card hidden folds back into its member card: drawn from the
+      drawing before, above the block's rectangle and below every frame,
+      letting the pointer through.
+    -->
+    {#each cardMotions.leaving as card (card.key)}
+      <g class="tilie-leaving" data-leaving={card.key} pointer-events="none" aria-hidden="true">
+        {#each card.descriptors as descriptor (descriptor)}
+          <svelte:element
+            this={descriptor.tag}
+            {...ghostAttributesOf(descriptor)}
+            {...placedAttributes(
+              card.placedAt(descriptor, cardMotions.progress),
+              Number(ghostAttributesOf(descriptor).opacity ?? 1),
+            )}>{descriptor.text}</svelte:element
+          >
+        {/each}
+      </g>
+    {/each}
+    {#each drawnBelow as entry (entry.key)}
+      {@const placed = cardMotions.placedOf(entry.descriptor.source.element)}
+      <svelte:element
+        this={entry.descriptor.tag}
+        {...attributesOf(entry)}
+        {...placed === null ? {} : placedAttributes(placed, ownOpacity(entry))}
         visibility={hidden.has(entry.descriptor) ? "hidden" : undefined}
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
         data-outside={isOutside(entry.addressKey) ? "" : undefined}
-        pointer-events={passes(entry.owner) ? "none" : undefined}
+        pointer-events={passes(entry.owner) || placed !== null ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
         animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element

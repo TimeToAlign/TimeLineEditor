@@ -88,9 +88,12 @@ interface Props {
    * one named MatchStamps are compared with; `null` while no table is loaded.
    */
   indexesOf: (block: string) => MatchIndexes | null;
+  /** Select `address` alone on the canvas: a row of the Properties tab's elision section. */
+  onselect?: (address: Address) => void;
 }
 
-let { live, selection, placement, storageKey, knotsOf, tables, indexesOf }: Props = $props();
+let { live, selection, placement, storageKey, knotsOf, tables, indexesOf, onselect }: Props =
+  $props();
 
 const id = $props.id();
 
@@ -337,6 +340,7 @@ async function show(next: boolean): Promise<void> {
       {tables}
       {indexesOf}
       {knotsOf}
+      {onselect}
     />
   {/if}
 </aside>

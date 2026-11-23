@@ -5,7 +5,7 @@ import { onScreen } from "./onScreen.ts";
 
 interface Props {
   /** What the flag shows, naming its test IDs: `<kind>-flag`, `<kind>-pole`, `<kind>-footer`. */
-  kind: "coordinate" | "match";
+  kind: "coordinate" | "match" | "elision";
   /** The flag's accessible name. */
   label: string;
   /** Where what the flag marks lies, in pixels from the canvas's top-left corner. */
@@ -15,11 +15,13 @@ interface Props {
   top: number;
   /** The canvas's width in pixels: a flag past a border is shifted inside it. */
   width: number;
+  /** What a click does, said below the parts; `null` for nothing. */
+  footer?: string | null;
   /** The flag's parts, above its footer. */
   children: Snippet;
 }
 
-let { kind, label, x, y, top, width, children }: Props = $props();
+let { kind, label, x, y, top, width, footer = "click to pin", children }: Props = $props();
 
 let flagWidth = $state(0);
 let flagHeight = $state(0);
@@ -54,6 +56,8 @@ const place = $derived(
     bind:offsetHeight={flagHeight}
   >
     {@render children()}
-    <div class="tilie-coordinates-foot" data-testid="{kind}-footer">click to pin</div>
+    {#if footer !== null}
+      <div class="tilie-coordinates-foot" data-testid="{kind}-footer">{footer}</div>
+    {/if}
   </div>
 </div>

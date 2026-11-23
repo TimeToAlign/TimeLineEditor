@@ -78,7 +78,7 @@ their values below count the ancestor cards.
 
 **Whole ancestor cards (the Full view).** The defaults also elide an
 ancestor card (section 8.9, Elided and full): a stretch of the root far
-from the member is cut out and drawn as a strip, which changes where the
+from the member is cut out and drawn as a gap, which changes where the
 card's lines lie and what a point on them reads. In `bundle_mixed`,
 `bundle_shared_parent`, `group_grandchild` and `group_parents_mixed`
 (and `group_parent_both` at a larger scale) the defaults elide. The
@@ -877,12 +877,15 @@ coordinates are layout's.
   the 17 descriptors of `second-half`'s card (19 to 35). With the cards
   hidden: the block, the ancestor card's shadow and rectangle (1, 2) and
   the frame (15) only.
-  An elision's strip, its rule and its continuation lines are elements,
+  An elision's gap, its ellipses and its continuation lines are elements,
   never a box: on `bundle_elisions_stored` every descriptor written from
-  an `elision` element has the role "element", and those descriptors draw
-  exactly the stored elisions `elision_4`, `elision_5`, `elision_6` (on
-  `score`'s ancestor card) and `elision_2` (on `page`'s ungrouped card),
-  in that order (layout's README, "Elisions").
+  an `elision` or `ellipsis` element has the role "element", and those
+  descriptors draw exactly the elisions whose gaps draw something (an
+  ellipsis or a continuation; a gap writes no rectangle while unfilled):
+  `elision_4` and the carried `elision_3` on `score`'s ancestor card, the
+  carried `elision_3` on `session`'s, `elision_2` on `page`'s card, then
+  the frame's `elision_3`, in that order (layout's README, "Elisions",
+  point 5).
 - **What a press selects** is what it hit, inside what the level offers:
   on the arranger a card selects `{block: A, id: "recording", part:
   ["card"]}`, the frame `{block: A, id: "group_1"}`, the background
@@ -1138,7 +1141,11 @@ here, so the facts hold whatever the layout's ordinates are:
    `y`; every element of the card's range whose address names a timeline
    or an entry or named timestamp of one (core's owners) takes that
    timeline's motion; the card's rectangle takes none (it blends in, the
-   member card beneath blending out).
+   member card beneath blending out), nor do its gaps, which run from
+   the card's top to its bottom as the rectangle does (`group_grandchild`
+   is drawn elided by the defaults: three gaps), nor their ellipses, which
+   stand on every crossing row; a gap's labels travel with the row of the
+   timeline the elision lies on.
 7. **The clip** opens from the member card's record rectangle and ends
    at a rectangle holding the card's record rectangle and its shadow
    (`shadowOffset` right and down) and the bounds of every element of the
@@ -1175,6 +1182,145 @@ What would be wrong: a motion restarting from an end on reversal, the
 folding card dropped before it is folded, motion under reduced motion, a
 re-mounted node animating a raise that happened before it.
 
+## Elisions moving (`elide.test.ts`, `card-motions.svelte.test.ts`)
+
+A card keeps its rows whatever its gaps: a mode switched, a gap changed,
+added or removed and a changed proportion move the card's elements
+sideways only (a frame's group elisions move its member cards so, and the
+frame's rectangle, title and gaps by the proportions of its axis); an
+ancestor card shown or hidden also unfolds out of its member card or folds
+back into it, as a raise does (decision record 0034). The same three
+parts are proven apart: the pure motion, the canvas's reading of two
+drawings into it, and the progress that drives it. A progress `t` runs
+from 0 (where the drawing before drew it) to 1 (the drawing at rest).
+
+**The pure motion sideways** (`unfold.ts`, literal knots; a knot is an
+abscissa and the position it draws on the card's root). `full` = (0, 0),
+(100, 100): one run at scale 1. `elided` = (0, 0), (10, 10), (19, 100):
+a run of 10, then a gap 9 wide eliding 10 to 100.
+
+13. **Positions and abscissas** (`positionAt`, `abscissaAt`): on `full`,
+    50 draws 50; on `elided`, 55 is drawn at 10 + 9 × 45 / 90 = 14.5, a
+    knot's own position exactly at it (100 at 19), beyond the knots
+    their nearer end (−5 at 0, 120 at 19); without knots `null`.
+14. **Where an abscissa starts** (`startOf(elided, full, 5, x)`, the
+    place origin moved by 5): 55 starts at 14.5 + 5 = 19.5; −8, left of
+    `full`'s first knot, starts as far left of that knot's start, 0 + 5
+    − 8 = −3; 108 at 19 + 5 + 8 = 32; without knots on either side `x`
+    moved by 5 (3 → 8).
+15. **An element at a progress** (`spanAt`, `placedAt`): an extent 0 to
+    100 starting at 5 to 24, down by 12, not entering: at 0 the span 5 to
+    24, the map `sx` 0.19, `dx` 5, `dy` 12, opacity 1; at ½ the span 2.5
+    to 62, `sx` 0.595, `dx` 2.5, `dy` 6; at 1 exactly at rest (`sx` 1,
+    `dx` 0, `dy` 0, opacity 1). A text at 7 starting at 3, entering: at 0
+    `sx` 1, `dx` −4, opacity 0; at ½ `dx` −2, opacity ½. Composing
+    (`composed`) `{sx 2, dx 1, dy 3, opacity ½}` after `{sx ½, dx 4, dy
+    1, opacity ½}` gives `{sx 1, dx 9, dy 4, opacity ¼}`; a raise's
+    frame `{dy 3, opacity ½}` is `{sx 1, dx 0, dy 3, opacity ½}`.
+16. **The attributes** (`placedAttributes`): none at rest; a move
+    alone a `translate(2 0)`; a stretch the `matrix(0.5 0 0 1 1 2)`, the
+    opacity `own` × the placed one (0.8 × 0.5 = 0.4).
+
+What would be wrong: an abscissa beyond the line's ends left behind while
+the line moves, a stretch rounded at rest, a position the start drawing
+elides drawn outside its gap.
+
+**Elided ↔ Full** (`elide.ts`, `groups/group_elided_inside` and
+`groups/group_grandchild` in block A, drawn by the defaults (Elided) and
+with `withFullCards` (Full); every expected abscissa is read from the
+drawing records, never written here). The oracle reads both cards
+through their **pieces**: each full run of the Elided card (an axis of
+it) and each gap, its two abscissas in the Elided card against the two
+abscissas the Full card draws the same values at, each read on that
+value's own timeline's line, which the Full card draws whole. An
+abscissa of one card stands for the abscissa of the other through the
+first piece holding it, linear in it (an end exactly at its abscissa).
+
+17. **One card moves.** Each way, `blockMotion` moves exactly the
+    ancestor card (`{item: group_1, member: piece}`,
+    `{item: group_1, member: score}`), nothing leaves.
+18. **Rows stay.** Every element of the card has `dy` 0 at 0, ½ and 1:
+    the card's top lies where it did, relative to the place origin.
+19. **Lines travel sideways.** Each line element of the card (`timeline`,
+    `child`) keeps its own ends `xs` and `xe` at rest; at 0 they lie
+    where the pieces read them in the other card, moved by the change of
+    the place origin (`origin.x` after less before); at ½ half-way
+    (`from + (own − from) × ½` each end); at 1 at their own.
+20. **What enters.** Full → Elided: what lies in a new gap enters
+    (opacity 0, ½, 1), in place, and nothing else: every gap, every
+    ellipsis and every default gap's label (a label whose address has the
+    part `elision`). Elided → Full: no line enters, since a default gap
+    leaves out a stretch's middle and keeps both its ends (no line lies
+    wholly in a gap of these two fixtures). An element inside a gap that
+    stays (a gap changed) travels with it instead, from the same share of
+    the gap before.
+
+**A group elision changed** (`group_elided_members`, `elision_1` set to
+`{canvas: 60}`): the frame and every card drawing its gaps move, nothing
+else: the member cards of `excerpt`, `voice` and `sketch`, `piece`'s
+ancestor card (its carried gaps) and the frame `{item: group_1}` itself.
+The frame's rectangle starts where the drawing before drew it: its left
+side as it was (moved by the place origin), its right side as far right of
+the frame axis's end before (the last run's end, `place.x + scale × (x0 +
+L × u1 − D)`) as it lies right of that end after, so the right border
+travels with the gaps.
+
+**Elision labels shown** (`group_elided_inside`, a rule on `{id: piece,
+part: [card]}` setting `elision-display` to `ellipsis name coordinate`):
+the labels take room in their markers bands, so the card's rows move
+(section 2.1 of the drawing specification: rows stay unless elision labels
+are shown): every line of the ancestor card starts `dy` below its own row,
+the row's ordinate before less its ordinate after (each from its drawing's
+place origin), and some row moves.
+
+**Hidden ↔ Elided** (`withoutAncestorCards` against the defaults, the
+same two fixtures):
+
+21. **The card unfolds.** Hidden → Elided moves the ancestor card alone,
+    nothing leaving. Each element's `dy` is the raise's row shift of its
+    row (`raiseUnfold`), 0 for its rectangle, gaps and ellipses: so `movement`
+    in `group_grandchild` lies at 0 on its ancestor line in the member
+    card (`y + dy` = that line's ordinate) and moves down; sideways each
+    end starts at the member line's start or end in the member card
+    (`theme`'s `xStart` and `xEnd` there, 253.69419642857133 and
+    653.6941964285713) where it lies left or right of the member's span,
+    and on itself inside it (every element but the row names and the
+    card's rectangle, which lie beyond the root line's ends and move by
+    what those ends move): the root line starts as wide as the member
+    line, a gap left of the span starts with both edges at its start,
+    one right of it at its end. Both move: some element has `dy` ≠ 0
+    and some has its start ≠ its own extent. The card's rectangle, its
+    gaps, ellipses and labels enter; the member's lines do not.
+22. **The card folds back.** Elided → Hidden moves no card of the drawing
+    after and leaves one card: its key the ancestor card's, its
+    descriptors those of the card's range in the drawing before (in
+    order), each placed at `t` as the unfolding of item 21 places it at
+    `1 − t`, moved by the change of the place origin (`dx` and `dy`
+    added): at 0 at rest but for that move, at 1 folded.
+
+What would be wrong: a row moving vertically between Elided and Full, an
+element starting at its abscissa in the other drawing's coordinates
+without the origin's move, an ellipsis jumping instead of travelling
+with its gap, a hidden card vanishing without folding.
+
+**The progress** (`CardMotions`, fake timers as for `Unfolding`; the
+drawing a `$state` holding `group_elided_inside`'s Elided, Full or Hidden
+drawing; `reduced` and `still` `$state` flags).
+
+23. **Made, at rest.** Nothing moves: `moving` false, `progress` 1,
+    `placedOf` of the card's root line `null`, `leaving` empty.
+24. **A switch moves.** Elided → Full: at once `moving`, `progress` 0 and
+    the root line placed as `placedAt` of its motion at 0; after 192 ms
+    at `UNFOLD_EASING(192 / 400)`; after 416 ms at rest (`null`, not
+    moving). An element outside the card is `null` throughout.
+25. **A hidden card folds back over the same time**: Elided → Hidden
+    gives one leaving card while moving and none at rest.
+26. **No motion while `reduced` or `still`**, and none for the same
+    drawing given again: at once `null`, not moving.
+
+What would be wrong: a preview animating behind the pointer, motion under
+reduced motion, a leaving card staying drawn at rest.
+
 ## Picking an element (`picking.test.ts`)
 
 While a panel asks the canvas to pick an element (the Canvas's `picking`),
@@ -1210,7 +1356,9 @@ as a press reports it) and names the `{block: A, id}` picked or `null`.
   "clt_1"}, elision: {start: [1, 1], end: [2, 1]}}` the manifest holds
   `elision_1` on `clt_1`, which core resolves to the kind `elision`; a press
   on `{id: "elision_1"}` picks nothing, exactly as on a named timestamp: an
-  elision names no timeline or region of its own to pick.
+  elision names no timeline or region of its own to pick. A default gap
+  and its parts pick nothing alike (Elisions on the canvas, below), though
+  core resolves them as parts of their timeline.
 
 The canvas (`CanvasHarness` on `with_region` at the default viewport,
 `picking` given): the arranger carries `data-picking`, absent without
@@ -1857,6 +2005,50 @@ on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 100}` `{x: −2105, y: 395, zoom: 0.05}`; no drawer, 1000 × 500, `{0, 0, 400
 × 100}` gives `{x: 100, y: 150, zoom: 2}`. The move takes 1000 ms.
 
+**A group's frame with elided ancestor cards** (`elidedReach`; the zoom
+`zE = min(zG, f · W / (2 · reach))`): the group's subeditor
+centres the frame as above and zooms out until every displayed ancestor
+card behind the frame that elides fits on both sides of the
+frame's centre `c`: `reach` is the largest of `c` less a card's left edge
+and its right edge less `c` (canvas units), `f` = 0.8, `W` the pane
+width, `zG` the zoom fitting the frame. The view is the drawing's
+default, 1280 × 720, the pane the test passes.
+
+- `groups/group_grandchild` in block A at (0, 0), its group's editor
+  open: the node lies at x −141.99058314732133; the frame at 8, width
+  543.70361328125, so `c` = 8 + 543.70361328125 / 2 = 279.851806640625;
+  the card `score` at 8 − 141.99058314732133 = −133.99058314732133,
+  width 891.265625, right edge 757.2750418526787. Left 413.84238978794633,
+  right 477.42323521205367: `reach` 477.42323521205367. `zG` = min(4,
+  1024 / 543.70361328125, 576 / 211.515625) = 1.8833790598156273; `zE` =
+  1024 / (2 × 477.42323521205367) = 1.0724237159772683, which the
+  viewport takes, `{x: 339.88028559950897, y: 238.00342399730465}`
+  (640 and 360 less the bounds' centre (279.851806640625,
+  113.7578125) times the zoom).
+- `bundles/bundle_elided_layerit`, each of its four groups' editors: the
+  node at −389.0869140625, every frame at 8, width 622.8037109375, `c`
+  319.40185546875, `zG` 1024 / 622.8037109375 = 1.6441777433512452. The
+  cards (drawing x, width): `group_1` 408, 989.169677734375 (all gaps
+  right: `reach` the right side, 1008.082763671875 − 319.40185546875 =
+  688.680908203125, `zE` 0.7434502596215237); `group_2`
+  289.296758104736, 989.1696777343823 (`reach` 569.9776663078683, `zE`
+  0.8982808103983636); `group_3` 239.84392699811178, 989.1696777343786
+  (`reach` 520.5248352012404, `zE` 0.9836226158201565); `group_4` 8,
+  989.169677734375 (all gaps left: `reach` 319.40185546875 +
+  381.0869140625 = 700.48876953125, `zE` 0.7309182134962962): the
+  excerpts at the work's ends zoom out furthest (about 0.73, and 0.98
+  for the excerpt inside).
+- In the Full view (`withFullCards`) no card elides: `reach` is
+  `null` and the viewport is the frame's alone, `zG` (the root runs past
+  the screen). A timeline's editor and the bundle's give `null` too.
+- `focusViewport` with a reach, 1000 × 500 and no drawer: `{0, 0, 400 ×
+  100}` and `reach` 400 give zoom 800 / 800 = 1, `{x: 300, y: 200}`;
+  `reach` 100 keeps 2 (800 / 200 = 4 is larger); `reach` 10⁶ gives
+  0.05, the smallest zoom.
+
+What would be wrong: the zoom fitted to the frame alone while elided cards run
+off the screen, the Full view zoomed out to a root of thousands of units.
+
 ## The marquee inside an editor (`marquee.test.ts`)
 
 A marquee selects elements, never containers, and only inside the edited
@@ -1960,7 +2152,7 @@ each result an address in block A, written below by its element address:
   marks, `timestamp_3`, `timestamp_4`, the names of `recording` and
   `excerpt` and `region_3`'s label; never `cmap_5`, which only the card
   draws, nor `cmap_7`, `dlt_1` and its name (above the rectangle) or the
-  marks' labels (down to 408.25, below it). Its strip left of the frame
+  marks' labels (down to 408.25, below it). Its gap left of the frame
   (to 2 left of the frame's left edge), the only part of the card the
   user sees there, takes nothing. In `recording`'s timeline editor the
   card is raised and the editor's own inside applies: the whole card's
@@ -1969,7 +2161,7 @@ each result an address in block A, written below by its element address:
   `timestamp_4`, the names of `excerpt` and `recording`, then
   `region_3`, `excerpt`'s start and end marks and `region_3`'s label
   (`cmap_7`, `dlt_1` and `dlt_1`'s name have drawings in the member card
-  above the rectangle, the marks' labels below it); the strip still
+  above the rectangle, the marks' labels below it); the gap still
   takes nothing, since each name drawn in it is drawn once more in the
   member card, right of it.
 - An affordance on an ancestor card's line counts by the same rule: with
@@ -3691,6 +3883,211 @@ five runs after a warm-up. The path of a view's overlay, written anew for
 each new overlay, is measured and printed, not bounded (the writers'
 exact number text decides its cost). The lines of a drawing
 (`matchLinesOf`) are built once per drawing and table and are not timed.
+
+## Elisions on the canvas (`gaps.test.ts`, `card-axis.test.ts`, `gap-keys.test.ts`, `gap-gesture.test.ts`, `gap-handles.test.ts`, `pane.svelte.test.ts`)
+
+An elision is drawn as gaps (TimeToShare's `docs/drawing.md`, sections 2,
+3.2, 6.6 and 8.9; layout's README, "Elisions", is the oracle of every
+abscissa, width and elided coordinate used here, read from the drawing's
+records): a stored elision `E` addressed `{id: E}`, a default one lying on
+`T` `{id: T, part: ["elision"]}`, each piece one `elision` element, the
+gap, holding its ellipses and labels. What proves the canvas's side is that
+every value below follows from those records by the arithmetic written
+here, never from the arranger's output; blocks lie at (0, 0), scale 1, zoom
+1, so a block point is a canvas point.
+
+Facts of `bundle_elisions_stored` (layout's point 5): `score` (64
+quarters, fraction) in its ancestor card `{item: group_1, member: score}`
+at `LA = 3200`, so `k` = 3200 / 64 = 50 canvas units a quarter on every run,
+its line at ordinate `105.98828125`, its protected span `theme`'s, 16–24;
+the stored gaps `elision_4` (stored 0–20, drawn 0–16, natural 800, drawn
+400 by `{ratio: 0.5}`), `elision_5` (32–48, 800 and 200 by `{span: 4}`,
+from `1288.5579618566176` to `1488.5579618566176`), `elision_6` (stored
+40–56, drawn 48–56, 400 and 30 by `{canvas: 30}`), and `elision_3`
+carried from the frame; `session`'s card (Full) draws only the carried
+`elision_3`; the frame `group_1` draws `elision_3` on `recording` 0–2
+(seconds, float, length 10, frame `L` 400, so `k` = 40), `recording`'s
+line at `218.76953125`; `page`'s card draws `elision_2` (pixels, int,
+600–1754, the standard gap, `L` 400 over 1754, so `k` =
+`0.22805017103762829`), its line at `284.1484375`. Facts of
+`group_elided_members` (layout's point 3): the frame (`L` 400) draws
+`elision_1` on `excerpt` 2–8 (`λ` 16, `k` 25, the standard gap; its line at
+`47.20703125`) and `elision_2` on `phrase` 2–6 (on `voice`, `λ` 24, `k` =
+400 / 24 = `16.666666666666668`; `{ratio: 0.5}`, natural
+`66.66666666666666`; `phrase`'s line at `133.66015625`), listing
+`elision_2` on `excerpt` at 28/3–12; `piece`'s ancestor card draws the
+default gaps `piece` 1–15 and 33–47 (`74.33333333333334` wide) and both
+group elisions carried. Facts of `group_elided_inside` (layout's point 1):
+the default gaps `first` 0–8 and 16–32 and `second` 1–31, drawn
+`57.14285714285714`, `114.28571428571428` and `128.57142857142856` wide.
+
+**What is drawn and what it stands for** (`gaps.ts`):
+
+1. **The pieces** (`gapsOf`): `bundle_elisions_stored` draws, in drawing
+   order, `elision_4`, `elision_3` (carried), `elision_5`, `elision_6` in
+   `score`'s ancestor card, `elision_3` (carried) in `session`'s, `elision_2`
+   in `page`'s card, then `elision_3` in the frame `group_1` (written after
+   every item, so recorded by the frame, not by a card's range).
+2. **A gap and its parts** (`gapOf`): `{id: elision_4}` and its parts
+   `[ellipsis]`, `[name]`, `[id]`, `[coordinate]` stand for `{id:
+   elision_4}`; on `group_elided_inside` `{id: first, part: [elision]}`,
+   `[elision, ellipsis]` and `[elision, coordinate]` for `{id: first, part:
+   [elision]}`, `[elision, id]` (a default has no ID label) for nothing; the
+   line `{id: score}` for nothing. `isDefaultGap` holds for the default
+   address alone.
+3. **What a gap says** (`gapText`, the stretch as a gap's coordinate label
+   writes it): "Score, 0–16 ♩, elided", "Recording, 0″–2″, elided" (clock
+   units keep the unit on both ends), "Page, 600–1 754 px, elided",
+   "Piece, 1–15 ♩, elided".
+4. **What takes handles** (`subjectOf`): a stored elision's gap in the
+   container deciding it, its edges those its piece reaches: `elision_4` the
+   start alone, `elision_5` both, `elision_6` the end alone, `elision_2` and
+   the frame's `elision_3` both; a carried and a default gap none (`null`).
+   What an edge never crosses (`kept`): `score`'s protected span 16–24 for
+   its card's gaps, nothing for `page`'s; in a frame the frame's other gaps
+   on the timeline, exactly where the frame lists them (`elision_1` keeps
+   28/3–12 of `excerpt`), else read back from their proportions
+   (`elision_2` keeps −9–0 of `phrase`: `elision_1`'s `1/8`–`1/2` of
+   `voice`, 3–12, less `phrase`'s offset 12).
+
+**The axis of a container** (`cardAxis.ts`, `card-axis.test.ts`):
+
+5. **Scales by run** (`edgeScale`, `unitScale`): beside each edge of every
+   gap, `place.scale × L / λ`: 50 for `score`'s gaps, 40 for the frame's
+   `elision_3`, `0.22805017103762829` for `elision_2` on `page`, 25 for
+   `elision_1` and `16.666666666666668` for `elision_2` in
+   `group_elided_members`. The base of a timeline (`baseOf`): in a card its
+   root, in a frame the member holding it (`phrase` → `voice`, zero 12,
+   `λ` 24); `null` for a timeline the container does not draw.
+6. **Abscissas** (`abscissaOf`, `valueAt`, `proportionAt`): `score` at 32
+   and 48 lies at the edges of `elision_5` (`1288.5579618566176`,
+   `1488.5579618566176`); 40, inside it, has none; at `1388.5579618566176`
+   no value is read. On the run after `elision_6` the abscissa
+   `1518.5579618566176 + 200` reads 60 (56 + 200 / 50). `zeroOf(score
+   tree)`: `theme` lies at 16 on `score`.
+
+**Handles and keys** (`gapDrag`, `gapStep`, `gapCommand`, the elision
+design's table: the right edge dragged by `Δx`, the left one mirrored):
+
+7. **Coordinates** (tolerance 8, reach 0.5 canvas units): `elision_5`'s
+   start dragged −100 is 30 (32 − 100 / 50), dragged −400 is 24 (the
+   protected edge and `theme`'s end, a snapping value), dragged −450 held
+   at 24 (its piece lies right of the protected span); its end +50 is 49;
+   `elision_6`'s end +50 is 57, +450 held at 64, `score`'s length;
+   `elision_4`'s start −50 changes nothing (0, the timeline's start); the
+   frame's `elision_1` end +50 (8 + 2 = 10) is held at 28/3, where the
+   frame's next gap starts, exactly; `elision_2` on `page` start −50 is
+   381 (600 − 50 / `0.22805017103762829` = 380.75, the nearest integer).
+8. **Width** (the coordinates kept): `elision_4`'s start −50 widens it to
+   450 / 800, `{ratio: 0.5625}`; `elision_6`'s end +15 to `{canvas: 45}`,
+   +50 to `{canvas: 80}`; `elision_5`'s end +50 to 250 canvas units,
+   `{span: 5}` (250 × 64 / 3200, exact); `elision_2` on `page` (the
+   standard gap) +50 to `{canvas: 82}`, a standard gap being written in
+   canvas units; never wider than the natural width: the frame's
+   `elision_2` +50 is `{ratio: 1}`.
+   A canvas width is in the frame's own units: in
+   `bundle_groupstamp_shared_member` with `g2`'s place `scale` set to
+   1.5, `elision_1` (on the shared `t`, `{canvas: 24}`) dragged 15 right
+   in `g2`'s frame is `{canvas: 34}` (24 + 15 / 1.5), in `g1`'s (scale 1)
+   `{canvas: 39}`. Each frame drawing the shared member's elision records
+   its own gap: a gap written after every item belongs to the frame whose
+   box holds it.
+9. **Both**: the drawn width follows the natural width, so what lies
+   beyond the edge stays: `elision_5`'s end +50 sets end 49 and `{span:
+   5}`; `elision_6`'s end +50 end 57 and `{canvas: 80}`; the frame's
+   `elision_2` end +50 is held at `phrase`'s length 8, the natural width
+   then `66.66666666666666 + 2 × 16.666666666666668` (= 100), the drawn
+   `33.33333333333333 + (100 − 66.66666666666666)`, `{ratio:
+   0.6666666666666667}`.
+10. **The command** (`gapCommand`): one `set` on `{block: A, id: E}` of
+   the members that change, values written in the timeline's number type
+   (`start: [30, 1]` on `score`, `start: 381` on `page`); `null` where
+   nothing changes.
+11. **A step** (`gapStep`, one grid step of 50 canvas units, one quarter on
+   `score`): `elision_5`'s start Left is 31, its end Right 49; a step of
+   500 left from 32 stops at 24 on the way; `elision_4`'s start Left
+   changes nothing; with Width alone `elision_6`'s end Right is `{canvas:
+   80}` and `elision_4`'s start Left `{ratio: 0.5625}`.
+
+**Defaults** (the switch to Custom and Remove all):
+
+12. **Persisting** (`defaultsStored`): `piece`'s ancestor card in
+   `group_elided_inside` stores, in one `add` into `{block: A}`, `first`
+   0–8 `{canvas: 57.14285714285714}`, `first` 16–32 `{canvas:
+   114.28571428571428}`, `second` 1–31 `{canvas: 128.57142857142856}`,
+   each `display: [ellipsis]` and its coordinates as Fraction pairs; after
+   it `storedAs` finds `first` 16–32 at `{block: A, id: elision_2}` (minted
+   second). In `group_elided_members` the two `piece` gaps 1–15 and 33–47,
+   `{canvas: 74.33333333333334}`. A card drawing no default (`score`'s in
+   `bundle_elisions_stored`) is refused: "The card draws no automatic
+   elision."
+13. **Remove all** (`defaultsRemoval`): `score` in
+   `bundle_elisions_stored` removes, in one `remove`, its card elisions in
+   core's canonical order (`elisionsUnder`); `piece` in
+   `group_elided_members`, whose only elisions are its frame's, gives
+   `null`.
+
+**On the canvas**:
+
+14. **Nothing is read in a gap** (`readingAt`, `gapHoverAt`): in the middle
+   of `elision_5` (`1388.5579618566176`, `105.98828125`) nothing is read
+   and the gap's flag says "Score, 32–48 ♩, elided".
+15. **A press, the holding mark, the marquee** (`pressedIn`, `holdingOf`,
+   `elementsInRect`): the ellipsis `{id: elision_4, part: [ellipsis]}`
+   selects `{block: A, id: elision_4}`; selecting the group elision
+   `elision_3` holds the frame `group_1` and both ancestor cards (its
+   carried gaps), selecting `elision_5` `score`'s ancestor card; a
+   marquee over `page`'s card from (600, 265) to (790, 335), around the
+   gap and its labels, takes `{id: elision_2}` once and none of its parts,
+   one short of the gap's bottom (to 300) none.
+16. **Picking** (`pickable`): a gap and its parts pick nothing.
+
+The keys (`gap-keys.test.ts`, the arranger's rules, the default
+granularity, grid 50):
+
+17. Delete on `{block: A, id: elision_5}` removes it; on a default gap it
+   refuses, "Automatic elisions are not deleted one by one: choose Custom
+   to edit them.", and dispatches nothing.
+18. `]` then Right on `elision_5` sets its end to 49; `[` then Left its
+   start to 31, each one `set`; `[` and `]` are read by the character
+   typed (`event.key`), never the physical key; with nothing selected they
+   are not the canvas's. `1` and `2` toggle the gap modes on a selected
+   elision and are the resize modes otherwise; the last pressed mode stays
+   pressed. A plain Left on a default gap is taken and changes nothing;
+   read-only, the arrows dispatch nothing.
+
+The gesture (`gap-gesture.test.ts`, the strategy with recorded node
+actions, viewport (0, 0) zoom 1): `elision_5`'s start handle moved 100 left
+under Coordinates previews and stores `set {start: [30, 1]}`, its flag
+saying "Score, 30–48 ♩" at the previewed gap's left edge on `score`'s line;
+`elision_6`'s end moved 15 right under Width stores `set {width: {canvas:
+45}}`, the flag "Score, 40–56 ♩, 45 canvas units wide" (the stored
+stretch); a press on
+`elision_6`'s start (it reaches none) and any press on a read-only canvas
+are not taken.
+
+The handles (`gap-handles.test.ts`, `CanvasHarness`): with `{block: A, id:
+elision_5}` selected the canvas shows two handles, `start` and `end`, and
+the mode menu with Coordinates pressed and Width not; with `elision_4` the
+start alone; with the group elision `elision_3` both (its frame's gap; its
+carried gaps take none); with a default gap selected, or a line, no handle
+and no menu. Pressing Width presses it; pressing Coordinates then leaves Width
+alone pressed; pressing Width again changes nothing.
+
+The pane (`pane.svelte.test.ts`): a `Pane` gives no view before it is
+measured; the first size settles at once; a later size only
+`PANE_SETTLE` (150) ms after the last one measured (fake timers: none at
+149 ms, the last size at 150 ms); a size equal to the settled one cancels
+a pending one; a size 0 × 360, −5 × 100 or NaN wide is skipped; `release`
+withdraws it. A `$derived` reading `view` is read again when it settles.
+`drawingOf` with a pane draws a manifest with an ancestor card for it
+(`group_grandchild` at 640 × 360 draws what layout draws for that view,
+another drawing than the default's) and never reads it for a manifest
+without one (the same drawing object either way).
+
+What would be wrong: a handle dragged by one card scale across runs of
+another, a width rounded, a default gap edited alone, a group elision's gap
+held by no frame, the pane of one canvas redrawing another's blocks.
 
 ## Package (`name.test.ts`)
 

@@ -27,6 +27,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { blockBox, boxOf, isAncestorCard, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
+import type { PaneSource } from "./pane.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
 
@@ -321,7 +322,7 @@ function boxFor(
  * The selection resolved through core's `resolveAddress`, one subject per
  * address that names something in `view`, in selection order; an address
  * that names nothing (or the workspace) is left out. Each subject's box is
- * read from its block's drawing (`drawingOf` with `metrics`) where
+ * read from its block's drawing (`drawingOf` with `metrics` and `pane`) where
  * `editing`, the innermost open editor, works.
  */
 export function resolveSelection(
@@ -329,6 +330,7 @@ export function resolveSelection(
   selection: Selection,
   editing: Editing | null,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): Subject[] {
   const subjects: Subject[] = [];
   for (const address of selection.values()) {
@@ -339,7 +341,7 @@ export function resolveSelection(
       address,
       block: block.id,
       kind: KINDS[resolved.kind] ?? "element",
-      box: boxFor(drawingOf(block, view.graphical, metrics), resolved, editing),
+      box: boxFor(drawingOf(block, view.graphical, metrics, undefined, pane), resolved, editing),
       resolved,
     });
   }

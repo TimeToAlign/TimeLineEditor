@@ -11,6 +11,7 @@ import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts, sameEditing } from "./editing.ts";
 import type { BlockNode, LivePlacement } from "./node.ts";
+import type { PaneSource } from "./pane.ts";
 import { isSelected, type Selection } from "./selection.ts";
 
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
@@ -126,6 +127,7 @@ export function project(
   previous: readonly BlockNode[],
   metrics: FontMetrics,
   editing: Editing | null,
+  pane?: PaneSource,
 ): BlockNode[] {
   const before = new Map(previous.map((node) => [node.id, node]));
   const elements = elementsByBlock(selection);
@@ -135,7 +137,7 @@ export function project(
     const siblings = block.parent ?? "";
     const zIndex = ranks.get(siblings) ?? 0;
     ranks.set(siblings, zIndex + 1);
-    const drawing = drawingOf(block, view.graphical, metrics);
+    const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
     const position = nodePosition(block, drawing);
     const outside = edited !== null && edited.block !== block.id;
     const inside = outside

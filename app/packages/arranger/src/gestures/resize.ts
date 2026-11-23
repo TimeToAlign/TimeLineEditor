@@ -72,7 +72,8 @@ export function resizeGesture(
   function command(press: ResizePress, delta: Delta): SetCommand | null {
     const { view, block, box, level, mode } = press;
     if (box.kind === "block") {
-      const { values } = resize(block, view.graphical, actions.metrics, mode, handle, delta);
+      const pane = actions.pane();
+      const { values } = resize(block, view.graphical, actions.metrics, mode, handle, delta, pane);
       return resizeCommand(block, values);
     }
     const places = itemResizeValues(
@@ -84,8 +85,9 @@ export function resizeGesture(
       handle,
       delta,
       actions.metrics,
+      actions.pane(),
     );
-    return itemResizeCommand(view, block.id, places, level, actions.metrics);
+    return itemResizeCommand(view, block.id, places, level, actions.metrics, actions.pane());
   }
   function show(press: ResizePress, delta: Delta): void {
     previewCommand(actions, press.block.id, press.view, command(press, delta));

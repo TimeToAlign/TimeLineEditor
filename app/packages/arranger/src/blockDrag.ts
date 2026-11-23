@@ -8,6 +8,7 @@ import type { Command, View, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { moveCommand } from "./commands.ts";
 import type { BlockNode, LivePlacement } from "./node.ts";
+import type { PaneSource } from "./pane.ts";
 import { livePlacement } from "./project.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, isSelected, selectionOf } from "./selection.ts";
@@ -63,6 +64,8 @@ export function snapOffset(
 export interface DragHost {
   view(): View;
   metrics(): FontMetrics;
+  /** The pane the canvas's drawings are fitted to (`Pane.view`). */
+  pane(): PaneSource | undefined;
   zoom(): number;
   /** The projected nodes, which a drag snaps to and falls back on. */
   projected(): readonly BlockNode[];
@@ -145,7 +148,7 @@ export class BlockDrag {
     const { dx, dy } = this.#offset(lead);
     this.#boxes = [];
     const moves = nodes.map(({ id, position }) => ({ id, x: position.x + dx, y: position.y + dy }));
-    const command = moveCommand(host.view(), moves, host.metrics());
+    const command = moveCommand(host.view(), moves, host.metrics(), host.pane());
     // Nothing stored: show the projection again instead of the dragged positions.
     if (command === null || !host.dispatch(command)) host.show([...host.projected()]);
   }

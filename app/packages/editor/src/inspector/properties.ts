@@ -10,9 +10,8 @@
  * at the same level makes; a field is offered only where the level edits
  * it. A band selected alone shows read-only rows instead (`bandRows`).
  * Above them, the name of the inspected thing (`nameOf`), under it the
- * button hiding or showing the parent timelines of a grouped child
- * (`ancestorCardOf`), and beside the container size the stored lock of the
- * inspected timelines (`lockOf`).
+ * elision section (`elisions.ts`), and beside the container size the stored
+ * lock of the inspected timelines (`lockOf`).
  */
 
 import type {
@@ -48,29 +47,21 @@ import type {
   PlaceKey,
   ResolvedAddress,
   SetCommand,
-  StyleCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
   assertNever,
   bandAddress,
-  canonicalText,
-  containersOf,
-  holdingOf,
   idAddress,
   inBlock,
-  indexOf,
   isCommandError,
   placeAt,
   placeKeyText,
-  preview,
   resolveAddress,
   WORKSPACE,
   withPlaceAt,
 } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
-import type { Selector } from "@timetoalign/timetoshare";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
@@ -649,166 +640,4 @@ export function lockOf(subjects: readonly Subject[]): LockShown | null {
   if (values.size === 0) return null;
   const mixed = values.size > 1;
   return { checked: !mixed && values.has(true), mixed };
-}
-
-/** What the parent-timelines button offers for the inspected root. */
-export interface AncestorCardShown {
-  /** The root whose ancestor cards it hides or shows. */
-  readonly root: string;
-  /** The drawing draws an ancestor card of the root: the button hides it, else shows it. */
-  readonly drawn: boolean;
-  /**
-   * The `style` command the button sends; `null` where a rule the root's own rule cannot outrank
-   * keeps the card as it is drawn (hidden or shown), and the button is disabled.
-   */
-  readonly command: StyleCommand | null;
-  /** The button's text: "Hide parent timelines" where the card is drawn, else "Show parent timelines". */
-  readonly label: string;
-  /** The button's title, naming the root: "The card of '<root>' behind the frames of its members' groups". */
-  readonly title: string;
-}
-
-/** The button's text while the root's ancestor cards are drawn, and while they are not. */
-const HIDE_PARENT_TIMELINES = "Hide parent timelines";
-const SHOW_PARENT_TIMELINES = "Show parent timelines";
-
-/** The selector of the root `root`'s own rule: its ancestor cards (drawing.md section 8.8). */
-function ancestorCardSelector(root: string): Selector {
-  return { element: "ancestor_card", addresses: [{ id: root, part: ["card"] }] };
-}
-
-/** A `display` the button may give the root's own rule; `null` removes the member. */
-type OwnDisplay = "none" | "inline" | null;
-
-/** The `style` command setting the `display` of the root `root`'s own rule in `block`. */
-function ancestorCardCommand(block: Block, root: string, display: OwnDisplay): StyleCommand {
-  return {
-    type: "style",
-    select: ancestorCardSelector(root),
-    set: { display },
-    blocks: [block.id],
-  };
-}
-
-/** Whether `drawing` draws an ancestor card of the root `root`. */
-function drawsAncestorCard(drawing: Drawing, root: string): boolean {
-  return drawing.boxes.some((box) => box.ancestor !== undefined && box.address.id === root);
-}
-
-/**
- * The outcome of each trial already made, by the block's manifest, then the
- * workspace's `graphical`, then root and `display`: a `style` command of a
- * block changes that block's manifest alone, and whether its drawing draws
- * an ancestor card is read from the manifest and the workspace's layer
- * alone, so a store change that replaces neither draws nothing again.
- */
-const trials = new WeakMap<Manifest, WeakMap<View["graphical"], Map<string, boolean>>>();
-
-/**
- * Whether `block` of `view`, the root's own rule given `display` (the
- * command applied by core's `preview`), draws an ancestor card of `root`;
- * a refused command draws none.
- */
-function drawsWith(view: View, block: Block, root: string, display: OwnDisplay): boolean {
-  let layers = trials.get(block.manifest);
-  if (layers === undefined) {
-    layers = new WeakMap();
-    trials.set(block.manifest, layers);
-  }
-  let outcomes = layers.get(view.graphical);
-  if (outcomes === undefined) {
-    outcomes = new Map();
-    layers.set(view.graphical, outcomes);
-  }
-  const key = JSON.stringify([root, display]);
-  const known = outcomes.get(key);
-  if (known !== undefined) return known;
-  const shown = preview(view, ancestorCardCommand(block, root, display));
-  let draws = false;
-  if (!isCommandError(shown)) {
-    const shownBlock = shown.blocks[block.id];
-    draws =
-      shownBlock !== undefined &&
-      drawsAncestorCard(drawingOf(shownBlock, shown.graphical, fontMetrics), root);
-  }
-  outcomes.set(key, draws);
-  return draws;
-}
-
-/** The shown fields of the button for `root` of `block`, its card drawn or not. */
-function shownFor(
-  block: Block,
-  root: string,
-  drawn: boolean,
-  command: StyleCommand | null,
-): AncestorCardShown {
-  const name = block.manifest.timelines.find((timeline) => timeline.id === root)?.name ?? root;
-  return {
-    root,
-    drawn,
-    command,
-    label: drawn ? HIDE_PARENT_TIMELINES : SHOW_PARENT_TIMELINES,
-    title: `The card of '${name}' behind the frames of its members' groups`,
-  };
-}
-
-/**
- * The parent-timelines button of the inspected subjects, all in `block` of
- * `view`, drawn as `drawing`: offered when every subject is a timeline, a
- * card or a part of either (a part through its owner), and all of them lie
- * under one root `R` that has an ancestor card, so wherever the grouped
- * child's card is concerned: the member's card, the child timeline, an
- * ancestor line, a descendant drawn in that card, the ancestor card itself
- * or a timeline drawn in it; `null` otherwise (two roots, or a band, an
- * entry, a timestamp, a MatchStamp). Every command it offers is tried
- * first: the block, the command applied (core's `preview`), must draw the
- * card as the click promises. Where the drawing draws an ancestor card of
- * the root, it hides it: `display: none` in the root's own rule (selector
- * `{element: ancestor_card, addresses: [{id: R, part: [card]}]}`), which
- * matches every ancestor card of `R`, behind every frame; disabled where
- * the card stays drawn (a rule outranking the own one shows it). Where
- * not, it shows it by the first of these that draws the card: the own
- * rule's `display` removed (only where the own rule hides it), else the
- * own rule's `display: inline`; neither (a rule outranking the own one
- * hides it) leaves it disabled. So what it offers is read from the
- * drawing, never from the default layer. The trials are kept per manifest
- * and workspace layer (`drawsWith`).
- */
-export function ancestorCardOf(
-  view: View,
-  block: Block,
-  subjects: readonly Subject[],
-  drawing: Drawing,
-): AncestorCardShown | null {
-  const { ancestry } = indexOf(block.manifest);
-  const roots = new Set<string>();
-  for (const subject of subjects) {
-    const timeline = subject.block === block.id ? timelineOf(subject.resolved) : null;
-    const root = timeline === null ? undefined : ancestry.get(timeline.id)?.[0];
-    if (root === undefined) return null;
-    roots.add(root);
-  }
-  const [root, ...others] = roots;
-  if (root === undefined || others.length > 0) return null;
-  const cards = containersOf(block.manifest).cards.get(root) ?? [];
-  if (!cards.some((card) => holdingOf(card) === "ancestor")) return null;
-  if (drawsAncestorCard(drawing, root)) {
-    const hides = !drawsWith(view, block, root, "none");
-    return shownFor(block, root, true, hides ? ancestorCardCommand(block, root, "none") : null);
-  }
-  const key = canonicalText(ancestorCardSelector(root));
-  const graphical = block.manifest.graphical;
-  const own = (graphical?.rules ?? []).find((rule) => canonicalText(rule.select) === key);
-  const set = typeof own?.set === "string" ? graphical?.styles?.[own.set] : own?.set;
-  const offered: ("inline" | null)[] = [
-    ...(set?.display === "none" ? [null] : []),
-    ...(set?.display === "inline" ? [] : ["inline" as const]),
-  ];
-  const display = offered.find((trial) => drawsWith(view, block, root, trial));
-  return shownFor(
-    block,
-    root,
-    false,
-    display === undefined ? null : ancestorCardCommand(block, root, display),
-  );
 }

@@ -8,6 +8,7 @@
 import type { Address, Command, Store } from "@timetoalign/tilie-core";
 import {
   cardAddress,
+  DEFAULT_GRANULARITY,
   findTimeline,
   idAddress,
   inBlock,
@@ -16,6 +17,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { rulesOf } from "../src/containers.ts";
 import type { Editing } from "../src/editing.ts";
+import { DEFAULT_GAP_MODES } from "../src/gaps.ts";
 import { handleKey, type KeyContext } from "../src/keys.ts";
 import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.ts";
 import { A, blockIn, metrics, mixedView, storeOf } from "./support.ts";
@@ -52,6 +54,12 @@ function deleteIn(store: Store, ...addresses: Address[]): Pressed {
     editing,
     rules: rulesOf(editing, { locked: false, readonly: false }),
     metrics,
+    pane: undefined,
+    granularity: DEFAULT_GRANULARITY,
+    gapModes: DEFAULT_GAP_MODES,
+    toggleGapMode: () => {},
+    gapEdge: "end",
+    chooseGapEdge: () => {},
     editors: store.editing.length,
     select: (next) => {
       selection = next;

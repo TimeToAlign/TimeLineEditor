@@ -433,6 +433,7 @@ function handDrawn(
     origin: { x: 0, y: 0 },
     boxes: [block, card, ...bands],
     axes: [],
+    elisions: [],
     elements: [
       { type: "block", address: BUNDLE_ADDRESS, style, width, height },
       { type: "card", address, style, x, y, width: cardWidth, height: cardHeight, shadowOffset: 2 },
@@ -452,12 +453,13 @@ function line(type: "timeline" | "child", id: string, xs: number, xe: number, y:
     y,
     start: "circle",
     end: "arrowhead",
+    cuts: [],
   } as const;
 }
 
 function map(id: string, xs: number, xe: number, yc: number) {
   const address = idAddress(id);
-  return { type: "map", address, style: INITIAL_STYLE, xs, xe, yc, spacing: 2 } as const;
+  return { type: "map", address, style: INITIAL_STYLE, xs, xe, yc, spacing: 2, cuts: [] } as const;
 }
 
 /** The fixture path of the manifest whose root states a band order of its own. */

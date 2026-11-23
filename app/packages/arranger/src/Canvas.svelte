@@ -29,9 +29,15 @@ import {
   readsGroup,
 } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
+import Flag from "./Flag.svelte";
+import GapHandles from "./GapHandles.svelte";
+import type { GapEdge, GapModes } from "./gaps.ts";
+import { DEFAULT_GAP_MODES, gapHoverAt, isGap } from "./gaps.ts";
 import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
+import type { GapLive } from "./gestures/gap.ts";
 import { previewed } from "./gestures/host.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
@@ -63,6 +69,7 @@ import {
 import type { LivePlacement, TransientCommand } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
+import { Pane } from "./pane.ts";
 import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
@@ -168,6 +175,12 @@ interface Props {
    * table to give (no server, say); `NO_MATCHES` when not given.
    */
   matchesStatus?: string | undefined;
+  /**
+   * The pane this canvas's drawings are fitted to, which the canvas measures:
+   * given by a host that draws the same blocks beside it (the inspector),
+   * so both draw at it; the canvas's own when not given.
+   */
+  pane?: Pane;
 }
 
 let {
@@ -190,6 +203,7 @@ let {
   onmatchstamppin,
   onmatches,
   matchesStatus = NO_MATCHES,
+  pane = new Pane(),
 }: Props = $props();
 
 /**
@@ -293,7 +307,7 @@ const transientPreview = $derived(
 );
 
 const nodes = new CanvasNodes(
-  () => ({ view, selection, metrics, editing }),
+  () => ({ view, selection, metrics, editing, pane }),
   () => transientPreview,
 );
 
@@ -316,6 +330,7 @@ let blockDrag: { readonly blocks: readonly string[]; readonly unlisten: () => vo
 const drag = new BlockDrag({
   view: () => view,
   metrics: () => metrics,
+  pane: () => pane,
   zoom: () => viewport.zoom,
   projected: () => nodes.projected,
   shown: () => nodes.nodes,
@@ -450,6 +465,8 @@ setNodeActions({
   get metrics() {
     return metrics;
   },
+  pane: () => pane,
+  previewing: (block) => nodes.preview?.id === block || transient?.block === block,
   view: () => view,
   zoom: () => viewport.zoom,
   rules: () => rules,
@@ -459,6 +476,32 @@ setNodeActions({
   matchPaint: (block) => paintByBlock.get(block) ?? NO_PAINT,
   gestures,
 });
+
+/** The one selected elision and the node holding it, as stored; `null` otherwise. */
+const selectedGap = $derived.by(() => {
+  if (selection.size !== 1) return null;
+  const [address] = selection.values();
+  if (address === undefined) return null;
+  const { block, element } = addressParts(address);
+  const node = nodes.byId.get(block);
+  if (element === null || node === undefined) return null;
+  return isGap(node.data.block.manifest, element) ? { node, element } : null;
+});
+
+/** What a selected elision's handles and arrows change: Coordinates, Width or both. */
+let gapModes: GapModes = $state.raw(DEFAULT_GAP_MODES);
+
+/** Press or release a gap mode; the last one pressed stays pressed (never neither). */
+function toggleGapMode(chosen: keyof GapModes): void {
+  const next = { ...gapModes, [chosen]: !gapModes[chosen] };
+  if (next.coordinates || next.width) gapModes = next;
+}
+
+/** The edge of a selected elision the arrows move, chosen by `[` and `]`. */
+let gapEdge: GapEdge = "end";
+
+/** The dragged gap handle's place and value, from its gesture; `null` while none is dragged. */
+let gapDrag: GapLive | null = $state.raw(null);
 
 /** What the resize toolbar acts on (`resizableOf`). */
 const resizable = $derived(resizableOf(selection, nodes.byId, editing, level));
@@ -529,6 +572,30 @@ function readingOf(point: Point) {
 
 /** What the pointer reads now; nothing while boxes move or "Show coordinates" is off. */
 const reading = $derived(!coordinates || moving || hover === null ? null : readingOf(hover));
+
+/**
+ * The gap of an elision the pointer rests on while "Show coordinates" is
+ * on: nothing is placed inside a gap (`readingAt` reads nothing there), and
+ * its flag says what it elides (`gapHoverAt`).
+ */
+const gapHover = $derived.by(() => {
+  if (!coordinates || moving || hover === null || reading !== null) return null;
+  const { x, y, zoom } = viewport;
+  return gapHoverAt(nodes.nodes, { x: (hover.x - x) / zoom, y: (hover.y - y) / zoom });
+});
+
+/** The gap flag in canvas pixels: the dragged handle's, else the hovered gap's; `null` for none. */
+const gapFlag = $derived.by(() => {
+  const { x, y, zoom } = viewport;
+  const screen = (cx: number, cy: number) => ({ x: x + cx * zoom, y: y + cy * zoom });
+  if (gapDrag !== null) {
+    const at = screen(gapDrag.at.x, gapDrag.at.y);
+    return { ...at, top: screen(gapDrag.at.x, gapDrag.top).y, text: gapDrag.text };
+  }
+  if (gapHover === null) return null;
+  const at = screen(gapHover.x, gapHover.top);
+  return { ...at, top: at.y, text: gapHover.text };
+});
 
 /** What a screen reader hears when a click pins a timestamp; the moving flag is not announced. */
 let announced = $state("");
@@ -950,6 +1017,12 @@ function keyContext(event: KeyboardEvent): KeyContext {
     editing,
     rules,
     metrics,
+    pane,
+    granularity: granularity ?? view.settings.granularity,
+    gapModes,
+    toggleGapMode,
+    gapEdge,
+    chooseGapEdge: (edge) => (gapEdge = edge),
     editors: live.editing.length,
     select: (next) => (selection = next),
     dispatch,
@@ -1004,13 +1077,16 @@ function onkeydowncapture(event: KeyboardEvent) {
   bind:clientWidth={null,
   (next) => {
     canvasWidth = next ?? 0;
+    pane.measure(canvasWidth, canvasHeight);
     editorFocus.resized();
   }}
   bind:clientHeight={null,
   (next) => {
     canvasHeight = next ?? 0;
+    pane.measure(canvasWidth, canvasHeight);
     editorFocus.resized();
   }}
+  {@attach () => () => pane.release()}
   {onpointerdowncapture}
   {onpointerupcapture}
   {onclickcapture}
@@ -1076,6 +1152,18 @@ function onkeydowncapture(event: KeyboardEvent) {
           />
         {/if}
       {/if}
+      {#if !moving && selectedGap !== null}
+        <GapHandles
+          node={selectedGap.node}
+          address={selectedGap.element}
+          zoom={viewport.zoom}
+          granularity={granularity ?? view.settings.granularity}
+          modes={gapModes}
+          locked={!rules.resize}
+          ontoggle={toggleGapMode}
+          onlive={(next) => (gapDrag = next)}
+        />
+      {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />
       <CoordinateMarks {marks} />
       <MatchOverlay layers={matchLayers} />
@@ -1113,6 +1201,19 @@ function onkeydowncapture(event: KeyboardEvent) {
       top={matchFlagShown.top}
       width={root?.clientWidth ?? 0}
     />
+  {/if}
+  {#if gapFlag !== null}
+    <Flag
+      kind="elision"
+      label="Elision"
+      x={gapFlag.x}
+      y={gapFlag.y}
+      top={gapFlag.top}
+      width={root?.clientWidth ?? 0}
+      footer={null}
+    >
+      <div class="tilie-coordinates-head" data-testid="elision-text">{gapFlag.text}</div>
+    </Flag>
   {/if}
   {#if showMatches && matches.length === 0}
     <p class="tilie-matches-state" data-testid="matches-state" role="status">{matchesStatus}</p>
