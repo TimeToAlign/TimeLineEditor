@@ -36,8 +36,8 @@
             },
             {
               "coordinate": 0,
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_3",
               "matchstamp": false,
               "name": "origin",
@@ -45,8 +45,8 @@
             },
             {
               "coordinate": 88200,
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_4",
               "matchstamp": false,
               "name": "length",
@@ -124,7 +124,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (40161e42)"
+          "generator": "timetoalign 1.2.0 (45d76023)"
         },
         "name": "Mixed",
         "resources": [],
@@ -330,8 +330,8 @@
           "timestamps": [
             {
               "coordinate": [0, 1],
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_1",
               "matchstamp": false,
               "name": "origin",
@@ -339,8 +339,8 @@
             },
             {
               "coordinate": [12, 1],
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_2",
               "matchstamp": false,
               "name": "length",
@@ -366,8 +366,8 @@
             },
             {
               "coordinate": [0, 1],
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_5",
               "matchstamp": false,
               "name": "origin",
@@ -375,8 +375,8 @@
             },
             {
               "coordinate": [12, 1],
-              "display": ["wedge", "coordinate"],
-              "groupstamp": false,
+              "display": ["wedge", "coordinate", "cross_section"],
+              "groupstamp": true,
               "id": "timestamp_6",
               "matchstamp": false,
               "name": "length",
@@ -436,7 +436,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (40161e42)"
+          "generator": "timetoalign 1.2.0 (45d76023)"
         },
         "name": "Sonata",
         "resources": [],
@@ -1178,8 +1178,8 @@
                 },
                 {
                   "coordinate": 0,
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_3",
                   "matchstamp": false,
                   "name": "origin",
@@ -1187,8 +1187,8 @@
                 },
                 {
                   "coordinate": 88200,
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_4",
                   "matchstamp": false,
                   "name": "length",
@@ -1266,7 +1266,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (40161e42)"
+              "generator": "timetoalign 1.2.0 (45d76023)"
             },
             "name": "Mixed",
             "resources": [],
@@ -1477,8 +1477,8 @@
               "timestamps": [
                 {
                   "coordinate": [0, 1],
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_1",
                   "matchstamp": false,
                   "name": "origin",
@@ -1486,8 +1486,8 @@
                 },
                 {
                   "coordinate": [12, 1],
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_2",
                   "matchstamp": false,
                   "name": "length",
@@ -1513,8 +1513,8 @@
                 },
                 {
                   "coordinate": [0, 1],
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_5",
                   "matchstamp": false,
                   "name": "origin",
@@ -1522,8 +1522,8 @@
                 },
                 {
                   "coordinate": [12, 1],
-                  "display": ["wedge", "coordinate"],
-                  "groupstamp": false,
+                  "display": ["wedge", "coordinate", "cross_section"],
+                  "groupstamp": true,
                   "id": "timestamp_6",
                   "matchstamp": false,
                   "name": "length",
@@ -1583,7 +1583,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (40161e42)"
+              "generator": "timetoalign 1.2.0 (45d76023)"
             },
             "name": "Sonata",
             "resources": [],
