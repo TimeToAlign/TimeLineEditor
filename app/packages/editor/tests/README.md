@@ -994,7 +994,7 @@ outside an editor. `elision_3` offers no root's block (`recording` is a
 member: no ancestor card).
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
-"0.142857"; Rows Automatic, the depths deepest first `2` "First, Second"
+"0.142857" (held beside it exactly, `0.14285714285714285`); Rows Automatic, the depths deepest first `2` "First, Second"
 and `1` "Piece", both chosen; Show exactly the `elision-display` layout
 resolves for the card (its initial value is the specification's and
 layout's, never the editor's), its words pressed; no list. `score`:
@@ -1048,9 +1048,12 @@ defaults and then deletes the mode (two entries; no fixture states it,
 `elisions.ts` says so).
 
 **Settings** (Proportional, each one `style` of the root's rule).
-Unticking Proportion's Automatic sends `{elision-proportion: 0.142857}`
-(the number shown), after which Automatic reads unticked and the field
-holds "0.142857"; typing `0.5` and Enter sends `{elision-proportion:
+Unticking Proportion's Automatic sends `{elision-proportion:
+0.14285714285714285}`: the proportion the drawing takes, exactly, never
+the field's six decimals, so the derived gaps stay where they were drawn
+(every gap of the card's exposure has the same `x1` and `x2` before and
+after); Automatic then reads unticked and the field holds "0.142857";
+typing `0.5` and Enter sends `{elision-proportion:
 0.5}`; `2` is refused with "2 is no proportion: write a number above 0
 and at most 1", the field `aria-invalid`, nothing sent; ticking Automatic
 sends `{elision-proportion: null}`. Unticking Rows' Automatic sends
@@ -1060,6 +1063,16 @@ disabled. Show's Lines (`continuation`, in no initial display) sends
 `{elision-display: "<the resolved words> continuation"}`, in canonical
 order; with the rule stating `elision-display: ellipsis`, Ellipsis alone
 is pressed and sends `{elision-display: none}`.
+
+**At the canvas's pane.** The automatic proportion depends on the pane
+the canvas is drawn at (drawing.md §8.9, `B`), and the editor shares the
+canvas's pane with the Properties tab through component context. Mounted
+with a `Pane` measured at 1100 × 800 on `group_elided_inside`
+(`elision-proportion: auto` on `piece`'s ancestor card), the panel's
+Proportion shows the six-decimal text of the proportion of the drawing the
+canvas shows at that pane (the arranger's `drawingOf` with that pane, the
+oracle), which differs from the paneless drawing's 1/7; unticking
+Automatic states that drawn proportion exactly.
 
 **A selected elision.** The form reads the gap the drawing draws of it and
 converts widths through layout's `widthAs`, with the card's or frame's
@@ -1117,11 +1130,19 @@ proves the reading:
   axis has seams there and no gap, and a seam leaves out nothing, is no gap
   and is not exposed (drawing.md section 3.2, Seams); `session`'s lists
   `between "Exposition" and "Recapitulation"` with its elided stretch as
-  layout exposes it, "33″–44″". They are not card elisions: in Custom the count and the rows
-  hold none of them; the default elision `{id: score, part: [elision]}`,
-  which is their address, has no form (only a gap of origin `default`
-  has), and Proportional → Custom stores none of them. In the free drawing
-  the block lists none.
+  layout exposes it, "33″–44″". They are not card elisions: in Custom the
+  count and the rows hold none of them; the default elision `{id: score,
+  part: [elision]}`, which is their address, has no form (only a gap of
+  origin `default` has), and Proportional → Custom stores none of them. In
+  the free drawing the block lists none.
+- **A gap is named by its stretch.** `score` made 56 ♩ long and
+  `recapitulation` moved to 40 (one `set`): the anchors now lie 0–16,
+  16–32 and 40–56, so the axis has a seam at 16 and one gap, between
+  Development's anchor (ending at 32) and Recapitulation's (starting at
+  40). The block lists exactly one item, `between "Development" and
+  "Recapitulation"`, with the stretch of the one `arrangement` gap layout
+  exposes; reading the gaps by their place in the list would have named
+  "Exposition" and "Development", the pair across the seam.
 - **Stored elisions between two anchors.** `session` given a card
   elision 50.0–80.0 (one `add`), which lies between `take_a` and `take_b`:
   the free drawing draws it and lists it plainly; side by side the card
