@@ -98,9 +98,7 @@ const H9 = ((1901 + 483) * 9) / 2048;
 function gapDrawings(drawing: Drawing) {
   // An ancestor card's elements are laid out in its own coordinates and then moved (section 8.8),
   // so their middles are the moved middles of the card's own drawing: left to their own tests.
-  const moved = drawing.boxes
-    .filter((box) => box.ancestor !== undefined)
-    .map((box) => box.range);
+  const moved = drawing.boxes.filter((box) => box.ancestor !== undefined).map((box) => box.range);
   return drawing.elements.flatMap((element, index) => {
     if (element.type !== "elision") return [];
     if (moved.some((range) => range.start <= index && index < range.end)) return [];
