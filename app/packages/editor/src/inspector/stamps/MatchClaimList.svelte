@@ -17,11 +17,7 @@ import type { Manifest } from "@timetoalign/tilie-core";
 import type { Belief } from "@timetoalign/timetoshare";
 import { SvelteSet } from "svelte/reactivity";
 import type { LoadedTable, MatchClaimTables } from "../../matchClaims.svelte.ts";
-import {
-  eventsFailure,
-  MATCHES_NEED_A_SERVER,
-  provenanceFailure,
-} from "../../matchClaims.svelte.ts";
+import { eventsFailure, provenanceFailure } from "../../matchClaims.svelte.ts";
 import { informOf, warnOf } from "../../messages.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import { claimEntryLine, entryOf, followedMatch } from "../claimProvenance.ts";
@@ -82,15 +78,23 @@ const expanded = new SvelteSet<string>();
 /** Whether a belief is being recorded: the belief buttons wait for it. */
 let believing = $state(false);
 
+/**
+ * Why no server can read a table now, `null` while one can: the belief
+ * buttons are disabled, saying why, and an expanded MatchClaim says it
+ * instead of reading its events.
+ */
+const unavailable = $derived(tables.unavailable);
 /** The MatchClaims the table holds, whose events are read. */
 const held = $derived(claims.filter((claim) => claim.held).map((claim) => claim.id));
 /**
  * The events of the MatchClaims held, read through the server once one of
  * them is expanded (one request for all of them, kept by the tables);
- * `null` before, and without a server or a table.
+ * `null` before, and while no server can read a table, or without a table.
  */
 const events = $derived(
-  expanded.size === 0 || held.length === 0 ? null : tables.events(stamp.block, manifest, held),
+  expanded.size === 0 || held.length === 0 || unavailable !== null
+    ? null
+    : tables.events(stamp.block, manifest, held),
 );
 const eventReads = new Settlements<readonly ClaimEvents[]>();
 const provenanceReads = new Settlements<readonly ClaimProvenance[]>();
@@ -132,9 +136,7 @@ const statusLines = $derived.by(() => {
 /** What a MatchClaim's entry says while it has no provenance to show. */
 const waiting = $derived(
   provenance === null
-    ? tables.connected
-      ? ""
-      : MATCHES_NEED_A_SERVER
+    ? (unavailable ?? "")
     : provenanceRead === undefined
       ? READING_PROVENANCE
       : "",
@@ -197,8 +199,8 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     missing={NO_PROVENANCE}
     mine={claim.mine}
     label="Your belief in {claim.id}"
-    disabled={!tables.connected || believing}
-    title={tables.connected ? undefined : MATCHES_NEED_A_SERVER}
+    disabled={unavailable !== null || believing}
+    title={unavailable ?? undefined}
     onbelieve={(belief) => believe(claim.id, belief, claim.mine)}
   />
   <div class="provenance">
@@ -242,8 +244,8 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
           {#if !claim.held}
             <p class="hint">{loaded === null ? "no table loaded" : "not in the MatchClaim table"}</p>
           {:else}
-            {#if events === null && open && !tables.connected}
-              <p class="hint">{MATCHES_NEED_A_SERVER}</p>
+            {#if open && unavailable !== null}
+              <p class="hint">{unavailable}</p>
             {:else if eventsRead?.fulfilled}
               {@const details = claimDetails(eventsRead.value, claim.id, manifest)}
               {#if details !== null}

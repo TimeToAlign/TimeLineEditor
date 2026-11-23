@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { MatchClaimTable } from "@timetoalign/tilie-client";
+import { ServerError } from "@timetoalign/tilie-client";
 import type { ClaimTimeline, Manifest } from "@timetoalign/tilie-core";
 import {
   BELIEFS,
@@ -24,7 +25,7 @@ import type { Belief } from "@timetoalign/timetoshare";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { MatchIndexes } from "../src/inspector/matchstamps.ts";
 import { blockIndexes } from "../src/inspector/matchstamps.ts";
-import type { MatchClaimTables } from "../src/matchClaims.svelte.ts";
+import type { ManifestPlaces, MatchClaimTables } from "../src/matchClaims.svelte.ts";
 
 export const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -99,5 +100,26 @@ export function matchTable(beliefs: Beliefs = BELIEFS_BY_ROW): MatchClaimTable {
       actor: Uint32Array.from(actor),
       word: Uint8Array.from(word),
     },
+  };
+}
+
+/**
+ * The server's files as the tables reach them once the server answered its
+ * health check (`MatchClaimTables`'s `places`): an in-memory server holding
+ * `held` by path (any other path 404), no manifest's file stated, the file
+ * dialog cancelled.
+ */
+export function answeredPlaces(held: Readonly<Record<string, Blob>> = {}): ManifestPlaces {
+  return {
+    files: {
+      readFile: async (path) => {
+        const found = held[path];
+        if (found === undefined) throw new ServerError("status", 404, "no such file");
+        return found;
+      },
+    },
+    pathOf: () => null,
+    located: () => undefined,
+    choose: async () => null,
   };
 }

@@ -11,8 +11,11 @@
  * MatchClaims asked for; `POST /api/match-claims/events` by the events of
  * `claim_1` written below; `POST /api/match-claims/belief` by a Parquet file's
  * bytes, which the editor holds, sends back to the table route and saves
- * unchanged. A changed table is then never dropped unasked: New asks to
- * save it with the workspace, or alone once the workspace is saved.
+ * unchanged. The health check is held until the import has used the
+ * browser's picker, then answered, so a server reads tables; from then on
+ * the workspace is saved through the server's files (an empty root, each
+ * write recorded). A changed table is then never dropped unasked: New asks
+ * to save it with the workspace, or alone once the workspace is saved.
  */
 
 import { readFileSync } from "node:fs";
@@ -20,7 +23,8 @@ import path from "node:path";
 import type { Download, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { packageDir, SCHEMA_VERSION } from "./schema.ts";
-import { chooseItem, downloaded, select, withoutPickers } from "./support.ts";
+import { chooseItem, select, withoutPickers } from "./support.ts";
+import { answerHealth, holdHealth } from "./tablesServer.ts";
 
 const TABLES = path.join(packageDir, "fixtures", "tables", SCHEMA_VERSION);
 const MANIFEST = readFileSync(path.join(TABLES, "manifest.yaml"));
@@ -74,6 +78,8 @@ interface Seen {
   events: number;
   provenance: unknown[];
   beliefs: unknown[];
+  /** The files written on the server: each path and text. */
+  writes: [string, string][];
 }
 
 /** The page function the parameters of a provenance or belief request are handed to. */
@@ -108,10 +114,23 @@ async function reportParameters(page: Page, seen: Seen): Promise<void> {
   }, REPORT);
 }
 
-/** Open a fresh page as the user `ME`, every route replayed; the requests are counted. */
+/**
+ * Open a fresh page as the user `ME`, every route replayed, the health
+ * check held, the server's root empty; the requests are counted.
+ */
 async function openPage(page: Page): Promise<Seen> {
-  const seen: Seen = { tables: 0, events: 0, provenance: [], beliefs: [] };
+  const seen: Seen = { tables: 0, events: 0, provenance: [], beliefs: [], writes: [] };
   await withoutPickers(page);
+  await holdHealth(page);
+  await page.route("**/api/folders?*", (route) =>
+    route.fulfill({ json: { path: "", entries: [] } }),
+  );
+  await page.route("**/api/files?*", (route) => {
+    const at = new URL(route.request().url()).searchParams.get("path") ?? "";
+    const text = route.request().postData() ?? "";
+    seen.writes.push([at, text]);
+    return route.fulfill({ json: { path: at, size: Buffer.byteLength(text) } });
+  });
   await reportParameters(page, seen);
   await page.addInitScript((orcid) => {
     localStorage.setItem("tilie.user", JSON.stringify({ name: "Ana", orcid }));
@@ -145,7 +164,7 @@ async function openPage(page: Page): Promise<Seen> {
   return seen;
 }
 
-/** Import the manifest with its table; the one block's ID. */
+/** Import the manifest with its table through the browser's picker, then answer the health check; the one block's ID. */
 async function importTable(page: Page): Promise<string> {
   const chooser = page.waitForEvent("filechooser");
   await chooseItem(page, "Import manifest…");
@@ -156,6 +175,7 @@ async function importTable(page: Page): Promise<string> {
   await expect
     .poll(() => page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length))
     .toBe(1);
+  await answerHealth(page);
   return page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
 }
 
@@ -185,6 +205,13 @@ async function nameDownbeat(page: Page, block: string): Promise<void> {
 
 /** The Matchstamp tab's MatchClaims. */
 const claims = (page: Page) => page.getByRole("region", { name: "MatchClaims", exact: true });
+
+/** Save the workspace in the "Save as" dialog of the server's files, as it offers it. */
+async function saveAsOffered(page: Page): Promise<void> {
+  const save = page.getByRole("dialog", { name: "Save as" });
+  await expect(save.getByRole("textbox", { name: "File name" })).toHaveValue("untitled.tle.json");
+  await save.getByRole("button", { name: "Save" }).click();
+}
 
 /** The button answering `label` in the open question. */
 const answerButton = (page: Page, label: string) =>
@@ -274,7 +301,7 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
 test("New asks to save a changed table with the unsaved workspace, and saves both", async ({
   page,
 }) => {
-  await openPage(page);
+  const seen = await openPage(page);
   await changeTable(page);
 
   await chooseItem(page, "New workspace");
@@ -293,25 +320,26 @@ test("New asks to save a changed table with the unsaved workspace, and saves bot
   page.on("download", (download) => downloads.push(download));
   await chooseItem(page, "New workspace");
   await answerButton(page, "Save").click();
+  await saveAsOffered(page);
   await expect.poll(() => blockCount(page)).toBe(0);
-  expect(downloads.length).toBe(2);
-  const [first, second] = downloads;
-  if (first === undefined || second === undefined) throw new Error("two downloads expected");
-  expect(await downloaded(Promise.resolve(first))).toEqual(["untitled.tle.json", workspace]);
-  expect(second.suggestedFilename()).toBe("match_claims.parquet");
-  expect(readFileSync(await second.path()).equals(BELIEVED)).toBe(true);
+  expect(seen.writes).toEqual([["untitled.tle.json", workspace]]);
+  expect(downloads.length).toBe(1);
+  const [table] = downloads;
+  if (table === undefined) throw new Error("the table's download expected");
+  expect(table.suggestedFilename()).toBe("match_claims.parquet");
+  expect(readFileSync(await table.path()).equals(BELIEVED)).toBe(true);
   await expect(page).toHaveTitle("untitled.tle.json – TimeLineEditor");
 });
 
 test("New asks about a changed table alone once the workspace is saved, and Discard drops it", async ({
   page,
 }) => {
-  await openPage(page);
+  const seen = await openPage(page);
   await changeTable(page);
-  const saved = page.waitForEvent("download");
   await page.keyboard.press("Control+S");
-  await saved;
+  await saveAsOffered(page);
   await expect(page).toHaveTitle("untitled.tle.json – TimeLineEditor");
+  expect(seen.writes.map(([at]) => at)).toEqual(["untitled.tle.json"]);
 
   await chooseItem(page, "New workspace");
   await expect(page.getByRole("dialog")).toHaveText(

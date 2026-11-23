@@ -18,11 +18,11 @@
  * came from (its `ManifestSource`) when it can be reached from there: a
  * served example, or, with a server whose files the editor reaches, the
  * folder of the manifest's file, which the workspace states
- * (`ManifestPlaces`). Otherwise the user is asked once (`AskTables`): with
- * the server's files, where the manifest lies, which the workspace then
- * keeps (a block whose manifest's file it does not state), or the table's
- * file (a folder that does not hold it), each located in the editor's file
- * dialog, or a URL; without them, a file on their system or a URL. The
+ * (`ManifestPlaces`). Otherwise the user is asked once (`AskTables`):
+ * where the manifest lies, which the workspace then keeps (a block whose
+ * manifest's file it does not state), or the table's file (a folder that
+ * does not hold it), each located in the editor's file dialog, or a URL.
+ * Nothing is asked while no server can read a table (`unavailable`). The
  * editor reads no other resource a manifest names: it implements no event
  * resource, and the MatchClaim table alone carries what the match display
  * needs.
@@ -92,14 +92,11 @@ export interface ManifestSource {
 }
 
 /**
- * What the user chose: a file of their system, a URL of the table, or the
- * path of a file on the server, the manifest's or the table's as the
- * question asked (`TableQuestion`).
+ * What the user chose: a URL of the table, or the path of a file on the
+ * server, the manifest's or the table's as the question asked
+ * (`TableQuestion`).
  */
-export type TableChoice =
-  | { readonly file: File }
-  | { readonly url: string }
-  | { readonly path: string };
+export type TableChoice = { readonly url: string } | { readonly path: string };
 
 /**
  * The user's files on the server, as the tables reach them: read by path
@@ -121,15 +118,13 @@ export interface ManifestPlaces {
 }
 
 /**
- * The question the user is asked: without the server's files, the table's
- * file on their system (`file`); with them, where the manifest lies
- * (`manifest`, for a block whose manifest's file the workspace does not
- * state), or the table's file (`table`; `missing` the manifest's path
- * where the table is not beside it, `null` when the user asked to load
- * one). `locate` opens the file dialog on the file asked for.
+ * The question the user is asked: where the manifest lies (`manifest`, for
+ * a block whose manifest's file the workspace does not state), or the
+ * table's file (`table`; `missing` the manifest's path where the table is
+ * not beside it, `null` when the user asked to load one). `locate` opens
+ * the file dialog on the file asked for.
  */
 export type TableQuestion =
-  | { readonly kind: "file" }
   | { readonly kind: "manifest"; readonly locate: () => Promise<string | null> }
   | {
       readonly kind: "table";
@@ -210,28 +205,22 @@ async function fetched(text: string): Promise<TableFile> {
 }
 
 /**
- * While no server can read a table: what is said wherever matches are
- * asked for, and how to start one (the command the repository's README
- * starts the server from the source tree with).
+ * While no server can read a table, what the canvas's status says when
+ * Show matches has nothing to draw.
  */
-export const MATCHES_NEED_A_SERVER =
-  "Matches need a running server: MatchClaim tables are read through tilie-server. " +
-  "Start it from the repository's `server/` folder with " +
-  "`uv run tilie --static-dir ../app/packages/editor/dist` " +
-  "(or `tilie` once installed with `pip install tilie-server`), " +
-  "then open the editor at the address it prints.";
+export const MATCHES_NEED_A_SERVER = "Matches need a running tilie-server.";
 
 /**
- * How the server given answered its health check: it did, or it did not
- * (yet: `failure` `null`; else why, a sentence, as the editor's offline
- * mark says it). Only a server that answered reads tables.
+ * While no server can read a table, what is said wherever matches are
+ * asked for (the message bar, the disabled controls' hints): that sentence,
+ * then how to start the server (the command the repository's README starts
+ * it from the source tree with). Plain text: every place shows it as such.
  */
-export type ServerHealth =
-  | { readonly answered: true }
-  | { readonly answered: false; readonly failure: string | null };
-
-/** A server that answered its health check. */
-export const ANSWERED: ServerHealth = { answered: true };
+export const HOW_TO_START_A_SERVER =
+  `${MATCHES_NEED_A_SERVER} To start it, run ` +
+  "uv run tilie --static-dir ../app/packages/editor/dist in the repository's server folder " +
+  "(or tilie, once installed with pip install tilie-server), " +
+  "then open the editor at the address it prints.";
 
 /** HTTP 501: the server cannot read MatchClaim tables. */
 const NOT_IMPLEMENTED = 501;
@@ -329,45 +318,57 @@ export class MatchClaimTables {
   readonly #sources = new Map<string, ManifestSource>();
   readonly #ask: AskTables | null;
   readonly #places: () => ManifestPlaces | null;
-  readonly #health: () => ServerHealth;
+  readonly #failure: () => string | null;
 
   /**
    * The tables read through `server` (`null`: no server, so no table is
    * ever read), the user asked for the files of tables through `ask`
    * (`null`: never asked, as if they cancelled), the server's files as
-   * `places` gives them now (`null`: the editor does not reach them), the
-   * server's health check as `health` gives it now (by default answered).
+   * `places` gives them now: `null` until the server answered its health
+   * check, as the editor reaches them only then (by default never), and
+   * why that check failed as `failure` gives it now (`null` while it has
+   * not; by default never). A table is read only through a server whose
+   * files are given.
    */
   constructor(
     server: MatchClaimServer | null,
     ask: AskTables | null = null,
     places: () => ManifestPlaces | null = () => null,
-    health: () => ServerHealth = () => ANSWERED,
+    failure: () => string | null = () => null,
   ) {
     this.#server = server;
     this.#ask = ask;
     this.#places = places;
-    this.#health = health;
-  }
-
-  /** Whether a server is given (it may not answer: `unavailable` says whether it reads tables now). */
-  get connected(): boolean {
-    return this.#server !== null;
+    this.#failure = failure;
   }
 
   /**
-   * Why no server can read a table now, `MATCHES_NEED_A_SERVER` after the
+   * Why no server can read a table now, `HOW_TO_START_A_SERVER` after the
    * failure of the server's health check where it failed: no server is
    * given, or it has not answered its health check; `null` while one can.
    * Nothing asks the user for a table then.
    */
   get unavailable(): string | null {
-    if (this.#server === null) return MATCHES_NEED_A_SERVER;
-    const health = this.#health();
-    if (health.answered) return null;
-    return health.failure === null
-      ? MATCHES_NEED_A_SERVER
-      : `${health.failure} ${MATCHES_NEED_A_SERVER}`;
+    return this.#reading() === null ? this.#why() : null;
+  }
+
+  /**
+   * Whether the server given has not answered its health check yet, nor
+   * failed it: nobody can tell yet whether it will read tables.
+   */
+  get waiting(): boolean {
+    return this.#server !== null && this.#reading() === null && this.#failure() === null;
+  }
+
+  /** The server's files while a server reads tables (given, and its health check answered); else `null`. */
+  #reading(): ManifestPlaces | null {
+    return this.#server === null ? null : this.#places();
+  }
+
+  /** What `unavailable` says while no server reads tables. */
+  #why(): string {
+    const failure = this.#server === null ? null : this.#failure();
+    return failure === null ? HOW_TO_START_A_SERVER : `${failure} ${HOW_TO_START_A_SERVER}`;
   }
 
   /** The table of block `block`; `null` while none is loaded. */
@@ -403,25 +404,19 @@ export class MatchClaimTables {
    * example), else the folder of its file on the server (`places`), else
    * `null`.
    */
-  #sourceOf(block: string, places: ManifestPlaces | null): ManifestSource | null {
+  #sourceOf(block: string, places: ManifestPlaces): ManifestSource | null {
     const located = this.#sources.get(block);
     if (located !== undefined) return located;
-    const path = places?.pathOf(block) ?? null;
-    return places === null || path === null ? null : serverSource(places.files, folderOf(path));
+    const path = places.pathOf(block);
+    return path === null ? null : serverSource(places.files, folderOf(path));
   }
 
   /**
-   * The question for the table of block `block`, as `places` reaches the
-   * server's files (`null`: a file of the user's system): with a `source`
-   * of its manifest, its table's file, missing beside it; without one,
-   * where the manifest lies.
+   * The question for the table of block `block`, located through `places`:
+   * with a `source` of its manifest, its table's file, missing beside it;
+   * without one, where the manifest lies.
    */
-  #question(
-    block: string,
-    places: ManifestPlaces | null,
-    source: ManifestSource | null,
-  ): TableQuestion {
-    if (places === null) return { kind: "file" };
+  #question(block: string, places: ManifestPlaces, source: ManifestSource | null): TableQuestion {
     if (source === null) {
       return { kind: "manifest", locate: () => places.choose([MANIFEST_FILE], null) };
     }
@@ -435,11 +430,9 @@ export class MatchClaimTables {
 
   /**
    * The question for the table of block `block` that is missing from no
-   * place: its file, on the user's system without the server's files
-   * (`places` `null`), else located in the file dialog near the manifest.
+   * place: its file, located in the file dialog near the manifest.
    */
-  #tableQuestion(block: string, places: ManifestPlaces | null): TableQuestion {
-    if (places === null) return { kind: "file" };
+  #tableQuestion(block: string, places: ManifestPlaces): TableQuestion {
     return {
       kind: "table",
       missing: null,
@@ -466,8 +459,8 @@ export class MatchClaimTables {
    */
   async loadNamed(block: string, manifest: Manifest): Promise<TableMessages> {
     const url = namedTable(manifest);
-    if (this.unavailable !== null || this.of(block) !== null || url === null) return NO_MESSAGES;
-    const places = this.#places();
+    const places = this.#reading();
+    if (places === null || this.of(block) !== null || url === null) return NO_MESSAGES;
     const warned: string[] = [];
     let reached: TableFile | null;
     let question: TableQuestion;
@@ -479,23 +472,23 @@ export class MatchClaimTables {
       reached = source === null ? null : await this.#read(source, url, warned);
       question = this.#question(block, places, source);
     }
-    const taken = reached ?? (await this.#chosen(block, manifest, url, question, warned));
+    const taken = reached ?? (await this.#chosen(block, manifest, url, question, places, warned));
     return this.#take(block, manifest, taken, warned);
   }
 
   /**
    * Let the user choose the MatchClaim table of block `block`'s manifest
-   * `manifest` (Load MatchClaims…): its file, on their system or, with the
-   * server's files, in the file dialog, or a URL; then load it as
-   * `loadNamed` loads it. While no server can read a table nothing is
-   * asked and `unavailable` is the warning.
+   * `manifest` (Load MatchClaims…): its file, located in the file dialog,
+   * or a URL; then load it as `loadNamed` loads it. While no server can
+   * read a table nothing is asked and `unavailable` is the warning.
    */
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
-    const unavailable = this.unavailable;
-    if (unavailable !== null) return { informed: [], warned: [unavailable] };
+    const places = this.#reading();
+    if (places === null) return { informed: [], warned: [this.#why()] };
     const warned: string[] = [];
-    const question = this.#tableQuestion(block, this.#places());
-    const chosen = await this.#chosen(block, manifest, namedTable(manifest), question, warned);
+    const question = this.#tableQuestion(block, places);
+    const url = namedTable(manifest);
+    const chosen = await this.#chosen(block, manifest, url, question, places, warned);
     return this.#take(block, manifest, chosen, warned);
   }
 
@@ -525,25 +518,24 @@ export class MatchClaimTables {
   /**
    * The file the user chooses for the table `url` of block `block`'s
    * manifest `manifest`, asked `question`; `null` when they cancel (or
-   * nobody can be asked). A URL, or a path on the server, that cannot be
-   * read adds its warning to `warned` and gives `null`. The manifest's file
-   * located on the server becomes the block's (`ManifestPlaces.located`) and
-   * the table is read beside it; a folder not holding it is said in
-   * `warned`.
+   * nobody can be asked). A URL, or a path on the server (`places`), that
+   * cannot be read adds its warning to `warned` and gives `null`. The
+   * manifest's file located on the server becomes the block's
+   * (`ManifestPlaces.located`) and the table is read beside it; a folder
+   * not holding it is said in `warned`.
    */
   async #chosen(
     block: string,
     manifest: Manifest,
     url: string | null,
     question: TableQuestion,
+    places: ManifestPlaces,
     warned: string[],
   ): Promise<TableFile | null> {
     const request = { manifest: manifestTitle(manifest), table: { url }, question };
     const choice = this.#ask === null ? null : await this.#ask(request);
     if (choice === null) return null;
-    if ("file" in choice) return { name: choice.file.name, file: choice.file };
-    const places = this.#places();
-    if ("path" in choice && places !== null) {
+    if ("path" in choice) {
       if (question.kind !== "manifest") return this.#atPath(places, choice.path, warned);
       places.located(block, choice.path);
       if (url === null) return null;
@@ -557,7 +549,6 @@ export class MatchClaimTables {
       }
       return reached;
     }
-    if (!("url" in choice)) return null;
     try {
       return await fetched(choice.url);
     } catch (error) {
@@ -594,11 +585,11 @@ export class MatchClaimTables {
    * Read the MatchClaim table `file`, called `name`, through the server,
    * checked against `manifest` (written as its file writes it), as the
    * table of block `block`: `null` once it is held, else why not
-   * (`MATCHES_NEED_A_SERVER` without a server, `loadFailure` when the
+   * (`HOW_TO_START_A_SERVER` without a server, `loadFailure` when the
    * server refuses it or fails).
    */
   async load(block: string, manifest: Manifest, file: Blob, name: string): Promise<string | null> {
-    if (this.#server === null) return MATCHES_NEED_A_SERVER;
+    if (this.#server === null) return HOW_TO_START_A_SERVER;
     try {
       const table = await this.#server.matchClaims(saveManifest(manifest), file);
       this.hold(block, { name, table, file, changed: false });
@@ -680,7 +671,7 @@ export class MatchClaimTables {
    */
   async believe(block: string, manifest: Manifest, belief: StatedBelief): Promise<string | null> {
     const loaded = this.of(block);
-    if (this.#server === null) return MATCHES_NEED_A_SERVER;
+    if (this.#server === null) return HOW_TO_START_A_SERVER;
     if (loaded === null)
       return `Your belief in ${belief.claim} was not recorded: no table is loaded.`;
     const text = saveManifest(manifest);

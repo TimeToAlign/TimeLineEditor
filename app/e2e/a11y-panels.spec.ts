@@ -28,6 +28,12 @@ import {
   tab,
   withoutPickers,
 } from "./support.ts";
+import {
+  answerHealth,
+  holdHealth,
+  importManifest as importFromServer,
+  openPage,
+} from "./tablesServer.ts";
 
 /** axe-core's violations on the whole page. */
 async function violations(page: Page): Promise<unknown[]> {
@@ -136,11 +142,13 @@ function believedAnswer(): Buffer {
  * A fresh page as the user `ME`, the four MatchClaim routes answered in the
  * page: the table route by the recording (after a belief, by the believed
  * answer), provenance and events of `claim_1`, and the belief route by
- * Parquet bytes the editor holds as the changed table.
+ * Parquet bytes the editor holds as the changed table; the health check
+ * held until the import has used the browser's picker.
  */
 async function openWithRoutes(page: Page): Promise<void> {
   let believed = false;
   await withoutPickers(page);
+  await holdHealth(page);
   await page.addInitScript((orcid) => {
     localStorage.setItem("tilie.user", JSON.stringify({ name: "Ana", orcid }));
   }, ORCID);
@@ -198,7 +206,11 @@ async function openWithRoutes(page: Page): Promise<void> {
   await page.waitForFunction(() => window.__tilie !== undefined);
 }
 
-/** Import the table fixture's manifest, with its MatchClaim table when `withTable`; the block. */
+/**
+ * Import the table fixture's manifest, with its MatchClaim table when
+ * `withTable`, through the browser's picker, then answer the held health
+ * check, so a server reads tables; the block.
+ */
 async function importManifest(page: Page, withTable: boolean): Promise<string> {
   const chooser = page.waitForEvent("filechooser");
   await chooseItem(page, "Import manifest…");
@@ -211,6 +223,7 @@ async function importManifest(page: Page, withTable: boolean): Promise<string> {
   await expect
     .poll(() => page.evaluate(() => Object.keys(window.__tilie.store().view.blocks).length))
     .toBe(1);
+  await answerHealth(page);
   return page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
 }
 
@@ -307,25 +320,24 @@ test.describe("the Matchstamp tab and the MatchClaim controls", () => {
     expect(await violations(page)).toEqual([]);
   });
 
-  test("axe-core reports no violation in the tables dialog, before and after a file is chosen", async ({
+  test("axe-core reports no violation in the tables dialog, before and after a URL is entered", async ({
     page,
   }) => {
-    await openWithRoutes(page);
-    await importManifest(page, false);
+    await openPage(page);
+    await importFromServer(page);
     await page.getByTestId("matches").click();
     const dialog = page.getByRole("dialog", {
-      name: "Load the MatchClaim table of The manifest",
+      name: "match_claims.parquet is not beside The manifest, at story/manifest.yaml",
     });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Locate…" })).toBeVisible();
     const load = dialog.getByRole("button", { name: "Load" });
     await expect(load).toBeDisabled();
     expect(await violations(page)).toEqual([]);
 
-    const chooser = page.waitForEvent("filechooser");
-    await dialog.getByRole("button", { name: "Choose file…" }).click();
-    await (await chooser).setFiles([
-      { name: "match_claims.parquet", mimeType: "application/octet-stream", buffer: PARQUET },
-    ]);
+    await dialog
+      .getByRole("textbox", { name: "URL of the MatchClaim table" })
+      .fill("https://tables.example.org/package/match_claims.parquet");
     await expect(load).toBeEnabled();
     expect(await violations(page)).toEqual([]);
   });

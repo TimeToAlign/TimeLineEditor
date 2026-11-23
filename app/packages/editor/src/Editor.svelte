@@ -48,7 +48,7 @@ import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
-import { ANSWERED, MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
+import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { TimeLineEditorOptions } from "./options.ts";
@@ -194,9 +194,9 @@ const session = new WorkspaceSession({
   inform: (text) => messages.inform(text),
   matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
-  // Read when matches are asked for, after the health check below was started.
-  serverHealth: () =>
-    health !== null ? ANSWERED : { answered: false, failure: offline === "" ? null : offline },
+  // Read when matches are asked for, after the health check below was started;
+  // the tables read through the server once `fileHost` is given, after it answered.
+  healthFailure: () => (offline === "" ? null : offline),
   files: () => fileHost,
   pane,
   // Never take the focus from the host page: only the page asks for it, or
@@ -549,12 +549,25 @@ const pinnedMatchStamp = $derived(pinnedMatchStampOf(drawer?.shownMatch() ?? nul
 /** Why the health check failed, the offline mark's title and hidden text; empty while it has not failed. */
 let offline = $state("");
 
+/**
+ * Whether Show matches is on, as the canvas last said (`onmatches`): what
+ * the health check's answer loads the named tables for. Not state.
+ */
+let matchesShown = false;
+
+/**
+ * Ask the server's health check. Answered, the MatchClaim tables can be
+ * read: with Show matches already on (turned on while it had not answered
+ * yet, so nothing was asked or said), the named tables are loaded now.
+ */
 async function checkHealth(calls: Server): Promise<void> {
   try {
     health = await calls.health();
   } catch (error) {
     offline = `The server did not answer the health check (${messageOf(error)}).`;
+    return;
   }
+  if (matchesShown) void session.loadNamedTables();
 }
 
 let autosaving: Autosaving | null = null;
@@ -709,6 +722,7 @@ if (withTestHook) {
         {pinnedMatchStamp}
         onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
         onmatches={(shown) => {
+          matchesShown = shown;
           if (shown) void session.loadNamedTables();
         }}
       />

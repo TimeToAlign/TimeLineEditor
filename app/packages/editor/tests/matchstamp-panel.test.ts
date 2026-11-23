@@ -17,6 +17,7 @@ import { matchIndexes } from "../src/inspector/matchstamps.ts";
 import TimestampPanel from "../src/inspector/TimestampPanel.svelte";
 import type { HeldMatch } from "../src/inspector/tabs.ts";
 import { namedPinOf } from "../src/inspector/timestamp.ts";
+import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, q, tableManifest } from "./matches.ts";
 import { informing, providing, storeOf } from "./support.ts";
@@ -28,10 +29,9 @@ function lastCommand(store: Store): unknown {
 
 const A = "0000000000";
 const NO_SERVER =
-  "Matches need a running server: MatchClaim tables are read through tilie-server. " +
-  "Start it from the repository's `server/` folder with " +
-  "`uv run tilie --static-dir ../app/packages/editor/dist` " +
-  "(or `tilie` once installed with `pip install tilie-server`), " +
+  "Matches need a running tilie-server. To start it, run " +
+  "uv run tilie --static-dir ../app/packages/editor/dist in the repository's server folder " +
+  "(or tilie, once installed with pip install tilie-server), " +
   "then open the editor at the address it prints.";
 
 let mounted: ReturnType<typeof mount> | null = null;
@@ -1300,6 +1300,50 @@ describe("the MatchClaim filter", () => {
     expect(document.querySelector("[data-testid=matchclaims-status]")?.textContent).toBe(
       "No MatchClaim table loaded.",
     );
+  });
+
+  it("says why while the server's health check failed, every control disabled, no events read", () => {
+    const failure = "The server did not answer the health check (Failed to fetch).";
+    const said = `${failure} ${NO_SERVER}`;
+    const asked: string[][] = [];
+    const server: MatchClaimServer = {
+      matchClaims: async () => {
+        throw new Error("no table is read");
+      },
+      matchClaimProvenance: async () => [],
+      believeMatchClaim: async () => {
+        throw new Error("no belief is recorded");
+      },
+      matchClaimEvents: async (_manifest, _file, claims) => {
+        asked.push([...claims]);
+        return [];
+      },
+    };
+    const table = matchTable();
+    const tables = new MatchClaimTables(
+      server,
+      null,
+      () => null,
+      () => failure,
+    );
+    tables.hold(A, { name: "match_claims.parquet", table, file: new Blob([]), changed: false });
+    const { shown } = indexesUnder(table);
+    show(storeOf(tableManifest()), potential(shown, "cpt_1", 8), tables);
+
+    const load = button("Load MatchClaims…");
+    const described = document.getElementById(load.getAttribute("aria-describedby") ?? "");
+    expect([load.disabled, described?.textContent]).toEqual([true, said]);
+    const mine = document.querySelector("li[data-claim='claim_5']");
+    const beliefs = [...(mine?.querySelectorAll<HTMLButtonElement>("[role=group] button") ?? [])];
+    expect(beliefs.map((item) => [item.disabled, item.getAttribute("title")])).toEqual([
+      [true, said],
+      [true, said],
+      [true, said],
+    ]);
+    mine?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.click();
+    flushSync();
+    expect(mine?.querySelector(".claim > p.hint")?.textContent).toBe(said);
+    expect(asked).toEqual([]);
   });
 });
 

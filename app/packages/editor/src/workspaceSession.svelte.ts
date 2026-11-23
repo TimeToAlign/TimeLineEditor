@@ -80,7 +80,6 @@ import {
   type MatchClaimServer,
   MatchClaimTables,
   namedTable,
-  type ServerHealth,
   saveFailure,
   type TableMessages,
   unsavedQuestion,
@@ -146,14 +145,16 @@ export interface SessionOptions {
   /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
   readonly askTables?: AskTables | null;
   /**
-   * How the `matchClaims` server answered its health check now; without
-   * it, as if it answered. Only a server that answered reads tables.
+   * Why the `matchClaims` server's health check failed, as the editor's
+   * offline mark says it; `null` while it has not (answered, or not yet);
+   * without it, never.
    */
-  readonly serverHealth?: () => ServerHealth;
+  readonly healthFailure?: () => string | null;
   /**
    * The user's files through the server as far as the editor reaches them
    * now (`null`: it does not, and the browser's pickers serve); without it,
-   * never.
+   * never. The editor reaches them once the server answered its health
+   * check, and the `matchClaims` server reads tables only then.
    */
   readonly files?: () => FileHost | null;
   /** The canvas's pane, which a new block is placed by as the canvas draws it; without it, layout's default view. */
@@ -204,7 +205,7 @@ export class WorkspaceSession {
       options.matchClaims ?? null,
       options.askTables ?? null,
       () => this.#places(),
-      options.serverHealth,
+      options.healthFailure,
     );
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
@@ -629,13 +630,16 @@ export class WorkspaceSession {
    * nothing is asked: where a block's manifest names a table the block does
    * not hold, the message bar gets one warning, why
    * (`MatchClaimTables.unavailable`), in place of every question; where
-   * none does, nothing is said (the canvas says why it draws nothing). A
-   * call while one is under way is ignored.
+   * none does, nothing is said (the canvas says why it draws nothing).
+   * While the server given has not answered its health check yet
+   * (`MatchClaimTables.waiting`) nothing is said either: it may be slow
+   * rather than missing, and the editor calls this again once it answers.
+   * A call while one is under way is ignored.
    */
   async loadNamedTables(): Promise<void> {
     const unavailable = this.tables.unavailable;
     if (unavailable !== null) {
-      if (this.#namesUnheldTable()) this.#options.warn(unavailable);
+      if (!this.tables.waiting && this.#namesUnheldTable()) this.#options.warn(unavailable);
       return;
     }
     if (this.#loadingTables) return;

@@ -2373,10 +2373,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    paradata; an entry the table does not state reads, behind Provenance,
    "No provenance entry: the table states none for it."; a MatchClaim
    without beliefs "No one has stated a belief.". The buttons True,
-   Unlikely, False, the user's own belief pressed (`claim_5`: True); without
-   a server every button is disabled with the title "Matches need a running
-   server: …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
-   table", and without a table "no table loaded".
+   Unlikely, False, the user's own belief pressed (`claim_5`: True); while
+   no server can read a table (the tables' `unavailable`, 9e) every button
+   is disabled with that text as its title: without a server the whole
+   `HOW_TO_START_A_SERVER`, with a server whose health check failed (`The
+   server did not answer the health check (Failed to fetch).`) that failure
+   followed by it; a recorded MatchClaim the table lacks reads "not in the
+   MatchClaim table", and without a table "no table loaded".
    **Actors compare as the IRIs they stand for** under the manifest's
    `@context` (core's `actorIri`, the library's rule), in the belief
    filter, in the user's own belief and in the words: the table with the
@@ -2396,8 +2399,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    element under the heading, always present, empty while no MatchClaim
    the table holds is expanded or nothing is read) reads "Reading the
    events…", and is empty once the answer arrives; a refusal reads
-   `eventsFailure`'s words there; without a server the expanded
-   MatchClaim says "Matches need a running server: …". The answer written in the
+   `eventsFailure`'s words there; while no server can read a table
+   (without a server, and with one whose health check failed) the expanded
+   MatchClaim says `unavailable`'s text and the events route is never
+   called. The answer written in the
    test: `claim_1` `clt_1` event `note_1` named "C4" ↔ `dpt_1` event
    `onset_1` without a name, certainty 0.75; `claim_2` `clt_1` `note_1`
    "C4" ↔ `cpt_1` no event (the sentinel), no certainty. Shown, each side
@@ -2422,11 +2427,15 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    (`choose`, item 9a): it asks the tables dialog for the MatchClaim table
    the manifest names, and for nothing else (the table manifest, which has
    no name and names a Projections table too: `{manifest: "The manifest",
-   table: {url: "match_claims.parquet"}}`), opens no file picker of its own, and posts
-   what the load says: a file chosen ("m.parquet") is loaded ("Loaded the
-   MatchClaims of m.parquet." through `inform`), a cancelled question says
-   nothing. Without a server "Load MatchClaims…" is disabled and described
-   by `MATCHES_NEED_A_SERVER` (9e).
+   table: {url: "match_claims.parquet"}, question: {kind: "table",
+   missing: null}}`, the tables given the server's files as an answered
+   health check gives them), opens no file picker of its own, and posts
+   what the load says: a file located on the server (`{path:
+   "m.parquet"}`) is loaded ("Loaded the MatchClaims of m.parquet." through
+   `inform`), a cancelled question says nothing. While no server can read a table "Load MatchClaims…" is
+   disabled and described by `unavailable`'s text (9e): without a server
+   `HOW_TO_START_A_SERVER`, with one whose health check failed the failure
+   first.
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
    remembers the tab before, letting it go shows that tab again; a named
    MatchStamp is named by its own address and by an anchor's, by nothing
@@ -2467,7 +2476,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
 
 9a. **The table a manifest names** (`matchclaims-loading.test.ts`, the
    server stubbed as above, the user's answer to the dialog stubbed as a
-   function recording each question). The table fixture's manifest names
+   function recording each question, the server's files given as
+   `ManifestPlaces` over an in-memory server, the way they are given once
+   the health check answered: 9e). The table fixture's manifest names
    `match_claims.parquet` (MatchClaim) and `projections.parquet`
    (Projection); the table it names is the first resource of type
    MatchClaim, `match_claims.parquet` (`namedTable`), and a manifest naming
@@ -2481,10 +2492,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      the MatchClaims of match_claims.parquet."], warned: []}`;
    - from a source that reaches nothing, the user is asked once, for the
      MatchClaim table (`{manifest: "Tables", table: {url:
-     "match_claims.parquet"}, question: {kind: "file"}}`, the manifest
-     named by its name; without the server's files the question is the
-     file's); a file
-     chosen is loaded; the URL `https://example.org/p/m.parquet` is fetched
+     "match_claims.parquet"}, question: {kind: "table", missing: null,
+     locate}}`, the manifest named by its name; its source is known, the
+     path of its file is not, so no path is missing it); a file located on
+     the server (`{path: "mine.parquet"}`) is read through the places and
+     loaded as `mine.parquet`; the URL `https://example.org/p/m.parquet` is fetched
      (`fetch` stubbed, called once with that URL) and loaded under
      `m.parquet`; a URL answered 404 warns "The MatchClaim table was not
      loaded: https://example.org/p/m.parquet could not be read: 404 Not
@@ -2511,12 +2523,14 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `x` 0, with the indexes `a2`, `a0`, `a1`, are asked for as B, C, A:
    neither the order they were added in nor where they lie), and posts
    the information
-   through `inform`, the warnings through `warn`. Turning Show matches on,
-   by its key or its button, is what calls it (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load MatchClaims…) always asks, for
-   the MatchClaim table (with `url` `null` where the manifest names none;
-   `{kind: "file"}` without the server's files, `{kind: "table", missing:
-   null}` with them),
-   and loads what is chosen the same way; while no server can read a
+   through `inform`, the warnings through `warn` (the session given the
+   server's files, a block's manifest file unstated, so it asks where the
+   manifest lies; a URL answered, fetched and loaded). Turning Show matches
+   on, by its key or its button, is what calls it
+   (`e2e/matchclaim-loading.spec.ts`). The manual route (`choose`, Load
+   MatchClaims…) always asks, for the MatchClaim table (with `url` `null`
+   where the manifest names none; `{kind: "table", missing: null}`), and
+   loads what is chosen the same way; while no server can read a
    table it asks nothing and warns (9e). The Fixture menu's
    `tables/manifest` entry carries a source reading the files served
    beside the fixture (`servedSource`): `match_claims.parquet` is served,
@@ -2577,69 +2591,80 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    server stubbed as above, the user's answer stubbed as a function
    counting every question, the manifest the table fixture's, its
    source reaching nothing, so with a reachable server it would be asked
-   for). The one sentence, `MATCHES_NEED_A_SERVER`, is exactly "Matches
-   need a running server: MatchClaim tables are read through tilie-server.
-   Start it from the repository's `server/` folder with `uv run tilie
-   --static-dir ../app/packages/editor/dist` (or `tilie` once installed
-   with `pip install tilie-server`), then open the editor at the address
-   it prints." (the command is the one the repository's README starts the
-   server from the source tree with). The tables know three states of the
-   server: none given (no `matchClaims` option), given but its health
-   check not answered yet, given but its health check failed (the failure
-   the editor's offline mark reads, here "The server did not answer the
-   health check (Failed to fetch)."), and given and answered.
-   - In the first three, `unavailable` is the sentence, the failed check's
-     failure first: "The server did not answer the health check (Failed to
-     fetch). Matches need a running server: …" with the sentence whole;
-     `loadNamed` asks nothing, reads nothing through the server and says
-     nothing; `choose` (Load MatchClaims…) asks nothing, reads nothing and
-     warns exactly `unavailable`. Proof that nothing was asked: the
+   for). Two sentences, both plain text (no markup, since the message bar,
+   the canvas's status, hints and titles all show text): the short one,
+   `MATCHES_NEED_A_SERVER`, exactly "Matches need a running tilie-server.",
+   and `HOW_TO_START_A_SERVER`, exactly "Matches need a running
+   tilie-server. To start it, run uv run tilie --static-dir
+   ../app/packages/editor/dist in the repository's server folder (or tilie,
+   once installed with pip install tilie-server), then open the editor at
+   the address it prints." (the command is the one the repository's README
+   starts the server from the source tree with); the longer is built from
+   the shorter, so the first sentence is written once. The tables know four
+   states of the server: none given (no `matchClaims` option); given, its
+   health check not answered yet; given, its health check failed (the
+   failure the editor's offline mark reads, here "The server did not answer
+   the health check (Failed to fetch)."); given and answered. Answered is
+   the one state with the server's files (`ManifestPlaces`): the editor
+   reaches them only once the check answered, and the tables take that as
+   the answer, so no test (and no editor) can state "answered" without the
+   places every question needs.
+   - In the first three, `unavailable` is `HOW_TO_START_A_SERVER`, the
+     failed check's failure first ("The server did not answer the health
+     check (Failed to fetch). Matches need a running tilie-server. To start
+     it, …" with the sentence whole); `waiting` is true in the second state
+     alone; `loadNamed` asks nothing, reads nothing through the server and
+     says nothing; `choose` (Load MatchClaims…) asks nothing, reads nothing
+     and warns exactly `unavailable`. Proof that nothing was asked: the
      question count stays 0, the table route's request count 0.
    - The session's `loadNamedTables` (what turning Show matches on calls)
-     in those states asks nothing, reads nothing and informs nothing. It
-     warns in place of the questions it would ask: over a workspace
-     without blocks, and with one block whose manifest (`bare`) names no
-     table, it says nothing (the canvas's status says why it draws
-     nothing); with two more blocks each naming a table it posts exactly
-     one warning, `unavailable`, and called again exactly one more (once
-     per turning on, never once per block); with one of the two holding a
-     table still one; with both holding theirs, nothing.
-   - Answered, `unavailable` is `null`, and everything is as 9a and 9d
-     state it: the same manifest asks exactly once (`{kind: "file"}`
-     without the server's files) and posts no warning of a server; the
-     session's call asks once per block naming a table.
-   - `connected` says only whether a server is given (true in the second
-     and third states), so what it governs (the belief buttons, the
-     enabling of Load MatchClaims…) is unchanged.
+     in those states asks nothing, reads nothing and informs nothing. With
+     no server given and with a failed check it warns in place of the
+     questions it would ask: over a workspace without blocks, and with one
+     block whose manifest (`bare`) names no table, it says nothing (the
+     canvas's status says `MATCHES_NEED_A_SERVER`); with two more blocks
+     each naming a table it posts exactly one warning, `unavailable`, and
+     called again exactly one more (once per turning on, never once per
+     block); with one of the two holding a table still one; with both
+     holding theirs, nothing. While the check has not answered yet it says
+     nothing at all, in the same steps: the server may be slow rather than
+     missing, and telling the user to start one would be wrong.
+   - The check answering later (the places given from then on): the same
+     tables ask once, `unavailable` is `null` and `waiting` false; the
+     session's call then asks once per block naming a table and warns
+     nothing. The editor makes that call itself when the check answers
+     while Show matches is on (`e2e/matchclaim-loading.spec.ts`).
    The end-to-end proof is `e2e/matchclaim-loading.spec.ts`: on the
-   built page, whose health check is not answered, pressing M with a
-   manifest naming its table opens no dialog and the message bar shows
-   the failed check's failure and the sentence.
+   built page, whose health check is refused (503 Service Unavailable),
+   pressing M with a manifest naming its table opens no dialog, the message
+   bar shows the failed check's failure and `HOW_TO_START_A_SERVER`, the
+   canvas's status `MATCHES_NEED_A_SERVER` alone, and Load MatchClaims… is
+   disabled, described by the message's text; with the check held
+   unanswered, M posts nothing, and once it answers the table is loaded
+   without M being pressed again.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
-   jsdom with `showModal` stubbed). Asked for the MatchClaim table of
-   "Tables" with the question `{kind: "file"}`, it is titled "Load the
-   MatchClaim table of Tables" and shows one group,
-   "MatchClaim table match_claims.parquet", with "Choose file…", "No file
-   chosen" and one URL field labelled "URL of the MatchClaim table"; Load
-   is disabled until a file or a URL is given. A chosen file (the fallback
-   file input answered) resolves `{file}`; a URL resolves `{url}`, trimmed;
-   a URL entered after a file replaces it. Cancel and Escape (the
-   dialog's `close`) resolve `null`. A question asked while one is open
-   resolves the open one `null`; a `close` event arriving while the new
-   one is open (the first one's, which a browser fires a task after
-   closing) dismisses nothing: the new question answers as chosen. The
-   dialog is the editor's one dialog shell, the question dialog's too.
-   The URL field is a text field (`inputmode="url"`), so a relative URL
-   (`match_claims.parquet`) is taken as entered. With the server's files
-   the dialog offers "Locate…" instead of "Choose file…", beside the URL
-   field: asked `{kind: "manifest", locate}` it is titled "Where is
+   jsdom with `showModal` stubbed). It asks only where the server's files
+   are reached, so every question locates a file in the editor's file
+   dialog. Asked for the MatchClaim table of "Tables" with the question
+   `{kind: "table", missing: null, locate}`, it is titled "Load the
+   MatchClaim table of Tables" and shows "Locate…" and one group,
+   "MatchClaim table match_claims.parquet", holding one URL field labelled
+   "URL of the MatchClaim table" and nothing else to choose (no file of the
+   user's system); Load is disabled until a URL is given. A URL resolves
+   `{url}`, trimmed. Cancel and Escape (the dialog's `close`) resolve
+   `null`. A question asked while one is open resolves the open one
+   `null`; a `close` event arriving while the new one is open (the first
+   one's, which a browser fires a task after closing) dismisses nothing:
+   the new question answers as chosen. The dialog is the editor's one
+   dialog shell, the question dialog's too. The URL field is a text field
+   (`inputmode="url"`), so a relative URL (`match_claims.parquet`) is taken
+   as entered. Asked `{kind: "manifest", locate}` it is titled "Where is
    Tables?"; asked `{kind: "table", missing: "story/step1.yaml", locate}`
-   "match_claims.parquet is not beside Tables, at story/step1.yaml", and
-   with `missing` `null` "Load the MatchClaim table of Tables". Locate…
-   calls `locate` once; a path answered resolves `{path}` at once, `null`
-   (the file dialog cancelled) keeps the dialog open, a rejection shows
-   "The file could not be located: <its message>".
+   "match_claims.parquet is not beside Tables, at story/step1.yaml".
+   Locate… calls `locate` once; a path answered resolves `{path}` at once,
+   `null` (the file dialog cancelled) keeps the dialog open, a rejection
+   shows "The file could not be located: <its message>".
 
 9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
    manifest, claims)` asks the server's events route once per table and
@@ -2717,8 +2742,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     Cancel asks for no table and keeps the table changed; Discard asks
     the tables dialog. The editor's own question before New is proved end to end
     (`e2e/matchclaim-beliefs.spec.ts`): after the belief, New asks the
-    combined question; Cancel keeps the table changed; Save downloads the
-    workspace and then the table (the answered bytes unchanged) and opens
+    combined question; Cancel keeps the table changed; Save writes the
+    workspace through the server's "Save as" dialog (the page's health
+    check answered once the table was imported, so the workspace is saved
+    on the server) and then downloads the table (the answered bytes
+    unchanged) and opens
     the empty workspace; with the workspace saved and only the table
     changed, New asks the table's question and Discard opens the empty
     workspace without asking again.

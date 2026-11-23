@@ -25,7 +25,16 @@ import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { informContext } from "../src/messages.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
-import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, OTHER, q, tableManifest } from "./matches.ts";
+import {
+  answeredPlaces,
+  BELIEFS_BY_ROW,
+  indexesOver,
+  ME,
+  matchTable,
+  OTHER,
+  q,
+  tableManifest,
+} from "./matches.ts";
 import {
   answer,
   interceptDownloads,
@@ -148,15 +157,17 @@ function serving(
 }
 
 /**
- * Block A's table `table`, picked from `PICKED`, read through `server`;
- * the user asked for tables through `ask`, never asked without it.
+ * Block A's table `table`, picked from `PICKED`, read through `server`,
+ * which answered its health check (its files holding `held`); the user
+ * asked for tables through `ask`, never asked without it.
  */
 function tablesOf(
   server: MatchClaimServer | null,
   table = matchTable(),
   ask: AskTables | null = null,
+  held: Readonly<Record<string, Blob>> = {},
 ): MatchClaimTables {
-  const tables = new MatchClaimTables(server, ask);
+  const tables = new MatchClaimTables(server, ask, () => answeredPlaces(held));
   tables.hold(A, { name: NAME, table, file: PICKED, changed: false });
   return tables;
 }
@@ -697,20 +708,20 @@ describe("an unsaved table", () => {
     stubEditor();
     const picker = cancelPicker();
     vi.stubGlobal("showOpenFilePicker", picker);
-    const chosen = new File([PICKED], "m.parquet");
+    const chosen = new Blob([PICKED, "m"]);
     const questions: TableRequest[] = [];
-    const answers = [null, { file: chosen }];
+    const answers = [null, { path: "m.parquet" }];
     const ask: AskTables = async (request) => {
       questions.push(request);
       return answers.shift() ?? null;
     };
     const { server, calls } = serving();
-    const tables = tablesOf(server, matchTable(), ask);
+    const tables = tablesOf(server, matchTable(), ask, { "m.parquet": chosen });
     const { informed, warned } = show(storeOf(tableManifest()), null, tables);
     const asked = {
       manifest: "The manifest",
       table: { url: "match_claims.parquet" },
-      question: { kind: "file" },
+      question: { kind: "table", missing: null, locate: expect.any(Function) },
     };
 
     button("Load MatchClaims…")?.click();

@@ -15,7 +15,7 @@ import type { BeliefState, Manifest, TimelineManifest } from "@timetoalign/tilie
 import { BELIEF_STATES, matchClaimFilterOf } from "@timetoalign/tilie-core";
 import ConfirmDialog from "../../ConfirmDialog.svelte";
 import type { MatchClaimTables } from "../../matchClaims.svelte.ts";
-import { MATCHES_NEED_A_SERVER, saveFailure, unsavedQuestion } from "../../matchClaims.svelte.ts";
+import { saveFailure, unsavedQuestion } from "../../matchClaims.svelte.ts";
 import { informOf, messageOf, warnOf } from "../../messages.svelte.ts";
 import DisplayToggles from "./DisplayToggles.svelte";
 
@@ -46,6 +46,8 @@ const LABELS: Readonly<Record<BeliefState, string>> = {
 const BELIEF_TOGGLES = BELIEF_STATES.map((word) => ({ word, label: LABELS[word] }));
 
 const loaded = $derived(blockId === null ? null : tables.of(blockId));
+/** Why no server can read a table now, `null` while one can: Load MatchClaims… is disabled, saying why. */
+const unavailable = $derived(tables.unavailable);
 const filter = $derived(blockId === null ? null : matchClaimFilterOf(live.view.settings, blockId));
 
 /** Every timeline of `manifest`, roots and their children in order. */
@@ -174,13 +176,13 @@ async function loadTable(): Promise<void> {
         type="button"
         class="action"
         bind:this={loadButton}
-        disabled={!tables.connected || loading}
-        aria-describedby={tables.connected ? undefined : `${uid}-no-server`}
+        disabled={unavailable !== null || loading}
+        aria-describedby={unavailable === null ? undefined : `${uid}-no-server`}
         onclick={loadTable}>Load MatchClaims…</button
       >
     </div>
-    {#if !tables.connected}
-      <p class="hint" id="{uid}-no-server">{MATCHES_NEED_A_SERVER}</p>
+    {#if unavailable !== null}
+      <p class="hint" id="{uid}-no-server">{unavailable}</p>
     {/if}
     <fieldset>
       <legend>Timelines</legend>

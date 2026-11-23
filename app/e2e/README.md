@@ -529,12 +529,14 @@ document the note follows the list box, which owns options only.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
 the MatchClaim table a manifest names while a server answers, and asks
-nothing while none does. The table route is replayed from the client's
-recording (`match-claims.answer.bin`, `rows` read from its header); the
-health check is stubbed, answered (`{name, version, timetoalign}`) with the
-user's files on the server stubbed too (`story/` holding the table
-fixture's `manifest.yaml` alone, `other/` its `match_claims.parquet`), or
-refused with 503. Answered: the table fixture opened from the Fixture
+nothing while none does. The stubbed server is `tablesServer.ts`'s,
+which `a11y-panels.spec.ts` shares. The table route is replayed from the
+client's recording (`match-claims.answer.bin`, `rows` read from its
+header); the health check is stubbed, answered (`{name, version,
+timetoalign}`) with the user's files on the server stubbed too (`story/`
+holding the table fixture's `manifest.yaml` alone, `other/` its
+`match_claims.parquet`), refused with 503, or held until the test answers
+it. Answered: the table fixture opened from the Fixture
 menu, its table served beside it, loads it on the `m` key without a dialog
 and with one table request; the same manifest imported from `story/`
 through the file dialog, Show matches (its toolbar button) opens
@@ -552,13 +554,18 @@ Refused (the header's offline mark titled "The server did not answer the
 health check (503 Service Unavailable)."), with the Fixture menu's table
 fixture open: `m` turns Show matches on, opens no dialog, requests no
 table, and adds exactly one message, that failure followed by "Matches
-need a running server: MatchClaim tables are read through tilie-server.
-Start it from the repository's `server/` folder with `uv run tilie
---static-dir ../app/packages/editor/dist` (or `tilie` once installed with
-`pip install tilie-server`), then open the editor at the address it
-prints."; the canvas's status reads that second sentence alone; "Load
-MatchClaims…" then adds the same message once more and opens no dialog
-either. `open-save.spec.ts` proves the table read beside the manifest.
+need a running tilie-server. To start it, run uv run tilie --static-dir
+../app/packages/editor/dist in the repository's server folder (or tilie,
+once installed with pip install tilie-server), then open the editor at
+the address it prints."; the canvas's status reads "Matches need a
+running tilie-server." alone; "Load MatchClaims…" is disabled, its
+accessible description that same message, and no other message appears.
+Held, with the same fixture open: `m` turns Show matches on and adds no
+message (no offline mark either: nothing has failed), requesting no
+table; once the check is answered, without another key, the table is
+requested exactly once, the one new message is "Loaded the MatchClaims
+of match_claims.parquet.", no dialog opens and the canvas's status is
+gone, the matches drawn. `open-save.spec.ts` proves the table read beside the manifest.
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
 `small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is
@@ -691,17 +698,21 @@ the ORCID iD the fixture's `claim_1` belief names; the table route
 replayed from the client's recording, after a belief from the same
 recording with `claim_1`'s belief `false`, as `matchclaim-beliefs.spec.ts`
 does; the provenance and events of `claim_1` as there; the belief route
-answered by Parquet bytes): the block selected on the Matchstamp tab
+answered by Parquet bytes; the health check held until the import is
+done, as there): the block selected on the Matchstamp tab
 (status "match_claims.parquet: 15 MatchClaims", the hint, the filter's
 four timeline checkboxes); the named MatchStamp "Downbeat" (`claim_1`)
 selected under Show matches, `claim_1` expanded (events "note_1 “C4”",
 "onset_1", "0.75"), its provenance open ("Ana", "manual",
 "2026-11-20"), the user's belief True pressed; then, after False, the
 table changed ("…, changed", "Save MatchClaims…" shown, the difference
-"MatchClaims the belief filter leaves out"). With the manifest imported
-alone (no server for the user's files): the tables dialog "Load the
-MatchClaim table of The manifest" with Load disabled, and again once a
-file is chosen. The unnamed pin (the
+"MatchClaims the belief filter leaves out"). In the world of
+`matchclaim-loading.spec.ts` (its stubbed server shared through
+`tablesServer.ts`, the health check answered, the table fixture's
+manifest imported from `story/` through the file dialog): the tables
+dialog "match_claims.parquet is not beside The manifest, at
+story/manifest.yaml" that Show matches opens, with "Locate…" and Load
+disabled, and again once a URL is entered. The unnamed pin (the
 rotation's degree readout beside its disabled slider) and the Journal tab
 (an undone entry's text, time and author) are checked for contrast like
 every other state.
@@ -1715,7 +1726,12 @@ MatchStamp drawn on its lines only, as the potential overlay draws it.
 
 **`matchclaim-beliefs.spec.ts`** (Chromium, Firefox, WebKit) proves a
 MatchClaim's provenance and the user's belief end to end, on the same
-fixture imported with its table. The user is set before the page loads
+fixture imported with its table. The health check is held while the
+import uses the browser's picker and answered once the block exists
+(`tablesServer.ts`'s `holdHealth` and `answerHealth`): only a server that
+answered reads tables, records beliefs and reads events, and from then on
+the workspace is saved through the server's "Save as" dialog, over an
+empty root whose writes are recorded. The user is set before the page loads
 (`tilie.user` `{name: "Ana", orcid: "0000-0002-1825-0097"}`), so the
 user's IRI is `ME` = `https://orcid.org/0000-0002-1825-0097`, the actor
 whose `true` the fixture records in `claim_1`; the clock is fixed at
@@ -1763,13 +1779,15 @@ leaves a Blob body out.
 3. **New with a changed table and an unsaved workspace** asks
    "untitled.tle.json and the MatchClaim table match_claims.parquet have
    unsaved changes. Save them?"; Cancel keeps the block and the changed
-   table. Asked again, Save downloads exactly two files in this order:
+   table. Asked again, Save opens "Save as" offering `untitled.tle.json`
+   at the root; its Save writes exactly one file on the server,
    `untitled.tle.json` with the workspace's text as it was before New,
-   then `match_claims.parquet` byte-equal to the belief route's answer;
-   the empty workspace is then open (no block, file name
-   `untitled.tle.json`).
+   and the page downloads exactly one, `match_claims.parquet` byte-equal
+   to the belief route's answer; the empty workspace is then open (no
+   block, file name `untitled.tle.json`).
 4. **New with only the table changed** (the workspace saved first by
-   Ctrl+S) asks "The MatchClaim table match_claims.parquet has unsaved
+   Ctrl+S, through "Save as" as above: one write, `untitled.tle.json`)
+   asks "The MatchClaim table match_claims.parquet has unsaved
    changes. Save them?"; Discard opens the empty workspace, and New again
    asks nothing.
 
