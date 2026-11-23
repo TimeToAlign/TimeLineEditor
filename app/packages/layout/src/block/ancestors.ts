@@ -285,12 +285,19 @@ export function ancestorCards(
     const L = item.length;
     const protect = protectedSpan(at);
     const chain = member.ancestors.map((each) => each.timeline.id);
+    // The frame's room left of its member drawings and right of its members' drawn length, which
+    // the card's seams leave out, so that what lies outside `M`'s span lies outside the frame.
+    const room = {
+      left: horizontal.s0 - frame.x,
+      right: frame.x + frame.width - (horizontal.s0 + L - item.DG),
+    };
     const elisions = ancestorElisions(
       first.scope,
       style,
       protect,
       chain,
       carriedGaps(item.elisions, ts, lambda, R.number_type),
+      room,
       () => {
         const widest = first.names.length === 0 ? 0 : Math.max(...first.names);
         return ancestorProportion({
@@ -298,7 +305,6 @@ export function ancestorCards(
           scale: item.scale,
           L,
           drawnLength: L - item.DG,
-          x0: horizontal.s0,
           width: frame.width,
           height: frame.height,
           sigma: K + widest + (first.names.length === 0 ? 0 : G),
