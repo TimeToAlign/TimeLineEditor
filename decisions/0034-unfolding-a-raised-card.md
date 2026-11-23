@@ -13,15 +13,14 @@ ancestor card behind the group's frame (TimeToShare's drawing
 specification, section 8.8). When the root's timeline editor opens, the
 canvas raises that ancestor card over the frame; when it closes, the card
 falls back behind the frame. Raising changes only the order the block
-shows its drawing in (`stackingOf`, `raisedEntries`); the drawing itself
+shows its drawing in (`stackingOf`, `raisedLayers`); the drawing itself
 is the same. The member card and the raised card draw the same timelines
 at different ordinates: the raised card's root line lies on the member
 card's ancestor line of it, so the member's own row and every timeline
 between lie some units off their rows in the member card, more with
 conversion maps or bands between. Rows of the raised card that the member
 card does not draw (siblings, the root's bands beyond the member) appear
-with it, and rows the member card alone draws (the member's marks on its
-ancestor lines) go.
+with it, and what the member card alone draws goes.
 
 The switch is abrupt: the user does not see that the raised card is the
 member card's own timelines, laid out at the root's proportions. The
@@ -109,8 +108,10 @@ dependency:
   `class Unfolding(raised, reduced)` follows the raised root, holds the
   root folding back until its progress reaches 0, unfolds a newly raised
   root from 0 and reverses from the current value; its progress is a
-  `$state` number moved over animation frames (`requestAnimationFrame`,
-  `performance.now()`), stopped when the block node is destroyed.
+  `Progress` (`progress.svelte.ts`, the one progress of every motion
+  between two drawings), a `$state` number moved over animation frames
+  (`requestAnimationFrame`, `performance.now()`), stopped when the block
+  node is destroyed.
 - `BlockNode.svelte` draws each raised card in its own layer
   (`g.tilie-raised`), clipped and shifted while it moves, letting the
   pointer through while it moves. The canvas's hit tests, marks and
@@ -119,6 +120,51 @@ dependency:
 
 A switch from one raised root to another unfolds the new one from 0 and
 drops the old one at once.
+
+## Elisions moving sideways
+
+Elisions change a card's horizontal axis, never its rows: a mode switched
+on a root or a frame, a gap added, removed, moved or widened, or another
+proportion of an ancestor card's derived gaps moves what the card draws
+left or right, and an ancestor card hidden or shown takes the whole card
+away or brings it. The same switch would hide what moved, so the same
+requirements hold, read sideways: each element starts where the drawing
+before drew its positions and moves to where the drawing after draws them;
+an ellipsis or a label inside a gap that stays travels with the gap, one
+inside a new gap enters in place; rows move only where elision labels
+shown or hidden change them; the canvas never waits; reduced motion
+switches at once.
+
+The same progress and the same pure module serve it, extended by what a
+sideways motion needs:
+
+- `unfold.ts` adds the horizontal reading: `Knot` (an abscissa and the
+  position of the card's root drawn there), `positionAt` and `abscissaAt`
+  over a card's knots, `startOf` (where the drawing before draws what an
+  extent of the drawing after draws), `spanAt`, and `Placed`, an element
+  scaled and shifted along `x`, shifted along `y` and faded, with
+  `placedAt`, `framePlaced` and `composed`, which combines a raise's frame
+  with a sideways motion.
+- `animation/elide.ts` reads layout's records into those knots: both ends
+  of every line layout records in a card (one per run of an elided line)
+  and both edges of its own gaps, each at its position on the card's root;
+  a frame's knots from the runs of its exposure. `blockMotion(before,
+  after, measure)` gives each card and frame whose elisions changed its
+  motion (`sidewaysMotion`, `frameMotion`), an ancestor card newly shown
+  the raise's unfolding with what lies outside its member's span opening
+  out of the member card's ends (`unfoldingMotion`), and a card no longer
+  shown its drawing before, folding back (`leaving`).
+- `animation/cardMotions.svelte.ts`, the binding: `class CardMotions`
+  follows a block's drawing with an `$effect.pre` and, where the drawing
+  changes, sets the motion from the drawing before (the one other place a
+  state is written in an effect, as `Unfolding` sets its progress), then
+  runs a `Progress` from 0 to 1. Nothing moves for a block's first
+  drawing, an unchanged one, under reduced motion, or while the drawing is
+  a gesture's or a control's preview, which must lie where the pointer
+  puts it; a change during a motion starts from the drawing it replaces.
+  `BlockNode.svelte` places every element it holds by `placedOf`, letting
+  the pointer through while it moves, composes it with the raise on a
+  raised card, and draws the leaving cards after the block's rectangle.
 
 ## Maintenance and dependencies
 

@@ -34,7 +34,8 @@ have, the schema is changed first.
   its MatchClaim table), and `graphical`, the
   styling of its own drawing with the display orders of its groups, the
   band orders of its timelines, its named timestamps (groupstamps among
-  them) and its named MatchStamps. A manifest knows nothing about a canvas.
+  them), its named MatchStamps and its elisions, the stretches of
+  timelines its drawing leaves out. A manifest knows nothing about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
   `y`, `scale`, `length`, `spacing` (the gap between the items of its
   drawing), `margin` (the empty space above its first item and below its
@@ -86,9 +87,22 @@ or on a descendant of it that no member card below the root draws, where
 the root is in no group or is a member drawing an ancestor card itself
 (`raisedRoot`, the one decision that the drawn order, the pointer, the
 places of coordinates, the marquee and the focus all read, through one
-stacking, `stackingOf`). The inspector's button "Hide parent timelines"
-or "Show parent timelines", offered on the grouped child and everything
-under the same root, hides or shows it.
+stacking, `stackingOf`). The Properties tab's elision section hides it
+(the mode Hidden, a `display` of `none` on the root's cards) or chooses
+which elisions it draws.
+
+Elisions follow the containers. A **card elision**, on a timeline in no
+group, is drawn by the cards that draw its root whole, the root's own card
+where it is ungrouped and its ancestor cards; a **group elision**, on a
+timeline that lies in a group, is drawn across that group's frame, held by
+the frame, and carried into the ancestor cards behind it. Which elisions a
+card or a frame draws is a style property of that container
+(`elision-mode` and its companions, in one rule on the root's card address
+or on the frame's), never a setting of the workspace, so an export draws
+what the canvas shows ([`decisions/0035`](../decisions/0035-elision-modes-are-style-properties.md)).
+Layout records what each such container decides in `Drawing.elisions`,
+and the arranger's `cardAxis.ts` is the one map between its abscissas and
+the coordinates of its timelines.
 
 The code treats the four kinds through one model:
 
@@ -117,8 +131,10 @@ verbatim: any non-empty string without control characters, with no
 reserved word (TimeToShare's README, "Identity"). TiLiE never parses an ID,
 and names a timeline, group or manifest without a `name` by its whole ID.
 Where core creates an element itself (the first segment of an empty
-segment line), it mints `{prefix}_{N}` with the smallest `N` whose ID the
-manifest does not hold; a command that adds an element carries its ID.
+segment line, the default timestamps), it mints `{prefix}_{N}` with the
+smallest `N` whose ID the manifest does not hold; a command that adds an
+element carries its ID, except a named timestamp, an elision and a named
+MatchStamp, which core mints the same way.
 
 An address names anything a command can target, and it is an object,
 never a string composed from IDs: `{}` the workspace, `{block}` a block,
@@ -126,11 +142,13 @@ and `{block, id?, facet?, part?}` an element of the block's manifest, its
 members those of the manifest's own address (TimeToShare's drawing
 specification, section 2.2): `{block, id: X}` a timeline, group, measure
 map, conversion map, region, flow-control element, named timestamp (its
-wedge), named MatchStamp or alignment anchor (its line); `{block, id: T,
+wedge), named MatchStamp, alignment anchor (its line) or stored elision
+(every gap drawn of it); `{block, id: T, part: ["elision"]}` the gaps a
+card derives on `T`, which have no ID; `{block, id: T,
 facet: F}` the band drawing facet `F` of timeline `T`; `{block, id: T,
 part: ["card"]}` every card of `T`; `{block, part: ["name"]}` the
 manifest's title; and a part of an element its address with `start`,
-`end`, `name`, `label`, `id`, `coordinate` or `line` appended to `part`
+`name`, `label`, `id`, `coordinate`, `line` or `ellipsis` appended to `part`
 (a named timestamp's line, a groupstamp's across every frame drawing it
 included, is `{block, id: X, part: ["line"]}`). An element drawn more than
 once, a member's cards in several frames among them, keeps one address in
@@ -140,7 +158,7 @@ Two addresses are equal when they are equal as whole objects, and
 or a Svelte keyed block takes for it. Core's `resolveAddress(view,
 address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
-band, entry, measure map, timestamp, MatchStamp, anchor, part); a part
+band, entry, measure map, timestamp, elision, MatchStamp, anchor, part); a part
 names something only where it is drawn. Nothing reads an ID or an address out of
 a string. A statement has neither an ID nor an address: it is changed
 through the element holding it, by one `set` of that element's whole
@@ -195,7 +213,9 @@ through the element holding it, by one `set` of that element's whole
   and its fixtures pin the drawing; a rule the code applies that the
   specification does not state is a defect), then layout's element type,
   its band or module, its bounds in `geometry.ts`, its descriptors in the
-  writers, a hand-derived fixture beside the emitted ones.
+  writers, a hand-derived fixture beside the emitted ones. `pnpm draw`
+  (the writers' script, `AGENTS.md`) draws any manifest file to SVG and
+  TikZ as the fixtures are drawn, to look at a case before it becomes one.
 - **A new gesture**: a strategy in the arranger's `gestures/` for its
   `pointerGesture` engine (what a press takes, the value a point gives, the
   preview, the command on release) and a row property in the level table saying where it is
