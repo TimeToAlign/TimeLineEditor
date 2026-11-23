@@ -29,6 +29,7 @@ import {
   carriedGaps,
   exposedGap,
   type Stretch,
+  storedAncestorAxis,
 } from "../elisions.ts";
 import { layoutMember, layoutScope, type MemberLayout } from "../member.ts";
 import type { TextMeasure } from "../metrics.ts";
@@ -153,10 +154,29 @@ function behind(context: Context, block: Holder, items: readonly Item[], s0: num
   });
 }
 
-/** `R` laid out alone (section 8.8, step 1): the one ungrouped root of a block of nothing else, at `LA`. */
+/**
+ * `R` laid out alone (section 8.8, step 1): the one ungrouped root of a block of nothing else, at
+ * `LA`, without any gap.
+ */
 function alone(context: Context, block: Holder, at: Behind): MemberLayout {
   const laid: Context = { ...context, placement: { ...context.placement, length: at.LA } };
   return layoutMember(laid, at.ancestor.root, block, at.key, CARD_SPACING, 0, null);
+}
+
+/** `M`'s span on `R`'s axis, from `−ts` to `−ts + λ`: the protected span (section 8.9). */
+const protectedSpan = (at: Behind): Stretch => [at.below, add(at.below, at.lambda)];
+
+/**
+ * `R` laid out alone (`first`) on the gaps the ancestor-row distance `dr`
+ * reads (section 8.3): the gaps carried from its frame and, where the card's
+ * mode is `custom`, its stored card elisions, whose label stacks widen its
+ * markers bands; never the elisions it derives, which depend on its
+ * proportion. `first` itself where there is no such gap.
+ */
+function rowsAlone(first: MemberLayout, at: Behind): MemberLayout {
+  const carried = carriedGaps(at.item.elisions, at.ts, at.lambda);
+  const axis = storedAncestorAxis(first.scope, at.style, protectedSpan(at), carried);
+  return axis === undefined ? first : layoutScope(withAxis(first.scope, axis), at.key, undefined);
 }
 
 /** The ordinates of the lines of `R`'s timelines in its drawing alone, by timeline ID (section 8.8, step 1). */
@@ -176,9 +196,9 @@ function ordinatesOf(layout: MemberLayout): Map<string, number> {
  * alone (section 8.3): for every displayed ancestor card whose root's line
  * is drawn and whose target line is drawn in its member's card, at the
  * block's columns `columns`, the ordinates of its root's timelines in its
- * drawing alone, for each member card of that frame below that root; and
- * those drawings alone, by the ancestor card's place key, which
- * `ancestorCards` reads again.
+ * drawing alone on the gaps `dr` reads (`rowsAlone`), for each member card
+ * of that frame below that root; and those drawings alone without any gap,
+ * by the ancestor card's place key, which `ancestorCards` reads again.
  */
 export function alignedRows(
   context: Context,
@@ -199,7 +219,7 @@ export function alignedRows(
     const layout = alone(context, block, at);
     layouts.set(placeKeyText(at.key), layout);
     if (target === undefined || !layout.scope.rootEntry.drawn) continue;
-    const ordinates = ordinatesOf(layout);
+    const ordinates = ordinatesOf(rowsAlone(layout, at));
     for (const each of at.item.cards) {
       const below = each.member.ancestors[0]?.timeline.id === R.id;
       if (below && each.ref.key !== null) aligned.set(placeKeyText(each.ref.key), ordinates);
@@ -258,7 +278,7 @@ export function ancestorCards(
     // Its elisions (section 8.9): the gaps carried from its frame, then by its mode its stored card
     // elisions or the derived ones, none in `M`'s span, the protected span.
     const L = item.length;
-    const protect: Stretch = [below, add(below, lambda)];
+    const protect = protectedSpan(at);
     const chain = member.ancestors.map((each) => each.timeline.id);
     const elisions = ancestorElisions(
       first.scope,

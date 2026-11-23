@@ -1339,10 +1339,19 @@ rectangle being its extent whether it is filled or not.
    `elision_1` (natural 150, drawn the standard 32) and `elision_2`
    (`66.66666666666666`, drawn `33.33333333333333`); its last run's shrink
    is `DG = 151.33333333333331`, so `voice`'s line ends at `x0 + (400 −
-   DG)`, `x0` the exposure's start. The elided coordinates on every member:
-   `elision_1` `excerpt` 2–8, `voice` 3–12, `sketch` none (unknown
-   length); `elision_2` `excerpt` 28/3–12, `voice` 14–18 (exact: `7/12` and
-   `3/4` of 24), `sketch` none. `elision_1`'s label stack, `Development`
+   DG)`, `x0` the exposure's start. The elided coordinates are listed on
+   every timeline a member card draws whose span holds the gap's stretch
+   (section 8.9, Group elisions: the positions at the gap's proportions of
+   each member's length, less the timeline's start on the member's axis,
+   written in its number type as a groupstamp's coordinate there), card by
+   card in display order, each card's member first, then its tree's other
+   timelines in traversal order, then its ancestor lines from its parent
+   up. `elision_1` (`1/8` to `1/2`): `excerpt` 2–8, `piece` 18–24 (`excerpt`
+   starts at 16 on `piece`), `voice` 3–12, `sketch` none (unknown length);
+   `phrase` (12–20 on `voice`) does not hold 3–12 and is not listed.
+   `elision_2` (`7/12` to `3/4`, exact): `excerpt` 28/3–12, `piece`
+   76/3–28, `voice` 14–18, `phrase` 2–6 (14–18 less its offset 12),
+   `sketch` none. `elision_1`'s label stack, `Development`
    and `2–8 ♩`, is drawn once (in `excerpt`'s markers band of the frame);
    `elision_2` draws no label. Its gap's ellipses lie on every row of the
    three cards that crosses it: `elision_1` on `piece`'s ancestor line and
@@ -1357,6 +1366,13 @@ rectangle being its extent whether it is filled or not.
    `elision_1` and `elision_2` (origin `carried`, the frame's natural and
    drawn widths taken: 150 and 32, `66.66666666666666` and
    `33.33333333333333`), `piece` 33–47; the carried gaps draw no label.
+   A carried gap lies over `−ts + p × λ` to `−ts + q × λ` on `piece`'s
+   fraction axis, `p` and `q` the exact quotients (section 8.9, Carried
+   gaps), so it is exact: `ts = −16`, `λ = 16`, `elision_1` `16 + 1/8 × 16
+   = 18` to `16 + 1/2 × 16 = 24`, `elision_2` `16 + 7/12 × 16 = 76/3` to
+   `16 + 3/4 × 16 = 28` (not the doubles `0.5833333333333334 × 16`). So
+   `piece`'s line in the card is drawn in five runs, one axis each, every
+   end exact: 0–1, 15–18, 24–76/3, 28–33 and 47–48.
 5. **Stored elisions** (`bundle_elisions_stored`). `score`'s ancestor card
    draws, under `auto` read as `custom`: `elision_4` clipped to 0–16
    (natural 800, drawn 400, `{ratio: 0.5}`), the carried `elision_3`
@@ -1370,7 +1386,21 @@ rectangle being its extent whether it is filled or not.
    natural 80, drawn 32, on `theme` 0–8/5. `page`'s ungrouped card draws
    `elision_2` (natural `263.169897377423`, the standard 32) with its labels
    `Appendix` and `600–1 754 px`. `score`'s line in its card is drawn in two
-   runs, from 17.6 (the carried gap's end) to 32 and from 56 to 64.
+   runs, one axis each, from 88/5 to 32 and from 56 to 64: the carried gap
+   of `elision_3` ends at `16 + 1/5 × 8 = 88/5` exactly (`1/5` the exact
+   quotient of 2.0 and 10.0, `−ts = 16`, `λ = 8` of `theme`), the run 16–16
+   before it and 48–48 between `elision_5` and `elision_6` having no
+   length. `session`'s card lies on a float axis: its carried gap lies over
+   `30.0 + 0.0 × 25.5 = 30.0` to `30.0 + 0.2 × 25.5 = 35.1` in binary64
+   (`1/5` converted to the double 0.2, section 3.1), and its line's two
+   runs are the doubles 0–30 and 35.1–90. The gap's elided coordinates
+   across the frame, card by card (`theme`, `take`, `recording`): `theme`
+   0–8/5 and its ancestor `score` 16–88/5 (fraction); `take` 0–5.1 (`1/5
+   × 25.5 = 51/10`, its nearest double) and its ancestor `session` 30–35.1
+   (`51/10 + 30`, its nearest double); `recording` 0–2, the elision's own
+   stretch. `elision_1` lies first in canonical order (on `coda`, 56–64 on
+   `score`) and is not drawn, so it takes nothing from the elisions after
+   it (point 11); `elision_6` is clipped by `elision_5` alone.
 6. **Modes** (section 8.9, Modes), by a layer of one rule on `{id: piece,
    part: [card]}` over `group_elided_inside`: `elision-mode: full` draws no
    gap (resolved `full`); `custom` none, no card elision being stored;
@@ -1397,6 +1427,46 @@ rectangle being its extent whether it is filled or not.
    `group_elided_inside`, the member card's ancestor lines of `first` and
    `piece` lie at the ordinates of `first`'s and `piece`'s lines in the
    ancestor card behind.
+10. **The row distance counts a stored card elision's labels** (section
+   8.3, `dr`). `group_grandchild` with one more elision added by core's
+   `add` into `movement`: `elision_1` from 1 to 6, named `Intro`, `display
+   [ellipsis, name]`. `movement` lies in no group, so it is a card elision
+   of `score`; the ancestor card of `score` behind `group_1` (aligned to
+   `theme`: `ts = −24`, `λ = 8`, `LA = 400 × 64 / 8 = 3200`, 50 per
+   quarter) reads `auto` as `custom` and draws it over `score` 17–22,
+   outside the protected span 24–32: natural `5 × 50 = 250`, the standard
+   gap 32, `r = 1`. Its label stack, one line, stands in `movement`'s
+   markers band below `movement`'s line, between `movement`'s row and
+   `score`'s line in `score`'s drawing. With nothing on it the row of
+   `movement` reaches its outer half `7` below its line; with the stack it
+   reaches `w / 2 + 13 + 2 + h(9) = 1.5 + 13 + 2 + 10.4765625 =
+   26.9765625`, so in `score`'s drawing alone, laid out on that stored
+   gap, `movement`'s line lies `26.9765625 + 7 = 33.9765625` above
+   `score`'s, not 14: `dr = 33.9765625`. In `theme`'s card (its top
+   32.8046875, its line 47.20703125, the ancestor band from `c0 =
+   30.9765625`, "Ancestor lines") `movement`'s row lies at `47.20703125 +
+   30.9765625 + 7 = 85.18359375`, `score`'s `Δ1 = max(33.9765625, 7 + 7) =
+   33.9765625` beyond, at 119.16015625; the band is `7 + 33.9765625 + 7 =
+   47.9765625` wide, so the card is `14.40234375 + 30.9765625 + 47.9765625
+   + 8 = 101.35546875` high. The ancestor card lies with `score`'s line on
+   that row, 119.16015625, and draws `movement`'s row 33.9765625 above it,
+   at 85.18359375: each of the two rows at its height in the member card.
+   (Laid out without the stored gap, `dr` would be 14, `score`'s row in
+   `theme`'s card would lie at 99.18359375 and the card's row of `movement`
+   at `99.18359375 − 33.9765625`, off the member card's.)
+11. **An elision that is not drawn takes nothing** (section 8.9, Pieces).
+   Card elisions: `group_grandchild` with two elisions added into `score`,
+   `elision_1` 0–12 and `elision_2` 4–14 (canonical order: `elision_1`
+   first), `elision_1` hidden by a layer `{addresses: [{id: elision_1}]}`
+   `display: none`: the ancestor card of `score` draws `elision_2` whole,
+   4–14 on `score`, natural `10 × 50 = 500`, the standard gap 32; were
+   `elision_1` to take 0–12, `elision_2` would be clipped to 12–14 (natural
+   100). Group elisions: `group_elided_members` with `elision_3` added into
+   `voice`, 0–12 (proportions 0 to `1/2`), `elision_1` (on `excerpt`,
+   `1/8` to `1/2`, first in canonical order) hidden likewise: the frame
+   draws `elision_3` whole, `voice` 0–12, natural `400 × 0.5 = 200`,
+   drawn 32, then `elision_2`; were `elision_1` to take `1/8` to `1/2`,
+   `elision_3` would be clipped to 0–3 (natural 50).
 
 ## Region braces cut at gaps (`region-cuts.test.ts`)
 

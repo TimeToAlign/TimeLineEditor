@@ -23,6 +23,7 @@ import {
   Rational,
   type Real,
   toFloat,
+  toRational,
 } from "@timetoalign/tilie-core/numbers";
 import type { NumberType } from "@timetoalign/timetoshare";
 import { isJsonFloat } from "@timetoalign/timetoshare";
@@ -44,6 +45,7 @@ import {
   add,
   coordinateText,
   coordinateValue,
+  lengthValue,
   negate,
   proportion,
   times,
@@ -156,6 +158,42 @@ export function atProportion(p: number, lambda: Real): Real {
   return typeof lambda === "number" ? p * lambda : fromFloat(p).multiply(lambda);
 }
 
+/**
+ * The exact proportion `t / λ` (section 8.9, Carried gaps), each operand at
+ * its exact value (a float's exact binary value), clipped to `[0, 1]`; 0 when
+ * `λ` is 0, as section 3.2 forms a proportion.
+ */
+function exactProportion(t: Real, lambda: Real): Rational {
+  const zeroValue = Rational.of(0n);
+  const length = toRational(lambda);
+  if (compareReal(length, zeroValue) === 0) return zeroValue;
+  const quotient = toRational(t).divide(length);
+  if (compareReal(quotient, zeroValue) < 0) return zeroValue;
+  const one = Rational.of(1n);
+  return compareReal(quotient, one) > 0 ? one : quotient;
+}
+
+/**
+ * The product of an exact proportion and `λ` as section 3.1 combines values:
+ * exact where `λ` is exact, else the proportion converted to the nearest
+ * double and multiplied in binary64.
+ */
+function scaled(p: Rational, lambda: Real): Real {
+  return typeof lambda === "number" ? toFloat(p) * lambda : p.multiply(lambda);
+}
+
+/**
+ * An exact value written in `numberType` as a coordinate on a timeline of it
+ * is (section 2): the exact value on a `fraction` axis, the integer nearest
+ * it on an `int` axis (ties to even), the double nearest it on a `float`
+ * axis.
+ */
+function writtenIn(value: Rational, numberType: NumberType): Real {
+  if (numberType === "fraction") return value;
+  if (numberType === "int") return Rational.fromParts(roundHalfEven(value), 1n);
+  return toFloat(value);
+}
+
 /** A label of a gap: its element's key, style and text, measured and cut to its `max-width`. */
 export interface GapLabel {
   readonly word: LabelWord;
@@ -198,6 +236,12 @@ export interface Gap {
   /** The proportions of its ends. */
   readonly ua: number;
   readonly ub: number;
+  /**
+   * A frame's gap: the exact proportions of its ends (section 8.9, Carried gaps), each the exact
+   * quotient of the stretch's end on its member's axis and that member's length or reach (a
+   * float at its exact binary value), clipped to `[0, 1]`; absent on a card's gap.
+   */
+  readonly exact?: readonly [Rational, Rational];
   /** Its natural width `n`, drawn width `g` and shrink `n − g`. */
   readonly n: number;
   readonly g: number;
@@ -239,6 +283,7 @@ interface Placing {
   readonly b: Real;
   readonly ua: number;
   readonly ub: number;
+  readonly exact?: readonly [Rational, Rational];
   readonly n: number;
   readonly g: number;
   readonly entry: Entry | undefined;
@@ -454,8 +499,9 @@ interface CardPiece {
  * The pieces of the stored card elisions a card draws under `custom` (section
  * 8.9, Pieces), in canonical order: each drawn where its gap is displayed and
  * its timeline is drawn, what of its stretch lies outside the protected span
- * `protect` and outside every piece taken before it, each at the width its
- * `width` sets as if whole.
+ * `protect` and outside every piece drawn before it, each at the width its
+ * `width` sets as if whole. An elision that is not drawn takes nothing from
+ * the elisions after it.
  */
 function storedPieces(
   scope: Scope,
@@ -481,8 +527,9 @@ function storedPieces(
         storedTexts(elision, timeline, start, end),
         { origin: "stored", start, end, um: scope.u(midpointOf(a, b)), framed: false },
       );
-      taken.push([a, b]);
+      // A piece that is not drawn takes nothing from the pieces after it.
       if (!entry.drawn || !shown(source.style)) continue;
+      taken.push([a, b]);
       pieces.push({ source, a, b, width: (n) => drawnWidth(width, n, L, lambda), entry });
     }
   }
@@ -675,6 +722,45 @@ export function ancestorElisions(
       : asked.filter((depth) => depth >= 1 && depth <= chain.length);
   const stated = style["elision-proportion"];
   const automatic = stated === "auto";
+  let pieces: CardPiece[] = [];
+  let r = 1;
+  if (mode === "custom") pieces = storedPieces(scope, stored, protect);
+  if (mode === "proportional") {
+    r = automatic ? proportionOf() : stated;
+    if (r < 1)
+      pieces = derivedGaps(scope, derivedPieces(scope, protect, chain, depths), r, display);
+  }
+  const axis = ancestorAxis(scope, pieces, carried);
+  return { mode, proportion: r, automatic, depths, display, axis };
+}
+
+/**
+ * The gaps of an ancestor card that its proportion does not decide (section
+ * 8.3): the gaps `carried` from its frame and, where its mode is `custom`,
+ * the pieces of its stored card elisions around the protected span
+ * `protect`; never the elisions it derives. The ancestor-row distance `dr`
+ * reads the card's root laid out alone on this axis, so it counts the label
+ * stacks of the stored card elisions the card draws and of no derived one.
+ * Undefined where there is no such gap.
+ */
+export function storedAncestorAxis(
+  scope: Scope,
+  style: Style,
+  protect: Stretch,
+  carried: readonly CarriedGap[],
+): CardAxis | undefined {
+  const stored = cardElisionsOf(scope);
+  const custom = drawnMode(style, stored.length > 0) === "custom";
+  return ancestorAxis(scope, custom ? storedPieces(scope, stored, protect) : [], carried);
+}
+
+/** The axis of an ancestor card's own pieces and its carried gaps; undefined without either. */
+function ancestorAxis(
+  scope: Scope,
+  pieces: readonly CardPiece[],
+  carried: readonly CarriedGap[],
+): CardAxis | undefined {
+  if (pieces.length === 0 && carried.length === 0) return undefined;
   const placedCarried = carried.map(
     ({ gap, a, b }): Placing => ({
       source: gap.source,
@@ -687,19 +773,7 @@ export function ancestorElisions(
       entry: undefined,
     }),
   );
-  let pieces: CardPiece[] = [];
-  let r = 1;
-  if (mode === "custom") pieces = storedPieces(scope, stored, protect);
-  if (mode === "proportional") {
-    r = automatic ? proportionOf() : stated;
-    if (r < 1)
-      pieces = derivedGaps(scope, derivedPieces(scope, protect, chain, depths), r, display);
-  }
-  const axis =
-    pieces.length === 0 && placedCarried.length === 0
-      ? undefined
-      : cardAxisOf(scope, pieces, placedCarried);
-  return { mode, proportion: r, automatic, depths, display, axis };
+  return cardAxisOf(scope, pieces, placedCarried);
 }
 
 /** The gaps of derived pieces at the proportion `r`, each with its middle left out. */
@@ -794,8 +868,64 @@ export interface FrameElisions {
   readonly total: number;
   /** The frame's axis read by the member drawn in `scope`. */
   viewOf(scope: Scope): CardAxis;
-  /** The elided coordinates of each gap on each member, top first (`ExposedGap.members`). */
+  /**
+   * The elided coordinates of each gap on every timeline the member cards draw (`ExposedGap.members`),
+   * card by card, top first (`elidedOnCard`).
+   */
   membersOf(gap: Gap): ExposedGap["members"];
+}
+
+/**
+ * The elided coordinates of a frame's gap at the exact proportions `p` and
+ * `q` on the timelines the card of the member drawn in `scope` draws
+ * (section 8.9, Group elisions): the member, then the other timelines of its
+ * tree drawn in the card in traversal order, then its displayed ancestor
+ * lines from its parent up to its root. On the member they are the exact
+ * products of `p` and `q` and its length, a float at its exact binary value;
+ * on another timeline those positions less its start on the member's axis.
+ * Each is written in its timeline's number type as a groupstamp's coordinate
+ * there is (section 2). A timeline other than the member is listed where its
+ * span, its ends included, holds both, as a row crossing the gap does
+ * (section 6.6); an ancestor of unknown length has no end. Without a value
+ * (`valueless`: the member's length or that of the member holding the
+ * elision is not known), every listed timeline has none.
+ */
+function elidedOnCard(
+  scope: Scope,
+  p: Rational,
+  q: Rational,
+  valueless: boolean,
+): ExposedGap["members"] {
+  const { member, rootEntry, entries, cascade } = scope;
+  const length = toRational(scope.lambda);
+  const from = p.multiply(length);
+  const to = q.multiply(length);
+  const holds = (start: Rational, end: Rational | null) =>
+    compareReal(start, from) <= 0 && (end === null || compareReal(to, end) <= 0);
+  const listed = (timeline: TimelineManifest, start: Rational) => ({
+    timeline: timeline.id,
+    start: valueless ? null : writtenIn(from.subtract(start), timeline.number_type),
+    end: valueless ? null : writtenIn(to.subtract(start), timeline.number_type),
+  });
+  const tree = entries.flatMap((entry) => {
+    const start = toRational(entry.start);
+    if (entry === rootEntry) return [listed(entry.manifest, start)];
+    return entry.drawn && holds(start, toRational(entry.end))
+      ? [listed(entry.manifest, start)]
+      : [];
+  });
+  // Each ancestor's start on the member's axis: the offsets from it down to the member, negated.
+  let below = Rational.of(0n);
+  const ancestors = [...member.ancestors].reverse().flatMap(({ timeline, offset }) => {
+    below = below.add(toRational(coordinateValue(offset, timeline.number_type)));
+    const start = Rational.of(0n).subtract(below);
+    const own = lengthValue(timeline);
+    const end = own === null ? null : start.add(toRational(own));
+    const key = elementKey("ancestor", idAddress(timeline.id), timeline, rootEntry.key);
+    const shownLine = rootEntry.drawn && shown(cascade.resolve(key, rootEntry.style));
+    return shownLine && holds(start, end) ? [listed(timeline, start)] : [];
+  });
+  return [...tree, ...ancestors];
 }
 
 /**
@@ -805,9 +935,15 @@ export interface FrameElisions {
  * frame, while the frame's `elision-mode` is `auto` or `custom`. Each
  * elision's stretch, carried to the axis of the member `M` it lies under,
  * becomes the proportions `[p, q]` of `M`'s length or reach, clipped to `[0,
- * 1]`; each draws what of its stretch lies outside every piece before it, at
- * the natural width `n = L × q − L × p` and the drawn width its `width` sets
- * (`span` read with `M`'s length). Undefined where it draws no gap.
+ * 1]`; each draws what of its stretch lies outside every piece drawn before
+ * it, at the natural width `n = L × q − L × p` and the drawn width its
+ * `width` sets (`span` read with `M`'s length); an elision that is not drawn
+ * takes nothing from the elisions after it. Each gap carries the exact
+ * proportions of its ends (`Gap.exact`): an end of the elision's own
+ * stretch is the exact quotient, clipped exactly; an end where an earlier
+ * piece cut it is that piece's exact end, so the gaps carried into an
+ * ancestor card meet exactly where the frame's meet. Undefined where it
+ * draws no gap.
  */
 export function frameElisions(
   members: readonly FrameMember[],
@@ -821,13 +957,14 @@ export function frameElisions(
   const mode = drawnMode(holder.style, true);
   if (mode !== "custom") return undefined;
   const { ancestry } = indexOf(manifest);
-  const taken: [number, number][] = [];
-  // Each piece with the member it lies under, its timeline there, and its proportions exact where
-  // both the piece's ends and that member's length are, read as a groupstamp's coordinates are.
+  // The pieces drawn so far, by their proportions as doubles and exactly.
+  const taken: { p: number; q: number; P: Rational; Q: Rational }[] = [];
+  // Each piece with the member it lies under, its timeline there, and whether it is its
+  // elision's whole stretch.
   const placing: (Placing & {
     readonly owner: Scope;
     readonly entry: Entry;
-    readonly exact: readonly [Real, Real];
+    readonly whole: boolean;
   })[] = [];
   for (const elision of manifest.graphical?.elisions ?? []) {
     const holding = groupsHolding(manifest, elision.timeline, ancestry) ?? [];
@@ -843,9 +980,14 @@ export function frameElisions(
     const clamp = (value: number) => Math.min(1, Math.max(0, value));
     const p0 = clamp(owner.u(own(elision.start)));
     const q0 = clamp(owner.u(own(elision.end)));
+    const P0 = exactProportion(own(elision.start), owner.lambda);
+    const Q0 = exactProportion(own(elision.end), owner.lambda);
     const width = widthOf(elision, timeline);
-    for (const [p, q] of outsideProportions(p0, q0, taken)) {
-      taken.push([p, q]);
+    for (const [p, q] of outsideProportions(
+      p0,
+      q0,
+      taken.map((piece) => [piece.p, piece.q] as const),
+    )) {
       const whole = p === owner.u(own(elision.start)) && q === owner.u(own(elision.end));
       const onTimeline = (proportionValue: number) =>
         difference(atProportion(proportionValue, owner.lambda), entry.start);
@@ -860,15 +1002,13 @@ export function frameElisions(
         storedTexts(elision, timeline, start, end),
         { origin: "stored", start, end, um: (p + q) / 2, framed: true },
       );
+      // A piece that is not drawn takes nothing from the pieces after it.
       if (!entry.drawn || !shown(source.style)) continue;
+      // An end that is not the elision's own lies where an earlier piece ends or starts.
+      const P = p === p0 ? P0 : (taken.find((piece) => piece.q === p)?.Q ?? fromFloat(p));
+      const Q = q === q0 ? Q0 : (taken.find((piece) => piece.p === q)?.P ?? fromFloat(q));
+      taken.push({ p, q, P, Q });
       const n = L * q - L * p;
-      // A float at its exact binary value, as a groupstamp's coordinates are read (section 2).
-      const rational = (value: Real) => (typeof value === "number" ? fromFloat(value) : value);
-      const exactOf = (value: Real, double: number): Real =>
-        whole && compareReal(owner.lambda, 0) !== 0
-          ? rational(value).divide(rational(owner.lambda))
-          : double;
-      const exact = [exactOf(own(elision.start), p), exactOf(own(elision.end), q)] as const;
       const wanted =
         width === null
           ? STANDARD_GAP
@@ -883,11 +1023,12 @@ export function frameElisions(
         b: q,
         ua: p,
         ub: q,
+        exact: [P, Q],
         n,
         g: wanted > n ? n : wanted,
         owner,
         entry,
-        exact,
+        whole,
       });
     }
   }
@@ -928,19 +1069,15 @@ export function frameElisions(
   };
   const membersOf = (gap: Gap): ExposedGap["members"] => {
     const placed = placing.find((each) => each.source === gap.source);
-    if (placed === undefined || placed.owner.rootEntry.open) {
-      return members.map(({ scope }) => ({ timeline: scope.root.id, start: null, end: null }));
-    }
-    const at = (proportionValue: Real, lambda: Real): Real =>
-      (typeof proportionValue === "number" ? fromFloat(proportionValue) : proportionValue).multiply(
-        typeof lambda === "number" ? fromFloat(lambda) : lambda,
-      );
-    const [p, q] = placed.exact;
-    return members.map(({ scope }) => ({
-      timeline: scope.root.id,
-      start: scope.rootEntry.open ? null : at(p, scope.lambda),
-      end: scope.rootEntry.open ? null : at(q, scope.lambda),
-    }));
+    // A whole piece at the exact quotients, any other at its doubles' exact binary values.
+    const [p, q] =
+      placed?.whole === true && gap.exact !== undefined
+        ? gap.exact
+        : [fromFloat(gap.ua), fromFloat(gap.ub)];
+    const valueless = placed === undefined || placed.owner.rootEntry.open;
+    return members.flatMap(({ scope }) =>
+      elidedOnCard(scope, p, q, valueless || scope.rootEntry.open),
+    );
   };
   return {
     mode,
@@ -956,8 +1093,9 @@ export function frameElisions(
  * The gaps of the frame `frame` carried into the ancestor card of a root
  * that starts at `ts` on the axis of the member it is aligned to, of length
  * or reach `lambda` (section 8.9, Carried gaps): each over the root's
- * stretch `−ts + p × λ` to `−ts + q × λ`, combined as section 3.1 combines
- * values, with the frame's widths.
+ * stretch `−ts + p × λ` to `−ts + q × λ`, `p` and `q` the exact proportions
+ * of the frame's gap, exact on an exact axis and combined as section 3.1
+ * combines values on a float one, with the frame's widths.
  */
 export function carriedGaps(
   frame: FrameElisions | undefined,
@@ -965,13 +1103,16 @@ export function carriedGaps(
   lambda: Real,
 ): CarriedGap[] {
   if (frame === undefined) return [];
-  const toDouble = (value: Real) => (typeof value === "number" ? value : toFloat(value));
-  const at = (p: number) => add(negate(ts), p * toDouble(lambda));
-  return frame.gaps.map((gap) => ({
-    gap: { ...gap, source: { ...gap.source, origin: "carried", labels: [], framed: false } },
-    a: at(gap.ua),
-    b: at(gap.ub),
-  }));
+  const at = (p: Rational) => add(negate(ts), scaled(p, lambda));
+  return frame.gaps.map((gap) => {
+    if (gap.exact === undefined) throw new Error("a frame's gap holds its exact proportions");
+    const [p, q] = gap.exact;
+    return {
+      gap: { ...gap, source: { ...gap.source, origin: "carried", labels: [], framed: false } },
+      a: at(p),
+      b: at(q),
+    };
+  });
 }
 
 /** A row of a card that a gap may cross (section 6.6): its ordinate and its span. */
