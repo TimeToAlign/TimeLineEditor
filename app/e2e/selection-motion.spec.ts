@@ -9,6 +9,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { PANE_SETTLE } from "../packages/arranger/src/pane.ts";
 import type { Address } from "../packages/core/src/index.ts";
 import type { Handle, ResizeMode, Viewport } from "./support.ts";
 import {
@@ -80,22 +81,31 @@ async function resize(page: Page, mode: ResizeMode, handle: Handle, dx: number, 
 
 /**
  * Open the editor of `target` through the hook and wait until the view has
- * stopped moving there; the viewport it settled at.
+ * stopped moving there; the viewport it settled at. The drawer opening with
+ * the editor narrows the canvas, whose pane settles `PANE_SETTLE` later: the
+ * drawings are then drawn again for it and the edited element centred again
+ * on its new drawing. So the view counts as settled once two readings
+ * `2 × PANE_SETTLE` apart agree, the first taken after the view has moved.
  */
 async function openSettled(page: Page, target: Address): Promise<Viewport> {
   const before = await viewportOf(page);
   expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
   await expect.poll(() => viewportOf(page)).not.toEqual(before);
-  let last = await viewportOf(page);
+  let last: string | null = null;
+  let settled = before;
   await expect
-    .poll(async () => {
-      const now = await viewportOf(page);
-      const still = JSON.stringify(now) === JSON.stringify(last);
-      last = now;
-      return still;
-    })
+    .poll(
+      async () => {
+        settled = await viewportOf(page);
+        const now = JSON.stringify(settled);
+        const still = now === last;
+        last = now;
+        return still;
+      },
+      { intervals: [2 * PANE_SETTLE] },
+    )
     .toBe(true);
-  return last;
+  return settled;
 }
 
 test.describe("the selection", () => {
