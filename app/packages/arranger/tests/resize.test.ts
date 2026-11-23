@@ -189,7 +189,7 @@ describe("resize: stretch", () => {
       { length: 420, spacing: 16, width: 1094.654296875, height: 536.328125 },
     ],
     ["bare, length 500, width 496.58", "right", 20, 0, { length: 520, width: null }],
-    ["child member, width 600", "right", 50, 0, { length: 446.158203125, width: 650 }],
+    ["child member, width 600", "right", 50, 0, { length: 446.134765625, width: 650 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "stretch", handle, dx, dy)).toStrictEqual(expected);
   });

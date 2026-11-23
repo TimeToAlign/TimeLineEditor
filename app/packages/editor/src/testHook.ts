@@ -5,7 +5,7 @@
  * contains none of it.
  */
 
-import type { ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
+import type { Pane, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
 import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { Health } from "@timetoalign/tilie-client";
 import type {
@@ -135,11 +135,14 @@ export function hookBands(drawing: Drawing, box: ClientBox): HookBand[] {
   );
 }
 
-/** The drawing the canvas shows for block `block` of `view`; a `RangeError` for a block it does not hold. */
-function drawingIn(view: View, block: BlockId): Drawing {
+/**
+ * The drawing the canvas shows for block `block` of `view`, drawn at the
+ * canvas's `pane`; a `RangeError` for a block it does not hold.
+ */
+function drawingIn(view: View, block: BlockId, pane?: Pane): Drawing {
   const found = view.blocks[block];
   if (found === undefined) throw new RangeError(`${block} is no block of the open workspace`);
-  return drawingOf(found, view.graphical, fontMetrics);
+  return drawingOf(found, view.graphical, fontMetrics, undefined, pane);
 }
 
 /**
@@ -148,8 +151,8 @@ function drawingIn(view: View, block: BlockId): Drawing {
  * drawn address names is read from the drawing's own records. Throws a
  * `RangeError` for a block `view` does not hold.
  */
-export function boxesOf(view: View, block: BlockId): HookBox[] {
-  return drawingIn(view, block).boxes.map(({ kind, address, key, holder, displayed }) => ({
+export function boxesOf(view: View, block: BlockId, pane?: Pane): HookBox[] {
+  return drawingIn(view, block, pane).boxes.map(({ kind, address, key, holder, displayed }) => ({
     kind,
     address,
     key,
@@ -165,8 +168,8 @@ export function boxesOf(view: View, block: BlockId): HookBox[] {
  * `RangeError` for a block `view` does not hold, and an `Error` while the
  * block's drawing is not on the page, since nothing places it then.
  */
-export function bandsOf(view: View, block: BlockId): HookBand[] {
-  const drawing = drawingIn(view, block);
+export function bandsOf(view: View, block: BlockId, pane?: Pane): HookBand[] {
+  const drawing = drawingIn(view, block, pane);
   const node = [...document.querySelectorAll(".svelte-flow__node[data-id]")].find(
     (element) => element.getAttribute("data-id") === block,
   );

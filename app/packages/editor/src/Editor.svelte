@@ -16,7 +16,7 @@ import type {
   TransientCommand,
   Viewport,
 } from "@timetoalign/tilie-arranger";
-import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
+import { Canvas, isTextInput, Pane, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health, Server } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
 import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
@@ -52,6 +52,7 @@ import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { TimeLineEditorOptions } from "./options.ts";
+import { providePane } from "./pane.ts";
 import { Picking, providePicking } from "./pick.svelte.ts";
 import ProfilesDialog from "./profiles/ProfilesDialog.svelte";
 import { ProfilesState, provideProfiles } from "./profiles/profiles.svelte.ts";
@@ -124,6 +125,13 @@ provideWarn((text) => messages.warn(text));
 let transient: TransientCommand | null = $state.raw(null);
 provideTransient((shown) => (transient = shown));
 
+/**
+ * The canvas's pane, which the canvas measures: every drawing the editor reads
+ * beside the canvas (the inspector's, an import's place) is drawn at it.
+ */
+const pane = new Pane();
+providePane(pane);
+
 // --- The user, the type profiles and the lookup ---------------------------------
 
 /** The one user: the viewer's own, read from storage once, at mount; never written to the workspace. */
@@ -187,6 +195,7 @@ const session = new WorkspaceSession({
   matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
   files: () => fileHost,
+  pane,
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -643,8 +652,8 @@ if (withTestHook) {
     open: (address) => session.store.open(address),
     done: () => session.store.done(),
     cancel: () => session.store.cancel(),
-    bands: (block) => bandsOf(session.store.view, block),
-    boxes: (block) => boxesOf(session.store.view, block),
+    bands: (block) => bandsOf(session.store.view, block, pane),
+    boxes: (block) => boxesOf(session.store.view, block, pane),
   };
   $effect(() => installTestHook(hook));
 }
@@ -679,6 +688,7 @@ if (withTestHook) {
         bind:this={canvas}
         live={session.live}
         metrics={fontMetrics}
+        {pane}
         bind:selection={session.selection}
         bind:locked
         bind:mode

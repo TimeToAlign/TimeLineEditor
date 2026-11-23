@@ -15,7 +15,7 @@
  * downloads serve (`files.ts`).
  */
 
-import type { LiveStore, Selection } from "@timetoalign/tilie-arranger";
+import type { LiveStore, Pane, Selection } from "@timetoalign/tilie-arranger";
 import {
   addCommand,
   blockOf,
@@ -150,6 +150,8 @@ export interface SessionOptions {
    * never.
    */
   readonly files?: () => FileHost | null;
+  /** The canvas's pane, which a new block is placed by as the canvas draws it; without it, layout's default view. */
+  readonly pane?: Pane;
 }
 
 /** Whether two selections name the same addresses. */
@@ -701,7 +703,7 @@ export class WorkspaceSession {
     const id = mintBlockId();
     const manifest = importedManifest(read.manifest);
     const refusal = this.store.dispatch(
-      addCommand(this.store.view, id, manifest, visible, metrics),
+      addCommand(this.store.view, id, manifest, visible, metrics, this.#options.pane),
     );
     if (refusal !== null) {
       this.#options.warn(`${name} could not be added.`, [refusal]);

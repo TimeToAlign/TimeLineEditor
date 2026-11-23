@@ -764,12 +764,9 @@ describe("a root drawn once behind a row side by side", () => {
     expect(read?.mode).toBe("proportional");
   });
 
-  it("lists the arrangement's seams and gap read-only", () => {
+  it("lists the arrangement's gap read-only, and no seam", () => {
     const store = storeOf(ARRANGED);
-    expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([
-      ['between "Exposition" and "Development"', "seam at 16 ♩"],
-      ['between "Development" and "Recapitulation"', "seam at 32 ♩"],
-    ]);
+    expect(arrangedOf(arrangedRoot(store, { id: "development" }))).toEqual([]);
     expect(arrangedOf(arrangedRoot(store, { id: "take_b" }))).toEqual([
       ['between "Exposition" and "Recapitulation"', "33″–44″"],
     ]);
@@ -859,7 +856,7 @@ describe("a root drawn once behind a row side by side", () => {
     expect(free).toEqual([
       ["group_1", 0.5],
       ["group_2", 0.29],
-      ["group_3", 0.5],
+      ["group_3", 0.34211419677734367],
     ]);
     const root = arrangedRoot(store, { id: "recapitulation" });
     expect(root?.proportional?.automatic).toBe(true);

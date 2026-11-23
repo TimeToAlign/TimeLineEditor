@@ -10,7 +10,7 @@
  * rotation a wedge is drawn with layout's.
  */
 
-import type { Editing, KnotsOf } from "@timetoalign/tilie-arranger";
+import type { Editing, KnotsOf, Pane } from "@timetoalign/tilie-arranger";
 import {
   drawingOf,
   namedPin,
@@ -264,7 +264,8 @@ export function namedAddress(pin: Pin): Address | null {
  * open (the arranger's `raisedRoot`: an ancestor card it raises is read
  * where the frames cover it), on the line keyed `line` (the line of the
  * canvas it was named from) while that line is one of its places, else at
- * its first place; `null` where `address` names none.
+ * its first place, the block drawn at the canvas's `pane` (layout's default
+ * view without one); `null` where `address` names none.
  */
 export function namedPinOf(
   view: View,
@@ -273,13 +274,14 @@ export function namedPinOf(
   knotsOf?: KnotsOf,
   editing: Editing | null = null,
   line: string | null = null,
+  pane?: Pane,
 ): Pin | null {
   const block = address.block === undefined ? undefined : view.blocks[address.block];
   if (block === undefined || address.id === undefined) return null;
   return namedPin(
     block.manifest,
     block.id,
-    drawingOf(block, view.graphical, metrics),
+    drawingOf(block, view.graphical, metrics, undefined, pane),
     address.id,
     view.settings.granularity,
     knotsOf?.(block.manifest) ?? "no_server",
@@ -311,9 +313,13 @@ const rereadByPin = new WeakMap<
     readonly raised: string | null;
     readonly group: boolean;
     readonly line: string | null;
+    readonly paneView: PaneView;
     readonly pin: Pin;
   }
 >();
+
+/** The size a pane fits drawings to, `undefined` for layout's default view. */
+type PaneView = Pane["view"];
 
 /**
  * The unnamed pin `pin`, held since it was read as `readOn` says, as
@@ -325,10 +331,10 @@ const rereadByPin = new WeakMap<
  * mark reads it under the root raised now and by that group reading, so
  * its rows, the GroupStamp toggle and the tab after naming agree whichever
  * editors were open when it was read (the arranger's `rereadPin`, on its
- * line while that line is still a place), its block drawn with `metrics`,
- * once per pin, manifest, root, group reading and line, so a change of the
- * view elsewhere shows the same pin. Itself where its block or its
- * timeline is gone.
+ * line while that line is still a place), its block drawn with `metrics`
+ * at the canvas's `pane`, once per pin, manifest, root, group reading, line
+ * and pane size, so a change of the view elsewhere shows the same pin.
+ * Itself where its block or its timeline is gone.
  */
 export function heldPinOf(
   view: View,
@@ -336,6 +342,7 @@ export function heldPinOf(
   metrics: FontMetrics,
   editing: Editing | null,
   readOn: ReadOn,
+  pane?: Pane,
 ): Pin {
   const block = view.blocks[pin.spec.block];
   if (block === undefined) return pin;
@@ -344,17 +351,19 @@ export function heldPinOf(
   const group = groupstampOf(manifest, pin, editing?.kind ?? null);
   if (raised === readOn.raised && readsGroup(pin) === group) return pin;
   const known = rereadByPin.get(pin);
+  const paneView = pane?.view;
   if (
     known?.manifest === manifest &&
     known.raised === raised &&
     known.group === group &&
-    known.line === readOn.line
+    known.line === readOn.line &&
+    known.paneView === paneView
   ) {
     return known.pin;
   }
-  const drawing = drawingOf(block, view.graphical, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
   const read = rereadPin(manifest, drawing, pin, group, raised, readOn.line) ?? pin;
-  rereadByPin.set(pin, { manifest, raised, group, line: readOn.line, pin: read });
+  rereadByPin.set(pin, { manifest, raised, group, line: readOn.line, paneView, pin: read });
   return read;
 }
 
@@ -370,9 +379,10 @@ export function heldPinOf(
  * lines the canvas shows while `editing` is open, as `namedPinOf` reads, and
  * by the group where a fresh reading there reads one (core's
  * `groupstampByDefault`: a group member's above a timeline editor), so the
- * pin reads alike whichever editors were open before.
- * `null` for any other address, a timeline the manifest does not hold, and
- * the end of a timeline whose length is not known.
+ * pin reads alike whichever editors were open before; the block drawn at
+ * the canvas's `pane`. `null` for any other address, a timeline the
+ * manifest does not hold, and the end of a timeline whose length is not
+ * known.
  */
 export function boundaryPinOf(
   view: View,
@@ -380,6 +390,7 @@ export function boundaryPinOf(
   metrics: FontMetrics,
   knotsOf?: KnotsOf,
   editing: Editing | null = null,
+  pane?: Pane,
 ): Pin | null {
   const block = address.block === undefined ? undefined : view.blocks[address.block];
   const [word, ...rest] = address.part ?? [];
@@ -395,7 +406,7 @@ export function boundaryPinOf(
   return timelinePin(
     block.manifest,
     block.id,
-    drawingOf(block, view.graphical, metrics),
+    drawingOf(block, view.graphical, metrics, undefined, pane),
     timeline.id,
     position,
     view.settings.granularity,
@@ -608,16 +619,22 @@ function statedRotation(manifest: Manifest, id: string): number | undefined {
  * differently in each drawing), whichever rule sets it; while its wedge
  * is not drawn, as its rule states it, else the initial value 0, the
  * rotation of every wedge of a primary coordinate, a groupstamp's included.
- * An unnamed one's 0, as naming would draw it.
+ * An unnamed one's 0, as naming would draw it. The block is drawn at the
+ * canvas's `pane`.
  */
-export function wedgeRotationOf(view: View, pin: Pin, metrics: FontMetrics): WedgeRotation {
+export function wedgeRotationOf(
+  view: View,
+  pin: Pin,
+  metrics: FontMetrics,
+  pane?: Pane,
+): WedgeRotation {
   const block = view.blocks[pin.spec.block];
   if (block === undefined) return { value: 0, stated: false };
   const { manifest } = block;
   if (pin.named === null) return { value: 0, stated: false };
   const address = { id: pin.named.id };
   const stated = statedRotation(manifest, pin.named.id);
-  const drawn = drawingOf(block, view.graphical, metrics).elements.find(
+  const drawn = drawingOf(block, view.graphical, metrics, undefined, pane).elements.find(
     (element) => element.type === "wedge" && sameAddress(element.address, address),
   );
   return {

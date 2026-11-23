@@ -13,6 +13,7 @@
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Pin, TimestampDisplay } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
+import { paneOf } from "../../pane.ts";
 import { transientOf } from "../../transient.ts";
 import { matchStampsOf } from "../matchstamps.ts";
 import {
@@ -49,6 +50,8 @@ let { live, pin, drafts, describedby }: Props = $props();
 
 const uid = $props.id();
 const showTransient = transientOf();
+/** The canvas's pane, which the wedge's block is drawn at. */
+const pane = paneOf();
 
 const unnamed = $derived(pin.named === null);
 const manifest = $derived(live.view.blocks[pin.spec.block]?.manifest);
@@ -62,7 +65,7 @@ const groupstamp = $derived(
 );
 /** Whether its wedge is displayed, so that its rotation shows. */
 const wedgeShown = $derived(displayOf(pin).includes("wedge"));
-const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics));
+const rotation = $derived(wedgeRotationOf(live.view, pin, fontMetrics, pane));
 /** What describes the rotation: the wedge turned off, the naming hint. */
 const rotationDescribed = $derived(
   [wedgeShown ? null : `${uid}-wedge-off`, describedby ?? null]

@@ -178,7 +178,7 @@ const ELISION_VALUE = [...ELISION_REQUIRED, "name", "width", "display"];
  * checked (`stretchProblem` at `end`), its name a non-empty string
  * (`invalid_value`) and its width read by `readElisionWidth`, each left out
  * where it is not given, its display read by `readDisplay` over
- * `ELISION_DISPLAY`, the schema's default (`["ellipsis"]`) where it is not
+ * `ELISION_DISPLAY`, the schema's default (`["ellipsis", "name"]`) where it is not
  * given.
  */
 export function readElision(

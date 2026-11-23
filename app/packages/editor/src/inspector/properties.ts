@@ -17,6 +17,7 @@
 import type {
   Editing,
   LivePlacement,
+  Pane,
   PlaceField,
   PlaceProperty,
   Subject,
@@ -141,6 +142,8 @@ export interface Geometry {
   readonly label: string;
   /** Each container once, in selection order. */
   readonly elements: readonly Edited[];
+  /** The canvas's pane, which every drawing an edit reads is drawn at; `undefined` for layout's default view. */
+  readonly pane: Pane | undefined;
 }
 
 /** What the canvas shows of a block: its placement and its drawing, a gesture's while one runs. */
@@ -159,6 +162,7 @@ export function geometryOf(
   subjects: readonly Subject[],
   shown: Shown,
   editing: Editing | null,
+  pane?: Pane,
 ): Geometry | null {
   const level = levelOf(editing);
   const found = new Map<string | null, Edited>();
@@ -194,6 +198,7 @@ export function geometryOf(
     fields,
     label: nouns.size === 1 ? `${NOUNS[first.kind]} properties` : "Frame and card properties",
     elements,
+    pane,
   };
 }
 
@@ -308,18 +313,27 @@ export type Edit = Result<{ readonly command: SetCommand | null; readonly notice
  * content's own extent, the size it is drawn with when it states none, read
  * from the stored block drawn without that request.
  */
-function minimumOf(view: View, block: Block, element: Edited, property: "width" | "height") {
+function minimumOf(
+  view: View,
+  block: Block,
+  element: Edited,
+  property: "width" | "height",
+  pane: Pane | undefined,
+) {
   const stored = view.blocks[block.id] ?? block;
   if (element.box === null) {
-    return drawingOf(stored, view.graphical, fontMetrics, { [property]: null })[property];
+    return drawingOf(stored, view.graphical, fontMetrics, { [property]: null }, pane)[property];
   }
-  const box = keyedBox(drawingOf(stored, view.graphical, fontMetrics), element.box);
+  const box = keyedBox(
+    drawingOf(stored, view.graphical, fontMetrics, undefined, pane),
+    element.box,
+  );
   if (box === undefined || !(isItem(box) || isHeld(box))) {
     throw new Error(`${placeKeyText(element.box)} is drawn as a frame or a card`);
   }
   const { [property]: _request, ...place } = placeAt(stored.places, box.key) ?? {};
   const places = withPlaceAt(stored.places, box.key, place);
-  const drawing = drawingOf(stored, view.graphical, fontMetrics, { places });
+  const drawing = drawingOf(stored, view.graphical, fontMetrics, { places }, pane);
   const content = keyedBox(drawing, element.box);
   if (content === undefined || !(isItem(content) || isHeld(content))) {
     throw new Error(`${placeKeyText(element.box)} is drawn without its request`);
@@ -351,7 +365,10 @@ function editOf(command: SetCommand | null | CommandError, notice: string | null
 function edit(view: View, geometry: Geometry, property: PlaceProperty, value: Given): Edit {
   if (isSize(property)) return sizeEdit(view, geometry, property, value);
   const addresses = selectionOf(geometry.elements.map((element) => element.address));
-  return editOf(placeEdit(view, addresses, property, value, geometry.editing, fontMetrics), null);
+  return editOf(
+    placeEdit(view, addresses, property, value, geometry.editing, fontMetrics, geometry.pane),
+    null,
+  );
 }
 
 /**
@@ -373,7 +390,7 @@ function sizeEdit(
   let raised: number | null = null;
   const edits: Own[] = [];
   for (const element of geometry.elements) {
-    const minimum = minimumOf(view, geometry.block, element, property);
+    const minimum = minimumOf(view, geometry.block, element, property, geometry.pane);
     const own = (current: number | null) => {
       const next = given(current);
       if (next === null || next > minimum) return next;
@@ -381,7 +398,15 @@ function sizeEdit(
       return element.box === null ? minimum : null;
     };
     const addresses = selectionOf([element.address]);
-    const command = placeEdit(view, addresses, property, own, geometry.editing, fontMetrics);
+    const command = placeEdit(
+      view,
+      addresses,
+      property,
+      own,
+      geometry.editing,
+      fontMetrics,
+      geometry.pane,
+    );
     if (isCommandError(command)) return editOf(command, null);
     if (command !== null) edits.push({ element, command });
   }
@@ -408,7 +433,7 @@ function joined(view: View, geometry: Geometry, edits: readonly Own[]): SetComma
   if (first === undefined || geometry.elements.length === 1) return first?.command ?? null;
   const { id } = geometry.block;
   const block = view.blocks[id] ?? geometry.block;
-  const drawing = drawingOf(block, view.graphical, fontMetrics);
+  const drawing = drawingOf(block, view.graphical, fontMetrics, undefined, geometry.pane);
   // The place a change states (`changedPlace`), by its key; `null` for the block's own members.
   const placeOf = (change: Change): string | null => {
     const key = changedPlace(change);

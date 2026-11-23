@@ -692,14 +692,14 @@ describe("the item move", () => {
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 391.7734375 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 371.796875 } } },
       ],
     });
     expect(BOTH).toEqual({
       type: "set",
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 385.734375 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 365.7578125 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
       ],
     });
@@ -1080,11 +1080,26 @@ describe("bands in the timeline editor", () => {
 });
 
 describe("an affordance in a stretch the frames cover", () => {
-  /** `group_parent_both` with a named timestamp `Blank` on `piece` at 3 quarters displaying nothing. */
-  const view = changed(viewOf({ id: A, fixture: "groups/group_parent_both" }), {
+  /**
+   * `group_parent_both` with a named timestamp `Blank` on `piece` at 6 quarters displaying
+   * nothing, inside `middle`'s span, and the ancestor lines hidden by a workspace rule, so that
+   * nothing but the ancestor card draws `piece` there, behind the frame.
+   */
+  const named = changed(viewOf({ id: A, fixture: "groups/group_parent_both" }), {
     type: "add",
     into: inA(idAddress("piece")),
-    timestamp: { name: "Blank", coordinate: [3, 1], display: [] },
+    timestamp: { name: "Blank", coordinate: [6, 1], display: [] },
+  });
+  const view = changed(named, {
+    type: "set",
+    changes: [
+      {
+        target: WORKSPACE,
+        values: {
+          graphical: { rules: [{ select: { element: "ancestor" }, set: { display: "none" } }] },
+        },
+      },
+    ],
   });
   const PIECE: Editing = { target: inA(idAddress("piece")), kind: "timeline" };
   const affordances = (svg: SVGSVGElement) =>
@@ -1102,7 +1117,7 @@ describe("an affordance in a stretch the frames cover", () => {
     expect(affordances(mountOn(view, A, null).svg)).toEqual([]);
     clear();
     expect(affordances(mountOn(view, A, PIECE).svg)).toEqual([
-      [addressKey(idAddress(id)), "210.3354,86.6836 207.3354,99.6836 213.3354,99.6836", false],
+      [addressKey(idAddress(id)), "440.0391,58.4766 437.0391,71.4766 443.0391,71.4766", false],
     ]);
   });
 });

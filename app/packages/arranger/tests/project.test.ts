@@ -249,14 +249,14 @@ describe("the node of a block placed by its place origin", () => {
     const [only] = project(moved, NOTHING_SELECTED, [], metrics, null);
     expect(only?.data.drawing.origin).toEqual({ x: 38, y: 48.8046875 });
     expect(only?.position).toEqual({ x: 2, y: 31.1953125 });
-    expect([only?.width, only?.height]).toEqual([617.9150390625, 440.578125]);
+    expect([only?.width, only?.height]).toEqual([615.052001953125, 420.6015625]);
     const doubled = changed(moved, {
       type: "set",
       changes: [{ target: { block: A }, values: { scale: 2 } }],
     });
     const [large] = project(doubled, NOTHING_SELECTED, [], metrics, null);
     expect(large?.position).toEqual({ x: -36, y: -17.609375 });
-    expect([large?.width, large?.height]).toEqual([1235.830078125, 881.15625]);
+    expect([large?.width, large?.height]).toEqual([1230.10400390625, 841.203125]);
     const block = blockIn(doubled, A);
     expect(nodePosition(block, drawingOf(block, doubled.graphical, metrics))).toEqual({
       x: -36,

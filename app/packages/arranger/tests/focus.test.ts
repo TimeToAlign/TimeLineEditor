@@ -38,19 +38,19 @@ describe("targetBounds", () => {
     expect(targetBounds(node, { block: A }, metrics)).toEqual({
       x: 40,
       y: 80,
-      width: 581.9150390625,
-      height: 491.62890625,
+      width: 579.052001953125,
+      height: 471.65234375,
     });
     expect(targetBounds(node, at("group_1"), metrics)).toEqual({
       x: 48,
       y: 108.8046875,
-      width: 563.9150390625,
+      width: 561.052001953125,
       height: 169.234375,
     });
     expect(targetBounds(node, at("annotations"), metrics)).toEqual({
       x: 48,
-      y: 489.7734375,
-      width: 563.9150390625,
+      y: 469.796875,
+      width: 561.052001953125,
       height: 71.85546875,
     });
   });
@@ -81,10 +81,10 @@ describe("targetBounds", () => {
     });
     if (raised === undefined) throw new Error("no node");
     expect(targetBounds(raised, recording, metrics)).toEqual({
-      x: -97.412109375,
-      y: 376.91796875,
-      width: 2072.70361328125,
-      height: 88.85546875,
+      x: -215.70361328125,
+      y: 310.84375,
+      width: 2233.755615234375,
+      height: 142.953125,
     });
   });
 
@@ -92,7 +92,7 @@ describe("targetBounds", () => {
     expect(targetBounds(nodeOf(2), at("group_1"), metrics)).toEqual({
       x: 56,
       y: 137.609375,
-      width: 1127.830078125,
+      width: 1122.10400390625,
       height: 338.46875,
     });
   });
@@ -157,27 +157,27 @@ describe("a group's frame with elided ancestor cards", () => {
 
   it("zooms out until group_grandchild's elided card fits around the frame", () => {
     const node = opened("groups/group_grandchild", group("group_1"), "group");
-    expect(node.position.x).toBe(-141.99058314732133);
+    expect(node.position.x).toBe(-245.69419642857133);
     const reach = elidedReach(node, group("group_1"));
-    expect(reach).toBe(477.42323521205367);
+    expect(reach).toBe(517.5460030691963);
     const bounds = targetBounds(node, group("group_1"), metrics);
     expect(focusViewport(bounds, PANE, 0)).toEqual({
       x: 112.932967521475,
-      y: 145.7509180470676,
+      y: 183.37435754666572,
       zoom: 1.8833790598156273,
     });
     expect(focusViewport(bounds, PANE, 0, reach)).toEqual({
-      x: 339.88028559950897,
-      y: 238.00342399730465,
-      zoom: 1.0724237159772683,
+      x: 363.14707455900725,
+      y: 267.22370626910197,
+      zoom: 0.9892840384500954,
     });
   });
 
   it.each([
-    ["group_1", 688.680908203125, 0.7434502596215237],
-    ["group_2", 569.9776663078683, 0.8982808103983636],
-    ["group_3", 520.5248352012404, 0.9836226158201565],
-    ["group_4", 700.48876953125, 0.7309182134962962],
+    ["group_1", 726.0790527343779, 0.7051573765581493],
+    ["group_2", 609.9776663078683, 0.8393749940044248],
+    ["group_3", 651.4485534706382, 0.7859408041852021],
+    ["group_4", 716.8000000000029, 0.7142857142857114],
   ])("zooms LayerIt's %s to its elided card", (id, reach, zoom) => {
     const node = opened("bundles/bundle_elided_layerit", group(id), "group");
     expect(elidedReach(node, group(id))).toBe(reach);

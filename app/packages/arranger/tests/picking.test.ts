@@ -109,9 +109,6 @@ describe("what a press picks", () => {
     expect(pick(member, idAddress("group_1"), "frame")).toBeNull();
     expect(pick(member, partAddress(idAddress("group_1"), "name"))).toBeNull();
     expect(pick(member, idAddress("piece"), "ancestor")).toEqual(picked("piece"));
-    expect(pick(member, partAddress(idAddress("second-half"), "start"), "wedge")).toEqual(
-      picked("second-half"),
-    );
   });
 
   it("picks a segment by its boundary", () => {

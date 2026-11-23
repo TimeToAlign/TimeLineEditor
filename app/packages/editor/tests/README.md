@@ -1112,12 +1112,12 @@ proves the reading:
   drawn Proportional, as `{id: exposition}` does, not Hidden (which is what
   reading the card `{item: group_2, member: score}` would give: nothing
   recorded there). `{id: take_b}` shows `session` the same way.
-- **The arrangement's gaps, read-only.** `score`'s block lists, under "Side
-  by side", `between "Exposition" and "Development"` `seam at 16 ♩` and
-  `between "Development" and "Recapitulation"` `seam at 32 ♩` (the stretches
-  touch, so the gaps leave out nothing); `session`'s `between "Exposition"
-  and "Recapitulation"` with its elided stretch as layout exposes it,
-  "33″–44″". They are not card elisions: in Custom the count and the rows
+- **The arrangement's gaps, read-only.** `score`'s block lists nothing
+  under "Side by side": its anchors' stretches touch at 16 and 32 ♩, so its
+  axis has seams there and no gap, and a seam leaves out nothing, is no gap
+  and is not exposed (drawing.md section 3.2, Seams); `session`'s lists
+  `between "Exposition" and "Recapitulation"` with its elided stretch as
+  layout exposes it, "33″–44″". They are not card elisions: in Custom the count and the rows
   hold none of them; the default elision `{id: score, part: [elision]}`,
   which is their address, has no form (only a gap of origin `default`
   has), and Proportional → Custom stores none of them. In the free drawing
@@ -1134,7 +1134,16 @@ proves the reading:
   and the row carries the note.
 - **The least proportion.** With a group elision on `development`
   4–12 the free drawing exposes the proportions 0.5 (behind `group_1`),
-  0.29 (`group_2`) and 0.5 (`group_3`) for `score`; side by side the once
+  0.29 (`group_2`) and 0.34211419677734367 (`group_3`) for `score`. Behind
+  `group_3` (`recapitulation` 32–48, so `EL` 32, `ER` 0, `λ` 16, `uL`
+  2) section 8.9's (b) binds: the frame is `Fw = 567.39013671875` wide,
+  `c = Fw / 2`, and `score` laid out alone has `σ = K + N' + G' = 8 +
+  143.41357421875 + 8 = 159.41357421875` (its widest row name
+  `Exposition, Recapitulation`), so
+  `dl = c + σ = 443.108642578125` and `r = (716.8 − dl) / (400 × 2)`,
+  below (a)'s `λ / E = 0.5` (the card reaches `σ` left of the frame's
+  edge, its seam putting what lies left of `recapitulation` outside the
+  frame); side by side the once
   card's Proportion shows "0.29", Automatic ticked: the least, read from the
   exposure, equal to the least of the free cards' (an oracle the editor
   never computes).
@@ -2149,25 +2158,28 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `namedStamp`, `stampGroups` and `stampLines`), as the canvas draws the
    matches. On `groups/group_parent_both` with a table of
    one MatchClaim `p_1`, `middle` 1 ↔ `piece` 3 (both fractions), the
-   potential MatchStamp of `middle` 1: on the arranger `piece` 3 has no
-   place (it lies where `group_1`'s frame covers `piece`'s ancestor card
-   and no ancestor line runs) and orders last, so the Coordinates are
-   the groups of `middle` 1 (Middle [`1` ♩] at its line, 47.20703125; Piece
-   [`5` ♩], its ancestor, at the ancestor line below it, 85.18359375;
-   Recording [`1.25` s], through `group_1`, since naming stores a
-   GroupStamp on a group member, at 142.5625), then Piece [`3` ♩]. With
-   `piece`'s timeline editor open the card is raised (from (8,
-   36.20703125), 869.33544921875 × 63.37890625, its bottom at 99.5859375;
-   the arranger's README, "A member in the raised card"): `middle`'s own
-   line at 47.20703125 lies inside it and is not seen, and a member drawn
-   in the raised card is placed on the card's row that holds it, so
-   `middle` 1 lies on the card's `middle` row at (310.33544921875,
-   51.20703125) (260.33544921875 + 1 × 50) and `piece` 3 on the card's
-   `piece` line at (210.33544921875, 85.18359375) (60.33544921875 + 3 ×
-   50). Topmost first, `middle` 1 comes first, and its pin is read on that
-   row: Middle [`1` ♩] at 51.20703125, its ancestor Piece [`5` ♩] at the
-   card's `piece` line (85.18359375), Recording [`1.25` s] at its member
-   card's line (142.5625, outside the card); then Piece [`3` ♩]: the
+   potential MatchStamp of `middle` 1: on the arranger `middle` 1 lies at
+   (414.0390625, 47.20703125) and `piece` 3 on `piece`'s ancestor card
+   left of the frame, at (210.33544921875, 85.18359375) (the card's line
+   from 60.33544921875 at 50 per quarter; the seam at `middle`'s start
+   puts what lies left of `middle`'s span outside the frame's left edge,
+   drawing.md section 8.8, step 2), so the Coordinates are the groups of
+   `middle` 1 (Middle [`1` ♩] at its line, 47.20703125; Piece [`5` ♩],
+   its ancestor, at the ancestor line below it, 85.18359375; Recording
+   [`1.25` s], through `group_1`, since naming stores a GroupStamp on a
+   group member, at 122.5859375), then Piece [`3` ♩]. With `piece`'s
+   timeline editor open the card is raised (from (8, 36.20703125),
+   1013.0390625 × 63.37890625, its bottom at 99.5859375; the arranger's
+   README, "A member in the raised card"): `middle`'s own line at
+   47.20703125 lies inside it and is not seen, and a member drawn in the
+   raised card is placed on the card's row that holds it, so `middle` 1
+   lies on the card's `middle` row at (414.0390625, 51.20703125) and
+   `piece` 3 stays on the card's `piece` line at (210.33544921875,
+   85.18359375). Topmost first, `middle` 1 comes first, and its pin is
+   read on that row: Middle [`1` ♩] at 51.20703125, its ancestor Piece
+   [`5` ♩] at the card's `piece` line (85.18359375), Recording [`1.25` s]
+   at its member card's line (122.5859375, outside the card); then Piece
+   [`3` ♩]: the
    order the arranger shows, since the member's card puts `piece`'s
    ancestor line where `piece`'s own drawing puts its line, below its
    children. Closing the editor (Done) gives the same order. What would
@@ -2178,24 +2190,25 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the screen order of nothing raised, whichever editor is open, so one
    MatchStamp is stored one way. On `groups/group_parent_both` the places
    are (the drawing read with nothing raised | with `piece`'s card
-   raised): `piece` 3 none | (210.34, 85.18), `recording` 2.5
-   (360.34, 142.56) | the same, `middle` 1 (310.34, 47.21) | (310.34,
+   raised): `piece` 3 (210.34, 85.18) | the same, `recording` 2.5
+   (464.04, 122.59) | the same, `middle` 1 (414.04, 47.21) | (414.04,
    51.21), the card's `middle` row.
    - Naming "Pickup" the potential MatchStamp of a table of one MatchClaim
      `p_1`, `piece` 3 ↔ `recording` 2.5 (the group partner of `piece`'s
-     child `middle`): with nothing raised `piece` 3 has no place and
-     orders after `recording` 2.5, so the one `add` stores the anchor
-     [`recording` 2.5, `piece` [3, 1]], MatchClaims `["p_1"]`; the tab
-     shows `recording` 2.5's groups (naming stores a GroupStamp on a group
-     member, so its pin reads `group_1`'s other member `middle` and its
-     ancestor `piece`) Middle [`2` ♩] (its member card's line,
-     47.20703125), Piece [`6` ♩] (`piece`'s ancestor line, 85.18359375),
-     Recording [`2.5` s], then Piece [`3` ♩]. `middle` 2 is `recording` 2.5 scaled by the
+     child `middle`): `piece` 3 lies above `recording` 2.5, so the one
+     `add` stores the anchor [`piece` [3, 1], `recording` 2.5],
+     MatchClaims `["p_1"]`; the tab shows Piece [`3` ♩]
+     first (the card's `piece` line left of the frame, 85.18359375, above
+     `recording` 2.5 at 122.5859375), then `recording` 2.5's groups
+     (naming stores a GroupStamp on a group member, so its pin reads
+     `group_1`'s other member `middle` and its ancestor `piece`) Middle
+     [`2` ♩] (its member card's line, 47.20703125), Piece [`6` ♩]
+     (`piece`'s ancestor line, 85.18359375), Recording [`2.5` s]. `middle` 2 is `recording` 2.5 scaled by the
      group, 2.5 × 4/5 (`middle` 4 ♩ ↔ `recording` 5 s at the frame's
      common abscissa 460.33544921875), and `piece` 6 is `middle` 2 plus
      `middle`'s offset 4. With `piece`'s timeline editor open the tab
-     shows Piece [`3` ♩] first (the card's `piece` line, 85.18359375,
-     above `recording` 2.5 at 142.5625), then the GroupStamp's groups read
+     shows Piece [`3` ♩] first as well (the card's `piece` line,
+     85.18359375, above `recording` 2.5 at 122.5859375), then the GroupStamp's groups read
      where the raised card draws them: a member of the group that the
      raised card draws is read on the card's row of it, as its own
      reading is placed there (the arranger's README, "A member in the
@@ -2203,19 +2216,21 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      51.20703125), Piece [`6` ♩] (the card's `piece` line, 85.18359375),
      Recording [`2.5` s]; naming stores the same command byte for byte
      (`JSON.stringify` of the journal's last command equal to the one
-     stored with no editor open). What would be wrong: the stored command
-     following the raised order (Piece [`3` ♩] first).
+     stored with no editor open). Since the seams of the frame's room put
+     `piece` 3 left of the frame, the raised order and the order of
+     nothing raised agree here: this case no longer tells the two apart,
+     nor does the Update case below, and a manifest whose raised order
+     differs is owed to keep the proof.
    - Update of that named MatchStamp against a second table holding `p_1`
      and `p_2`, `middle` 1 ↔ `piece` 3 (out of date: the anchor of `p_2`
      is not in it): with nothing raised each pair's placed coordinate comes
-     first and the anchors sort by it, `middle` 1 (y 47.21) above
-     `recording` 2.5 (y 142.56), so the `set` stores the anchors
-     [[`middle` [1, 1], `piece` [3, 1]], [`recording` 2.5, `piece` [3, 1]]]
-     and `match_claims` `["p_1", "p_2"]` (core's update, in row order);
-     raised the same pairs would read [[`middle` 1, `piece` 3], [`piece`
-     3, `recording` 2.5]] (`middle` 1 at y 51.21 above `piece` 3 at
-     85.18, which lies above `recording` 2.5), yet Update with `piece`'s
-     editor open stores the command of no editor open byte for byte.
+     first and the anchors sort by it, `middle` 1 (y 47.21) above `piece`
+     3 (y 85.18), which lies above `recording` 2.5 (y 122.59), so the
+     `set` stores the anchors [[`middle` [1, 1], `piece` [3, 1]], [`piece`
+     [3, 1], `recording` 2.5]] and `match_claims` `["p_1", "p_2"]`
+     (core's update, in row order); raised, `middle` 1 is read on the
+     card's row (y 51.21), yet Update with `piece`'s editor open stores
+     the command of no editor open byte for byte.
    What would be wrong: the same MatchStamp stored in another orientation
    because an editor happened to be open.
 3. **Naming** that potential MatchStamp "Downbeat" through the tab is one
