@@ -213,6 +213,7 @@ test("the tabs follow the keyboard", async ({ page }) => {
     "Journal",
     "Timestamp",
     "Matchstamp",
+    "Elisions",
   ] as const;
   await expectTabPairs(page, arranging);
   await tab(page, "Properties").focus();
@@ -222,10 +223,11 @@ test("the tabs follow the keyboard", async ({ page }) => {
     ["ArrowRight", "Journal"],
     ["ArrowRight", "Timestamp"],
     ["ArrowRight", "Matchstamp"],
+    ["ArrowRight", "Elisions"],
     ["ArrowRight", "Arranger"],
     ["ArrowRight", "Properties"],
     ["ArrowLeft", "Arranger"],
-    ["End", "Matchstamp"],
+    ["End", "Elisions"],
     ["Home", "Arranger"],
   ] as const) {
     await page.keyboard.press(key);
@@ -244,15 +246,16 @@ test("the tabs follow the keyboard", async ({ page }) => {
     "Journal",
     "Timestamp",
     "Matchstamp",
+    "Elisions",
   ] as const;
   await expectTabPairs(page, editing);
   await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
   await tab(page, "Bundle").focus();
   for (const [key, name] of [
-    ["ArrowLeft", "Matchstamp"],
+    ["ArrowLeft", "Elisions"],
     ["ArrowRight", "Bundle"],
     ["ArrowRight", "Properties"],
-    ["End", "Matchstamp"],
+    ["End", "Elisions"],
     ["Home", "Bundle"],
   ] as const) {
     await page.keyboard.press(key);

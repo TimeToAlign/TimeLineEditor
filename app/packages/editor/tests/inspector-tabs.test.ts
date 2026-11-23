@@ -146,7 +146,7 @@ function titleLine(name: string): unknown[] {
 const titled = (word: string, name: string) => [word, name, `${word} ${name}`, 1];
 
 describe("the tab rule", () => {
-  it("has the seven tabs, the level tab first and named by its level", () => {
+  it("has the eight tabs, the level tab first and named by its level", () => {
     expect(TABS).toEqual([
       "level",
       "properties",
@@ -155,16 +155,26 @@ describe("the tab rule", () => {
       "journal",
       "timestamp",
       "matchstamp",
+      "elisions",
     ]);
+    const OTHERS = [
+      "Properties",
+      "Metadata",
+      "Manifest",
+      "Journal",
+      "Timestamp",
+      "Matchstamp",
+      "Elisions",
+    ];
     expect(
       (["arranger", "bundle", "group", "timeline"] as const).map((level) =>
         TABS.map((tab) => tabLabel(tab, level)),
       ),
     ).toEqual([
-      ["Arranger", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
-      ["Bundle", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
-      ["Group", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
-      ["Timeline", "Properties", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"],
+      ["Arranger", ...OTHERS],
+      ["Bundle", ...OTHERS],
+      ["Group", ...OTHERS],
+      ["Timeline", ...OTHERS],
     ]);
     expect([initialPick(0, 3), initialPick(1, 3), initialPick(2, 0)]).toEqual([
       { tab: "properties", openings: 3 },
@@ -219,6 +229,7 @@ describe("the tab rule", () => {
       nextTab("journal", key("ArrowRight")),
       nextTab("timestamp", key("ArrowRight")),
       nextTab("matchstamp", key("ArrowRight")),
+      nextTab("elisions", key("ArrowRight")),
       nextTab("level", key("ArrowLeft")),
       nextTab("properties", key("ArrowLeft")),
       nextTab("journal", key("ArrowLeft")),
@@ -238,15 +249,16 @@ describe("the tab rule", () => {
       "journal",
       "timestamp",
       "matchstamp",
+      "elisions",
       "level",
-      "matchstamp",
+      "elisions",
       "level",
       "manifest",
       "metadata",
       "level",
-      "matchstamp",
+      "elisions",
       "level",
-      "matchstamp",
+      "elisions",
       undefined,
       undefined,
       undefined,
@@ -256,7 +268,7 @@ describe("the tab rule", () => {
 });
 
 describe("the tab set", () => {
-  it("shows the seven tabs without an editor, each naming its panel", () => {
+  it("shows the eight tabs without an editor, each naming its panel", () => {
     show(mixedStore());
     expect(tabs()).toEqual([
       off("Arranger"),
@@ -266,12 +278,14 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     const pairs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) => {
       const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
       return [panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby") === tab.id];
     });
     expect(pairs).toEqual([
+      ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
@@ -294,12 +308,13 @@ describe("the tab set", () => {
       ["Journal", true],
       ["Timestamp", true],
       ["Matchstamp", true],
+      ["Elisions", true],
     ]);
     expect(
-      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp"].map(
+      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp", "Matchstamp", "Elisions"].map(
         (name) => panelOf(name)?.childElementCount,
       ),
-    ).toEqual([0, 0, 0, 0, 0, 0]);
+    ).toEqual([0, 0, 0, 0, 0, 0, 0]);
     click("Journal");
     expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
       0,
@@ -323,6 +338,7 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     const properties = panelOf("Properties") as HTMLElement;
     expect([properties.querySelector(".hint"), properties.textContent?.includes(HINT)]).toEqual([
@@ -342,6 +358,7 @@ describe("the tab set", () => {
       ["Journal", false],
       ["Timestamp", true],
       ["Matchstamp", true],
+      ["Elisions", true],
     ]);
     expect(panelOf("Journal")?.querySelectorAll("li")).toHaveLength(3);
   });
@@ -358,6 +375,7 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     click("Journal");
     stage({ editing: [GROUP, TIMELINE] });
@@ -369,6 +387,7 @@ describe("the tab set", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     stage({ editing: [GROUP] });
     expect(tabs()).toEqual([
@@ -379,6 +398,7 @@ describe("the tab set", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     stage({ editing: [] });
     expect(tabs()).toEqual([
@@ -389,6 +409,7 @@ describe("the tab set", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
   });
 
@@ -406,6 +427,7 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     lines.push(titleLine("Group"));
     stage({ editing: [GROUP, TIMELINE] });
@@ -421,6 +443,7 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     lines.push(titleLine("Arranger"));
     expect(lines).toEqual([
@@ -444,6 +467,7 @@ describe("the tab set", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     expect(titleLine("Bundle")).toEqual(titled("Bundle", "Mixed"));
   });
@@ -475,6 +499,7 @@ describe("with the store's own editors", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     store.dispatch({
       type: "set",
@@ -490,6 +515,7 @@ describe("with the store's own editors", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     click("Journal");
     expect(
@@ -543,6 +569,7 @@ describe("in the drawer", () => {
       off("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     expect(titleLine("Group")).toEqual(titled("Group", "Performance"));
   });
@@ -562,6 +589,7 @@ describe("in the drawer", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
   });
 
@@ -580,6 +608,7 @@ describe("in the drawer", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     setOpen(true);
     expect(tabs()).toEqual([
@@ -590,6 +619,7 @@ describe("in the drawer", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
     setOpen(false);
     setOpen(true);
@@ -601,6 +631,7 @@ describe("in the drawer", () => {
       on("Journal"),
       off("Timestamp"),
       off("Matchstamp"),
+      off("Elisions"),
     ]);
   });
 });
@@ -661,19 +692,20 @@ describe("the keys", () => {
     });
   }
 
-  it("move over the seven tabs, wrapping, at the top level and in an editor", () => {
+  it("move over the eight tabs, wrapping, at the top level and in an editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     expect(steps("Properties", ["ArrowLeft", "ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
       "Arranger",
-      "Matchstamp",
+      "Elisions",
       "Arranger",
-      "Matchstamp",
+      "Elisions",
       "Arranger",
     ]);
     stage({ editing: [GROUP] });
     expect(
       steps("Group", [
+        "ArrowRight",
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
@@ -692,10 +724,11 @@ describe("the keys", () => {
       "Journal",
       "Timestamp",
       "Matchstamp",
+      "Elisions",
       "Group",
-      "Matchstamp",
+      "Elisions",
       "Group",
-      "Matchstamp",
+      "Elisions",
     ]);
   });
 });

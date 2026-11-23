@@ -1,5 +1,5 @@
 /**
- * The commands the stamp tabs and the elision section share: the one toggle
+ * The commands the stamp tabs and the Elisions tab share: the one toggle
  * of a `display` (a named timestamp's, an alignment anchor's, an elision's),
  * and how the Matchstamp tab's sections send a command: an editor changes
  * nothing outside what it edits, so a MatchStamp command of block `block`

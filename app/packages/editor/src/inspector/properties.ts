@@ -9,9 +9,8 @@
  * is stated. The command is the arranger's `placeEdit`, the edit a gesture
  * at the same level makes; a field is offered only where the level edits
  * it. A band selected alone shows read-only rows instead (`bandRows`).
- * Above them, the name of the inspected thing (`nameOf`), under it the
- * elision section (`elisions.ts`), and beside the container size the stored
- * lock of the inspected timelines (`lockOf`).
+ * Above them, the name of the inspected thing (`nameOf`), and beside the
+ * container size the stored lock of the inspected timelines (`lockOf`).
  */
 
 import type {
@@ -148,6 +147,20 @@ export interface Geometry {
 
 /** What the canvas shows of a block: its placement and its drawing, a gesture's while one runs. */
 export type Shown = Omit<LivePlacement, "id">;
+
+/**
+ * What the canvas shows of `block` in `view`: `placement` while a gesture
+ * shows it for the block, else the stored placement drawn at `pane`.
+ */
+export function shownOf(
+  view: View,
+  block: Block,
+  placement: LivePlacement | null,
+  pane: Pane | undefined,
+): Shown {
+  if (placement?.id === block.id) return placement;
+  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics, undefined, pane) };
+}
 
 /**
  * The geometry the subjects name: every subject a container with a box of

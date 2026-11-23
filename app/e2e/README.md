@@ -917,16 +917,23 @@ schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
 **`ancestor-cards.spec.ts`** (Chromium, Firefox, WebKit) proves an ancestor card (TimeToShare's
-drawing specification, sections 8.8 and 8.9), the elision sections of the
-Properties tab beside it and a selected elision's gap on the canvas. The
+drawing specification, sections 8.8 and 8.9), the blocks of the
+Elisions tab beside it and a selected elision's gap on the canvas. The
 page is 1920 × 1080, so that the canvas left of the open inspector drawer
 (32 % of the editor's width) is wider than 1112 pixels: where an ancestor
 card's proportion is automatic it depends on the canvas's size (section
 8.9, The proportion), and from that width on it does not for the
-fixtures here (below). The drawing is compared, never pixels; a section
-is found by its test ID (`elisions` the root's, `group-elisions` the
-group's, `elision-form` the selected elision's), a mode by its radio's
-name. A gap draws nothing of its own by default (the defaults' `fill:
+fixtures here (below). The drawing is compared, never pixels; a block
+of the Elisions tab, the inspector's last tab, is found by its test ID
+(`elisions` the root's, a timeline's block; `group-elisions` the group's;
+`elision-form` the selected elision's), its heading's disclosure button
+by the same ID with `-expand`, a mode by its radio's name. Every block is
+collapsed at first (its button `aria-expanded` "false", the radios out of
+the accessibility tree), so a case opens the block it works in by its
+button, which then reads "true"; a block holding the selected elision,
+and the elision's own, are open without a click. The button's accessible
+name is the kind word, the title and the essentials, which tells a
+timeline's block from a group's. A gap draws nothing of its own by default (the defaults' `fill:
 none`, drawing.md section 4, and no `continuation` in its display), so
 each drawing of a gap is seen by its one ellipsis, three dots addressed
 `{id: E, part: [ellipsis]}` for a stored elision and `{id: T, part:
@@ -959,7 +966,9 @@ digits, WebKit to six decimals, so the node's transform is compared
 with the string the same browser writes for `translate(<x>px, <y>px)`
 of the exact position, never with one engine's rounding). The card lies
 behind the frame: its rectangle precedes the frame's in the DOM.
-Selecting `piece` offers the root's section `Parent timeline "Piece"`,
+Selecting `piece` and choosing the Elisions tab offers the root's block,
+its button named `Timeline Parent timeline "Piece" Proportional`,
+collapsed; opened, its title `Parent timeline "Piece"`,
 the mode Proportional checked (the mode `auto` with no stored card
 elision draws as `proportional`, and at `r = 1` it derives no gap: the
 member's span 4 to 12 leaves 4 on each side, `λ / E = 1`, and the view
@@ -970,9 +979,10 @@ rule (every card of `piece`), and the card is gone: nothing is addressed
 `{id: piece, part: [card]}`, the frame and the member cards lie at `x` 8
 and 16 with the same `y`, widths and heights (the cards take no room,
 layout's case 3), the node is at the block's place `(x, y)`, which the
-store keeps throughout. Hidden is then checked. The section is a property
+store keeps throughout. Hidden is then checked. The block is a property
 of the grouped child too, so selecting `middle` instead offers the same
-section, Hidden checked; choosing Proportional journals exactly one
+block, still open (the open state is the root's block's, whichever of
+its timelines is selected), Hidden checked; choosing Proportional journals exactly one
 entry, the same rule with `set: {"elision-mode": null, display: null}`
 (the block's own rule hid the card, so Proportional unstates both rather
 than stating values), and the card and every box are drawn as before,
@@ -1027,8 +1037,9 @@ checked again and the three dots of `second`'s default gap are drawn.
 
 *A selected gap: its handles, its mode menu and one keyboard edit.* On
 the same import, after Custom has stored the defaults, a click on the
-row of `Second` selects `{block, id: elision_3}` alone; the form reads
-`Elision on "Second"`, From `1`, To `31`. The viewport is moved so that
+row of `Second` selects `{block, id: elision_3}` alone; the root's block,
+which holds it, and the form's block are open without a click, and the
+form reads `Elision on "Second"`, From `1`, To `31`. The viewport is moved so that
 the middle dot of its ellipsis lies at (400, 400) on the canvas, left of
 the drawer, where its menu takes clicks. The canvas shows one
 `gap-handle-start` and one `gap-handle-end` (the gap is the whole
@@ -1050,8 +1061,10 @@ is stored ending at `[156, 5]`.
 *A group's elisions.* On `groups/group_elided_members` imported the same
 way (the group `group_1` "Theme", whose frame elides `elision_1`
 "Development" on `excerpt` 2–8 and `elision_2` on `phrase` 2–6),
-selecting the frame `{block, id: group_1}` offers the group's section
-`Elisions in group "Theme"` and no root's section, Custom checked (the
+selecting the frame `{block, id: group_1}` offers the group's block,
+its button named `Group Elisions in group "Theme" Custom, 2 elisions`,
+collapsed, and no root's block; opened, its title `Elisions in group
+"Theme"`, Custom checked (the
 frame's `auto` draws its stored elisions), the count "2 elisions" and
 the rows "Development", "Excerpt", "2–8 ♩"; "—", "Phrase", "2–6 ♩";
 `elision_1`'s ellipsis is six dots, one across the frame and one in

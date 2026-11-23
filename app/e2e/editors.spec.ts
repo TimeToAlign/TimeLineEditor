@@ -243,6 +243,7 @@ test.describe("on bundles", () => {
         "Journal",
         "Timestamp",
         "Matchstamp",
+        "Elisions",
       ]);
       await expect(tab(page, word)).toHaveAttribute("aria-selected", "true");
       await expect(await panel(page, word)).toHaveText(text);

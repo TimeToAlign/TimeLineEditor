@@ -10,7 +10,10 @@
  * posts as information. The name field's draft and refusal belong to the
  * target named in the manifest it was typed against, alike, and so do the
  * drafts and refusals of the elision fields (`elisions.ts`): a selected
- * elision's, and a root's Proportion, each belonging to its address.
+ * elision's, and a root's Proportion, each belonging to its address. It
+ * also keeps which blocks of the Elisions tab are open, by the key the tab
+ * gives each block, so that a block opened stays open while another tab
+ * is shown or the inspector is closed.
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
@@ -117,6 +120,7 @@ export class PropertyDrafts {
   #entry: Entry = $state.raw(EMPTY);
   #name: NameDraft | null = $state.raw(null);
   #elision: ElisionDraft | null = $state.raw(null);
+  #opened: { readonly [key: string]: boolean } = $state.raw({});
 
   /** The drafts and refusals of `geometry`'s containers; none when they were typed for others. */
   #of(geometry: Geometry): Entry {
@@ -323,5 +327,15 @@ export class PropertyDrafts {
         : store.dispatch(made.value)?.message;
     if (refusal === undefined) this.#writeElision(owner, field);
     else this.#writeElision(owner, field, draft, refusal);
+  }
+
+  /** Whether the Elisions tab's block of `key` is open: as it was last shown or hidden, else `byDefault`. */
+  opened(key: string, byDefault: boolean): boolean {
+    return this.#opened[key] ?? byDefault;
+  }
+
+  /** Keep the block of `key` open or closed. */
+  open(key: string, open: boolean): void {
+    this.#opened = { ...this.#opened, [key]: open };
   }
 }

@@ -1,11 +1,12 @@
 <script lang="ts">
 /**
- * The inspector: the editing bar, then a tab list over six panels: the
+ * The inspector: the editing bar, then a tab list over eight panels: the
  * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
  * panel opening with the level's title line), Properties, Metadata,
- * Manifest, Journal, Timestamp and Matchstamp. Only the shown panel is
- * rendered; what the Properties and Manifest tabs hold between visits
- * (typed text, a chosen format) lives in their state objects, which a host
+ * Manifest, Journal, Timestamp, Matchstamp and Elisions. Only the shown
+ * panel is rendered; what the Properties, Elisions and Manifest tabs hold
+ * between visits (typed text, open blocks, a chosen format) lives in their
+ * state objects, which a host
  * keeping them while the inspector is not shown passes in, with the tab
  * chosen, the pinned timestamp and the MatchStamp shown. The Metadata and
  * Matchstamp tabs take the user from the editor's context, the Metadata
@@ -22,6 +23,7 @@ import type { Attachment } from "svelte/attachments";
 import { MatchClaimTables } from "../matchClaims.svelte.ts";
 import { paneOf } from "../pane.ts";
 import EditingBar from "./EditingBar.svelte";
+import ElisionsPanel from "./ElisionsPanel.svelte";
 import JournalPanel from "./JournalPanel.svelte";
 import { journalRows } from "./journal.ts";
 import ManifestTextPanel from "./ManifestTextPanel.svelte";
@@ -68,7 +70,7 @@ let {
   placement?: LivePlacement | null;
   /** The Manifest tab's text, kept while another tab is shown. */
   manifest?: ManifestText;
-  /** The Properties tab's drafts, kept while another tab is shown. */
+  /** The drafts of the Properties and Elisions tabs and the Elisions tab's open blocks, kept while another tab is shown. */
   drafts?: PropertyDrafts;
   /** The tab last chosen, and how many editors had been opened then. */
   picked?: Picked;
@@ -88,7 +90,7 @@ let {
    * measure view gives a value.
    */
   knotsOf?: KnotsOf | undefined;
-  /** Select `address` alone on the canvas: a row of the Properties tab's elision section. */
+  /** Select `address` alone on the canvas: a row of the Elisions tab. */
   onselect?: ((address: Address) => void) | undefined;
 } = $props();
 
@@ -214,6 +216,16 @@ const hinted = $derived(block === null && !manifest.dirty);
           <MetadataPanel {view} store={live.store} {subjects} editing={innermost ?? null} />
         {:else if item === "properties"}
           <PropertiesPanel
+            {view}
+            store={live.store}
+            {block}
+            {subjects}
+            editing={innermost ?? null}
+            {placement}
+            {drafts}
+          />
+        {:else if item === "elisions"}
+          <ElisionsPanel
             {view}
             store={live.store}
             {block}

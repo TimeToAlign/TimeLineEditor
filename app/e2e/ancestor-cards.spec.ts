@@ -2,13 +2,14 @@
  * Ancestor cards (TimeToShare's drawing specification, section 8.8) and
  * elisions (section 8.9) in the browser: a root is drawn whole behind the
  * frame of its member's group by default, beyond the frame's borders; the
- * root's section of the Properties tab, offered for the root and for its
- * grouped child alike, hides its cards by the mode Hidden and draws them
- * again, switches to Full and back by the arrow keys, stores the drawn
- * defaults by Custom, adds an elision and removes them all; a selected
- * stored elision shows its gap's handles and mode menu and moves its end by
- * one keyboard step; a group's section switches its frame between Full and
- * Custom, adds an elision and removes them all; a double-click on an
+ * root's block of the Elisions tab, a timeline's block offered for the root
+ * and for its grouped child alike and opened by its heading, hides its
+ * cards by the mode Hidden and draws them again, switches to Full and back
+ * by the arrow keys, stores the drawn defaults by Custom, adds an elision
+ * and removes them all; a selected stored elision opens its blocks, shows
+ * its gap's handles and mode menu and moves its end by one keyboard step; a
+ * group's block switches its frame between Full and Custom, adds an
+ * elision and removes them all; a double-click on an
  * ancestor card opens the root's timeline editor and raises the card over
  * the frame, unfolding it out of the member card and folding it back on
  * Done, at once under reduced motion; Show coordinates reads the card where
@@ -111,21 +112,34 @@ function rootRule(block: string, set: { readonly [property: string]: unknown }) 
   };
 }
 
-/** The section's title, naming the root. */
+/** The root's block's title, naming the root. */
 const TITLE = 'Parent timeline "Piece"';
 
-/** The modes of a root's and of a group's section. */
+/** The modes of a root's and of a group's block. */
 type Mode = "Hidden" | "Full" | "Proportional" | "Custom";
 
-/** The radio of the mode `word` in the section `section` (its test ID). */
+/** The radio of the mode `word` in the block `section` (its test ID). */
 function mode(page: Page, word: Mode, section = "elisions"): Locator {
   return page.getByTestId(section).getByRole("radio", { name: word, exact: true });
 }
 
-/** Open the inspector's Properties tab. */
-async function properties(page: Page): Promise<void> {
+/** The title of the block `section`, in its heading after the kind word. */
+function titleOf(page: Page, section: string): Locator {
+  return page.getByTestId(section).locator("h3 .title");
+}
+
+/** Open the inspector's Elisions tab. */
+async function elisionsTab(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Open inspector" }).click();
-  await page.getByRole("tab", { name: "Properties", exact: true }).click();
+  await page.getByRole("tab", { name: "Elisions", exact: true }).click();
+}
+
+/** Open the block `section`, collapsed at first, by its heading's disclosure button. */
+async function expand(page: Page, section: string): Promise<void> {
+  const button = page.getByTestId(`${section}-expand`);
+  await expect(button).toHaveAttribute("aria-expanded", "false");
+  await button.click();
+  await expect(button).toHaveAttribute("aria-expanded", "true");
 }
 
 /**
@@ -157,9 +171,12 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   expect(await cardAfterFrame(page, block)).toBe(false);
 
   await select(page, [{ block, id: "piece" }]);
-  await properties(page);
-  const section = page.getByTestId("elisions");
-  await expect(section.getByRole("heading")).toHaveText(TITLE);
+  await elisionsTab(page);
+  await expect(page.getByTestId("elisions-expand")).toHaveAccessibleName(
+    `Timeline ${TITLE} Proportional`,
+  );
+  await expand(page, "elisions");
+  await expect(titleOf(page, "elisions")).toHaveText(TITLE);
   await expect(mode(page, "Proportional")).toBeChecked();
   await expect(mode(page, "Hidden")).not.toHaveAttribute("aria-disabled", "true");
 
@@ -174,7 +191,7 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   await expect(mode(page, "Hidden")).toBeChecked();
 
   await select(page, [{ block, id: "middle" }]);
-  await expect(section.getByRole("heading")).toHaveText(TITLE);
+  await expect(titleOf(page, "elisions")).toHaveText(TITLE);
   await expect(mode(page, "Hidden")).toBeChecked();
   await mode(page, "Proportional").click();
   await expect.poll(() => journalLength(page)).toBe(3);
@@ -219,17 +236,19 @@ function rowsOf(section: Locator): Promise<(string | null)[][]> {
 const WIDE_CANVAS = 1112;
 
 /**
- * Import `group_elided_inside`, select `excerpt` and open Properties, the
- * canvas checked to be wide enough with the drawer open; the block's ID.
+ * Import `group_elided_inside`, select `excerpt`, open the Elisions tab and
+ * the root's block, the canvas checked to be wide enough with the drawer
+ * open; the block's ID.
  */
 async function elidedInside(page: Page): Promise<string> {
   const block = await importFixture(page, "groups/group_elided_inside");
   await select(page, [{ block, id: "excerpt" }]);
-  await properties(page);
+  await elisionsTab(page);
   expect(await arranger(page).evaluate((canvas) => canvas.clientWidth)).toBeGreaterThan(
     WIDE_CANVAS,
   );
-  await expect(page.getByTestId("elisions").getByRole("heading")).toHaveText(TITLE);
+  await expand(page, "elisions");
+  await expect(titleOf(page, "elisions")).toHaveText(TITLE);
   await expect(mode(page, "Proportional")).toBeChecked();
   return block;
 }
@@ -324,8 +343,11 @@ test("a selected elision shows its handles and mode menu, and a key moves its en
   await expect
     .poll(() => page.evaluate(() => [...window.__tilie.selection()]))
     .toEqual([{ block, id: "elision_3" }]);
+  // The selected elision's blocks are open without a click: the root's, which holds it, and its own.
+  await expect(page.getByTestId("elisions-expand")).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("elision-form-expand")).toHaveAttribute("aria-expanded", "true");
   const form = page.getByTestId("elision-form");
-  await expect(form.locator("legend").first()).toHaveText('Elision on "Second"');
+  await expect(titleOf(page, "elision-form")).toHaveText('Elision on "Second"');
   await expect(form.locator('input[name="start"]')).toHaveValue("1");
   await expect(form.locator('input[name="end"]')).toHaveValue("31");
 
@@ -375,9 +397,13 @@ test("a group's elisions switch to Full and back, and are added to and removed",
 }) => {
   const block = await importFixture(page, "groups/group_elided_members");
   await select(page, [{ block, id: "group_1" }]);
-  await properties(page);
+  await elisionsTab(page);
   const section = page.getByTestId("group-elisions");
-  await expect(section.getByRole("heading")).toHaveText('Elisions in group "Theme"');
+  await expect(page.getByTestId("group-elisions-expand")).toHaveAccessibleName(
+    'Group Elisions in group "Theme" Custom, 2 elisions',
+  );
+  await expand(page, "group-elisions");
+  await expect(titleOf(page, "group-elisions")).toHaveText('Elisions in group "Theme"');
   await expect(page.getByTestId("elisions")).toHaveCount(0);
   await expect(mode(page, "Custom", "group-elisions")).toBeChecked();
   await expect(section.locator(".count")).toHaveText("2 elisions");

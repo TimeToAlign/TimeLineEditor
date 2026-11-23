@@ -2,12 +2,7 @@
 /**
  * The Properties tab: first the name of what is inspected (with nothing
  * selected, the workspace's at the top level, the edited element's in an
- * editor); directly under it, wherever the selection lies wholly under one
- * root whose drawing can carry elisions (an ancestor card behind its
- * groups' frames, or its card as an ungrouped root), the elision section
- * (`ElisionSection.svelte`): the root's mode and settings, its elisions, the
- * elisions of the group whose frame holds the selection or whose editor is
- * open, and the form of a selected elision. Then, for a selection in one block, the read-only rows of
+ * editor). Then, for a selection in one block, the read-only rows of
  * one band, or the form of the selected containers' geometry, or the hint
  * that the selection has none; the stored lock of the inspected timelines
  * stands right of the container size, read-only. Typed text is the
@@ -22,17 +17,15 @@ import type {
   PlaceProperty,
   Subject,
 } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
+import { liveStore } from "@timetoalign/tilie-arranger";
 import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
 import { informOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
-import ElisionSection from "./ElisionSection.svelte";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
-import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
+import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf, shownOf } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
 let {
@@ -43,7 +36,6 @@ let {
   editing,
   placement,
   drafts,
-  onselect = () => {},
 }: {
   view: View;
   store: Store;
@@ -56,8 +48,6 @@ let {
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
-  /** Select `address` alone, as a click on the canvas does: a row of the elision section. */
-  onselect?: (address: Address) => void;
 } = $props();
 
 const uid = $props.id();
@@ -81,29 +71,7 @@ const name = $derived(nameOf(view, subjects, live.editing.at(-1) ?? null));
  * What the canvas shows of the block: the gesture's placement and drawing
  * while a gesture shows it, else the stored ones; `null` without a block.
  */
-const shown: Shown | null = $derived.by(() => {
-  if (block === null) return null;
-  if (placement?.id === block.id) return placement;
-  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics, undefined, pane) };
-});
-
-/** The group whose editor is the innermost one open; `null` for none. */
-const editedGroup = $derived(
-  editing?.kind === "group" && editing.target.id !== undefined ? editing.target.id : null,
-);
-
-/**
- * The block and drawing the elisions are read in: the selection's, else, with
- * nothing selected, the block of the group editor open; `null` for neither.
- */
-const elided = $derived.by(() => {
-  if (shown !== null && block !== null) return { block, drawing: shown.drawing };
-  if (subjects.length > 0 || editing === null || editedGroup === null) return null;
-  const edited = view.blocks[editing.target.block ?? ""];
-  return edited === undefined
-    ? null
-    : { block: edited, drawing: drawingOf(edited, view.graphical, fontMetrics, undefined, pane) };
-});
+const shown: Shown | null = $derived(block === null ? null : shownOf(view, block, placement, pane));
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
 const geometry = $derived(
@@ -256,19 +224,6 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {/if}
 
-{#if elided !== null}
-  <ElisionSection
-    {view}
-    {store}
-    block={elided.block}
-    {subjects}
-    drawing={elided.drawing}
-    edited={editedGroup}
-    {drafts}
-    {onselect}
-  />
-{/if}
-
 {#snippet locked()}
   {#if lock !== null}
     <label class="locked" title={LOCK_TITLE}>
@@ -345,7 +300,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     <legend>{memberships.legend}</legend>
     {#each memberships.rows as row (row.id)}
       <label
-        class:refused={row.refusal !== null}
+        class={{ refused: row.refusal !== null }}
         title={row.refusal ?? undefined}
         style:padding-inline-start="{row.depth * 1.25}rem"
       >

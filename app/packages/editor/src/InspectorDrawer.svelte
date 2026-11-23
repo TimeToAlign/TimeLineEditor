@@ -4,10 +4,10 @@
  * `»` button closes it, and the choice is remembered under `storageKey`
  * when one is given. Beside its heading it names what is selected; below,
  * the inspector, rendered only while the drawer is open. What the inspector
- * holds between showings (unapplied text, drafts, the tab chosen, the
- * pinned timestamp) is kept here, so closing the drawer loses none of it;
- * an editor opened while it is closed has the level tab shown when it
- * opens, and a timestamp pinned while it is closed opens it, as does
+ * holds between showings (unapplied text, drafts, open blocks, the tab
+ * chosen, the pinned timestamp) is kept here, so closing the drawer loses
+ * none of it; an editor opened while it is closed has the level tab shown
+ * when it opens, and a timestamp pinned while it is closed opens it, as does
  * selecting exactly one named timestamp, or exactly one start or end mark
  * of a timeline, which pins that position. An unnamed pin is dropped, the
  * tab kept, once its block's manifest or the granularity changes or its
@@ -89,7 +89,7 @@ interface Props {
    * one named MatchStamps are compared with; `null` while no table is loaded.
    */
   indexesOf: (block: string) => MatchIndexes | null;
-  /** Select `address` alone on the canvas: a row of the Properties tab's elision section. */
+  /** Select `address` alone on the canvas: a row of the Elisions tab. */
   onselect?: (address: Address) => void;
 }
 

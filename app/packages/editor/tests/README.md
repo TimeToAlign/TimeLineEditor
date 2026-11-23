@@ -876,8 +876,7 @@ ancestor, has no card).
    workspace; an emptied workspace name keeps the draft, marks the field
    `aria-invalid` and shows the store's message `a name is a non-empty
    string`; Escape drops both. Mounted in the group editor of `group_1`
-   with nothing selected, the field shows `Performance` (beside it only
-   the group's elisions, "The elision section"), and `Duo` with
+   with nothing selected, the field shows `Performance`, and `Duo` with
    Enter renames the group in one entry of the editor's session.
 9. **The Locked checkbox** (`inspector-fields.test.ts`). Right of the
    container height, in the row of the container size, a disabled
@@ -887,9 +886,13 @@ ancestor, has no card).
    of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
-10. **The elision section** stands where the name field ends, before the
-    geometry form or hint and outside the size row; what it offers is
-    proven in "The elision section" below (`inspector-elision.test.ts`).
+10. **No elision control.** The Properties panel holds none of the
+    elisions' blocks: mounted for the card of `excerpt` in
+    `group_elided_inside`, a group member in `bundle_elisions_stored` and
+    a selected elision, no element of the Elisions tab's test IDs
+    (`elisions`, `group-elisions`, `elision-form`) is rendered; they live
+    in the Elisions tab alone ("The Elisions tab" below,
+    `inspector-elision.test.ts`).
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's
@@ -924,11 +927,11 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept.
 
-## The elision section (`inspector-elision.test.ts`)
+## The Elisions tab (`inspector-elision.test.ts`)
 
 Eliding is a property of what lies under a root and of a group's frame
-(drawing.md §§2.4, 8.8, 8.9). One section directly under the Name field
-holds up to three parts: the **root's block**, wherever every inspected
+(drawing.md §§2.4, 8.8, 8.9). The last tab of the inspector, Elisions,
+holds up to three parts, each a block of its own: the **root's block**, wherever every inspected
 thing is a timeline, a card, a part of either or an elision, all under one
 root `R` drawn in an ancestor card or as an ungrouped root; the **group's
 block**, wherever every inspected thing lies in one group `G`'s frame (the
@@ -937,7 +940,7 @@ elision), and in `G`'s group editor with nothing selected; and the **form**
 of one selected elision. What a mode resolves to, the proportion `r`, the
 depths and every gap's coordinates and widths are read from the exposure
 the drawing gives of the card or frame (`Drawing.elisions`, layout's,
-which derives its numbers from drawing.md §8.9); the section never lays
+which derives its numbers from drawing.md §8.9); the tab never lays
 anything out and never draws a trial. A root's mode and its settings are
 one `style` of the root's rule `{addresses: [{id: R, part: [card]}]}` in
 block `B`, a frame's mode one `style` of `{addresses: [{id: G}]}`; every
@@ -992,6 +995,39 @@ with nothing selected, `group_1`'s editor; not for `score` (an ancestor
 lies in no group through its member), `page`, nor with nothing selected
 outside an editor. `elision_3` offers no root's block (`recording` is a
 member: no ancestor card).
+
+**Blocks, collapsed.** What proves the presentation is the accessibility
+tree and the open state, never the look: each part is a tile (a
+`section` labelled by its heading) whose heading holds one disclosure
+button, `aria-expanded` and `aria-controls` naming the region that
+follows it, `hidden` while collapsed. The button's accessible name is the
+kind word, the title and one line of essentials, so a timeline's block and
+a group's are told apart by their names alone: `Timeline`, the title, the
+mode, and in Custom the count ("Custom, 3 elisions"); `Group`, the title,
+the mode and the count; `Elision`, the title, the stretch From–To with the
+unit, a default elision's followed by ", automatic". Mounted for
+`{id: excerpt}` of `group_elided_members` (a member of `group_1` whose root
+`piece` draws an ancestor card), the tab shows two blocks, named
+`Timeline Parent timeline "Piece" Proportional` and `Group Elisions in
+group "Theme" Custom, 2 elisions`. Collapsed at first: for `{id: piece}`
+of `group_elided_inside` the one block's button reads `aria-expanded`
+"false" and its region is hidden. Open without a click where a block holds
+the selected elision: `elision_5` (a card elision of `score` in
+`bundle_elisions_stored`) opens the timeline's block and the form's;
+`elision_3` (a group elision) the group's block and the form's, no
+timeline's block being offered; the default `{id: second, part: [elision]}`
+(inside) the timeline's block and the form's. A click toggles one block
+and no other. What is opened is kept per block in the inspector's
+`PropertyDrafts`: mounted in the inspector, the timeline's block of
+`piece` opened, then Properties chosen and Elisions again, it is still
+open; mounted again with the same drafts (the drawer closed and opened),
+still open. A block holding the selected elision keeps its own state for
+that selection: with `elision_5` selected, the timeline's block closed by a
+click stays closed while `elision_5` stays selected, and `score` selected
+alone then shows its block collapsed, the state of the block holding no
+selection. With nothing to configure (nothing selected outside an editor,
+or the block alone selected) the tab shows only "Select a timeline, a card
+or a group's frame to edit its elisions."
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
 "0.142857" (held beside it exactly, `0.14285714285714285`); Rows Automatic, the depths deepest first `2` "First, Second"
@@ -1109,8 +1145,8 @@ group elision) as `λ`, exact on an exact axis.
 **Side by side** (drawing.md §8.8, Drawn once). A fourth fixture,
 `bundles/bundle_arranged_roots`, drawn in `B` by layout with the placement
 `arrangement: {direction: horizontal, order: [page, group_3, group_1,
-group_2]}` (the arranger does not pass an arrangement yet, so the test
-draws it itself and resolves the selection as the canvas does): the row
+group_2]}` (the pure readings are given that drawing, drawn by the test
+itself, and the selection resolved as the canvas does): the row
 `page`, `group_1` "Exposition", `group_2` "Development", `group_3`
 "Recapitulation"; `score` (48 ♩, the anchors `exposition`
 0–16, `development` 16–32, `recapitulation` 32–48) and `session` (130.0
@@ -1149,8 +1185,9 @@ proves the reading:
   draws it not (the stretch between two anchors is the arrangement's gap
   whatever the mode), yet it is kept: Custom lists it "—" Session
   "50″–1′20″" with the note "not drawn while arranged side by side", counts
-  it, and its `[×]` and Remove all remove it. Mounted (the section alone,
-  given that drawing): "Side by side" holds the one item `between
+  it, and its `[×]` and Remove all remove it. Mounted (the tab, the
+  block's `arrangement` stated by one `set` so that the arranger's drawing
+  is the side-by-side one): "Side by side" holds the one item `between
   "Exposition" and "Recapitulation" 33″–44″`, the count reads "1 elision",
   and the row carries the note.
 - **The least proportion.** With a group elision on `development`
@@ -1237,9 +1274,10 @@ core's message, so the oracle is core's own nesting rule written out:
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The seven tabs are
+**The tab rule** is proven as a table on the rule alone. The eight tabs are
 always present, in this order: the level tab, Properties, Metadata,
-Manifest, Journal, Timestamp, Matchstamp. The level tab is labelled by the level's word: "Arranger" with no
+Manifest, Journal, Timestamp, Matchstamp, Elisions (last, so End reaches
+it and ArrowRight from it wraps to the level tab). The level tab is labelled by the level's word: "Arranger" with no
 editor open, else "Bundle", "Group" or "Timeline" for the innermost
 editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or
@@ -1292,7 +1330,7 @@ closing and reopening, nothing journalled.
    meanwhile, Journal chosen, it shows Journal; with Journal chosen, a
    group editor opened while the drawer is open, the open drawer opened
    again, then closed and opened, it still shows Journal.
-5. **The keys** move over the seven tabs, wrapping, at the top level and in
+5. **The keys** move over the eight tabs, wrapping, at the top level and in
    an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
 6. **The Manifest panel**, with `bare` and `styled__score`: it opens on

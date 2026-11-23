@@ -539,7 +539,8 @@ export type TabName =
   | "Manifest"
   | "Journal"
   | "Timestamp"
-  | "Matchstamp";
+  | "Matchstamp"
+  | "Elisions";
 
 /** The inspector's tab `name`. */
 export function tab(page: Page, name: TabName): Locator {

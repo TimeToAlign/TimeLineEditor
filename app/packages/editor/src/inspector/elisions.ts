@@ -1,5 +1,5 @@
 /**
- * The elisions of the Properties tab (TimeToShare's drawing specification,
+ * The Elisions tab (TimeToShare's drawing specification,
  * sections 2.4 and 8.9): the block of the root `R` under which the whole
  * selection lies, where `R`'s drawing carries elisions (an ancestor card of
  * `R`, or `R`'s card as an ungrouped root); the block of the group `G` whose
@@ -14,6 +14,9 @@
  * records for it, whose `ancestor.groups` lists every group it lies behind;
  * the gaps the arrangement cuts between two of them are listed read-only,
  * never edited (a seam leaves out nothing and is no gap, so none is listed).
+ * The tab shows each of the three as a block of its kind (a timeline's, a
+ * group's, an elision's), collapsed to one line that says its essentials
+ * (`blocksOf`), open without a click where it holds the selected elision.
  */
 
 import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
@@ -56,6 +59,7 @@ import {
   indexOf,
   parseAxisValue,
   prettyUnit,
+  sameAddress,
   samePlaceKey,
 } from "@timetoalign/tilie-core";
 import { anchorsOf, memberDrawings, reachOf } from "@timetoalign/tilie-core/drawing";
@@ -1281,4 +1285,106 @@ export function elisionDisplayCommand(form: ElisionForm, word: ElisionWord): Set
 /** The command deleting the selected stored elision; `null` for a default one. */
 export function deleteCommand(form: ElisionForm): RemoveCommand | null {
   return form.stored === null ? null : { type: "remove", targets: [form.address] };
+}
+
+// --- The tab's blocks -----------------------------------------------------------------------------
+
+/** What a block of the Elisions tab configures: a timeline (the root's block), a group, one elision. */
+export type BlockKind = "timeline" | "group" | "elision";
+
+/** The kind word heading each block, which tells a timeline's block from a group's. */
+export const KIND_WORDS: { readonly [kind in BlockKind]: string } = {
+  timeline: "Timeline",
+  group: "Group",
+  elision: "Elision",
+};
+
+/** What the Elisions tab says with nothing to show. */
+export const ELISIONS_HINT = "Select a timeline, a card or a group's frame to edit its elisions.";
+
+/** One block as its collapsed line shows it, and the open state it reads. */
+export interface ElisionBlock {
+  readonly kind: BlockKind;
+  readonly title: string;
+  /** The essentials after the title: the mode and the number of elisions, or the stretch. */
+  readonly summary: string;
+  /** The key its open state is kept under: its own, or its own with the selected elision it holds. */
+  readonly key: string;
+  /** Whether it is open before any click: only where it holds the selected elision. */
+  readonly opened: boolean;
+}
+
+/** The three blocks of the tab, each `null` where its part is. */
+export interface ElisionBlocks {
+  readonly root: ElisionBlock | null;
+  readonly group: ElisionBlock | null;
+  readonly form: ElisionBlock | null;
+}
+
+/**
+ * The key of the block of `address`: `address`'s key while it holds no
+ * selected elision, else the pair of that key and the selected elision's,
+ * so that the state chosen for a block holding one selection is not the
+ * state of the block holding nothing or another.
+ */
+function blockKey(address: Address, held: Address | null): string {
+  return held === null
+    ? addressKey(address)
+    : JSON.stringify([addressKey(address), addressKey(held)]);
+}
+
+/** A stretch with its unit, as a form's From and To show it. */
+const stretchOf = (form: ElisionForm): string =>
+  `${form.start}–${form.end}${form.unit === "" ? "" : ` ${form.unit}`}`;
+
+/**
+ * The blocks of `root`, `group` and `form` as the tab shows them. The
+ * selected elision of `form` is held by the group's block where the group
+ * lists it, else by the root's (a card elision of the root, or a default
+ * one); the block holding it and the form's own block are open without a
+ * click, every other block is collapsed.
+ */
+export function blocksOf(
+  root: RootElisions | null,
+  group: GroupElisions | null,
+  form: ElisionForm | null,
+): ElisionBlocks {
+  const selected = form?.address ?? null;
+  const inGroup =
+    selected !== null && (group?.rows.some((row) => sameAddress(row.address, selected)) ?? false);
+  const inRoot = selected !== null && !inGroup && root !== null;
+  const custom = root?.custom ?? null;
+  const rootCount = custom === null ? "" : `, ${counted(custom.rows.length)}`;
+  return {
+    root:
+      root === null
+        ? null
+        : {
+            kind: "timeline",
+            title: root.title,
+            summary: `${MODE_WORDS[root.mode]}${rootCount}`,
+            key: blockKey(root.address, inRoot ? selected : null),
+            opened: inRoot,
+          },
+    group:
+      group === null
+        ? null
+        : {
+            kind: "group",
+            title: group.title,
+            summary: `${MODE_WORDS[group.mode]}, ${group.count}`,
+            key: blockKey(inBlock(group.block, idAddress(group.group)), inGroup ? selected : null),
+            opened: inGroup,
+          },
+    form:
+      form === null
+        ? null
+        : {
+            kind: "elision",
+            title: form.title,
+            summary: form.stored === null ? `${stretchOf(form)}, automatic` : stretchOf(form),
+            key: blockKey(form.address, null),
+            opened: true,
+          },
+  };
 }
