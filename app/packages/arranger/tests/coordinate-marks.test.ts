@@ -281,7 +281,7 @@ describe("the hovered position", () => {
 describe("a position on an ancestor line", () => {
   /** `piece`'s ancestor line in `middle`'s card, and 8 quarters of `piece` on it (`README.md`). */
   const PIECE_Y = 85.18359375;
-  const AT_PIECE_8 = 460.33544921875;
+  const AT_PIECE_8 = 564.0390625;
   const parentView = (): View =>
     viewOf({ id: A, fixture: "groups/group_parent_both", x: 40, y: 80 });
 
@@ -302,7 +302,7 @@ describe("a position on an ancestor line", () => {
    */
   const MARK = {
     wedge: {
-      points: "460.3354,86.6836 457.3354,99.6836 463.3354,99.6836",
+      points: "564.0391,86.6836 561.0391,99.6836 567.0391,99.6836",
       fill: "#000000",
       opacity: "0.35",
     },
@@ -314,11 +314,8 @@ describe("a position on an ancestor line", () => {
     await toggleCoordinates();
     await hoverAt(client(AT_PIECE_8, PIECE_Y));
     const node = one(".svelte-flow__node[data-id] svg");
-    expect(attributes(one('polygon[data-id="middle"][data-part="start"]', node), WEDGE)).toEqual({
-      points: "260.3354,86.6836 257.3354,99.6836 263.3354,99.6836",
-      fill: "#000000",
-      opacity: "0.35",
-    });
+    // No line marks a member's start or end on an ancestor line.
+    expect(node.querySelector('polygon[data-id="middle"][data-part="start"]')).toBeNull();
     expect(wedgeMarks("hover")).toEqual(MARK);
     expect(
       [...document.querySelectorAll(".tilie-coordinates-part")].map((part) => [
@@ -380,7 +377,7 @@ describe("a position on an ancestor line", () => {
     expect(wedgeMarks("hover")).toEqual(MARK);
   });
 
-  it("marks a pin in a gap only while the card is raised, on the card's line", async () => {
+  it("marks a pin outside the member's span on the card's line left of the frame, raised or not", async () => {
     await show(parentView());
     const { manifest } = blockIn(store.view, A);
     const drawing = drawingOf(blockIn(store.view, A), store.view.graphical, metrics);
@@ -399,19 +396,20 @@ describe("a position on an ancestor line", () => {
     if (pin === null) throw new Error("no pin of piece");
     harness.pin(pin);
     await settle();
-    expect(wedgeMarks("pin")).toBeNull();
-    expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
-    await settle();
-    harness.showAt(VIEW);
-    await settle();
-    expect(wedgeMarks("pin")).toEqual({
+    const left = {
       wedge: {
         points: "210.3354,86.6836 207.3354,99.6836 213.3354,99.6836",
         fill: "#000000",
         opacity: null,
       },
       line: true,
-    });
+    };
+    expect(wedgeMarks("pin")).toEqual(left);
+    expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
+    await settle();
+    harness.showAt(VIEW);
+    await settle();
+    expect(wedgeMarks("pin")).toEqual(left);
   });
 });
 

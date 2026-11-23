@@ -331,21 +331,21 @@ describe("the defaults", () => {
           start: [0, 1],
           end: [8, 1],
           width: { canvas: 57.14285714285714 },
-          display: ["ellipsis"],
+          display: ["ellipsis", "name"],
         },
         {
           timeline: "first",
           start: [16, 1],
           end: [32, 1],
           width: { canvas: 114.28571428571428 },
-          display: ["ellipsis"],
+          display: ["ellipsis", "name"],
         },
         {
           timeline: "second",
           start: [1, 1],
           end: [31, 1],
           width: { canvas: 128.57142857142856 },
-          display: ["ellipsis"],
+          display: ["ellipsis", "name"],
         },
       ],
     });
@@ -364,7 +364,7 @@ describe("the defaults", () => {
         start: [start, 1],
         end: [end, 1],
         width: { canvas: 74.33333333333334 },
-        display: ["ellipsis"],
+        display: ["ellipsis", "name"],
       })),
     );
     expect(defaultsStored(STORED, A, drawingIn(STORED), SCORE_CARD)).toEqual({
@@ -392,7 +392,7 @@ describe("on the canvas", () => {
   const LINE = 105.98828125;
 
   it("reads nothing inside a gap, which says what it elides", () => {
-    const at = { x: nodeOf(STORED).position.x + 1388.5579618566176, y: LINE };
+    const at = { x: nodeOf(STORED).position.x + 1532.2615751378676, y: LINE };
     const point = { x: at.x, y: nodeOf(STORED).position.y + LINE };
     expect(
       readingAt([nodeOf(STORED)], point, { zoom: 1, ratio: 1, granularity: DEFAULT_GRANULARITY }),
@@ -442,8 +442,8 @@ describe("on the canvas", () => {
         (address) => address.id === "elision_2",
       );
     };
-    expect(taken(600, 265, 790, 335)).toEqual([inBlock(A, ELISION("elision_2"))]);
-    expect(taken(600, 265, 790, 300)).toEqual([]);
+    expect(taken(700, 265, 880, 335)).toEqual([inBlock(A, ELISION("elision_2"))]);
+    expect(taken(700, 265, 880, 320)).toEqual([]);
   });
 
   it("picks nothing on a gap and its parts", () => {

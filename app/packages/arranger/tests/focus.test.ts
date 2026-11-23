@@ -163,12 +163,12 @@ describe("a group's frame with elided ancestor cards", () => {
     const bounds = targetBounds(node, group("group_1"), metrics);
     expect(focusViewport(bounds, PANE, 0)).toEqual({
       x: 112.932967521475,
-      y: 183.37435754666572,
+      y: 164.56263779686665,
       zoom: 1.8833790598156273,
     });
     expect(focusViewport(bounds, PANE, 0, reach)).toEqual({
       x: 363.14707455900725,
-      y: 267.22370626910197,
+      y: 257.3424590569266,
       zoom: 0.9892840384500954,
     });
   });

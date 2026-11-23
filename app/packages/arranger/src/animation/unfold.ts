@@ -138,6 +138,12 @@ export function durationOf(from: number, to: number, reduced: boolean): number {
 export interface Knot {
   readonly x: number;
   readonly at: number;
+  /**
+   * Set where the knot ends a run at a seam whose position lies on the
+   * other run (`docs/drawing.md` in TimeToShare, section 3.2): the
+   * position is drawn at the other run's knot, never at this one.
+   */
+  readonly across?: true;
 }
 
 /**
@@ -165,9 +171,9 @@ export function positionAt(knots: readonly Knot[], x: number): number | null {
 /**
  * The abscissa drawing the position `at` among `knots` (sorted by `x`, so by
  * `at` too): linear between the two knots around it, a knot's own abscissa
- * exactly at its position, the first or the last knot's beyond them (a
- * position the knots do not reach is drawn at their nearer end); `null`
- * without knots.
+ * exactly at its position (but a knot `across` a seam's), the first or the
+ * last knot's beyond them (a position the knots do not reach is drawn at
+ * their nearer end); `null` without knots.
  */
 export function abscissaAt(knots: readonly Knot[], at: number): number | null {
   const first = knots[0];
@@ -179,8 +185,9 @@ export function abscissaAt(knots: readonly Knot[], at: number): number | null {
     const right = knots[index];
     const left = knots[index - 1];
     if (right === undefined || left === undefined || at > right.at) continue;
-    if (at === right.at) return right.x;
-    if (at === left.at) return left.x;
+    if (at === right.at && right.across !== true) return right.x;
+    if (at === left.at && left.across !== true) return left.x;
+    if (at === right.at || at === left.at) continue;
     return left.x + ((right.x - left.x) * (at - left.at)) / (right.at - left.at);
   }
   return last.x;

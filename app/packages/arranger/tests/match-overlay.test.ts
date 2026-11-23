@@ -732,38 +732,46 @@ describe("an ancestor card raised", () => {
             ),
           ]);
     };
-    // The drawing's place origin lies 148.6318359375 right of its left edge (the ancestor card
-    // reaches left of the frame), so the node lies that much left of block A's position.
-    await hoverAt(client(210.33544921875 - 148.6318359375, 80));
-    expect(flagOf()).toBeNull();
+    // A drawing point taken through the view and the node's place the canvas shows (the node
+    // lies left of block A's place by as much as the ancestor card reaches beyond the frame).
+    const seen = (x: number, y: number) => {
+      const { viewport } = harness.current();
+      const overlay = one(`[data-matches="${A}"]`) as SVGElement;
+      const node = {
+        x: Number.parseFloat(overlay.style.left),
+        y: Number.parseFloat(overlay.style.top),
+      };
+      return {
+        clientX: viewport.x + (node.x + x) * viewport.zoom,
+        clientY: viewport.y + (node.y + y) * viewport.zoom,
+      };
+    };
+    // On the card's `middle` row at 1, which the frame covers, `middle`'s own line is read, and
+    // on the arranger the flag reads the group: `recording` at 1 / 8 of `middle`'s drawn length.
+    await hoverAt(seen(414.0390625, 51.20703125));
+    expect(flagOf()).toEqual([
+      ["Middle", ["1 ♩"]],
+      ["Piece", ["3 ♩"]],
+      ["Recording", ["1.25″"]],
+    ]);
     expect(store.open(inBlock(A, idAddress("piece")))).toBeNull();
     await settle();
-    // The editor fits the view to the card and places the node anew: the point is taken
-    // through the view and the node's place the canvas shows.
-    const { viewport } = harness.current();
-    const overlay = one(`[data-matches="${A}"]`) as SVGElement;
-    const node = {
-      x: Number.parseFloat(overlay.style.left),
-      y: Number.parseFloat(overlay.style.top),
-    };
+    // The editor fits the view to the card and places the node anew.
     expect(path("potential")?.getAttribute("d")).toBe(
       [
         "M110.3354 36.207V99.5859",
         "M210.3354 36.207V99.5859",
-        "M360.3354 36.207V99.5859",
-        "M760.3354 36.207V99.5859",
-        "M260.3354 36.207V99.5859",
-        "M310.3354 36.207V99.5859",
-        "M660.3354 36.207V99.5859",
-        "M260.3354 67.8965L110.3354 67.8965",
-        "M310.3354 67.8965L210.3354 67.8965",
-        "M660.3354 67.8965L760.3354 67.8965",
+        "M464.0391 36.207V99.5859",
+        "M904.0391 36.207V99.5859",
+        "M364.0391 36.207V99.5859",
+        "M414.0391 36.207V99.5859",
+        "M764.0391 36.207V99.5859",
+        "M364.0391 67.8965L110.3354 67.8965",
+        "M414.0391 67.8965L210.3354 67.8965",
+        "M764.0391 67.8965L904.0391 67.8965",
       ].join(""),
     );
-    await hoverAt({
-      clientX: viewport.x + (node.x + 210.33544921875) * viewport.zoom,
-      clientY: viewport.y + (node.y + 80) * viewport.zoom,
-    });
+    await hoverAt(seen(210.33544921875, 80));
     expect(flagOf()).toEqual([
       ["Middle", ["1 ♩"]],
       ["Piece", ["3 ♩"]],

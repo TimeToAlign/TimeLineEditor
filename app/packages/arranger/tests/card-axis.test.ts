@@ -63,8 +63,8 @@ describe("abscissas on the runs", () => {
       axis.abscissaOf("score", q(32n)),
       axis.abscissaOf("score", q(48n)),
       axis.abscissaOf("score", q(40n)),
-      axis.valueAt("score", 1388.5579618566176),
-      axis.valueAt("score", 1518.5579618566176 + 200),
-    ]).toEqual([1288.5579618566176, 1488.5579618566176, null, null, 60]);
+      axis.valueAt("score", 1532.2615751378676),
+      axis.valueAt("score", 1662.2615751378676 + 200),
+    ]).toEqual([1432.2615751378676, 1632.2615751378676, null, null, 60]);
   });
 });

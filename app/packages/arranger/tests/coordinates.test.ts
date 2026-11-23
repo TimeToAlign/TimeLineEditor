@@ -279,16 +279,18 @@ describe("hovering", () => {
 const PARENT_BOTH = "groups/group_parent_both";
 const MIDDLE_CARD = { item: "group_1", member: "middle" };
 const PIECE_CARD = { item: "group_1", member: "piece" };
+/** What `piece`'s card records of the frame it lies behind and the member it is aligned to. */
+const ANCESTOR = { group: "group_1", member: "middle" };
 /** The abscissa of 8 quarters of `piece` (4 of `middle`), inside the frame and both cards. */
-const AT_PIECE_8 = 460.33544921875;
+const AT_PIECE_8 = 564.0390625;
 /** `piece`'s ancestor line, below `middle`'s (`32.8046875 + 14.40234375 + 37.9765625`), and the card's line. */
 const PIECE_Y = 85.18359375;
 /** `middle`'s own line: its card's top 32.8046875 plus `y_root` 14.40234375. */
 const MIDDLE_Y = 47.20703125;
 /** The card's `middle` row: the card's top `85.18359375 − 48.9765625`, plus `P` and the half pitch 7. */
 const CARD_MIDDLE_Y = 51.20703125;
-/** `recording`'s line: its card's top `32.8046875 + 87.35546875 + 8` plus `y_root` 14.40234375. */
-const RECORDING_Y = 142.5625;
+/** `recording`'s line: its card's top `32.8046875 + 67.37890625 + 8` plus `y_root` 14.40234375. */
+const RECORDING_Y = 122.5859375;
 
 /** The reading at block A's local point `(x, y)` with the editor `editing` open. */
 function readWith(view: View, x: number, y: number, editing: Editing | null) {
@@ -338,29 +340,23 @@ describe("an ancestor line, read as its ancestor's", () => {
         ancestor,
       ]),
     ).toEqual([
-      [MIDDLE_CARD, PIECE_Y, 260.33544921875, 660.33544921875, q(4), q(8), undefined],
-      [
-        PIECE_CARD,
-        PIECE_Y,
-        60.33544921875,
-        860.33544921875,
-        q(0),
-        q(16),
-        { group: "group_1", member: "middle" },
-      ],
+      [MIDDLE_CARD, PIECE_Y, 364.0390625, 764.0390625, q(4), q(8), undefined],
+      [PIECE_CARD, PIECE_Y, 60.33544921875, 260.33544921875, q(0), q(4), ANCESTOR],
+      [PIECE_CARD, PIECE_Y, 364.0390625, 764.0390625, q(4), q(8), ANCESTOR],
+      [PIECE_CARD, PIECE_Y, 804.0390625, 1004.0390625, q(12), q(4), ANCESTOR],
     ]);
     expect(drawing.boxes.find((box) => box.kind === "frame")).toMatchObject({
-      x: 156.6318359375,
+      x: 260.33544921875,
       y: 8,
       width: 543.70361328125,
-      height: 177.5390625,
+      height: 157.5625,
     });
   });
 
   it.each([
-    [360.33544921875, q(6), q(2)],
+    [464.0390625, q(6), q(2)],
     [AT_PIECE_8, q(8), q(4)],
-    [560.33544921875, q(10), q(6)],
+    [664.0390625, q(10), q(6)],
   ])("at %d reads piece at %s across middle's line, middle at %s", (x, piece, middle) => {
     const reading = readAt(view, x, PIECE_Y);
     expect(readShape(reading)).toEqual([
@@ -480,7 +476,7 @@ describe("a covered line, not read", () => {
     ],
     [
       "the card's piece line right of the frame",
-      760.33544921875,
+      904.0390625,
       PIECE_Y,
       ["piece", PIECE_CARD, [["piece", q(14)]]],
       ["piece", PIECE_CARD, [["piece", q(14)]]],
@@ -527,13 +523,13 @@ describe("a later ancestor card over an earlier one", () => {
   it("lies where layout's record puts the two cards and their lines", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map(({ key, x, y, width, height }) => [key, x, y, width, height])).toEqual([
-      [FIRST, 8, 28.8046875, 1243.3592936197915, 154.8828125],
-      [SECOND, 533.3333333333333, 98.9765625, 1243.3592936197917, 154.8828125],
+      [FIRST, 8, 28.8046875, 1410.7494303385415, 154.8828125],
+      [SECOND, 533.3333333333333, 98.9765625, 1370.7494303385417, 154.8828125],
     ]);
     const frames = drawing.boxes.filter((box) => box.kind === "frame");
     expect(frames.map(({ x, width }) => [x, x + width])).toEqual([
-      [40.0234375, 607.41357421875],
-      [1232.0234375, 1799.41357421875],
+      [167.41357421875, 734.8037109375],
+      [1359.41357421875, 1926.8037109375],
     ]);
     const lineIn = (card: PlaceKey, timeline: string) =>
       [...lineAxes(drawing).values()].find(
@@ -542,7 +538,7 @@ describe("a later ancestor card over an earlier one", () => {
     const score = lineIn(FIRST, "score");
     const exposition = lineIn(SECOND, "exposition");
     expect(score && [score.y, score.xStart, score.xEnd]).toEqual([
-      127.234375, 167.41357421875, 1234.0802408854165,
+      127.234375, 294.8037109375, 694.8037109375,
     ]);
     expect(exposition && [exposition.y, exposition.xStart, exposition.xEnd]).toEqual([
       159.9296875, 692.7469075520833, 1092.7469075520833,
@@ -574,7 +570,7 @@ describe("a later ancestor card over an earlier one", () => {
     const at = (root: string | null) =>
       placesAt(drawing, "score", q(45, 4), root).map(({ axis, x }) => [axis.card, axis.y, x]);
     expect(at(null)).toEqual([
-      [{ item: "group_1", member: "exposition" }, 127.234375, 542.41357421875],
+      [{ item: "group_1", member: "exposition" }, 127.234375, 669.8037109375],
       [SECOND, 197.40625, 1067.7469075520833],
     ]);
     expect(at(raised)).toEqual([[SECOND, 197.40625, 1067.7469075520833]]);
@@ -601,11 +597,11 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
   const grandchild = withFullCards(viewWith("groups/group_grandchild"));
 
   it("reads a grandchild's two ancestor lines, the flag top to bottom", () => {
-    expect(readFull(readAt(grandchild, 1482.265625, 119.16015625))).toEqual([
+    expect(readFull(readAt(grandchild, 1585.96923828125, 99.18359375))).toEqual([
       "score",
       THEME_CARD,
       q(28),
-      ["score", 119.16015625],
+      ["score", 99.18359375],
       [
         ["movement", q(16), 85.18359375],
         ["theme", q(24), 47.20703125],
@@ -616,13 +612,13 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
         ["theme", q(4)],
       ],
     ]);
-    expect(readFull(readAt(grandchild, 1482.265625, 85.18359375))).toEqual([
+    expect(readFull(readAt(grandchild, 1585.96923828125, 85.18359375))).toEqual([
       "movement",
       THEME_CARD,
       q(12),
       ["movement", 85.18359375],
       [
-        ["score", q(-16), 119.16015625],
+        ["score", q(-16), 99.18359375],
         ["theme", q(8), 47.20703125],
       ],
       [
@@ -631,7 +627,7 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
         ["theme", q(4)],
       ],
     ]);
-    const reading = readAt(grandchild, 1482.265625, 119.16015625);
+    const reading = readAt(grandchild, 1585.96923828125, 99.18359375);
     expect(reading && flagParts(reading.pin).map(({ timeline }) => timeline)).toEqual([
       "theme",
       "movement",
@@ -639,9 +635,17 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
     ]);
   });
 
-  it("leaves the card's covered row of the middle ancestor unread, and reads it beyond the frame", () => {
-    expect(readAt(grandchild, 1482.265625, 105.16015625)).toBeNull();
-    expect(readShape(readAt(grandchild, 1032.265625, 105.16015625))).toEqual([
+  it("reads the member card's ancestor line, never the card's covered row of it, and the row beyond the frame", () => {
+    expect(readShape(readAt(grandchild, 1585.96923828125, 85.18359375))).toEqual([
+      "movement",
+      THEME_CARD,
+      [
+        ["movement", q(12)],
+        ["score", q(28)],
+        ["theme", q(4)],
+      ],
+    ]);
+    expect(readShape(readAt(grandchild, 1032.265625, 85.18359375))).toEqual([
       "movement",
       SCORE_CARD,
       [
@@ -656,19 +660,25 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
       type: "set",
       changes: [{ target: inBlock(A, idAddress("piece")), values: { length: null } }],
     });
-    const card = [...lineAxes(drawingIn(unknown)).values()].find(
+    const runs = [...lineAxes(drawingIn(unknown)).values()].filter(
       (line) => line.timeline === "piece" && line.ancestor !== undefined,
     );
-    expect(card && [card.xStart, card.xEnd, card.length, card.drawnLength]).toEqual([
-      60.33544921875,
-      660.33544921875,
-      null,
-      q(12),
+    expect(
+      runs.map(({ xStart, xEnd, start, length, drawnLength }) => [
+        xStart,
+        xEnd,
+        start,
+        length,
+        drawnLength,
+      ]),
+    ).toEqual([
+      [60.33544921875, 260.33544921875, q(0), q(4), q(4)],
+      [364.0390625, 764.0390625, q(4), null, q(8)],
     ]);
     expect(
       [
-        [460.33544921875, PIECE_Y],
-        [660.33544921875, PIECE_Y],
+        [AT_PIECE_8, PIECE_Y],
+        [764.0390625, PIECE_Y],
         [110.33544921875, PIECE_Y],
       ].map(([x, y]) => readShape(readAt(unknown, x as number, y as number))),
     ).toEqual([
@@ -696,14 +706,16 @@ describe("two ancestor lines, an ancestor of unknown length, and the scales", ()
     const scaled = placed(withFullCards(viewWith(PARENT_BOTH, 0.5)), A, "group_1", { scale: 2 });
     const drawing = drawingIn(scaled);
     const frame = drawing.boxes.find((box) => box.kind === "frame");
-    expect(frame && [frame.x, frame.x + frame.width]).toEqual([305.263671875, 1392.6708984375]);
+    expect(frame && [frame.x, frame.x + frame.width]).toEqual([512.6708984375, 1600.078125]);
     const pieces = [...lineAxes(drawing).values()].filter((line) => line.timeline === "piece");
     expect(pieces.map(({ card, y, xStart, xEnd }) => [card, y, xStart, xEnd])).toEqual([
-      [MIDDLE_CARD, 162.3671875, 512.6708984375, 1312.6708984375],
-      [PIECE_CARD, 162.3671875, 112.6708984375, 1712.6708984375],
+      [MIDDLE_CARD, 162.3671875, 720.078125, 1520.078125],
+      [PIECE_CARD, 162.3671875, 112.6708984375, 512.6708984375],
+      [PIECE_CARD, 162.3671875, 720.078125, 1520.078125],
+      [PIECE_CARD, 162.3671875, 1600.078125, 2000.078125],
     ]);
     expect(
-      [212.6708984375, 912.6708984375, 412.6708984375].map((x) =>
+      [212.6708984375, 1120.078125, 612.6708984375].map((x) =>
         readShape(readAt(scaled, x, 162.3671875, { zoom: 3 })),
       ),
     ).toEqual([
@@ -743,6 +755,8 @@ describe("a timeline's lines and places, without exception", () => {
     ]);
   const cardKey = keyOf(drawing, "piece", true);
   const ancestorKey = keyOf(drawing, "piece", false);
+  /** The key of the run of the card's `piece` line under the frame (4 to 12). */
+  const underKey = `${cardKey}#1`;
 
   it("holds every line drawing a timeline, the topmost in the stacking first", () => {
     expect([linesShape("middle", null), linesShape("middle", raised)]).toEqual([
@@ -755,15 +769,10 @@ describe("a timeline's lines and places, without exception", () => {
         [MIDDLE_CARD, MIDDLE_Y, q(0), null],
       ],
     ]);
+    const run = [PIECE_CARD, PIECE_Y, q(0), null];
     expect([linesShape("piece", null), linesShape("piece", raised)]).toEqual([
-      [
-        [MIDDLE_CARD, PIECE_Y, q(0), null],
-        [PIECE_CARD, PIECE_Y, q(0), null],
-      ],
-      [
-        [PIECE_CARD, PIECE_Y, q(0), null],
-        [MIDDLE_CARD, PIECE_Y, q(0), null],
-      ],
+      [[MIDDLE_CARD, PIECE_Y, q(0), null], run, run, run],
+      [run, run, run, [MIDDLE_CARD, PIECE_Y, q(0), null]],
     ]);
     expect(linesShape("recording", null)).toEqual([
       [{ item: "group_1", member: "recording" }, RECORDING_Y, q(0), null],
@@ -776,11 +785,11 @@ describe("a timeline's lines and places, without exception", () => {
     const at = (key: string) => ({ key, x: AT_PIECE_8, group: false });
     expect(pinnedPlace(drawing, pin, null, null)).toEqual(at(ancestorKey));
     expect(pinnedPlace(drawing, pin, cardKey, null)).toEqual(at(ancestorKey));
-    expect(pinnedPlace(drawing, pin, null, raised)).toEqual(at(cardKey));
-    expect(pinnedPlace(drawing, pin, ancestorKey, raised)).toEqual(at(cardKey));
+    expect(pinnedPlace(drawing, pin, null, raised)).toEqual(at(underKey));
+    expect(pinnedPlace(drawing, pin, ancestorKey, raised)).toEqual(at(underKey));
   });
 
-  it("marks a pin in a gap nowhere, and on the card's line while the card is raised", () => {
+  it("marks a pin outside the member's span on the card's line left of the frame, raised or not", () => {
     const block = blockIn(view, A);
     const pin = timelinePin(
       block.manifest,
@@ -795,23 +804,22 @@ describe("a timeline's lines and places, without exception", () => {
       null,
     );
     if (pin === null) throw new Error("no pin of piece");
-    expect(pinnedPlace(drawing, pin, null, null)).toBeNull();
-    expect(pinnedPlace(drawing, pin, null, raised)).toEqual({
-      key: cardKey,
-      x: 210.33544921875,
-      group: false,
-    });
+    const left = { key: cardKey, x: 210.33544921875, group: false };
+    expect(pinnedPlace(drawing, pin, null, null)).toEqual(left);
+    expect(pinnedPlace(drawing, pin, null, raised)).toEqual(left);
   });
 
   it("reads a timestamp whose value has no place on its own axis, nothing seen being read", () => {
     const block = blockIn(view, A);
     const piece = block.manifest.timelines.find((timeline) => timeline.id === "piece");
     if (piece === undefined) throw new Error("no piece");
-    const read = (root: string | null) =>
+    // With the ancestor cards hidden no line draws `piece` at 3.
+    const hidden = drawingIn(withoutAncestorCards(view));
+    const read = (shown: Drawing, root: string | null) =>
       timelinePin(
         block.manifest,
         A,
-        drawing,
+        shown,
         "piece",
         q(3),
         DEFAULT_GRANULARITY,
@@ -820,13 +828,16 @@ describe("a timeline's lines and places, without exception", () => {
         root,
         null,
       )?.spec;
-    expect(read(null)).toEqual({
+    expect(read(hidden, null)).toEqual({
       block: A,
       granularity: DEFAULT_GRANULARITY,
       anchor: timelineAxisOf(piece, piece.conversion_maps),
       members: [],
     });
-    expect(read(raised)?.anchor.ordinate).toBe(PIECE_Y);
+    expect([read(drawing, null)?.anchor.ordinate, read(drawing, raised)?.anchor.ordinate]).toEqual([
+      PIECE_Y,
+      PIECE_Y,
+    ]);
   });
 });
 
@@ -978,7 +989,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
   }
 
   it.each([
-    ["groups/group_grandchild", "score", "movement", q(8), 105.16015625],
+    ["groups/group_grandchild", "score", "movement", q(8), 85.18359375],
     ["bundles/bundle_mixed", "recording", "excerpt", q(33075), 303.3203125],
   ])(
     "has in %s with %s's card raised one place of %s %s, the card's row at %d",
@@ -1012,7 +1023,7 @@ describe("a timestamp named from a reading on a timeline's second place", () => 
       ],
     ];
     expect(nameOnSecond("bundles/bundle_shared_parent", null, "score", q(9), [9, 1])).toEqual({
-      ordinates: [127.234375, 373.3984375],
+      ordinates: [127.234375, 353.421875],
       read: [true, q(9)],
       flag: [
         exposition,
@@ -1309,8 +1320,8 @@ describe("the position, snapped on the hovered row", () => {
     const view = withFullCards(viewWith(MIXED));
     const score = axis(view, "score");
     expect([score.xStart, score.xEnd, score.y, score.maps.map((map) => map.yc)]).toEqual([
-      279.70361328125,
-      679.70361328125,
+      397.9951171875,
+      797.9951171875,
       73.109375,
       [67.609375, 62.609375],
     ]);
@@ -2036,7 +2047,7 @@ describe("a timestamp named on an ancestor line", () => {
     ]);
 
   it.each([
-    ["the cards shown", (view: View) => view, 279.70361328125],
+    ["the cards shown", (view: View) => view, 397.9951171875],
     ["every ancestor card hidden", withoutAncestorCards, 126.29150390625],
   ])("lists in its tab what the flag listed there, %s", (_, layered, xStart) => {
     const [view, id] = named(layered(withFullCards(viewWith(MIXED))));
@@ -2137,24 +2148,24 @@ describe("the affordance of a named timestamp that draws nothing", () => {
     return [undisplayed(added, id), id];
   }
 
-  it("has none in a gap, and one on the card's line while the card is raised", () => {
+  it("lies outside the member's span on the card's line left of the frame, raised or not, and nowhere with the card hidden", () => {
     const [view, id] = blank(viewWith(PARENT_BOTH), "piece", [3, 1]);
     const block = blockIn(view, A);
     const drawing = drawingIn(view);
     const cardKey = keyOf(drawing, "piece", true);
-    expect(affordancesOf(block.manifest, drawing)).toEqual([]);
-    expect(affordancesOf(block.manifest, drawing, raisedRoot(block, PIECE_EDITOR))).toEqual([
-      {
-        kind: "affordance",
-        address: idAddress(id),
-        line: cardKey,
-        points: [
-          [210.33544921875, 86.68359375],
-          [207.33544921875, 99.68359375],
-          [213.33544921875, 99.68359375],
-        ],
-      },
-    ]);
+    const left = {
+      kind: "affordance",
+      address: idAddress(id),
+      line: cardKey,
+      points: [
+        [210.33544921875, 86.68359375],
+        [207.33544921875, 99.68359375],
+        [213.33544921875, 99.68359375],
+      ],
+    };
+    expect(affordancesOf(block.manifest, drawing)).toEqual([left]);
+    expect(affordancesOf(block.manifest, drawing, raisedRoot(block, PIECE_EDITOR))).toEqual([left]);
+    expect(affordancesOf(block.manifest, drawingIn(withoutAncestorCards(view)))).toEqual([]);
   });
 
   it("lies on a member's own line, and on the card's row of it while the card is raised", () => {
@@ -2187,9 +2198,9 @@ describe("the affordance of a named timestamp that draws nothing", () => {
     ) ?? [undefined];
     if (ancestorKey === undefined) throw new Error("no ancestor line of movement");
     const points = [
-      [1482.265625, 86.68359375],
-      [1479.265625, 99.68359375],
-      [1485.265625, 99.68359375],
+      [1585.96923828125, 86.68359375],
+      [1582.96923828125, 99.68359375],
+      [1588.96923828125, 99.68359375],
     ];
     expect(affordancesOf(block.manifest, drawing)).toEqual([
       { kind: "affordance", address: idAddress(id), line: ancestorKey, points },
@@ -2209,7 +2220,7 @@ describe("the affordance of a named timestamp that draws nothing", () => {
     if (pin === null) throw new Error("no pin of movement");
     expect(pinnedPlace(drawing, pin, null, null)).toEqual({
       key: ancestorKey,
-      x: 1482.265625,
+      x: 1585.96923828125,
       group: false,
     });
   });
@@ -2220,18 +2231,14 @@ describe("the affordance of a named timestamp that draws nothing", () => {
       ([, line]) => line.timeline === "middle" && line.ancestor === undefined,
     );
     if (own === undefined) throw new Error("no member line of middle");
-    expect([own[1].y, own[1].xStart, own[1].card]).toEqual([
-      MIDDLE_Y,
-      260.33544921875,
-      MIDDLE_CARD,
-    ]);
+    expect([own[1].y, own[1].xStart, own[1].card]).toEqual([MIDDLE_Y, 364.0390625, MIDDLE_CARD]);
     const [affordance, ...more] = affordances(view);
     expect(more).toEqual([]);
-    expect(affordance).toEqual(expected(view, "timestamp_1", own[0], 360.33544921875));
+    expect(affordance).toEqual(expected(view, "timestamp_1", own[0], 464.0390625));
     expect(affordance?.points).toEqual([
-      [360.33544921875, 48.70703125],
-      [357.33544921875, 61.70703125],
-      [363.33544921875, 61.70703125],
+      [464.0390625, 48.70703125],
+      [461.0390625, 61.70703125],
+      [467.0390625, 61.70703125],
     ]);
   });
 });

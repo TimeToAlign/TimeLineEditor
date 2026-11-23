@@ -340,9 +340,9 @@ const outcome = (
 const EXPECTED: readonly Expected[] = [
   {
     fixture: "groups/group_parent_both",
-    places: [outcome(53), outcome(23)],
+    places: [outcome(54), outcome(23)],
     points: [
-      [509, 141],
+      [776, 134],
       [195, 0],
     ],
   },
@@ -350,7 +350,7 @@ const EXPECTED: readonly Expected[] = [
     fixture: "groups/group_parent_right",
     places: [outcome(54), outcome(23)],
     points: [
-      [517, 133],
+      [648, 132],
       [195, 0],
     ],
   },
@@ -364,33 +364,33 @@ const EXPECTED: readonly Expected[] = [
   },
   {
     fixture: "groups/group_child_member",
-    places: [outcome(53), outcome(23)],
+    places: [outcome(54), outcome(23)],
     points: [
-      [511, 139],
+      [648, 132],
       [195, 0],
     ],
   },
   {
     fixture: "groups/group_child_member_stamps",
-    places: [outcome(53), outcome(23)],
+    places: [outcome(54), outcome(23)],
     points: [
-      [509, 141],
+      [776, 134],
       [195, 0],
     ],
   },
   {
     fixture: "groups/group_grandchild",
-    places: [outcome(80), outcome(25)],
+    places: [outcome(72), outcome(25)],
     points: [
-      [737, 173],
+      [1164, 136],
       [260, 0],
     ],
   },
   {
     fixture: "groups/group_parents_mixed",
-    places: [outcome(243), outcome(47)],
+    places: [outcome(252), outcome(47)],
     points: [
-      [2602, 778],
+      [3689, 731],
       [455, 0],
     ],
   },
@@ -398,7 +398,7 @@ const EXPECTED: readonly Expected[] = [
     fixture: "bundles/bundle_mixed",
     places: [outcome(108), outcome(47)],
     points: [
-      [970, 70],
+      [1231, 69],
       [390, 0],
     ],
   },
@@ -406,7 +406,7 @@ const EXPECTED: readonly Expected[] = [
     fixture: "bundles/bundle_shared_parent",
     places: [
       outcome(
-        486,
+        450,
         [
           boundary(null, "recapitulation_second"),
           boundary(null, "recapitulation_second"),
@@ -417,7 +417,7 @@ const EXPECTED: readonly Expected[] = [
           boundary("score", "recapitulation_second_1"),
           boundary("score", "recapitulation_second_1"),
         ],
-        segments(36, { recapitulation_second: 4, take_1_first: 18, take_1_second: 18 }),
+        segments(36, { recapitulation_second: 4, take_1_first: 9, take_1_second: 9 }),
       ),
       outcome(
         143,
@@ -426,7 +426,7 @@ const EXPECTED: readonly Expected[] = [
       ),
     ],
     points: [
-      [2072, 398],
+      [2207, 523],
       [585, 0],
     ],
   },
@@ -437,7 +437,7 @@ describe("a reading at every place and the pin made from it", () => {
     expect(EXPECTED.map(({ fixture }) => fixture)).toEqual(FIXTURES);
     expect(
       EXPECTED.reduce((sum, { places }) => sum + places[0].compared + places[1].compared, 0),
-    ).toBe(1565);
+    ).toBe(1533);
   });
 
   it.each(EXPECTED)(
