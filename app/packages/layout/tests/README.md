@@ -1598,11 +1598,16 @@ elision without `display` draws `["ellipsis", "name"]`.
    15762598695796737/1125899906842624 instead of 14.
 14. **One ellipsis per gap, on no row** (section 6.6). Over every manifest
    fixture drawn with the defaults, each drawing of a gap in a member,
-   block-held card or across a frame writes at most one ellipsis, at
-   `(xm, ym)`, none in a gap narrower than 20, and its labels at `xm` with
-   the baselines above (an ancestor card's elements are drawn in its own
-   coordinates and moved, so its middles are the moved ones: its gaps are
-   covered by points 1, 3 and 16). In `bundle_shared_parent` each of
+   block-held card or across a frame writes exactly one ellipsis, at
+   `(xm, ym)`, where the gap is at least 20 wide and its display lists
+   `ellipsis`, and none otherwise: a stored gap's display is its elision's
+   `display`, a derived one's its card's `elision-display`, which no
+   fixture states, so the initial `ellipsis name` (the test checks that no
+   fixture's text names `elision-display`). Its labels lie at `xm` with the
+   baselines above, its first on line 1: no stack of these drawings meets
+   a neighbour's (point 18 moves one to a later line). An ancestor card's
+   elements are drawn in its own coordinates and moved, so its middles are
+   the moved ones: its gaps are covered by points 1, 3, 16 and 18. In `bundle_shared_parent` each of
    `score`'s two ancestor cards derives one gap cutting `score`'s map
    `cmap_1` and its line (121.734375 and 127.234375, 347.921875 and
    353.421875): its one ellipsis lies at the middle of its card, not on a
@@ -1653,6 +1658,37 @@ elision without `display` draws `["ellipsis", "name"]`.
    30.9765625 + 47.9765625 + 8 = 101.35546875` high, not `81.37890625`
    (`Δ1 = 14`). In each of the four member cards every ancestor line lies
    at the ordinate of its timeline's line in the card behind.
+
+18. **Neighbouring gaps' label stacks keep apart** (section 6.6; section
+   6.3 the first fit). The stacks drawn below the ellipses of one card, or
+   across one frame, are placed by one first fit at their drawn places,
+   from the left, each as wide as its widest label centred on `xm`: a
+   stack that would cover an earlier one starts on a later line below the
+   ellipses, no gap widens and no abscissa moves; its markers band takes
+   the room of the lines down to its last. Three proofs:
+   - **Built, exact** (the case of "Region braces cut at gaps" below, six
+     stored elisions on `score`, each named `score`, 24.380859375 wide):
+     `elision_2` (its extent 62.3095703125 to 88.6904296875 from `x0`
+     across both neighbours) starts on line 2, the other five on line 1;
+     each label at `xm`, its baseline `ym + 4 + (n − 1) × h(9) + a(9)`;
+     every gap as wide as its stated `canvas` (8, 10, 5, 6, 8, 4).
+   - **LayerIt** (`bundle_elided_layerit`, the defaults; ancestor cards,
+     moved, so the line a label lies on is read as the whole number of
+     lines `h(9)` its baseline lies below line 1 under its ellipsis, the
+     move adding at most a rounding of the last place). The card behind
+     `group_4` draws `Prelude`, `Menuet`, `Clair de Lune`, `Passepied` at
+     205.8683…, 254.613…, 301.0227… and 369.0317…: `Menuet`'s extent
+     ends at `254.613… + 33.7763671875 / 2 + 1 = 272.501…`, after `Clair
+     de Lune`'s starts (`301.0227… − 59.431640625 / 2 − 1 = 270.306…`),
+     so the lines are 1, 1, 2, 1; the other three cards draw their stacks
+     on line 1. Drawn for the view 1024 × 640 (the review case
+     `__view-1024x640`) the card behind `group_4` takes lines 1, 2, 3, 1
+     (`Menuet` meets `Prelude`, `Clair de Lune` both) and the card behind
+     `group_2` 1, 1, 1, 2, 1 (its second `Menuet` meets `Clair de Lune`).
+   - **No label covers another**: over every manifest fixture drawn with
+     the defaults and LayerIt for the view 1024 × 640, no two labels of
+     gaps on one baseline have conflicting extents `[x − w / 2 − 1, x + w
+     / 2 + 1]` (section 6.3), `w` measured at the label's font size.
 
 ## Arrangements (`arrangement.test.ts`)
 
@@ -1761,10 +1797,20 @@ The edges are `25 a − D` and `25 b − D'`, `D` the shrinks of the gaps
 before, `D'` with the gap's own (4.5, 44.5, 64.5, 71, 113, 134). The row
 name is the ID `score` (`A = 1067 + 1126 + 1253 + 842 + 1260 = 5548`, `N =
 5548 × 11 / 2048 = 29.798828125`), so `x0 = 16 + N + 8 = 53.798828125`;
-the line lies at 22.40234375 and the regions band starts at 30.9765625, as
-in `bare` and `with_region` (no elision draws a label), so the arms lie at
-`Yb = 53.37890625`, the tip at `Ya = 59.37890625`, `Ym = 56.37890625`, `k
-= 3`. Every number here is a multiple of 2^−9, so each sum is exact.
+the line lies at 22.40234375, as in `bare` and `with_region`. Each gap
+draws its name label `score` (the default display `ellipsis name`), `w =
+5548 × 9 / 2048 = 24.380859375` wide, below its ellipsis at its middle
+`xm − x0` = 54, 75.5, 83, 126, 183 and 239. Their one first fit (section
+6.6; extents `xm − x0 ± (w / 2 + 1)`, `± 13.1904296875`) keeps
+`elision_1`, `elision_3` (its extent starts at 69.8095703125, after
+`elision_1`'s end 67.1904296875) and the last three on line 1 and moves
+`elision_2` (62.3095703125 to 88.6904296875, across both neighbours) to
+line 2. Its stack takes that room in `score`'s markers band, which so
+holds two lines (the timestamps' labels `0 ♩` and `16 ♩` on line 1), one
+`h(9) = 10.4765625` more than in `with_region`: the regions band starts
+at `30.9765625 + 10.4765625 = 41.453125`, so the arms lie at `Yb =
+63.85546875`, the tip at `Ya = 69.85546875`, `Ym = 66.85546875`, `k = 3`.
+Every number here is a multiple of 2^−9, so each sum is exact.
 
 The region's start, end and midpoint lie in no gap (2, 8 and 14 are
 edges), so it is drawn at its elided x: `X1 = x0 + 50`, `Xm = x0 + 129`,
@@ -1782,7 +1828,9 @@ Ym` (the `L` to `x0 + 53`, where the pen stands, left out), `L x0+70.5 Ym M
 x0+85.5 Ym L x0+123 Ym M x0+126 Ym` (the `L` to `Xm − k` left out), `Q Xm
 Ym Xm Ya Q Xm Ym Xm+k Ym`, `L x0+179 Ym M x0+187 Ym L X2−k Ym`, `Q X2 Ym X2
 Yb`: no tick at a cut, arms and tip whole. A brace spanning no gap (the
-same region without elisions) keeps its one `L` per part, as before.
+same region without elisions) keeps its one `L` per part, as before, at
+`Ym − h(9) = 56.37890625`: without the elisions no stack takes a second
+line.
 
 ## Named timestamps (`timestamps.test.ts`)
 

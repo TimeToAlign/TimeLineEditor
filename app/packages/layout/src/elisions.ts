@@ -51,6 +51,7 @@ import {
   times,
   zero,
 } from "./numbers.ts";
+import { tiersOf } from "./stacks.ts";
 import {
   type CardAxis,
   type Entry,
@@ -58,6 +59,7 @@ import {
   type GapLabel,
   type GapSource,
   type Holder,
+  nth,
   type Scope,
   shown,
 } from "./traversal.ts";
@@ -1287,13 +1289,49 @@ export function gapElements(
 }
 
 /**
- * The distance of the baseline of the `i`-th label, from 1, of a gap's stack
- * below its ellipsis's ordinate (section 6.6): the dot radius, the label gap,
- * `i − 1` lines `h` high and the ascent `a`, of the font size of the markers
- * band that takes the stack's room.
+ * The distance of the baseline of a label of a gap's stack on line `n`, from
+ * 1, below its ellipsis's ordinate (section 6.6): the dot radius, the label
+ * gap, `n − 1` lines `h` high and the ascent `a`, of the font size of the
+ * markers band that takes the stack's room.
  */
-export const stackLabelBelow = (i: number, h: number, a: number): number =>
-  ELLIPSIS_RADIUS + LABEL_GAP + (i - 1) * h + a;
+export const stackLabelBelow = (n: number, h: number, a: number): number =>
+  ELLIPSIS_RADIUS + LABEL_GAP + (n - 1) * h + a;
+
+/** The first line of each drawn gap stack of an axis, by the axis. */
+const stackLinesOf = new WeakMap<CardAxis, ReadonlyMap<Gap, number>>();
+
+/**
+ * The line, from 1, on which the label stack of each gap of `axis` drawing one
+ * starts below its ellipsis (section 6.6): one first fit (section 6.3) of the
+ * stacks, in the order of the gaps from the left, into tiers counted in lines,
+ * each stack one item as many lines high as it has labels, its extent that of
+ * one label as wide as its widest label centred on the gap's middle `xm`, `L ×
+ * u − D` standing for `xm − x0`. A tier is as many lines high as its highest
+ * stack, and a stack starts on its tier's first line: so a stack that would
+ * cover a neighbouring gap's drawn below the same ellipses moves to the next
+ * level, and no gap widens for it. A gap draws its stack where it is displayed
+ * and lists a label, a frame's gap across its frame and a card's gap where its
+ * timeline's markers band takes the stack's room (`Gap.entry`). Memoised by the
+ * axis.
+ */
+export function stackLines(axis: CardAxis): ReadonlyMap<Gap, number> {
+  const known = stackLinesOf.get(axis);
+  if (known !== undefined) return known;
+  const stacked = axis.gaps.filter(
+    ({ source, entry }) =>
+      source.labels.length > 0 && shown(source.style) && (source.framed || entry !== undefined),
+  );
+  const tiers = tiersOf(
+    stacked.map(({ source, left, right }) => ({
+      x: (left + right) / 2,
+      lines: source.labels.length,
+      width: Math.max(...source.labels.map((label) => label.width)),
+    })),
+  );
+  const lines = new Map(stacked.map((gap, index) => [gap, nth(tiers.first, index)]));
+  stackLinesOf.set(axis, lines);
+  return lines;
+}
 
 /**
  * The label stack of a gap in a markers band, at its unturned place (section

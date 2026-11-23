@@ -34,7 +34,7 @@ import type {
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import { type StackLabel, stackLabelBelow } from "./elisions.ts";
+import { type StackLabel, stackLabelBelow, stackLines } from "./elisions.ts";
 import { type Extent, labelExtent } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateText, coordinateValue, negate } from "./numbers.ts";
@@ -193,9 +193,10 @@ export interface MarkersBand extends PreparedBand {
   readonly unnamed: { readonly wedge: Style; readonly crossSection: Style };
   /**
    * The labels of the label stacks of the gaps it places (section 6.4, Markers), each gap's in
-   * stack order, the band drawn from `start` on `side` of the line placed at `at`: centred on the
-   * gap's middle `xm`, each at its line of the band's tiers at its unturned place. A gap's labels
-   * are held by the gap and written with its other descriptors (section 8.5).
+   * stack order, each with the distance of its baseline below the gap's ellipsis: from the line
+   * its stack starts on among the stacks drawn below the same ellipses (section 6.6), one line
+   * after another. A gap's labels are held by the gap and written with its other descriptors
+   * (section 8.5).
    */
   elisionLabels(): Map<Gap, StackLabel[]>;
 }
@@ -215,8 +216,11 @@ export interface MarkersBand extends PreparedBand {
  * fit, in that order, into tiers counted in lines (`tiersOf`), each stack
  * one item as wide as its widest label, centred on its timestamp's `X`, at
  * its unturned place; a wedge's `rotation`, 0 where no rule sets it, carries
- * its stack (`carried`). The band holds its wedges and its labels directly
- * and is present when it draws either; it is `w / 2 + 13` wide without a
+ * its stack (`carried`). After them come the label stacks of the gaps lying
+ * on its sources, each centred on `L × um` at full scale and as many lines
+ * high as the last line it is drawn on below its ellipsis (`stackLines`), so
+ * a stack moved to a later level takes that room. The band holds its wedges
+ * and its labels directly and is present when it draws either; it is `w / 2 + 13` wide without a
  * label, `w / 2 + 13 + 2 + T × h(9)` with `T ≥ 1` lines of labels, `w` the
  * stroke width of the line and 9 the largest font size of its drawn labels;
  * it adds to its timeline's extent `[L × u + a, L × u + b]` for every wedge
@@ -313,6 +317,11 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     (gap) => gap.entry !== undefined && sources.includes(gap.entry) && gap.source.labels.length > 0,
   );
   const gapWidest = (gap: Gap) => Math.max(...gap.source.labels.map((label) => label.width));
+  // The line each gap's stack starts on below its ellipsis, where the stacks drawn below the
+  // ellipses of the card or the frame keep apart (section 6.6): the band takes the room of a stack
+  // drawn from line `n` as of a stack `n − 1` lines higher, its first `n − 1` lines empty.
+  const startLines = scope.axis === undefined ? undefined : stackLines(scope.axis);
+  const firstLineOf = (gap: Gap) => startLines?.get(gap) ?? 1;
   const tiers = tiersOf([
     ...withStacks.map((stamp) => ({
       x: relativeX(stamp.at),
@@ -321,7 +330,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     })),
     ...gaps.map((gap) => ({
       x: scope.L * gap.source.um,
-      lines: gap.source.labels.length,
+      lines: firstLineOf(gap) - 1 + gap.source.labels.length,
       width: gapWidest(gap),
     })),
   ]);
@@ -446,7 +455,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
               type: "label",
               address: label.address,
               style: label.style,
-              below: stackLabelBelow(index + 1, h(size), a(size)),
+              below: stackLabelBelow(firstLineOf(gap) + index, h(size), a(size)),
               anchor: "middle",
               text: label.text,
             }),

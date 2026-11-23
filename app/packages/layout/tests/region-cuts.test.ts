@@ -54,7 +54,9 @@ const ELISIONS = [
 ];
 
 const x0 = 53.798828125;
-const [Yb, Ya, Ym, k] = [53.37890625, 59.37890625, 56.37890625, 3];
+const [Yb, Ya, Ym, k] = [63.85546875, 69.85546875, 66.85546875, 3];
+/** `h(9)` of the bundled font metrics (section 5.1): 1901 + 483 of 2048. */
+const H9 = ((1901 + 483) * 9) / 2048;
 
 describe("a region's brace across gaps", () => {
   const region = regionOf(drawn(...ELISIONS), at("region_1"));
@@ -122,7 +124,9 @@ describe("a region's brace across gaps", () => {
     const [x1, xm, x2] = [x0 + 50, x0 + 200, x0 + 350];
     expect(brace(whole).map(({ command }) => command)).toEqual(["M", "Q", "L", "Q", "Q", "L", "Q"]);
     expect([whole.x1, whole.xm, whole.x2]).toEqual([x1, xm, x2]);
-    expect(brace(whole)[2]).toEqual({ command: "L", points: [[xm - k, Ym]] });
-    expect(brace(whole)[5]).toEqual({ command: "L", points: [[x2 - k, Ym]] });
+    // Without the elisions no stack moves to a second line: the brace's middle one line higher.
+    const ym = Ym - H9;
+    expect(brace(whole)[2]).toEqual({ command: "L", points: [[xm - k, ym]] });
+    expect(brace(whole)[5]).toEqual({ command: "L", points: [[x2 - k, ym]] });
   });
 });

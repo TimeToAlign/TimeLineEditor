@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  type AxisValue,
   type ElementAddress,
   isLoadError,
   loadManifest,
@@ -20,9 +21,21 @@ import {
   type ExposedGap,
   type LineElement,
   manifestLayer,
+  type TextElement,
+  TextMeasure,
   widthAs,
 } from "../src/index.ts";
-import { at, edit, fixturesDir, loadFile, manifestNames, metrics, target } from "./support.ts";
+import {
+  at,
+  build,
+  edit,
+  fixturesDir,
+  loadFile,
+  manifestNames,
+  metrics,
+  quarters,
+  target,
+} from "./support.ts";
 
 /** A fixture drawn at the default placement and view, under `extra` layers. */
 function drawn(name: string, extra: readonly Graphical[] = []): Drawing {
@@ -109,6 +122,18 @@ function gapDrawings(drawing: Drawing) {
     }
     return [{ gap: element, following }];
   });
+}
+
+/**
+ * The display of the elision a gap draws (section 2): a stored gap's own `display`, a derived one's
+ * its card's `elision-display`, the initial `ellipsis name` where no rule states one.
+ */
+function displayOf(manifest: Manifest, gap: DrawnElement): readonly string[] {
+  if (gap.type !== "elision") return [];
+  if (gap.origin !== "stored" && gap.origin !== "carried") return ["ellipsis", "name"];
+  const stored = manifest.graphical?.elisions?.find((each) => each.id === gap.address.id);
+  if (stored === undefined) throw new Error(`no elision ${gap.address.id}`);
+  return stored.display;
 }
 
 /** The ordinates of the rows whose line, map or region a gap drawn from `x1` to `x2` cuts. */
@@ -762,15 +787,22 @@ describe("ellipses", () => {
   it("are one per drawing of a gap, at its middle and the middle of its height, its labels below", () => {
     // Every fixture drawn with the defaults (section 6.6), in its member and block-held cards and
     // across its frames: a gap at least 20 wide whose display lists
-    // `ellipsis` draws exactly one, at `xm` and `ym`; its labels follow at `xm`, the `i`-th with its
-    // baseline at `ym + 2 + 2 + (i − 1) × h(9) + a(9)`.
+    // `ellipsis` draws exactly one, at `xm` and `ym`, and any other none; its labels follow at `xm`,
+    // the `i`-th with its baseline at `ym + 2 + 2 + (i − 1) × h(9) + a(9)`: no stack of these
+    // drawings meets a neighbour's, so each starts on line 1.
     for (const name of manifestNames()) {
-      for (const { gap, following } of gapDrawings(drawn(name))) {
+      const manifest = loadFile(name);
+      // A derived gap's display is its card's `elision-display`; no fixture states one.
+      expect(readFileSync(path.join(fixturesDir, `${name}.yaml`), "utf8")).not.toContain(
+        "elision-display",
+      );
+      for (const { gap, following } of gapDrawings(drawnManifest(manifest))) {
         if (gap.type !== "elision") continue;
         const xm = (gap.x1 + gap.x2) / 2;
         const ym = (gap.yt + gap.yb) / 2;
         const ellipses = following.filter((element) => element.type === "ellipsis");
-        expect(ellipses.length).toBeLessThanOrEqual(1);
+        const listed = displayOf(manifest, gap).includes("ellipsis");
+        expect(ellipses.length).toBe(listed && gap.x2 - gap.x1 >= 20 ? 1 : 0);
         for (const ellipsis of ellipses) {
           expect(ellipsis.type === "ellipsis" && [ellipsis.x, ellipsis.y]).toEqual([xm, ym]);
         }
@@ -808,6 +840,152 @@ describe("ellipses", () => {
     expect(labelTexts(drawing, derived("score"))).toEqual(["Score", "Score"]);
   });
 });
+
+describe("the label stacks of neighbouring gaps", () => {
+  const measure = new TextMeasure(metrics);
+  /**
+   * The labels of the gaps of a drawing (written after their gap and its ellipsis, section 8.5),
+   * each with its index and the middle `ym` of its gap's height.
+   */
+  const stacked = (drawing: Drawing) =>
+    drawing.elements.flatMap((element, index) => {
+      if (element.type !== "elision") return [];
+      const ym = (element.yt + element.yb) / 2;
+      const labels: { label: TextElement; at: number; ym: number }[] = [];
+      for (const [offset, next] of drawing.elements.slice(index + 1).entries()) {
+        if (next.type === "ellipsis") continue;
+        if (next.type !== "label") break;
+        labels.push({ label: next, at: index + 1 + offset, ym });
+      }
+      return labels;
+    });
+  /** The line a label lies on below `ym`, read to the nearest whole line `h(9)`. */
+  const lineOf = (label: TextElement, ym: number) =>
+    Math.round((label.baseline - ym - 4 - A9) / H9) + 1;
+  /** The lines of the label stacks of the gaps of the ancestor card behind `group`. */
+  const linesBehind = (drawing: Drawing, group: string) => {
+    const card = drawing.boxes.find(
+      (box) => box.ancestor?.group === group && box.key?.member === "clt_1",
+    );
+    if (card === undefined) throw new Error(`no card behind ${group}`);
+    return stacked(drawing)
+      .filter(({ at }) => card.range.start <= at && at < card.range.end)
+      .map(({ label, ym }) => [label.text, lineOf(label, ym)]);
+  };
+
+  it("start on a later line where they would meet, no gap widening", () => {
+    // The case of `region-cuts.test.ts` (README, Region braces cut at gaps): each gap named `score`.
+    const widths = [8, 10, 5, 6, 8, 4];
+    const stretches: [AxisValue, AxisValue][] = [
+      [quarters(2), quarters(5, 2)],
+      [quarters(3), quarters(5)],
+      [quarters(5), quarters(6)],
+      [quarters(15, 2), quarters(8)],
+      [quarters(10), quarters(12)],
+      [quarters(14), quarters(15)],
+    ];
+    const drawing = drawnManifest(
+      build(
+        "score",
+        16,
+        ...stretches.map(([start, end], index) =>
+          elisionOn("score", { start, end, width: { canvas: widths[index] } }),
+        ),
+      ),
+    );
+    const gaps = gapDrawings(drawing);
+    expect(gaps.map(({ gap }) => gap.type === "elision" && gap.x2 - gap.x1)).toEqual(widths);
+    expect(
+      gaps.map(({ gap, following }) => {
+        if (gap.type !== "elision") throw new Error("a gap");
+        const [xm, ym] = [(gap.x1 + gap.x2) / 2, (gap.yt + gap.yb) / 2];
+        return following
+          .filter((element) => element.type === "label")
+          .map(
+            (label) => label.type === "label" && [label.text, label.x - xm, label.baseline - ym],
+          );
+      }),
+    ).toEqual([1, 2, 1, 1, 1, 1].map((line) => [["score", 0, 4 + (line - 1) * H9 + A9]]));
+  });
+
+  it("are tiered on LayerIt's ancestor cards", () => {
+    const shown = drawn("bundles/bundle_elided_layerit");
+    expect(["group_1", "group_2", "group_3", "group_4"].map((g) => linesBehind(shown, g))).toEqual([
+      [
+        ["Prelude", 1],
+        ["Menuet", 1],
+        ["Clair de Lune", 1],
+        ["Passepied", 1],
+      ],
+      [
+        ["Prelude", 1],
+        ["Menuet", 1],
+        ["Menuet", 1],
+        ["Clair de Lune", 1],
+        ["Passepied", 1],
+      ],
+      [
+        ["Prelude", 1],
+        ["Menuet", 1],
+        ["Clair de Lune", 1],
+        ["Passepied", 1],
+      ],
+      [
+        ["Prelude", 1],
+        ["Menuet", 1],
+        ["Clair de Lune", 2],
+        ["Passepied", 1],
+      ],
+    ]);
+    const small = layerItAt({ width: 1024, height: 640 });
+    expect(linesBehind(small, "group_2")).toEqual([
+      ["Prelude", 1],
+      ["Menuet", 1],
+      ["Menuet", 1],
+      ["Clair de Lune", 2],
+      ["Passepied", 1],
+    ]);
+    expect(linesBehind(small, "group_4")).toEqual([
+      ["Prelude", 1],
+      ["Menuet", 2],
+      ["Clair de Lune", 3],
+      ["Passepied", 1],
+    ]);
+  });
+
+  it("never cover one another", () => {
+    const drawings = [
+      ...manifestNames().map((name) => drawn(name)),
+      layerItAt({ width: 1024, height: 640 }),
+    ];
+    for (const drawing of drawings) {
+      const extents = stacked(drawing).map(({ label }) => {
+        const half = measure.width(label.text, label.style["font-size"]) / 2;
+        return { baseline: label.baseline, a: label.x - half - 1, b: label.x + half + 1 };
+      });
+      const meeting = extents.filter((one, i) =>
+        extents.some(
+          (other, j) =>
+            i !== j &&
+            one.baseline === other.baseline &&
+            ((one.a < other.b && other.a < one.b) || one.a === other.a),
+        ),
+      );
+      expect(meeting).toEqual([]);
+    }
+  });
+});
+
+/** LayerIt drawn at the default placement for the view `view`. */
+function layerItAt(view: { width: number; height: number }): Drawing {
+  const manifest = loadFile("bundles/bundle_elided_layerit");
+  return draw(
+    manifest,
+    { ...DEFAULT_PLACEMENT, view },
+    [DEFAULT_LAYER, manifestLayer(manifest)],
+    metrics,
+  );
+}
 
 describe("the frame's room", () => {
   it("puts what lies outside the member's span outside the frame", () => {
