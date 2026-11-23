@@ -41,6 +41,7 @@ import {
   snapOnRow,
   timelineAxisOf,
 } from "@timetoalign/tilie-core";
+import { anchorsOf } from "@timetoalign/tilie-core/drawing";
 import {
   axisCoordinate,
   axisValueOf,
@@ -383,7 +384,10 @@ export function subjectOf(
 /**
  * The protected span of an ancestor card on the axis of `timeline`: the
  * member it is aligned to (its record's `ancestor`), from the member's zero
- * to its known length, else to where its line reaches in its card.
+ * to its known length, else to where its line reaches in its card; for a
+ * root drawn once behind a row of groups (`ancestor.groups`), from the first
+ * anchor's start to the last one's end, each group's anchor being its member
+ * core's `anchorsOf` names.
  */
 function ancestorProtected(
   manifest: Manifest,
@@ -399,7 +403,34 @@ function ancestorProtected(
   );
   const ancestor = card?.ancestor;
   if (ancestor === undefined) return null;
-  const { group, member } = ancestor;
+  const anchors = ancestor.groups.length > 1 ? anchorsOf(manifest) : [];
+  let protect: readonly [Rational, Rational] | null = null;
+  for (const group of ancestor.groups) {
+    const member =
+      group === ancestor.group
+        ? ancestor.member
+        : anchors.find((anchor) => anchor.group === group && anchor.root === card?.key?.member)
+            ?.member;
+    if (member === undefined) continue;
+    const span = memberSpan(manifest, drawing, group, member, timeline);
+    if (span === null) continue;
+    protect = protect === null ? span : [min(protect[0], span[0]), max(protect[1], span[1])];
+  }
+  return protect;
+}
+
+/**
+ * The span of `member`, drawn in its card in the frame of `group`, on the
+ * axis of `timeline`: from its zero to its known length, else to where its
+ * line reaches in that card; `null` where the card draws no line of it.
+ */
+function memberSpan(
+  manifest: Manifest,
+  drawing: Drawing,
+  group: string,
+  member: string,
+  timeline: string,
+): readonly [Rational, Rational] | null {
   // The member's line is drawn in runs where its frame has gaps.
   let span: readonly [Rational, Rational] | null = null;
   for (const axis of lineAxes(drawing).values()) {

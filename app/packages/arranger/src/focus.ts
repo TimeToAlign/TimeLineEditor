@@ -72,7 +72,9 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
  * How far the elided ancestor cards behind the frame of the group `target`
  * reach out from the frame's horizontal centre `c`, in canvas units: the
  * largest of `c` less a card's left edge and its right edge less `c`, over
- * the displayed ancestor cards of that frame that elide: that draw a gap,
+ * the displayed ancestor cards lying behind that frame (`ancestor.groups`:
+ * a root drawn once behind a row lies behind each of its groups) that
+ * elide: that draw a gap,
  * or that Proportional fits at `r = 1` (drawing none, since the whole card
  * fits). `null` for a target
  * that is no group, for a group whose frame is not drawn, and where no such
@@ -92,7 +94,9 @@ export function elidedReach(node: BlockNode, target: Address): number | null {
   let reach: number | null = null;
   for (const box of drawing.boxes) {
     const { key: cardKey } = box;
-    if (box.ancestor?.group !== group || cardKey === null || !isDisplayed(box)) continue;
+    if (box.ancestor?.groups.includes(group) !== true || cardKey === null || !isDisplayed(box)) {
+      continue;
+    }
     const exposure = drawing.elisions.find(
       ({ kind, key }) => kind === "ancestor_card" && samePlaceKey(key, cardKey),
     );

@@ -314,6 +314,19 @@ another workspace `graphical`: after the `set` of the workspace's `graphical` th
 of `bare` (lengths 801 to 832) the length-800 drawing is drawn anew, equal
 to the first but not identical; asked again right after it is identical.
 
+**The arrangement is part of the placement.** A block's `arrangement`
+reaches layout as the placement's, and drawings are remembered by it as
+by the other members. What proves it, on `bundle_arranged_roots` with
+`{direction: horizontal, order: [page, group_3, group_1, group_2]}` set
+on the block (core stores its row, `[page, group_1, group_2, group_3]`,
+as the order): its drawing equals layout's drawing of the manifest with
+that arrangement in the placement, states the arrangement (direction
+horizontal, that row, roots `[score, session]`, nothing refused), and is
+not the
+drawing of the same manifest object in the block before the `set`, which
+states none; overriding with an equal arrangement built anew serves the
+block's own drawing.
+
 ## The projection (`project.test.ts`, `properties.test.ts`)
 
 What proves the projection complete and stable is the exact shape of every
@@ -1000,7 +1013,8 @@ behind `group_1`), each as the defaults draw it, every ancestor card shown;
 layout's README derives the geometry the points below are taken from.
 
 1. **A record, no item.** `piece`'s card is recorded once, `ancestor
-   {group: group_1, member: middle}`; `isAncestorCard` holds for it and
+   {group: group_1, member: middle, groups: [group_1]}` (it lies behind
+   one frame alone); `isAncestorCard` holds for it and
    for no other record; `isItem`, `isCard` and `isHeld` do not, so it is
    no key of `keyedBox`. It never resizes (`resizes` false at every level)
    and has no place fields (`fieldsOf` empty at every level).

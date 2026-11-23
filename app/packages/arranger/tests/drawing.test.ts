@@ -156,3 +156,54 @@ describe("drawingOf", () => {
     });
   });
 });
+
+describe("a block's arrangement", () => {
+  const order = ["page", "group_3", "group_1", "group_2"];
+  const plain = viewOf({ id: A, fixture: "bundles/bundle_arranged_roots" });
+  const arranged = changed(plain, {
+    type: "set",
+    changes: [
+      { target: { block: A }, values: { arrangement: { direction: "horizontal", order } } },
+    ],
+  });
+  const block = blockIn(arranged, A);
+  // Core stores a horizontal arrangement's row as its order.
+  const row = ["page", "group_1", "group_2", "group_3"];
+
+  it("reaches layout as the placement's", () => {
+    expect(block.arrangement).toEqual({ direction: "horizontal", order: row });
+    const drawing = drawingOf(block, arranged.graphical, metrics);
+    expect(drawing).toEqual(
+      draw(
+        block.manifest,
+        {
+          length: 400,
+          spacing: 8,
+          width: null,
+          height: null,
+          places: {},
+          arrangement: { direction: "horizontal", order: row },
+        },
+        [DEFAULT_LAYER, arranged.graphical, manifestLayer(block.manifest)],
+        metrics,
+      ),
+    );
+    expect(drawing.arrangement).toEqual({
+      direction: "horizontal",
+      row,
+      roots: ["score", "session"],
+    });
+  });
+
+  it("keys the drawings of a manifest", () => {
+    const drawing = drawingOf(block, arranged.graphical, metrics);
+    // The same manifest object, drawn with no arrangement.
+    const unarranged = blockIn(plain, A);
+    expect(unarranged.manifest).toBe(block.manifest);
+    const free = drawingOf(unarranged, plain.graphical, metrics);
+    expect(free).not.toBe(drawing);
+    expect(free.arrangement).toBeUndefined();
+    const again = { arrangement: { direction: "horizontal" as const, order: [...row] } };
+    expect(drawingOf(block, arranged.graphical, metrics, again)).toBe(drawing);
+  });
+});

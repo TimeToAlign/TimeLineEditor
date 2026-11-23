@@ -55,7 +55,7 @@ describe("an ancestor card's record", () => {
   const card = ancestorCard(drawing, "piece");
 
   it("is a card with no place", () => {
-    expect(card.ancestor).toEqual({ group: "group_1", member: "middle" });
+    expect(card.ancestor).toEqual({ group: "group_1", member: "middle", groups: ["group_1"] });
     expect(drawing.boxes.filter(isAncestorCard)).toEqual([card]);
     expect([isItem(card), isCard(card), isHeld(card)]).toEqual([false, false, false]);
     expect(keyedBox(drawing, { item: "group_1", member: "piece" })).toBeUndefined();

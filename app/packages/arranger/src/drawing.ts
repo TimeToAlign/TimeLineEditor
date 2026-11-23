@@ -27,15 +27,28 @@ const placed = new WeakMap<Block["manifest"], Map<string, Memo>>();
 const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
 
 /** The placement members a drawing depends on. */
-type Placement = Pick<Block, "length" | "spacing" | "margin" | "width" | "height" | "places">;
+type Placement = Pick<
+  Block,
+  "length" | "spacing" | "margin" | "width" | "height" | "places" | "arrangement"
+>;
 
 /** The one string form of a placement's values and the pane, `-0` told apart from `0`. */
 function placementKey(
-  { length, spacing, margin, width, height, places }: Placement,
+  { length, spacing, margin, width, height, places, arrangement }: Placement,
   view: View | undefined,
 ): string {
   return JSON.stringify(
-    [length, spacing, margin, width, height, places, view?.width, view?.height],
+    [
+      length,
+      spacing,
+      margin,
+      width,
+      height,
+      places,
+      arrangement ?? null,
+      view?.width,
+      view?.height,
+    ],
     (_key, value) => (Object.is(value, -0) ? "-0" : value),
   );
 }
@@ -105,6 +118,7 @@ export function drawingOf(
         width: placement.width,
         height: placement.height,
         places: placement.places,
+        arrangement: placement.arrangement ?? null,
         ...(view === undefined ? {} : { view }),
       },
       styleLayers(graphical, placement.manifest),

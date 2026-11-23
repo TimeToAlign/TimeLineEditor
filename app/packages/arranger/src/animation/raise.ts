@@ -29,7 +29,8 @@ const rectOf = ({ x, y, width, height }: DrawnBox): Rect => ({ x, y, width, heig
 /**
  * How the ancestor card `card` of `drawing` (a box with `ancestor`) unfolds
  * out of the member card it is aligned to, the card of `card.ancestor.member`
- * in the frame of `card.ancestor.group`. The rows: every line layout's
+ * in the frame of `card.ancestor.group` (for a root drawn once behind a row,
+ * the first group's, which the card is aligned to). The rows: every line layout's
  * `lineAxes` records in each card, keyed by its timeline, the member card's
  * own lines and ancestor lines against the ancestor card's lines
  * (`pairRows`). The clip: from the member card's rectangle to the bounds of
