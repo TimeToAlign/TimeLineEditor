@@ -692,14 +692,14 @@ describe("the item move", () => {
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 371.796875 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 383.7734375 } } },
       ],
     });
     expect(BOTH).toEqual({
       type: "set",
       changes: [
         { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
-        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 365.7578125 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 377.734375 } } },
         { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
       ],
     });

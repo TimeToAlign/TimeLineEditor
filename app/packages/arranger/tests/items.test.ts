@@ -58,10 +58,14 @@ const FRAME_2: PlaceKey = { item: "group_2" };
 const ANNOTATIONS: PlaceKey = { item: "annotations" };
 const PERFORMANCE: PlaceKey = { item: "group_1", member: "performance" };
 const SCORE: PlaceKey = { item: "group_1", member: "score" };
+/**
+ * The items' drawn places at the defaults: `annotations` lies below `recording`'s ancestor card,
+ * which reaches 11.9765625 below `group_2`'s frame (README, "With `recording`'s ancestor card").
+ */
 const DRAWN = {
   group_1: { x: 8, y: 28.8046875 },
   group_2: { x: 8, y: 206.0390625 },
-  annotations: { x: 8, y: 371.796875 },
+  annotations: { x: 8, y: 383.7734375 },
 };
 
 function placeOf(of: View, key: PlaceKey): ItemBox["item"]["place"] {
@@ -114,13 +118,13 @@ describe("itemMoveCommand", () => {
       type: "set",
       changes: [
         { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
-        { target: at("annotations"), values: { place: { x: 40, y: 365.7578125 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 377.734375 } } },
         { target: at("group_1"), values: { place: DRAWN.group_1 } },
       ],
     });
     const after = changed(view, command);
     expect(placeOf(after, FRAME_2)).toMatchObject({ x: 40, y: 200 });
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 365.7578125 });
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 377.734375 });
     expect(placeOf(after, FRAME_1)).toMatchObject(DRAWN.group_1);
   });
 
@@ -131,13 +135,13 @@ describe("itemMoveCommand", () => {
       changes: [
         { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
         { target: at("group_1"), values: { place: { x: 40, y: 22.765625 } } },
-        { target: at("annotations"), values: { place: { x: 40, y: 365.7578125 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 377.734375 } } },
       ],
     });
     const after = changed(view, command);
     expect(placeOf(after, FRAME_2)).toMatchObject({ x: 40, y: 200 });
     expect(placeOf(after, FRAME_1)).toMatchObject({ x: 40, y: 22.765625 });
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 365.7578125 });
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 40, y: 377.734375 });
   });
 
   it("gives null when no item travels, and refuses a key of together that is no item", () => {
@@ -401,7 +405,7 @@ function one(key: PlaceKey, place: PlaceValues): PlaceChanges {
 describe("itemResizeValues, scale", () => {
   it.each([
     [view, "bottom-right", 40, 20, { scale: 1.2783203125 }],
-    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 351.7978515625 }],
+    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.15234375, y: 363.7744140625 }],
     [view, "bottom-right", -1000, -1000, { scale: 0.125 }],
     [doubled(view), "bottom-right", 80, 40, { scale: 1.2783203125 }],
     [
@@ -465,7 +469,8 @@ describe("itemResizeValues, box", () => {
     const place = placeOf(after, FRAME_2);
     expect((node?.position.x ?? 0) + 21 + place.x + place.width).toBe(628);
     expect(placeOf(after, FRAME_1)).toMatchObject(DRAWN.group_1);
-    expect(placeOf(after, ANNOTATIONS)).toMatchObject(DRAWN.annotations);
+    // With the card hidden, `annotations` lies 8 below `group_2`'s frame (README's table).
+    expect(placeOf(after, ANNOTATIONS)).toMatchObject({ x: 8, y: 371.796875 });
   });
 
   it("sizes a member's own card, in item coordinates under its group's scale", () => {
@@ -504,7 +509,7 @@ describe("itemResizeValues, stretch", () => {
     [view, "left", -21, 0, { length: 421, x: -13 }],
     [view, "right", -500, 0, { length: 8 }],
     [view, "bottom", 0, 20, { spacing: 24 }],
-    [view, "top", 0, -20, { spacing: 24, y: 351.796875 }],
+    [view, "top", 0, -20, { spacing: 24, y: 363.7734375 }],
     [view, "bottom-right", 20, 20, { length: 420, spacing: 24 }],
     [view, "bottom", 0, -2, { spacing: 2 }],
     [view, "bottom", 0, -40, { spacing: 0 }],

@@ -176,10 +176,14 @@ inside it and the block's node starts left of or above `(x, y)` by that
 origin (`nodePosition`). Ancestor cards are drawn by default, so the blocks
 holding a member that is a child timeline draw their root whole behind the
 frame and are much wider than their frames. The positions above are chosen
-from the blocks as layout records them (the arranger's `drawingOf`, the
-nodes by `nodePosition`, width × height, node from (left, top) to (right,
-bottom)) so that no two nodes overlap (the narrowest gap is the 6.37109375
-between `bmixed0000` and `bungroup00`, as before). The ancestor lines of a
+from the blocks as layout records them (the arranger's `drawingOf` at
+layout's default view, the nodes by `nodePosition`, width × height, node
+from (left, top) to (right, bottom)) so that no two nodes overlap (the
+narrowest gap is the 14.37109375 between `bmixed0000`, whose `annotations`
+lies below `recording`'s ancestor card, and `bungroup00`). A wider pane
+widens the elided ancestor cards of `gchild0000` and `bshared000` to the
+left only; at the 1304.609375 px pane of a page 1920 wide with the drawer
+open, and at 1920, every gap is the same. The ancestor lines of a
 child member lie below it by default, so the ancestor cards no longer
 reach above their frames but for `bshared000`'s first card (its origin's
 ordinate 3.671875, layout's README, "Ancestor cards", point 11), and the
@@ -188,12 +192,12 @@ starts beyond it); the positions above keep every node apart:
 
 | Block | Drawing | Origin | Node |
 |---|---|---|---|
-| `gchild0000` | 921.898681640625 × 193.5390625 | (368, 0) | (−368, 0) to (553.898681640625, 193.5390625) |
-| `ggrand0000` | 3309.265625 × 227.515625 | (1170.56201171875, 0) | (−1170.56201171875, 288) to (2138.70361328125, 515.515625) |
-| `gmixed0000` | 1732.891295189951 × 384.4453125 | (423.5276884191177, 0) | (216.47231158088232, 544) to (1949.3636067708335, 928.4453125) |
+| `gchild0000` | 1001.609814453125 × 173.5625 | (447.99018554687495, 0) | (−447.99018554687495, 0) to (553.61962890625, 173.5625) |
+| `ggrand0000` | 1052.96923828125 × 207.5390625 | (245.69419642857133, 0) | (−245.69419642857133, 288) to (807.2750418526787, 495.5390625) |
+| `gmixed0000` | 1262.9775390625 × 324.515625 | (273.0302734375, 0) | (366.9697265625, 544) to (1629.947265625, 868.515625) |
 | `gstyled000` | 546.1240234375 × 260.1875 | (0, 0) | (640, 0) to (1186.1240234375, 260.1875) |
-| `bmixed0000` | 2106.70361328125 × 473.62890625 | (153.412109375, 0) | (−153.412109375, 0) to (1953.29150390625, 473.62890625) |
-| `bshared000` | 1928.0259602864583 × 541.1328125 | (698.6901041666667, 3.671875) | (−58.69010416666674, 948.328125) to (1869.3358561197915, 1489.4609375) |
+| `bmixed0000` | 1067.755615234375 × 465.62890625 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 465.62890625) |
+| `bshared000` | 1435.7741210937497 × 502.73046875 | (433.10493164062495, 3.671875) | (206.89506835937505, 948.328125) to (1642.6691894531248, 1451.05859375) |
 | `bungroup00` | 527.3271484375 × 252.1640625 | (0, 0) | (0, 480) to (527.3271484375, 732.1640625) |
 | `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
 
@@ -1146,7 +1150,11 @@ hook's container records (`boxes`), whose keys `{item: G, member: R}` say
 behind which group each card is recorded. A value that depends on the pane
 the canvas fits drawings to (an ancestor card's automatic proportion,
 section 8.9: the abscissas of the groups drawn one under another) is never
-compared; every value below is the same at every pane.
+compared; every value below is the same at every pane wider than 1300 px,
+and the one that is not at a narrower pane (the fourth frame's top, below)
+says so. With the bundle editor open the inspector drawer takes its share
+of the page (32 % of 1920), and the pane the canvas measures is 1304.609375
+wide.
 
 The bundle is the schema package's `bundles/bundle_elided_layerit`,
 imported through Import manifest… (no fixture workspace holds it, so none
@@ -1174,14 +1182,35 @@ excerpt's line and its ancestor rows in the cards behind `group_1`,
 + 4 + Hm1 + 8 + Hm2 + 8` (the drawing facts above), is 191.5390625 high,
 `group_3`'s 259.4921875, every frame 622.8037109375 wide. Without an
 arrangement and one under another (section 8.6, the block's spacing 8
-between items), the first frame lies at `y` 68.55078125 in the drawing
-(its title gap 28.8046875 below the place origin, which the first
-ancestor card lifts by 59.72265625 − 19.9765625 = 39.74609375: the card's
-top follows the member's ancestor row down by the stack), each next one 8
-below the previous one's bottom, so the four tops are 68.55078125,
-268.08984375 (`+ 191.5390625 + 8`), 467.62890625 and 735.12109375 (`+
-259.4921875 + 8`), as the upstream drawing has them (68.5508, 268.0898,
-467.6289, 735.1211, at its default view and at 1024 × 640 alike); each group
+between items), each item lies 8 below the largest bottom edge of the
+items before it **and of their displayed ancestor cards**, and so much
+lower that its own ancestor card's top lies 8 below too (sections 8.6 and
+8.8, No room; the first item keeps its default `y`, the block growing
+upwards for its card). Each ancestor card of `clt_1` is 165.30859375 high
+at this pane. Behind `group_1`, `group_2` and `group_4`, whose excerpts
+hang on `clt_1` alike, the card rises `ρ = 59.72265625 − 19.9765625 =
+39.74609375` above its frame (the card's top follows the member's
+ancestor row down by the one stack) and ends `165.30859375 − 39.74609375
+= 125.5625` below the frame's top, inside the frame; behind `group_3`,
+whose excerpt card holds Clair de Lune's rows above its line, the card
+lies 28.20703125 below the frame's top and ends at `28.20703125 +
+165.30859375 = 193.515625`, inside its 259.4921875. So no card reaches
+below its frame, and a frame whose card rises lies `ρ` lower than 8 below
+the item before it. The first frame lies at `y` 68.55078125 in the
+drawing (its title gap 28.8046875 below the place origin, which the first
+ancestor card lifts by `ρ`); `group_2`'s card lies 8 below `group_1`'s
+frame, at `68.55078125 + 191.5390625 + 8 = 268.08984375`, its frame at
+`+ ρ = 307.8359375`; `group_3`'s frame, its card not rising, at
+`307.8359375 + 191.5390625 + 8 = 507.375`; `group_4`'s card at `507.375 +
+259.4921875 + 8 = 774.8671875`, its frame at `+ ρ = 814.61328125`. The
+upstream drawing has the first three tops (68.5508, 307.8359, 507.375) at
+its default view, but `group_4`'s at 825.0898: in a pane narrower than
+about 1299.75 px the automatic proportion of the card behind `group_4`
+draws its derived gaps narrower, the name "Clair de Lune" meets its
+neighbours' and takes a second line (section 6.6, drawn tiers), so the
+member's ancestor row in that card, below the stack, lies one line `h(9) =
+10.4765625` lower and the frame aligned to it with it; the page's pane, 1304.609375
+wide, draws one line. Each group
 draws its own ancestor card of `clt_1` behind it, recorded in item order,
 so `{id: clt_1, part: ["card"]}` is drawn four times (eight parts, each a
 rectangle after its shadow). Side by side (section 8.8, Drawn once) the
@@ -1207,17 +1236,21 @@ lies at the block's stated place.
    The viewport puts the node's top left corner at (40, 40) of the pane,
    zoom 1, so a drawing ordinate is a screen pixel. `group_1`'s frame is
    pressed (`framePoint`) and dragged straight down to the drawing ordinate
-   440, below `group_2`'s middle (`268.08984375 + 191.5390625 / 2 =
-   363.859375`) and above `group_3`'s (`467.62890625 + 259.4921875 / 2 =
-   597.375`), and released: one
+   440, below `group_2`'s middle (`307.8359375 + 191.5390625 / 2 =
+   403.60546875`) and above `group_3`'s (`507.375 + 259.4921875 / 2 =
+   637.12109375`), and released: one
    `set` of `{direction: vertical, order: [group_2, group_1, group_3,
    group_4]}` (`orderAt`, the middles along the direction), the dragged
-   frame selected; the tops are 68.55078125 (`group_2`, whose ancestor
-   card lifts it as `group_1`'s does), 268.08984375, 467.62890625 and
-   735.12109375, and the ancestor cards are recorded in that order. With the arranger focused, ArrowDown moves the selected
+   frame selected; `group_2` and `group_1` have the same frame and the
+   same rise, so the tops are those of the drawing order, 68.55078125,
+   307.8359375, 507.375 and 814.61328125, and the ancestor cards are
+   recorded in that order. With the arranger focused, ArrowDown moves the selected
    frame one place on (`arrangedStep`): one `set` of `[group_2, group_3,
-   group_1, group_4]`, tops 68.55078125, 268.08984375, `+ 259.4921875 + 8
-   = 535.58203125` and `+ 191.5390625 + 8 = 735.12109375`. Horizontal then
+   group_1, group_4]`, tops 68.55078125, `group_3` (its card not rising)
+   `68.55078125 + 191.5390625 + 8 = 268.08984375`, `group_1` below its
+   card at `268.08984375 + 259.4921875 + 8 = 535.58203125`, `+ ρ =
+   575.328125`, and `group_4` below its card at `575.328125 + 191.5390625 +
+   8 = 774.8671875`, `+ ρ = 814.61328125`. Horizontal then
    sends that order as shown, and core stores its row: the store holds
    `[group_1, group_2, group_3, group_4]` and the frames lie as in case 1.
 3. **Side by side refused.** `bundles/bundle_arranged_conflict`: Theme A

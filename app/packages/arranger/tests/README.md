@@ -200,10 +200,11 @@ own tests.
   `performance` the map `cmap_3`; `page` `cmap_4`; `recording` `cmap_5`;
   `excerpt` `cmap_6`; `annotations` the regions `region_1` "Verse" and
   `region_2` "Chorus". Maps lie above their lines, jumps and
-  regions below (section 4). Every value of this item is derived without
+  regions below (section 4). Every value of this item but the bullet "With
+  `recording`'s ancestor card" is derived without
   `recording`'s ancestor card behind `group_2`'s frame (the workspace rule
   above), which, drawn by the defaults, reaches left of the padding and
-  moves the place origin; the tests whose subject is a canvas position, a
+  moves the place origin, and lowers `annotations`; the tests whose subject is a canvas position, a
   place origin or a size of this block draw it so. With `places` empty the block holds three items
   at their default places, `x = P = 8`, one under the other the block's
   spacing 8 apart, the first `P + h(11) + F = 28.8046875` below the title
@@ -246,6 +247,30 @@ own tests.
     `P + 561.052001953125 + 2 + P = 579.052001953125` by `371.796875 +
     71.85546875 + 2 + P = 453.65234375` (the ungrouped card's shadow), its
     place origin at `(0, 0)`.
+  - **With `recording`'s ancestor card** (the defaults, which the tests of
+    the item commands draw: `itemMoveCommand`, `itemResizeValues`,
+    `itemResizeCommand`, `placeEdit`, the item move of `BlockNode` and the
+    live placements). The card takes no room in the horizontal layout or in
+    `group_2`'s frame, but an item's default `y` lies the block's spacing
+    below the largest bottom edge of the items before it **and of their
+    displayed ancestor cards** (sections 8.6 and 8.8, No room; the first
+    item keeps its `y`, shadows not counted). `recording`'s card behind
+    `group_2`, elided by default (section 8.9), is aligned to `excerpt`
+    (section 8.8): above `recording`'s line it holds `excerpt`'s row as
+    `excerpt`'s card holds `excerpt`'s line above `recording`'s ancestor
+    row, so its top is `excerpt`'s card's, 288.3203125; below its line its
+    markers band holds the name labels of its derived gaps, one line,
+    reaching `w/2 + 13 + 2 + h(9) = 1.5 + 13 + 2 + 10.4765625 = 26.9765625`
+    below the line (sections 6.4, 6.6), where the ancestor row of
+    `excerpt`'s card reaches only its half pitch 7: the card is `67.4765625
+    + (26.9765625 − 7) = 87.453125` high and ends at 375.7734375,
+    11.9765625 below `group_2`'s frame (`206.0390625 + 157.7578125 =
+    363.796875`). So `annotations` lies at `375.7734375 + 8 = 383.7734375`
+    (not the table's 371.796875), `group_1` and `group_2` where the table
+    puts them, and the block is `383.7734375 + 71.85546875 + 2 + P =
+    465.62890625` high. Every value below that reads `annotations`' drawn
+    `y` at the defaults is derived from 383.7734375; a test drawing the card
+    hidden reads the table's.
   - **Moved left and up:** with `annotations` placed at `{x: −30, y: −20}`
     the block reaches `−30 − P = −38` on the left and `−20 − 28.8046875` at
     the top (section 8.4: the title's slot is the items' top border), so
@@ -1551,13 +1576,16 @@ its own item. A line `{id: "score"}` and a group's title `{id: "group_1",
 part: ["name"]}` are no resized box: no record carries their addresses.
 
 **Moves.** `group_2` to (40, 200) states it there and every other item at
-its drawn position (`group_1` (8, 28.8046875), `annotations` (8,
-371.796875)), else `annotations` would follow `group_2` up to
-365.7578125; an item stating `{x: 12}` gets only its `y`. To (40.0001, 200)
+its drawn position at the defaults (`group_1` (8, 28.8046875), `annotations` (8,
+383.7734375), below `recording`'s ancestor card: `bundle_mixed`, "With
+`recording`'s ancestor card"), else `annotations` would follow `group_2`
+and its card up to `200 + 157.7578125 + 11.9765625 + 8 = 377.734375`; an
+item stating `{x: 12}` gets only its `y`. To (40.0001, 200)
 the same; to its drawn place no command; a key that is no item (`{item:
 "score"}`, a member's ID) throws.
 **Several items move by one travel**: with `annotations` along, `group_2`
-travels `(32, −6.0390625)` and `annotations` lands at (40, 365.7578125),
+travels `(32, −6.0390625)` and `annotations` lands at (40, `383.7734375 −
+6.0390625 = 377.734375`),
 its offset kept; the command lists the pressed item, the items moving with
 it in order, then the others' positions. With both others along, `group_1`
 lands at (40, 22.765625). No travel, or a key along that is no item, no
@@ -1612,7 +1640,9 @@ frame's gaps.
 
 **Scale** (on `annotations`' card, arranger): bottom-right by (40, 20)
 `{scale: 1.2783203125}` (2618.03 steps); top-left by (−40, −20) the same
-with `x: −148.15234375, y: 351.7978515625`; by (−1000, −1000) the floor;
+with `x: −148.15234375, y: 363.7744140625` (the drawn `y` 383.7734375 at
+the defaults less the card's growth `0.2783203125 × 71.85546875 =
+19.9990234375`); by (−1000, −1000) the floor;
 at block scale 2 by (80, 40) the same 1.2783203125; with `scale` 2 stated,
 halving gives `{scale: null}`, the default. On a held card the scale is
 its group's, from the frame's top left to the card's bottom right:
@@ -1624,7 +1654,9 @@ Only an offered corner scales.
 −13}`, by 100 `{width: null, x: 26.9482421875}`; bottom by 10.5 `{height:
 168.2578125}`; top by −16 `{height: 173.7578125, y: 190.0390625}`; at block
 scale 2 right by 20 `{width: 590}`. Applied, the left row moves the place
-origin to (21, 0) and keeps `group_2`'s right edge at canvas x 628. A held
+origin to (21, 0) and keeps `group_2`'s right edge at canvas x 628 (drawn
+with the ancestor card hidden, so the other items lie at the table's
+places, `annotations` at y 371.796875). A held
 card sizes its own card in item coordinates: with `group_1` at scale 1.25,
 `group_1 › performance` bottom-right by (50, 30) gives `{group_1 › performance: {width:
 585.05224609375, height: 73.4765625}}`, right by −50 `{width: null}`.
@@ -1636,7 +1668,7 @@ boxes following its own content. On `annotations`' card (bundle editor):
 |---|---|---|---|
 | | right / left | (20, 0) / (−21, 0) | `{length: 420}` / `{length: 421, x: −13}` |
 | | right | (−500, 0) | `{length: 8}` |
-| | bottom / top | (0, 20) / (0, −20) | `{spacing: 24}` / `{spacing: 24, y: 351.796875}` |
+| | bottom / top | (0, 20) / (0, −20) | `{spacing: 24}` / `{spacing: 24, y: 363.7734375}` (`383.7734375 − 20`) |
 | | bottom-right | (20, 20) | `{length: 420, spacing: 24}` |
 | | bottom | (0, −2) / (0, −40) | `{spacing: 2}` / `{spacing: 0}` (the floor) |
 | width `2 W(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 1162.10400390625}` / `{length: 421, width: 1164.10400390625, x: −34}` |
@@ -4819,7 +4851,10 @@ Nothing is reported before a gesture. In the bundle editor of
 `bundle_mixed` (opened on `{block: A}`), with `{block: A, id: "group_1"}`
 selected, a Stretch of `group_1` by 60 px reports the block's
 placement as stored, with the drawing its node shows; that drawing equals
-the drawing of the places stored on release, `group_1` at length 460. An
+the drawing of the places stored on release, `group_1` at length 460,
+the other items at their drawn positions (`group_2` (8, 206.0390625),
+`annotations` (8, 383.7734375): `bundle_mixed`, "With `recording`'s
+ancestor card"). An
 item drag of `group_2`, pressed on its frame's own rectangle (the one
 element of the node's drawing carrying `data-id="group_2"` and neither
 `data-facet` nor `data-part`), reports, before release, the drawing of what the

@@ -129,7 +129,7 @@ async function cardsBehind(page: Page, block: string): Promise<string[]> {
 }
 
 /** The frames' tops one under another in the drawing order (README). */
-const TOPS = [68.55078125, 268.08984375, 467.62890625, 735.12109375];
+const TOPS = [68.55078125, 307.8359375, 507.375, 814.61328125];
 
 /** The frames side by side, in row order (README): `x`, `y` as the writer prints them. */
 const SIDE_BY_SIDE = [179.890625, 850.6943359375, 1521.498046875, 2192.3017578125].map((x) => [
@@ -240,7 +240,7 @@ test("arranged items are reordered by a drag and by a key, and side by side stor
     page,
     block,
     stepped,
-    [68.55078125, 268.08984375, 535.58203125, 735.12109375],
+    [68.55078125, 268.08984375, 575.328125, 814.61328125],
   );
 
   expect(await choose(page, "horizontal")).toEqual(
