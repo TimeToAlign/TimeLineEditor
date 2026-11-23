@@ -351,6 +351,7 @@ describe("with_region", () => {
         xm: 183.24886067708331,
         yb: 81.9765625,
         ya: 87.9765625,
+        cuts: [],
       },
       { ...root, address: at("clt_1"), xs: x0, xe, y: 51 },
       { ...child, address: at("clt_2"), xs: x(1 / 36), xe: x(13 / 36), y: 37 },

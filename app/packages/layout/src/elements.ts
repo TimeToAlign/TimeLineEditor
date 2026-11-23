@@ -137,6 +137,12 @@ export interface RegionElement extends Addressed {
   readonly xm: number;
   readonly yb: number;
   readonly ya: number;
+  /**
+   * The gaps the brace spans (section 6.6, Elisions), each its left and right edge `x(a)` and
+   * `x(b)` (`x(p)` and `x(q)` across a frame), from the left: each of the brace's two straight
+   * parts leaves out what a gap meets of it, its arms, tip and label drawn whole (`brace`).
+   */
+  readonly cuts: readonly Cut[];
 }
 
 /** A point `(x, y)` in block-local canvas units. */

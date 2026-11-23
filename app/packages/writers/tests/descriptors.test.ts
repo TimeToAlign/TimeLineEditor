@@ -59,12 +59,39 @@ describe("descriptors", () => {
       xm: 10,
       yb: 10,
       ya: 16,
+      cuts: [],
     });
     expect(svgBody(drawing)).toEqual([
       '<path data-id="region_1" d="M0 10Q0 13 3 13L7 13Q10 13 10 16Q10 13 13 13L17 13Q20 13 20 10" fill="none" stroke="#000000" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=ts000000,line width=1pt] (0,20) .. controls (0,18) and (1,17) .. (3,17) -- (7,17) .. controls (9,17) and (10,16) .. (10,14) .. controls (10,16) and (11,17) .. (13,17) -- (17,17) .. controls (19,17) and (20,18) .. (20,20);",
+    ]);
+  });
+
+  it("writes a brace cut at gaps as the pieces of its straight parts, each M a move", () => {
+    const drawing = synthetic({
+      type: "region",
+      address: at("region_1"),
+      style: BLACK,
+      x1: 0,
+      x2: 40,
+      xm: 20,
+      yb: 10,
+      ya: 16,
+      cuts: [
+        [0, 5],
+        [8, 10],
+        [10, 12],
+        [15, 20],
+        [25, 30],
+      ],
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<path data-id="region_1" d="M0 10Q0 13 3 13M5 13L8 13M12 13L15 13M17 13Q20 13 20 16Q20 13 23 13L25 13M30 13L37 13Q40 13 40 10" fill="none" stroke="#000000" stroke-width="1"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[draw=ts000000,line width=1pt] (0,20) .. controls (0,18) and (1,17) .. (3,17) (5,17) -- (8,17) (12,17) -- (15,17) (17,17) .. controls (19,17) and (20,16) .. (20,14) .. controls (20,16) and (21,17) .. (23,17) -- (25,17) (30,17) -- (37,17) .. controls (39,17) and (40,18) .. (40,20);",
     ]);
   });
 

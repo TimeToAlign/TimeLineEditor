@@ -334,6 +334,19 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   controls (0,18) and (1,17) .. (3,17) -- (7,17) .. controls (9,17) and
   (10,16) .. (10,14) .. controls (10,16) and (11,17) .. (13,17) -- (17,17)
   .. controls (19,17) and (20,18) .. (20,20)`.
+- The same brace widened, `x1 = 0`, `x2 = 40`, `xm = 20`, arms at 10, tip at
+  16, cut at the gaps `[0, 5]`, `[8, 10]`, `[10, 12]`, `[15, 20]` and
+  `[25, 30]` (section 6.6, Elisions; section 7.2): its straight parts run
+  from 3 to 17 and from 23 to 37. Clipped to them the cuts are `[3, 5]`
+  (from the part's start), `[8, 12]` (two touching cuts are one), `[15, 17]`
+  (to the part's end) and `[25, 30]`, so the path is `M0 10Q0 13 3 13M5
+  13L8 13M12 13L15 13M17 13Q20 13 20 16Q20 13 23 13L25 13M30 13L37 13Q40
+  13 40 10`: every `L` to the point the pen stands at (3 and 17) left out,
+  no mark at a cut, arms and tip whole. In TikZ each `M` after the first is
+  a bare move `(P)`: `(0,20) .. controls (0,18) and (1,17) .. (3,17)
+  (5,17) -- (8,17) (12,17) -- (15,17) (17,17) .. controls (19,17) and
+  (20,16) .. (20,14) .. controls (20,16) and (21,17) .. (23,17) -- (25,17)
+  (30,17) -- (37,17) .. controls (39,17) and (40,18) .. (40,20)`.
 - A jump with `P0 = (10, 20)`, `C1 = (20, 40)`, `C2 = (40, 40)`, tip `P3 =
   (50, 20)`, base centre `Bh = (48, 24)` and corners `(46, 23)`, `(50, 25)`:
   the shaft `M10 20C20 40 40 40 48 24` (its last point the base centre, not

@@ -233,6 +233,7 @@ export function everything(): Drawing {
       xm: 80,
       yb: 90,
       ya: 96,
+      cuts: [],
     },
     {
       type: "jump_from",

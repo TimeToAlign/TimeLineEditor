@@ -81,6 +81,7 @@ describe("styled__score", () => {
       xm: 148.080078125,
       yb: y.arms,
       ya: y.tip,
+      cuts: [],
     },
     {
       type: "jump_from",

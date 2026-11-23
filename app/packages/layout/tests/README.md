@@ -1398,6 +1398,52 @@ rectangle being its extent whether it is filled or not.
    `piece` lie at the ordinates of `first`'s and `piece`'s lines in the
    ancestor card behind.
 
+## Region braces cut at gaps (`region-cuts.test.ts`)
+
+Sections 3.2 (the elided axis), 6.6 (Regions, Elisions) and 7.2 (the
+brace) are the oracle. No fixture draws a region across a gap, so the case
+is built through core's commands: `build("score", 16)` (quarters,
+fraction, `x(t) = x0 + 25 t` at full scale), with the region `region_1`
+`theme` from 2 to 14 (midpoint 8) and six stored card elisions on `score`,
+each with a `canvas` width (drawn `g`, natural `n = 25 × (b − a)`, shrink
+`n − g`):
+
+| elision | stretch | `n` | `g` | edges `x(a)`, `x(b)` less `x0` |
+|---|---|---|---|---|
+| `elision_1` | 2–5/2 | 12.5 | 8 | 50, 58 |
+| `elision_2` | 3–5 | 50 | 10 | 70.5, 80.5 |
+| `elision_3` | 5–6 | 25 | 5 | 80.5, 85.5 |
+| `elision_4` | 15/2–8 | 12.5 | 6 | 123, 129 |
+| `elision_5` | 10–12 | 50 | 8 | 179, 187 |
+| `elision_6` | 14–15 | 25 | 4 | 237, 241 |
+
+The edges are `25 a − D` and `25 b − D'`, `D` the shrinks of the gaps
+before, `D'` with the gap's own (4.5, 44.5, 64.5, 71, 113, 134). The row
+name is the ID `score` (`A = 1067 + 1126 + 1253 + 842 + 1260 = 5548`, `N =
+5548 × 11 / 2048 = 29.798828125`), so `x0 = 16 + N + 8 = 53.798828125`;
+the line lies at 22.40234375 and the regions band starts at 30.9765625, as
+in `bare` and `with_region` (no elision draws a label), so the arms lie at
+`Yb = 53.37890625`, the tip at `Ya = 59.37890625`, `Ym = 56.37890625`, `k
+= 3`. Every number here is a multiple of 2^−9, so each sum is exact.
+
+The region's start, end and midpoint lie in no gap (2, 8 and 14 are
+edges), so it is drawn at its elided x: `X1 = x0 + 50`, `Xm = x0 + 129`,
+`X2 = x0 + 350 − 113 = x0 + 237`. Its brace spans the gaps of `elision_1`
+to `elision_5` (each whole between 2 and 14) and not `elision_6`, which
+starts at the region's end: the element's `cuts` are those five gaps'
+edges, from the left. The straight parts run from `X1 + k = x0 + 53` to `Xm
+− k = x0 + 126` and from `x0 + 132` to `X2 − k = x0 + 234`. Clipped to
+them: `elision_1` leaves out `x0 + 53` to `x0 + 58` (its left edge lies on
+the arm's curve), `elision_2` and `elision_3` touch and are one cut, `x0 +
+70.5` to `x0 + 85.5`, `elision_4` leaves out `x0 + 123` to `x0 + 126` (its
+right edge is the tip's abscissa), and `elision_5` `x0 + 179` to `x0 + 187`
+of the right part. So the path is `M X1 Yb Q X1 Ym X1+k Ym`, then `M x0+58
+Ym` (the `L` to `x0 + 53`, where the pen stands, left out), `L x0+70.5 Ym M
+x0+85.5 Ym L x0+123 Ym M x0+126 Ym` (the `L` to `Xm − k` left out), `Q Xm
+Ym Xm Ya Q Xm Ym Xm+k Ym`, `L x0+179 Ym M x0+187 Ym L X2−k Ym`, `Q X2 Ym X2
+Yb`: no tick at a cut, arms and tip whole. A brace spanning no gap (the
+same region without elisions) keeps its one `L` per part, as before.
+
 ## Named timestamps (`timestamps.test.ts`)
 
 A named timestamp `X` of `graphical.timestamps` draws the elements its

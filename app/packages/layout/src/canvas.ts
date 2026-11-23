@@ -98,6 +98,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         xm: x(element.xm),
         yb: y(element.yb),
         ya: y(element.ya),
+        cuts: element.cuts.map(([left, right]) => [x(left), x(right)] as const),
       };
     case "jump_from":
       return {

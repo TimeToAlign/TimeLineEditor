@@ -5,6 +5,7 @@
  */
 
 import type {
+  Cut,
   DrawnElement,
   LineElement,
   MarkerElement,
@@ -122,9 +123,12 @@ export function lineGeometry(element: LineElement): LineGeometry {
 
 /**
  * The brace of a region from `x1` to `x2`, arms at `yb`, tip at `(xm, ya)`
- * (section 7.2), as the path commands it is written with.
+ * (section 7.2), as the path commands it is written with. Each of its two
+ * straight parts at `ym`, from `x1 + k` to `xm − k` and from `xm + k` to
+ * `x2 − k`, is cut where the gaps it spans meet it (section 6.6, Elisions;
+ * `straightPart`); its arms and tip are drawn whole.
  */
-export function brace({ x1, x2, xm, yb, ya }: RegionElement): PathCommand[] {
+export function brace({ x1, x2, xm, yb, ya, cuts }: RegionElement): PathCommand[] {
   const ym = (yb + ya) / 2;
   const k = Math.abs(ya - yb) / 2;
   return [
@@ -136,7 +140,7 @@ export function brace({ x1, x2, xm, yb, ya }: RegionElement): PathCommand[] {
         [x1 + k, ym],
       ],
     },
-    { command: "L", points: [[xm - k, ym]] },
+    ...straightPart(x1 + k, xm - k, ym, cuts),
     {
       command: "Q",
       points: [
@@ -151,7 +155,7 @@ export function brace({ x1, x2, xm, yb, ya }: RegionElement): PathCommand[] {
         [xm + k, ym],
       ],
     },
-    { command: "L", points: [[x2 - k, ym]] },
+    ...straightPart(xm + k, x2 - k, ym, cuts),
     {
       command: "Q",
       points: [
@@ -160,6 +164,37 @@ export function brace({ x1, x2, xm, yb, ya }: RegionElement): PathCommand[] {
       ],
     },
   ];
+}
+
+/**
+ * A straight part of a brace at `ym`, from the pen at `from` to `to` (section 7.2). A gap
+ * `[left, right]` meeting it leaves out the stretch from the larger of `left` and `from` to the
+ * smaller of `right` and `to`, where that stretch has a length; cuts that touch are one cut
+ * (section 6.6, Elisions). Uncut, the part is `L to`; cut at `[c1, c1']`, …, `[cj, cj']`, it is
+ * `L c1 M c1' L c2 … M cj' L to`, every `L` to the point the pen stands at left out.
+ */
+function straightPart(from: number, to: number, ym: number, cuts: readonly Cut[]): PathCommand[] {
+  const parts: [number, number][] = [];
+  for (const [left, right] of cuts) {
+    const [start, end] = [Math.max(left, from), Math.min(right, to)];
+    if (!(end > start)) continue;
+    const last = parts.at(-1);
+    if (last !== undefined && start <= last[1]) last[1] = Math.max(last[1], end);
+    else parts.push([start, end]);
+  }
+  if (parts.length === 0) return [{ command: "L", points: [[to, ym]] }];
+  const commands: PathCommand[] = [];
+  let pen = from;
+  const lineTo = (x: number) => {
+    if (x !== pen) commands.push({ command: "L", points: [[x, ym]] });
+  };
+  for (const [start, end] of parts) {
+    lineTo(start);
+    commands.push({ command: "M", points: [[end, ym]] });
+    pen = end;
+  }
+  lineTo(to);
+  return commands;
 }
 
 /** An axis-aligned rectangle by its edges. */
