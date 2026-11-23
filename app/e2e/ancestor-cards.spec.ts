@@ -1,16 +1,19 @@
 /**
- * Ancestor cards (TimeToShare's drawing specification, section 8.8): a root
- * is drawn whole behind the frame of its member's group by default, beyond
- * the frame's borders; the Properties section of its root, offered for the
- * root and for its grouped child alike, hides it by its mode Hidden with
- * one style entry and draws it again by Elided; its elisions switch to Full
- * and back, are stored left and right of the member and reset, a default one
- * is deleted by storing the others and restored by one undo, and a selected
- * one's end is typed; a double-click on it opens the root's timeline editor and raises
- * it over the frame, unfolding it out of the member card and folding it back on Done, at once under
- * reduced motion; Show coordinates reads the card where it is seen and an
- * ancestor line as its ancestor's. The expected values are derived in
- * `README.md` ("ancestor-cards.spec.ts").
+ * Ancestor cards (TimeToShare's drawing specification, section 8.8) and
+ * elisions (section 8.9) in the browser: a root is drawn whole behind the
+ * frame of its member's group by default, beyond the frame's borders; the
+ * root's section of the Properties tab, offered for the root and for its
+ * grouped child alike, hides its cards by the mode Hidden and draws them
+ * again, switches to Full and back by the arrow keys, stores the drawn
+ * defaults by Custom, adds an elision and removes them all; a selected
+ * stored elision shows its gap's handles and mode menu and moves its end by
+ * one keyboard step; a group's section switches its frame between Full and
+ * Custom, adds an elision and removes them all; a double-click on an
+ * ancestor card opens the root's timeline editor and raises the card over
+ * the frame, unfolding it out of the member card and folding it back on
+ * Done, at once under reduced motion; Show coordinates reads the card where
+ * it is seen and an ancestor line as its ancestor's. The expected values
+ * are derived in `README.md` ("ancestor-cards.spec.ts").
  */
 
 import type { Locator, Page } from "@playwright/test";
@@ -23,6 +26,7 @@ import { attributeText } from "../packages/writers/src/svg.ts";
 import { FONT_METRICS, manifestFixture } from "./schema.ts";
 import {
   addressSelector,
+  arranger,
   done,
   editing,
   element,
@@ -31,18 +35,20 @@ import {
   journalLength,
   newestCommand,
   node,
+  pane,
   pick,
   placement,
   select,
   setViewport,
   toScreen,
+  viewportOf,
   withoutPickers,
 } from "./support.ts";
 
 const PIECE_CARD = cardAddress("piece");
 const FRAME = idAddress("group_1");
 
-/** The rectangle of a drawn box: its last part, the card itself after its shadow. */
+/** A drawn box's rectangle: its last part, the card itself after its shadow. */
 function box(page: Page, block: string, address: ElementAddress): Locator {
   return element(page, block, address).last();
 }
@@ -87,23 +93,23 @@ function placedAt(page: Page, x: number, y: number): Promise<string> {
 
 /** The frame and the member cards without the ancestor card, as the writer prints them. */
 const HELD = [
-  ["8", "8", "543.7036", "177.5391"],
-  ["16", "32.8047", "527.7036", "87.3555"],
-  ["16", "128.1602", "527.7036", "49.3789"],
+  ["8", "8", "543.7036", "157.5625"],
+  ["16", "32.8047", "527.7036", "67.3789"],
+  ["16", "108.1836", "527.7036", "49.3789"],
 ];
 
 /** The same boxes with the ancestor card drawn: moved right in the drawing by the origin shift. */
 const HELD_BESIDE_CARD = [
-  ["156.6318", "8", "543.7036", "177.5391"],
-  ["164.6318", "32.8047", "527.7036", "87.3555"],
-  ["164.6318", "128.1602", "527.7036", "49.3789"],
+  ["260.3354", "8", "543.7036", "157.5625"],
+  ["268.3354", "32.8047", "527.7036", "67.3789"],
+  ["268.3354", "108.1836", "527.7036", "49.3789"],
 ];
 
 /** The card's attributes (layout's README, "Ancestor cards", case 2). */
-const CARD = ["8", "36.207", "869.3354", "63.3789"];
+const CARD = ["8", "36.207", "1013.0391", "63.3789"];
 
 /** The shift of the block's place origin while the card is drawn (layout's README). */
-const SHIFT = 148.6318359375;
+const SHIFT = 252.33544921875;
 
 /** Whether the piece's card rectangle comes after the frame's in the DOM, so it is drawn over it. */
 async function cardAfterFrame(page: Page, block: string): Promise<boolean> {
@@ -116,12 +122,12 @@ async function cardAfterFrame(page: Page, block: string): Promise<boolean> {
   );
 }
 
-/** The style command the button sends for `piece`'s card in block `block`. */
-function cardCommand(block: string, display: "none" | null) {
+/** The style command of `piece`'s root rule (every card of `piece`) in block `block`. */
+function rootRule(block: string, set: { readonly [property: string]: unknown }) {
   return {
     type: "style",
-    select: { element: "ancestor_card", addresses: [{ id: "piece", part: ["card"] }] },
-    set: { display },
+    select: { addresses: [{ id: "piece", part: ["card"] }] },
+    set,
     blocks: [block],
   };
 }
@@ -129,9 +135,12 @@ function cardCommand(block: string, display: "none" | null) {
 /** The section's title, naming the root. */
 const TITLE = 'Parent timeline "Piece"';
 
-/** The radio of the mode `word` in the Properties section. */
-function mode(page: Page, word: "Elided" | "Full" | "Hidden"): Locator {
-  return page.getByTestId("elisions").getByRole("radio", { name: word, exact: true });
+/** The modes of a root's and of a group's section. */
+type Mode = "Hidden" | "Full" | "Proportional" | "Custom";
+
+/** The radio of the mode `word` in the section `section` (its test ID). */
+function mode(page: Page, word: Mode, section = "elisions"): Locator {
+  return page.getByTestId(section).getByRole("radio", { name: word, exact: true });
 }
 
 /** Open the inspector's Properties tab. */
@@ -140,25 +149,32 @@ async function properties(page: Page): Promise<void> {
   await page.getByRole("tab", { name: "Properties", exact: true }).click();
 }
 
-test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
-
 /**
- * Open the editor, import `group_parent_both` and place the block's place
- * origin at (240, 80) on the pane, zoom 1; the block's ID and place.
+ * The page is wide enough that the canvas left of the open drawer exceeds
+ * 1112 pixels, from which width on the automatic proportion of
+ * `group_elided_inside`'s card no longer depends on the view (README).
  */
-async function imported(page: Page): Promise<{ block: string; x: number; y: number }> {
+test.use({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+
+/** Open the editor and import the manifest fixture `name`; the new block's ID. */
+async function importFixture(page: Page, name: string): Promise<string> {
   await withoutPickers(page);
   await page.goto("/");
   await page.waitForFunction(() => window.__tilie !== undefined);
-  await pick(
-    page,
-    "Import manifest…",
-    "group_parent_both.yaml",
-    manifestFixture("groups/group_parent_both"),
-  );
+  const file = `${name.slice(name.indexOf("/") + 1)}.yaml`;
+  await pick(page, "Import manifest…", file, manifestFixture(name));
   await expect.poll(() => journalLength(page)).toBe(1);
   const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
   if (block === undefined) throw new Error("the import added no block");
+  return block;
+}
+
+/**
+ * Import `group_parent_both` and place the block's place origin at (240,
+ * 80) on the pane, zoom 1; the block's ID and place.
+ */
+async function imported(page: Page): Promise<{ block: string; x: number; y: number }> {
+  const block = await importFixture(page, "groups/group_parent_both");
   const place = await placement(page, block);
   await setViewport(page, { x: 240 - place.x, y: 80 - place.y, zoom: 1 });
   return { block, x: place.x, y: place.y };
@@ -178,51 +194,33 @@ test("an ancestor card is drawn by default, hidden from its root and shown from 
   await properties(page);
   const section = page.getByTestId("elisions");
   await expect(section.getByRole("heading")).toHaveText(TITLE);
-  await expect(mode(page, "Elided")).toBeChecked();
-  await expect(page.getByTestId("elision-status")).toHaveText("Elisions: automatic: drawn whole");
+  await expect(mode(page, "Proportional")).toBeChecked();
   await expect(mode(page, "Hidden")).not.toHaveAttribute("aria-disabled", "true");
 
   await mode(page, "Hidden").click();
   await expect.poll(() => journalLength(page)).toBe(2);
-  expect(await newestCommand(page)).toEqual(cardCommand(block, "none"));
+  expect(await newestCommand(page)).toEqual(rootRule(block, { display: "none" }));
   await expect(element(page, block, PIECE_CARD)).toHaveCount(0);
   expect(await heldBoxes(page, block)).toEqual(HELD);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x, y));
   const kept = await placement(page, block);
   expect([kept.x, kept.y]).toEqual([x, y]);
-
   await expect(mode(page, "Hidden")).toBeChecked();
-  await expect(mode(page, "Elided")).not.toHaveAttribute("aria-disabled", "true");
 
   await select(page, [{ block, id: "middle" }]);
-  await expect(mode(page, "Hidden")).toBeChecked();
   await expect(section.getByRole("heading")).toHaveText(TITLE);
-  await mode(page, "Elided").click();
+  await expect(mode(page, "Hidden")).toBeChecked();
+  await mode(page, "Proportional").click();
   await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await newestCommand(page)).toEqual(cardCommand(block, null));
+  expect(await newestCommand(page)).toEqual(
+    rootRule(block, { "elision-mode": null, display: null }),
+  );
   await expect(element(page, block, PIECE_CARD)).toHaveCount(2);
   expect(await attributes(box(page, block, PIECE_CARD))).toEqual(CARD);
   expect(await heldBoxes(page, block)).toEqual(HELD_BESIDE_CARD);
   expect(await nodeTransform(page, block)).toBe(await placedAt(page, x - SHIFT, y));
-  await expect(mode(page, "Elided")).toBeChecked();
+  await expect(mode(page, "Proportional")).toBeChecked();
 });
-
-/** Import `group_elided_inside` as `imported` imports its fixture; the block's ID. */
-async function importedInside(page: Page): Promise<string> {
-  await withoutPickers(page);
-  await page.goto("/");
-  await page.waitForFunction(() => window.__tilie !== undefined);
-  await pick(
-    page,
-    "Import manifest…",
-    "group_elided_inside.yaml",
-    manifestFixture("groups/group_elided_inside"),
-  );
-  await expect.poll(() => journalLength(page)).toBe(1);
-  const [block] = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
-  if (block === undefined) throw new Error("the import added no block");
-  return block;
-}
 
 /** The stored elisions of block `block`, as the store holds them. */
 function storedElisions(page: Page, block: string): Promise<unknown> {
@@ -235,124 +233,231 @@ function storedElisions(page: Page, block: string): Promise<unknown> {
   );
 }
 
-const FIRST = { id: "first", part: ["elision"] } as ElementAddress;
-const SECOND = { id: "second", part: ["elision"] } as ElementAddress;
+/**
+ * The ellipsis of the default elision of `second`, which `group_elided_inside`'s
+ * card derives: its gap draws nothing itself (no fill, no continuation), its
+ * one ellipsis three dots.
+ */
+const SECOND = { id: "second", part: ["elision", "ellipsis"] } as ElementAddress;
 
-test("the elisions switch to Full and back, and are stored left and right and reset", async ({
-  page,
-}) => {
-  const block = await importedInside(page);
+/** The rows of a section's list of elisions, each its name, timeline and stretch. */
+function rowsOf(section: Locator): Promise<(string | null)[][]> {
+  return section
+    .locator("button.row")
+    .evaluateAll((rows) =>
+      rows.map((row) => [...row.querySelectorAll("span")].map((span) => span.textContent)),
+    );
+}
+
+/** The canvas's width must exceed 1112 pixels for the automatic proportion to be 1/7 (README). */
+const WIDE_CANVAS = 1112;
+
+/**
+ * Import `group_elided_inside`, select `excerpt` and open Properties, the
+ * canvas checked to be wide enough with the drawer open; the block's ID.
+ */
+async function elidedInside(page: Page): Promise<string> {
+  const block = await importFixture(page, "groups/group_elided_inside");
   await select(page, [{ block, id: "excerpt" }]);
   await properties(page);
-  await expect(mode(page, "Elided")).toBeChecked();
-  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+  expect(await arranger(page).evaluate((canvas) => canvas.clientWidth)).toBeGreaterThan(
+    WIDE_CANVAS,
+  );
+  await expect(page.getByTestId("elisions").getByRole("heading")).toHaveText(TITLE);
+  await expect(mode(page, "Proportional")).toBeChecked();
+  return block;
+}
 
-  await mode(page, "Full").click();
-  await expect.poll(() => journalLength(page)).toBe(2);
-  expect(await newestCommand(page)).toEqual({
-    type: "style",
-    select: { element: "elision", within: "piece" },
-    set: { display: "none" },
-    blocks: [block],
-  });
-  await expect(element(page, block, SECOND)).toHaveCount(0);
-  await expect(mode(page, "Full")).toBeChecked();
-  // The arrow keys move between the options, choosing each as a click does.
-  await mode(page, "Full").focus();
-  await page.keyboard.press("ArrowLeft");
-  await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await newestCommand(page)).toEqual({
-    type: "style",
-    select: { element: "elision", within: "piece" },
-    set: { display: null },
-    blocks: [block],
-  });
-  await expect(element(page, block, SECOND)).not.toHaveCount(0);
+/** The defaults of `group_elided_inside`'s card as Custom stores them, in drawing order. */
+const STORED_DEFAULTS = [
+  { timeline: "first", start: [0, 1], end: [8, 1], width: { canvas: 57.14285714285714 } },
+  { timeline: "first", start: [16, 1], end: [32, 1], width: { canvas: 114.28571428571428 } },
+  { timeline: "second", start: [1, 1], end: [31, 1], width: { canvas: 128.57142857142856 } },
+].map((elision) => ({ ...elision, display: ["ellipsis", "name"] }));
 
-  await page.getByRole("button", { name: "Root left and right" }).click();
-  await expect.poll(() => journalLength(page)).toBe(4);
-  expect(await storedElisions(page, block)).toEqual([
-    {
-      id: "elision_1",
-      timeline: "piece",
-      start: [0, 1],
-      end: [8, 1],
-      display: ["strip", "name", "coordinate"],
-    },
-    {
-      id: "elision_2",
-      timeline: "piece",
-      start: [16, 1],
-      end: [64, 1],
-      display: ["strip", "name", "coordinate"],
-    },
-  ]);
-  await expect(page.getByTestId("elision-status")).toHaveText("Elisions: 2 stored elisions");
-  await expect(element(page, block, SECOND)).toHaveCount(0);
-
-  await page.getByRole("button", { name: "Reset to automatic" }).click();
-  await expect.poll(() => journalLength(page)).toBe(5);
-  expect(await storedElisions(page, block)).toEqual([]);
-  await expect(element(page, block, SECOND)).not.toHaveCount(0);
-});
-
-test("a default elision deleted stores the others, and one undo restores them all", async ({
-  page,
-}) => {
-  const block = await importedInside(page);
-  await select(page, [{ block, id: "piece" }]);
-  await properties(page);
-  await page.getByRole("button", { name: "Delete the elision of Second, 0–32 ♩" }).click();
-  await expect.poll(() => journalLength(page)).toBe(2);
-  expect(await storedElisions(page, block)).toEqual([
-    {
-      id: "elision_1",
-      timeline: "first",
-      start: [0, 1],
-      end: [8, 1],
-      display: ["strip", "name", "coordinate"],
-    },
-    {
-      id: "elision_2",
-      timeline: "first",
-      start: [16, 1],
-      end: [32, 1],
-      display: ["strip", "name", "coordinate"],
-    },
-  ]);
-  await expect(element(page, block, SECOND)).toHaveCount(0);
-  await page.evaluate(() => window.__tilie.store().undo());
-  expect(await storedElisions(page, block)).toEqual([]);
-  await expect(element(page, block, SECOND)).not.toHaveCount(0);
-  await expect(element(page, block, FIRST)).not.toHaveCount(0);
-});
-
-test("a selected elision's end is typed exactly and stores the card's defaults", async ({
-  page,
-}) => {
-  const block = await importedInside(page);
-  await select(page, [{ block, id: "piece" }]);
-  await properties(page);
-  await page.getByTestId("elisions").locator("button.row", { hasText: "Second" }).click();
-  await expect
-    .poll(() => page.evaluate(() => [...window.__tilie.selection()]))
-    .toEqual([{ block, ...SECOND }]);
-  const form = page.getByTestId("elision-form");
-  await expect(form.locator("legend").first()).toHaveText('Elision of "Second"');
-  const end = form.locator('input[name="end"]');
-  await expect(end).toHaveValue("32");
-  await end.fill("16");
-  await end.press("Enter");
-  await expect.poll(() => journalLength(page)).toBe(2);
+/** Choose Custom on `group_elided_inside`'s root: the drawn defaults stored, one entry. */
+async function storeDefaults(page: Page, block: string): Promise<void> {
+  const before = await journalLength(page);
+  await mode(page, "Custom").click();
+  await expect.poll(() => journalLength(page)).toBe(before + 1);
   expect(await newestCommand(page)).toEqual({
     type: "add",
     into: { block },
-    elision: [
-      { timeline: "first", start: [0, 1], end: [8, 1] },
-      { timeline: "first", start: [16, 1], end: [32, 1] },
-      { timeline: "second", start: [0, 1], end: [16, 1] },
-    ],
+    elision: STORED_DEFAULTS,
   });
+  await expect(mode(page, "Custom")).toBeChecked();
+}
+
+test("the root's elisions switch to Full and back by the arrow keys", async ({ page }) => {
+  const block = await elidedInside(page);
+  await expect(element(page, block, SECOND)).toHaveCount(3);
+
+  await mode(page, "Full").click();
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect(await newestCommand(page)).toEqual(
+    rootRule(block, { "elision-mode": "full", display: null }),
+  );
+  await expect(element(page, block, SECOND)).toHaveCount(0);
+  await expect(mode(page, "Full")).toBeChecked();
+
+  // The arrow keys move between the options, choosing each as a click does.
+  await mode(page, "Full").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => journalLength(page)).toBe(3);
+  expect(await newestCommand(page)).toEqual(
+    rootRule(block, { "elision-mode": null, display: null }),
+  );
+  await expect(mode(page, "Proportional")).toBeChecked();
+  await expect(element(page, block, SECOND)).toHaveCount(3);
+});
+
+test("Custom stores the drawn defaults, Add elision adds one and Remove all removes them", async ({
+  page,
+}) => {
+  const block = await elidedInside(page);
+  const section = page.getByTestId("elisions");
+  await storeDefaults(page, block);
+  await expect(section.locator(".count")).toHaveText("3 elisions");
+  expect(await rowsOf(section)).toEqual([
+    ["—", "First", "0–8 ♩"],
+    ["—", "First", "16–32 ♩"],
+    ["—", "Second", "1–31 ♩"],
+  ]);
+  // The card now draws the stored elision in the default's place.
+  await expect(element(page, block, SECOND)).toHaveCount(0);
+  await expect(
+    element(page, block, { id: "elision_3", part: ["ellipsis"] } as ElementAddress),
+  ).toHaveCount(3);
+
+  await section.getByRole("button", { name: "Add elision" }).click();
+  await expect.poll(() => journalLength(page)).toBe(3);
+  expect(await newestCommand(page)).toEqual({
+    type: "add",
+    into: { block, id: "piece" },
+    elision: { start: [32, 1], end: [48, 1] },
+  });
+  await expect(section.locator(".count")).toHaveText("4 elisions");
+
+  await section.getByRole("button", { name: "Remove all" }).click();
+  await expect.poll(() => journalLength(page)).toBe(4);
+  expect(await newestCommand(page)).toEqual({
+    type: "remove",
+    targets: ["elision_1", "elision_2", "elision_4", "elision_3"].map((id) => ({ block, id })),
+  });
+  expect(await storedElisions(page, block)).toEqual([]);
+  await expect(mode(page, "Proportional")).toBeChecked();
+  await expect(element(page, block, SECOND)).toHaveCount(3);
+});
+
+test("a selected elision shows its handles and mode menu, and a key moves its end", async ({
+  page,
+}) => {
+  const block = await elidedInside(page);
+  await storeDefaults(page, block);
+  await page.getByTestId("elisions").locator("button.row", { hasText: "Second" }).click();
+  await expect
+    .poll(() => page.evaluate(() => [...window.__tilie.selection()]))
+    .toEqual([{ block, id: "elision_3" }]);
+  const form = page.getByTestId("elision-form");
+  await expect(form.locator("legend").first()).toHaveText('Elision on "Second"');
+  await expect(form.locator('input[name="start"]')).toHaveValue("1");
+  await expect(form.locator('input[name="end"]')).toHaveValue("31");
+
+  // The gap brought to (400, 400) on the canvas, left of the drawer, so its menu takes clicks.
+  const dot = await element(page, block, {
+    id: "elision_3",
+    part: ["ellipsis"],
+  } as ElementAddress)
+    .nth(1)
+    .boundingBox();
+  const canvas = await pane(page).boundingBox();
+  if (dot === null || canvas === null) throw new Error("the gap is not displayed");
+  const view = await viewportOf(page);
+  await setViewport(page, {
+    x: view.x + canvas.x + 400 - dot.x,
+    y: view.y + canvas.y + 400 - dot.y,
+    zoom: view.zoom,
+  });
+
+  await expect(page.getByTestId("gap-handle-start")).toHaveCount(1);
+  await expect(page.getByTestId("gap-handle-end")).toHaveCount(1);
+  const coordinates = page.getByTestId("gap-mode-coordinates");
+  const width = page.getByTestId("gap-mode-width");
+  await expect(coordinates).toHaveAttribute("aria-pressed", "true");
+  await expect(width).toHaveAttribute("aria-pressed", "false");
+  await width.click();
+  await expect(width).toHaveAttribute("aria-pressed", "true");
+  await expect(coordinates).toHaveAttribute("aria-pressed", "true");
+  await width.click();
+  await expect(width).toHaveAttribute("aria-pressed", "false");
+  await expect(coordinates).toHaveAttribute("aria-pressed", "true");
+
+  await arranger(page).focus();
+  await page.keyboard.press("]");
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => journalLength(page)).toBe(3);
+  expect(await newestCommand(page)).toEqual({
+    type: "set",
+    changes: [{ target: { block, id: "elision_3" }, values: { end: [156, 5] } }],
+  });
+  const stored = (await storedElisions(page, block)) as { id: string; end: unknown }[];
+  expect(stored.find((elision) => elision.id === "elision_3")?.end).toEqual([156, 5]);
+});
+
+test("a group's elisions switch to Full and back, and are added to and removed", async ({
+  page,
+}) => {
+  const block = await importFixture(page, "groups/group_elided_members");
+  await select(page, [{ block, id: "group_1" }]);
+  await properties(page);
+  const section = page.getByTestId("group-elisions");
+  await expect(section.getByRole("heading")).toHaveText('Elisions in group "Theme"');
+  await expect(page.getByTestId("elisions")).toHaveCount(0);
+  await expect(mode(page, "Custom", "group-elisions")).toBeChecked();
+  await expect(section.locator(".count")).toHaveText("2 elisions");
+  expect(await rowsOf(section)).toEqual([
+    ["Development", "Excerpt", "2–8 ♩"],
+    ["—", "Phrase", "2–6 ♩"],
+  ]);
+  // Its ellipsis, three dots across the frame and three in `piece`'s card, which carries the gap.
+  const development = { id: "elision_1", part: ["ellipsis"] } as ElementAddress;
+  await expect(element(page, block, development)).toHaveCount(6);
+
+  const frameRule = (set: { readonly [property: string]: unknown }) => ({
+    type: "style",
+    select: { addresses: [{ id: "group_1" }] },
+    set,
+    blocks: [block],
+  });
+  await mode(page, "Full", "group-elisions").click();
+  await expect.poll(() => journalLength(page)).toBe(2);
+  expect(await newestCommand(page)).toEqual(frameRule({ "elision-mode": "full" }));
+  await expect(element(page, block, development)).toHaveCount(0);
+  await expect(mode(page, "Full", "group-elisions")).toBeChecked();
+
+  await mode(page, "Custom", "group-elisions").click();
+  await expect.poll(() => journalLength(page)).toBe(3);
+  expect(await newestCommand(page)).toEqual(frameRule({ "elision-mode": null }));
+  await expect(element(page, block, development)).toHaveCount(6);
+
+  await section.getByRole("button", { name: "Add elision" }).click();
+  await expect.poll(() => journalLength(page)).toBe(4);
+  expect(await newestCommand(page)).toEqual({
+    type: "add",
+    into: { block, id: "excerpt" },
+    elision: { start: [16, 3], end: [32, 3] },
+  });
+  await expect(section.locator(".count")).toHaveText("3 elisions");
+
+  await section.getByRole("button", { name: "Remove all" }).click();
+  await expect.poll(() => journalLength(page)).toBe(5);
+  expect(await newestCommand(page)).toEqual({
+    type: "remove",
+    targets: ["elision_1", "elision_3", "elision_2"].map((id) => ({ block, id })),
+  });
+  await expect(section.locator(".count")).toHaveText("0 elisions");
+  expect(await storedElisions(page, block)).toEqual([]);
+  await expect(section.getByRole("button", { name: "Remove all" })).toBeDisabled();
 });
 
 test("a double-click on an ancestor card opens its root's editor and raises it", async ({
@@ -484,10 +589,10 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
   const cardMiddle = line("middle", true);
   const ancestorPiece = line("piece", false);
   expect([cardPiece.y, cardPiece.xStart, cardPiece.xEnd]).toEqual([
-    85.18359375, 60.33544921875, 860.33544921875,
+    85.18359375, 60.33544921875, 260.33544921875,
   ]);
   expect(cardMiddle.y).toBe(51.20703125);
-  expect([ancestorPiece.y, ancestorPiece.xStart]).toEqual([85.18359375, 260.33544921875]);
+  expect([ancestorPiece.y, ancestorPiece.xStart]).toEqual([85.18359375, 364.0390625]);
 
   const view = await page.evaluate(() => window.__tilie.viewport());
   const start = await toScreen(page, origin.x + cardPiece.xStart, origin.y + cardPiece.y);
@@ -516,7 +621,7 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
   // Beyond the frame's borders the card's line is read: `piece` alone, under the root's name.
   for (const [dx, value] of [
     [50, "1 ♩"],
-    [700, "14 ♩"],
+    [844, "14 ♩"],
   ] as const) {
     await hover(dx, cardPiece.y);
     await expect(head("piece")).toHaveText("Piece");
@@ -527,7 +632,7 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
 
   // Inside `middle`'s card the ancestor line of `piece` is read as `piece`'s: its row is hovered,
   // below `middle`'s, as the ancestor line lies below `middle`'s line.
-  await hover(400, ancestorPiece.y);
+  await hover(504, ancestorPiece.y);
   await expect.poll(parts).toEqual(["middle", "piece"]);
   await expect(row("piece").getByTestId("coordinate")).toHaveText("8 ♩");
   await expect(row("piece")).toHaveAttribute("data-hovered", "true");
@@ -536,7 +641,7 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
 
   // The card's `middle` row inside the frame is covered by the frame: not it, but `middle`'s own
   // line 4 above it is read, with its group.
-  await hover(400, cardMiddle.y);
+  await hover(504, cardMiddle.y);
   await expect.poll(parts).toEqual(["middle", "piece", "recording"]);
   await expect(row("middle")).toHaveAttribute("data-hovered", "true");
   await expect(row("middle").getByTestId("coordinate")).toHaveText("4 ♩");
@@ -544,14 +649,14 @@ test("Show coordinates reads the card where it is seen and an ancestor line as i
   // Raised by `piece`'s timeline editor, the card is read inside the frame too.
   await enter(page, { block, id: "piece" }, measured);
   await expect.poll(() => cardAfterFrame(page, block)).toBe(true);
-  await hover(400, cardMiddle.y);
+  await hover(504, cardMiddle.y);
   await expect.poll(parts).toEqual(["middle", "piece"]);
   await expect(row("middle").getByTestId("coordinate")).toHaveText("4 ♩");
   await expect(row("middle")).toHaveAttribute("data-hovered", "true");
   await expect(row("piece").getByTestId("coordinate")).toHaveText("8 ♩");
   await expect(head("piece")).toHaveText("Piece");
 
-  await hover(400, cardPiece.y);
+  await hover(504, cardPiece.y);
   await expect.poll(parts).toEqual(["middle", "piece"]);
   await expect(row("piece")).toHaveAttribute("data-hovered", "true");
   await expect(row("piece").getByTestId("coordinate")).toHaveText("8 ♩");
