@@ -225,25 +225,23 @@ describe("boxes in a manifest with one group", () => {
       kind: "element",
       address: inA(part("group_1", "name")),
     });
-    // The mark of a member's start on its ancestor line carries a boundary's `{id: S, part:
-    // ["start"]}` form, but it is no boundary line.
-    expect(summary(hit(part("second-half", "start"), "wedge"))).toMatchObject({
-      kind: "element",
-      address: inA(part("second-half", "start")),
-      boundary: false,
-    });
   });
 
   it.each([
     ["the frame above the first card", 12, 12, cardKey("group_1")],
-    ["the gap between the cards", 100, 124, cardKey("group_1")],
+    ["the gap between the cards", 100, 104, cardKey("group_1")],
     [
       "the start of the ancestor line",
       108.61962890625,
       85.18359375,
       cardKey("group_1", "second-half"),
     ],
-    ["the start of recording's line", 120.61962890625, 142.5625, cardKey("group_1", "recording")],
+    [
+      "the start of recording's line",
+      120.61962890625,
+      122.5859375,
+      cardKey("group_1", "recording"),
+    ],
     ["the block's padding", 4, 4, null],
     ["the right of the frame", 552, 100, null],
   ])("finds under %s the box %j", (_, x, y, expected) => {
@@ -255,26 +253,27 @@ describe("boxes in a manifest with one group", () => {
       [0, BUNDLE_ADDRESS, "block"],
       [1, cardAddress("piece"), "shadow"],
       [2, cardAddress("piece"), "card"],
-      [15, idAddress("group_1"), "frame"],
-      [17, cardAddress("second-half"), "shadow"],
-      [18, cardAddress("second-half"), "card"],
-      [36, cardAddress("recording"), "shadow"],
-      [37, cardAddress("recording"), "card"],
+      [24, idAddress("group_1"), "frame"],
+      [26, cardAddress("second-half"), "shadow"],
+      [27, cardAddress("second-half"), "card"],
+      [45, cardAddress("recording"), "shadow"],
+      [46, cardAddress("recording"), "card"],
     ]);
   });
 
   it("finds the frame where a hidden card would be", () => {
     const hidden = drawingIn(styled(view, HIDDEN_CARDS));
-    // The start of `recording`'s line, 368 right of where it lies without the ancestor card.
-    const point = { x: 488.61962890625, y: 142.5625 };
+    // The start of `recording`'s line, 447.99018554687495 right of where it lies without the
+    // ancestor card.
+    const point = { x: 568.609814453125, y: 122.5859375 };
     expect(hitOf(A, hidden, null, point).within?.key).toEqual(cardKey("group_1"));
     // Left of the frame and below the ancestor card: no box.
-    expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 142.5625 }).within).toBeNull();
+    expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 122.5859375 }).within).toBeNull();
     expect(roles(hidden)).toEqual([
       [0, BUNDLE_ADDRESS, "block"],
       [1, cardAddress("piece"), "shadow"],
       [2, cardAddress("piece"), "card"],
-      [15, idAddress("group_1"), "frame"],
+      [24, idAddress("group_1"), "frame"],
     ]);
   });
 
@@ -295,7 +294,7 @@ describe("boxes in a manifest with one group", () => {
       hoverOf(
         hitOf(A, withoutCard, address === null ? null : sourceOf(withoutCard, address), { x, y }),
       );
-    expect(hover(idAddress("recording"), 120.61962890625, 142.5625)).toEqual({
+    expect(hover(idAddress("recording"), 120.61962890625, 122.5859375)).toEqual({
       box: placeKeyText(cardKey("group_1", "recording")),
       boundary: null,
       band: null,
@@ -465,13 +464,13 @@ describe("the boxes holding part of the selection", () => {
       drawing.elements[sourceOf(drawing, address, type).element];
 
     it("draws each card's member drawing inside the other card", () => {
-      const width = 563.9150390625;
+      const width = 561.052001953125;
       expect(rect(cardKey("annotations"))).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
       expect(rect(g1)).toEqual({ x: 8, y: 28.8046875, width, height: 169.234375 });
       expect(rect(cardKey("group_1", "score"))).toEqual({
         x: 16,
         y: 53.609375,
-        width: 547.9150390625,
+        width: 545.052001953125,
         height: 78.953125,
       });
       const line = element("timeline", idAddress("score")) as LineElement;
@@ -831,15 +830,20 @@ describe("an elision's descriptors", () => {
   it("are elements, never a box, on bundle_elisions_stored", () => {
     const view = viewOf({ id: A, fixture: "bundles/bundle_elisions_stored" });
     const written = descriptorsOf(drawingIn(view)).filter(
-      (descriptor) => descriptor.source.type === "elision",
+      (descriptor) => descriptor.source.type === "elision" || descriptor.source.type === "ellipsis",
     );
     expect(new Set(written.map(roleOf))).toEqual(new Set(["element"]));
-    const ids = written.map((descriptor) => descriptor.source.address.id);
-    expect(ids.filter((id, index) => id !== ids[index - 1])).toEqual([
+    // One entry per drawn element, in drawing order: the element each descriptor was written from.
+    const drawn = new Map(
+      written.map((descriptor) => [descriptor.source.element, descriptor.source.address.id]),
+    );
+    expect([...drawn.values()]).toEqual([
       "elision_4",
-      "elision_5",
-      "elision_6",
+      "elision_4",
+      "elision_3",
+      "elision_3",
       "elision_2",
+      "elision_3",
     ]);
   });
 });

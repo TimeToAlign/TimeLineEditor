@@ -556,12 +556,11 @@ describe("an ancestor card raised", () => {
     if (raised) {
       expect(store.open({ block: A, id: "piece" })).toBeNull();
       flushSync();
-      // Raised: `piece` 3 has its place on the card's line (85.18359375), above `recording`
-      // (142.5625); `recording` 2.5's group member `middle` 2 is read on the card's row
-      // (51.20703125), its ancestor `piece` 6 on the card's `piece` line.
-      const [middle2, piece6, recording] = throughRecording;
-      expect(shownGroups()).toEqual([piece, middle2, piece6, recording]);
-    } else expect(shownGroups()).toEqual([...throughRecording, piece]);
+    }
+    // `piece` 3, left of `middle`'s span, has its place on the card's line left of the frame
+    // (85.18359375), raised or not, above `recording` 2.5 (122.5859375), whose group member
+    // `middle` 2 and its ancestor `piece` 6 follow it.
+    expect(shownGroups()).toEqual([piece, ...throughRecording]);
     const before = store.journal.length;
     name("Pickup");
     expect(store.journal.length).toBe(before + 1);
@@ -580,8 +579,8 @@ describe("an ancestor card raised", () => {
         name: "Pickup",
         anchors: [
           [
-            { timeline: "recording", coordinate: 2.5 },
             { timeline: "piece", coordinate: [3, 1] },
+            { timeline: "recording", coordinate: 2.5 },
           ],
         ],
         match_claims: ["p_1"],
@@ -625,8 +624,8 @@ describe("an ancestor card raised", () => {
                 { timeline: "piece", coordinate: [3, 1] },
               ],
               [
-                { timeline: "recording", coordinate: 2.5 },
                 { timeline: "piece", coordinate: [3, 1] },
+                { timeline: "recording", coordinate: 2.5 },
               ],
             ],
             match_claims: ["p_1", "p_2"],

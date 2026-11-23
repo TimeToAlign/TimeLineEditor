@@ -8,14 +8,6 @@ import { A, blockIn, CHILD_MEMBER, load, MPM, numbersView } from "./support.ts";
 const at = (id: string, ...words: Part[]): ElementAddress =>
   words.length === 0 ? idAddress(id) : { id, part: words };
 
-/** The marks of a member's start and end on its ancestor line, each with its label. */
-const marks = (id: string) => [
-  at(id, "start"),
-  at(id, "start", "label"),
-  at(id, "end"),
-  at(id, "end", "label"),
-];
-
 /** The named timestamps `ids`, each with its coordinate label, all they draw in these fixtures. */
 const stamps = (...ids: string[]) => ids.flatMap((id) => [at(id), at(id, "coordinate")]);
 
@@ -88,10 +80,11 @@ describe("affectedBy", () => {
       [at("piece")],
       [
         cardAddress("second-half"),
-        ...marks("second-half"),
         at("second-half"),
         at("second-half", "name"),
         ...stamps("timestamp_3", "timestamp_4"),
+        at("timestamp_3", "line"),
+        at("timestamp_4", "line"),
       ],
     ],
     [
