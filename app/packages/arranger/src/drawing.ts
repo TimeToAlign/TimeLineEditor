@@ -8,12 +8,12 @@ import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { isAncestorCard } from "./boxes.ts";
-import { paneView } from "./pane.ts";
+import type { PaneSource } from "./pane.ts";
 
 interface Memo {
   readonly graphical: Graphical;
   readonly metrics: FontMetrics;
-  /** The pane it was drawn for (`paneView`); `undefined` for layout's default view. */
+  /** The pane it was drawn for; `undefined` for layout's default view. */
   readonly view: View | undefined;
   readonly drawing: Drawing;
 }
@@ -52,11 +52,12 @@ export function styleLayers(
  * The drawing of a block: its manifest drawn at its placement with the
  * default layer, the workspace's `graphical` and the manifest's own
  * (`manifestLayer`: its styles and rules), from lowest to highest, for the
- * pane the canvas settled at (`paneView`, the placement's `view`; layout's
- * default view before one is settled) where the manifest draws an ancestor
- * card, whose default proportion alone reads it. Blocks are immutable, so the drawing is memoized per
- * block and redrawn only when the workspace's `graphical`, the metrics or
- * the pane change; read in a reaction, it is read again when the pane does.
+ * pane `pane` of the canvas showing it (its `view`, the placement's `view`;
+ * layout's default view without one) where the manifest draws an ancestor
+ * card, whose automatic proportion alone reads it (and only then is the
+ * pane read, so a reaction drawing any other manifest never follows it). Blocks are
+ * immutable, so the drawing is memoized per block and redrawn only when the
+ * workspace's `graphical`, the metrics or the pane change.
  * `overrides` replace members of the block's placement (a resize measuring
  * the content at another length or with no size request). Every drawing is
  * also kept by its manifest and its placement's values, the `RECENT` last
@@ -68,11 +69,12 @@ export function drawingOf(
   graphical: Graphical,
   metrics: FontMetrics,
   overrides?: Partial<Block>,
+  pane?: PaneSource,
 ): Drawing {
   const manifest = overrides?.manifest ?? block.manifest;
   // Only an ancestor card's default proportion reads the pane (section 8.9): a manifest drawing
   // none is drawn once, whatever the pane.
-  const view = containersOf(manifest).ancestorCards.length === 0 ? undefined : paneView();
+  const view = containersOf(manifest).ancestorCards.length === 0 ? undefined : pane?.view;
   if (overrides === undefined) {
     const memo = drawings.get(block);
     if (

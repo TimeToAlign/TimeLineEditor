@@ -12,7 +12,7 @@
 import type { Block } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { useStore, ViewportPortal } from "@xyflow/svelte";
-import { calcAutoPan, getNodeToolbarTransform, Position } from "@xyflow/system";
+import { calcAutoPan } from "@xyflow/system";
 import type { Attachment } from "svelte/attachments";
 import { isHeld } from "./boxes.ts";
 import type { Level } from "./containers.ts";
@@ -22,11 +22,10 @@ import { pointerGesture } from "./gesture.ts";
 import type { ResizeHost } from "./gestures/resize.ts";
 import { resizeGesture } from "./gestures/resize.ts";
 import { itemHandlesFor } from "./items.ts";
+import ModeMenu from "./ModeMenu.svelte";
 import { getNodeActions } from "./nodeActions.ts";
 import type { Handle, ResizeMode } from "./resize.ts";
-import "./menu.css";
 import { handlesFor } from "./resize.ts";
-import { roving } from "./roving.ts";
 
 interface Props {
   /** The block resized, or holding the frame or card resized, as stored. */
@@ -48,10 +47,10 @@ let { block, box, level = "arranger", bounds, zoom, locked, mode = $bindable() }
 
 const actions = getNodeActions();
 
-const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
-  { mode: "scale", label: "Scale", key: "1" },
-  { mode: "box", label: "Box", key: "2" },
-  { mode: "stretch", label: "Stretch", key: "3" },
+const MODES: readonly { value: ResizeMode; label: string; key: string }[] = [
+  { value: "scale", label: "Scale", key: "1" },
+  { value: "box", label: "Box", key: "2" },
+  { value: "stretch", label: "Stretch", key: "3" },
 ];
 
 /**
@@ -72,6 +71,13 @@ function hintOf(chosen: ResizeMode): string {
 /** The modes offered, in the order of `MODES`, and the one shown. */
 const offered = $derived(resizeModes(box, level));
 const shown = $derived(offered.includes(mode) ? mode : offered[0]);
+/** The mode menu's buttons: the modes offered, each saying what it does. */
+const entries = $derived(
+  MODES.filter((entry) => offered.includes(entry.value)).map((entry) => ({
+    ...entry,
+    hint: hintOf(entry.value),
+  })),
+);
 
 /** The handles of `chosen` on the block or on a frame or card. */
 function handlesOf(chosen: ResizeMode): readonly Handle[] {
@@ -92,8 +98,6 @@ const CURSORS: { readonly [handle in Handle]: string } = {
 /** The hit area of a handle and its visible square, in screen pixels. */
 const HIT = 24;
 const MARK = 9;
-/** How far above the resized box, in screen pixels, the mode menu sits: Svelte Flow's `NodeToolbar` default. */
-const MENU_GAP = 10;
 
 function anchor(handle: Handle): { x: number; y: number } {
   const x = handle.endsWith("left")
@@ -110,19 +114,6 @@ function anchor(handle: Handle): { x: number; y: number } {
 }
 
 const flow = useStore();
-
-/**
- * Where the mode menu sits: centred above the resized box, `MENU_GAP` screen
- * pixels clear of its top, at any zoom. It is placed by the rule Svelte
- * Flow's `NodeToolbar` uses (`getNodeToolbarTransform`), applied to the box
- * rather than to a node, so the menu sits above the block or above the
- * frame or card resized alike, and follows it through a resize and every
- * pan or zoom. While boxes are moved the canvas does not show the toolbar
- * at all; it is shown again at the bounds the move leaves.
- */
-const menuTransform = $derived(
-  getNodeToolbarTransform(bounds, flow.viewport, Position.Top, MENU_GAP, "center"),
-);
 
 /** The toolbar's side of a resize: every member read when the gesture needs it. */
 const host: ResizeHost = {
@@ -163,21 +154,20 @@ function gestureOf(handle: Handle): Attachment<Element> {
 </script>
 
 {#if shown !== undefined}
-<div class="mode-menu" style:transform={menuTransform}>
-  <div class="tilie-menu" role="toolbar" aria-label="Resize mode" {@attach roving}>
-    {#each MODES.filter((entry) => offered.includes(entry.mode)) as entry (entry.mode)}
-      <button
-        type="button"
-        class="tilie-menu-item"
-        data-testid="mode-{entry.mode}"
-        aria-pressed={shown === entry.mode}
-        title="{entry.label}: {hintOf(entry.mode)} ({entry.key})"
-        disabled={locked}
-        onclick={() => (mode = entry.mode)}>{entry.label}</button
-      >
-    {/each}
-  </div>
-</div>
+<!--
+  The menu sits centred above the resized box and follows it through a
+  resize and every pan or zoom; while boxes are moved the canvas does not
+  show the toolbar at all, and shows it again at the bounds the move leaves.
+-->
+<ModeMenu
+  label="Resize mode"
+  {entries}
+  pressed={(value) => shown === value}
+  disabled={locked}
+  {bounds}
+  testid="mode"
+  onpress={(value) => (mode = value)}
+/>
 
 {#if !locked}
 <ViewportPortal target="front" class="tilie-overlay">
@@ -202,14 +192,6 @@ function gestureOf(handle: Handle): Attachment<Element> {
 {/if}
 
 <style>
-  /* Above the nodes' renderer (z-index 4), where Svelte Flow's panels lie. */
-  .mode-menu {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 5;
-  }
-
   .handle {
     position: absolute;
     transform: translate(-50%, -50%);

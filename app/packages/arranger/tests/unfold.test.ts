@@ -186,7 +186,7 @@ describe.each([
     }
   });
 
-  it("gives every element its timeline's motion and the card's rectangle and strips none", () => {
+  it("gives every element its timeline's motion and the card's rectangle, gaps and ellipses none", () => {
     const { owners } = indexOf(manifest);
     const motions = new Map(
       paired.map((timeline) => [timeline, unfold.motionOf(lineIndexes(timeline)[0] ?? -1)]),
@@ -194,7 +194,11 @@ describe.each([
     for (let index = card.range.start; index < card.range.end; index += 1) {
       const element = drawing.elements[index];
       if (element === undefined) throw new Error("no element");
-      if (element.type === "ancestor_card" || element.type === "elision") {
+      if (
+        element.type === "ancestor_card" ||
+        element.type === "elision" ||
+        element.type === "ellipsis"
+      ) {
         expect(unfold.motionOf(index), element.type).toBeNull();
         continue;
       }

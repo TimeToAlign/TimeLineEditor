@@ -19,7 +19,7 @@ import { pairRows, type Rect, type Row, type RowMotion } from "./unfold.ts";
 export interface CardUnfold {
   readonly from: Rect;
   readonly to: Rect;
-  /** The motion of the row an element of the card belongs to; `null` for its own rectangle and shadow, its strips, or an element of no drawn row. */
+  /** The motion of the row an element of the card belongs to; `null` for its own rectangle and shadow, its gaps and their ellipses, or an element of no drawn row. */
   readonly motionOf: (element: number) => RowMotion | null;
 }
 
@@ -38,8 +38,8 @@ const rectOf = ({ x, y, width, height }: DrawnBox): Rect => ({ x, y, width, heig
  * is not drawn. An element belongs to the row of the timeline it belongs
  * to (core's `indexOf(…).owners` of its address's ID: the timeline itself,
  * the timeline holding an entry or carrying a named timestamp); the card's
- * own rectangle and its strips (its elisions, which run from its top to its
- * bottom as the rectangle does) belong to none, while a strip's labels
+ * own rectangle and its gaps (its elisions, which run from its top to its
+ * bottom as the rectangle does) with their ellipses belong to none, while a gap's labels
  * travel with the row of the timeline the elision lies on.
  */
 export function raiseUnfold(
@@ -89,7 +89,12 @@ export function raiseUnfold(
     to: whole,
     motionOf(index) {
       const element = drawing.elements[index];
-      if (element === undefined || element.type === "ancestor_card" || element.type === "elision") {
+      if (
+        element === undefined ||
+        element.type === "ancestor_card" ||
+        element.type === "elision" ||
+        element.type === "ellipsis"
+      ) {
         return null;
       }
       const id = element.address.id;

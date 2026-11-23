@@ -350,6 +350,14 @@ function indexOf(drawing: Drawing): Index {
         if (partKey !== address) holders.get(partKey)?.add(own);
       }
     }
+    // A frame's gaps are written after every item, outside its range: the frame holds them too.
+    for (const exposure of drawing.elisions) {
+      if (exposure.kind !== "frame") continue;
+      const frame = byKey.get(placeKeyText(exposure.key));
+      const own = frame === undefined || !isDisplayed(frame) ? null : boxKey(frame);
+      if (own === null) continue;
+      for (const gap of exposure.gaps) holders.get(addressKey(gap.address))?.add(own);
+    }
     found = { byAddress, byKey, byShape, drawn, holders };
     indices.set(drawing, found);
   }
@@ -515,6 +523,7 @@ export function roleOf(descriptor: Descriptor): Role {
     case "wedge":
     case "alignment_anchor":
     case "elision":
+    case "ellipsis":
     case "name":
     case "label":
       return "element";
@@ -725,7 +734,8 @@ export function hoverOf(hit: Hit): Hover {
  * a line marks its card, that card's frame and the block; and an address
  * drawn in several cards, such as an ancestor line, marks each of them. An
  * address that is not drawn marks nothing. A band, which draws nothing,
- * counts as its timeline's line.
+ * counts as its timeline's line. A group elision's gap, written after every
+ * item, is held by its frame (and, carried, by each ancestor card behind it).
  */
 export function holdingOf(
   drawing: Drawing,

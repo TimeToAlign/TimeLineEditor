@@ -10,6 +10,7 @@ import { blockBox, verticalStretchOf } from "./boxes.ts";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
+import type { PaneSource } from "./pane.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
 
@@ -177,12 +178,13 @@ export function resize(
   mode: ResizeMode,
   handle: Handle,
   delta: Delta,
+  pane?: PaneSource,
 ): { values: Partial<Block> } {
   const [sx, sy] = SIDES[handle];
   if (mode === "scale" && (sx === 0 || sy === 0)) {
     throw new RangeError(`a block scales from its corners, not from ${handle}`);
   }
-  const drawing = drawingOf(block, graphical, metrics);
+  const drawing = drawingOf(block, graphical, metrics, undefined, pane);
   const z = block.scale;
   const node = nodePosition(block, drawing);
   const right = node.x + drawing.width * z;
@@ -202,7 +204,7 @@ export function resize(
     size = { ...size, scale };
   } else {
     const free = { width: null, height: null };
-    const content = drawingOf(block, graphical, metrics, free);
+    const content = drawingOf(block, graphical, metrics, free, pane);
     if (mode === "box") {
       if (sx !== 0) {
         const width = quantize(targetWidth / z, GRID_FREE);
@@ -221,12 +223,18 @@ export function resize(
       let { length } = block;
       let across = block[vertical];
       const stretch = (lengthTo: number, acrossTo: number) =>
-        drawingOf(block, graphical, metrics, {
-          ...free,
-          length: lengthTo,
-          [vertical]: acrossTo,
-          places: blockStretchPlaces(block, lengthTo),
-        });
+        drawingOf(
+          block,
+          graphical,
+          metrics,
+          {
+            ...free,
+            length: lengthTo,
+            [vertical]: acrossTo,
+            places: blockStretchPlaces(block, lengthTo),
+          },
+          pane,
+        );
       /** The block's extent at a content extent: the larger of it and the request following it. */
       const boxed = (request: number | null, before: number, extent: number) =>
         Math.max(extent, kept(request, before, extent) ?? 0);

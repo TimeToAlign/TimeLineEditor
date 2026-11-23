@@ -53,6 +53,7 @@ export function itemGesture(host: NodeHost, key: PlaceKey): GestureStrategy<Item
       place.y,
       actions.metrics,
       press.together,
+      actions.pane(),
     );
   return {
     moves: true,

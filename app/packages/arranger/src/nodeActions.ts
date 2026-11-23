@@ -6,6 +6,7 @@ import { createContext } from "svelte";
 import type { LevelRules } from "./containers.ts";
 import type { GestureSlot } from "./gesture.ts";
 import type { MatchPaint } from "./matches.ts";
+import type { PaneSource } from "./pane.ts";
 
 /**
  * What a block is drawn with while a gesture is under way, before anything
@@ -26,6 +27,8 @@ export interface NodeActions {
   preview(block: BlockId, preview: NodePreview | null): void;
   /** The font metrics the canvas lays blocks out with. */
   readonly metrics: FontMetrics;
+  /** The pane the canvas's drawings are fitted to (`Pane.view`); `undefined` before it is measured. */
+  pane(): PaneSource | undefined;
   /** The workspace view the canvas currently shows as stored. */
   view(): View;
   /** The canvas zoom: screen pixels per canvas unit. */
@@ -34,6 +37,12 @@ export interface NodeActions {
   rules(): LevelRules;
   /** Whether the reader prefers reduced motion, under which nothing in a drawing slides. */
   reducedMotion(): boolean;
+  /**
+   * Whether block `block` is drawn at a preview: a gesture's or a transient
+   * command's. Its drawing then follows the pointer or the control, so no
+   * change of it moves by itself (decision record 0034).
+   */
+  previewing(block: BlockId): boolean;
   /**
    * Whether "Show coordinates" is on: every part of a named timestamp (its
    * wedge, its labels, its line, the canvas's wedge for one that draws

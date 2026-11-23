@@ -76,10 +76,11 @@ import {
 } from "@timetoalign/tilie-layout";
 import type { AffordanceSource, Covered, Stacking } from "./boxes.ts";
 import { raisedRoot, stackingOf } from "./boxes.ts";
+import { zeroOf } from "./cardAxis.ts";
 import type { Editing } from "./editing.ts";
+import { gapAt } from "./gaps.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
-import { stripAt, zeroOf } from "./strips.ts";
 
 /** How near, in device pixels, the pointer must come to a line or a map to hover it. */
 export const HIT_TOLERANCE = 8;
@@ -1134,8 +1135,8 @@ function hoveredSpec(
  * line `point` hovers (`lineAt`, `HIT_TOLERANCE` device pixels around,
  * where it is not covered: `stackingOf`, the root raised by the node's
  * editor, `raisedRoot`), the nearest, a later node on a tie; `null` where
- * no line is hovered. A node in which the point lies inside a strip of an
- * elision (`stripAt`) reads nothing: the stretch it elides is not drawn
+ * no line is hovered. A node in which the point lies inside a gap of an
+ * elision (`gapAt`) reads nothing: the stretch it elides is not drawn
  * there, so nothing is placed, not even the end of a run beside it; every
  * full run of an elided line is a line of its own (`axesOf`), read alike.
  * An ancestor line is read as its ancestor's
@@ -1181,8 +1182,8 @@ export function readingAt(
       continue;
     }
     const stacking = stackingOf(drawing, raisedRoot(block, node.data.editing));
-    // Inside a strip nothing is placed: the stretch it elides is not drawn there.
-    if (stripAt(drawing, local, stacking) !== null) continue;
+    // Inside a gap nothing is placed: the stretch it elides is not drawn there.
+    if (gapAt(drawing, local, stacking) !== null) continue;
     const hit = lineAt(axesOf(drawing), local, tolerance, stacking.covered);
     if (
       hit !== null &&

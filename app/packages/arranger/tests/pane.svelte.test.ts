@@ -1,77 +1,113 @@
 // @vitest-environment jsdom
 /**
- * The pane drawings are fitted to (README, "Elisions on the canvas"):
- * settled by a canvas, skipped for a size that is not positive, withdrawn
- * by its settler only, and read again by a reaction.
+ * A canvas's pane (README, "Elisions on the canvas", the pane): the first
+ * size settles at once, a later one `PANE_SETTLE` ms after the last one;
+ * sizes that are not positive are skipped; `release` withdraws it; a
+ * reaction reads it again; `drawingOf` reads it only for a manifest drawing
+ * an ancestor card.
  */
 
+import { draw } from "@timetoalign/tilie-layout";
 import { flushSync } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
-import { drawingOf } from "../src/drawing.ts";
-import { paneView, releasePane, settlePane } from "../src/pane.ts";
-import { stripsOf } from "../src/strips.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { drawingOf, styleLayers } from "../src/drawing.ts";
+import { PANE_SETTLE, Pane } from "../src/pane.ts";
 import { A, blockIn, metrics, viewOf } from "./support.ts";
 
-const VIEW = viewOf({ id: A, fixture: "groups/group_grandchild" });
-const BLOCK = blockIn(VIEW, A);
-const CANVAS = {};
-const OTHER = {};
+beforeEach(() => {
+  vi.useFakeTimers();
+});
 
-const drawn = () => drawingOf(BLOCK, VIEW.graphical, metrics);
-const strips = () => stripsOf(drawn()).map(({ element }) => [element.x1, element.x2]);
-
-afterEach(() => releasePane(CANVAS));
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("the pane", () => {
-  it("is layout's default view until a canvas settles one", () => {
-    expect(paneView()).toBeUndefined();
-    expect(strips()[0]).toEqual([82.265625, 196.55133928571422]);
+  it("gives no view before it is measured, then settles its first size at once", () => {
+    const pane = new Pane();
+    expect(pane.view).toBeUndefined();
+    pane.measure(640, 360);
+    expect(pane.view).toEqual({ width: 640, height: 360 });
   });
 
-  it("draws every drawing for the settled pane", () => {
-    const before = drawn();
-    settlePane(CANVAS, 640, 360);
-    expect(drawn()).not.toBe(before);
-    expect(strips()).toEqual([
-      [82.265625, 141.53972167968755],
-      [141.53972167968755, 171.17677001953143],
-      [571.1767700195314, 689.7249633789065],
-    ]);
+  it("settles a later size only after the last one measured", () => {
+    const pane = new Pane();
+    pane.measure(640, 360);
+    pane.measure(800, 360);
+    vi.advanceTimersByTime(100);
+    pane.measure(900, 400);
+    vi.advanceTimersByTime(PANE_SETTLE - 1);
+    expect(pane.view).toEqual({ width: 640, height: 360 });
+    vi.advanceTimersByTime(1);
+    expect(pane.view).toEqual({ width: 900, height: 400 });
+    pane.measure(1000, 400);
+    pane.measure(900, 400);
+    vi.advanceTimersByTime(PANE_SETTLE);
+    expect(pane.view).toEqual({ width: 900, height: 400 });
   });
 
-  it("skips a size that is not positive and finite", () => {
-    settlePane(CANVAS, 640, 360);
-    const settled = drawn();
-    settlePane(OTHER, 0, 360);
-    settlePane(OTHER, -5, 100);
-    settlePane(OTHER, Number.NaN, 100);
-    expect(paneView()).toEqual({ width: 640, height: 360 });
-    expect(drawn()).toBe(settled);
+  it("skips a size that is not positive and finite, and is withdrawn by release", () => {
+    const pane = new Pane();
+    pane.measure(0, 360);
+    pane.measure(-5, 100);
+    pane.measure(Number.NaN, 100);
+    expect(pane.view).toBeUndefined();
+    pane.measure(640, 360);
+    pane.release();
+    expect(pane.view).toBeUndefined();
   });
 
-  it("is withdrawn by the canvas that settled it alone", () => {
-    settlePane(CANVAS, 640, 360);
-    releasePane(OTHER);
-    expect(paneView()).toEqual({ width: 640, height: 360 });
-    releasePane(CANVAS);
-    expect(paneView()).toBeUndefined();
-    expect(strips()[0]).toEqual([82.265625, 196.55133928571422]);
-  });
-
-  it("is read again by a reaction when it changes", () => {
+  it("is read again by a reaction when it settles", () => {
+    const pane = new Pane();
     const seen: (number | undefined)[] = [];
     const stop = $effect.root(() => {
-      const width = $derived(paneView()?.width);
+      const width = $derived(pane.view?.width);
       $effect(() => {
         seen.push(width);
       });
     });
     flushSync();
-    settlePane(CANVAS, 640, 360);
+    pane.measure(640, 360);
     flushSync();
-    releasePane(CANVAS);
+    pane.release();
     flushSync();
     stop();
     expect(seen).toEqual([undefined, 640, undefined]);
+  });
+});
+
+describe("a drawing at a pane", () => {
+  it("draws a manifest with an ancestor card for the pane, as layout draws that view", () => {
+    const view = viewOf({ id: A, fixture: "groups/group_grandchild" });
+    const block = blockIn(view, A);
+    const pane = new Pane();
+    pane.measure(640, 360);
+    const drawn = drawingOf(block, view.graphical, metrics, undefined, pane);
+    const { length, spacing, margin, width, height, places } = block;
+    const expected = draw(
+      block.manifest,
+      { length, spacing, margin, width, height, places, view: { width: 640, height: 360 } },
+      styleLayers(view.graphical, block.manifest),
+      metrics,
+    );
+    expect(drawn.elisions).toEqual(expected.elisions);
+    expect(drawn).not.toBe(drawingOf(block, view.graphical, metrics));
+    expect(drawn.elisions).not.toEqual(drawingOf(block, view.graphical, metrics).elisions);
+  });
+
+  it("never reads it for a manifest without an ancestor card", () => {
+    const view = viewOf({ id: A, fixture: "bundles/bundle_matchstamps" });
+    const block = blockIn(view, A);
+    let reads = 0;
+    const pane = {
+      get view() {
+        reads += 1;
+        return { width: 640, height: 360 };
+      },
+    };
+    expect(drawingOf(block, view.graphical, metrics, undefined, pane)).toBe(
+      drawingOf(block, view.graphical, metrics),
+    );
+    expect(reads).toBe(0);
   });
 });

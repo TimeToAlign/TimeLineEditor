@@ -1,7 +1,7 @@
 /**
  * The motion of a block's cards when its drawing changes (decision record
- * 0034, applied to elisions): an elided card turning whole or back, its
- * strips changed or its proportion moving sideways, an ancestor card shown
+ * 0034, applied to elisions): a card or a frame switching its mode, its
+ * gaps changed or its proportion moving sideways, an ancestor card shown
  * or hidden unfolding out of its member card or folding back into it. What
  * moves is `elide.ts`'s `blockMotion` between the drawing before a change
  * and the drawing after it; the progress is the raise's (`Progress`).
@@ -82,7 +82,7 @@ export class CardMotions {
     const t = this.#progress.current;
     if (t >= 1) return null;
     for (const card of this.#motion.cards) {
-      if (element >= card.start && element < card.end) return placedAt(card.motionOf(element), t);
+      if (card.holds(element)) return placedAt(card.motionOf(element), t);
     }
     return null;
   }

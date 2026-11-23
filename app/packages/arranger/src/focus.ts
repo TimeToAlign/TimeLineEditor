@@ -1,7 +1,7 @@
 /** The viewport of an editor: the edited element centred in the canvas area left of the drawer. */
 
 import type { Address } from "@timetoalign/tilie-core";
-import { addressKey, contains, resolveElement } from "@timetoalign/tilie-core";
+import { addressKey, contains, resolveElement, samePlaceKey } from "@timetoalign/tilie-core";
 import { boundsOf, TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -72,10 +72,11 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
  * How far the elided ancestor cards behind the frame of the group `target`
  * reach out from the frame's horizontal centre `c`, in canvas units: the
  * largest of `c` less a card's left edge and its right edge less `c`, over
- * the displayed ancestor cards of that frame that draw at least one strip
- * (an elision). `null` for a target that is no group, for a group whose
- * frame is not drawn, and where no such card is drawn: the Full view, or
- * a card the proportion draws whole.
+ * the displayed ancestor cards of that frame that elide (their record's
+ * drawn mode Proportional, whose proportion fits them even where it draws
+ * no gap at `r = 1`, or Custom with at least one gap). `null` for a target
+ * that is no group, for a group whose frame is not drawn, and where no such
+ * card is drawn: every card drawn whole.
  */
 export function elidedReach(node: BlockNode, target: Address): number | null {
   const { drawing, block } = node.data;
@@ -87,14 +88,19 @@ export function elidedReach(node: BlockNode, target: Address): number | null {
   if (frame === undefined || !isDisplayed(frame)) return null;
   const { x, width } = rectOnCanvas(node, frame);
   const c = x + width / 2;
+  const group = resolved.container.key.item;
   let reach: number | null = null;
   for (const box of drawing.boxes) {
-    if (box.ancestor?.group !== resolved.container.key.item || !isDisplayed(box)) continue;
-    let elided = false;
-    for (let index = box.range.start; index < box.range.end && !elided; index += 1) {
-      elided = drawing.elements[index]?.type === "elision";
-    }
-    if (!elided) continue;
+    const { key: cardKey } = box;
+    if (box.ancestor?.group !== group || cardKey === null || !isDisplayed(box)) continue;
+    const exposure = drawing.elisions.find(
+      ({ kind, key }) => kind === "ancestor_card" && samePlaceKey(key, cardKey),
+    );
+    const elides =
+      exposure !== undefined &&
+      (exposure.drawn === "proportional" ||
+        (exposure.drawn === "custom" && exposure.gaps.length > 0));
+    if (!elides) continue;
     const card = rectOnCanvas(node, box);
     reach = Math.max(reach ?? 0, c - card.x, card.x + card.width - c);
   }

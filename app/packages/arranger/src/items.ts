@@ -52,6 +52,7 @@ import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
+import type { PaneSource } from "./pane.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import { ALL_HANDLES, handlesFor, kept, SIDES, solve } from "./resize.ts";
 import type { Selection } from "./selection.ts";
@@ -168,9 +169,10 @@ function drawnWith(
   block: BlockId,
   changes: PlaceChanges,
   metrics: FontMetrics,
+  pane: PaneSource | undefined,
 ): Drawing {
   const next = withPlaces(view, block, changes);
-  return drawingOf(blockIn(next, block), next.graphical, metrics);
+  return drawingOf(blockIn(next, block), next.graphical, metrics, undefined, pane);
 }
 
 /**
@@ -266,9 +268,10 @@ export function itemMoveCommand(
   y: number,
   metrics: FontMetrics,
   together: readonly PlaceKey[] = [],
+  pane?: PaneSource,
 ): SetCommand | null {
   const found = blockIn(view, block);
-  const drawing = drawingOf(found, view.graphical, metrics);
+  const drawing = drawingOf(found, view.graphical, metrics, undefined, pane);
   const { place } = itemOf(drawing, key).item;
   const to = { x: quantize(x, GRID_FREE), y: quantize(y, GRID_FREE) };
   if (to.x === place.x && to.y === place.y) return null;
@@ -292,6 +295,7 @@ export function itemResizeCommand(
   places: PlaceChanges,
   level: Level,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): SetCommand | null {
   const found = blockIn(view, block);
   const changes = [...places.values()].some(({ key, values }) => {
@@ -301,7 +305,7 @@ export function itemResizeCommand(
     );
   });
   if (!changes) return null;
-  const drawing = drawingOf(found, view.graphical, metrics);
+  const drawing = drawingOf(found, view.graphical, metrics, undefined, pane);
   return placeCommand(found, drawing, places, LEVELS[level].itemsFree);
 }
 
@@ -354,6 +358,7 @@ export class Stretch {
   readonly #view: View;
   readonly #block: BlockId;
   readonly #metrics: FontMetrics;
+  readonly #pane: PaneSource | undefined;
   readonly #factor: Factor;
   readonly #size: "width" | "height";
   /** The place the factor is stated on. */
@@ -375,14 +380,16 @@ export class Stretch {
     level: Level,
     factor: Factor,
     metrics: FontMetrics,
+    pane?: PaneSource,
   ) {
     this.#view = view;
     this.#block = block;
     this.#metrics = metrics;
+    this.#pane = pane;
     this.#factor = factor;
     this.#size = SIZES[factor];
     const stored = blockIn(view, block);
-    const drawing = drawingOf(stored, view.graphical, metrics);
+    const drawing = drawingOf(stored, view.graphical, metrics, undefined, pane);
     const resized = resizedIn(drawing, box);
     const item = itemHolding(drawing, resized);
     const held = isHeld(resized);
@@ -441,7 +448,7 @@ export class Stretch {
   }
 
   #draw(changes: PlaceChanges): Drawing {
-    return drawnWith(this.#view, this.#block, changes, this.#metrics);
+    return drawnWith(this.#view, this.#block, changes, this.#metrics, this.#pane);
   }
 
   /** `changes` with the size of every place of `keys` unstated. */
@@ -534,9 +541,10 @@ export function itemResizeValues(
   handle: Handle,
   delta: Delta,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): PlaceChanges {
   const stored = blockIn(view, block);
-  const drawing = drawingOf(stored, view.graphical, metrics);
+  const drawing = drawingOf(stored, view.graphical, metrics, undefined, pane);
   const resized = resizedIn(drawing, box);
   const held = isHeld(resized);
   const [sx, sy] = SIDES[handle];
@@ -554,7 +562,7 @@ export function itemResizeValues(
   const top = sy < 0 ? quantize(y + dy, GRID_FREE) : y;
   /** The drawing of the block with `values` merged into the place of `key`. */
   const redrawn = (key: PlaceKey, values: PlaceValues) =>
-    drawnWith(view, block, placeChanges([[key, values]]), metrics);
+    drawnWith(view, block, placeChanges([[key, values]]), metrics, pane);
   const placed = (values: PlaceValues) => itemOf(redrawn(item.key, values), item.key).item.place;
   const values: PlaceValues = {};
 
@@ -642,7 +650,7 @@ export function itemResizeValues(
 
   if (sy !== 0) {
     const factor = verticalStretchOf(resized);
-    const stretch = new Stretch(current, block, resized, level, factor, metrics);
+    const stretch = new Stretch(current, block, resized, level, factor, metrics, pane);
     const target = held
       ? sizeIn(drawing, "height") + dy / scale
       : ((sy > 0 ? bottom + dy : bottom) - top) / scale;
@@ -653,7 +661,7 @@ export function itemResizeValues(
   }
 
   if (sx >= 0 && sy >= 0) return changes;
-  const after = drawingOf(blockIn(current, block), current.graphical, metrics);
+  const after = drawingOf(blockIn(current, block), current.graphical, metrics, undefined, pane);
   const own: PlaceValues = {};
   if (sx < 0) own.x = quantize(right - scale * sizeIn(after, "width"), GRID_FREE);
   if (sy < 0) own.y = quantize(bottom - scale * sizeIn(after, "height"), GRID_FREE);
@@ -727,9 +735,10 @@ export function placeEdit(
   value: number | null | ((current: number | null) => number | null),
   editing: Editing | null,
   metrics: FontMetrics,
+  pane?: PaneSource,
 ): SetCommand | null | CommandError {
   const level = levelOf(editing);
-  const subjects = resolveSelection(view, selection, editing, metrics).filter(
+  const subjects = resolveSelection(view, selection, editing, metrics, pane).filter(
     (subject) => subject.box?.kind !== "band",
   );
   const [first] = subjects;
@@ -743,7 +752,7 @@ export function placeEdit(
       property,
     ]);
   }
-  const drawing = drawingOf(block, view.graphical, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics, undefined, pane);
   const valueFor = (current: number | null) =>
     typeof value === "function" ? value(current) : value;
   const check = (target: Address, given: number | null): CommandError | null => {

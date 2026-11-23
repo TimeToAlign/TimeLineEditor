@@ -133,7 +133,7 @@ export function durationOf(from: number, to: number, reduced: boolean): number {
  * A point of a card's horizontal axis: the abscissa `x` and the position
  * `at` it draws, on the card's root's own axis, as a float. A card's knots,
  * sorted by `x`, draw its positions piecewise linearly between them: a full
- * run at the card's scale, a strip at its own width.
+ * run at its own scale, a gap at its own width.
  */
 export interface Knot {
   readonly x: number;

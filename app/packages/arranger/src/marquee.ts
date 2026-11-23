@@ -7,9 +7,9 @@ import { boundsOf, lineAxes, TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf, raisedRoot, stackingOf } from "./boxes.ts";
 import { affordancesOf } from "./coordinates.ts";
+import { gapOf } from "./gaps.ts";
 import type { BlockNode } from "./node.ts";
 import { ownerOf } from "./selectionRules.ts";
-import { stripOf } from "./strips.ts";
 
 /** An axis-aligned rectangle: on the canvas, or in a drawing's own units. */
 export interface Rect {
@@ -86,9 +86,10 @@ function holds(outer: Rect, inner: Bounds): boolean {
  * a named timestamp (its wedge, labels and line, and the affordance of one
  * that draws nothing, `affordancesOf`) stands for the timestamp, and every
  * alignment anchor's line and label for its named MatchStamp (`ownerOf`),
- * which is taken when all of them lie inside; a strip of an elision and its
- * labels stand for the strip (`stripOf`), whose bounds span its card from
- * top to bottom, every piece of it taken or none. What an ancestor card draws
+ * which is taken when all of them lie inside; a gap of an elision, its
+ * ellipses and its labels stand for the gap (`gapOf`), whose bounds span its
+ * card (a group elision's, its frame's member cards) from top to bottom,
+ * every piece of it taken or none. What an ancestor card draws
  * (`docs/drawing.md` in TimeToShare, section 8.8), an affordance on its lines
  * included, counts only while that card is raised (`raisedRoot`, the node's
  * editor): otherwise the card lies below the frames (`stackingOf`), and the
@@ -113,7 +114,7 @@ export function elementsInRect(
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
   const take = (address: ElementAddress, bounds: Bounds) => {
     const owner =
-      ownerOf(block.manifest, address)?.address ?? stripOf(block.manifest, address) ?? address;
+      ownerOf(block.manifest, address)?.address ?? gapOf(block.manifest, address) ?? address;
     const key = addressKey(owner);
     const held = holds(rect, boundsOnCanvas(node, bounds));
     const known = taken.get(key);

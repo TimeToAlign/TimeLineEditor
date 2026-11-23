@@ -124,9 +124,9 @@ function keyText(card: DrawnBox): string {
   return placeKeyText(card.key);
 }
 
-/** The indexes of the card's elements in `drawn`. */
-function indexesOf(motion: CardMotion): number[] {
-  return Array.from({ length: motion.end - motion.start }, (_, i) => motion.start + i);
+/** The indexes of the elements of the drawing after that `motion` moves. */
+function indexesOf(motion: CardMotion, drawn: Drawn): number[] {
+  return drawn.drawing.elements.flatMap((_, index) => (motion.holds(index) ? [index] : []));
 }
 
 /** The one card that moves from `before` to `after`, nothing leaving. */
@@ -145,7 +145,7 @@ const isLine = (drawn: Drawn, index: number) => {
 };
 
 describe.each([
-  ["group_elided_inside", "piece", ["second"]],
+  ["group_elided_inside", "piece", []],
   ["group_grandchild", "score", []],
 ])("%s between Elided and Full", (fixture, root, hidden) => {
   const { elided, full } = views(fixture);
@@ -161,7 +161,7 @@ describe.each([
     ["Full → Elided", full, elided],
   ])("keeps every row, %s", (_way, before, after) => {
     const card = onlyCard(before, after);
-    for (const index of indexesOf(card)) {
+    for (const index of indexesOf(card, after)) {
       for (const t of [0, 0.5, 1]) expect(placedAt(card.motionOf(index), t).dy).toBe(0);
     }
   });
@@ -174,7 +174,7 @@ describe.each([
     (_way, before, after, toFull) => {
       const card = onlyCard(before, after);
       const moved = after.drawing.origin.x - before.drawing.origin.x;
-      const lines = indexesOf(card).filter((index) => isLine(after, index));
+      const lines = indexesOf(card, after).filter((index) => isLine(after, index));
       expect(lines.length).toBeGreaterThan(0);
       for (const index of lines) {
         const element = after.drawing.elements[index];
@@ -197,58 +197,36 @@ describe.each([
     },
   );
 
-  it("starts the root's line at its outer strips' edges, Elided → Full", () => {
-    const card = onlyCard(elided, full);
-    const [line] = indexesOf(card).filter(
-      (index) => full.drawing.elements[index]?.address.id === root && isLine(full, index),
-    );
-    const across = line === undefined ? null : card.motionOf(line).across;
-    const strips = indexesOf(onlyCard(full, elided)).flatMap((index) => {
+  it("lets what lies in a gap enter, Full → Elided, in place", () => {
+    const after = elided;
+    const card = onlyCard(full, elided);
+    const gaps = indexesOf(card, after).flatMap((index) => {
       const element = elided.drawing.elements[index];
       return element?.type === "elision" ? [element] : [];
     });
-    const moved = full.drawing.origin.x - elided.drawing.origin.x;
-    expect(across?.fromLeft).toBe((strips[0]?.x1 ?? Number.NaN) + moved);
-    expect(across?.fromRight).toBe((strips.at(-1)?.x2 ?? Number.NaN) + moved);
-  });
-
-  it("lets what lies in a strip enter, Full → Elided, each strip as wide as its stretch", () => {
-    const card = onlyCard(full, elided);
-    const moved = elided.drawing.origin.x - full.drawing.origin.x;
-    const strips = indexesOf(card).flatMap((index) => {
-      const element = elided.drawing.elements[index];
-      return element?.type === "elision" ? [{ index, element }] : [];
-    });
-    expect(strips.length).toBeGreaterThan(0);
-    for (const { index, element } of strips) {
-      const { across: motion } = card.motionOf(index);
-      if (motion === null) throw new Error("no move sideways");
-      const { timeline, start, end } = element.elided;
-      expect(spanAt(motion, 0)).toEqual({
-        left: fullAt(full, timeline, float(start)) + moved,
-        right: fullAt(full, timeline, float(end)) + moved,
-      });
-    }
-    const inStrip = (left: number, right: number) =>
-      strips.some(({ element }) => left >= element.x1 && right <= element.x2);
-    for (const index of indexesOf(card)) {
+    expect(gaps.length).toBeGreaterThan(0);
+    const inGap = (left: number, right: number) =>
+      gaps.some((gap) => left >= gap.x1 && right <= gap.x2 && left < gap.x2 && right > gap.x1);
+    for (const index of indexesOf(card, after)) {
       const element = elided.drawing.elements[index];
       const inside =
         element?.type === "elision" ||
-        (element?.type === "label" && element.address.part?.includes("elision") === true) ||
-        ((element?.type === "timeline" || element?.type === "child") &&
-          inStrip(element.xs, element.xe));
+        element?.type === "ellipsis" ||
+        (element?.type === "label" && element.address.part?.includes("elision") === true);
       const motion = card.motionOf(index);
       expect(motion.enters, `${element?.type} ${index}`).toBe(inside);
-      if (motion.enters) {
+      if (motion.enters && motion.across !== null) {
+        const { left, right } = motion.across;
+        expect(inGap(left, right) || left === right).toBe(true);
+        expect(spanAt(motion.across, 0)).toEqual({ left, right });
         expect([0, 0.5, 1].map((t) => placedAt(motion, t).opacity)).toEqual([0, 0.5, 1]);
       }
     }
   });
 
-  it("lets a line enter whose whole stretch a strip elided, Elided → Full", () => {
+  it("lets a line enter whose whole stretch a gap elided, Elided → Full", () => {
     const card = onlyCard(elided, full);
-    const entering = indexesOf(card)
+    const entering = indexesOf(card, full)
       .filter((index) => isLine(full, index) && card.motionOf(index).enters)
       .map((index) => full.drawing.elements[index]?.address.id);
     expect(entering).toEqual(hidden);
@@ -277,7 +255,7 @@ describe.each([
     const [xs, xe] = memberLine();
     let down = false;
     let sideways = false;
-    for (const index of indexesOf(motion)) {
+    for (const index of indexesOf(motion, elided)) {
       const element = elided.drawing.elements[index];
       const { across, dy, enters } = motion.motionOf(index);
       expect(dy, String(index)).toBe(rows.motionOf(index)?.shift ?? 0);
@@ -291,7 +269,10 @@ describe.each([
       }
       down ||= dy !== 0;
       sideways ||= across.fromLeft !== across.left || across.fromRight !== across.right;
-      const own = element?.type === "ancestor_card" || element?.type === "elision";
+      const own =
+        element?.type === "ancestor_card" ||
+        element?.type === "elision" ||
+        element?.type === "ellipsis";
       const label = element?.type === "label" && element.address.part?.includes("elision") === true;
       if (own || label) expect(enters, `${element?.type} ${index}`).toBe(true);
       if (isLine(elided, index) && element?.address.id === member) expect(enters).toBe(false);
@@ -301,7 +282,7 @@ describe.each([
 
   it("starts the root's line as wide as the member line", () => {
     const motion = onlyCard(hidden, elided);
-    const lines = indexesOf(motion).filter(
+    const lines = indexesOf(motion, elided).filter(
       (index) =>
         isLine(elided, index) && elided.drawing.elements[index]?.address.id === card.address.id,
     );

@@ -23,12 +23,12 @@ import { resizes } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { editorTargetOf } from "./editors.ts";
+import { gapOf } from "./gaps.ts";
 import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./node.ts";
 import { insideOf } from "./project.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, click, NOTHING_SELECTED } from "./selection.ts";
-import { stripOf } from "./strips.ts";
 
 /** What a pointer or key target on the canvas is, read once from its event. */
 export interface Pressed {
@@ -130,9 +130,9 @@ export function ownerOf(manifest: Manifest, element: ElementAddress): Owner | nu
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
  * the band or the element it hit, a named timestamp for any of its parts
  * but a match timestamp's line, and a named MatchStamp for that line and
- * for any alignment anchor's line or label (`ownerOf`), the strip of an
- * elision for itself and its labels (`stripOf`: `{id: E}` stored, `{id: T,
- * part: ["elision"]}` default), a timestamp for its affordance, whose source carries the
+ * for any alignment anchor's line or label (`ownerOf`), the gap of an
+ * elision for itself, its ellipses and its labels (`gapOf`: `{id: E}`
+ * stored, `{id: T, part: ["elision"]}` default), a timestamp for its affordance, whose source carries the
  * timestamp's own address, or the block where it hit the block itself; `null`
  * off every block and outside the edited element, where a press changes
  * nothing. A band is hit only with a drawing point: a key selects none.
@@ -148,8 +148,8 @@ export function pressedIn(pressed: Pressed, editing: Editing | null): Address | 
   const { manifest } = node.data.block;
   const owner = ownerOf(manifest, element);
   if (owner !== null) return inBlock(node.id, owner.selects);
-  const strip = stripOf(manifest, element);
-  return strip === null ? address : inBlock(node.id, strip);
+  const gap = gapOf(manifest, element);
+  return gap === null ? address : inBlock(node.id, gap);
 }
 
 /**
