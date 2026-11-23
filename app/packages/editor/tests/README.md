@@ -2417,10 +2417,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    without beliefs "No one has stated a belief.". The buttons True,
    Unlikely, False, the user's own belief pressed (`claim_5`: True); while
    no server can read a table (the tables' `unavailable`, 9e) every button
-   is disabled with that text as its title: without a server the whole
-   `HOW_TO_START_A_SERVER`, with a server whose health check failed (`The
-   server did not answer the health check (Failed to fetch).`) that failure
-   followed by it; a recorded MatchClaim the table lacks reads "not in the
+   is disabled with that text as its title: without a server, and with one
+   whose health check is pending, the whole `HOW_TO_START_A_SERVER`, with
+   a server whose health check failed (`The server did not answer the
+   health check (Failed to fetch).`) that failure followed by it, and the
+   server's provenance, events and belief routes are never called; a recorded MatchClaim the table lacks reads "not in the
    MatchClaim table", and without a table "no table loaded".
    **Actors compare as the IRIs they stand for** under the manifest's
    `@context` (core's `actorIri`, the library's rule), in the belief
@@ -2442,9 +2443,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the table holds is expanded or nothing is read) reads "Reading the
    events…", and is empty once the answer arrives; a refusal reads
    `eventsFailure`'s words there; while no server can read a table
-   (without a server, and with one whose health check failed) the expanded
-   MatchClaim says `unavailable`'s text and the events route is never
-   called. The answer written in the
+   (without a server, and with one whose health check is pending or
+   failed) the expanded MatchClaim says `unavailable`'s text and the events
+   route is never called. The answer written in the
    test: `claim_1` `clt_1` event `note_1` named "C4" ↔ `dpt_1` event
    `onset_1` without a name, certainty 0.75; `claim_2` `clt_1` `note_1`
    "C4" ↔ `cpt_1` no event (the sentinel), no certainty. Shown, each side
@@ -2475,9 +2476,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    what the load says: a file located on the server (`{path:
    "m.parquet"}`) is loaded ("Loaded the MatchClaims of m.parquet." through
    `inform`), a cancelled question says nothing. While no server can read a table "Load MatchClaims…" is
-   disabled and described by `unavailable`'s text (9e): without a server
-   `HOW_TO_START_A_SERVER`, with one whose health check failed the failure
-   first.
+   disabled and described by `unavailable`'s text (9e): without a server,
+   and with one whose health check is pending, `HOW_TO_START_A_SERVER`,
+   with one whose health check failed the failure first.
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
    remembers the tab before, letting it go shows that tab again; a named
    MatchStamp is named by its own address and by an anchor's, by nothing
@@ -2659,6 +2660,13 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      says nothing; `choose` (Load MatchClaims…) asks nothing, reads nothing
      and warns exactly `unavailable`. Proof that nothing was asked: the
      question count stays 0, the table route's request count 0.
+   - Everything else read through the server is gated by the same rule,
+     in the tables themselves, so no caller can reach a route without a
+     server that reads tables: in those three states, with a table held,
+     `provenance` and `events` are `null` and `believe` resolves exactly
+     `unavailable`, and the server stub (whose provenance and belief
+     routes throw if called, whose events route records each call) is
+     never called.
    - The session's `loadNamedTables` (what turning Show matches on calls)
      in those states asks nothing, reads nothing and informs nothing. With
      no server given and with a failed check it warns in place of the
@@ -2671,11 +2679,18 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      holding theirs, nothing. While the check has not answered yet it says
      nothing at all, in the same steps: the server may be slow rather than
      missing, and telling the user to start one would be wrong.
+   - The check failing later (Show matches turned on while it was pending,
+     over the two blocks naming a table): the call while pending says
+     nothing; the same call once the failure is given (what the editor
+     makes itself when the check fails while Show matches is on) posts
+     exactly one warning, the failure followed by `HOW_TO_START_A_SERVER`,
+     and asks, reads and informs nothing.
    - The check answering later (the places given from then on): the same
      tables ask once, `unavailable` is `null` and `waiting` false; the
      session's call then asks once per block naming a table and warns
      nothing. The editor makes that call itself when the check answers
-     while Show matches is on (`e2e/matchclaim-loading.spec.ts`).
+     while Show matches is on, and when it fails then
+   (`e2e/matchclaim-loading.spec.ts`).
    The end-to-end proof is `e2e/matchclaim-loading.spec.ts`: on the
    built page, whose health check is refused (503 Service Unavailable),
    pressing M with a manifest naming its table opens no dialog, the message
@@ -2683,7 +2698,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    canvas's status `MATCHES_NEED_A_SERVER` alone, and Load MatchClaims… is
    disabled, described by the message's text; with the check held
    unanswered, M posts nothing, and once it answers the table is loaded
-   without M being pressed again.
+   without M being pressed again; once it is refused instead, the message
+   bar gets exactly one message, the failed check's failure and
+   `HOW_TO_START_A_SERVER`, without M being pressed again, no dialog opens
+   and no table is requested.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). It asks only where the server's files
@@ -2713,7 +2731,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    list of claims, with the manifest as its file writes it and the held
    MatchClaim file: asking the same again returns the same promise; a
    refused request is let go, so the next call asks again; without a
-   server or a table it is `null`. `eventsFailure` words a refusal "The
+   table it is `null`, as it is while no server reads tables (9e). `eventsFailure` words a refusal "The
    MatchClaims' events could not be read: <problems>", 501 "…: this
    server cannot read MatchClaim tables.".
 
@@ -2740,7 +2758,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
     (2026-11-21): seen in the score". Showing the same MatchStamp again from the same table asks
     nothing more; a refused request reads "The provenance could not be
     read: <the server's message>", and the next showing asks again. Without
-    a server nothing is asked.
+    a server nothing is asked, nor through a server whose health check is
+    pending or failed (9e; the tab then says `unavailable` where the
+    provenance would be, item 5).
 11. **A belief.** With a server the buttons are enabled. Pressing False on
     `claim_2` sends exactly one belief, `{claim: "claim_2", actor: the
     user's IRI, belief: "false", date: today as YYYY-MM-DD}`, with the

@@ -365,6 +365,14 @@ export class MatchClaimTables {
     return this.#server === null ? null : this.#places();
   }
 
+  /**
+   * The server while it reads tables (`#reading`); else `null`: everything
+   * read through it asks it only then.
+   */
+  #ready(): MatchClaimServer | null {
+    return this.#reading() === null ? null : this.#server;
+  }
+
   /** What `unavailable` says while no server reads tables. */
   #why(): string {
     const failure = this.#server === null ? null : this.#failure();
@@ -603,8 +611,9 @@ export class MatchClaimTables {
    * The provenance of the MatchClaims `claims` of block `block`'s table, in
    * that order, read through the server with `manifest`: asked once per
    * table and list of claims, the promise kept while the table is held (a
-   * failed one is let go, so asking again asks the server again). `null`
-   * without a server or a table.
+   * failed one is let go, so asking again asks the server again). `null`,
+   * asking nothing, while no server reads tables (`unavailable` says why)
+   * or without a table.
    */
   provenance(
     block: string,
@@ -612,7 +621,8 @@ export class MatchClaimTables {
     claims: readonly string[],
   ): Promise<readonly ClaimProvenance[]> | null {
     const loaded = this.of(block);
-    if (this.#server === null || loaded === null) return null;
+    const server = this.#ready();
+    if (server === null || loaded === null) return null;
     let asked = this.#provenance.get(loaded);
     if (asked === undefined) {
       asked = new Map();
@@ -622,7 +632,7 @@ export class MatchClaimTables {
     const known = asked.get(key);
     if (known !== undefined) return known;
     const held = asked;
-    const read = this.#server.matchClaimProvenance(saveManifest(manifest), loaded.file, claims);
+    const read = server.matchClaimProvenance(saveManifest(manifest), loaded.file, claims);
     held.set(key, read);
     read.catch(() => {
       if (held.get(key) === read) held.delete(key);
@@ -636,8 +646,9 @@ export class MatchClaimTables {
    * name; the certainty; whether it states synchrony), read through the
    * server with `manifest`: asked once per table and list of claims, the
    * promise kept while the table is held (a failed one is let go, so asking
-   * again asks the server again; `eventsFailure` words its error). `null`
-   * without a server or a table.
+   * again asks the server again; `eventsFailure` words its error). `null`,
+   * asking nothing, while no server reads tables (`unavailable` says why)
+   * or without a table.
    */
   events(
     block: string,
@@ -645,7 +656,8 @@ export class MatchClaimTables {
     claims: readonly string[],
   ): Promise<readonly ClaimEvents[]> | null {
     const loaded = this.of(block);
-    if (this.#server === null || loaded === null) return null;
+    const server = this.#ready();
+    if (server === null || loaded === null) return null;
     let asked = this.#events.get(loaded);
     if (asked === undefined) {
       asked = new Map();
@@ -655,7 +667,7 @@ export class MatchClaimTables {
     const known = asked.get(key);
     if (known !== undefined) return known;
     const held = asked;
-    const read = this.#server.matchClaimEvents(saveManifest(manifest), loaded.file, claims);
+    const read = server.matchClaimEvents(saveManifest(manifest), loaded.file, claims);
     held.set(key, read);
     read.catch(() => {
       if (held.get(key) === read) held.delete(key);
@@ -667,17 +679,19 @@ export class MatchClaimTables {
    * Record `belief` in block `block`'s table through the server, checked
    * against `manifest`: the server answers the new file, which is read again
    * and held as the block's table, marked changed. `null` once it is held,
-   * else why not (the table is kept).
+   * else why not (the table is kept): while no server reads tables, asking
+   * nothing, `unavailable`.
    */
   async believe(block: string, manifest: Manifest, belief: StatedBelief): Promise<string | null> {
     const loaded = this.of(block);
-    if (this.#server === null) return HOW_TO_START_A_SERVER;
+    const server = this.#ready();
+    if (server === null) return this.#why();
     if (loaded === null)
       return `Your belief in ${belief.claim} was not recorded: no table is loaded.`;
     const text = saveManifest(manifest);
     try {
-      const file = await this.#server.believeMatchClaim(text, loaded.file, belief);
-      const table = await this.#server.matchClaims(text, file);
+      const file = await server.believeMatchClaim(text, loaded.file, belief);
+      const table = await server.matchClaims(text, file);
       this.#tables.set(block, { name: loaded.name, table, file, changed: true });
       return null;
     } catch (error) {

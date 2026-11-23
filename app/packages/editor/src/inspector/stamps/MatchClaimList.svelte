@@ -93,9 +93,7 @@ const held = $derived(claims.filter((claim) => claim.held).map((claim) => claim.
  * `null` before, and while no server can read a table, or without a table.
  */
 const events = $derived(
-  expanded.size === 0 || held.length === 0 || unavailable !== null
-    ? null
-    : tables.events(stamp.block, manifest, held),
+  expanded.size === 0 || held.length === 0 ? null : tables.events(stamp.block, manifest, held),
 );
 const eventReads = new Settlements<readonly ClaimEvents[]>();
 const provenanceReads = new Settlements<readonly ClaimProvenance[]>();

@@ -607,12 +607,12 @@ describe("no server reading a table", () => {
 
   /**
    * A session without blocks, the server given or not, its health check
-   * failed with `failure` (`null`: not, or not yet) and its files reached
-   * once `host()` gives them; its questions and messages.
+   * failed with what `failure()` gives (`null`: not, or not yet) and its
+   * files reached once `host()` gives them; its questions and messages.
    */
   function sessionIn(
     given: boolean,
-    failure: string | null,
+    failure: () => string | null,
     host: () => FileHost | null = () => null,
   ) {
     const { server, requests } = serving();
@@ -625,7 +625,7 @@ describe("no server reading a table", () => {
       author: () => DEFAULT_USER.name,
       matchClaims: given ? server : null,
       askTables: ask,
-      healthFailure: () => failure,
+      healthFailure: failure,
       files: host,
     });
     return { opened, questions, requests, warned, informed };
@@ -727,7 +727,7 @@ describe("no server reading a table", () => {
   it.each(WARNING)(
     "warns once per turning on with %s where a block names a table it does not hold",
     async (_, given, failure, text) => {
-      const { opened, questions, requests, warned, informed } = sessionIn(given, failure);
+      const { opened, questions, requests, warned, informed } = sessionIn(given, () => failure);
       expect(await warnedInSteps(opened, warned)).toEqual([
         [],
         [],
@@ -743,7 +743,7 @@ describe("no server reading a table", () => {
   );
 
   it("says nothing on Show matches while the health check has not answered yet", async () => {
-    const { opened, questions, requests, warned, informed } = sessionIn(true, null);
+    const { opened, questions, requests, warned, informed } = sessionIn(true, () => null);
     expect(opened.tables.waiting).toBe(true);
     expect(await warnedInSteps(opened, warned)).toEqual([[], [], [], [], [], []]);
     expect(questions).toEqual([]);
@@ -753,7 +753,11 @@ describe("no server reading a table", () => {
 
   it("follows the health check: a server answering later reads tables", async () => {
     let host: FileHost | null = null;
-    const { opened, questions, warned } = sessionIn(true, null, () => host);
+    const { opened, questions, warned } = sessionIn(
+      true,
+      () => null,
+      () => host,
+    );
     addTwoBlocks(opened);
     await opened.loadNamedTables();
     expect([questions, warned]).toEqual([[], []]);
@@ -776,6 +780,48 @@ describe("no server reading a table", () => {
       question: TABLE,
     });
   });
+
+  it("follows the health check: a check failing later warns once, asking nothing", async () => {
+    let failure: string | null = null;
+    const { opened, questions, requests, warned, informed } = sessionIn(true, () => failure);
+    addTwoBlocks(opened);
+    await opened.loadNamedTables();
+    expect(warned).toEqual([]);
+    failure = FAILURE;
+    expect([opened.tables.unavailable, opened.tables.waiting]).toEqual([
+      `${FAILURE} ${NO_SERVER}`,
+      false,
+    ]);
+    await opened.loadNamedTables();
+    expect(warned).toEqual([`${FAILURE} ${NO_SERVER}`]);
+    expect([questions, requests, informed]).toEqual([[], [], []]);
+  });
+
+  it.each(STATES)(
+    "reads no provenance, no events and no belief through the server with %s",
+    async (_, given, failure, text) => {
+      const { server, requests, asked } = serving();
+      const tables = new MatchClaimTables(
+        given ? server : null,
+        null,
+        () => null,
+        () => failure,
+      );
+      tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
+      expect(tables.provenance("b", NAMED, ["claim_1"])).toBe(null);
+      expect(tables.events("b", NAMED, ["claim_1"])).toBe(null);
+      expect(
+        await tables.believe("b", NAMED, {
+          claim: "claim_1",
+          actor: "tag:example.org,2026:me",
+          belief: "true",
+          date: "2026-11-23",
+        }),
+      ).toBe(text);
+      expect([requests, asked]).toEqual([[], []]);
+      expect(tables.of("b")?.changed).toBe(false);
+    },
+  );
 });
 
 describe("events on demand", () => {
@@ -793,7 +839,7 @@ describe("events on demand", () => {
 
   it("are asked once per table and claims", async () => {
     const { server, asked } = serving(matchTable(), async () => [CLAIM_1]);
-    const tables = new MatchClaimTables(server);
+    const tables = answered(server, null);
     tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
     const first = tables.events("b", NAMED, ["claim_1"]);
     expect(await first).toEqual([CLAIM_1]);
@@ -819,7 +865,7 @@ describe("events on demand", () => {
       if (refuse) throw refused;
       return [];
     });
-    const tables = new MatchClaimTables(server);
+    const tables = answered(server, null);
     tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
     await expect(tables.events("b", NAMED, ["claim_99"])).rejects.toBe(refused);
     refuse = false;

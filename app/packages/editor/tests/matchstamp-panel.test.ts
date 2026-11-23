@@ -1302,49 +1302,57 @@ describe("the MatchClaim filter", () => {
     );
   });
 
-  it("says why while the server's health check failed, every control disabled, no events read", () => {
-    const failure = "The server did not answer the health check (Failed to fetch).";
-    const said = `${failure} ${NO_SERVER}`;
-    const asked: string[][] = [];
-    const server: MatchClaimServer = {
-      matchClaims: async () => {
-        throw new Error("no table is read");
-      },
-      matchClaimProvenance: async () => [],
-      believeMatchClaim: async () => {
-        throw new Error("no belief is recorded");
-      },
-      matchClaimEvents: async (_manifest, _file, claims) => {
-        asked.push([...claims]);
-        return [];
-      },
-    };
-    const table = matchTable();
-    const tables = new MatchClaimTables(
-      server,
-      null,
-      () => null,
-      () => failure,
-    );
-    tables.hold(A, { name: "match_claims.parquet", table, file: new Blob([]), changed: false });
-    const { shown } = indexesUnder(table);
-    show(storeOf(tableManifest()), potential(shown, "cpt_1", 8), tables);
+  const FAILURE = "The server did not answer the health check (Failed to fetch).";
+  it.each([
+    ["is pending", null, NO_SERVER],
+    ["failed", FAILURE, `${FAILURE} ${NO_SERVER}`],
+  ] as const)(
+    "says why while the server's health check %s, every control disabled, nothing read",
+    (_, failure, said) => {
+      const asked: string[][] = [];
+      const server: MatchClaimServer = {
+        matchClaims: async () => {
+          throw new Error("no table is read");
+        },
+        matchClaimProvenance: async (_manifest, _file, claims) => {
+          asked.push(["provenance", ...claims]);
+          return [];
+        },
+        believeMatchClaim: async () => {
+          throw new Error("no belief is recorded");
+        },
+        matchClaimEvents: async (_manifest, _file, claims) => {
+          asked.push(["events", ...claims]);
+          return [];
+        },
+      };
+      const table = matchTable();
+      const tables = new MatchClaimTables(
+        server,
+        null,
+        () => null,
+        () => failure,
+      );
+      tables.hold(A, { name: "match_claims.parquet", table, file: new Blob([]), changed: false });
+      const { shown } = indexesUnder(table);
+      show(storeOf(tableManifest()), potential(shown, "cpt_1", 8), tables);
 
-    const load = button("Load MatchClaims…");
-    const described = document.getElementById(load.getAttribute("aria-describedby") ?? "");
-    expect([load.disabled, described?.textContent]).toEqual([true, said]);
-    const mine = document.querySelector("li[data-claim='claim_5']");
-    const beliefs = [...(mine?.querySelectorAll<HTMLButtonElement>("[role=group] button") ?? [])];
-    expect(beliefs.map((item) => [item.disabled, item.getAttribute("title")])).toEqual([
-      [true, said],
-      [true, said],
-      [true, said],
-    ]);
-    mine?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.click();
-    flushSync();
-    expect(mine?.querySelector(".claim > p.hint")?.textContent).toBe(said);
-    expect(asked).toEqual([]);
-  });
+      const load = button("Load MatchClaims…");
+      const described = document.getElementById(load.getAttribute("aria-describedby") ?? "");
+      expect([load.disabled, described?.textContent]).toEqual([true, said]);
+      const mine = document.querySelector("li[data-claim='claim_5']");
+      const beliefs = [...(mine?.querySelectorAll<HTMLButtonElement>("[role=group] button") ?? [])];
+      expect(beliefs.map((item) => [item.disabled, item.getAttribute("title")])).toEqual([
+        [true, said],
+        [true, said],
+        [true, said],
+      ]);
+      mine?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.click();
+      flushSync();
+      expect(mine?.querySelector(".claim > p.hint")?.textContent).toBe(said);
+      expect(asked).toEqual([]);
+    },
+  );
 });
 
 describe("the Timestamp tab", () => {
