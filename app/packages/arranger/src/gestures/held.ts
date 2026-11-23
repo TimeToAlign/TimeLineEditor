@@ -247,7 +247,7 @@ export function heldGesture(
     },
     command(press, value) {
       if (value.refused === null) return reorderCommand(blockOf(press), group, value.order);
-      actions.refuse?.(value.refused);
+      actions.refuse(value.refused);
       return null;
     },
   };

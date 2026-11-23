@@ -12,7 +12,7 @@ import type { Arranged } from "./containers.ts";
 import { nodePosition } from "./drawing.ts";
 import type { BlockNode, LivePlacement } from "./node.ts";
 import type { PaneSource } from "./pane.ts";
-import { arrangedPlaces, livePlacement } from "./project.ts";
+import { arrangedPlaces, livePlacement, packingOrigin } from "./project.ts";
 import { blockIndexCommand, orderAt } from "./reorder.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, isSelected, selectionOf } from "./selection.ts";
@@ -89,9 +89,9 @@ export interface ArrangedDrop {
  * `arranged` whose blocks `projected` shows (in index order, at their packed
  * places): the order `orderAt` gives at the middle of its node, read
  * against the places before the drop, and the places of every block packed
- * in that order (`arrangedPlaces`) from where the first block of that
- * order is stated to lie (`nodePosition`), as the canvas packs them once
- * the order is stored.
+ * in that order (`arrangedPlaces`) from the top left of every block's
+ * stated place (`packingOrigin` of their `nodePosition`s), as the canvas
+ * packs them once the order is stored.
  */
 export function arrangedDrop(
   projected: readonly BlockNode[],
@@ -108,9 +108,9 @@ export function arrangedDrop(
     const rect = byId.get(id);
     return rect === undefined ? [] : [rect];
   });
-  const first = projected.find((node) => node.id === order[0]);
-  const start =
-    first === undefined ? undefined : nodePosition(first.data.block, first.data.drawing);
+  const start = packingOrigin(
+    projected.map((node) => nodePosition(node.data.block, node.data.drawing)),
+  );
   return { order, places: arrangedPlaces(inOrder, arranged, start) };
 }
 

@@ -237,6 +237,12 @@ function sized(view: View, id: string) {
   };
 }
 
+/** The packing origin of blocks sized `sizes`: the top left of their stated places. */
+const originOf = (...sizes: readonly { readonly P: { x: number; y: number } }[]) => ({
+  x: Math.min(...sizes.map(({ P }) => P.x)),
+  y: Math.min(...sizes.map(({ P }) => P.y)),
+});
+
 /** Every node's position, by block id. */
 function positions(view: View): Record<string, { x: number; y: number }> {
   return Object.fromEntries(
@@ -254,27 +260,28 @@ describe("arranged blocks", () => {
   const a = sized(THREE, A);
   const b = sized(THREE, B);
   const c = sized(THREE, C);
+  const O = originOf(a, b, c);
 
-  it("A1 packs them one under another from the first block's place, 32 apart", () => {
+  it("packs them one under another from the top left of their places, 32 apart", () => {
     const vertical = canvasArranged(THREE, { direction: "vertical" });
-    const yB = a.P.y + a.h + 32;
+    const yB = O.y + a.h + 32;
     expect(positions(vertical)).toEqual({
-      [A]: a.P,
-      [B]: { x: a.P.x, y: yB },
-      [C]: { x: a.P.x, y: yB + b.h + 32 },
+      [A]: O,
+      [B]: { x: O.x, y: yB },
+      [C]: { x: O.x, y: yB + b.h + 32 },
     });
   });
 
-  it("A2 packs them side by side", () => {
-    const xB = a.P.x + a.w + 32;
+  it("packs them side by side", () => {
+    const xB = O.x + a.w + 32;
     expect(positions(canvasArranged(THREE, { direction: "horizontal" }))).toEqual({
-      [A]: a.P,
-      [B]: { x: xB, y: a.P.y },
-      [C]: { x: xB + b.w + 32, y: a.P.y },
+      [A]: O,
+      [B]: { x: xB, y: O.y },
+      [C]: { x: xB + b.w + 32, y: O.y },
     });
   });
 
-  it("A3 packs five blocks in a matrix of two columns", () => {
+  it("packs five blocks in a matrix of two columns", () => {
     const five = [D, E].reduce(
       (view, id) =>
         changed(view, {
@@ -286,9 +293,8 @@ describe("arranged blocks", () => {
     );
     const d = sized(five, D);
     const e = sized(five, E);
-    const left = a.P.x;
+    const { x: left, y: top } = originOf(a, b, c, d, e);
     const right = left + Math.max(a.w, c.w, e.w) + 32;
-    const top = a.P.y;
     const middle = top + Math.max(a.h, b.h) + 32;
     const bottom = middle + Math.max(c.h, d.h) + 32;
     expect(positions(canvasArranged(five, { direction: "matrix", columns: 2 }))).toEqual({
@@ -304,7 +310,7 @@ describe("arranged blocks", () => {
   const arranged: Arranged = { direction: "vertical", columns: 1 };
   const nodes = project(vertical, NOTHING_SELECTED, [], metrics, null);
 
-  it("A4 drops a dragged block at its new place and stores one index", () => {
+  it("drops a dragged block at its new place and stores one index", () => {
     const nodeC = nodeIn(nodes, C);
     const drop: ArrangedDrop = arrangedDrop(
       nodes,
@@ -312,12 +318,12 @@ describe("arranged blocks", () => {
       { x: nodeC.position.x, y: nodeC.position.y + c.h },
       arranged,
     );
-    const yC = b.P.y + b.h + 32;
+    const yC = O.y + b.h + 32;
     expect(drop.order).toEqual([B, C, A]);
     expect(Object.fromEntries(drop.places)).toEqual({
-      [B]: b.P,
-      [C]: { x: b.P.x, y: yC },
-      [A]: { x: b.P.x, y: yC + c.h + 32 },
+      [B]: O,
+      [C]: { x: O.x, y: yC },
+      [A]: { x: O.x, y: yC + c.h + 32 },
     });
     const dispatched: Command[] = [];
     let view = vertical;
@@ -352,7 +358,7 @@ describe("arranged blocks", () => {
     const event: NodeDrag = { targetNode: lead, nodes: [lead] };
     drag.start(event);
     drag.drag(event);
-    expect(nodeIn(shown, B).position).toEqual(b.P);
+    expect(nodeIn(shown, B).position).toEqual(O);
     drag.stop(event);
     expect(dispatched).toEqual([
       {
@@ -368,17 +374,17 @@ describe("arranged blocks", () => {
     expect(positions(view)).toEqual(Object.fromEntries(drop.places));
   });
 
-  it("A4 stores nothing for a block dropped where it lay", () => {
+  it("stores nothing for a block dropped where it lay", () => {
     const nodeA = nodeIn(nodes, A);
     const drop = arrangedDrop(nodes, nodeA, nodeA.position, arranged);
     expect(drop.order).toEqual([A, B, C]);
   });
 
-  it("A5 puts every block at its stated place again when Free", () => {
+  it("puts every block at its stated place again when Free", () => {
     expect(positions(canvasArranged(vertical, null))).toEqual({ [A]: a.P, [B]: b.P, [C]: c.P });
   });
 
-  it("A6 packs them again in the order Ctrl+] gives", () => {
+  it("packs them again from the same origin in the order Ctrl+] gives", () => {
     const { context, dispatched } = keyContext(vertical, selectionOf([{ block: A }]), null);
     const taken = handleKey(
       context,
@@ -388,11 +394,11 @@ describe("arranged blocks", () => {
     const [command] = dispatched;
     const raised = changed(vertical, command ?? null);
     expect(blocksInOrder(raised).map((block) => block.id)).toEqual([B, A, C]);
-    const yA = b.P.y + b.h + 32;
+    const yA = O.y + b.h + 32;
     expect(positions(raised)).toEqual({
-      [B]: b.P,
-      [A]: { x: b.P.x, y: yA },
-      [C]: { x: b.P.x, y: yA + a.h + 32 },
+      [B]: O,
+      [A]: { x: O.x, y: yA },
+      [C]: { x: O.x, y: yA + a.h + 32 },
     });
   });
 
@@ -495,7 +501,7 @@ const SIDE_BY_SIDE = itemsArranged(ROOTS, "horizontal");
 const ONE_UNDER_ANOTHER = itemsArranged(ROOTS, "vertical");
 const ROOTS_MANIFEST = blockIn(ROOTS, A).manifest;
 
-describe("C18: the stretches order the items side by side", () => {
+describe("the stretches order the items side by side", () => {
   it.each([
     [
       "group_3",
@@ -663,10 +669,10 @@ describe("dragging an arranged item", () => {
   });
 });
 
-describe("C16 and C17: the cards of a group side by side", () => {
+describe("the cards of a group side by side", () => {
   const sideBySide = drawn(SIDE_BY_SIDE);
 
-  it("C16 pins the anchors of a group, side by side only", () => {
+  it("pins the anchors of a group, side by side only", () => {
     expect(
       ["recapitulation", "annotations", "take_b"].map((member) =>
         isPinned(ROOTS_MANIFEST, sideBySide, "group_3", member),
@@ -679,13 +685,13 @@ describe("C16 and C17: the cards of a group side by side", () => {
 
   const editing = groupOf(A, "group_3");
 
-  it("C16 takes no press on a pinned card", () => {
+  it("takes no press on a pinned card", () => {
     const { host } = hostOf(SIDE_BY_SIDE, editing);
     const strategy = heldGesture(host, "group_3", "recapitulation");
     expect(strategy.takes(new PointerEvent("pointerdown"), at(1500, 80))).toBe(null);
   });
 
-  it("C16 stores a root member's drop above an anchor", () => {
+  it("stores a root member's drop above an anchor", () => {
     const { host, refused } = hostOf(SIDE_BY_SIDE, editing);
     const strategy = heldGesture(host, "group_3", "annotations");
     const press = strategy.takes(new PointerEvent("pointerdown"), at(1500, 150));
@@ -704,7 +710,7 @@ describe("C16 and C17: the cards of a group side by side", () => {
     expect(refused).toEqual([]);
   });
 
-  it("C17 refuses an order that changes an anchor", () => {
+  it("refuses an order that changes an anchor", () => {
     let view = changed(SIDE_BY_SIDE, {
       type: "add",
       into: inBlock(A, idAddress("score")),
@@ -749,7 +755,7 @@ describe("an arrangement gap", () => {
 
   it("is no subject of an edit", () => {
     const arranged = gapsOf(drawing).filter((piece) => piece.gap?.origin === "arrangement");
-    expect(arranged.length).toBeGreaterThan(0);
+    expect(arranged.map(({ gap }) => [String(gap.start), String(gap.end)])).toEqual([["33", "63"]]);
     expect(arranged.map((piece) => subjectOf(manifest, drawing, piece))).toEqual(
       arranged.map(() => null),
     );
