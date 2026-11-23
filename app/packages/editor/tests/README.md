@@ -1042,9 +1042,27 @@ the action it shows collapsed. A block never acted in stays as its own
 key says: in `group_elided_members`, `elision_1` (a group elision of
 `excerpt`) selected, its group's Remove all sent, then `excerpt` selected
 shows the group's block open and the timeline's block, which was never
-touched and holds no selection, collapsed. An explicit close wins over an
+touched and holds no selection, collapsed. The other handlers keep it
+open alike, with `elision_5` selected: the mode Full (one `style` of
+`{elision-mode: full, display: null}` on `score`'s card, summary
+`Full`), Add elision (one `add` into `score` of `[112, 3]`–`[152, 3]`,
+as under "Read", summary `Custom, 4 elisions`) and the click on the
+first row (no command, `elision_4` handed to the selection, summary
+`Custom, 3 elisions`) each leave `score`'s block expanded with its
+region shown. An explicit close wins over an
 earlier action: after the Delete above, the timeline's block of `score`
-closed by a click stays closed when `score` is selected again.
+closed by a click stays closed when `score` is selected again. So does
+a close made while the block still holds the selected elision, where
+its button writes the block's own key besides the pair: with
+`elision_5` selected, the `×` of `elision_4`'s row (one `remove`,
+summary `Custom, 2 elisions`) or the mode Full, then the block closed
+by its button, `score` selected alone shows the block with
+`aria-expanded` "false" and its region hidden; without that write it
+reopens. The group's block alike: `elision_3` selected, the frame's
+mode Full (one `style` of `{elision-mode: full}` on `group_1`), the
+group's block closed, `theme` selected shows `Group Elisions in group
+"Theme" Full, 1 elision` collapsed, and the timeline's block of `score`
+collapsed, never touched.
 
 **Nothing to configure.** With nothing to configure (nothing selected
 outside an editor, or the block alone selected) the tab shows only

@@ -23,7 +23,8 @@
  * at first but the one holding the selected elision and that elision's
  * own; an action taken in a block (a command, a row's click) first keeps it
  * open, so that it stays open once the selection leaves it, a Delete in
- * the form keeping open the block that held the elision; which blocks are
+ * the form keeping open the block that held the elision, and a close by a
+ * timeline's or a group's button holds there too; which blocks are
  * open, the typed text and the refusals are the inspector's
  * `PropertyDrafts`, kept while another tab is shown. Every action is one
  * command. With nothing to configure, one hint line.
@@ -157,6 +158,18 @@ function keepOpen(key: string): void {
           ? blocks.form
           : null;
   if (acted !== null) drafts.open(acted.keeps, true);
+}
+
+/**
+ * Open or close `shown` by its disclosure button: under its key and, for a
+ * timeline's or a group's block, under the key an action keeps it open by
+ * (`ElisionBlock.keeps`, its own), so that a close made while it holds the
+ * selected elision still holds once the selection leaves it. The form's
+ * button writes its own key only: what it keeps is the holding block's.
+ */
+function disclose(shown: ElisionBlock, next: boolean): void {
+  drafts.open(shown.key, next);
+  if (shown.kind !== "elision") drafts.open(shown.keeps, next);
 }
 
 /**
@@ -352,7 +365,7 @@ function toggled(
   >
     <h3 id="{uid}-{part}-heading">
       <DisclosureButton
-        bind:expanded={() => open, (next) => drafts.open(shown.key, next)}
+        bind:expanded={() => open, (next) => disclose(shown, next)}
         controls="{uid}-{part}-region"
         testid="{testid}-expand"
       >

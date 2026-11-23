@@ -637,6 +637,92 @@ describe("the Elisions tab", () => {
     ]);
   });
 
+  it.each<[string, () => void, unknown[], Address[], string]>([
+    [
+      "a mode change",
+      () => click(radio("elisions", "Full")),
+      [rootStyle("score", { "elision-mode": "full", display: null })],
+      [],
+      "Full",
+    ],
+    [
+      "Add elision",
+      () => click(button("Add elision", part("elisions"))),
+      [{ type: "add", into: at("score"), elision: { start: [112, 3], end: [152, 3] } }],
+      [],
+      "Custom, 4 elisions",
+    ],
+    [
+      "a row's click",
+      () => click(part("elisions")?.querySelectorAll<HTMLButtonElement>(".rows .row")[0]),
+      [],
+      [at("elision_4")],
+      "Custom, 3 elisions",
+    ],
+  ])(
+    "keeps the block that held elision_5 open after %s",
+    (_, act, journal, rowsSelected, summary) => {
+      const store = storeOf(STORED);
+      const drafts = new PropertyDrafts();
+      show(store, [{ id: "elision_5" }], null, null, drafts);
+      act();
+      expect([commands(store).slice(base), selected]).toEqual([journal, rowsSelected]);
+      expect(scoreBlock(store, drafts)).toEqual([
+        ["elisions", `Timeline Parent timeline "Score" ${summary}`, "true", false],
+      ]);
+    },
+  );
+
+  it.each<[string, () => void, unknown[], string]>([
+    [
+      "the × of elision_4's row",
+      () => click(part("elisions")?.querySelectorAll<HTMLButtonElement>(".rows .delete")[0]),
+      [{ type: "remove", targets: [at("elision_4")] }],
+      "Custom, 2 elisions",
+    ],
+    [
+      "a mode change",
+      () => click(radio("elisions", "Full")),
+      [rootStyle("score", { "elision-mode": "full", display: null })],
+      "Full",
+    ],
+  ])("keeps a close made while elision_5 is selected, after %s", (_, act, journal, summary) => {
+    const store = storeOf(STORED);
+    const drafts = new PropertyDrafts();
+    show(store, [{ id: "elision_5" }], null, null, drafts);
+    act();
+    click(expander("elisions"));
+    expect([
+      commands(store).slice(base),
+      expander("elisions")?.getAttribute("aria-expanded"),
+    ]).toEqual([journal, "false"]);
+    expect(scoreBlock(store, drafts)).toEqual([
+      ["elisions", `Timeline Parent timeline "Score" ${summary}`, "false", true],
+    ]);
+  });
+
+  it("keeps a close of the group's block made while elision_3 is selected", () => {
+    const store = storeOf(STORED);
+    const drafts = new PropertyDrafts();
+    show(store, [{ id: "elision_3" }], null, null, drafts);
+    click(radio("group-elisions", "Full"));
+    click(expander("group-elisions"));
+    expect(commands(store).slice(base)).toEqual([
+      {
+        type: "style",
+        select: { addresses: [{ id: "group_1" }] },
+        set: { "elision-mode": "full" },
+        blocks: [B],
+      },
+    ]);
+    hide();
+    show(store, [{ id: "theme" }], null, null, drafts);
+    expect(blocks()).toEqual([
+      ["elisions", 'Timeline Parent timeline "Score" Custom, 3 elisions', "false", true],
+      ["group-elisions", 'Group Elisions in group "Theme" Full, 1 elision', "false", true],
+    ]);
+  });
+
   it("keeps an opened block through a change of tab and a closed drawer", () => {
     const store = storeOf(INSIDE);
     const live = liveStore(store);

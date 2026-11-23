@@ -1313,8 +1313,10 @@ export interface ElisionBlock {
   readonly key: string;
   /**
    * The key an action taken in it opens, so that it stays open once the
-   * selection leaves it: its own; the form's, that of the block holding its
-   * elision, since the form goes with the selection.
+   * selection leaves it: its own, which a timeline's or a group's
+   * disclosure button writes too, so that a close holds there as well; the
+   * form's, that of the block holding its elision, since the form goes with
+   * the selection.
    */
   readonly keeps: string;
   /** Whether it is open before any click: only where it holds the selected elision. */
