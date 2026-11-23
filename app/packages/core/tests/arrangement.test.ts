@@ -11,7 +11,17 @@ import type { Workspace } from "../src/workspace/store.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import { columnsOf, createView } from "../src/workspace/view.ts";
-import { A, block, changed, fileText, key, loadText, storeOf, testClock } from "./support.ts";
+import {
+  A,
+  block,
+  changed,
+  fileText,
+  fixtureText,
+  key,
+  loadText,
+  storeOf,
+  testClock,
+} from "./support.ts";
 
 // ---------------------------------------------------------------- the builder
 
@@ -482,6 +492,51 @@ describe("the rules of items side by side", () => {
     );
     expect(anchorChange(FIRST_INSIDE, "G1", ["r1", "r2"])).toBeNull();
     expect(anchorChange(TWO_ROOTS, "G1", ["x1", "r1", "s1"])).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------- the fixtures
+
+/** The bundle fixture `bundles/<name>.yaml`, read as core reads any manifest file. */
+const bundle = (name: string) => loadText(fixtureText(`bundles/${name}.yaml`), name);
+
+describe("the rules on the arranged fixtures", () => {
+  it("arranges bundle_arranged_roots side by side", () => {
+    const manifest = bundle("bundle_arranged_roots");
+    // The score's values are exact fractions (`anchor`), the session's binary64 numbers: a
+    // Rational never equals a number, so either kind on the wrong axis fails.
+    const onSession = (group: string, member: string, start: number, end: number) => ({
+      group,
+      root: "session",
+      member,
+      start,
+      end,
+    });
+    expect(row(manifest, ["page", "group_3", "group_1", "group_2"])).toEqual({
+      row: ["page", "group_1", "group_2", "group_3"],
+      roots: ["score", "session"],
+      anchors: [
+        anchor("group_1", "score", "exposition", 0, 16),
+        onSession("group_1", "take_a", 0, 30),
+        anchor("group_2", "score", "development", 16, 32),
+        anchor("group_3", "score", "recapitulation", 32, 48),
+        onSession("group_3", "take_b", 100, 130),
+      ],
+    });
+  });
+
+  it("refuses bundle_arranged_conflict for its overlap", () => {
+    const manifest = bundle("bundle_arranged_conflict");
+    expect(conflict(manifest)).toEqual({
+      groups: ["group_1", "group_2"],
+      roots: ["score"],
+      reason: '"Theme A" and "Theme B" overlap on "Score" (8–16 ♩)',
+    });
+    expect(conflict(manifest, ["group_2", "group_1"])).toEqual({
+      groups: ["group_2", "group_1"],
+      roots: ["score"],
+      reason: '"Theme B" and "Theme A" overlap on "Score" (8–16 ♩)',
+    });
   });
 });
 

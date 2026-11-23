@@ -42,9 +42,9 @@ installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
 through commands, or by changing the fixture's value before loading it
 (lifting a lock by stating `locked: false` is one such change). Core holds
 no manifest literal of its own except where a rejection or a single rule
-is asserted, and the arrangement cases, built by `arrangement.test.ts`'s
-builder until fixtures hold their shapes (section "Arrangements"); it never
-names one like a fixture. So the suite proves core
+is asserted, and the arrangement cases no fixture holds, built by
+`arrangement.test.ts`'s builder (section "Arrangements"); it never names
+one like a fixture. So the suite proves core
 against whatever TimeToShare ships. The manifests named most often:
 
 - `bare.yaml`: root `bare` "Bare", 8 quarters.
@@ -2837,9 +2837,12 @@ where things lie on the canvas is layout's. What proves each part:
 - **The guard** is proven by `sideEffect` through the store: the codes,
   paths and messages of what an element's editor refuses.
 
-The manifests here are built by a small builder in the test file, read
-through core's manifest reader like any file (`loadText`), since the
-cases need shapes no fixture has. The builder writes the one manifest
+Items 23 and 24 read the bundle fixtures `bundle_arranged_roots` and
+`bundle_arranged_conflict`, so the rules are proven on the manifests the
+drawing specification's arranged figures draw. Every other manifest here
+is built by a small builder in the test file, read through core's
+manifest reader like any file (`loadText`), since those cases need shapes
+no fixture has. The builder writes the one manifest
 `Arranged` (`name: "Arranged"`); every root is a quarters timeline of
 `fraction` number type and length 200 unless stated; groups and timelines
 have no name unless stated, so a reason names them by ID. Notation: roots
@@ -2989,6 +2992,66 @@ text does (`5–10 ♩`).
     at `[{}, "arrangement"]`, "the workspace's arrangement lies outside
     group 'G1': an editor changes only what it edits". In the bundle editor
     of `A` the block's `set` is accepted.
+23. **Side by side on the fixture `bundle_arranged_roots`.** The score
+    `score` (fraction quarters) holds `exposition`, `development`,
+    `recapitulation` at 0, 16, 32 (16 each), the session `session` (float
+    seconds) `take_a` at 0.0 and `take_b` at 100.0 (30.0 each); `group_1
+    [exposition, take_a]`, `group_2 [development, notes]`, `group_3
+    [recapitulation, annotations, take_b]`, `notes` and `annotations`
+    roots without children, `page` an ungrouped root. Applied by hand: on
+    the score `group_1` anchors 0–16, `group_2` 16–32, `group_3` 32–48;
+    on the session `group_1` 0.0–30.0 and `group_3` 100.0–130.0;
+    `group_2` hangs on the session not at all (`notes` is a root). `rowOf`
+    of the stored `[page, group_3, group_1, group_2]` is exactly the row
+    `[page, group_1, group_2, group_3]`, the roots `[score, session]` and
+    the anchors in row order, then display order: `{group_1, score,
+    exposition, 0, 16}`, `{group_1, session, take_a, 0.0, 30.0}`,
+    `{group_2, score, development, 16, 32}`, `{group_3, score,
+    recapitulation, 32, 48}`, `{group_3, session, take_b, 100.0, 130.0}`;
+    the score's values exact fractions, the session's binary64 numbers
+    (the number type of the root's axis; a float on the score or an exact
+    value on the session fails the equality). What each part proves, and
+    how it fails if its rule broke:
+    - the three stretches on the score touch at 16 and 32 (the seams):
+      a rule refusing touching stretches returns a conflict instead of a
+      row;
+    - `group_1` and `group_3` stand apart on the session while touching
+      nothing there (a gap, the session passing behind `group_2`) and
+      both order `group_1` before `group_3`, as the score does: one root
+      touching and another apart give one row, and a rule ordering only
+      by the first root, or reading a gap as a conflict, gives another
+      result;
+    - the stored order puts `group_3` before `group_1` and `group_2`: the
+      row reorders them by their stretches, so a row that kept the stored
+      order of anchored groups is caught;
+    - `page` hangs on nothing and stays first, where it was stored: an
+      item hanging on nothing that the row moved (to the end, its drawing
+      order) is caught;
+    - both groups on two roots hold the score above the session in their
+      display order (`annotations` between `recapitulation` and
+      `take_b` anchors nothing), so the roots are `[score, session]`;
+      their IDs give the same order, so this fixture alone does not tell
+      the group rule from the ID order (item 8 does);
+    - an anchor is the first member inside the root, its stretch the
+      offsets summed and the drawn end: a wrong member, a stretch taken
+      from the root, or a root member (`notes`, `annotations`) taken as an
+      anchor changes the anchors.
+24. **An overlap on the fixture `bundle_arranged_conflict`.** The score
+    `score` holds `theme_a` (16 at 0) and `theme_b` (16 at 8), each alone
+    in a group named as it, "Theme A" (`group_1`) and "Theme B"
+    (`group_2`), the score named "Score": the stretches 0–16 and 8–24
+    overlap from the later start 8 to the earlier end 16. `rowOf` of `[]`
+    is exactly the conflict `{groups: [group_1, group_2], roots: [score],
+    reason: "\"Theme A\" and \"Theme B\" overlap on \"Score\" (8–16 ♩)"}`,
+    the reason word for word the drawing specification's example and the
+    fixture README's; of the stored `[group_2, group_1]` it is the
+    conflict of the pair in that order, `{groups: [group_2, group_1],
+    roots: [score], reason: "\"Theme B\" and \"Theme A\" overlap on
+    \"Score\" (8–16 ♩)"}`, since an overlap refuses whichever order is
+    stored. A rule
+    allowing overlaps returns a row; a stretch measured other than from
+    the later start to the earlier end, or a reason naming IDs where
+    names are given, changes the reason.
 
 ## Named MatchStamps (`matchstamps.test.ts`)
 

@@ -510,6 +510,12 @@ function memberElements(
  * listed at each drawing with the same address, cards included; so is an
  * elision drawn in several cards or frames. The elisions a card derives
  * (section 8.9) depend on the drawing's geometry and are listed nowhere.
+ *
+ * The list is a list of keys, each element once per drawing of it with its
+ * holder, never the order in which a drawing writes its elements (section
+ * 8.5): a card's stored gaps stand here after the bands of their timeline,
+ * where section 8.5 writes them after the card's whole member drawing, from
+ * the left. Read it as a set of keys wherever an order would be compared.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);
