@@ -1250,7 +1250,7 @@ lies at the block's stated place.
    block's stated place is unchanged. Free sends `{arrangement: null}` and
    every node returns to its stated place. A node's position is read from
    its style's `transform`, compared with the browser's own spelling of the
-   exact position (`ancestor-cards.spec.ts`, `placedAt`).
+   exact position (`support.ts`, `placedAt`).
 
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
