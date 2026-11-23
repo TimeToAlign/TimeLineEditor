@@ -80,6 +80,7 @@ import {
   type MatchClaimServer,
   MatchClaimTables,
   namedTable,
+  type ServerHealth,
   saveFailure,
   type TableMessages,
   unsavedQuestion,
@@ -145,6 +146,11 @@ export interface SessionOptions {
   /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
   readonly askTables?: AskTables | null;
   /**
+   * How the `matchClaims` server answered its health check now; without
+   * it, as if it answered. Only a server that answered reads tables.
+   */
+  readonly serverHealth?: () => ServerHealth;
+  /**
    * The user's files through the server as far as the editor reaches them
    * now (`null`: it does not, and the browser's pickers serve); without it,
    * never.
@@ -194,8 +200,11 @@ export class WorkspaceSession {
 
   constructor(options: SessionOptions) {
     this.#options = options;
-    this.tables = new MatchClaimTables(options.matchClaims ?? null, options.askTables ?? null, () =>
-      this.#places(),
+    this.tables = new MatchClaimTables(
+      options.matchClaims ?? null,
+      options.askTables ?? null,
+      () => this.#places(),
+      options.serverHealth,
     );
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
@@ -616,10 +625,19 @@ export class WorkspaceSession {
    * the canvas's one order of blocks (the arranger's `blocksInOrder`): from
    * beside the manifest's file (or where an example came from), silently,
    * else as the user chooses it (`MatchClaimTables.loadNamed`); what each
-   * load says goes to the message bar. A call while one is under way is
-   * ignored.
+   * load says goes to the message bar. While no server can read a table
+   * nothing is asked: where a block's manifest names a table the block does
+   * not hold, the message bar gets one warning, why
+   * (`MatchClaimTables.unavailable`), in place of every question; where
+   * none does, nothing is said (the canvas says why it draws nothing). A
+   * call while one is under way is ignored.
    */
   async loadNamedTables(): Promise<void> {
+    const unavailable = this.tables.unavailable;
+    if (unavailable !== null) {
+      if (this.#namesUnheldTable()) this.#options.warn(unavailable);
+      return;
+    }
     if (this.#loadingTables) return;
     this.#loadingTables = true;
     try {
@@ -631,6 +649,13 @@ export class WorkspaceSession {
     } finally {
       this.#loadingTables = false;
     }
+  }
+
+  /** Whether a block's manifest names a MatchClaim table the block does not hold. */
+  #namesUnheldTable(): boolean {
+    return Object.entries(this.store.view.blocks).some(
+      ([id, block]) => namedTable(block.manifest) !== null && this.tables.of(id) === null,
+    );
   }
 
   /** Post what a load of tables says: its information, then its warnings. */

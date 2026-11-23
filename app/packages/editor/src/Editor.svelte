@@ -48,7 +48,7 @@ import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
-import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
+import { ANSWERED, MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
 import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
 import type { TimeLineEditorOptions } from "./options.ts";
@@ -194,6 +194,9 @@ const session = new WorkspaceSession({
   inform: (text) => messages.inform(text),
   matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
+  // Read when matches are asked for, after the health check below was started.
+  serverHealth: () =>
+    health !== null ? ANSWERED : { answered: false, failure: offline === "" ? null : offline },
   files: () => fileHost,
   pane,
   // Never take the focus from the host page: only the page asks for it, or
@@ -526,8 +529,10 @@ const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
  */
 const indexesOf = (block: string) =>
   blockIndexes(session.live.view, block, session.tables.of(block)?.table ?? null, user.statedBy);
-/** What the canvas says while Show matches has nothing to draw: why, without a server. */
-const matchesStatus = $derived(session.tables.connected ? undefined : MATCHES_NEED_A_SERVER);
+/** What the canvas says while Show matches has nothing to draw: why, while no server reads tables. */
+const matchesStatus = $derived(
+  session.tables.unavailable === null ? undefined : MATCHES_NEED_A_SERVER,
+);
 
 /**
  * What the canvas's match overlay draws: for every block holding a

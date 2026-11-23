@@ -27,7 +27,12 @@ function lastCommand(store: Store): unknown {
 }
 
 const A = "0000000000";
-const NO_SERVER = "Matches need a server: MatchClaim tables are read through tilie-server.";
+const NO_SERVER =
+  "Matches need a running server: MatchClaim tables are read through tilie-server. " +
+  "Start it from the repository's `server/` folder with " +
+  "`uv run tilie --static-dir ../app/packages/editor/dist` " +
+  "(or `tilie` once installed with `pip install tilie-server`), " +
+  "then open the editor at the address it prints.";
 
 let mounted: ReturnType<typeof mount> | null = null;
 

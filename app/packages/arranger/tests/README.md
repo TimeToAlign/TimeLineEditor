@@ -5073,8 +5073,9 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   `No MatchClaim table loaded.` is shown (the canvas knows only that no
   table is loaded, never why) and
   nothing is drawn; with the mode off, no status. With `matchesStatus`
-  given (the editor's "Matches need a server: MatchClaim tables are read
-  through tilie-server."), that text instead.
+  given (the test gives "Matches need a server: MatchClaim tables are read
+  through tilie-server."; the editor gives its sentence on starting a
+  server), that text instead.
 - **The overlay.** With T, one `<svg>` for block A whose `width`,
   `height` and `viewBox` equal the node's own and whose left and top are
   the node's position; its one potential path has `d` exactly as in

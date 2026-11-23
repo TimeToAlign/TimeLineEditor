@@ -528,22 +528,37 @@ below the list's top left corner and within the list's box. In the
 document the note follows the list box, which owns options only.
 
 **`matchclaim-loading.spec.ts`** (Chromium) proves that Show matches loads
-the MatchClaim table a manifest names, the table route replayed from the
-client's recording (`match-claims.answer.bin`, `rows` read from its
-header) and no server answering for the user's files (the test build's
-health check fails): the table fixture opened from the Fixture menu, its
-table served beside it, loads it on the `m` key without a dialog and with
-one table request; the same manifest imported from the system, Show
-matches (its toolbar button) opens "Load the MatchClaim table of The
-manifest" with one group, "MatchClaim table match_claims.parquet", Load
-disabled until a file is chosen, and loads the chosen file with one
-request; a URL entered is fetched once and loaded; Cancel loads nothing
-and adds no message. "Load MatchClaims…" in the Matchstamp tab's
-MatchClaim filter, on the same imported manifest with Show matches off,
-opens the same dialog with the same group and loads the chosen MatchClaim
-table with one request (no file picker of its own). With the server's
-files, `open-save.spec.ts` proves the table read beside the manifest. Each loaded table's status line in
+the MatchClaim table a manifest names while a server answers, and asks
+nothing while none does. The table route is replayed from the client's
+recording (`match-claims.answer.bin`, `rows` read from its header); the
+health check is stubbed, answered (`{name, version, timetoalign}`) with the
+user's files on the server stubbed too (`story/` holding the table
+fixture's `manifest.yaml` alone, `other/` its `match_claims.parquet`), or
+refused with 503. Answered: the table fixture opened from the Fixture
+menu, its table served beside it, loads it on the `m` key without a dialog
+and with one table request; the same manifest imported from `story/`
+through the file dialog, Show matches (its toolbar button) opens
+"match_claims.parquet is not beside The manifest, at story/manifest.yaml"
+with one group, "MatchClaim table match_claims.parquet", Load disabled
+until something is entered, and Locate… then `other/match_claims.parquet`
+in the file dialog loads it with one request; a URL entered is fetched
+once and loaded; Cancel loads nothing and adds no message. "Load
+MatchClaims…" in the Matchstamp tab's MatchClaim filter, on the same
+imported manifest with Show matches off, opens "Load the MatchClaim table
+of The manifest" with the same group and loads the located table with one
+request (no file picker of its own). Each loaded table's status line in
 the Matchstamp tab reads "match_claims.parquet: <rows> MatchClaims".
+Refused (the header's offline mark titled "The server did not answer the
+health check (503 Service Unavailable)."), with the Fixture menu's table
+fixture open: `m` turns Show matches on, opens no dialog, requests no
+table, and adds exactly one message, that failure followed by "Matches
+need a running server: MatchClaim tables are read through tilie-server.
+Start it from the repository's `server/` folder with `uv run tilie
+--static-dir ../app/packages/editor/dist` (or `tilie` once installed with
+`pip install tilie-server`), then open the editor at the address it
+prints."; the canvas's status reads that second sentence alone; "Load
+MatchClaims…" then adds the same message once more and opens no dialog
+either. `open-save.spec.ts` proves the table read beside the manifest.
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
 `small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is
@@ -1652,7 +1667,7 @@ and no request named `match_claims` was made at all. Importing once warned
 that the named table was not loaded; that warning is gone on purpose, since
 the table is loaded when Show matches needs it, silently when it is found
 beside the manifest, and through the tables dialog only when it cannot be
-found (`matchclaim-loading.spec.ts`).
+found while a server answers (`matchclaim-loading.spec.ts`).
 
 A potential MatchStamp on a group member is drawn as naming would store
 it, its groupstamps' lines across the frames, both hovered and pinned. The

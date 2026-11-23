@@ -2352,8 +2352,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "No provenance entry: the table states none for it."; a MatchClaim
    without beliefs "No one has stated a belief.". The buttons True,
    Unlikely, False, the user's own belief pressed (`claim_5`: True); without
-   a server every button is disabled with the title "Matches need a server:
-   …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
+   a server every button is disabled with the title "Matches need a running
+   server: …"; a recorded MatchClaim the table lacks reads "not in the MatchClaim
    table", and without a table "no table loaded".
    **Actors compare as the IRIs they stand for** under the manifest's
    `@context` (core's `actorIri`, the library's rule), in the belief
@@ -2375,7 +2375,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the table holds is expanded or nothing is read) reads "Reading the
    events…", and is empty once the answer arrives; a refusal reads
    `eventsFailure`'s words there; without a server the expanded
-   MatchClaim says "Matches need a server: …". The answer written in the
+   MatchClaim says "Matches need a running server: …". The answer written in the
    test: `claim_1` `clt_1` event `note_1` named "C4" ↔ `dpt_1` event
    `onset_1` without a name, certainty 0.75; `claim_2` `clt_1` `note_1`
    "C4" ↔ `cpt_1` no event (the sentinel), no certainty. Shown, each side
@@ -2404,8 +2404,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    what the load says: a file chosen ("m.parquet") is loaded ("Loaded the
    MatchClaims of m.parquet." through `inform`), a cancelled question says
    nothing. Without a server "Load MatchClaims…" is disabled and described
-   by "Matches need a server: MatchClaim tables are read through
-   tilie-server."
+   by `MATCHES_NEED_A_SERVER` (9e).
 7. **The tab rule.** Showing a MatchStamp selects the Matchstamp tab and
    remembers the tab before, letting it go shows that tab again; a named
    MatchStamp is named by its own address and by an anchor's, by nothing
@@ -2475,7 +2474,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      asks for it as if unreached;
    - a block already holding a MatchClaim table, a manifest naming no
      MatchClaim table and a session without a server ask nothing and say
-     nothing.
+     nothing (what no server reading a table says instead is 9e's).
    **The manifest is never touched**: the table fixture's manifest,
    imported with its MatchClaim table picked beside it, keeps its
    `resources` exactly as read (both entries, the Projections one
@@ -2495,8 +2494,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    the MatchClaim table (with `url` `null` where the manifest names none;
    `{kind: "file"}` without the server's files, `{kind: "table", missing:
    null}` with them),
-   and loads what is chosen the same way; without a server it asks nothing
-   and warns "Matches need a server: …". The Fixture menu's
+   and loads what is chosen the same way; while no server can read a
+   table it asks nothing and warns (9e). The Fixture menu's
    `tables/manifest` entry carries a source reading the files served
    beside the fixture (`servedSource`): `match_claims.parquet` is served,
    `projections.parquet` and `other.parquet` are not (`null`).
@@ -2551,6 +2550,49 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      the MatchClaim table of LayerIt", never "… is not beside …"); the
      server still reads nothing, and cancelled, nothing is loaded. A
      relative location is read beside the manifest as above.
+
+9e. **No server can read a table** (`matchclaims-loading.test.ts`, the
+   server stubbed as above, the user's answer stubbed as a function
+   counting every question, the manifest the table fixture's, its
+   source reaching nothing, so with a reachable server it would be asked
+   for). The one sentence, `MATCHES_NEED_A_SERVER`, is exactly "Matches
+   need a running server: MatchClaim tables are read through tilie-server.
+   Start it from the repository's `server/` folder with `uv run tilie
+   --static-dir ../app/packages/editor/dist` (or `tilie` once installed
+   with `pip install tilie-server`), then open the editor at the address
+   it prints." (the command is the one the repository's README starts the
+   server from the source tree with). The tables know three states of the
+   server: none given (no `matchClaims` option), given but its health
+   check not answered yet, given but its health check failed (the failure
+   the editor's offline mark reads, here "The server did not answer the
+   health check (Failed to fetch)."), and given and answered.
+   - In the first three, `unavailable` is the sentence, the failed check's
+     failure first: "The server did not answer the health check (Failed to
+     fetch). Matches need a running server: …" with the sentence whole;
+     `loadNamed` asks nothing, reads nothing through the server and says
+     nothing; `choose` (Load MatchClaims…) asks nothing, reads nothing and
+     warns exactly `unavailable`. Proof that nothing was asked: the
+     question count stays 0, the table route's request count 0.
+   - The session's `loadNamedTables` (what turning Show matches on calls)
+     in those states asks nothing, reads nothing and informs nothing. It
+     warns in place of the questions it would ask: over a workspace
+     without blocks, and with one block whose manifest (`bare`) names no
+     table, it says nothing (the canvas's status says why it draws
+     nothing); with two more blocks each naming a table it posts exactly
+     one warning, `unavailable`, and called again exactly one more (once
+     per turning on, never once per block); with one of the two holding a
+     table still one; with both holding theirs, nothing.
+   - Answered, `unavailable` is `null`, and everything is as 9a and 9d
+     state it: the same manifest asks exactly once (`{kind: "file"}`
+     without the server's files) and posts no warning of a server; the
+     session's call asks once per block naming a table.
+   - `connected` says only whether a server is given (true in the second
+     and third states), so what it governs (the belief buttons, the
+     enabling of Load MatchClaims…) is unchanged.
+   The end-to-end proof is `e2e/matchclaim-loading.spec.ts`: on the
+   built page, whose health check is not answered, pressing M with a
+   manifest naming its table opens no dialog and the message bar shows
+   the failed check's failure and the sentence.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). Asked for the MatchClaim table of

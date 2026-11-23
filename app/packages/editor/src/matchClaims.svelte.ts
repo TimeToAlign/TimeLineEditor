@@ -209,9 +209,29 @@ async function fetched(text: string): Promise<TableFile> {
   return { name: fileNameOf(url.pathname), file: await response.blob() };
 }
 
-/** Without a server: what is said wherever matches are asked for. */
+/**
+ * While no server can read a table: what is said wherever matches are
+ * asked for, and how to start one (the command the repository's README
+ * starts the server from the source tree with).
+ */
 export const MATCHES_NEED_A_SERVER =
-  "Matches need a server: MatchClaim tables are read through tilie-server.";
+  "Matches need a running server: MatchClaim tables are read through tilie-server. " +
+  "Start it from the repository's `server/` folder with " +
+  "`uv run tilie --static-dir ../app/packages/editor/dist` " +
+  "(or `tilie` once installed with `pip install tilie-server`), " +
+  "then open the editor at the address it prints.";
+
+/**
+ * How the server given answered its health check: it did, or it did not
+ * (yet: `failure` `null`; else why, a sentence, as the editor's offline
+ * mark says it). Only a server that answered reads tables.
+ */
+export type ServerHealth =
+  | { readonly answered: true }
+  | { readonly answered: false; readonly failure: string | null };
+
+/** A server that answered its health check. */
+export const ANSWERED: ServerHealth = { answered: true };
 
 /** HTTP 501: the server cannot read MatchClaim tables. */
 const NOT_IMPLEMENTED = 501;
@@ -309,26 +329,45 @@ export class MatchClaimTables {
   readonly #sources = new Map<string, ManifestSource>();
   readonly #ask: AskTables | null;
   readonly #places: () => ManifestPlaces | null;
+  readonly #health: () => ServerHealth;
 
   /**
    * The tables read through `server` (`null`: no server, so no table is
    * ever read), the user asked for the files of tables through `ask`
    * (`null`: never asked, as if they cancelled), the server's files as
-   * `places` gives them now (`null`: the editor does not reach them).
+   * `places` gives them now (`null`: the editor does not reach them), the
+   * server's health check as `health` gives it now (by default answered).
    */
   constructor(
     server: MatchClaimServer | null,
     ask: AskTables | null = null,
     places: () => ManifestPlaces | null = () => null,
+    health: () => ServerHealth = () => ANSWERED,
   ) {
     this.#server = server;
     this.#ask = ask;
     this.#places = places;
+    this.#health = health;
   }
 
-  /** Whether tables can be read: a server is given. */
+  /** Whether a server is given (it may not answer: `unavailable` says whether it reads tables now). */
   get connected(): boolean {
     return this.#server !== null;
+  }
+
+  /**
+   * Why no server can read a table now, `MATCHES_NEED_A_SERVER` after the
+   * failure of the server's health check where it failed: no server is
+   * given, or it has not answered its health check; `null` while one can.
+   * Nothing asks the user for a table then.
+   */
+  get unavailable(): string | null {
+    if (this.#server === null) return MATCHES_NEED_A_SERVER;
+    const health = this.#health();
+    if (health.answered) return null;
+    return health.failure === null
+      ? MATCHES_NEED_A_SERVER
+      : `${health.failure} ${MATCHES_NEED_A_SERVER}`;
   }
 
   /** The table of block `block`; `null` while none is loaded. */
@@ -421,12 +460,13 @@ export class MatchClaimTables {
    * otherwise from where the manifest came from (`#sourceOf`) where it lies
    * there; either silently, else as the user chooses it in one question
    * (`#tableQuestion` after a URL, else `#question`; cancelled, it is
-   * left), read through the server (`load`). What the message bar says of
-   * it: nothing without a server, which Show matches says itself.
+   * left), read through the server (`load`). While no server can read a
+   * table (`unavailable`) nothing is asked and nothing said: the caller
+   * says it once (`WorkspaceSession.loadNamedTables`).
    */
   async loadNamed(block: string, manifest: Manifest): Promise<TableMessages> {
     const url = namedTable(manifest);
-    if (this.#server === null || this.of(block) !== null || url === null) return NO_MESSAGES;
+    if (this.unavailable !== null || this.of(block) !== null || url === null) return NO_MESSAGES;
     const places = this.#places();
     const warned: string[] = [];
     let reached: TableFile | null;
@@ -447,11 +487,12 @@ export class MatchClaimTables {
    * Let the user choose the MatchClaim table of block `block`'s manifest
    * `manifest` (Load MatchClaims…): its file, on their system or, with the
    * server's files, in the file dialog, or a URL; then load it as
-   * `loadNamed` loads it. Without a server nothing is asked and
-   * `MATCHES_NEED_A_SERVER` is the warning.
+   * `loadNamed` loads it. While no server can read a table nothing is
+   * asked and `unavailable` is the warning.
    */
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
-    if (this.#server === null) return { informed: [], warned: [MATCHES_NEED_A_SERVER] };
+    const unavailable = this.unavailable;
+    if (unavailable !== null) return { informed: [], warned: [unavailable] };
     const warned: string[] = [];
     const question = this.#tableQuestion(block, this.#places());
     const chosen = await this.#chosen(block, manifest, namedTable(manifest), question, warned);
