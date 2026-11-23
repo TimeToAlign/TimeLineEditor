@@ -11,6 +11,7 @@ import type { BlockId, View } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { keyedBox } from "./boxes.ts";
+import { arrangedOf } from "./containers.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import type { Rect } from "./marquee.ts";
@@ -36,7 +37,10 @@ export interface Preview {
   readonly view: View;
 }
 
-/** The node `node` drawn as `view` holds its block: a preview's. */
+/**
+ * The node `node` drawn as `view` holds its block: a preview's; on a canvas
+ * whose blocks are arranged it keeps its packed place.
+ */
 function drawnAt(
   node: BlockNode,
   view: View,
@@ -50,7 +54,7 @@ function drawnAt(
   const height = drawing.height * block.scale;
   return {
     ...node,
-    position: nodePosition(block, drawing),
+    position: arrangedOf(view, null) === null ? nodePosition(block, drawing) : node.position,
     width,
     height,
     measured: { width, height },

@@ -3,8 +3,9 @@
  * the group editor of that group.
  */
 
-import type { PlaceKey, View } from "@timetoalign/tilie-core";
+import type { Manifest, PlaceKey, View } from "@timetoalign/tilie-core";
 import { cardAddress, inBlock } from "@timetoalign/tilie-core";
+import { anchorChange, anchorsOf } from "@timetoalign/tilie-core/drawing";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { keyedBox } from "../boxes.ts";
@@ -31,10 +32,55 @@ export interface HeldPress {
   offset: Point | null;
 }
 
-/** Where a held card drops (the display order of its group) and how far the pointer has travelled. */
+/**
+ * Where a held card drops (the display order of its group), how far the
+ * pointer has travelled, and why the drop is refused (`heldRefusal`), else
+ * `null`.
+ */
 export interface HeldValue {
   readonly order: readonly string[];
   readonly offset: Point;
+  readonly refused: string | null;
+}
+
+/** Whether `drawing` draws its block's items side by side, its roots drawn once behind the row. */
+function sideBySide(drawing: Drawing): boolean {
+  const { arrangement } = drawing;
+  return arrangement?.direction === "horizontal" && arrangement.refused === undefined;
+}
+
+/**
+ * Whether the card of `member` in `group`'s frame is pinned where `drawing`
+ * draws the block's items side by side: the member anchors its group on a
+ * root drawn once behind the row (core's `anchorsOf`), so the roots' order
+ * stays the groups' (the drawing specification's "Drawn once"). A press on
+ * it is not taken.
+ */
+export function isPinned(
+  manifest: Manifest,
+  drawing: Drawing,
+  group: string,
+  member: string,
+): boolean {
+  return (
+    sideBySide(drawing) &&
+    anchorsOf(manifest).some((anchor) => anchor.group === group && anchor.member === member)
+  );
+}
+
+/**
+ * Why `group` may not take the display order `order` where `drawing` draws
+ * the block's items side by side: the order would change one of its anchors
+ * (core's `anchorChange`); `null` where it may, and wherever the items are
+ * not side by side.
+ */
+export function heldRefusal(
+  manifest: Manifest,
+  drawing: Drawing,
+  group: string,
+  order: readonly string[],
+): string | null {
+  return sideBySide(drawing) ? anchorChange(manifest, group, order) : null;
 }
 
 /**
@@ -82,10 +128,53 @@ export function releaseMotion(
   return to.x === offset.x && to.y === offset.y ? null : { from: offset, to };
 }
 
+/** What a reorder's copy needs once its gesture has ended. */
+export interface Dropped {
+  /** The view as stored at the press. */
+  readonly view: View;
+  /** The drawing at the press. */
+  readonly drawing: Drawing;
+  /** The copy's descriptors. */
+  readonly ghost: readonly Descriptor[];
+  /** The copy's travel at the drop; `null` where it never moved. */
+  readonly offset: Point | null;
+}
+
+/**
+ * The end of a reorder of the content `key` (a held card, an arranged item)
+ * of the node `host`: the preview withdrawn, and the copy moving from where
+ * it was dropped to where the drawing stored after the gesture draws its
+ * content (`releaseMotion`), at once under reduced motion; the slide ends.
+ */
+export function endReorder(host: NodeHost, key: PlaceKey, dropped: Dropped): void {
+  const { actions } = host;
+  const block = host.data().block.id;
+  actions.preview(block, null);
+  const view = actions.view();
+  const stored = view.blocks[block];
+  const motion =
+    dropped.offset === null || stored === undefined || actions.reducedMotion()
+      ? null
+      : releaseMotion(
+          dropped.drawing,
+          drawingOf(stored, view.graphical, actions.metrics, undefined, actions.pane()),
+          key,
+          dropped.offset,
+        );
+  host.ghost(
+    motion === null
+      ? null
+      : { card: key, descriptors: dropped.ghost, offset: motion.from, to: motion.to },
+  );
+  host.slide(false);
+}
+
 /**
  * The drag of the card of `member` held by the frame of `group`. A press is
- * taken while the canvas reorders cards (`rulesOf(...).reorder`); the press
- * that becomes a drag selects the card. The order follows the pointer's
+ * taken while the canvas reorders cards (`rulesOf(...).reorder`), except on
+ * a pinned card (`isPinned`); the press that becomes a drag selects the
+ * card. A drop the arrangement refuses (`heldRefusal`) previews the stored
+ * order, stores nothing and shows its reason (`NodeActions.refuse`). The order follows the pointer's
  * drawing point through the drawing as stored at the press
  * (`memberOrderAt`); the other cards slide apart in the preview while a copy
  * of the dragged card's drawing follows the pointer, the card itself left
@@ -112,7 +201,8 @@ export function heldGesture(
     moves: true,
     takes(_event, at) {
       if (!actions.rules().reorder) return null;
-      const { drawing, descriptors } = host.data();
+      const { block, drawing, descriptors } = host.data();
+      if (isPinned(block.manifest, drawing, group, member)) return null;
       return {
         view: actions.view(),
         drawing,
@@ -126,35 +216,21 @@ export function heldGesture(
       actions.select(inBlock(host.data().block.id, cardAddress(member)));
     },
     value(press, at) {
+      const { manifest } = blockOf(press);
+      const order = memberOrderAt(manifest, press.drawing, group, member, at.drawing.y);
       return {
-        order: memberOrderAt(blockOf(press).manifest, press.drawing, group, member, at.drawing.y),
+        order,
         offset: { x: at.drawing.x - press.at.x, y: at.drawing.y - press.at.y },
+        refused: heldRefusal(manifest, press.drawing, group, order),
       };
     },
     preview(press, value) {
       const block = host.data().block.id;
       if (value === null) {
-        const dropped = press.offset;
+        const offset = press.offset;
         press.shown = null;
         press.offset = null;
-        actions.preview(block, null);
-        const view = actions.view();
-        const stored = view.blocks[block];
-        const motion =
-          dropped === null || stored === undefined || actions.reducedMotion()
-            ? null
-            : releaseMotion(
-                press.drawing,
-                drawingOf(stored, view.graphical, actions.metrics, undefined, actions.pane()),
-                card,
-                dropped,
-              );
-        host.ghost(
-          motion === null
-            ? null
-            : { card, descriptors: press.ghost, offset: motion.from, to: motion.to },
-        );
-        host.slide(false);
+        endReorder(host, card, { ...press, offset });
         return;
       }
       press.offset = value.offset;
@@ -166,9 +242,13 @@ export function heldGesture(
         actions,
         block,
         press.view,
-        reorderCommand(blockOf(press), group, value.order),
+        value.refused === null ? reorderCommand(blockOf(press), group, value.order) : null,
       );
     },
-    command: (press, value) => reorderCommand(blockOf(press), group, value.order),
+    command(press, value) {
+      if (value.refused === null) return reorderCommand(blockOf(press), group, value.order);
+      actions.refuse?.(value.refused);
+      return null;
+    },
   };
 }

@@ -9,6 +9,7 @@
 import type {
   Address,
   BlockId,
+  CanvasDirection,
   ContainerKind,
   EditorKind,
   ResolvedAddress,
@@ -18,15 +19,18 @@ import {
   assertNever,
   bandAddress,
   cardAddress,
+  columnsOf,
   ITEM_PLACE_MEMBERS,
   isCommandError,
   resolveAddress,
 } from "@timetoalign/tilie-core";
+import { isArrangementConflict, rowOf } from "@timetoalign/tilie-core/drawing";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { blockBox, boxOf, isAncestorCard, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
+import { addressParts } from "./editing.ts";
 import type { PaneSource } from "./pane.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
@@ -69,6 +73,51 @@ export interface LevelRules {
   readonly lock: boolean;
   /** Resize the selected container: choose a mode and drag its handles. */
   readonly resize: boolean;
+  /**
+   * How the contents the level moves are arranged (`arrangedOf`): absent
+   * where they lie at their places. While present, the level moves and
+   * nudges nothing freely: a drag and the arrows move a content to another
+   * place of the arrangement.
+   */
+  readonly arranged?: Arranged;
+}
+
+/**
+ * The arrangement the contents of a level stand in: blocks on the arranger
+ * (`vertical`, `horizontal` or a `matrix` of `columns` columns), the items
+ * of a block in its bundle editor (`vertical` or `horizontal`, `columns` 1).
+ */
+export interface Arranged {
+  readonly direction: CanvasDirection;
+  /** The number of columns of a matrix; 1 otherwise. */
+  readonly columns: number;
+}
+
+/**
+ * How the contents of the level under `editing` are arranged, as drawn: on
+ * the arranger the workspace's arrangement of its blocks (a matrix's columns
+ * `columnsOf` the number of blocks); in the bundle editor of a block its
+ * items' arrangement, `vertical` where `horizontal` is stated but the rules
+ * refuse it (the block is then drawn one item under another, core's
+ * `rowOf`); `null` where the contents lie at their places, and in a group
+ * or timeline editor, whose cards keep their own order.
+ */
+export function arrangedOf(view: View, editing: Editing | null): Arranged | null {
+  if (editing === null) {
+    const { arrangement } = view;
+    if (arrangement === undefined) return null;
+    const count = Object.keys(view.blocks).length;
+    const columns = arrangement.direction === "matrix" ? columnsOf(arrangement, count) : 1;
+    return { direction: arrangement.direction, columns };
+  }
+  if (editing.kind !== "bundle") return null;
+  const block = view.blocks[addressParts(editing.target).block];
+  const arrangement = block?.arrangement;
+  if (block === undefined || arrangement === undefined) return null;
+  const refused =
+    arrangement.direction === "horizontal" &&
+    isArrangementConflict(rowOf(block.manifest, arrangement.order));
+  return { direction: refused ? "vertical" : arrangement.direction, columns: 1 };
 }
 
 const NONE = {
@@ -99,13 +148,25 @@ export const LEVELS: { readonly [level in Level]: LevelRules } = {
  * moves and nudges nothing, moves no band and resizes nothing; a read-only canvas
  * writes nothing, so it also reorders, removes, raises or lowers nothing,
  * opens no editor (an opened editor is journalled) and offers no lock. Selecting, the marquee,
- * panning and zooming stay. The one answer to "may this run".
+ * panning and zooming stay. Where the level moves its contents and they
+ * are `arranged` (`arrangedOf`), it moves and nudges none freely and carries
+ * the arrangement instead, which the lock and the read-only mode turn off as
+ * they turn off moving. The one answer to "may this run".
  */
 export function rulesOf(
   editing: Editing | null,
-  mode: { readonly locked: boolean; readonly readonly: boolean },
+  mode: {
+    readonly locked: boolean;
+    readonly readonly: boolean;
+    readonly arranged?: Arranged | null;
+  },
 ): LevelRules {
-  const rules = LEVELS[editing === null ? "arranger" : editing.kind];
+  const level = LEVELS[editing === null ? "arranger" : editing.kind];
+  const arranged = mode.arranged ?? null;
+  const rules =
+    arranged === null || !level.move || mode.locked || mode.readonly
+      ? level
+      : { ...level, move: false, nudge: false, arranged };
   if (mode.readonly) {
     return {
       ...rules,

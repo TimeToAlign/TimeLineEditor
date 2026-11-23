@@ -39,8 +39,9 @@
   color: #555;
 }
 
-/* A pressed toggle of the controls panel: a shade darker, its icon in the selection's blue. */
-.tilie-canvas .svelte-flow__controls-button.tilie-toggle[aria-pressed="true"] {
+/* A pressed toggle of the controls panel, or one whose menu is open: a shade darker, its icon in the selection's blue. */
+.tilie-canvas .svelte-flow__controls-button.tilie-toggle[aria-pressed="true"],
+.tilie-canvas .svelte-flow__controls-button.tilie-toggle[aria-expanded="true"] {
   background: #e2e2e2;
   color: #0a6ad6;
 }
@@ -48,6 +49,25 @@
 .tilie-canvas .svelte-flow__controls-button:focus-visible {
   outline: 2px solid #0a84ff;
   outline-offset: -2px;
+}
+
+/* The Arrange menu, beside the controls panel (15 px margin, 26 px wide). */
+.tilie-canvas .tilie-arrange-panel {
+  margin-left: 56px;
+}
+
+/*
+ * On a canvas whose blocks are arranged, the blocks not dragged move to their new places
+ * (Svelte Flow places a node by its transform); never under reduced motion.
+ */
+.tilie-canvas[data-arranged] .svelte-flow__node:not(.dragging) {
+  transition: transform 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilie-canvas[data-arranged] .svelte-flow__node:not(.dragging) {
+    transition: none;
+  }
 }
 
 /* The status line, beside the controls panel (15 px margin, 26 px wide). */

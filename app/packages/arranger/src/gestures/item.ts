@@ -1,6 +1,7 @@
 /**
- * Moving an item (a group's frame or an ungrouped root's card) freely inside
- * its block, in the bundle editor of its block.
+ * Moving an item (a group's frame or an ungrouped root's card) inside its
+ * block, in the bundle editor of its block: freely, or to another place of
+ * the block's arrangement where its items are arranged.
  */
 
 import type { PlaceKey, View } from "@timetoalign/tilie-core";
@@ -9,6 +10,8 @@ import { itemOf } from "../boxes.ts";
 import type { GestureStrategy, Point } from "../gesture.ts";
 import { itemMoveCommand, itemsMovedWith } from "../items.ts";
 import { GRID_FREE, quantize } from "../numbers.ts";
+import type { ArrangedPress, ArrangedValue } from "./arranged.ts";
+import { arrangedGesture } from "./arranged.ts";
 import type { NodeHost } from "./host.ts";
 import { previewCommand } from "./host.ts";
 
@@ -89,5 +92,64 @@ export function itemGesture(host: NodeHost, key: PlaceKey): GestureStrategy<Item
       else previewCommand(actions, block, press.view, command(press, place));
     },
     command,
+  };
+}
+
+/** A press on an item: a free one's or an arranged one's, each with its strategy's press. */
+export type MovedPress =
+  | { readonly arranged: false; readonly press: ItemPress }
+  | { readonly arranged: true; readonly press: ArrangedPress };
+
+/** Where a pressed item goes: a free place, or a place of the arrangement. */
+export type MovedValue =
+  | { readonly arranged: false; readonly value: Point }
+  | { readonly arranged: true; readonly value: ArrangedValue };
+
+/**
+ * The drag of the item `key`, whichever way its block's items lie: the
+ * press is the arranged drag's (`arrangedGesture`) while the level's
+ * contents are arranged (`rulesOf(...).arranged`), else the free drag's
+ * (`itemGesture`), decided at each press, so one attachment serves the
+ * item through every change of its block's arrangement.
+ */
+export function movedItemGesture(
+  host: NodeHost,
+  key: PlaceKey,
+): GestureStrategy<MovedPress, MovedValue> {
+  const free = itemGesture(host, key);
+  const arranged = arrangedGesture(host, key);
+  return {
+    moves: true,
+    takes(event, at) {
+      if (host.actions.rules().arranged !== undefined) {
+        const press = arranged.takes(event, at);
+        return press === null ? null : { arranged: true, press };
+      }
+      const press = free.takes(event, at);
+      return press === null ? null : { arranged: false, press };
+    },
+    start(held) {
+      if (held.arranged) arranged.start?.(held.press);
+      else free.start?.(held.press);
+    },
+    value(held, at) {
+      if (held.arranged) {
+        const value = arranged.value(held.press, at);
+        return value === null ? null : { arranged: true, value };
+      }
+      const value = free.value(held.press, at);
+      return value === null ? null : { arranged: false, value };
+    },
+    preview(held, moved) {
+      if (held.arranged) {
+        arranged.preview(held.press, moved?.arranged === true ? moved.value : null);
+      } else {
+        free.preview(held.press, moved?.arranged === false ? moved.value : null);
+      }
+    },
+    command(held, moved) {
+      if (held.arranged) return moved.arranged ? arranged.command(held.press, moved.value) : null;
+      return moved.arranged ? null : free.command(held.press, moved.value);
+    },
   };
 }

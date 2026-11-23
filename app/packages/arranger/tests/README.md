@@ -1818,6 +1818,169 @@ records by the card's place key: on `bundle_mixed`, the card `{item:
 exactly at its card's place, and a card the shown drawing does not draw
 (`{item: "nobody"}`), give no motion.
 
+## Arrangements on the canvas (`arrangement.test.ts`, `arrangement-motion.test.ts`)
+
+An arrangement places the contents of a level in an order instead of at
+their places, and a drag or an arrow moves one content to another place
+of that order (TimeToShare's `docs/drawing.md`, section 8.6 and "Drawn
+once"; core's README, "Arrangements", owns the rules, the stored state and
+the commands; layout's, "Arrangements", where items lie). Two levels are
+arranged on the canvas: the arranger's **blocks** (the workspace's
+`arrangement`: Vertical, Horizontal or a Matrix of `columns` columns, in
+the order of the blocks' `index`) and, in a bundle editor, the edited
+block's **items** (its `arrangement`: Vertical, or Horizontal with every
+root its groups hang on drawn once behind the row). A group editor's cards
+keep their display order, but side by side two of their drops are refused.
+What proves the canvas's side is that each value below follows from the
+records of the drawings (node sizes are a drawing's `width` and `height`
+times its block's scale, items' rectangles their boxes) by the arithmetic
+written here, and each command is applied through core and read back.
+
+Facts of `bundle_arranged_roots` drawn Horizontal (layout's oracle, read
+from its records): the row `group_1` "Exposition", `group_2`
+"Development", `group_3` "Recapitulation", `page` (core's row from the
+stored order `[]`: groups by ID, then ungrouped roots), the roots `score`
+"Score" and `session` "Session"; the anchors on `score` `exposition` 0–16,
+`development` 16–32, `recapitulation` 32–48, on `session` `take_a` 0–30
+and `take_b` 100–130; the frames at x 167.41357421875, 782.8037109375 and
+1398.19384765625, each 567.39013671875 wide, `page`'s card at
+2013.583984375; the once card of `score` `{item: group_1, member: score}`
+lists the groups `[group_1, group_2, group_3]`, that of `session` `[group_1,
+group_3]`; `session`'s once card draws one arrangement gap, 33–44.
+
+**The rules of a level** (`containers.ts`):
+
+1. `arrangedOf`: the arranger without a workspace arrangement `null`; with
+   `{vertical}` `{vertical, columns 1}`; with `{matrix}` over five blocks
+   `{matrix, columns 3}` (⌈√5⌉), with `{matrix, columns 2}` two; a bundle
+   editor of `bundle_arranged_roots` stated Horizontal `{horizontal, 1}`, of
+   `bundle_arranged_conflict` stated Horizontal `{vertical, 1}` (drawn one
+   item under another, the conflict kept); a group or timeline editor
+   `null`, whatever the block states.
+2. `rulesOf` with an arrangement: the arranger's and the bundle editor's
+   rows with `move` and `nudge` false and `arranged` the arrangement; locked
+   or read-only, exactly the rows without an arrangement (the lock turns the
+   arranged drag off as it turns off moving); a group or timeline editor the
+   level's own row, unchanged.
+
+**Where a content drops** (`reorder.ts` `orderAt`, literal rectangles,
+each 10 × 10): along `vertical` `a`, `b`, `c` at y 0, 20, 40: `a` at y 24
+keeps `[a, b, c]`, at 25 (`b`'s middle, not below it) and 26 gives `[b, a,
+c]`, at 100 `[b, c, a]`; along `horizontal` the same at x 0, 20, 40: `c` at
+x 12 gives `[a, c, b]`; a `matrix` of five in two columns, `a` (0, 0), `b`
+(20, 0), `c` (0, 20), `d` (20, 20), `e` (0, 40): `e` at (25, 5) lies in
+the first row right of `b`'s middle, `[a, b, e, c, d]`; `a` at (2, 30) in
+the second row left of `c`'s middle, `[b, a, c, d, e]`; `a` at (100, 100)
+last. `memberOrderAt` is its vertical call: the table of "Reordering a
+group's member cards" holds unchanged. `steppedOrder([a, b, c], b, 1)` is
+`[a, c, b]`; a step beyond either end, and a step of 0, `null`.
+`arrangedStep`: vertical Down 1, Up −1, Left and Right 0; horizontal Right
+1, Left −1, Up 0; a matrix of 3 columns Down 3, Up −3, Left −1.
+
+**Blocks** (`project.ts`, `blockDrag.ts`, `keys.ts`; blocks `A` `bare` at
+(40, 80), `B` `group_number_types` at (600, 0), `C` `group_child_member` at
+(0, 600), each node `w × h` its drawing's size, `P(X)` its `nodePosition`):
+
+- **A1 Vertical**: `A` at `P(A)`, `B` at `(P(A).x, P(A).y + hA + 32)`, `C`
+  at `(P(A).x, y(B) + hB + 32)`: packed from the first block's stated
+  place, 32 apart.
+- **A2 Horizontal**: `B` at `(P(A).x + wA + 32, P(A).y)`, `C` at `(x(B) + wB
+  + 32, P(A).y)`.
+- **A3 Matrix** of five blocks (`D` `bare`, `E` `bare` added) in two
+  columns: column widths `max(wA, wC, wE)` and `max(wB, wD)`, row heights
+  `max(hA, hB)`, `max(hC, hD)`, `hE`; each block at its cell's top left.
+- **A4 A drop**: `A`'s node dragged with its middle below `C`'s middle
+  gives the order `[B, C, A]` and the places of `B`, `C`, `A` packed in that
+  order from `P(B)`; the release stores one `set` of `A`'s `index`,
+  `indexBetween(C's index, null)`, nothing else, and the canvas then draws
+  the blocks at those places. Dropped where it lay (its middle above `B`'s),
+  nothing is stored.
+- **A5 Free restores**: the `set` of `arrangement: null` puts every node at
+  its `P(X)` again: the stated places were kept.
+- **A6 Ctrl+]** (one place forward, as on a free canvas): `A` raised gives
+  the order `[B, A, C]`, packed from `P(B)`.
+- **Keys**: Down on the one selected `A` (Vertical) stores `A`'s index
+  between `B`'s and `C`'s; Up on it stores nothing and takes the key; in a
+  Matrix of two columns Down on `A` moves it two places, `[B, C, A, D, E]`;
+  the arrows nudge nothing while arranged.
+
+**Items** (`gestures/arranged.ts`, `gestures/held.ts`, `reorder.ts`, on
+`bundle_arranged_roots` Horizontal, its bundle editor open; a drop's point
+is the pointer's drawing point):
+
+- **C18** `rowRefusal`: `group_3` moved first, `[group_3, group_1,
+  group_2, page]`, is refused: `"Recapitulation" stays right of
+  "Exposition", "Development" on "Score"; "Recapitulation" stays right of
+  "Exposition" on "Session"`; `group_1` moved after `group_3` (`[group_2,
+  group_3, group_1, page]`): `"Exposition" stays left of "Development",
+  "Recapitulation" on "Score"; "Exposition" stays left of "Recapitulation"
+  on "Session"`; `group_2` moved last: `"Development" stays left of
+  "Recapitulation" on "Score"`; `page`, hanging on nothing, anywhere: `null`.
+  The drag: `group_3`'s frame pressed and dropped at x 100 (left of
+  `group_1`'s middle) previews the stored order, stores nothing and shows
+  the reason (`NodeActions.refuse`); `page`'s card dropped at x 100 stores
+  one `set` of the block's arrangement, `{direction: horizontal, order:
+  [page, group_1, group_2, group_3]}`, which core keeps as the row.
+- **Vertical items**: on the block stated Vertical, `page` dropped at y 0
+  stores `{direction: vertical, order: [page, group_1, group_2, group_3]}`;
+  nothing is refused.
+- **C16** `isPinned`: side by side `recapitulation` and `take_b` (anchors of
+  `group_3`) are pinned, `annotations` (a root member) is not; on the
+  block stated Vertical none is. In `group_3`'s editor a press on
+  `recapitulation` is not taken; `annotations` dropped above it gives the
+  order `[annotations, recapitulation, take_b]`, accepted (`heldRefusal`
+  `null`), one `set` of `group_3`'s `order`: `null`, that order being the
+  group's `members`.
+- **C17** `heldRefusal`: `score` given a child `coda` at 40, 8 quarters,
+  joined to `group_3` (core's `add` and `set groups`), the order `[coda,
+  recapitulation, annotations, take_b]` is refused `would anchor "coda" on
+  "Score" instead of "Recapitulation"` (core's `anchorChange`); a refused
+  drop stores nothing and shows the reason.
+- **Items by key**: `page` selected, Left stores the order `[group_1,
+  group_2, page, group_3]` (`page` hangs on nothing); `group_3` selected,
+  Left is refused with `"Recapitulation" stays right of "Development" on
+  "Score"` and stores nothing.
+
+**What an arrangement gap gives the canvas** (`cardAxis.ts`, `gaps.ts`,
+E3): `group_3` stretched to the length 600 (`set place`), `session`'s once
+card draws the arrangement gap 33–63 between `take_a`'s run (frame `L`
+400 over 30 seconds) and `take_b`'s (600 over 30): the scale beside its
+start is 1733.3333333333335 / 130 = 13.333333333333334 canvas units a
+second, beside its end 2600.0000000000005 / 130 = 20.000000000000004 (each
+the run's `L` over `λ` 130, the session's length); no arrangement gap is a
+subject of an edit (`subjectOf` `null`), as a default gap is not.
+
+**The editor's zoom** (`focus.ts`, `elidedReach`): side by side, a once
+card counts for every group it lies behind (`ancestor.groups`). Block A
+lies at (0, 0), scale 1, so a record's rectangle is its canvas rectangle.
+`session`'s once card (groups `[group_1, group_3]`, drawing the
+arrangement gap) gives `group_3`'s editor the reach `max(c − x, x + w −
+c)` from `group_3`'s frame centre `c`, both read from the records, though
+the card is keyed by `group_1`; `score`'s once card (groups `[group_1,
+group_2, group_3]`, Proportional at 0.342…, no gap, only seams) elides
+nothing, so `group_2`'s editor, behind it alone, has no reach (`null`).
+
+**Motion** (`arrangement-motion.test.ts`, `animation/elide.ts`):
+`itemMotions` between `bundle_arranged_roots` drawn Vertical and drawn
+Horizontal moves every item that changed place by the change of its box
+less the change of the place origin: at progress 0 an element of
+`group_2`'s frame is drawn translated by exactly `(x_v − O_v.x) − (x_h −
+O_h.x)` and the like downwards (`placedAt`), at 1 at rest; an item drawn at
+the same place moves nothing. `blockMotion` from Vertical to Horizontal:
+the item motions come first, so a member card of a moving frame takes the
+frame's motion; the once card `{item: group_1, member: score}` (same key)
+moves sideways; the cards `{item: group_2, member: score}` and `{item:
+group_3, member: score}` and `{item: group_3, member: session}` leave
+fading (opacity 1 at 0, ½ at ½, nothing at 1 as they are gone), none
+unfolding; back from Horizontal to Vertical they enter fading (opacity 0
+at 0). The workspace's arrangement of the blocks redraws no block: a block
+drawn before and after it is set is the same drawing.
+
+What would be wrong: a block or an item snapping to a free place while
+arranged, an order stored that the rules repair into another (the
+preview would then lie), a pinned card that moves, a refused drop that
+stores anything, a reason that names a group on the wrong side.
+
 ## Bands (`bands.test.ts`)
 
 Every timeline drawn with a line of its own has five bands, one per

@@ -41,7 +41,7 @@ import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
 import { bandGesture } from "./gestures/band.ts";
 import { cardDrawing, heldGesture } from "./gestures/held.ts";
 import type { Ghost, NodeHost } from "./gestures/host.ts";
-import { itemGesture } from "./gestures/item.ts";
+import { movedItemGesture } from "./gestures/item.ts";
 import { OUT_OF_DATE_MARK } from "./matches.ts";
 import { settle, slide } from "./motion.ts";
 import type { BlockNode as BlockNodeType } from "./node.ts";
@@ -539,7 +539,8 @@ function once(key: string, make: () => Attachment<Element>): Attachment<Element>
 /**
  * The gesture of `box` in this block's editor, on the box's own rectangle:
  * at a level that moves items (`LEVELS`, the bundle editor) every item (a
- * frame, an ungrouped root's card) moves; at a level that reorders (a
+ * frame, an ungrouped root's card) moves, freely or to another place of its
+ * block's arrangement (`movedItemGesture`); at a level that reorders (a
  * group's editor) the cards the edited frame holds reorder. What the canvas
  * allows at the moment of a press (the lock, read-only) is the strategy's
  * question (`rulesOf`), never the attachment's.
@@ -551,7 +552,9 @@ function gestureOf(box: DrawnBox | undefined): Attachment<Element> | undefined {
   const offered = LEVELS[data.editing.kind];
   const { key } = box;
   if (offered.move && isItem(box)) {
-    return once(`item ${placeKeyText(key)}`, () => pointerGesture(itemGesture(host, key), options));
+    return once(`item ${placeKeyText(key)}`, () =>
+      pointerGesture(movedItemGesture(host, key), options),
+    );
   }
   const member = placedElement(data.block.manifest, key);
   const group = edited?.id;
