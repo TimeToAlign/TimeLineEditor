@@ -564,6 +564,79 @@ describe("the Elisions tab", () => {
     expect(expander("elisions")?.getAttribute("aria-expanded")).toBe("false");
   });
 
+  /** The timeline's block of `score` in `bundle_elisions_stored`, mounted for `score` with `drafts`. */
+  function scoreBlock(store: Store, drafts: PropertyDrafts): ReturnType<typeof blocks> {
+    hide();
+    show(store, [{ id: "score" }], null, null, drafts);
+    return blocks();
+  }
+
+  it.each<[string, () => HTMLElement | null | undefined, Command, string]>([
+    [
+      "the form's Delete",
+      () => button("Delete elision", part("elision-form")),
+      { type: "remove", targets: [at("elision_5")] },
+      "Custom, 2 elisions",
+    ],
+    [
+      "the × of its row",
+      () =>
+        part("elisions")?.querySelector<HTMLButtonElement>(
+          '.rows .delete[aria-label="Delete the elision of Score, 32–48 ♩"]',
+        ),
+      { type: "remove", targets: [at("elision_5")] },
+      "Custom, 2 elisions",
+    ],
+    [
+      "Remove all",
+      () => button("Remove all", part("elisions")),
+      {
+        type: "remove",
+        targets: [at("elision_1"), at("elision_4"), at("elision_5"), at("elision_6")],
+      },
+      "Proportional",
+    ],
+  ])("keeps the block that held elision_5 open after %s", (_, control, command, summary) => {
+    const store = storeOf(STORED);
+    const drafts = new PropertyDrafts();
+    show(store, [{ id: "elision_5" }], null, null, drafts);
+    click(control());
+    expect(last(store)).toEqual(command);
+    expect(store.journal.length - base).toBe(1);
+    expect(scoreBlock(store, drafts)).toEqual([
+      ["elisions", `Timeline Parent timeline "Score" ${summary}`, "true", false],
+    ]);
+  });
+
+  it("leaves a block never acted in collapsed", () => {
+    const store = storeOf(MEMBERS);
+    const drafts = new PropertyDrafts();
+    show(store, [{ id: "elision_1" }], null, null, drafts);
+    click(button("Remove all", part("group-elisions")));
+    expect(last(store)).toEqual({
+      type: "remove",
+      targets: [at("elision_1"), at("elision_2")],
+    });
+    hide();
+    show(store, [{ id: "excerpt" }], null, null, drafts);
+    expect(blocks()).toEqual([
+      ["elisions", 'Timeline Parent timeline "Piece" Proportional', "false", true],
+      ["group-elisions", 'Group Elisions in group "Theme" Custom, 0 elisions', "true", false],
+    ]);
+  });
+
+  it("respects a close after an action", () => {
+    const store = storeOf(STORED);
+    const drafts = new PropertyDrafts();
+    show(store, [{ id: "elision_5" }], null, null, drafts);
+    click(button("Delete elision", part("elision-form")));
+    expect(scoreBlock(store, drafts).map(([, , expanded]) => expanded)).toEqual(["true"]);
+    click(expander("elisions"));
+    expect(scoreBlock(store, drafts)).toEqual([
+      ["elisions", 'Timeline Parent timeline "Score" Custom, 2 elisions', "false", true],
+    ]);
+  });
+
   it("keeps an opened block through a change of tab and a closed drawer", () => {
     const store = storeOf(INSIDE);
     const live = liveStore(store);

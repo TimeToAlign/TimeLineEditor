@@ -16,7 +16,8 @@
  * never edited (a seam leaves out nothing and is no gap, so none is listed).
  * The tab shows each of the three as a block of its kind (a timeline's, a
  * group's, an elision's), collapsed to one line that says its essentials
- * (`blocksOf`), open without a click where it holds the selected elision.
+ * (`blocksOf`), open without a click where it holds the selected elision,
+ * and kept open once an action has been taken in it.
  */
 
 import type { CardAxis, Subject } from "@timetoalign/tilie-arranger";
@@ -1310,6 +1311,12 @@ export interface ElisionBlock {
   readonly summary: string;
   /** The key its open state is kept under: its own, or its own with the selected elision it holds. */
   readonly key: string;
+  /**
+   * The key an action taken in it opens, so that it stays open once the
+   * selection leaves it: its own; the form's, that of the block holding its
+   * elision, since the form goes with the selection.
+   */
+  readonly keeps: string;
   /** Whether it is open before any click: only where it holds the selected elision. */
   readonly opened: boolean;
 }
@@ -1342,7 +1349,9 @@ const stretchOf = (form: ElisionForm): string =>
  * selected elision of `form` is held by the group's block where the group
  * lists it, else by the root's (a card elision of the root, or a default
  * one); the block holding it and the form's own block are open without a
- * click, every other block is collapsed.
+ * click, every other block is collapsed. An action taken in a block opens
+ * it under its own key (`keeps`), so that it stays open once the selection
+ * leaves it.
  */
 export function blocksOf(
   root: RootElisions | null,
@@ -1355,6 +1364,9 @@ export function blocksOf(
   const inRoot = selected !== null && !inGroup && root !== null;
   const custom = root?.custom ?? null;
   const rootCount = custom === null ? "" : `, ${counted(custom.rows.length)}`;
+  const rootOwn = root === null ? "" : addressKey(root.address);
+  const frame = group === null ? null : inBlock(group.block, idAddress(group.group));
+  const groupOwn = frame === null ? "" : addressKey(frame);
   return {
     root:
       root === null
@@ -1364,16 +1376,18 @@ export function blocksOf(
             title: root.title,
             summary: `${MODE_WORDS[root.mode]}${rootCount}`,
             key: blockKey(root.address, inRoot ? selected : null),
+            keeps: rootOwn,
             opened: inRoot,
           },
     group:
-      group === null
+      group === null || frame === null
         ? null
         : {
             kind: "group",
             title: group.title,
             summary: `${MODE_WORDS[group.mode]}, ${group.count}`,
-            key: blockKey(inBlock(group.block, idAddress(group.group)), inGroup ? selected : null),
+            key: blockKey(frame, inGroup ? selected : null),
+            keeps: groupOwn,
             opened: inGroup,
           },
     form:
@@ -1383,7 +1397,8 @@ export function blocksOf(
             kind: "elision",
             title: form.title,
             summary: form.stored === null ? `${stretchOf(form)}, automatic` : stretchOf(form),
-            key: blockKey(form.address, null),
+            key: addressKey(form.address),
+            keeps: inGroup ? groupOwn : inRoot ? rootOwn : addressKey(form.address),
             opened: true,
           },
   };

@@ -1025,9 +1025,30 @@ still open. A block holding the selected elision keeps its own state for
 that selection: with `elision_5` selected, the timeline's block closed by a
 click stays closed while `elision_5` stays selected, and `score` selected
 alone then shows its block collapsed, the state of the block holding no
-selection. With nothing to configure (nothing selected outside an editor,
-or the block alone selected) the tab shows only "Select a timeline, a card
-or a group's frame to edit its elisions."
+selection.
+
+**A block worked in stays open.** What proves it is the open state the
+user meets after the selection has left the block, read with the same
+drafts in a panel mounted again for the block's timeline (deleting the
+selected elision empties the selection, so the tab shows nothing until
+something is selected again). With `elision_5` selected, its timeline's
+block open by the selection alone, each of the form's Delete elision, the
+`×` of `elision_5`'s row and the timeline's Remove all sends its one
+`remove` and leaves the block open: `score` selected afterwards shows
+`Timeline Parent timeline "Score" Custom, 2 elisions` (after Remove all,
+which leaves nothing stored, `… Proportional`, the mode the card falls
+back to) with `aria-expanded` "true" and its region shown, where without
+the action it shows collapsed. A block never acted in stays as its own
+key says: in `group_elided_members`, `elision_1` (a group elision of
+`excerpt`) selected, its group's Remove all sent, then `excerpt` selected
+shows the group's block open and the timeline's block, which was never
+touched and holds no selection, collapsed. An explicit close wins over an
+earlier action: after the Delete above, the timeline's block of `score`
+closed by a click stays closed when `score` is selected again.
+
+**Nothing to configure.** With nothing to configure (nothing selected
+outside an editor, or the block alone selected) the tab shows only
+"Select a timeline, a card or a group's frame to edit its elisions."
 
 **Read.** `piece` (inside): mode Proportional; Proportion Automatic,
 "0.142857" (held beside it exactly, `0.14285714285714285`); Rows Automatic, the depths deepest first `2` "First, Second"

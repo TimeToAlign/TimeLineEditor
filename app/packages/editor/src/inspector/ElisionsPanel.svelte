@@ -21,9 +21,12 @@
  * and value, what it shows, the other timelines a group elision elides, and
  * Delete; a default elision's form is read-only. Every block is collapsed
  * at first but the one holding the selected elision and that elision's
- * own; which blocks are open, the typed text and the refusals are the
- * inspector's `PropertyDrafts`, kept while another tab is shown. Every
- * action is one command. With nothing to configure, one hint line.
+ * own; an action taken in a block (a command, a row's click) first keeps it
+ * open, so that it stays open once the selection leaves it, a Delete in
+ * the form keeping open the block that held the elision; which blocks are
+ * open, the typed text and the refusals are the inspector's
+ * `PropertyDrafts`, kept while another tab is shown. Every action is one
+ * command. With nothing to configure, one hint line.
  */
 import type { Editing, LivePlacement, Subject } from "@timetoalign/tilie-arranger";
 import type { Address, Block, Command, Store, View } from "@timetoalign/tilie-core";
@@ -139,8 +142,29 @@ function problemOf(key: string): string | null {
   return refusal !== null && refusal.key === key ? refusal.message : null;
 }
 
-/** Send `commands` in order, stopping at a refusal, which is kept to show in the part of `key`. */
+/**
+ * Keep open the block of the part of `key`, an action being taken in it,
+ * under the key it keeps (`ElisionBlock.keeps`): it stays open once the
+ * selection leaves it, unless the user closes it.
+ */
+function keepOpen(key: string): void {
+  const acted =
+    key === rootKey
+      ? blocks.root
+      : key === groupKey
+        ? blocks.group
+        : key === formKey
+          ? blocks.form
+          : null;
+  if (acted !== null) drafts.open(acted.keeps, true);
+}
+
+/**
+ * Send `commands` in order, stopping at a refusal, which is kept to show in
+ * the part of `key`, whose block is first kept open.
+ */
 function send(key: string, commands: readonly (Command | null)[]): void {
+  keepOpen(key);
   let message: string | null = null;
   for (const command of commands) {
     if (command === null) continue;
@@ -246,7 +270,10 @@ function toggled(
             type="button"
             class="row"
             aria-pressed={isSelected(row.address)}
-            onclick={() => onselect(row.address)}
+            onclick={() => {
+              keepOpen(key);
+              onselect(row.address);
+            }}
           >
             <span>{row.name}</span>
             <span>{row.timeline}</span>
