@@ -361,7 +361,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `bare`, 8 quarters, fraction) given `graphical.elisions` holding
     `{id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1], width:
     {ratio: 0.25}}` (no `display`) reads with exactly that elision plus the
-    default `display: ["ellipsis"]`, the values kept as
+    default `display: ["ellipsis", "name"]` (the schema's default), the
+    values kept as
     the Fraction pairs they are; the complete form written by
     `saveManifest` reads back equal. Added as a block, renamed by a `set`
     of the root's `name`, the block's manifest still holds the same
@@ -1128,7 +1129,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    origin an entry, a label, wedge or boundary a part, the title the title,
    an alignment anchor's line its anchor, a stored elision's gap its
    elision (in a card, across a frame and carried into an ancestor card
-   alike), its ellipses and labels a part, every other line a timeline;
+   alike), its ellipsis and labels a part, every other line a timeline;
    `bundles/bundle_matchstamps.yaml` gives the anchors' lines and the
    label `{id: "anchor_1", part: ["name"]}`): the cross-check between the resolver and the
    elements. The bundle's address `{}` resolves to nothing there (the
@@ -2549,7 +2550,8 @@ An elision is `{id, timeline, start, end, name?, width?, display}` in its
 manifest's `graphical.elisions`: a stretch of one timeline's own axis, the
 timeline it lies on, with an ID unique across the manifest, its `display`
 words `ellipsis`, `name`, `id`, `coordinate`, `continuation` (default
-`[ellipsis]`). TimeToShare's validators refuse one naming no timeline
+`[ellipsis, name]`, the schema's: one ellipsis and the name label, which
+shows the elision's `name`, else its timeline's name). TimeToShare's validators refuse one naming no timeline
 (`elision_timeline`) and one whose stretch leaves its timeline or does not
 run forwards (`elision_stretch`); core must refuse what it is given with
 those codes and TimeToShare's messages itself, so a command never reaches
@@ -2584,15 +2586,15 @@ each part:
 - **Elements** are proven by `manifestElements`: the exact keys listed for
   stored elisions, read against the specification's tree (section 2.1: a
   card elision's gap held by its timeline's line, a group elision's by the
-  frame, each gap holding its ellipses and its labels) and its rule of
+  frame, each gap holding its ellipsis and its labels) and its rule of
   where elisions are drawn (section 8.9: a card elision in its root's
   ungrouped card and ancestor cards, never in a member's card; a group
   elision across each frame of a group its timeline lies in, with its
   labels, and carried into each ancestor card behind that frame, without
   them), and the selectors of the specification's examples matched over
-  them (`selectorMatches`). The ellipses of one gap share one key, so one
-  `ellipsis` key per gap stands for all of them (which rows a gap crosses
-  is the drawing's geometry).
+  them (`selectorMatches`). A gap draws one ellipsis, centred in it
+  (drawing.md section 6.6), so one `ellipsis` key per listed gap; where the
+  gap is drawn and how wide is the drawing's geometry.
 - **One journal entry** is proven by the store: the journal grows by
   exactly one entry for a list of elisions added, and one for all of a
   root's card elisions removed.
@@ -2601,7 +2603,7 @@ The manifests are fixtures given `graphical.elisions` before they are read
 (those that state elisions of their own, `group_elided_members.yaml`,
 `bundle_elisions_stored.yaml`, `bundle_groupstamp_shared_member.yaml`, are
 read as they are), each elision stated without `display`, so read with
-the default `[ellipsis]`. Fraction pairs are written `[n, d]`; a message
+the default `[ellipsis, name]`. Fraction pairs are written `[n, d]`; a message
 spells a value as canonical YAML does.
 
 1. **Minting skips an elision's ID.** `bare.yaml` (root `bare`, 8
@@ -2640,7 +2642,7 @@ spells a value as canonical YAML does.
 4. **`add` kind `elision` into a timeline.** On `bare.yaml` with
    `elision_1` from 1 to 2: `add {into: bare, elision: {start: [3, 1], end:
    [5, 1]}}` adds `{id: "elision_2", timeline: "bare", start: [3, 1], end:
-   [5, 1], display: [ellipsis]}` after `elision_1`; with `name:
+   [5, 1], display: [ellipsis, name]}` after `elision_1`; with `name:
    "Development"`, `width: {ratio: 0.25}` and `display: [coordinate, name,
    ellipsis]` the new elision holds that name and width and `display:
    [ellipsis, name, coordinate]`. Each refusal, at `[bare's key, "elision",
@@ -2759,22 +2761,26 @@ spells a value as canonical YAML does.
    is worded "elision 'elision_1'", has no editor (`no_editor`), and lies
    inside the timeline editor of `movement` and of `score`, not of `theme`
    (`contains`); the derived address of `movement` lies inside `movement`.
-   A stored group elision on `recording` resolves itself and its ellipses
-   (drawn across `group_1`'s frame and carried into `score`'s ancestor
-   card), and its `name` label where its display lists it. On `bare.yaml`
+   A stored group elision on `recording` stated without `display` (so
+   `[ellipsis, name]`) resolves itself, its ellipsis (drawn across
+   `group_1`'s frame and carried into `score`'s ancestor card) and its
+   `name` label (the frame draws its labels); stated with `display:
+   [ellipsis]`, its `name` part names nothing. On `bare.yaml`
    an elision with `display: []` resolves, its `ellipsis` and `name`
    parts name nothing; `{id: "bare", part: ["elision"]}` names nothing (an
    ungrouped root's card derives no elision).
 9. **Elements.** On `bundles/bundle_elisions_stored.yaml`, the `elision`
    and `ellipsis` keys and the labels held by a gap are, in order (each
    gap followed by what it holds): in the ancestor card of `score` (behind
-   `group_1`), the gap of `elision_1` with its ellipsis, held by `coda`'s
+   `group_1`), the gap of `elision_1` with its ellipsis and its `name`
+   label (its display the default `[ellipsis, name]`), held by `coda`'s
    line inside `score`'s children band, then the gaps of `elision_4` (with
    its ellipsis and its `id` label), `elision_5` (its `name` label) and
    `elision_6` (nothing), held by `score`'s line after its five bands; then
    the gap carried into that card of `elision_3` with its ellipsis and no
    label, keyed as in the frame; in the ancestor card of `session`,
-   `elision_7` with its ellipsis (listed whatever the card's
+   `elision_7` with its ellipsis and its `name` label (the default display
+   again; listed whatever the card's
    `elision-mode`, here `full`, which the cascade reads as it reads
    `display`), then `elision_3` carried; in `page`'s ungrouped card
    `elision_2` with its ellipsis and its `name` and `coordinate` labels;
@@ -2793,8 +2799,8 @@ spells a value as canonical YAML does.
    "ellipsis"}` one key per listed gap whose display lists `ellipsis`;
    `{element: "label", inside: "elision"}` exactly the labels listed. On
    `bundle_groupstamp_shared_member.yaml` `elision_1` on the shared member
-   `t` is listed once per frame, held by `g1`'s and then `g2`'s, each with
-   its ellipsis. On `bare.yaml` an elision `elision_1` on `bare` is listed
+   `t` (display `[ellipsis, name]`) is listed once per frame, held by
+   `g1`'s and then `g2`'s, each with its ellipsis and its `name` label. On `bare.yaml` an elision `elision_1` on `bare` is listed
    with `inside: [block, timeline]` (the ungrouped root's card draws it).
 
 ## Arrangements (`arrangement.test.ts`)

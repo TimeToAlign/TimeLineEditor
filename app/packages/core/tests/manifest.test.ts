@@ -190,7 +190,7 @@ describe("elisions", () => {
     const given = { id: "elision_1", timeline: "bare", start: [1, 2], end: [3, 1] };
     const graphical = { elisions: [{ ...given, width: { ratio: 0.25 } }] };
     const manifest = loadText(fileText({ ...value, graphical }));
-    const expected = [{ ...given, width: { ratio: 0.25 }, display: ["ellipsis"] }];
+    const expected = [{ ...given, width: { ratio: 0.25 }, display: ["ellipsis", "name"] }];
     expect(manifest.graphical?.elisions).toEqual(expected);
     expect(loadText(saveManifest(manifest, COMPLETE)).graphical?.elisions).toEqual(expected);
     let view = changed(createView(), {

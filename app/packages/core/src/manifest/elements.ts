@@ -283,10 +283,9 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
 
 /**
  * The gap of the stored elision `elision` lying on `timeline`, held by
- * `holder` (section 2.1), and what the gap holds: one `ellipsis` key at `{id:
- * E, part: ["ellipsis"]}` where its `display` lists `ellipsis`, standing for
- * its ellipses on every row that crosses it, which share that key; then,
- * where `labels` holds, the labels its `display` lists, `{id: E, part:
+ * `holder` (section 2.1), and what the gap holds: its one ellipsis, centred
+ * in the gap (section 6.6), at `{id: E, part: ["ellipsis"]}` where its
+ * `display` lists `ellipsis`; then, where `labels` holds, the labels its `display` lists, `{id: E, part:
  * [word]}` in the order of `ELISION_LABELS`.
  */
 function gapElements(
@@ -341,7 +340,7 @@ function gapElements(
  * card, section 8.9), each timeline's line (or node) then holds, after its
  * five bands, the gaps of the stored card elisions lying on it
  * (`elisionsUnder` the root) in canonical order, each `{id: E}` of type
- * `elision` with its ellipses and labels (`gapElements`), whatever the
+ * `elision` with its ellipsis and labels (`gapElements`), whatever the
  * card's `elision-mode`, which the cascade decides as it decides `display`;
  * a member's card in a frame draws none, nor does any card draw a group
  * elision on a timeline of its own (`manifestElements` lists those).
@@ -485,14 +484,14 @@ function memberElements(
  * whether a rule displays them or not, each followed by the gaps carried
  * into it from the frame `G` it stands behind (section 8.9), one per group
  * elision of `G` (`groupElisions`) in canonical order, each with its
- * ellipses and no label, keyed as the frame's own gap of it (held by the
+ * ellipsis and no label, keyed as the frame's own gap of it (held by the
  * frame), whose cascaded values it takes; each group's frame, its title
  * and its member drawings in display order; then the roots drawn without a
  * frame; the cards of the ancestor cards and of those roots holding the
  * gaps of the stored card elisions of their timelines (`memberElements`);
  * then, after every item, the gaps of the frames' group elisions, frame by
  * frame in drawing order and each frame's in canonical order, each `{id:
- * E}` of type `elision` held by the frame with its ellipses and its labels
+ * E}` of type `elision` held by the frame with its ellipsis and its labels
  * (`gapElements`), belonging to the elision's timeline; then the lines of the groupstamps across their
  * groups' frames (section 6.6), so that every drawn line has an address:
  * timestamp by timestamp in the order of `graphical.timestamps`, for each

@@ -48,7 +48,8 @@ const elision = (
   display?: readonly string[],
 ): Stated => ({ id, timeline, start, end, ...(display === undefined ? {} : { display }) });
 
-const DEFAULT_DISPLAY = ["ellipsis"];
+/** The schema's default display: the ellipsis and the name label. */
+const DEFAULT_DISPLAY = ["ellipsis", "name"];
 
 /** An elision as core reads it: complete, its `display` the default unless stated. */
 const complete = (stated: Stated) => ({ display: DEFAULT_DISPLAY, ...stated });
@@ -631,11 +632,13 @@ describe("elision addresses", () => {
       on: "recording",
       index: 0,
     });
+    // Stated without `display`: the default draws its ellipsis and its name label.
     expect(namesNothing(holding, element("elision_1", ["ellipsis"]))).toBeNull();
-    expect(namesNothing(holding, element("elision_1", ["name"]))).toBe("unknown_target");
-    const named = elision("elision_1", "recording", 1, 2, ["ellipsis", "name"]);
-    const labelled = viewWith(withElisions("groups/group_grandchild.yaml", named));
-    expect(namesNothing(labelled, element("elision_1", ["name"]))).toBeNull();
+    expect(namesNothing(holding, element("elision_1", ["name"]))).toBeNull();
+    const unnamed = elision("elision_1", "recording", 1, 2, ["ellipsis"]);
+    const unlabelled = viewWith(withElisions("groups/group_grandchild.yaml", unnamed));
+    expect(namesNothing(unlabelled, element("elision_1", ["ellipsis"]))).toBeNull();
+    expect(namesNothing(unlabelled, element("elision_1", ["name"]))).toBe("unknown_target");
     const gap = elision("elision_1", "bare", [1, 1], [2, 1], []);
     const bare = viewWith(withElisions("bare.yaml", gap));
     expect(namesNothing(bare, element("elision_1"))).toBeNull();
@@ -667,6 +670,7 @@ describe("elision elements", () => {
       // The ancestor card of `score`: `coda`'s, held inside the children band, then `score`'s.
       gap("elision_1"),
       ellipsis("elision_1"),
+      label("elision_1", "name"),
       gap("elision_4"),
       ellipsis("elision_4"),
       label("elision_4", "id"),
@@ -679,6 +683,7 @@ describe("elision elements", () => {
       // The ancestor card of `session`, whose `elision-mode` the cascade reads.
       gap("elision_7"),
       ellipsis("elision_7"),
+      label("elision_7", "name"),
       gap("elision_3"),
       ellipsis("elision_3"),
       // The ungrouped root `page`'s card.
@@ -751,8 +756,10 @@ describe("elision elements", () => {
       ].map((id) => ({ id, part: ["ellipsis"] })),
     );
     expect(matching({ element: "label", inside: "elision" })).toEqual([
+      { id: "elision_1", part: ["name"] },
       { id: "elision_4", part: ["id"] },
       { id: "elision_5", part: ["name"] },
+      { id: "elision_7", part: ["name"] },
       { id: "elision_2", part: ["name"] },
       { id: "elision_2", part: ["coordinate"] },
       { id: "elision_3", part: ["coordinate"] },
@@ -768,8 +775,10 @@ describe("elision elements", () => {
     ).toEqual([
       ["elision", ["block", "frame"]],
       ["ellipsis", ["block", "frame", "elision"]],
+      ["label", ["block", "frame", "elision"]],
       ["elision", ["block", "frame"]],
       ["ellipsis", ["block", "frame", "elision"]],
+      ["label", ["block", "frame", "elision"]],
     ]);
     // Both after every item: the last frame's member drawings come first.
     const lastCard = keys.findLastIndex((item) => item.type === "card");
