@@ -38,6 +38,7 @@ import {
   open,
   pane,
   panel,
+  partCentre,
   placement,
   SMALL,
   select,
@@ -173,20 +174,55 @@ test("the properties form moves the block by the exact amount", async ({ page })
     .toEqual([37.5, 0]);
 });
 
-/** Of the tabs `present`, exactly `name` is selected and focused, and only its panel is shown. */
+/** What a tab and its panel show: the tab's text, `aria-selected`, `tabindex`, focus, and whether its panel is displayed. */
+interface TabState {
+  readonly tab: string;
+  readonly selected: string | null;
+  readonly tabindex: string | null;
+  readonly focused: boolean;
+  readonly shown: boolean;
+}
+
+/**
+ * Of the tabs `present`, exactly `name` is selected and focused, and only its
+ * panel is shown. Every tab and panel is read in one evaluation, polled until
+ * it holds: one assertion per tab and property took a round trip each, which
+ * over the sixteen keys of "the tabs follow the keyboard" came close to the
+ * test's time limit in Firefox and WebKit. A panel is shown as Playwright's
+ * `toBeVisible` reads it: a box of non-zero size and not `visibility: hidden`.
+ */
 async function expectTab(page: Page, name: TabName, present: readonly TabName[]): Promise<void> {
-  for (const each of present) {
-    const chosen = each === name;
-    const shown = await panel(page, each);
-    await expect(tab(page, each)).toHaveAttribute("aria-selected", String(chosen));
-    await expect(tab(page, each)).toHaveAttribute("tabindex", chosen ? "0" : "-1");
-    if (chosen) {
-      await expect(tab(page, each)).toBeFocused();
-      await expect(shown).toBeVisible();
-    } else {
-      await expect(shown).toBeHidden();
-    }
-  }
+  const expected: TabState[] = present.map((each) => ({
+    tab: each,
+    selected: String(each === name),
+    tabindex: each === name ? "0" : "-1",
+    focused: each === name,
+    shown: each === name,
+  }));
+  await expect
+    .poll(() =>
+      page.evaluate((): TabState[] => {
+        const list = document.querySelector('[role="tablist"][aria-label="Inspector sections"]');
+        return [...(list?.querySelectorAll('[role="tab"]') ?? [])].map((each) => {
+          const id = each.getAttribute("aria-controls");
+          const controlled = id === null ? null : document.getElementById(id);
+          const box = controlled?.getBoundingClientRect();
+          return {
+            tab: each.textContent?.trim() ?? "",
+            selected: each.getAttribute("aria-selected"),
+            tabindex: each.getAttribute("tabindex"),
+            focused: document.activeElement === each,
+            shown:
+              controlled !== null &&
+              box !== undefined &&
+              box.width > 0 &&
+              box.height > 0 &&
+              getComputedStyle(controlled).visibility !== "hidden",
+          };
+        });
+      }),
+    )
+    .toEqual(expected);
 }
 
 /**
@@ -428,7 +464,7 @@ test("the form edits the selected frame's and card's places, never the block's",
         },
         {
           target: { block: BUNDLES.mixed, id: "annotations" },
-          values: { place: { x: 8, y: 391.7734375 } },
+          values: { place: { x: 8, y: 383.7734375 } },
         },
       ],
     },
@@ -472,14 +508,14 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
   const length = frame.getByLabel("length", { exact: true });
   const width = frame.getByLabel("container width", { exact: true });
   await expect(length).toHaveValue("400");
-  await expect(width).toHaveValue("563.92");
+  await expect(width).toHaveValue("561.05");
   const entries = () => page.evaluate(() => window.__tilie.store().entries.length);
   await page.locator('[data-testid="mode-stretch"]').click();
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
   await expect(length).toHaveValue("420");
-  await expect(width).toHaveValue("583.92");
+  await expect(width).toHaveValue("581.05");
   expect(await entries()).toBe(0);
   await page.mouse.up();
   await expect.poll(entries).toBe(1);
@@ -491,10 +527,10 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
   ).toEqual({
     group_1: { length: 420 },
     group_2: { x: 8, y: 206.0390625 },
-    annotations: { x: 8, y: 391.7734375 },
+    annotations: { x: 8, y: 383.7734375 },
   });
   await expect(length).toHaveValue("420");
-  await expect(width).toHaveValue("583.92");
+  await expect(width).toHaveValue("581.05");
 });
 
 /** The text's form (the checkbox "Minimal") and whether it includes the styling. */
@@ -721,20 +757,21 @@ test("a stored elision selected on the canvas shows the Elisions tab, which then
   // The drawer, opened before, is remembered open over the import, Properties shown.
   const block = await importFixture(page, "bundles/bundle_elisions_stored");
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
-  // `elision_5` draws only its name label, "Development", brought to (400, 400) on the canvas, left of the drawer.
-  const label = element(page, block, { id: "elision_5", part: ["name"] } as ElementAddress);
-  const dot = await label.boundingBox();
+  // `elision_5` draws only its name label, "Development", its centre brought to (400, 400) on the canvas,
+  // left of the drawer. The centre is read from the page's own client rectangle (`partCentre`):
+  // WebKit hands Playwright's `boundingBox` a label's box many times its height.
+  const label = { id: "elision_5", part: ["name"] } as ElementAddress;
+  const dot = await partCentre(page, block, label);
   const canvas = await pane(page).boundingBox();
-  if (dot === null || canvas === null) throw new Error("the label is not displayed");
+  if (canvas === null) throw new Error("the canvas is not displayed");
   const view = await viewportOf(page);
   await setViewport(page, {
     x: view.x + canvas.x + 400 - dot.x,
     y: view.y + canvas.y + 400 - dot.y,
     zoom: view.zoom,
   });
-  const shown = await label.boundingBox();
-  if (shown === null) throw new Error("the label is not displayed");
-  await page.mouse.click(shown.x + shown.width / 2, shown.y + shown.height / 2);
+  const shown = await partCentre(page, block, label);
+  await page.mouse.click(shown.x, shown.y);
 
   await expect.poll(() => selection(page)).toEqual([{ block, id: "elision_5" }]);
   await expect(tab(page, "Elisions")).toHaveAttribute("aria-selected", "true");

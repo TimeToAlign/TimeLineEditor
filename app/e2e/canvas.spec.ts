@@ -736,7 +736,7 @@ test.describe("keyboard", () => {
       );
     await page.getByRole("button", { name: "Zoom in" }).focus();
     const visited: (string | null)[] = [];
-    for (let n = 0; n < 7; n += 1) {
+    for (let n = 0; n < 8; n += 1) {
       await page.keyboard.press("ArrowDown");
       visited.push(await focused());
     }
@@ -744,12 +744,13 @@ test.describe("keyboard", () => {
       "Zoom out",
       "Fit to view",
       "lock",
+      "arrange",
       "marquee",
       "coordinates",
       "matches",
       "Zoom in",
     ]);
-    for (let n = 0; n < 4; n += 1) await page.keyboard.press("ArrowUp");
+    for (let n = 0; n < 5; n += 1) await page.keyboard.press("ArrowUp");
     expect(await focused()).toBe("lock");
     await page.keyboard.press("ArrowRight");
     expect(await focused()).toBe("lock");
@@ -854,7 +855,9 @@ test.describe("shell", () => {
     return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height };
   }
 
-  test("the canvas controls sit bottom-left in the pane with our six buttons", async ({ page }) => {
+  test("the canvas controls sit bottom-left in the pane with our eight buttons", async ({
+    page,
+  }) => {
     expect(
       await page.evaluate(
         () =>
@@ -886,6 +889,7 @@ test.describe("shell", () => {
       [null, "Zoom out", "Zoom out (-)"],
       [null, "Fit to view", "Fit to view (0)"],
       ["lock", "Lock the canvas", "Lock the canvas: dragging pans instead of moving blocks (L)"],
+      ["arrange", "Arrange", "Arrange the blocks"],
       [
         "marquee",
         "Add to selection (marquee)",

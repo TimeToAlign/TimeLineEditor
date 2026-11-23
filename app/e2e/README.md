@@ -398,11 +398,13 @@ while it is selected) or, on the margin, the block; Delete and Backspace
 remove the selection as one `remove`, a selected timeline marking its
 descendants as affected; keys outside the arranger change nothing, arrows
 nudge by 8 and 64 and the z-order keys reorder, one command each; the
-canvas controls, bottom-left in the pane, are six buttons, top to bottom
-Zoom in, Zoom out, Fit to view, the lock, the marquee toggle and Show
-coordinates, each with its label and its title, and the arrow keys move
-the focus through them in that order, wrapping, without a nudge or a
-command; the zoom and fit keys; and the inspector drawer, closed on load
+canvas controls, bottom-left in the pane, are eight buttons on the
+arranger, top to bottom Zoom in, Zoom out, Fit to view, the lock, the
+Arrange toggle (titled "Arrange the blocks" there), the marquee toggle,
+Show coordinates and Show matches, each with its label and its title (the
+set `docs/architecture.md` names for the canvas controls), and the arrow
+keys move the focus through them in that order, wrapping, without a nudge
+or a command; the zoom and fit keys; and the inspector drawer, closed on load
 and opening beside the pane without moving the view. Every expected
 journal entry is written out whole and compared with the journal.
 
@@ -610,9 +612,12 @@ Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
 and the arrow, Home and End keys move the selection and the focus over the
-six tabs (the level tab, Properties, Metadata, Manifest, Journal,
-Timestamp) with
-and without an editor open; with the level tab chosen,
+eight tabs (the level tab, Properties, Metadata, Manifest, Journal,
+Timestamp, Matchstamp, Elisions) with and without an editor open, each key
+followed by one polled reading of every tab and its panel (text,
+`aria-selected`, `tabindex`, focus, the panel displayed as `toBeVisible`
+reads it), so the sixteen keys stay well inside the time limit in every
+engine; with the level tab chosen,
 entering the bundle editor keeps it shown, renamed from "Arranger" to
 "Bundle". The properties form: a value moves the block by
 exactly that amount, the fields follow a drag and a resize live (rounded to
@@ -646,15 +651,20 @@ the drawn wedge (its `points` differ from the unturned ones) while the
 journal and `bare`'s rules stay as they were; Escape then draws the
 unturned wedge again and sets the slider back to "0 degrees", and moving
 on and releasing changes neither the wedge, the slider, the journal nor
-the rules. A second such drag turns the wedge before the release and
+the rules (Firefox ends a native range drag on the release by setting the
+value at the pointer and firing `input` and `change`; the control ignores
+them in a drag Escape ended). A second such drag turns the wedge before the release and
 journals exactly one command on release, the rule stating the slider's
 value then (read from the slider, a pixel's value being the browser's
 own), and the wedge keeps the `points` it showed before the release.
 A selected stored elision selects the Elisions tab: with the drawer
 remembered open and Properties shown, `bundle_elisions_stored` imported,
 a click on the name label "Development" of `elision_5` (the only part it
-draws; the canvas is moved so that the label lies at (400, 400) on it,
-left of the drawer) selects exactly `{block, id: "elision_5"}` and shows
+draws; the canvas is moved so that the label's centre lies at (400, 400)
+on it, left of the drawer, the centre read from the page's own client
+rectangle, `partCentre`: WebKit hands Playwright's `boundingBox` this
+label's box 1,500 px left of where it is drawn, so a click there pressed
+the block's rectangle) selects exactly `{block, id: "elision_5"}` and shows
 the Elisions tab, its form's block expanded; Properties chosen then
 stays, and stays once the selection is emptied. Selected again, the
 elision shows the Elisions tab again, which stays when the selection is
@@ -1549,8 +1559,8 @@ hook at `{block: "bmixed0000"}`, `{block: "bmixed0000", id: "group_1"}` and
 `{block: "bmixed0000", id: "score"}`. With the drawer open and Properties chosen, entering the bundle, the
 group and the timeline editor keeps Properties shown while the first tab
 reads "Bundle", "Group", "Timeline", the tab list reading the level's word,
-Properties, Metadata, Manifest, Journal and Timestamp in that order at
-every level, and Done three times gives "Arranger"
+Properties, Metadata, Manifest, Journal, Timestamp, Matchstamp and
+Elisions in that order at every level, and Done three times gives "Arranger"
 back, Properties still shown. With the drawer closed, an editor entered
 shows the level tab when the drawer next opens, whether the canvas opens
 it (the first editor) or the viewer does (an inner editor entered after the
@@ -1563,6 +1573,8 @@ family of the line's computed `font-family`, compared without quotes:
 Chromium serialises a family name holding spaces in double quotes, Firefox
 and WebKit without them. The spec writes a screenshot of
 the level panel at each of the four levels for review; it compares none.
+They are written into the test's output folder, so that folder is left
+behind after a passing run too, holding the four images and no trace.
 
 **`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced
