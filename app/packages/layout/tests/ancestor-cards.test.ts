@@ -33,6 +33,7 @@ import {
   edit,
   FULL_CARDS,
   HIDDEN_ANCESTOR_CARDS,
+  itemsOf,
   loadFile,
   manifestNames,
   metrics,
@@ -860,4 +861,124 @@ describe("the hover readers on the lines of the ancestor card of group_parent_bo
       style: own?.style,
     });
   });
+});
+
+describe("no card overlaps another item's", () => {
+  /** The record of the item keyed `{item: id}`. */
+  const itemOf = (drawing: Drawing, id: string): DrawnBox => {
+    const found = drawing.boxes.find(
+      (box) => box.key !== null && samePlaceKey(box.key, { item: id }),
+    );
+    if (found === undefined) throw new Error(`no item ${id}`);
+    return found;
+  };
+  /** The one ancestor card behind the frame of `group`. */
+  const behindOf = (drawing: Drawing, group: string): DrawnBox => {
+    const found = ancestorsOf(drawing).filter((box) => box.ancestor?.group === group);
+    if (found.length !== 1) throw new Error(`${group} has ${found.length} ancestor cards`);
+    return found[0] as DrawnBox;
+  };
+  const bottomOf = (box: DrawnBox) => box.y + box.height;
+
+  it("moves the item after a card reaching below its frame down by the reach", () => {
+    const drawing = drawFixture("bundles/bundle_mixed");
+    const card = behindOf(drawing, "group_2");
+    const excerpt = drawing.boxes.find(
+      (box) => box.key !== null && samePlaceKey(box.key, { item: "group_2", member: "excerpt" }),
+    );
+    expect(card.y).toBe(288.3203125);
+    expect(excerpt?.y).toBe(288.3203125);
+    expect(card.height).toBe(67.4765625 + 19.9765625);
+    expect(card.height).toBe(87.453125);
+    expect(bottomOf(card)).toBe(375.7734375);
+    expect(bottomOf(itemOf(drawing, "group_2"))).toBe(363.796875);
+    expect(itemOf(drawing, "annotations").y).toBe(383.7734375);
+    expect(drawing.height).toBe(465.62890625);
+  });
+
+  it("moves nothing but the item after the card, by exactly the reach", () => {
+    const shownCard = drawFixture("bundles/bundle_mixed");
+    const whole = drawFixture("bundles/bundle_mixed", [FULL_CARDS]);
+    expect(bottomOf(behindOf(whole, "group_2")) <= bottomOf(itemOf(whole, "group_2"))).toBe(true);
+    expect(itemOf(whole, "annotations").y).toBe(371.796875);
+    const annotations = itemOf(shownCard, "annotations");
+    const before = itemOf(whole, "annotations");
+    const lower = 11.9765625;
+    expect(annotations.y - before.y).toBe(lower);
+    const dx = shownCard.origin.x - whole.origin.x;
+    expect(annotations.item?.place.y).toBe(383.7734375);
+    expect(annotations.item?.stated).toEqual(before.item?.stated);
+    expect(annotations).toEqual({
+      ...placedBox(before, dx, lower),
+      range: annotations.range,
+      item: annotations.item,
+    });
+    expect(annotations.range.end - annotations.range.start).toBe(
+      before.range.end - before.range.start,
+    );
+    const others = (drawing: Drawing) =>
+      drawing.boxes.filter(
+        (box) =>
+          box.kind !== "block" &&
+          box.ancestor === undefined &&
+          box.key !== null &&
+          box.key.item !== "annotations",
+      );
+    // Their ranges differ: the card's gaps draw elements of their own.
+    const placeOf = ({ range: _, ...rest }: DrawnBox) => rest;
+    expect(others(shownCard).map(placeOf)).toEqual(
+      others(whole).map((box) => placeOf(placedBox(box, dx, 0))),
+    );
+  });
+
+  it("moves a frame whose card rises above it down by the rise", () => {
+    const drawing = drawFixture("bundles/bundle_elided_layerit");
+    const frames = ["group_1", "group_2", "group_3", "group_4"].map((id) => itemOf(drawing, id));
+    const cards = ["group_1", "group_2", "group_3", "group_4"].map((id) => behindOf(drawing, id));
+    const [f1, f2, f3, f4] = frames as [DrawnBox, DrawnBox, DrawnBox, DrawnBox];
+    const [c1, c2, c3, c4] = cards as [DrawnBox, DrawnBox, DrawnBox, DrawnBox];
+    expect(frames.map((frame) => frame.height)).toEqual([
+      191.5390625, 191.5390625, 259.4921875, 191.5390625,
+    ]);
+    const rise1 = f1.y - c1.y;
+    expect(drawing.origin.y).toBe(rise1);
+    expect(f1.y).toBe(rise1 + 28.8046875);
+    expect(c2.y).toBe(rise1 + 228.34375);
+    expect(c2.y).toBe(f1.y + 191.5390625 + 8);
+    expect(f2.y - c2.y > 0).toBe(true);
+    expect(c3.y >= f3.y).toBe(true);
+    expect(f3.y).toBe(f2.y + 191.5390625 + 8);
+    expect(f4.y - c4.y > 0).toBe(true);
+    expect(c4.y).toBe(f3.y + 259.4921875 + 8);
+  });
+
+  it.each(manifestNames())(
+    "%s: each item lies 8 below every extent before it, its cards included",
+    (name) => {
+      const drawing = drawFixture(name);
+      const extents = new Map<string, { top: number; bottom: number }>();
+      for (const box of drawing.boxes) {
+        if (box.key === null || box.kind === "band") continue;
+        const item =
+          box.ancestor === undefined
+            ? box.item === undefined
+              ? null
+              : box.key.item
+            : box.key.item;
+        if (item === null) continue;
+        const known = extents.get(item);
+        extents.set(item, {
+          top: Math.min(known?.top ?? box.y, box.y),
+          bottom: Math.max(known?.bottom ?? bottomOf(box), bottomOf(box)),
+        });
+      }
+      const order = itemsOf(drawing).map((box) => box.key?.item ?? "");
+      let lowest: number | undefined;
+      for (const id of order) {
+        const extent = extents.get(id) as { top: number; bottom: number };
+        if (lowest !== undefined) expect([id, extent.top]).toEqual([id, lowest + 8]);
+        lowest = Math.max(lowest ?? extent.bottom, extent.bottom);
+      }
+    },
+  );
 });

@@ -144,6 +144,17 @@ export interface Arranged {
 }
 
 /**
+ * How far the displayed ancestor cards behind a frame reach beyond it (section 8.8, No room), in
+ * its item coordinates: `top`, the least top of its cards and the frame (0 or less), and `bottom`,
+ * the largest bottom edge of its cards and the frame, shadows not counted. Keyed by the frame's
+ * place key text.
+ */
+export interface Reach {
+  readonly top: number;
+  readonly bottom: number;
+}
+
+/**
  * The title at `address` of a group or the manifest named `name`, held by
  * `holder` (section 8.1): its name, else its whole ID, unless its
  * style's `content` replaces it; undefined when it is not displayed. Its
@@ -236,6 +247,14 @@ function cardOf(
  * none of whose cards `arranged` pads is taken from `previous` where that
  * holds it, its content kept. An arranged block's items are taken in the
  * order `arranged` gives instead of drawing order, each at its default place.
+ *
+ * An item behind whose frame ancestor cards are drawn reaches as far as
+ * `reaches` gives under its place key text (section 8.8, No room): its
+ * default `y` lies so far lower that its cards' top lies the placement's
+ * `spacing` below the largest bottom edge of the items before it (the first
+ * item keeps its default `y`), and its bottom edge for the items after it
+ * is its cards' where they reach lower than its frame, so no card overlaps
+ * another item's.
  */
 export function placeItems(
   context: Context,
@@ -244,6 +263,7 @@ export function placeItems(
   aligned: AlignedRows = new Map(),
   previous: readonly Item[] = [],
   arranged: Arranged = {},
+  reaches: ReadonlyMap<string, Reach> = new Map(),
 ): Item[] {
   const padding = arranged.padding ?? new Map<string, number>();
   const free = arranged.order === undefined;
@@ -272,10 +292,14 @@ export function placeItems(
         ? { cards: before.cards, height: before.content, elisions: before.elisions, DG: before.DG }
         : content(length, spacing, margin);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
+    const reach = reaches.get(placeKeyText(key));
     const x = (free ? stated.x : undefined) ?? P;
     const y =
-      (free ? stated.y : undefined) ?? (lowest === undefined ? top : lowest + placement.spacing);
-    const bottom = y + scale * height;
+      (free ? stated.y : undefined) ??
+      (lowest === undefined
+        ? top
+        : lowest + placement.spacing - scale * Math.min(0, reach?.top ?? 0));
+    const bottom = y + scale * Math.max(height, reach?.bottom ?? height);
     lowest = lowest === undefined ? bottom : Math.max(lowest, bottom);
     // A block-held card is as high as its item.
     const cards = frame === null ? laid.cards.map((card) => ({ ...card, height })) : laid.cards;

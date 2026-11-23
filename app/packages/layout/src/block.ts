@@ -7,7 +7,13 @@
  * and is drawn at its own place and scale.
  */
 
-import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/tilie-core";
+import {
+  indexOf,
+  isNamed,
+  type Manifest,
+  placeKeyText,
+  TITLE_ADDRESS,
+} from "@timetoalign/tilie-core";
 import {
   type ArrangementConflict,
   BLOCK_KEY,
@@ -28,7 +34,7 @@ import {
 import { rowLayout } from "./block/arrangement.ts";
 import { emitDrawing } from "./block/emit.ts";
 import { type LaidItem, laidOut } from "./block/items.ts";
-import { placeItems, titleOf } from "./block/places.ts";
+import { placeItems, type Reach, titleOf } from "./block/places.ts";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import { Cascade } from "./cascade.ts";
 import { F, P } from "./constants.ts";
@@ -46,7 +52,8 @@ import type { Context, Holder } from "./traversal.ts";
  * laid out alone on their elided axes, reading the frames so laid out, and
  * the member cards below them laid out again with their ancestor rows at the
  * heights of those layouts (section 8.3); the displayed ancestor cards are
- * laid out behind their frames (section 8.8); the block is grown around them all; the lines its groupstamps
+ * laid out behind their frames (section 8.8), and every item after a frame whose cards reach
+ * beyond it placed again below them; the block is grown around them all; the lines its groupstamps
  * draw across the members of their groups' frames, then the alignment
  * anchors of its named MatchStamps are drawn last, over everything (section
  * 8.7).
@@ -104,20 +111,40 @@ export function draw(
       before.horizontal,
       (at) => rootOf(at)?.layout,
     );
-    const final =
+    const rows =
       aligned.size === 0
         ? before
         : laidOut(context, placeItems(context, block, Pt, aligned, placed, order), measure);
-    laid = final.laid;
-    ancestors = ancestorCards(
+    const behindRows = ancestorCards(
       context,
       block,
-      final.items,
-      final.drawings,
-      final.horizontal,
+      rows.items,
+      rows.drawings,
+      rows.horizontal,
       measure,
       rootOf,
     );
+    // An item lies so low that the ancestor cards behind the frames before it overlap none of its
+    // own, nor its frame or card (section 8.8, No room); nothing but the items' places moves.
+    const reaches = reachesOf(behindRows);
+    const moved =
+      reaches.size === 0
+        ? rows.items
+        : placeItems(context, block, Pt, new Map(), rows.items, order, reaches);
+    const same = moved.every((item, index) => item.y === rows.items[index]?.y);
+    const final = same ? rows : laidOut(context, moved, measure);
+    laid = final.laid;
+    ancestors = same
+      ? behindRows
+      : ancestorCards(
+          context,
+          block,
+          final.items,
+          final.drawings,
+          final.horizontal,
+          measure,
+          rootOf,
+        );
   }
   const after = (axes: readonly DrawnAxis[], boxes: readonly DrawnBox[]) => [
     ...groupstampElements(manifest, axes, boxes),
@@ -130,6 +157,24 @@ export function draw(
     measure,
   );
   return arrangement === undefined ? drawing : { ...drawing, arrangement };
+}
+
+/**
+ * How far the displayed ancestor cards behind each frame reach, in its item coordinates (section
+ * 8.8, No room), by the frame's place key text: their least top (0 where none rises above the
+ * frame) and their largest bottom edge, shadows not counted; none for a frame without them.
+ */
+function reachesOf(cards: readonly LaidAncestorCard[]): Map<string, Reach> {
+  const reaches = new Map<string, Reach>();
+  for (const card of cards) {
+    const key = placeKeyText({ item: card.group });
+    const known = reaches.get(key) ?? { top: 0, bottom: Number.NEGATIVE_INFINITY };
+    reaches.set(key, {
+      top: Math.min(known.top, card.y),
+      bottom: Math.max(known.bottom, card.y + card.height),
+    });
+  }
+  return reaches;
 }
 
 /**

@@ -19,8 +19,9 @@ root, `origin` at 0 and `length` at its length (none for an unknown
 length), each drawing its wedge and its coordinate label, and a manifest
 built through commands starts from a root that carries them too (`bare`'s,
 moved to the new root and its length); the corpus fixtures carry none. The
-defaults show every ancestor card (section 8.8), which takes no room but
-moves the origin: a test whose subject is not the ancestor card (the
+defaults show every ancestor card (section 8.8), which takes no room in
+its frame but moves the origin, and moves the items after its frame where
+it reaches beyond it ("Ancestor cards" point 14): a test whose subject is not the ancestor card (the
 ancestor lines, the block, places, items, records, unknown lengths) draws a
 group with a child member with the application layer
 `HIDDEN_ANCESTOR_CARDS` (`{element: ancestor_card}` `display: none`), so
@@ -1376,6 +1377,54 @@ the chevrons of the ancestor line running on to the right, but in
    the second run ending where `middle`'s line ends, at the members' drawn
    end, not `OR = 40` further right; `piece`'s line element from
    `60.33544921875` to `764.0390625 + 4w = 776.0390625`.
+14. **No card overlaps another item's** (section 8.8, No room, as this
+   package draws it: an ancestor card takes no room in its frame, but an
+   item's default `y` lies the placement's spacing below the lowest edge of
+   the items before it and of the ancestor cards behind their frames, and
+   so low that its own ancestor cards' tops lie that spacing below too; the
+   first item keeps its default `y`, the block growing upwards for its
+   cards; shadows count nowhere, as in section 8.6). What proves it: the
+   item that follows a card reaching below its frame moves down by exactly
+   the reach, and nothing else moves; a frame whose card rises above it
+   moves down by exactly the rise; and over every fixture no two items'
+   extents meet.
+   - **Below** (`bundle_mixed`, the defaults). `recording`'s card behind
+     `group_2` is `excerpt`'s card's rows with one line more: above
+     `recording`'s line it holds `excerpt`'s row as `excerpt`'s card holds
+     `excerpt`'s line above `recording`'s ancestor row, so its top is
+     `excerpt`'s card's, 288.3203125 ("The block" below); below
+     the line its markers band holds the derived gaps' name labels, one
+     line, reaching `w/2 + 13 + 2 + h(9) = 26.9765625` below the line
+     ("Elisions" point 1) where the ancestor row reaches its half pitch 7:
+     `67.4765625 + 19.9765625 = 87.453125` high, its bottom at
+     375.7734375, 11.9765625 below `group_2`'s (`206.0390625 +
+     157.7578125 = 363.796875`). So `annotations`' card lies at `375.7734375
+     + 8 = 383.7734375`, not 371.796875, and `H = 383.7734375 + 71.85546875
+     + 2 + 8 = 465.62890625`. Against the drawing with the card's gaps
+     hidden (`FULL_CARDS`, where the card ends inside its frame's bottom
+     and `annotations` lies at 371.796875): `annotations`' record lies
+     11.9765625 lower, the same size and drawing as many elements, and
+     every other record of an item or a member's card lies where it lies
+     there (its range aside, since the card's gaps draw elements of their
+     own), both moved by the difference of the two place origins.
+   - **Above** (`bundle_elided_layerit`, the defaults, four frames each
+     191.5390625 high but `group_3`, 259.4921875; the title's `Pt =
+     28.8046875`). The Suite's card behind `group_1` rises `ρ1` above its
+     frame and the block grows upwards by it (`origin.y = ρ1`, the first
+     item keeping its default `y`); `group_2`'s card rises `ρ2`, so its top
+     lies 8 below `group_1`'s frame, the lower of the first frame and its
+     card: `ρ1 + 28.8046875 + 191.5390625 + 8 = ρ1 + 228.34375` in the
+     block, and `group_2`'s frame `ρ2` lower. `group_3`'s card lies below
+     its frame's top, so the frame lies 8 below `group_2`'s; `group_4`'s
+     card rises again and its frame lies `ρ4` lower than 8 below
+     `group_3`'s. `ρ` is each card's record top less its frame's (the
+     cards' rows are the subject of "Elisions", not of this point).
+   - **Every fixture** drawn with the defaults: taking each item with the
+     ancestor cards behind it as one extent from its least top to its
+     largest bottom (records, shadows not counted), each item after the
+     first lies exactly the placement's spacing 8 below the largest bottom
+     of the extents before it, at its least top, compared in the block's
+     binary64 exactly as the layout sums it.
 
 ## Elisions (`elisions.test.ts`)
 
