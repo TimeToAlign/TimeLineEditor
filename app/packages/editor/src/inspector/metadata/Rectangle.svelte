@@ -3,7 +3,7 @@
  * One tile of the Metadata tab: one verb about one thing, collapsed to its
  * sentence (the verb in words and the thing's label, with the thumbnail of
  * the first of its things the lookup finds an image for; for the first tile, `sentence`: what the element
- * is). One click on the expand button shows its pairs, property and value
+ * is). One click on the expand button (`DisclosureButton`) shows its pairs, property and value
  * as the file writes them, IRIs as slugs with the full IRI as their title,
  * each a separate row, each value a link out where it is a web address,
  * each with a Provenance button opening its paradata, its beliefs and the
@@ -15,6 +15,7 @@
 import { canonicalText } from "@timetoalign/tilie-core";
 import type { Belief } from "@timetoalign/timetoshare";
 import { userOf } from "../../user.svelte.ts";
+import DisclosureButton from "../DisclosureButton.svelte";
 import Provenance from "../Provenance.svelte";
 import { beliefOf } from "../provenance.ts";
 import type { Frame, Pair, RectangleView } from "./frame.ts";
@@ -68,17 +69,7 @@ const image = $derived(thumbnails.imageOf(rectangle.things));
     {#if empty}
       <span class="sentence">{sentence ?? rectangle.heading}</span>
     {:else}
-      <button
-        type="button"
-        class="toggle"
-        data-testid="metadata-expand"
-        aria-expanded={expanded}
-        aria-controls="{uid}-pairs"
-        onclick={() => (expanded = !expanded)}
-      >
-        <svg class="chevron" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-          <path d="M6 3.5 10.5 8 6 12.5" />
-        </svg>
+      <DisclosureButton bind:expanded controls="{uid}-pairs" testid="metadata-expand">
         {#if resolvable}
           <span class="thumbnail" {@attach thumbnails.load(rectangle.things)}>
             {#if image !== null}<img src={image} alt="" width="28" height="28" />{/if}
@@ -94,7 +85,7 @@ const image = $derived(thumbnails.imageOf(rectangle.things));
             {/if}
           </span>
         {/if}
-      </button>
+      </DisclosureButton>
     {/if}
   </h3>
   {#if empty}
@@ -162,40 +153,6 @@ const image = $derived(thumbnails.imageOf(rectangle.things));
     font-weight: normal;
   }
 
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    width: 100%;
-    padding: 0.1rem 0;
-    border: none;
-    background: none;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .chevron {
-    flex: none;
-    fill: none;
-    stroke: #1d4f91;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 120ms ease-out;
-  }
-
-  .toggle[aria-expanded="true"] .chevron {
-    transform: rotate(90deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .chevron {
-      transition: none;
-    }
-  }
-
   .thumbnail:empty {
     display: none;
   }
@@ -251,7 +208,7 @@ const image = $derived(thumbnails.imageOf(rectangle.things));
     color: #1d4f91;
   }
 
-  button:not(.toggle) {
+  button {
     padding: 0.1rem 0.45rem;
     border: 1px solid #bdbdbd;
     border-radius: 3px;
