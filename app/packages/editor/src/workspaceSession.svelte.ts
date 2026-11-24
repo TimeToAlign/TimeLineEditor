@@ -129,7 +129,7 @@ const OPENED_KINDS: readonly FileKind[] = [WORKSPACE_FILE, MANIFEST_FILE];
 
 /** Said once, after the first save that downloaded the workspace. */
 const SAVED_AS_DOWNLOAD =
-  "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.";
+  "Saved as a download: this browser cannot write files where they lie; TiLiE started on your own computer (tilie) saves in place.";
 
 export interface SessionOptions {
   /** Show a message at its level (`Messages.post`); editing goes on. */

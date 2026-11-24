@@ -126,7 +126,8 @@ into the file again without asking. Saved without a rename, a workspace
 keeps its file's name (restored from autosave as `score.tle.json`, saved
 as `score.tle.json`). The first save that downloads (no save picker, no
 server) informs once "Saved as a download: this browser cannot write
-files; start TiLiE with tilie-server to save in place."; a second
+files where they lie; TiLiE started on your own computer (tilie) saves in
+place."; a second
 download says nothing more. A save requested while one is under way is
 ignored.
 A workspace file stating no name opens named `untitled`, whatever the

@@ -350,7 +350,7 @@ describe("opening and saving", () => {
     expect([fileName(), title()]).toEqual(["Eroica sketches.tle.json", "Eroica sketches"]);
     await vi.waitFor(() =>
       expect(informed()).toEqual([
-        "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.",
+        "Saved as a download: this browser cannot write files where they lie; TiLiE started on your own computer (tilie) saves in place.",
       ]),
     );
     renameInTitle("Variations");
@@ -362,7 +362,7 @@ describe("opening and saving", () => {
       ]),
     );
     expect(informed()).toEqual([
-      "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.",
+      "Saved as a download: this browser cannot write files where they lie; TiLiE started on your own computer (tilie) saves in place.",
     ]);
   });
 
