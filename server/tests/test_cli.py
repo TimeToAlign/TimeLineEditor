@@ -1,18 +1,30 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import shlex
 import signal
 import socket
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 from subprocess import Popen
 
 import pytest
 
-from tilie_server.cli import DEFAULT_PORT, HOST, choose_port, free_port
+from tilie_server.cli import (
+    DEFAULT_PORT,
+    HOST,
+    choose_port,
+    free_port,
+    parse_args,
+    public_notice,
+    settings_for,
+)
+from tilie_server.settings import ServerSettings
 
 SHUTDOWN_TIMEOUT = 5
 NOTICE = (
@@ -38,7 +50,7 @@ def run_tilie(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_check_succeeds_with_a_built_app(
-    tmp_path: Path, installed_health: dict[str, str | None]
+    tmp_path: Path, installed_health: dict[str, str | bool | None]
 ) -> None:
     (tmp_path / "index.html").write_text("<!doctype html><title>TimeLineEditor</title>")
     port = free_port()
@@ -97,7 +109,7 @@ def test_a_requested_port_is_kept_even_while_it_is_in_use() -> None:
 
 
 def test_without_a_port_the_command_falls_back_while_8000_is_in_use(
-    tmp_path: Path, installed_health: dict[str, str | None]
+    tmp_path: Path, installed_health: dict[str, str | bool | None]
 ) -> None:
     (tmp_path / "index.html").write_text("<!doctype html>")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -244,3 +256,181 @@ def test_a_shutdown_signal_stops_the_server_gracefully(
         "INFO:     Application shutdown complete.\n"
         f"INFO:     Finished server process [{pid}]\n"
     )
+
+
+PUBLIC_REFUSAL = (
+    "tilie: error: argument {option}: not allowed with argument --public-host\n"
+)
+
+
+@pytest.mark.parametrize("option", ["--check", "--root", "--no-browser"])
+def test_public_mode_refuses_the_local_options(
+    tmp_path: Path, option: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    given = [option, str(tmp_path)] if option == "--root" else [option]
+    with pytest.raises(SystemExit) as stopped:
+        parse_args(["--public-host", "tilie.example.org", *given])
+    assert stopped.value.code == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.endswith(PUBLIC_REFUSAL.format(option=option))
+
+
+def test_an_empty_public_host_is_refused(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        parse_args(["--public-host", ""])
+    assert stopped.value.code == 2
+    assert capsys.readouterr().err.endswith(
+        "tilie: error: argument --public-host: a host name is not empty\n"
+    )
+
+
+def test_a_public_command_line_builds_the_public_settings() -> None:
+    args = parse_args(
+        [
+            "--public-host",
+            "tilie.example.org",
+            "--public-host",
+            "localhost:8000",
+            "--port",
+            "8001",
+        ]
+    )
+    settings = settings_for(args, 8001)
+    assert settings == ServerSettings(
+        host="0.0.0.0",
+        port=8001,
+        token=None,
+        static_dir=None,
+        root=Path.home(),
+        public_hosts=("tilie.example.org", "localhost:8000"),
+        files=False,
+        body_limit=16 * 1024 * 1024,
+    )
+    assert public_notice(settings) == (
+        "tilie: public mode on port 8001, answering as "
+        "tilie.example.org, localhost:8000; no token, no file access"
+    )
+
+
+def test_a_local_command_line_builds_the_local_settings() -> None:
+    settings = settings_for(parse_args(["--port", "8001"]), 8001)
+    assert settings.token is not None
+    assert re.fullmatch(r"[A-Za-z0-9_-]{43}", settings.token)
+    assert settings == ServerSettings(
+        host="127.0.0.1",
+        port=8001,
+        token=settings.token,
+        static_dir=None,
+        root=Path.home(),
+        public_hosts=(),
+        files=True,
+        body_limit=None,
+    )
+
+
+OPENER_TIMEOUT = 60.0
+"""A safety net only: how long the local control may take to open its
+browser before the test gives up. No duration is measured."""
+
+
+def browser_writing(marker: Path) -> dict[str, str]:
+    """An environment whose ``BROWSER`` writes the URL it opens into ``marker``."""
+    write = "import pathlib, sys; pathlib.Path(sys.argv[1]).write_text(sys.argv[2])"
+    command = shlex.join([sys.executable, "-c", write, str(marker)]) + " %s"
+    return {**os.environ, "BROWSER": command}
+
+
+@posix_signals
+def test_public_mode_serves_without_a_token_and_opens_no_browser(
+    tmp_path: Path, installed_health: dict[str, str | bool | None]
+) -> None:
+    editor = tmp_path / "editor"
+    editor.mkdir()
+    (editor / "index.html").write_text("<!doctype html>")
+    marker = tmp_path / "opened"
+    port = free_port()
+    host = f"localhost:{port}"
+    notice = (
+        f"tilie: public mode on port {port}, answering as {host}; "
+        "no token, no file access\n"
+    )
+    process = subprocess.Popen(
+        [
+            str(Path(sys.executable).with_name("tilie")),
+            "--public-host",
+            host,
+            "--port",
+            str(port),
+            "--static-dir",
+            str(editor),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=browser_writing(marker),
+    )
+    try:
+        assert process.stderr is not None
+        startup = []
+        while (line := process.stderr.readline()) not in (notice, ""):
+            startup.append(line)
+        assert line == notice, "".join(startup)
+        health = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/health", headers={"Host": host}
+        )
+        with urllib.request.urlopen(health, timeout=60) as response:
+            assert response.status == 200
+            assert json.loads(response.read()) == {**installed_health, "files": False}
+    finally:
+        rest, stderr = stop(process, signal.SIGTERM)
+    assert process.returncode == 0, stderr
+    pid = process.pid
+    assert "".join(startup) + line + stderr == (
+        f"INFO:     Started server process [{pid}]\n"
+        "INFO:     Waiting for application startup.\n"
+        "INFO:     Application startup complete.\n"
+        f"INFO:     Uvicorn running on http://0.0.0.0:{port}"
+        " (Press CTRL+C to quit)\n"
+        f"{notice}"
+        "INFO:     Shutting down\n"
+        "INFO:     Waiting for application shutdown.\n"
+        "INFO:     Application shutdown complete.\n"
+        f"INFO:     Finished server process [{pid}]\n"
+    )
+    requests = re.findall(r'"([A-Z]+ \S+ HTTP/1\.1)" (\d{3})', rest)
+    assert requests == [("GET /api/health HTTP/1.1", "200")]
+    assert len(rest.splitlines()) == 1
+    assert not marker.exists()
+
+
+@posix_signals
+def test_a_local_run_opens_the_browser_the_environment_names(tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<!doctype html>")
+    marker = tmp_path / "opened"
+    port = free_port()
+    process = subprocess.Popen(
+        [
+            str(Path(sys.executable).with_name("tilie")),
+            "--port",
+            str(port),
+            "--static-dir",
+            str(tmp_path),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=browser_writing(marker),
+    )
+    try:
+        assert process.stdout is not None
+        url = process.stdout.readline().removesuffix("\n")
+        deadline = time.monotonic() + OPENER_TIMEOUT
+        while time.monotonic() < deadline and (
+            not marker.exists() or marker.read_text() != url
+        ):
+            time.sleep(0.02)
+    finally:
+        stop(process, signal.SIGTERM)
+    assert url.startswith(f"http://127.0.0.1:{port}/#token=")
+    assert marker.read_text() == url

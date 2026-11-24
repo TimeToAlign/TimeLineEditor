@@ -45,7 +45,7 @@ def built(tmp_path: Path) -> tuple[TestClient, str]:
 
 
 def test_health_answers_the_installed_versions(
-    unbuilt: TestClient, installed_health: dict[str, str | None]
+    unbuilt: TestClient, installed_health: dict[str, str | bool | None]
 ) -> None:
     response = unbuilt.get("/api/health", headers=AUTH)
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_health_answers_the_installed_versions(
 
 def test_health_answers_without_a_timetoshare_that_fails_to_import(
     unbuilt: TestClient,
-    installed_health: dict[str, str | None],
+    installed_health: dict[str, str | bool | None],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     imported = builtins.__import__

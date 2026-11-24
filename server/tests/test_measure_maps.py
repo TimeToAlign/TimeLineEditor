@@ -307,7 +307,7 @@ def test_without_the_expansion_the_server_starts_and_the_route_says_so(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     body: bytes,
-    installed_health: dict[str, str | None],
+    installed_health: dict[str, str | bool | None],
 ) -> None:
     # A None entry makes every import of the module raise ImportError.
     monkeypatch.setitem(sys.modules, EXPANSION, None)
@@ -352,7 +352,7 @@ def test_without_the_reader_the_server_starts_and_the_route_says_so(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     body: bytes,
-    installed_health: dict[str, str | None],
+    installed_health: dict[str, str | bool | None],
 ) -> None:
     server = without_the_reader(monkeypatch, tmp_path)
     health = server.get("/api/health", headers=AUTH)

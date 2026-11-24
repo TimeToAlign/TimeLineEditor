@@ -28,7 +28,7 @@ words stay exact.
 | `/api/` path without exactly `Authorization: Bearer <run token>` (missing, wrong, `Basic`, `bearer`, a doubled space, a trailing space, an unknown path) | 401 `{"detail": "missing or invalid token"}`, before routing |
 | foreign `Host` (also absent, sent through raw ASGI since the test client always supplies one) | 403 `{"detail": "forbidden host"}` |
 | foreign `Origin` | 403 `{"detail": "forbidden origin"}` |
-| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …}`, the server's and timetoalign's installed versions and the schema version of the timetoshare imported (`SCHEMA_VERSION`, not the installed package's metadata); `"timetoshare": null` where timetoshare cannot be imported, whatever the import raises: an `ImportError`, or any other exception, proven by an import that raises `RuntimeError` |
+| authorized `GET /api/health` | 200 `{"name": "tilie-server", "version": …, "timetoalign": …, "timetoshare": …, "files": true}`, the server's and timetoalign's installed versions and the schema version of the timetoshare imported (`SCHEMA_VERSION`, not the installed package's metadata), and `files` true, since this server serves the file routes; `"timetoshare": null` where timetoshare cannot be imported, whatever the import raises: an `ImportError`, or any other exception, proven by an import that raises `RuntimeError` |
 | authorized `GET /api/openapi.json` | 404 `{"detail": "Not Found"}`; a generated document is no part of the interface |
 | `GET /` without a built editor | 503 `{"detail": "app not built"}` |
 | `GET /` and assets of a built editor | 200, byte for byte, `index.html` as `text/html; charset=utf-8` |
@@ -49,6 +49,118 @@ release), and while it is held `GET /api/health` answers 200; then the held
 request is released and answers. Run inside the event loop, the held
 request would keep the health request from ever being read, and the test
 fails at its safety timeout instead of hanging.
+
+## Public mode
+
+`tilie --public-host <host>` (the option repeatable) serves the editor to
+anyone who reaches the host: no token, no file routes, a bounded request
+body, and the host and origin checks kept against the given host names in
+place of the loopback address. The application is proved in process
+(`test_public.py`), with the two public hosts `tilie.example.org` and
+`localhost:8000` and the settings a public run uses (`ServerSettings` with
+those `public_hosts`, no token, `files` false), and a body limit of 8 bytes
+in place of the real one, so that no test allocates 16 MiB. Each case
+holds the same request against a local-mode app as its control where the
+answer differs there, so a case cannot pass because the request never
+reached what it tests.
+
+**No token.** `GET /api/health` without any `Authorization` header, and
+with `Authorization: Bearer wrong`, both answer 200 with the installation's
+health and `"files": false` (a local app answers both 401). The other
+members are the local answer's, so a host reading `files` learns from the
+one answer which file access the editor has.
+
+**Hosts.** The `Host` header must equal one of the given hosts as given,
+character for character:
+
+| `Host` | Answer |
+| --- | --- |
+| `tilie.example.org`, `localhost:8000` | 200 |
+| `127.0.0.1:8000` (the loopback origin a local run answers to), `tilie.example.org:443` (a given host with a port appended), `localhost`, `evil.example` | 403 `{"detail": "forbidden host"}` |
+| none (raw ASGI, as for the local guard) | 403 `{"detail": "forbidden host"}` |
+
+**Origins.** An `Origin`, when sent, must be `https://<host>` or
+`http://<host>` for a given host: the four origins `https://tilie.example.org`,
+`http://tilie.example.org`, `https://localhost:8000` and
+`http://localhost:8000` answer 200; `https://evil.example`,
+`http://127.0.0.1:8000`, `https://tilie.example.org:443` and `null` answer
+403 `{"detail": "forbidden origin"}`. The settings state the same sets:
+`allowed_hosts()` is exactly the two hosts, `allowed_origins()` exactly the
+four origins; in local mode `allowed_origins()` is `http://` before each
+allowed host (`http://127.0.0.1:8765` and `http://localhost:8765` for the
+test's port), the origins the guard accepted before it took them from the
+settings.
+
+**No files.** A root holding `a.yaml` (`x: 1`) is given, so a routed file
+request would answer 200, as the local control does for `GET
+/api/folders?path=` and `GET /api/files?path=a.yaml`. In public mode `GET
+/api/folders?path=`, `GET /api/files?path=a.yaml` and `PUT
+/api/files?path=b.tle.json` (body `{}`) answer 404 `{"detail": "Not
+Found"}`, without a built editor and with one, and `b.tle.json` is never
+written. With a built editor mounted at `/`, a `PUT` to a path the editor's
+files do not hold would be the mount's 405 `Method Not Allowed`; in public
+mode every `/api/` path that no route serves answers 404 `{"detail": "Not
+Found"}` whatever the method, which the `PUT` case with a built editor
+proves, so the API never falls through to the editor's files.
+
+**Body limit.** A request body longer than the limit is refused with 413
+before the route runs. The route proving it is `POST /api/measure-maps`,
+its manifest reader replaced by one that records the body it is given and
+refuses it (422 `{"detail": {"path": [], "message": "seen"}}`), so the
+record shows whether the route ran and with which bytes. The message names
+the limit: `body larger than <n> MiB` when the limit is a whole number of
+MiB (so the real limit, `16 * 1024 * 1024`, gives exactly `body larger
+than 16 MiB`), else `body larger than <n> bytes` (`1 byte` for one); the
+test limit of 8 gives `body larger than 8 bytes`, and the rule itself is
+pinned for 16 MiB, 1 MiB, 8 bytes and 1 byte.
+
+| Request (limit 8) | Answer | Route |
+| --- | --- | --- |
+| 9 bytes with `Content-Length: 9` | 413 `{"detail": "body larger than 8 bytes"}` | not run |
+| `Content-Length: 9` through raw ASGI, whose `receive` records every call | 413 as above | not run, and `receive` never called: the length alone refuses |
+| 9 bytes sent chunked by the test client (no `Content-Length`) | 413 as above | not run |
+| three chunks of 4 bytes through raw ASGI, no `Content-Length` | 413 as above, once the third chunk passes 8 | not run |
+| exactly 8 bytes, with `Content-Length` and as two chunks of 4 | 422 `seen` | run once, with exactly those 8 bytes |
+| an empty `GET /api/health` | 200 | |
+
+A local app takes the 9 bytes to the route (the middleware is not added
+without a limit). The CLI sets the real limit: the settings a public
+command line builds carry `body_limit` exactly `16 * 1024 * 1024` (below).
+
+**Referrer policy.** The 403 (host and origin), the 404 of a file route and
+the 413 each carry exactly one `Referrer-Policy: no-referrer` header.
+
+**The command.** `--public-host` together with `--check`, `--root` or
+`--no-browser` is refused by the option parser: exit code 2, nothing on
+stdout, and stderr ending in `tilie: error: argument <option>: not allowed
+with argument --public-host` (argparse's own wording for options that
+exclude each other), naming both options. An empty `--public-host ""`
+is refused the same way, `argument --public-host: a host name is not
+empty`, since an empty name would admit a request with an empty `Host`
+header. The settings a command line builds are compared whole: `tilie
+--public-host tilie.example.org --public-host localhost:8000 --port 8001`
+builds `ServerSettings(host="0.0.0.0", port=8001, token=None, static_dir=None,
+root=<home folder>, public_hosts=("tilie.example.org", "localhost:8000"),
+files=False, body_limit=16 * 1024 * 1024)`; without `--public-host` the
+settings are the local ones (`127.0.0.1`, a token of 43 URL-safe
+characters, no public hosts, `files` true, no body limit). The notice line
+for those two hosts is exactly `tilie: public mode on port 8001, answering
+as tilie.example.org, localhost:8000; no token, no file access`.
+
+Started as a process with `--public-host localhost:<p> --port <p>` (a free
+port) and a built editor, the command prints that line for its one host on
+stderr once uvicorn listens; then `GET /api/health` with `Host:
+localhost:<p>` and no `Authorization` answers 200, its `files` false;
+SIGTERM ends it with exit code 0 and stderr exactly uvicorn's startup lines,
+`Uvicorn running on http://0.0.0.0:<p>` among them (the address bound),
+the notice line, and uvicorn's graceful-shutdown lines; stdout holds only
+the access line of the health request, no URL. **No browser opens**: the
+`BROWSER` variable names a command that writes the URL it is given into a
+marker file; the public run leaves no marker, and as the control the local
+command started with the same variable and without `--no-browser` writes
+its printed URL into the marker. The marker is looked for once the public
+process has ended; an opener started at the notice line would have run
+while the test's health request and the shutdown took place.
 
 ## Measure maps
 
@@ -620,7 +732,7 @@ runs the script into a temporary folder and compares each file with the
 committed one byte for byte, so a change of an answer fails until it is
 recorded again. Two exceptions: the health answer, whose values are the
 installed versions, is compared by its member names and the JSON type of
-each value (every one a string), since a version moves with every release
+each value (a string each, `files` a boolean), since a version moves with every release
 and the answer's form does not; and a Parquet answer (the belief route's)
 is compared as a table, with its columns, values, schema and field metadata
 and the footer's key/value metadata, since its footer also names the

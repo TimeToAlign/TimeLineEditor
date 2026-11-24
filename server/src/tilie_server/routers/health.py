@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from tilie_server import __version__
 from tilie_server.settings import API_PREFIX, PACKAGE_NAME
@@ -34,12 +34,14 @@ def timetoshare_version() -> str | None:
 
 
 @router.get(f"{API_PREFIX}health")
-def health() -> dict[str, str | None]:
-    """Report the server's version, the installed timetoalign's and the
-    imported timetoshare's (``None`` without one)."""
+def health(request: Request) -> dict[str, str | bool | None]:
+    """Report the server's version, the installed timetoalign's, the
+    imported timetoshare's (``None`` without one), and whether the server
+    serves the file routes (``files``)."""
     return {
         "name": PACKAGE_NAME,
         "version": __version__,
         "timetoalign": version("timetoalign"),
         "timetoshare": timetoshare_version(),
+        "files": request.app.state.files,
     }

@@ -75,7 +75,13 @@ def test_every_recording_is_the_routes_answer(
                 for text in (recorded, answered)
             ]
             assert shapes[0] == shapes[1]
-            assert set(shapes[0].values()) == {"str"}
+            assert shapes[0] == {
+                "name": "str",
+                "version": "str",
+                "timetoalign": "str",
+                "timetoshare": "str",
+                "files": "bool",
+            }
         elif recorded.startswith(PARQUET_MAGIC):
             assert answered.startswith(PARQUET_MAGIC), name
             assert_same_parquet_table(name, recorded, answered)

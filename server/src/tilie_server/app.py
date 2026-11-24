@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from tilie_server import __version__
 from tilie_server.musicbrainz import MusicBrainz
@@ -13,7 +13,7 @@ from tilie_server.routers.health import router as health_router
 from tilie_server.routers.lookup import router as lookup_router
 from tilie_server.routers.match_claims import router as match_claims_router
 from tilie_server.routers.measure_maps import router as measure_maps_router
-from tilie_server.security import LocalOriginGuard, NoReferrer
+from tilie_server.security import BodyLimit, NoReferrer, OriginGuard
 from tilie_server.settings import (
     API_PREFIX,
     DEFAULT_STATIC_DIR,
@@ -21,6 +21,9 @@ from tilie_server.settings import (
     ServerSettings,
 )
 from tilie_server.static import mount_static
+
+API_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+"""The methods for which a public server answers an unserved ``/api/`` path 404."""
 
 __all__ = [
     "API_PREFIX",
@@ -34,10 +37,17 @@ __all__ = [
 def create_app(
     settings: ServerSettings, *, musicbrainz: MusicBrainz | None = None
 ) -> FastAPI:
-    """Build the application for one local origin and bearer token.
+    """Build the application for one run, local or public.
+
+    A local run answers to its loopback origin with the run's bearer token
+    and serves the file routes. A public run answers as its public hosts,
+    checks no token, serves no file routes and bounds every request body;
+    every ``/api/`` path no route serves then answers 404, whatever the
+    method, so no request to the API reaches the editor's files.
 
     Args:
-        settings: The run's origin, token, editor files and root folder.
+        settings: The run's hosts, token, editor files, root folder, file
+            access and body limit.
         musicbrainz: The one client of MusicBrainz for the run's lookups; a
             new :class:`MusicBrainz` when not given.
     """
@@ -57,15 +67,29 @@ def create_app(
     app.include_router(claim_provenance_router)
     app.include_router(claim_events_router)
     app.include_router(lookup_router)
-    app.include_router(files_router)
+    if settings.files:
+        app.include_router(files_router)
+    else:
+        # Without it a PUT to a file route would reach the editor's mount at
+        # "/", which answers 405 to every method but GET and HEAD.
+        @app.api_route(f"{API_PREFIX}{{path:path}}", methods=API_METHODS)
+        def not_served(path: str) -> None:
+            raise HTTPException(status_code=404)
+
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
+    app.state.files = settings.files
     # Resolved once, so a root given through a symbolic link holds its files.
     app.state.root = settings.root.resolve()
     mount_static(app, static_dir)
+    if settings.body_limit is not None:
+        # Added before the guard, so it runs inside it: a foreign request is
+        # refused for its origin before its body is looked at.
+        app.add_middleware(BodyLimit, limit=settings.body_limit)
     app.add_middleware(
-        LocalOriginGuard,
+        OriginGuard,
         token=settings.token,
         hosts=settings.allowed_hosts(),
+        origins=settings.allowed_origins(),
     )
     # Added last, so it is the outermost layer and covers the guard's rejections.
     app.add_middleware(NoReferrer)
