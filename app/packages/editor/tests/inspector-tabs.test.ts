@@ -340,7 +340,7 @@ describe("the tab set", () => {
     ]);
   });
 
-  it("names the workspace on the Arranger tab's title line, and nothing else", () => {
+  it("names the workspace on the Arranger tab's title line", () => {
     show(mixedStore());
     click("Arranger");
     expect(titleLine("Arranger")).toEqual(titled("Arranger", "untitled"));
