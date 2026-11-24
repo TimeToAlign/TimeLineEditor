@@ -8,11 +8,14 @@
  * is the canvas's Arrange menu itself (`ArrangeMenu` over `arrangeMenuOf`),
  * so both controls show one stored state and send one command; the file's
  * switches are the Manifest tab's (`ManifestFileSwitches`), disabled, as
- * there, while that tab's text holds an unapplied edit.
+ * there, while that tab's text holds an unapplied edit. A choice the store
+ * refuses is posted as information, as the canvas's Arrange menu posts its
+ * refusals.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import { ArrangeMenu, arrangeMenuOf } from "@timetoalign/tilie-arranger";
 import type { Command } from "@timetoalign/tilie-core";
+import { postOf } from "../messages.svelte.ts";
 import ManifestFileSwitches from "./ManifestFileSwitches.svelte";
 import type { ManifestText } from "./manifestText.svelte.ts";
 import { levelTitle } from "./words.ts";
@@ -34,14 +37,12 @@ const view = $derived(live.view);
 const innermost = $derived(live.editing.at(-1));
 const title = $derived(levelTitle(view, innermost));
 
-/** Why the last choice was refused, at the level it was made at; `null` while none was. */
-let refused = $state.raw<{ readonly at: typeof innermost; readonly message: string } | null>(null);
-/** The refusal shown: the one made at the level shown. */
-const refusal = $derived(refused !== null && refused.at === innermost ? refused.message : "");
+const post = postOf();
 
+/** Store `command`; a refusal goes to the message bar as information. */
 function send(command: Command): void {
-  const message = live.store.dispatch(command)?.message;
-  refused = message === undefined ? null : { at: innermost, message };
+  const refusal = live.store.dispatch(command);
+  if (refusal !== null) post("info", refusal.message);
 }
 
 /** The Arrange menu of the level: the canvas's blocks, a bundle editor's items, or none. */
@@ -65,7 +66,6 @@ const bundle = $derived(
   <section class="area" aria-labelledby="{uid}-arrangement" data-testid="level-arrangement">
     <h3 id="{uid}-arrangement">Arrangement</h3>
     <ArrangeMenu {...arrange} />
-    <p class="status" role="status">{refusal}</p>
   </section>
 {/if}
 
@@ -134,7 +134,6 @@ const bundle = $derived(
   }
 
   .area {
-    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -148,18 +147,5 @@ const bundle = $derived(
 
   .hint {
     color: #595959;
-  }
-
-  /* An empty status stays in the accessibility tree, collapsed. */
-  .status:empty {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .status {
-    color: #b00020;
   }
 </style>

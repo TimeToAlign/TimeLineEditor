@@ -1507,6 +1507,18 @@ real store (`storeOf`), its editors opened through the store.
 3. **Group and Timeline**: in the group editor of `group_1` and the
    timeline editor of `score` of `bundle_mixed` the panel holds the title
    line alone.
+4. **A refused choice is a message.** The panel shows no refusal of its
+   own: a choice the store refuses is posted as information through the
+   editor's one `post` (ADR 0037), as the canvas's Arrange menu's refusals
+   are. Proven by mounting the Arranger tab with the message context
+   (`posting`) over a store whose `dispatch` answers every command with
+   the refusal `{code: "invalid_value", message: "Refused here.", path:
+   []}`: pressing Vertical posts exactly `[["info", "Refused here."]]`
+   (nothing as a warning or an error), the panel holds no
+   `role=status` element and no text "Refused here.", and pressing Matrix
+   then posts the second refusal beside the first. Mounted without the
+   message context the panel throws "no component above this one provides
+   post".
 
 ## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 

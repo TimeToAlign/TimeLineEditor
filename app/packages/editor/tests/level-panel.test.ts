@@ -4,11 +4,11 @@ import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Store } from "@timetoalign/tilie-core";
 import { manifestFileOf } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import LevelPanel from "../src/inspector/LevelPanel.svelte";
 import { ManifestText } from "../src/inspector/manifestText.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { blockId, storeOf } from "./support.ts";
+import { blockId, posting, storeOf } from "./support.ts";
 
 const A = blockId(0);
 
@@ -20,8 +20,12 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-function show(store: Store, manifest = new ManifestText()): void {
-  app = mount(LevelPanel, { target: document.body, props: { live: liveStore(store), manifest } });
+function show(store: Store, manifest = new ManifestText(), context = posting()): void {
+  app = mount(LevelPanel, {
+    target: document.body,
+    context,
+    props: { live: liveStore(store), manifest },
+  });
   flushSync();
 }
 
@@ -176,5 +180,33 @@ describe("the Group and Timeline tabs", () => {
     expect(store.open({ block: MIXED.A, id: "score" })).toBeNull();
     flushSync();
     expect(contents()).toEqual(["level-title"]);
+  });
+});
+
+describe("a refused choice", () => {
+  it("is posted as information, and the panel shows none of its own", () => {
+    const store = storeOf("bare", "bundles/bundle_arranged_roots");
+    vi.spyOn(store, "dispatch").mockReturnValue({
+      code: "invalid_value",
+      message: "Refused here.",
+      path: [],
+    });
+    const [info, warning, error]: string[][] = [[], [], []];
+    show(store, new ManifestText(), posting(info, warning, error));
+    press("arrange-vertical");
+    expect([info, warning, error]).toEqual([["Refused here."], [], []]);
+    expect(document.querySelectorAll("[role=status]").length).toBe(0);
+    expect(document.body.textContent).not.toContain("Refused here.");
+    press("arrange-matrix");
+    expect(info).toEqual(["Refused here.", "Refused here."]);
+  });
+
+  it("needs the message context", () => {
+    expect(() =>
+      mount(LevelPanel, {
+        target: document.body,
+        props: { live: liveStore(storeOf("bare")), manifest: new ManifestText() },
+      }),
+    ).toThrow("no component above this one provides post");
   });
 });
