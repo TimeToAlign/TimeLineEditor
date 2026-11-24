@@ -2,8 +2,10 @@
 /**
  * The inspector: the editing bar, then a tab list over eight panels: the
  * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
- * panel opening with the level's title line), Properties, Metadata,
- * Manifest, Journal, Timestamp, Matchstamp and Elisions. Only the shown
+ * panel the level's title line and settings, `LevelPanel`), Properties, Metadata,
+ * Manifest, Journal, Timestamp, Matchstamp and Elisions. The tabs that do
+ * not fit the inspector's width start another row, so the tab list never
+ * makes the inspector scroll sideways. Only the shown
  * panel is rendered; what the Properties, Elisions and Manifest tabs hold
  * between visits (typed text, open blocks, a chosen format) lives in their
  * state objects, which a host
@@ -26,6 +28,7 @@ import EditingBar from "./EditingBar.svelte";
 import ElisionsPanel from "./ElisionsPanel.svelte";
 import JournalPanel from "./JournalPanel.svelte";
 import { journalRows } from "./journal.ts";
+import LevelPanel from "./LevelPanel.svelte";
 import ManifestTextPanel from "./ManifestTextPanel.svelte";
 import MatchstampPanel from "./MatchstampPanel.svelte";
 import MetadataPanel from "./MetadataPanel.svelte";
@@ -46,7 +49,6 @@ import {
   TABS,
   tabLabel,
 } from "./tabs.ts";
-import { levelTitle } from "./words.ts";
 
 let {
   live,
@@ -100,7 +102,6 @@ const view = $derived(live.view);
 /** The innermost open editor, whose level names the level tab. */
 const innermost = $derived(live.editing.at(-1));
 const level = $derived(innermost?.kind ?? "arranger");
-const title = $derived(levelTitle(view, innermost));
 
 /** How many editors the store has opened. */
 const openings = $derived(live.openings);
@@ -193,11 +194,7 @@ const hinted = $derived(block === null && !manifest.dirty);
         {#if tab !== item}
           <!-- A hidden panel renders nothing. -->
         {:else if item === "level"}
-          <!-- A console field: the level's word, then the name of what it shows. -->
-          <p class="title-line" data-testid="level-title">
-            <span class="word">{title.word}</span>
-            <span class="name">{title.name}</span>
-          </p>
+          <LevelPanel {live} {manifest} />
         {:else if item === "journal"}
           <JournalPanel rows={journalRows(live, view)} />
         {:else if item === "timestamp"}
@@ -246,51 +243,8 @@ const hinted = $derived(block === null && !manifest.dirty);
 </div>
 
 <style>
-  /* The title line's typewriter face, bundled so that it looks the same everywhere. */
-  @font-face {
-    font-family: "TiLiE Plex Mono";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("../../fonts/IBMPlexMono-Regular.woff2") format("woff2");
-  }
-
   p {
     margin: 0;
-  }
-
-  /* A console field: an inset, recessed line set in the typewriter face. */
-  .title-line {
-    display: flex;
-    align-items: baseline;
-    gap: 1ch;
-    min-width: 0;
-    padding: 0.5rem 0.75rem 0.45rem;
-    border: 1px solid #c8c2b4;
-    border-radius: 4px;
-    background: #f5f3ee;
-    box-shadow:
-      inset 0 1px 3px rgba(40, 32, 16, 0.14),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-    color: #23201b;
-    font-family: "TiLiE Plex Mono", ui-monospace, monospace;
-    line-height: 1.3;
-  }
-
-  /* The level's word: capitals, spaced out, quieter than the name. */
-  .title-line .word {
-    flex: none;
-    color: #665d4e;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .title-line .name {
-    overflow: hidden;
-    font-size: 0.95rem;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   .hint {
@@ -312,9 +266,15 @@ const hinted = $derived(block === null && !manifest.dirty);
     font-size: 0.85rem;
   }
 
+  /*
+   * One tab strip, wrapping: the tabs that do not fit start another row,
+   * in reading order, and the strip's one bottom border runs under its last
+   * row. The selected tab is marked by its underline wherever its row lies.
+   */
   .tabs {
     display: flex;
     flex: none;
+    flex-wrap: wrap;
     margin: 0 0.75rem;
     border-bottom: 1px solid #b0b0b0;
   }
@@ -329,20 +289,20 @@ const hinted = $derived(block === null && !manifest.dirty);
     overflow: auto;
   }
 
+  /* Padded so that the eight tabs fit one row at the drawer's widest. */
   .tabs button {
-    margin-bottom: -1px;
-    padding: 0.2rem 0.75rem;
-    border: 1px solid transparent;
-    border-radius: 4px 4px 0 0;
+    padding: 0.2rem 0.6rem;
+    border: none;
+    border-bottom: 2px solid transparent;
     background: none;
     color: #595959;
     font: inherit;
+    white-space: nowrap;
     cursor: pointer;
   }
 
   .tabs button[aria-selected="true"] {
-    border-color: #b0b0b0 #b0b0b0 #fff;
-    background: #fff;
+    border-bottom-color: #1a1a1a;
     color: #1a1a1a;
   }
 

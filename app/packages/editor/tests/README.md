@@ -1391,7 +1391,10 @@ closing and reopening, nothing journalled.
    for the store of `bundle_mixed`, whose workspace has the default name),
    in an editor the editor's word and the edited element's name as
    "Words" gives it ("Group Performance", "Timeline Score", "Bundle
-   Mixed"). The panel holds the title line and nothing else.
+   Mixed"). The Group and Timeline panels hold the title line and nothing
+   else; the Arranger panel holds it and the Arrangement area (two
+   elements), the Bundle panel it, the Arrangement area and the Manifest
+   file area (three), as "The level tab's settings" derives.
 3. **Following the editing path while shown.** With Properties shown,
    opening a group editor keeps Properties and relabels the level tab
    "Group"; an inner timeline editor opened with Journal chosen keeps
@@ -1460,6 +1463,50 @@ are added around it; an empty level reads "No changes yet."; a session row
 has a disclosure button labelled by its text that lists its changes,
 newest first (one undo greys a session's whole run: "Edited bundle Mixed (3
 changes, 2 undone)"), and nothing of the expansion reaches the store.
+
+## The level tab's settings (`level-panel.test.ts`)
+
+The level tab's panel (`LevelPanel`) holds the settings of the level
+shown. Two controls stand on each setting and neither holds a copy of it:
+the arrangement is the canvas's Arrange menu itself (the arranger's
+`ArrangeMenu` over `arrangeMenuOf`, whose own tests are the arranger's,
+"The Arrange menu's model"), and the manifest file's switches are the
+Manifest tab's own component (`ManifestFileSwitches`). So what proves the
+panel is that each control shows the stored value it is mounted over, a
+press changes exactly that stored value (read back from the store, never
+from the control), and a change made elsewhere (a command dispatched or
+undone, a `configure`) shows at once. The panel is mounted alone over a
+real store (`storeOf`), its editors opened through the store.
+
+1. **Arranger** (no editor; `bare` and `bundles/bundle_arranged_roots`,
+   two blocks): the title line, then the area "Arrangement" holding the
+   toolbar "Arrange the blocks" of Free, Vertical, Horizontal and Matrix,
+   Free pressed, no columns and no reason; no "Manifest file" area. Vertical
+   pressed stores `{direction: "vertical"}` as one journalled `set` of `{}`
+   (the journal one entry longer) and shows Vertical pressed; Matrix stores
+   `{direction: "matrix", columns: 2}` (⌈√2⌉) and shows "Columns 2"; More
+   columns stores 3 and shows "Columns 3"; the store's undo shows "Columns
+   2" again, Matrix still pressed; a press of the pressed Matrix stores
+   nothing (the journal keeps its length); Free deletes the arrangement.
+2. **Bundle** (the bundle editor of `bundles/bundle_arranged_conflict`, its
+   items' stretches overlapping): the title line, the area "Arrangement"
+   holding the toolbar "Arrange the items" of Free, Vertical and Horizontal,
+   Horizontal disabled with the reason `Horizontal: "Theme A" and "Theme B"
+   overlap on "Score" (8–16 ♩)` (core's), then the area "Manifest file"
+   with Include styling and Minimal, both checked: a block no file wrote is
+   written minimal with its styling. Vertical pressed adds one entry to the
+   editor's session and gives the block `{direction: "vertical", order:
+   [group_1, group_2]}` (its items in drawing order); unticking Minimal
+   gives the block's manifest file `{minimal: false, styling: true,
+   serialization: "yaml"}` and leaves the session and the journal as they
+   were (settings are never journalled, so no undo touches them); a
+   `configure` ticking it again shows it ticked. While the Manifest tab's
+   text holds an edit (its `ManifestText` with a typed text), both switches
+   are disabled and described by "Apply or Revert the Manifest tab's text to
+   switch".
+3. **Group and Timeline**: in the group editor of `group_1` and the
+   timeline editor of `score` of `bundle_mixed` the panel holds the title
+   line alone.
 
 ## The Timestamp tab (`timestamp.test.ts`, `shell.test.ts`)
 

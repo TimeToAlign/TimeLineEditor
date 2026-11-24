@@ -78,9 +78,12 @@ async function arrangeMenu(page: Page): Promise<Locator> {
   return page.getByTestId("arrange-menu");
 }
 
-/** The menu's button of the arrangement `choice`. */
+/**
+ * The canvas menu's button of the arrangement `choice` (the inspector's
+ * level tab draws the same menu, its buttons under the same test IDs).
+ */
 function choice(page: Page, choice: "free" | "vertical" | "horizontal" | "matrix"): Locator {
-  return page.getByTestId(`arrange-${choice}`);
+  return page.getByTestId("arrange-menu").getByTestId(`arrange-${choice}`);
 }
 
 /** Choose `which` in the open menu: one command more, which is returned. */

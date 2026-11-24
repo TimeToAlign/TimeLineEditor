@@ -1344,7 +1344,9 @@ arranger's tests'); the page is 1920 × 1080 at device scale 1, so that a
 drawing of the four groups one under another fits the canvas at zoom 1.
 The menu opens from the canvas controls' `arrange` toggle (`aria-expanded`)
 as the panel `arrange-menu`, one button per arrangement,
-`arrange-<free|vertical|horizontal|matrix>`, the one stated `aria-pressed`;
+`arrange-<free|vertical|horizontal|matrix>`, the one stated `aria-pressed`,
+found inside that panel (the inspector's level tab draws the same menu
+under the same test IDs);
 every choice is one `set`, one entry more and read as the newest entry of the bundle editor's
 session (`newestCommand`) or of the journal, and the store's arrangement is
 read through the hook. Drawn boxes are read from the DOM as the writer
@@ -1668,6 +1670,55 @@ and WebKit without them. The spec writes a screenshot of
 the level panel at each of the four levels for review; it compares none.
 They are written into the test's output folder, so that folder is left
 behind after a passing run too, holding the four images and no trace.
+
+The level tab's settings (same file, at 1920 × 1080, device scale 1): two
+controls stand on each arrangement, the level tab's Arrangement area
+(`level-arrangement`) and the canvas's Arrange menu (`arrange-menu`, opened
+from the `arrange` toggle), both the arranger's one menu, so each shows
+what the other set (the buttons' `aria-pressed`, Free first) and an undo
+shows in both. On `bundles` at the top level the four blocks lie free at
+four distinct left edges and four distinct tops; Vertical pressed in the
+Arranger tab journals one entry, stores `{direction: "vertical"}`, shows
+pressed in the canvas's menu and puts the four nodes at one left edge
+(four tops); Horizontal pressed in the canvas's menu shows pressed in the
+tab and puts them at one top (four left edges); undo shows Vertical in
+both and the nodes at one left edge again. In the bundle editor of the
+imported `bundle_elided_layerit` (the first editor opens the closed drawer
+on the Bundle tab) the four frames lie one under another, one drawn `x`
+and four `y`; Horizontal pressed in the tab adds one entry to the session,
+stores `horizontal`, shows pressed in the menu and draws the frames side
+by side (four `x`, one `y`); Vertical pressed in the menu shows pressed in
+the tab, stores `vertical` and draws them one under another; undo shows
+Horizontal in both and the frames side by side. The manifest file's
+switch: in the bundle editor of `bmixed0000` the Manifest tab's YAML text
+is the schema package's `bundles/bundle_mixed.minimal.yaml` byte for
+byte, Minimal ticked (a block no file wrote is written minimal);
+unticked in the Bundle tab, the Manifest tab shows it unticked and the
+text `bundles/bundle_mixed.yaml`; ticked again there, the text is the
+minimal file and the Bundle tab shows it ticked; unticked once more, no
+entry is added (settings are never journalled) and an undo leaves it
+unticked.
+
+**`tab-row.spec.ts`** (Chromium, Firefox, WebKit) proves that the
+inspector's tab row wraps instead of making the inspector scroll sideways,
+on `bundles` with `bmixed0000` selected and the drawer opened, at device
+scale 1. At a 1000 × 800 page the drawer takes its least width, `22rem`
+(computed `352px`: 32 % of the editor is less), and the eight tabs read
+Arranger, Properties, Metadata, Manifest, Journal, Timestamp, Matchstamp
+and Elisions on two rows (two distinct tops of the tab buttons); with each
+tab chosen by a click, in that order, every one of the drawer, the
+inspector's body, the tab list and the panels' scroll container has its
+`scrollWidth` equal to its `clientWidth`. The strip stays one strip: the
+selected tab alone is underlined (its bottom border `rgb(26, 26, 26)`)
+whichever row it lies in, Elisions in the second row and Arranger in the
+first, and the tab list's border runs under the last row (the last tab's
+bottom 1 px above the list's bottom). From the focused Arranger tab,
+ArrowRight seven times selects and focuses each next tab in reading order
+across the rows and once more wraps to Arranger; ArrowLeft eight times
+goes back the same way. At a 2400 × 900 page the drawer takes its largest
+width, `40rem` (`640px`), and the eight tabs fit one row, nothing
+scrolling sideways (measured in Chromium: the tabs 599.59375 wide in all,
+the row 616).
 
 **`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced

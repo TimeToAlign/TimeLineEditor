@@ -4,8 +4,9 @@
  * the problems and the warnings (unknown keys, then the manifest's own
  * warnings, such as statements without a subject ID). Its state is the
  * inspector's `ManifestText`, which it follows while it is shown. The options, Include
- * styling and Minimal, are how the block's manifest is written to a file,
- * kept in the workspace's settings and changed there (`configure`).
+ * styling and Minimal, are how the block's manifest is written to a file
+ * (`ManifestFileSwitches`, which the Bundle tab shows too); the format is
+ * this tab's own choice, kept in its `ManifestText` and stored nowhere.
  */
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import {
@@ -17,6 +18,7 @@ import {
 import type { FileForm } from "@timetoalign/timetoshare";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
+import ManifestFileSwitches from "./ManifestFileSwitches.svelte";
 import type { ManifestText } from "./manifestText.svelte.ts";
 import ProblemList from "./ProblemList.svelte";
 import type { InspectorProblem } from "./problems.ts";
@@ -48,13 +50,6 @@ const options = $derived({ includeStyling: file.styling, minimal: file.minimal }
 // Follow the selection, the manifest and the choice while the text holds no unapplied edit.
 $effect.pre(() => manifest.follow(block, options));
 
-/** Write one member of the block's manifest file to the settings. */
-function configure(change: Partial<FileForm>): void {
-  if (block === null) return;
-  const refused = store.configure({ manifests: { [block.id]: { ...file, ...change } } });
-  if (refused !== null) throw new Error(`a manifest file is refused: ${refused.message}`);
-}
-
 /**
  * The keys of the block's manifest no definition declares (core's
  * `unknownKeys`), then the manifest's own warnings (core's
@@ -80,26 +75,13 @@ function onTextKey(event: KeyboardEvent): void {
     disabled={manifest.dirty}
     describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
   />
-  <div class="toggles">
-    <label>
-      <input
-        type="checkbox"
-        bind:checked={() => file.styling, (styling) => configure({ styling })}
-        disabled={manifest.dirty || block === null}
-        aria-describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
-      />
-      Include styling
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        bind:checked={() => file.minimal, (minimal) => configure({ minimal })}
-        disabled={manifest.dirty || block === null}
-        aria-describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
-      />
-      Minimal
-    </label>
-  </div>
+  <ManifestFileSwitches
+    {block}
+    {view}
+    {store}
+    disabled={manifest.dirty}
+    describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
+  />
   {#if manifest.dirty}
     <p class="switch-hint" id="{uid}-switch-hint">Apply or Revert to switch</p>
   {/if}
@@ -176,18 +158,6 @@ function onTextKey(event: KeyboardEvent): void {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-  }
-
-  .toggles {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  /* Disabled while the text holds an edit: the label greys with its box. */
-  .toggles label:has(input:disabled),
-  .toggles input:disabled {
-    color: #595959;
-    cursor: not-allowed;
   }
 
   .switch-hint {

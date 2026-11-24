@@ -152,8 +152,16 @@ function titleLine(name: string): unknown[] {
   ];
 }
 
+/** How many elements a level's panel holds: the title line, then its settings' areas. */
+const CONTENTS: { readonly [word: string]: number } = {
+  Arranger: 2,
+  Bundle: 3,
+  Group: 1,
+  Timeline: 1,
+};
+
 /** The title line `word name`, as `titleLine` reads it. */
-const titled = (word: string, name: string) => [word, name, `${word} ${name}`, 1];
+const titled = (word: string, name: string) => [word, name, `${word} ${name}`, CONTENTS[word]];
 
 describe("the tab rule", () => {
   it("has the eight tabs, the level tab first and named by its level", () => {

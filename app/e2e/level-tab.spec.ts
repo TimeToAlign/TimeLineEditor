@@ -2,16 +2,33 @@
  * The inspector's level tab: always first, named by the level, kept shown
  * or not as the viewer chose while editors open and close in view, shown
  * when the drawer opens after an editor was entered out of view, and its
- * panel's title line set in the bundled title face. The expected values
+ * panel's title line set in the bundled title face; the Arranger and
+ * Bundle tabs hold the arrangement the canvas's Arrange menu shows, and
+ * the Bundle tab the switches the Manifest tab's text follows. The expected values
  * are derived in `README.md` ("level-tab.spec.ts"); the screenshots are for
  * review and compared with nothing.
  */
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Address } from "../packages/core/src/index.ts";
+import { idAddress } from "../packages/core/src/index.ts";
+import { manifestFixture } from "./schema.ts";
 import type { TabName } from "./support.ts";
-import { BUNDLES, done, drawer, editing, open, panel, select, tab, tabs } from "./support.ts";
+import {
+  BUNDLES,
+  done,
+  drawer,
+  editing,
+  element,
+  importFixture,
+  node,
+  open,
+  panel,
+  select,
+  tab,
+  tabs,
+} from "./support.ts";
 
 test.use({
   viewport: { width: 1600, height: 1000 },
@@ -148,4 +165,179 @@ test("an editor entered out of view shows the level tab, its title line in the t
       }, FACE),
     )
     .toEqual(["loaded"]);
+});
+
+/** Whether each button of `menu`'s arrangement toolbar is pressed, in order. */
+function pressed(menu: Locator): Promise<(string | null)[]> {
+  return menu
+    .getByRole("toolbar")
+    .getByRole("button")
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed")));
+}
+
+/** The pressed state of `count` buttons with the `at`th pressed. */
+const only = (at: number, count: number) =>
+  Array.from({ length: count }, (_, index) => String(index === at));
+
+/** The canvas's Arrange menu, opened from the canvas controls. */
+async function canvasMenu(page: Page): Promise<Locator> {
+  const toggle = page.getByTestId("arrange");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  return page.getByTestId("arrange-menu");
+}
+
+/** How many distinct left edges and tops the four blocks' nodes have. */
+async function nodeSpread(page: Page): Promise<number[]> {
+  const boxes = await Promise.all(Object.values(BUNDLES).map((id) => node(page, id).boundingBox()));
+  return [new Set(boxes.map((box) => box?.x)).size, new Set(boxes.map((box) => box?.y)).size];
+}
+
+/** How many distinct `x` and `y` the frames of `groups` are drawn at in block `block`. */
+async function frameSpread(
+  page: Page,
+  block: string,
+  groups: readonly string[],
+): Promise<number[]> {
+  const places = await Promise.all(
+    groups.map((group) =>
+      element(page, block, idAddress(group))
+        .last()
+        .evaluate((drawn) => [drawn.getAttribute("x"), drawn.getAttribute("y")]),
+    ),
+  );
+  return [new Set(places.map(([x]) => x)).size, new Set(places.map(([, y]) => y)).size];
+}
+
+/** The groups of the LayerIt bundle, each drawn as a frame. */
+const LAYERIT_GROUPS = ["group_1", "group_2", "group_3", "group_4"] as const;
+
+/** The block's arrangement direction as the store holds it. */
+function direction(page: Page, block: string): Promise<string | undefined> {
+  return page.evaluate(
+    (id) => window.__tilie.store().view.blocks[id]?.arrangement?.direction,
+    block,
+  );
+}
+
+/** How many entries the open editor's session (else the journal) holds. */
+function entries(page: Page): Promise<number> {
+  return page.evaluate(() => window.__tilie.store().entries.length);
+}
+
+function undo(page: Page): Promise<void> {
+  return page.evaluate(() => window.__tilie.store().undo());
+}
+
+test.describe("the level tab's settings", () => {
+  test.use({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+
+  test("the Arranger tab and the canvas's Arrange menu show and set one arrangement", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await tab(page, "Arranger").click();
+    const settings = (await panel(page, "Arranger")).getByTestId("level-arrangement");
+    const menu = await canvasMenu(page);
+    await expect(settings.getByRole("toolbar").getByRole("button")).toHaveText([
+      "Free",
+      "Vertical",
+      "Horizontal",
+      "Matrix",
+    ]);
+    expect([await pressed(settings), await pressed(menu)]).toEqual([only(0, 4), only(0, 4)]);
+    expect(await nodeSpread(page)).toEqual([4, 4]);
+
+    // Chosen in the tab: one journal entry, shown by the canvas's menu, the blocks one under another.
+    const before = await entries(page);
+    await settings.getByTestId("arrange-vertical").click();
+    await expect.poll(() => entries(page)).toBe(before + 1);
+    expect(await page.evaluate(() => window.__tilie.store().view.arrangement)).toEqual({
+      direction: "vertical",
+    });
+    await expect.poll(() => pressed(menu)).toEqual(only(1, 4));
+    await expect.poll(() => nodeSpread(page)).toEqual([1, 4]);
+
+    // Chosen in the canvas's menu: shown by the tab, the blocks side by side.
+    await menu.getByTestId("arrange-horizontal").click();
+    await expect.poll(() => pressed(settings)).toEqual(only(2, 4));
+    await expect.poll(() => nodeSpread(page)).toEqual([4, 1]);
+
+    // Undone: both show Vertical again, the blocks one under another.
+    await undo(page);
+    await expect.poll(() => pressed(settings)).toEqual(only(1, 4));
+    await expect.poll(() => pressed(menu)).toEqual(only(1, 4));
+    await expect.poll(() => nodeSpread(page)).toEqual([1, 4]);
+  });
+
+  test("the Bundle tab and the canvas's Arrange menu show and set one arrangement of the items", async ({
+    page,
+  }) => {
+    const block = await importFixture(page, "bundles/bundle_elided_layerit");
+    // The first editor opens the closed drawer on the level tab.
+    await enter(page, { block });
+    await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
+    const settings = (await panel(page, "Bundle")).getByTestId("level-arrangement");
+    const menu = await canvasMenu(page);
+    await expect(settings.getByRole("toolbar").getByRole("button")).toHaveText([
+      "Free",
+      "Vertical",
+      "Horizontal",
+    ]);
+    expect([await pressed(settings), await pressed(menu)]).toEqual([only(0, 3), only(0, 3)]);
+    expect(await frameSpread(page, block, LAYERIT_GROUPS)).toEqual([1, 4]);
+
+    // Chosen in the tab: one entry of the editor's session, shown by the menu, the frames side by side.
+    const before = await entries(page);
+    await settings.getByTestId("arrange-horizontal").click();
+    await expect.poll(() => entries(page)).toBe(before + 1);
+    expect(await direction(page, block)).toBe("horizontal");
+    await expect.poll(() => pressed(menu)).toEqual(only(2, 3));
+    await expect.poll(() => frameSpread(page, block, LAYERIT_GROUPS)).toEqual([4, 1]);
+
+    // Chosen in the canvas's menu: shown by the tab, the frames one under another.
+    await menu.getByTestId("arrange-vertical").click();
+    await expect.poll(() => pressed(settings)).toEqual(only(1, 3));
+    expect(await direction(page, block)).toBe("vertical");
+    await expect.poll(() => frameSpread(page, block, LAYERIT_GROUPS)).toEqual([1, 4]);
+
+    // Undone: both show Horizontal again, the frames side by side.
+    await undo(page);
+    await expect.poll(() => pressed(settings)).toEqual(only(2, 3));
+    await expect.poll(() => pressed(menu)).toEqual(only(2, 3));
+    await expect.poll(() => frameSpread(page, block, LAYERIT_GROUPS)).toEqual([4, 1]);
+  });
+
+  test("a switch of the Bundle tab is seen in the Manifest tab and its text, and back", async ({
+    page,
+  }) => {
+    const COMPLETE = manifestFixture("bundles/bundle_mixed");
+    const MINIMAL = manifestFixture("bundles/bundle_mixed.minimal");
+    const minimal = page.getByRole("checkbox", { name: "Minimal", exact: true });
+    const text = page.getByRole("textbox", { name: "Manifest (YAML)" });
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await enter(page, PATH[0].target);
+    await tab(page, "Manifest").click();
+    await expect(minimal).toBeChecked();
+    await expect(text).toHaveValue(MINIMAL);
+
+    // Unticked in the Bundle tab: unticked in the Manifest tab, its text the complete form.
+    await tab(page, "Bundle").click();
+    await minimal.uncheck();
+    await tab(page, "Manifest").click();
+    await expect(minimal).not.toBeChecked();
+    await expect(text).toHaveValue(COMPLETE);
+
+    // Ticked in the Manifest tab: the minimal form, ticked in the Bundle tab.
+    await minimal.check();
+    await expect(text).toHaveValue(MINIMAL);
+    await tab(page, "Bundle").click();
+    await expect(minimal).toBeChecked();
+
+    // Settings lie outside the journal: an undo leaves the switch as it is.
+    const before = await entries(page);
+    await minimal.uncheck();
+    expect(await entries(page)).toBe(before);
+    await undo(page);
+    await expect(minimal).not.toBeChecked();
+  });
 });
