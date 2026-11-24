@@ -1700,7 +1700,14 @@ unticked in the Bundle tab, the Manifest tab shows it unticked and the
 text `bundles/bundle_mixed.yaml`; ticked again there, the text is the
 minimal file and the Bundle tab shows it ticked; unticked once more, no
 entry is added (settings are never journalled) and an undo leaves it
-unticked.
+unticked. The canvas lock: on `bundles` at the top level, the canvas's
+lock (`lock`) pressed (`aria-pressed` "true"), every button of the
+Arranger tab's arrangement and of the canvas's Arrange menu is disabled
+(four each), and a click on the tab's Vertical (forced, since it is
+disabled) adds no journal entry and stores no arrangement; the lock
+pressed again, all eight are enabled and Vertical journals one entry. In
+the bundle editor of `bmixed0000`, locked, the Bundle tab's three
+buttons and the menu's three are disabled; unlocked, enabled.
 
 **`tab-row.spec.ts`** (Chromium, Firefox, WebKit) proves that the
 inspector's tab row wraps instead of making the inspector scroll sideways,

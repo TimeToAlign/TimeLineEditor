@@ -340,4 +340,50 @@ test.describe("the level tab's settings", () => {
     await undo(page);
     await expect(minimal).not.toBeChecked();
   });
+
+  test("the canvas lock disables the level tab's arrangement as it does the canvas's menu", async ({
+    page,
+  }) => {
+    const lock = page.getByTestId("lock");
+    /** Whether each button of `menu`'s arrangement toolbar is disabled, in order. */
+    const disabled = (menu: Locator) =>
+      menu
+        .getByRole("toolbar")
+        .getByRole("button")
+        .evaluateAll((buttons) => buttons.map((button) => (button as HTMLButtonElement).disabled));
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await tab(page, "Arranger").click();
+    const settings = (await panel(page, "Arranger")).getByTestId("level-arrangement");
+    const menu = await canvasMenu(page);
+
+    // Locked: every button of both controls disabled; a forced click stores nothing.
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => disabled(settings)).toEqual([true, true, true, true]);
+    await expect.poll(() => disabled(menu)).toEqual([true, true, true, true]);
+    const before = await entries(page);
+    await settings.getByTestId("arrange-vertical").click({ force: true });
+    expect(await entries(page)).toBe(before);
+    expect(await page.evaluate(() => window.__tilie.store().view.arrangement)).toBeUndefined();
+
+    // Unlocked: both enabled, and a choice in the tab is stored.
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "false");
+    await expect.poll(() => disabled(settings)).toEqual([false, false, false, false]);
+    await expect.poll(() => disabled(menu)).toEqual([false, false, false, false]);
+    await settings.getByTestId("arrange-vertical").click();
+    await expect.poll(() => entries(page)).toBe(before + 1);
+
+    // In the bundle editor: the Bundle tab's three buttons follow the lock as the menu's do.
+    await enter(page, PATH[0].target);
+    await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
+    const bundle = (await panel(page, "Bundle")).getByTestId("level-arrangement");
+    const items = await canvasMenu(page);
+    await lock.click();
+    await expect.poll(() => disabled(bundle)).toEqual([true, true, true]);
+    await expect.poll(() => disabled(items)).toEqual([true, true, true]);
+    await lock.click();
+    await expect.poll(() => disabled(bundle)).toEqual([false, false, false]);
+    await expect.poll(() => disabled(items)).toEqual([false, false, false]);
+  });
 });

@@ -95,10 +95,21 @@ interface Props {
   indexesOf: (block: string) => MatchIndexes | null;
   /** Select `address` alone on the canvas: a row of the Elisions tab. */
   onselect?: (address: Address) => void;
+  /** Whether the canvas is locked: the level tab's arrangement is then disabled, as the canvas's is. */
+  locked?: boolean;
 }
 
-let { live, selection, placement, storageKey, knotsOf, tables, indexesOf, onselect }: Props =
-  $props();
+let {
+  live,
+  selection,
+  placement,
+  storageKey,
+  knotsOf,
+  tables,
+  indexesOf,
+  onselect,
+  locked = false,
+}: Props = $props();
 
 const id = $props.id();
 /** The canvas's pane, which every block read here is drawn at. */
@@ -357,6 +368,7 @@ async function show(next: boolean): Promise<void> {
       {indexesOf}
       {knotsOf}
       {onselect}
+      {locked}
     />
   {/if}
 </aside>

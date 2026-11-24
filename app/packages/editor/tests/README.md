@@ -1507,7 +1507,16 @@ real store (`storeOf`), its editors opened through the store.
 3. **Group and Timeline**: in the group editor of `group_1` and the
    timeline editor of `score` of `bundle_mixed` the panel holds the title
    line alone.
-4. **A refused choice is a message.** The panel shows no refusal of its
+4. **The canvas lock.** The panel's arrangement follows the canvas's lock,
+   as the canvas's Arrange menu does: one setting, two controls, one rule.
+   Mounted with `locked` true over `bundles/bundle_arranged_roots` with
+   Matrix stored, every button of the toolbar "Arrange the blocks" and both
+   column buttons are disabled; a click on Vertical stores nothing (the
+   journal keeps its length, the arrangement stays matrix). Mounted with
+   `locked` false over the same store, the four buttons and More columns are
+   enabled (Fewer too: two columns). That the editor hands the canvas's
+   lock to the panel is proven end to end (`e2e/level-tab.spec.ts`).
+5. **A refused choice is a message.** The panel shows no refusal of its
    own: a choice the store refuses is posted as information through the
    editor's one `post` (ADR 0037), as the canvas's Arrange menu's refusals
    are. Proven by mounting the Arranger tab with the message context

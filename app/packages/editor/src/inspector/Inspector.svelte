@@ -64,6 +64,7 @@ let {
   indexesOf = () => null,
   knotsOf,
   onselect = () => {},
+  locked = false,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -94,6 +95,8 @@ let {
   knotsOf?: KnotsOf | undefined;
   /** Select `address` alone on the canvas: a row of the Elisions tab. */
   onselect?: ((address: Address) => void) | undefined;
+  /** Whether the canvas is locked: the level tab's arrangement is then disabled, as the canvas's is. */
+  locked?: boolean;
 } = $props();
 
 const uid = $props.id();
@@ -194,7 +197,7 @@ const hinted = $derived(block === null && !manifest.dirty);
         {#if tab !== item}
           <!-- A hidden panel renders nothing. -->
         {:else if item === "level"}
-          <LevelPanel {live} {manifest} />
+          <LevelPanel {live} {manifest} {locked} />
         {:else if item === "journal"}
           <JournalPanel rows={journalRows(live, view)} />
         {:else if item === "timestamp"}

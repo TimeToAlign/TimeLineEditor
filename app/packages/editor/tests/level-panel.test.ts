@@ -20,11 +20,16 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-function show(store: Store, manifest = new ManifestText(), context = posting()): void {
+function show(
+  store: Store,
+  manifest = new ManifestText(),
+  context = posting(),
+  locked = false,
+): void {
   app = mount(LevelPanel, {
     target: document.body,
     context,
-    props: { live: liveStore(store), manifest },
+    props: { live: liveStore(store), manifest, locked },
   });
   flushSync();
 }
@@ -183,6 +188,55 @@ describe("the Group and Timeline tabs", () => {
   });
 });
 
+describe("the canvas lock", () => {
+  /** The column buttons as [test ID, disabled]. */
+  const columnButtons = () =>
+    ["arrange-columns-fewer", "arrange-columns-more"].map((testid) => [
+      testid,
+      document.querySelector<HTMLButtonElement>(`[data-testid="${testid}"]`)?.disabled,
+    ]);
+
+  it("disables the arrangement while the canvas is locked, as on the canvas", () => {
+    const store = storeOf("bare", "bundles/bundle_arranged_roots");
+    expect(
+      store.dispatch({
+        type: "set",
+        changes: [{ target: {}, values: { arrangement: { direction: "matrix" } } }],
+      }),
+    ).toBeNull();
+    const journal = store.journal.length;
+    show(store, new ManifestText(), posting(), true);
+    expect(choices()).toEqual([
+      ["Free", "false", true],
+      ["Vertical", "false", true],
+      ["Horizontal", "false", true],
+      ["Matrix", "true", true],
+    ]);
+    expect(columnButtons()).toEqual([
+      ["arrange-columns-fewer", true],
+      ["arrange-columns-more", true],
+    ]);
+    press("arrange-vertical");
+    expect([store.journal.length, store.view.arrangement]).toEqual([
+      journal,
+      { direction: "matrix" },
+    ]);
+    if (app !== undefined) unmount(app);
+    document.body.innerHTML = "";
+    show(store, new ManifestText(), posting(), false);
+    expect(choices().map((choice) => (choice as unknown[])[2])).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(columnButtons()).toEqual([
+      ["arrange-columns-fewer", false],
+      ["arrange-columns-more", false],
+    ]);
+  });
+});
+
 describe("a refused choice", () => {
   it("is posted as information, and the panel shows none of its own", () => {
     const store = storeOf("bare", "bundles/bundle_arranged_roots");
@@ -205,7 +259,7 @@ describe("a refused choice", () => {
     expect(() =>
       mount(LevelPanel, {
         target: document.body,
-        props: { live: liveStore(storeOf("bare")), manifest: new ManifestText() },
+        props: { live: liveStore(storeOf("bare")), manifest: new ManifestText(), locked: false },
       }),
     ).toThrow("no component above this one provides post");
   });

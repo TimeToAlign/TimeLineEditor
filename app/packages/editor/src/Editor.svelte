@@ -736,6 +736,7 @@ if (withTestHook) {
       tables={session.tables}
       {indexesOf}
       onselect={(address) => (session.selection = selectionOf([address]))}
+      {locked}
     />
   </main>
 

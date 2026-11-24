@@ -8,7 +8,9 @@
  * is the canvas's Arrange menu itself (`ArrangeMenu` over `arrangeMenuOf`),
  * so both controls show one stored state and send one command; the file's
  * switches are the Manifest tab's (`ManifestFileSwitches`), disabled, as
- * there, while that tab's text holds an unapplied edit. A choice the store
+ * there, while that tab's text holds an unapplied edit. The arrangement
+ * follows the canvas's lock as the canvas's menu does: disabled while the
+ * canvas is locked. A choice the store
  * refuses is posted as information, as the canvas's Arrange menu posts its
  * refusals.
  */
@@ -23,11 +25,14 @@ import { levelTitle } from "./words.ts";
 let {
   live,
   manifest,
+  locked,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
   /** The Manifest tab's text, whose unapplied edit holds the file's switches. */
   manifest: ManifestText;
+  /** Whether the canvas is locked, which disables the arrangement here as on the canvas. */
+  locked: boolean;
 } = $props();
 
 const uid = $props.id();
@@ -46,7 +51,7 @@ function send(command: Command): void {
 }
 
 /** The Arrange menu of the level: the canvas's blocks, a bundle editor's items, or none. */
-const arrange = $derived(arrangeMenuOf(view, innermost ?? null, false, send));
+const arrange = $derived(arrangeMenuOf(view, innermost ?? null, locked, send));
 
 /** The block a bundle editor edits, whose manifest file the Bundle tab states; `null` at other levels. */
 const bundle = $derived(
