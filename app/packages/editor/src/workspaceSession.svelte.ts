@@ -76,7 +76,7 @@ import { nameCommand } from "./inspector/properties.ts";
 import {
   type AskTables,
   fileNameOf,
-  MATCHES_NEED_A_SERVER,
+  HOW_TO_START_A_SERVER,
   type ManifestPlaces,
   type MatchClaimServer,
   MatchClaimTables,
@@ -633,8 +633,8 @@ export class WorkspaceSession {
    * message bar says so as information (`NO_MATCHES`). While no server can
    * read a table nothing is asked: where no block holds a table or a
    * block's manifest names one the block does not hold, the message bar
-   * says as information that matches need a running server
-   * (`MATCHES_NEED_A_SERVER`), in place of every question. While the
+   * says as information that matches need a running server and how to
+   * start one (`HOW_TO_START_A_SERVER`), in place of every question. While the
    * server given has not answered its health check yet
    * (`MatchClaimTables.waiting`) nothing is said: it may be slow rather
    * than missing, and the editor calls this again once it answers. A call
@@ -643,7 +643,7 @@ export class WorkspaceSession {
   async loadNamedTables(): Promise<void> {
     if (this.tables.unavailable !== null) {
       if (!this.tables.waiting && (!this.#holdsTable() || this.#namesUnheldTable()))
-        this.#options.post("info", MATCHES_NEED_A_SERVER);
+        this.#options.post("info", HOW_TO_START_A_SERVER);
       return;
     }
     if (this.#loadingTables) return;

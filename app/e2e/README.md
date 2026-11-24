@@ -578,27 +578,27 @@ Refused (the header's offline mark titled "The server did not answer the
 health check (503 Service Unavailable)."), with the Fixture menu's table
 fixture open and no message shown: `m` turns Show matches on, opens no
 dialog, requests no table, and adds exactly one message, the information
-"Matches need a running tilie-server."; the Matchstamp tab's table status
-reads "No MatchClaim table loaded."; "Load MatchClaims…" is disabled, its
-accessible description that failure followed by "Matches need a running
-tilie-server. To start it, run uv run tilie --static-dir
-../app/packages/editor/dist in the repository's server folder (or tilie,
-once installed with pip install tilie-server), then open the editor at
-the address it prints.". **Beside a warning** (refused, the same fixture
+"Matches need a running tilie-server. To start it, run uv run tilie
+--static-dir ../app/packages/editor/dist in the repository's server
+folder (or tilie, once installed with pip install tilie-server), then
+open the editor at the address it prints." (the how-to); the Matchstamp
+tab's table status reads "No MatchClaim table loaded."; "Load
+MatchClaims…" is disabled, its accessible description that failure
+followed by the how-to. **Beside a warning** (refused, the same fixture
 open, the hook asked to select `{block: "nothing", facet: "markers"}`,
 which posts the warning "Some addresses could not be selected."; the
-page's clock installed and paused): `m` adds the information "Matches
-need a running tilie-server." with the level word "Info", the warning
-keeping "Warning", neither card with a `role`; the bar's status
-announcer (`messages-status`) reads exactly "Info: Matches need a
-running tilie-server." and its alert announcer (`messages-alert`)
+page's clock installed and paused): `m` adds the how-to as information
+with the level word "Info", the warning keeping "Warning", neither card
+with a `role`; the bar's status announcer (`messages-status`) reads
+exactly "Info: " and the how-to, and its alert announcer (`messages-alert`)
 exactly "Warning: Some addresses could not be selected."; both cards are
 visible, the information's card's top at or below the warning card's
 bottom (no overlap), the information's border and background
 `rgb(122, 167, 217)` and `rgb(238, 245, 253)`, the warning's
-`rgb(201, 162, 39)` and `rgb(255, 248, 225)`. The clock run 2999 ms on,
-the information is still shown; 1 ms more, it is gone and the warning
-stays, still after 60 000 ms more.
+`rgb(201, 162, 39)` and `rgb(255, 248, 225)`. The clock run 1 ms less
+than the how-to's reading time on (the editor's `infoDurationOf`, read
+by the spec, never a number of its own), the information is still shown;
+1 ms more, it is gone and the warning stays, still after 60 000 ms more.
 Held, with the same fixture open: `m` turns Show matches on and adds no
 message (no offline mark either: nothing has failed), requesting no
 table; once the check is answered, without another key, the table is
@@ -606,7 +606,7 @@ requested exactly once, the one new message is "Loaded the MatchClaims
 of match_claims.parquet." and no dialog opens. Held, then refused
 instead: `m` adds no message; once the check is refused, without another
 key, the offline mark appears and exactly one message is added, the
-information "Matches need a running tilie-server."; no dialog opens, no
+how-to as information; no dialog opens, no
 table is requested, the table status reads "No MatchClaim table loaded.",
 and "Load MatchClaims…" is described by the failure and the sentence on
 starting a server, no further message appearing. `open-save.spec.ts` proves the

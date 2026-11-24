@@ -608,7 +608,7 @@ describe("no server reading a table", () => {
   /** The states in which turning Show matches on says that matches need a server. */
   const TOLD = STATES.filter(([, , , , waiting]) => !waiting);
   /** What turning Show matches on says in those states. */
-  const NEEDED: [MessageLevel, string] = ["info", NEED];
+  const NEEDED: [MessageLevel, string] = ["info", NO_SERVER];
 
   /**
    * A session without blocks, the server given or not, its health check

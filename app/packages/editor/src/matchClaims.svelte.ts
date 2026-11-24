@@ -204,10 +204,7 @@ async function fetched(text: string): Promise<TableFile> {
   return { name: fileNameOf(url.pathname), file: await response.blob() };
 }
 
-/**
- * While no server can read a table, the information turning Show matches
- * on gives (`WorkspaceSession.loadNamedTables`).
- */
+/** The first sentence of `HOW_TO_START_A_SERVER`: why matches cannot be shown. */
 export const MATCHES_NEED_A_SERVER = "Matches need a running tilie-server.";
 
 /** The information turning Show matches on gives where no block holds a MatchClaim table then. */
@@ -215,7 +212,8 @@ export const NO_MATCHES = "No MatchClaim table loaded.";
 
 /**
  * While no server can read a table, what is said wherever matches are
- * asked for (Load MatchClaims… without a server, the disabled controls' hints): that sentence,
+ * asked for (Show matches turned on, Load MatchClaims… without a server,
+ * the disabled controls' hints): that sentence,
  * then how to start the server (the command the repository's README starts
  * it from the source tree with). Plain text: every place shows it as such.
  */

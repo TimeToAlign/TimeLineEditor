@@ -23,8 +23,25 @@ export interface Message {
   readonly problems: readonly Problem[];
 }
 
-/** How long a message of level `info` is shown. */
+/** The least time a message of level `info` is shown. */
 export const INFO_DURATION_MS = 3000;
+
+/**
+ * The time one word of information takes to read: 200 words a minute, the
+ * reading speed commonly assumed for text on a screen, which leaves room to
+ * notice the message before reading it.
+ */
+export const INFO_MS_PER_WORD = 300;
+
+/**
+ * How long information of `text` is shown: `INFO_DURATION_MS`, or for a
+ * longer text `INFO_MS_PER_WORD` for each of its words (words being parts
+ * apart from one another by white space), whichever is longer.
+ */
+export function infoDurationOf(text: string): number {
+  const words = text.split(/\s+/).filter((word) => word !== "").length;
+  return Math.max(INFO_DURATION_MS, words * INFO_MS_PER_WORD);
+}
 
 /** Post one message at `level`, with the problems that explain it. */
 export type Post = (level: MessageLevel, text: string, problems?: readonly Problem[]) => void;
@@ -38,7 +55,7 @@ export class Messages {
   readonly #timers = new Map<number, ReturnType<typeof setTimeout>>();
 
   /**
-   * Show a message. Information is dismissed after `INFO_DURATION_MS`, and
+   * Show a message. Information is dismissed after `infoDurationOf` its text, and
    * replaces information of the same text still shown (posted again, it
    * shows once, timed from now); a warning or an error stays until
    * dismissed. Editing goes on either way.
@@ -54,7 +71,7 @@ export class Messages {
     if (level === "info") {
       this.#timers.set(
         id,
-        setTimeout(() => this.dismiss(id), INFO_DURATION_MS),
+        setTimeout(() => this.dismiss(id), infoDurationOf(text)),
       );
     }
   }

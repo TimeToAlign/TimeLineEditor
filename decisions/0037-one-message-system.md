@@ -78,10 +78,14 @@ The editor has one message system:
   overlaps another, and a card leaving moves the later ones up. Every
   card names its level in words ("Info", "Warning", "Error") before its
   text and carries its level's colours: blue, amber, red.
-- **How long.** Information leaves by itself after `INFO_DURATION_MS`
-  (three seconds), the one constant, in the editor's message module.
-  Information equal in text to information still shown replaces it, so a
-  key refused again shows once, for three seconds from the last refusal.
+- **How long.** Information leaves by itself once it could be read: after
+  `INFO_DURATION_MS` (three seconds), or for a text of more than ten words
+  after `INFO_MS_PER_WORD` (300 ms) for each word, 200 words a minute, the
+  reading speed commonly assumed for text on a screen, which leaves room to
+  notice the message before reading it. One rule, `infoDurationOf(text)`
+  in the editor's message module, gives the time. Information equal in
+  text to information still shown replaces it, so a key refused again
+  shows once, timed from the last refusal.
   Warnings and errors stay until the user dismisses them; every card has
   a Dismiss button. No message is withdrawn by the code, since no cause of
   a warning or an error goes away by itself.
@@ -105,9 +109,10 @@ The editor has one message system:
 - **Show matches.** Turning it on asks the editor to load the tables the
   manifests name; where it then holds none, the editor says so as
   information, "No MatchClaim table loaded.", and, while no server can
-  read a table, "Matches need a running tilie-server." in its place. While
-  a server given has not answered its health check, nothing is said until
-  it answers.
+  read a table, that matches need a running tilie-server and how to start
+  one in its place, shown for that sentence's reading time. While a server
+  given has not answered its health check, nothing is said until it
+  answers.
 
 ## Consequences
 
@@ -115,10 +120,10 @@ The editor has one message system:
   `matchesStatus` prop are deleted; an application embedding the arranger
   alone shows its refusals where it chooses.
 - A refusal no longer waits for the next stored command to disappear: it
-  leaves after three seconds whatever follows.
-- How to start a server is said where a control is disabled for lack of
-  one, no longer by turning Show matches on: information leaves too soon
-  for the command it names.
+  leaves after its reading time whatever follows.
+- How to start a server is said by turning Show matches on, as
+  information that stays long enough to read the command it names, and
+  where a control is disabled for lack of a server.
 - No dependency.
 
 Review this decision when a message needs an action of its own (an Undo,

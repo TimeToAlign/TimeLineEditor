@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import MessageBar from "../src/MessageBar.svelte";
-import { INFO_DURATION_MS, Messages } from "../src/messages.svelte.ts";
+import { HOW_TO_START_A_SERVER } from "../src/matchClaims.svelte.ts";
+import {
+  INFO_DURATION_MS,
+  INFO_MS_PER_WORD,
+  infoDurationOf,
+  Messages,
+} from "../src/messages.svelte.ts";
 import { storeOf } from "./support.ts";
 
 afterEach(() => {
@@ -46,6 +52,29 @@ describe("the messages", () => {
     vi.advanceTimersByTime(60_000);
     expect(shown(messages)).toEqual(staying);
     dismissAll(messages);
+    expect(shown(messages)).toEqual([]);
+  });
+
+  it("keep information for 300 ms a word, never less than 3000 ms", () => {
+    const words = (count: number) => Array.from({ length: count }, () => "word").join(" ");
+    expect(INFO_MS_PER_WORD).toBe(300);
+    expect([
+      infoDurationOf(words(10)),
+      infoDurationOf(words(11)),
+      infoDurationOf(""),
+      infoDurationOf("  \n "),
+      infoDurationOf(`  ${words(5)}  \n  ${words(6)}  `),
+    ]).toEqual([3000, 3300, 3000, 3000, 3300]);
+    expect(infoDurationOf(HOW_TO_START_A_SERVER)).toBe(36 * INFO_MS_PER_WORD);
+  });
+
+  it("show the information on starting a server until its reading time is up", () => {
+    vi.useFakeTimers();
+    const messages = new Messages();
+    messages.post("info", HOW_TO_START_A_SERVER);
+    vi.advanceTimersByTime(infoDurationOf(HOW_TO_START_A_SERVER) - 1);
+    expect(shown(messages)).toEqual([["info", HOW_TO_START_A_SERVER]]);
+    vi.advanceTimersByTime(1);
     expect(shown(messages)).toEqual([]);
   });
 

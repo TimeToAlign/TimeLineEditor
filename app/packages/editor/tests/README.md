@@ -2741,9 +2741,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    - The session's `loadNamedTables` (what turning Show matches on calls)
      in those states asks nothing and reads nothing. With no server given
      and with a failed check it says, as information, exactly
-     `MATCHES_NEED_A_SERVER` (`["info", "Matches need a running
-     tilie-server."]`, never a warning, never `HOW_TO_START_A_SERVER`:
-     information leaves too soon for a command) once per turning on
+     `HOW_TO_START_A_SERVER` (`["info", "Matches need a running
+     tilie-server. To start it, …"]` with the sentence whole, never a
+     warning, never prefixed by the check's failure, which the offline
+     mark and the disabled controls name) once per turning on
      whenever no block holds a table or a block names a table it does not
      hold: over a workspace without blocks, then with one block whose
      manifest (`bare`) names no table, then with two more blocks each
@@ -2769,11 +2770,11 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    The end-to-end proof is `e2e/matchclaim-loading.spec.ts`: on the
    built page, whose health check is refused (503 Service Unavailable),
    pressing M with a manifest naming its table opens no dialog, the message
-   bar shows the information `MATCHES_NEED_A_SERVER` alone, and Load
+   bar shows the information `HOW_TO_START_A_SERVER` alone, and Load
    MatchClaims… is disabled, described by the failed check's failure and
    `HOW_TO_START_A_SERVER`; beside a warning already shown the information
-   is drawn in its own card and style and leaves after 3 s while the
-   warning stays ("The message bar"); with the check held
+   is drawn in its own card and style and leaves after its reading time
+   (`infoDurationOf`) while the warning stays ("The message bar"); with the check held
    unanswered, M posts nothing, and once it answers the table is loaded
    without M being pressed again; once it is refused instead, the message
    bar gets exactly one message, that information, without M being
@@ -3373,6 +3374,17 @@ bar, three levels. What proves it:
   is 3000; at 2999 ms all three are shown, at 3000 ms exactly
   `[["warning", "Refused."], ["error", "Not saved."]]`, and still exactly
   that 60 000 ms later; dismissing each by its id empties the list.
+- **Information stays long enough to be read.** One rule gives the time:
+  `INFO_MS_PER_WORD` is 300 (200 words a minute), and information stays
+  `INFO_DURATION_MS` or `INFO_MS_PER_WORD` for each of its words (parts of
+  the text apart by white space), whichever is longer
+  (`infoDurationOf`). A text of ten words stays exactly 3000 ms, one of
+  eleven 3300 ms; empty or all white space, 3000 ms; words apart by
+  several spaces or a line break count once each. `HOW_TO_START_A_SERVER`
+  holds 36 words, so it stays `36 × INFO_MS_PER_WORD`, and posted it is
+  still shown 1 ms before that time and gone at it; every test of that
+  message, end to end too, reads its time from `infoDurationOf`, never
+  from a number of its own.
 - **The same information shows once.** Information posted while
   information of the same text is shown replaces it: posted at 0 ms and
   again at 2000 ms (a warning of the same text between them), the list is
@@ -3425,18 +3437,19 @@ bar, three levels. What proves it:
   refusal itself.
 - **Information beside a warning, end to end** (`e2e/matchclaim-loading.spec.ts`): with the
   health check refused and a warning shown (an address the hook could not
-  select), pressing M shows "Matches need a running tilie-server." as
+  select), pressing M shows `HOW_TO_START_A_SERVER` as
   information beside the warning: both visible, their boxes not
   overlapping, the information's card `data-level="info"` with the
   information's colours (border `rgb(122, 167, 217)`, background
   `rgb(238, 245, 253)`), the warning's amber (`rgb(201, 162, 39)`,
-  `rgb(255, 248, 225)`). After 3000 ms (the page's clock run forward) the
-  information is gone and the warning stays.
+  `rgb(255, 248, 225)`). 1 ms before `infoDurationOf` its text (the page's
+  clock run forward) the information is still shown, at that time it is
+  gone, and the warning stays.
 
 The level of every message the editor posts is listed in ADR 0037's terms:
 a refusal of a gesture, a key or a pick, a value copied, a size replaced
 by its minimum, a table loaded, a lookup that could not be searched and
-"Matches need a running tilie-server." / "No MatchClaim table loaded." are
+`HOW_TO_START_A_SERVER` / "No MatchClaim table loaded." are
 information; a file not opened because of what was picked, an address not
 read, autosave active elsewhere, a filter or a statement the store refused
 are warnings; a workspace, manifest, example or table that could not be
