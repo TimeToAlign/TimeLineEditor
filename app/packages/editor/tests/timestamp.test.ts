@@ -1723,6 +1723,35 @@ describe("the wedge's rotation", () => {
       ]);
     });
 
+    it("takes input again once the release's own events have passed", () => {
+      vi.useFakeTimers();
+      try {
+        const store = example();
+        drawer(store, true, T).selected([THEME]);
+        const entries = store.journal.length;
+        pressSlider();
+        dragTo(60);
+        ended("pointerup");
+        expect([handed, store.journal.length, lastCommand(store)]).toEqual([
+          [shownAt(60), null],
+          entries + 1,
+          turned(THEME, 60),
+        ]);
+        // The next task: no key and no press has ended the drag before.
+        vi.runOnlyPendingTimers();
+        dragTo(70);
+        expect([handed.slice(2), rotation()[2]]).toEqual([[shownAt(70)], "70°"]);
+        changed();
+        expect([handed.slice(3), store.journal.length, lastCommand(store)]).toEqual([
+          [null],
+          entries + 2,
+          turned(THEME, 70),
+        ]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("shows the stored value again on Escape and moves nothing more in that drag", () => {
       const store = example();
       drawer(store, true, T).selected([THEME]);

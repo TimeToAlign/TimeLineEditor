@@ -1950,7 +1950,12 @@ ticks `5760`, coordinate `12` ♩.
      journals 50 and hands `null`; an `input` at 55 and a `change` after
      the release (Firefox ends a native range drag on the release by
      setting the value at the pointer and firing both) hand and journal
-     nothing, the slider staying "50", "50°".
+     nothing, the slider staying "50", "50°". The ended drag is kept
+     only until the release's own events have passed, the next task: with
+     the timers faked, a drag to 60 released, then the pending timer run
+     (no key, no press), an `input` at 70 hands 70 and shows "70°", and its
+     `change` hands `null` and journals 70, one entry, so the control is
+     not left ignoring input.
      *Escape.* Theme turned 45 by its stop, a drag to 60, then Escape on
      the slider: it hands `null`, prevents the key's default, and the
      slider shows the stored 45 again (value "45", "45°"); a further

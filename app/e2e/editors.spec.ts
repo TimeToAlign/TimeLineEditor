@@ -51,6 +51,7 @@ import {
   OPENED_JOURNAL,
   open,
   panel,
+  paneOf,
   partCentre,
   placedAt,
   placement,
@@ -104,20 +105,6 @@ function drawnPlaces(block: string, pane?: PaneSource): Record<string, { x: numb
 }
 
 /**
- * The pane the canvas's drawings are fitted to: the arranger's size in pixels
- * now. The canvas narrowed by the drawer settles its pane at this size
- * `PANE_SETTLE` later, so a value read from the page waits for the drawing
- * at it.
- */
-async function paneOf(page: Page): Promise<PaneSource> {
-  const view = await arranger(page).evaluate((element) => ({
-    width: element.clientWidth,
-    height: element.clientHeight,
-  }));
-  return { view };
-}
-
-/**
  * How far right of its node's left edge `bmixed0000`'s place origin lies in its drawing at the
  * canvas's pane `pane`: its ancestor card of `recording` reaches that far left of its items. The
  * card is elided by default, at the automatic proportion, which reads the pane (section 8.9), so
@@ -131,6 +118,27 @@ function mixedShift(pane: PaneSource): number {
 
 /** `mixedShift` at layout's default view, derived in the arranger's tests README. */
 const MIXED_DEFAULT_SHIFT = 121.70361328125;
+
+/**
+ * The canvas's pane in an editor: the arranger's size at the page's 1600 × 1000 with the
+ * drawer open (README, "editors.spec.ts").
+ */
+const EDITOR_PANE = { view: { width: 1087, height: 968 } };
+
+/** `mixedShift` at `EDITOR_PANE`: layout's record at that pane (README, "editors.spec.ts"). */
+const MIXED_EDITOR_SHIFT = 117.44561314174106;
+
+/**
+ * `mixedShift` in the editor open now: the canvas's pane is `EDITOR_PANE`, and the editor's
+ * drawing code gives `MIXED_EDITOR_SHIFT` there, which is returned. A value read from the page
+ * then waits for the drawing at that pane, which settles `PANE_SETTLE` after the drawer opened.
+ */
+async function editorShift(page: Page): Promise<number> {
+  const pane = await paneOf(page);
+  expect(pane).toEqual(EDITOR_PANE);
+  expect(mixedShift(pane)).toBe(MIXED_EDITOR_SHIFT);
+  return MIXED_EDITOR_SHIFT;
+}
 
 /**
  * A held card's width in `bmixed0000` at length `L`: `Wc(L) = 145.052001953125 + L` (the
@@ -583,9 +591,8 @@ test.describe("on bundles", () => {
     await enter(page, BUNDLE, view);
     // `recording`'s ancestor card reaches `shift − P` left of the place origin; a card moved 200
     // left, to −192, lies `192 − (shift − P)` beyond it, so the box grows left by that much.
-    const pane = await paneOf(page);
-    expect(drawnPlaces(MIXED, pane)).toEqual(drawn);
-    const shift = mixedShift(pane);
+    const shift = await editorShift(page);
+    expect(drawnPlaces(MIXED, EDITOR_PANE)).toEqual(drawn);
     const grown = 192 - (shift - 8);
     await expect.poll(async () => (await frameRect(page)).x).toBe(drawnX(8 + shift));
     // The node, at the block's place (0, 0) less the drawing's origin, in canvas units.
@@ -601,9 +608,8 @@ test.describe("on bundles", () => {
     });
     const { x, y } = await placement(page, MIXED);
     expect({ x, y }).toEqual({ x: 0, y: 0 });
-    // The node moves left by `grown`: the drawing's origin is now the moved card's left edge
-    // and the padding, `192 + 8 = shift + grown`.
-    expect(shift + grown).toBe(200);
+    // The drawing's origin is now the moved card's left edge and the padding, 192 + 8 left of
+    // the place origin: the node lies at −200.
     await expect.poll(() => nodeTransform(page, MIXED)).toBe(await placedAt(page, -200, 0));
     // In drawing units at scale 1: the frame lies `grown` further right in a node as much further left.
     expect(await frameRect(page)).toEqual({ ...frameBefore, x: drawnX(8 + shift + grown) });
@@ -619,7 +625,7 @@ test.describe("on bundles", () => {
 
     await enter(page, BUNDLE, VIEW);
     // Drawn right of the place origin by `recording`'s ancestor card, which stays the leftmost.
-    const shift = mixedShift(await paneOf(page));
+    const shift = await editorShift(page);
     await expect.poll(async () => (await frameRect(page)).x).toBe(drawnX(8 + shift));
     const view = await storeText(page, "view");
     const frame = await framePoint(page, MIXED, { id: "group_1" });
@@ -1072,7 +1078,7 @@ test.describe("resizing in an editor", () => {
     page,
   }) => {
     await enter(page, mixed("score"), VIEW);
-    const shift = mixedShift(await paneOf(page));
+    const shift = await editorShift(page);
     await select(page, [{ block: MIXED, ...cardAddress("score") }]);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');

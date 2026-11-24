@@ -1082,11 +1082,13 @@ boundary is marked with its card, the mark gone once the pointer is on the
 empty pane at canvas (584, 600), between `bungroup00` and `btwogroups`;
 `gchild0000` at scale 1.5 draws its
 `<svg>` 1.5 times its drawing's width, the drawing at that scale and at
-the canvas's pane (the arranger's size), as the editor's drawing code
-draws it outside the page: `piece`'s ancestor card is elided at the
-automatic proportion, which reads the scale and the pane (section 8.9),
-so the width is no constant (1001.609814453125 at layout's default view
-and scale 1, the fixture table above); a press on a frame selects the group;
+the canvas's pane (the arranger's size, 1600 × 968 with the drawer
+closed, which the case asserts first): `piece`'s ancestor card is elided
+at the automatic proportion, which reads the scale and the pane (section
+8.9), so the width depends on both (1001.609814453125 at layout's default
+view and scale 1, the fixture table above); at that pane and scale it is
+1551.35888671875, layout's record, pinned, and the editor's drawing code
+run outside the page gives it beside; a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
 `data-box="block"`), each in its stated colour. A stretch keeps
@@ -1533,10 +1535,12 @@ of `recording`'s ancestor card, which lies `shift − P` left of the place
 origin (`shift` the drawing's origin abscissa: `recording`'s card is
 elided at the automatic proportion, which reads the pane, so `shift` is
 the origin of the block's drawing at the canvas's pane, the arranger's
-size with the drawer open, as the editor's drawing code gives it outside
-the page; at layout's default view it is 121.70361328125, derived in the
-arranger's tests README, "`bundle_mixed`'s `score`", which the case first
-checks), so the node moves left by `192 − (shift − 8)`, from `−shift` to
+size with the drawer open, 1087 × 968 at the page's 1600 × 1000, which
+each case using it asserts first; there it is 117.44561314174106,
+layout's record at that pane, pinned, and the editor's drawing code run
+outside the page gives it beside; at layout's default view it is
+121.70361328125, derived in the arranger's tests README, "`bundle_mixed`'s
+`score`", which the case first checks), so the node moves left by `192 − (shift − 8)`, from `−shift` to
 `−200` (the moved card's edge −192 and the padding 8; the node's computed
 transform compared as below, `arrangement.spec.ts`), and the frame, drawn
 at `8 + shift`, lies as much further right in it; two items move together
@@ -1615,10 +1619,13 @@ is a real pointer gesture; the stored state is read through the hook.
   selection as it was; a double-click there closes the editor.
 - **A double-click on the edited element centres the view on it again**:
   after `group_2`'s editor has opened and the view has stopped moving
-  (two readings `2 × PANE_SETTLE` apart agree: the drawer opening with the
-  editor narrows the canvas, whose pane settles 150 ms later, and the
-  block, whose ancestor cards are elided at a proportion the pane gives,
-  is drawn anew and centred again),
+  (the case waits on state, never on time: until the block's `<svg>` has
+  the `viewBox` of its drawing at the arranger's size, as the editor's
+  drawing code draws the workspace the page holds outside the page; the
+  drawer opening with the editor narrows the canvas, whose pane settles
+  `PANE_SETTLE` later, and the block, whose ancestor cards are elided at a
+  proportion the pane gives, is then drawn anew and, with reduced motion,
+  centred again in the same task),
   the viewport moved to (40, 80 − 952) returns, after a double-click on
   `group_2`'s frame, to exactly the viewport the opening settled at, the
   editing path, the journal and the session unchanged.

@@ -26,7 +26,6 @@ import { manifestFileName } from "../packages/editor/src/files.ts";
 import type { Drawing } from "../packages/layout/src/index.ts";
 import { FONT_METRICS, manifestFixture } from "./schema.ts";
 import {
-  arranger,
   BUNDLES,
   chooseItem,
   commandsFrom,
@@ -44,6 +43,7 @@ import {
   node,
   OPENED_JOURNAL,
   open,
+  paneOf,
   part,
   partCentre,
   pick,
@@ -137,15 +137,6 @@ async function partsInside(
     ({ x, y }) =>
       x >= outer.x && x <= outer.x + outer.width && y >= outer.y && y <= outer.y + outer.height,
   ).length;
-}
-
-/** The arranger's size in pixels: the pane the canvas's drawings are fitted to. */
-async function paneOf(page: Page): Promise<PaneSource> {
-  const view = await arranger(page).evaluate((element) => ({
-    width: element.clientWidth,
-    height: element.clientHeight,
-  }));
-  return { view };
 }
 
 /**
@@ -394,10 +385,14 @@ test.describe("a group workspace", () => {
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.groups + 1);
     // 1.5 times the block's drawing width at scale 1.5 and the canvas's pane: `piece`'s ancestor
     // card is elided at the automatic proportion, which reads both (section 8.9).
-    const scaled = groupsDrawing(GROUPS.child, { scale: 1.5 }, await paneOf(page));
+    // The pane is the arranger's size, the drawer closed; the width there is layout's record
+    // (README, "groups.spec.ts"), which the editor's drawing code gives.
+    const pane = await paneOf(page);
+    expect(pane).toEqual({ view: { width: 1600, height: 968 } });
+    expect(groupsDrawing(GROUPS.child, { scale: 1.5 }, pane).width * 1.5).toBe(1551.35888671875);
     await expect(node(page, GROUPS.child).locator(".tilie-block > svg")).toHaveAttribute(
       "width",
-      String(scaled.width * 1.5),
+      "1551.35888671875",
     );
     const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });

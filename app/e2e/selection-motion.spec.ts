@@ -9,8 +9,10 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { PANE_SETTLE } from "../packages/arranger/src/pane.ts";
+import { drawingOf } from "../packages/arranger/src/drawing.ts";
 import type { Address } from "../packages/core/src/index.ts";
+import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import { FONT_METRICS } from "./schema.ts";
 import type { Handle, ResizeMode, Viewport } from "./support.ts";
 import {
   addressSelector,
@@ -22,7 +24,9 @@ import {
   framePoint,
   GROUPS,
   journalLength,
+  node,
   open,
+  paneOf,
   partCentre,
   select,
   selection,
@@ -81,31 +85,32 @@ async function resize(page: Page, mode: ResizeMode, handle: Handle, dx: number, 
 
 /**
  * Open the editor of `target` through the hook and wait until the view has
- * stopped moving there; the viewport it settled at. The drawer opening with
- * the editor narrows the canvas, whose pane settles `PANE_SETTLE` later: the
- * drawings are then drawn again for it and the edited element centred again
- * on its new drawing. So the view counts as settled once two readings
- * `2 × PANE_SETTLE` apart agree, the first taken after the view has moved.
+ * moved there and the canvas's pane has settled; the viewport then. The
+ * drawer opening with the editor narrows the canvas, whose pane settles
+ * `PANE_SETTLE` later: the drawings are then drawn again for it and the
+ * edited element centred again on its new drawing. So the case waits until
+ * the block is drawn as the editor's drawing code draws it at the arranger's
+ * size (its `<svg>`'s `viewBox`): with reduced motion the view has then
+ * been centred on that drawing, in the same task; with full motion a move
+ * there may still be under way, which a later `setViewport` interrupts.
  */
 async function openSettled(page: Page, target: Address): Promise<Viewport> {
   const before = await viewportOf(page);
   expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
   await expect.poll(() => viewportOf(page)).not.toEqual(before);
-  let last: string | null = null;
-  let settled = before;
-  await expect
-    .poll(
-      async () => {
-        settled = await viewportOf(page);
-        const now = JSON.stringify(settled);
-        const still = now === last;
-        last = now;
-        return still;
-      },
-      { intervals: [2 * PANE_SETTLE] },
-    )
-    .toBe(true);
-  return settled;
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the workspace is refused");
+  const id = target.block;
+  const block = id === undefined ? undefined : workspace.view.blocks[id];
+  if (id === undefined || block === undefined) throw new Error("the target lies in no block");
+  const drawing = drawingOf(block, workspace.view.graphical, FONT_METRICS, undefined, {
+    view: (await paneOf(page)).view,
+  });
+  await expect(node(page, id).locator(".tilie-block > svg")).toHaveAttribute(
+    "viewBox",
+    `0 0 ${drawing.width} ${drawing.height}`,
+  );
+  return viewportOf(page);
 }
 
 test.describe("the selection", () => {

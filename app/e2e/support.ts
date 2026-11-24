@@ -528,6 +528,22 @@ export function arranger(page: Page): Locator {
   return page.locator('[role="application"][aria-label="Arranger"]');
 }
 
+/**
+ * The pane the canvas's drawings are fitted to: the arranger's size in pixels
+ * now. The canvas narrowed or widened by the drawer settles its pane at this
+ * size `PANE_SETTLE` later, so a value read from the page waits for the
+ * drawing at it.
+ */
+export async function paneOf(
+  page: Page,
+): Promise<{ readonly view: { readonly width: number; readonly height: number } }> {
+  const view = await arranger(page).evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
+  return { view };
+}
+
 /** Select `addresses` through the hook. */
 export function select(page: Page, addresses: readonly Address[]): Promise<void> {
   return page.evaluate((chosen) => window.__tilie.select(chosen), [...addresses]);
