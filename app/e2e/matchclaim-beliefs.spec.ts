@@ -376,7 +376,9 @@ test("New asks to save a changed table with the unsaved workspace, and saves bot
   await saveAsOffered(page);
   await expect.poll(() => blockCount(page)).toBe(0);
   expect(seen.writes).toEqual([["untitled.tle.json", workspace]]);
-  expect(downloads.length).toBe(1);
+  // The page clicks the table's download before it empties the workspace, but the browser reports
+  // the download on its own time (Firefox after the workspace is already empty): wait for it.
+  await expect.poll(() => downloads.length).toBe(1);
   const [table] = downloads;
   if (table === undefined) throw new Error("the table's download expected");
   expect(table.suggestedFilename()).toBe("match_claims.parquet");
