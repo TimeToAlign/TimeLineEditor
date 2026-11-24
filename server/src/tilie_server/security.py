@@ -7,9 +7,7 @@ import secrets
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from tilie_server.settings import API_PREFIX
-
-MIB = 1024 * 1024
+from tilie_server.settings import API_PREFIX, size_named
 
 
 class OriginGuard:
@@ -76,14 +74,9 @@ class OriginGuard:
 
 
 def body_limit_message(limit: int) -> str:
-    """The refusal of a body longer than ``limit`` bytes.
-
-    The limit is named in MiB when it is a whole number of them, else in
-    bytes.
-    """
-    if limit > 0 and limit % MIB == 0:
-        return f"body larger than {limit // MIB} MiB"
-    return f"body larger than {limit} byte{'' if limit == 1 else 's'}"
+    """The refusal of a body longer than ``limit`` bytes, the limit named by
+    :func:`tilie_server.settings.size_named`."""
+    return f"body larger than {size_named(limit)}"
 
 
 class BodyLimit:

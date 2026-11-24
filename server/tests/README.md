@@ -127,6 +127,74 @@ A local app takes the 9 bytes to the route (the middleware is not added
 without a limit). The CLI sets the real limit: the settings a public
 command line builds carry `body_limit` exactly `16 * 1024 * 1024` (below).
 
+**Table bounds.** The body limit bounds the bytes received, not what a
+Parquet file decodes to: a column of zeros, or one long string repeated,
+compresses a thousandfold and more. So a public server also bounds a posted
+MatchClaim table by its rows and by its size uncompressed, on each of the
+four routes that read one (`POST /api/match-claims`, `…/events`,
+`…/provenance` and `…/belief`), all of which read the table through one
+function. Two measures are taken against the bounds:
+
+1. **The footer, before any row is decoded.** The rows are the larger of
+   the file's row count and the sum of its row groups' row counts (a reader
+   follows the row groups', so a file whose file-level count says fewer is
+   caught); the size is the sum of the row groups' `total_byte_size`.
+2. **The decoded table, batch by batch.** The footer is the sender's
+   statement, and even an honest one measures the encoded pages: a string
+   repeated through dictionary encoding is stated once, however many rows
+   repeat it. So the table is decoded in batches of 1,024 rows, the bytes
+   of each batch's Arrow buffers are added up, and the read stops at the
+   batch that passes the size bound, decoding no further batch.
+
+A table within both bounds answers exactly as on a local server. The
+refusal is 413 in the routes' own form, `{"detail": {"path": [], "message":
+…}}`, at the path of their other table refusals (`[]`), worded from the
+bounds: `table of more than <n> rows` (`n` with a comma between thousands,
+`1 row` for one) and `table larger than <size> uncompressed` (`<size>` named
+as the body limit names its limit: `<n> MiB` for a whole number of MiB,
+else `<n> bytes`, `1 byte` for one, `n` with a comma between thousands in
+both). The public bounds give exactly `table
+of more than 1,000,000 rows` and `table larger than 128 MiB uncompressed`;
+the rule is pinned for those and for 1 row, 1,234 rows, 1,234 bytes, 8 bytes
+and 1 byte, and the body limit's message names 1,234 bytes alike (`body
+larger than 1,234 bytes`).
+A local server has neither bound and reads the table as it always did.
+
+The cases post TimeToShare's MatchClaim table fixture (15 rows) and its
+manifest, the table written by pyarrow in the test, with small bounds
+injected into the settings. The facts the cases rest on are read from the
+file by pyarrow in the test and asserted as preconditions, so each case
+shows which measure refuses: the footer's size and rows from its metadata,
+and the decoded size as the buffers of the whole table read at once, which
+for a table of at most 1,024 rows is the one batch. "Not decoded" is proved
+by replacing pyarrow's batch reader and its whole-table reader with ones
+that fail the test when called.
+
+| Table | Bounds | Answer |
+| --- | --- | --- |
+| the fixture | 15 rows, the decoded size | 200, byte for byte the local answer, on each of the four routes (the events and provenance of `claim_1`, the belief `claim_6`, `false`) |
+| the fixture | 14 rows | 413 `table of more than 14 rows`, on each of the four routes; not decoded |
+| the fixture, its footer's file-level row count rewritten from 15 to 14 in the test (its row group still says 15) | 14 rows | 413 `table of more than 14 rows`; not decoded |
+| the fixture | the decoded size less one (the footer states less) | 413 `table larger than <n> bytes uncompressed` (`n` that bound), by the decoded count |
+| the fixture with a column `note` of 100,000 `a` per row, plain encoding, zstd: the file under 16 KiB, its footer stating more than 1 MiB | 1 MiB | 413 `table larger than 1 MiB uncompressed`; not decoded |
+| the same column dictionary-encoded: the footer states under 1 MiB, the decoded table holds more | 1 MiB | 413 `table larger than 1 MiB uncompressed`, by the decoded count |
+| one column of 5,000 strings of 100 `a`, dictionary-encoded | 150,000 bytes | 413 `table larger than 150,000 bytes uncompressed` once the second batch is decoded: each batch of 1,024 rows holds 1,024 × 100 bytes of text and 1,025 four-byte offsets, 106,500 bytes, so the sum passes the bound at the second (213,000); the batch reader yields 2 of the file's 5 batches |
+
+Each of these tables reaches the route on a local app: the fixture's
+answers 200, the fixture with a `note` column answers 200 with the
+fixture's own answer (a column the table type does not declare changes
+nothing), and the table of one column reaches the table checks, which
+refuse it with 422 at `[]`.
+
+What the two measures leave open: one batch is decoded before it is
+counted, so a single batch can pass the bound by its own size, at most
+1,024 rows times the longest value in it. A value's length is bounded only
+by the page that holds it, whose decoded size the page's own header states
+(up to 2 GiB) and which pyarrow decodes without exposing that header first;
+dictionary and `DELTA_BYTE_ARRAY` encoding repeat one such value in every
+row at the cost of a few bytes each. No test can bound that without a
+reader of page headers, which the server does not have.
+
 **Referrer policy.** The 403 (host and origin), the 404 of a file route and
 the 413 each carry exactly one `Referrer-Policy: no-referrer` header.
 
@@ -141,9 +209,11 @@ header. The settings a command line builds are compared whole: `tilie
 --public-host tilie.example.org --public-host localhost:8000 --port 8001`
 builds `ServerSettings(host="0.0.0.0", port=8001, token=None, static_dir=None,
 root=<home folder>, public_hosts=("tilie.example.org", "localhost:8000"),
-files=False, body_limit=16 * 1024 * 1024)`; without `--public-host` the
-settings are the local ones (`127.0.0.1`, a token of 43 URL-safe
-characters, no public hosts, `files` true, no body limit). The notice line
+files=False, body_limit=16 * 1024 * 1024, table_rows=1_000_000,
+table_bytes=128 * 1024 * 1024)`, the numbers written out in the test, so
+that the constants they come from are pinned too; without `--public-host`
+the settings are the local ones (`127.0.0.1`, a token of 43 URL-safe
+characters, no public hosts, `files` true, no body limit, no table bounds). The notice line
 for those two hosts is exactly `tilie: public mode on port 8001, answering
 as tilie.example.org, localhost:8000; no token, no file access`.
 

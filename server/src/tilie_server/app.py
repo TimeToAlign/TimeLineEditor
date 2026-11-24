@@ -11,6 +11,7 @@ from tilie_server.routers.claim_provenance import router as claim_provenance_rou
 from tilie_server.routers.files import router as files_router
 from tilie_server.routers.health import router as health_router
 from tilie_server.routers.lookup import router as lookup_router
+from tilie_server.routers.match_claims import TableBounds
 from tilie_server.routers.match_claims import router as match_claims_router
 from tilie_server.routers.measure_maps import router as measure_maps_router
 from tilie_server.security import BodyLimit, NoReferrer, OriginGuard
@@ -41,13 +42,14 @@ def create_app(
 
     A local run answers to its loopback origin with the run's bearer token
     and serves the file routes. A public run answers as its public hosts,
-    checks no token, serves no file routes and bounds every request body;
+    checks no token, serves no file routes and bounds every request body
+    and every posted table;
     every ``/api/`` path no route serves then answers 404, whatever the
     method, so no request to the API reaches the editor's files.
 
     Args:
         settings: The run's hosts, token, editor files, root folder, file
-            access and body limit.
+            access, body limit and table bounds.
         musicbrainz: The one client of MusicBrainz for the run's lookups; a
             new :class:`MusicBrainz` when not given.
     """
@@ -78,6 +80,7 @@ def create_app(
 
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
     app.state.files = settings.files
+    app.state.table_bounds = TableBounds(settings.table_rows, settings.table_bytes)
     # Resolved once, so a root given through a symbolic link holds its files.
     app.state.root = settings.root.resolve()
     mount_static(app, static_dir)

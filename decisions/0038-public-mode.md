@@ -77,8 +77,20 @@ reached under several names) starts the server in public mode:
   says so, without reading the body, and as soon as the bytes received pass
   the limit for a body sent without one, before the route runs. A local
   run has no limit: its only client is its own user.
+- **Table bounds.** A posted MatchClaim table of more than 1,000,000 rows,
+  or of more than 128 MiB uncompressed, is refused with 413 `{"detail":
+  {"path": [], "message": "table of more than 1,000,000 rows"}}` or
+  `"table larger than 128 MiB uncompressed"`, on each of the four routes
+  that read one. The bounds are checked first from the Parquet footer,
+  before any row is decoded (the larger of the file's and the row groups'
+  row counts, and the row groups' summed uncompressed size), then on the
+  decoded table, 1,024 rows at a time, stopping at the batch that passes
+  the size bound: a footer is the sender's statement, and even an honest
+  one states a value repeated by dictionary encoding only once. A local run
+  has no bounds.
 - **Settings.** `ServerSettings` carries the mode as data: `token` (`None`
-  for no token check), `public_hosts`, `files` and `body_limit`, from which
+  for no token check), `public_hosts`, `files`, `body_limit`, `table_rows`
+  and `table_bytes`, from which
   the guard takes its hosts (`allowed_hosts()`) and origins
   (`allowed_origins()`). The guard, `OriginGuard`, checks a token only where
   the settings hold one.
@@ -111,10 +123,23 @@ What a public server gives up, and what it keeps:
   not guarded: no token, header or path reaches them.
 - **Hosts and origins** stay checked as in a local run, against the given
   names in place of the loopback address.
-- **Bodies** are bounded, so one request cannot make the server hold an
-  unbounded body in memory; the routes read whole bodies before computing.
+- **Bodies** are bounded: the bytes one request makes the server receive
+  and hold are at most 16 MiB; the routes read whole bodies before
+  computing.
+- **Tables** are bounded in their rows and in their decoded size, as above,
+  since 16 MiB of Parquet can decode to many gigabytes. The decoded size is
+  counted after each batch of 1,024 rows, so one batch can pass the bound
+  by its own size before it is counted.
 
 What stays open:
+
+- **One batch of a table.** A batch's size is at most 1,024 rows times its
+  longest value, and a value is bounded only by the Parquet page that holds
+  it, whose decoded size (up to 2 GiB) the page's own header states and
+  pyarrow decodes without exposing first. Dictionary and `DELTA_BYTE_ARRAY`
+  encoding repeat one long value in every row for a few bytes each, so a
+  crafted file of a few kilobytes can still make one batch large. Bounding
+  it needs a reader of page headers, or a memory limit on the process.
 
 - **No rate limit.** A visitor can send as many requests as the host lets
   through, each up to 16 MiB, and the computing routes spend the server's
@@ -132,8 +157,8 @@ and the MusicBrainz lookup working, opening and saving files through the
 browser. A local run is unchanged except that its health answer gains
 `"files": true`. A deployment names its host once, and a mistake in it
 leaves the server refusing every request (403), never open to a host it
-was not given. The exit cost is local: one option, the settings' four
-members, one middleware and the health member.
+was not given. The exit cost is local: one option, the settings' members,
+one middleware, the bounded table reader and the health member.
 
 ## Review date
 

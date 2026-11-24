@@ -22,7 +22,13 @@ from fastapi.responses import JSONResponse, Response
 
 from tilie_server.manifests import Refusal, posted_body, read_manifest
 from tilie_server.routers.claim_provenance import claim_rows, row_of, split_parameters
-from tilie_server.routers.match_claims import checked_table, split_body, table_reader
+from tilie_server.routers.match_claims import (
+    PostedTableBounds,
+    TableBounds,
+    checked_table,
+    split_body,
+    table_reader,
+)
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -42,8 +48,9 @@ ANSWERED_COLUMNS = (
 """The members of an answered MatchClaim, in the order answered."""
 
 
-def events_answer(body: bytes) -> dict[str, Any]:
-    """The events of the MatchClaims a request names.
+def events_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
+    """The events of the MatchClaims a request names, its table read within
+    ``bounds``.
 
     Returns:
         ``{"claims": [...]}`` in the order the request names them, each
@@ -58,7 +65,7 @@ def events_answer(body: bytes) -> dict[str, Any]:
             rest of the body; 422 if ``claims`` is no list, or names a
             MatchClaim the table lacks (at ``["claims", index]``).
     """
-    read, tables, field_class, _ = table_reader()
+    read, tables, field_class, _ = table_reader(bounds)
     parameters, rest = split_parameters(body, EVENTS_PARAMETERS)
     manifest_data, table_data = split_body(rest)
     manifest, _ = read_manifest(manifest_data, "the manifest")
@@ -75,7 +82,9 @@ def events_answer(body: bytes) -> dict[str, Any]:
 
 
 @router.post(f"{API_PREFIX}match-claims/events")
-def match_claim_events(body: Annotated[bytes, Depends(posted_body)]) -> Response:
+def match_claim_events(
+    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
+) -> Response:
     """Answer the events of the MatchClaims named, of the posted table.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -85,7 +94,7 @@ def match_claim_events(body: Annotated[bytes, Depends(posted_body)]) -> Response
     that route's, the parameters' at their name.
     """
     try:
-        answer = events_answer(body)
+        answer = events_answer(body, bounds)
     except Refusal as refusal:
         return refusal.response()
     return JSONResponse(answer)

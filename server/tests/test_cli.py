@@ -306,6 +306,8 @@ def test_a_public_command_line_builds_the_public_settings() -> None:
         public_hosts=("tilie.example.org", "localhost:8000"),
         files=False,
         body_limit=16 * 1024 * 1024,
+        table_rows=1_000_000,
+        table_bytes=128 * 1024 * 1024,
     )
     assert public_notice(settings) == (
         "tilie: public mode on port 8001, answering as "
@@ -326,6 +328,8 @@ def test_a_local_command_line_builds_the_local_settings() -> None:
         public_hosts=(),
         files=True,
         body_limit=None,
+        table_rows=None,
+        table_bytes=None,
     )
 
 

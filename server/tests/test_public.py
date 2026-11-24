@@ -1,19 +1,26 @@
-"""Public mode: no token, no file routes, a bounded body (README, "Public mode")."""
+"""Public mode: no token, no file routes, a bounded body and bounded tables
+(README, "Public mode")."""
 
 from __future__ import annotations
 
 import asyncio
 import json
+import struct
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
+from timetoshare.tables import fixture_path
 
 import tilie_server.routers.measure_maps
 from tilie_server.app import create_app
 from tilie_server.manifests import Refusal
+from tilie_server.routers.match_claims import TableBounds
 from tilie_server.security import body_limit_message
 from tilie_server.settings import ServerSettings
 
@@ -24,6 +31,7 @@ LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 8765
 TOO_LONG = {"detail": "body larger than 8 bytes"}
 SEEN = {"detail": {"path": [], "message": "seen"}}
+MIB = 1024 * 1024
 
 
 def public_settings(static_dir: Path, root: Path | None = None) -> ServerSettings:
@@ -259,6 +267,7 @@ def test_a_local_app_serves_the_same_file_requests(
     [
         (16 * 1024 * 1024, "body larger than 16 MiB"),
         (1024 * 1024, "body larger than 1 MiB"),
+        (1234, "body larger than 1,234 bytes"),
         (8, "body larger than 8 bytes"),
         (1, "body larger than 1 byte"),
     ],
@@ -386,3 +395,294 @@ def test_refusals_send_no_referrer(tmp_path: Path, seen: list[bytes]) -> None:
         kind: r.headers.get_list("referrer-policy") for kind, r in responses.items()
     }
     assert policies == {kind: ["no-referrer"] for kind in responses}
+
+
+# --------------------------------------------------------------- table bounds
+
+ACTOR = "https://orcid.org/0000-0002-1825-0097"
+TABLE_ROUTES: dict[str, dict[str, Any] | None] = {
+    "/api/match-claims": None,
+    "/api/match-claims/events": {"claims": ["claim_1"]},
+    "/api/match-claims/provenance": {"claims": ["claim_1"]},
+    "/api/match-claims/belief": {
+        "claim": "claim_6",
+        "actor": ACTOR,
+        "belief": "false",
+        "date": "2026-11-22",
+    },
+}
+"""The four routes that read a posted table, each with parameters it answers
+200 to on the fixture (``None`` for none)."""
+
+BATCH_TEXT = 106_500
+"""The decoded bytes of 1,024 strings of 100 ``a``: 102,400 bytes of text
+and 1,025 four-byte offsets."""
+
+
+def fixture_table() -> pa.Table:
+    return pq.read_table(fixture_path("match_claims.parquet"))
+
+
+def written(table: pa.Table, **options: Any) -> bytes:
+    sink = pa.BufferOutputStream()
+    pq.write_table(table, sink, **options)
+    return sink.getvalue().to_pybytes()
+
+
+def table_body(route: str, table: bytes) -> bytes:
+    """The body of ``route`` posting ``table`` with the fixture's manifest."""
+    manifest = fixture_path("manifest.yaml").read_bytes()
+    posted = struct.pack("<I", len(manifest)) + manifest + table
+    parameters = TABLE_ROUTES[route]
+    if parameters is None:
+        return posted
+    text = json.dumps(parameters).encode()
+    return struct.pack("<I", len(text)) + text + posted
+
+
+def bounded_client(
+    static_dir: Path, rows: int | None = None, size: int | None = None
+) -> TestClient:
+    """A public app with the table bounds given and no body limit."""
+    settings = replace(
+        public_settings(static_dir), body_limit=None, table_rows=rows, table_bytes=size
+    )
+    return TestClient(create_app(settings), base_url=f"http://{PUBLIC_HOSTS[0]}")
+
+
+def footer_facts(data: bytes) -> tuple[int, int, int]:
+    """The file's row count, its row groups' summed row count and their summed
+    ``total_byte_size``, as the footer states them."""
+    footer = pq.ParquetFile(pa.BufferReader(data)).metadata
+    groups = [footer.row_group(index) for index in range(footer.num_row_groups)]
+    return (
+        footer.num_rows,
+        sum(group.num_rows for group in groups),
+        sum(group.total_byte_size for group in groups),
+    )
+
+
+def decoded_size(data: bytes) -> int:
+    """The bytes of the Arrow buffers of the whole table read at once."""
+    return pq.read_table(pa.BufferReader(data)).get_total_buffer_size()
+
+
+def forbid_decoding(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make pyarrow's batch reader and whole-table reader fail the test."""
+
+    def decoding(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("the table was decoded")
+
+    monkeypatch.setattr(pq.ParquetFile, "iter_batches", decoding)
+    monkeypatch.setattr(pq, "read_table", decoding)
+
+
+def too_large(message: str) -> tuple[int, dict[str, Any]]:
+    return 413, {"detail": {"path": [], "message": message}}
+
+
+def answer(response: Any) -> tuple[int, Any]:
+    return response.status_code, response.json()
+
+
+def with_note(table: pa.Table) -> pa.Table:
+    """The table with a column ``note`` of 100,000 ``a`` in every row."""
+    return table.append_column("note", pa.array(["a" * 100_000] * table.num_rows))
+
+
+@pytest.mark.parametrize("route", TABLE_ROUTES)
+def test_a_table_within_the_bounds_answers_as_locally(
+    tmp_path: Path, route: str
+) -> None:
+    data = written(fixture_table())
+    rows, group_rows, footer_size = footer_facts(data)
+    size = decoded_size(data)
+    assert (rows, group_rows) == (15, 15)
+    assert footer_size < size
+    public = bounded_client(tmp_path, rows=15, size=size).post(
+        route, content=table_body(route, data)
+    )
+    local = local_client(tmp_path).post(
+        route,
+        content=table_body(route, data),
+        headers={"Authorization": f"Bearer {TOKEN}"},
+    )
+    assert local.status_code == 200
+    assert (public.status_code, public.content) == (200, local.content)
+
+
+@pytest.mark.parametrize("route", TABLE_ROUTES)
+def test_a_table_over_the_row_bound_is_refused_undecoded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, route: str
+) -> None:
+    data = written(fixture_table())
+    forbid_decoding(monkeypatch)
+    response = bounded_client(tmp_path, rows=14).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large("table of more than 14 rows")
+
+
+FILE_ROWS = b"\x16\x1e"
+"""The footer's file-level row count of 15: the field header of an i64 one
+field after the schema, then 15 as a zigzag varint."""
+
+
+def with_file_rows_14(data: bytes) -> bytes:
+    """``data`` with its footer's file-level row count rewritten to 14."""
+    length = int.from_bytes(data[-8:-4], "little")
+    footer = data[-8 - length : -8]
+    footer = footer.replace(FILE_ROWS, b"\x16\x1c", 1)
+    return data[: -8 - length] + footer + data[-8:]
+
+
+def test_a_footer_stating_fewer_rows_for_the_file_is_refused_by_its_row_groups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = with_file_rows_14(written(fixture_table()))
+    assert footer_facts(data)[:2] == (14, 15)
+    forbid_decoding(monkeypatch)
+    route = "/api/match-claims"
+    response = bounded_client(tmp_path, rows=14).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large("table of more than 14 rows")
+
+
+def test_a_table_over_the_size_bound_by_its_decoded_bytes_is_refused(
+    tmp_path: Path,
+) -> None:
+    data = written(fixture_table())
+    bound = decoded_size(data) - 1
+    assert footer_facts(data)[2] <= bound
+    route = "/api/match-claims"
+    response = bounded_client(tmp_path, size=bound).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large(
+        f"table larger than {bound:,} bytes uncompressed"
+    )
+
+
+def test_a_compressible_column_is_refused_from_its_footer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = written(with_note(fixture_table()), use_dictionary=False, compression="zstd")
+    assert len(data) < 16 * 1024
+    assert footer_facts(data)[2] > MIB
+    forbid_decoding(monkeypatch)
+    route = "/api/match-claims"
+    response = bounded_client(tmp_path, size=MIB).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large("table larger than 1 MiB uncompressed")
+
+
+def test_a_repeated_value_is_refused_by_its_decoded_bytes(tmp_path: Path) -> None:
+    data = written(with_note(fixture_table()), compression="zstd")
+    assert footer_facts(data)[2] <= MIB < decoded_size(data)
+    route = "/api/match-claims"
+    response = bounded_client(tmp_path, size=MIB).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large("table larger than 1 MiB uncompressed")
+
+
+def test_the_read_stops_at_the_batch_passing_the_size_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = written(pa.table({"note": pa.array(["a" * 100] * 5000)}))
+    rows, group_rows, footer_size = footer_facts(data)
+    assert (rows, group_rows) == (5000, 5000)
+    assert footer_size <= 150_000
+    batches = pq.ParquetFile(pa.BufferReader(data)).iter_batches
+    original = pq.ParquetFile.iter_batches
+    yielded: list[int] = []
+
+    def counting(self: pq.ParquetFile, *args: Any, **kwargs: Any) -> Iterator[Any]:
+        for batch in original(self, *args, **kwargs):
+            assert batch.get_total_buffer_size() == BATCH_TEXT
+            yielded.append(batch.num_rows)
+            yield batch
+
+    assert [batch.num_rows for batch in batches(batch_size=1024)] == [
+        1024,
+        1024,
+        1024,
+        1024,
+        904,
+    ]
+    monkeypatch.setattr(pq.ParquetFile, "iter_batches", counting)
+    route = "/api/match-claims"
+    response = bounded_client(tmp_path, size=150_000).post(
+        route, content=table_body(route, data)
+    )
+    assert answer(response) == too_large("table larger than 150,000 bytes uncompressed")
+    assert yielded == [1024, 1024]
+
+
+LOCAL_TABLES = {
+    "fixture": (lambda: written(fixture_table()), 200),
+    "file rows rewritten": (lambda: with_file_rows_14(written(fixture_table())), 200),
+    "plain note": (
+        lambda: written(
+            with_note(fixture_table()), use_dictionary=False, compression="zstd"
+        ),
+        200,
+    ),
+    "dictionary note": (
+        lambda: written(with_note(fixture_table()), compression="zstd"),
+        200,
+    ),
+    "one column": (
+        lambda: written(pa.table({"note": pa.array(["a" * 100] * 5000)})),
+        422,
+    ),
+}
+
+
+@pytest.mark.parametrize("name", LOCAL_TABLES)
+def test_a_local_app_reads_every_bounded_table(tmp_path: Path, name: str) -> None:
+    make, status = LOCAL_TABLES[name]
+    route = "/api/match-claims"
+    client = local_client(tmp_path)
+    auth = {"Authorization": f"Bearer {TOKEN}"}
+    response = client.post(route, content=table_body(route, make()), headers=auth)
+    assert response.status_code == status
+    if status == 200:
+        fixture = client.post(
+            route, content=table_body(route, written(fixture_table())), headers=auth
+        )
+        assert response.content == fixture.content
+    else:
+        assert response.json()["detail"]["path"] == []
+
+
+@pytest.mark.parametrize(
+    ("bounds", "measure", "message"),
+    [
+        (TableBounds(rows=1_000_000), 1_000_001, "table of more than 1,000,000 rows"),
+        (TableBounds(rows=1), 2, "table of more than 1 row"),
+        (TableBounds(rows=1234), 1235, "table of more than 1,234 rows"),
+        (
+            TableBounds(size=128 * MIB),
+            128 * MIB + 1,
+            "table larger than 128 MiB uncompressed",
+        ),
+        (TableBounds(size=1234), 1235, "table larger than 1,234 bytes uncompressed"),
+        (TableBounds(size=8), 9, "table larger than 8 bytes uncompressed"),
+        (TableBounds(size=1), 2, "table larger than 1 byte uncompressed"),
+    ],
+)
+def test_the_table_refusals_name_the_bound(
+    bounds: TableBounds, measure: int, message: str
+) -> None:
+    check = bounds.check_rows if bounds.rows is not None else bounds.check_size
+    check(measure - 1)
+    with pytest.raises(Refusal) as refused:
+        check(measure)
+    assert (refused.value.status_code, refused.value.path, refused.value.message) == (
+        413,
+        [],
+        message,
+    )

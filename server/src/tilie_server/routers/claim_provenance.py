@@ -28,6 +28,8 @@ from fastapi.responses import JSONResponse, Response
 from tilie_server.manifests import Refusal, posted_body, read_manifest
 from tilie_server.routers.match_claims import (
     PREFIX,
+    PostedTableBounds,
+    TableBounds,
     checked_table,
     split_body,
     table_reader,
@@ -105,18 +107,18 @@ def split_parameters(
 
 
 def read_request(
-    body: bytes, names: tuple[str, ...]
+    body: bytes, names: tuple[str, ...], bounds: TableBounds
 ) -> tuple[dict[str, Any], Any, Mapping[str, Any], Any, Any, Any]:
-    """The parameters, the posted table, the manifest (file form),
-    ``timetoshare.tables``, timetoalign's ``MatchClaimField`` and the
-    table as timetoalign gives it back, once the table's checks accept the
-    table.
+    """The parameters, the posted table (read within ``bounds``), the
+    manifest (file form), ``timetoshare.tables``, timetoalign's
+    ``MatchClaimField`` and the table as timetoalign gives it back, once the
+    table's checks accept the table.
 
     Raises:
         Refusal: As :func:`split_parameters`, and as the table route for the
             rest of the body.
     """
-    read, tables, field_class, _ = table_reader()
+    read, tables, field_class, _ = table_reader(bounds)
     parameters, rest = split_parameters(body, names)
     manifest_data, table_data = split_body(rest)
     manifest, _ = read_manifest(manifest_data, "the manifest")
@@ -142,8 +144,9 @@ def row_of(rows: Mapping[str, int], claim: Any, path: list[str | int]) -> int:
     return rows[claim]
 
 
-def provenance_answer(body: bytes) -> dict[str, Any]:
-    """The provenance of the MatchClaims a request names.
+def provenance_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
+    """The provenance of the MatchClaims a request names, its table read
+    within ``bounds``.
 
     Returns:
         ``{"claims": [{"id", "provenance"}]}`` in the order the request names
@@ -162,7 +165,7 @@ def provenance_answer(body: bytes) -> dict[str, Any]:
 
     Provenance, actor_iri, belief_context = provenance_model()
     parameters, table, manifest, tables, _, _ = read_request(
-        body, PROVENANCE_PARAMETERS
+        body, PROVENANCE_PARAMETERS, bounds
     )
     claims = parameters["claims"]
     if not isinstance(claims, list):
@@ -275,8 +278,9 @@ def succeeding(tables: Any, old: Any, new: Any) -> None:
         raise Refusal([], problems[0].message, problems=listed)
 
 
-def belief_answer(body: bytes) -> bytes:
-    """The Parquet file of the posted table with the posted belief recorded.
+def belief_answer(body: bytes, bounds: TableBounds) -> bytes:
+    """The Parquet file of the posted table with the posted belief recorded,
+    the table read within ``bounds``.
 
     timetoalign records the belief: the manifest is read as an
     ``AlignmentBundle``, the table's MatchClaims are added to it, and its
@@ -300,7 +304,7 @@ def belief_answer(body: bytes) -> bytes:
 
     provenance_model()  # 501 before the body is split
     parameters, table, manifest, tables, field_class, checked = read_request(
-        body, BELIEF_PARAMETERS
+        body, BELIEF_PARAMETERS, bounds
     )
     claim, actor, belief, date = checked_belief(parameters, claim_rows(table))
     bundle = manifest_bundle(manifest)
@@ -318,7 +322,9 @@ def belief_answer(body: bytes) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims/provenance")
-def match_claim_provenance(body: Annotated[bytes, Depends(posted_body)]) -> Response:
+def match_claim_provenance(
+    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
+) -> Response:
     """Answer the provenance of the MatchClaims named, of the posted table.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -328,14 +334,16 @@ def match_claim_provenance(body: Annotated[bytes, Depends(posted_body)]) -> Resp
     the parameters' at their name.
     """
     try:
-        answer = provenance_answer(body)
+        answer = provenance_answer(body, bounds)
     except Refusal as refusal:
         return refusal.response()
     return JSONResponse(answer)
 
 
 @router.post(f"{API_PREFIX}match-claims/belief")
-def match_claim_belief(body: Annotated[bytes, Depends(posted_body)]) -> Response:
+def match_claim_belief(
+    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
+) -> Response:
     """Answer the posted table with an actor's belief in one MatchClaim.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -345,7 +353,7 @@ def match_claim_belief(body: Annotated[bytes, Depends(posted_body)]) -> Response
     Refusals answer as that route's, the parameters' at their name.
     """
     try:
-        answer = belief_answer(body)
+        answer = belief_answer(body, bounds)
     except Refusal as refusal:
         return refusal.response()
     return Response(answer, media_type=PARQUET_MEDIA_TYPE)

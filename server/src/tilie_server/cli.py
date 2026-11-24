@@ -20,7 +20,13 @@ from queue import Empty, Queue
 import uvicorn
 
 from tilie_server.app import create_app
-from tilie_server.settings import PUBLIC_BODY_LIMIT, ServerSettings
+from tilie_server.settings import (
+    PUBLIC_BODY_LIMIT,
+    PUBLIC_TABLE_BYTES,
+    PUBLIC_TABLE_ROWS,
+    ServerSettings,
+    size_named,
+)
 
 HOST = "127.0.0.1"
 PUBLIC_BIND = "0.0.0.0"
@@ -149,8 +155,10 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         metavar="HOST",
         help="serve the editor publicly as HOST, the Host header exactly as "
         "browsers send it (repeatable): bind 0.0.0.0, check no token, serve no "
-        "files, refuse request bodies over 16 MiB; excludes --check, --root and "
-        "--no-browser",
+        f"files, refuse request bodies over {size_named(PUBLIC_BODY_LIMIT)} and "
+        f"tables of more than {PUBLIC_TABLE_ROWS:,} rows or "
+        f"{size_named(PUBLIC_TABLE_BYTES)} uncompressed; excludes --check, --root "
+        "and --no-browser",
     )
     args = parser.parse_args(argv)
     if args.public_host is not None:
@@ -170,7 +178,8 @@ def settings_for(args: argparse.Namespace, port: int) -> ServerSettings:
     """The settings of the run ``args`` asks for, on ``port``.
 
     A public run binds every interface, answers as the given hosts, checks
-    no token, serves no files and bounds request bodies; a local run binds
+    no token, serves no files and bounds request bodies and posted tables; a
+    local run binds
     the loopback interface with a new token and serves the files below its
     root.
     """
@@ -183,6 +192,8 @@ def settings_for(args: argparse.Namespace, port: int) -> ServerSettings:
             public_hosts=tuple(args.public_host),
             files=False,
             body_limit=PUBLIC_BODY_LIMIT,
+            table_rows=PUBLIC_TABLE_ROWS,
+            table_bytes=PUBLIC_TABLE_BYTES,
         )
     return ServerSettings(
         host=HOST,

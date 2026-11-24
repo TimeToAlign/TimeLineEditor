@@ -12,6 +12,11 @@ bytes of the request and of the answer.
 Besides the columns the answer holds every row's beliefs, from which the
 editor computes the belief filter's row mask; the route filters nothing.
 
+A server may bound the tables it reads (:class:`TableBounds`): a public
+server does, since a small Parquet file can decode to a table many times its
+size. Every route that reads a posted table reads it through the reader
+:func:`table_reader` returns, which keeps to the server's bounds.
+
 pyarrow, TimeToShare's table checks and timetoalign's MatchClaim table are
 imported when a request needs them, so a server whose installed timetoalign
 or timetoshare lacks them still starts and answers every other route; this
@@ -23,14 +28,15 @@ from __future__ import annotations
 import json
 import struct
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from importlib.metadata import version
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
 from tilie_server.manifests import Refusal, posted_body, read_manifest
-from tilie_server.settings import API_PREFIX
+from tilie_server.settings import API_PREFIX, size_named
 
 router = APIRouter()
 
@@ -49,14 +55,104 @@ ALIGNMENT = 8
 PREFIX = struct.Struct("<I")
 """The little-endian 32-bit length opening the request and the answer."""
 
+BATCH_ROWS = 1024
+"""The rows of a bounded table decoded at a time, each batch counted before
+the next is decoded."""
 
-def table_reader() -> tuple[Callable[[bytes], Any], Any, Any, Any]:
+TOO_LARGE = 413
+"""The status of a table beyond the server's bounds."""
+
+
+@dataclass(frozen=True)
+class TableBounds:
+    """The most rows, and the most bytes uncompressed, of a posted table the
+    server reads; ``None`` for no bound.
+
+    Attributes:
+        rows: The most rows.
+        size: The most bytes, as the file's footer states its row groups'
+            uncompressed size and as the decoded table's Arrow buffers hold.
+    """
+
+    rows: int | None = None
+    size: int | None = None
+
+    def check_rows(self, rows: int) -> None:
+        """Refuse ``rows`` rows beyond the bound.
+
+        Raises:
+            Refusal: 413, ``table of more than <n> rows``.
+        """
+        if self.rows is not None and rows > self.rows:
+            plural = "" if self.rows == 1 else "s"
+            message = f"table of more than {self.rows:,} row{plural}"
+            raise Refusal([], message, status_code=TOO_LARGE)
+
+    def check_size(self, size: int) -> None:
+        """Refuse ``size`` bytes beyond the bound.
+
+        Raises:
+            Refusal: 413, ``table larger than <size> uncompressed``.
+        """
+        if self.size is not None and size > self.size:
+            message = f"table larger than {size_named(self.size)} uncompressed"
+            raise Refusal([], message, status_code=TOO_LARGE)
+
+
+async def table_bounds(request: Request) -> TableBounds:
+    """The server's bounds of a posted table: the dependency through which a
+    route reading one takes them."""
+    bounds: TableBounds = request.app.state.table_bounds
+    return bounds
+
+
+PostedTableBounds = Annotated[TableBounds, Depends(table_bounds)]
+"""A route's parameter taking the server's bounds of a posted table."""
+
+
+def bounded_table(parquet: Any, pyarrow: Any, data: bytes, bounds: TableBounds) -> Any:
+    """Read Parquet bytes into an Arrow table, within ``bounds``.
+
+    Without bounds the file is read whole. With them, the footer is checked
+    first, before any row is decoded: its rows (the file's count, or the sum
+    of its row groups' where that is larger, since the reader follows the
+    row groups) and its row groups' summed ``total_byte_size``. The footer
+    is the sender's statement and measures encoded pages, so the table is
+    then decoded :data:`BATCH_ROWS` rows at a time and the bytes of the
+    decoded batches are summed; the read stops at the batch that passes the
+    size bound. One batch is thus decoded before it is counted.
+
+    Raises:
+        Refusal: 413 as :meth:`TableBounds.check_rows` and
+            :meth:`TableBounds.check_size`.
+    """
+    source = pyarrow.BufferReader(data)
+    if bounds.rows is None and bounds.size is None:
+        return parquet.read_table(source)
+    file = parquet.ParquetFile(source)
+    footer = file.metadata
+    groups = [footer.row_group(index) for index in range(footer.num_row_groups)]
+    bounds.check_rows(max(footer.num_rows, sum(group.num_rows for group in groups)))
+    bounds.check_size(sum(group.total_byte_size for group in groups))
+    batches = []
+    size = 0
+    for batch in file.iter_batches(batch_size=BATCH_ROWS):
+        size += batch.get_total_buffer_size()
+        bounds.check_size(size)
+        batches.append(batch)
+    return pyarrow.Table.from_batches(batches, schema=file.schema_arrow)
+
+
+def table_reader(bounds: TableBounds) -> tuple[Callable[[bytes], Any], Any, Any, Any]:
     """Return what reads, checks and encodes a MatchClaim table.
 
+    Args:
+        bounds: The server's bounds of a posted table, which the reader keeps.
+
     Returns:
-        A reader of Parquet bytes into an Arrow table, the module
-        ``timetoshare.tables``, timetoalign's ``MatchClaimField`` and
-        :func:`tilie_server.claim_columns.columns_of`.
+        A reader of Parquet bytes into an Arrow table (:func:`bounded_table`),
+        the module ``timetoshare.tables``, timetoalign's ``MatchClaimField``
+        and :func:`tilie_server.claim_columns.columns_of`.
 
     Raises:
         Refusal: 501, if timetoshare cannot check MatchClaim tables (it or
@@ -85,7 +181,7 @@ def table_reader() -> tuple[Callable[[bytes], Any], Any, Any, Any]:
 
     def read(data: bytes) -> Any:
         try:
-            return parquet.read_table(pyarrow.BufferReader(data))
+            return bounded_table(parquet, pyarrow, data, bounds)
         except (pyarrow.ArrowException, OSError, ValueError) as error:
             raise Refusal([], "the MatchClaim table is no Parquet file") from error
 
@@ -175,15 +271,15 @@ def answer_bytes(header: dict[str, Any], arrays: list[tuple[str, bytes, int]]) -
     return bytes(out)
 
 
-def match_claims_answer(body: bytes) -> bytes:
-    """The answer to a request's body.
+def match_claims_answer(body: bytes, bounds: TableBounds) -> bytes:
+    """The answer to a request's body, its table read within ``bounds``.
 
     Raises:
-        Refusal: As :func:`table_reader`, :func:`split_body`,
+        Refusal: As :func:`table_reader`, its reader, :func:`split_body`,
             :func:`tilie_server.manifests.read_manifest` and
             :func:`checked_table`.
     """
-    read, tables, field_class, columns_of = table_reader()
+    read, tables, field_class, columns_of = table_reader(bounds)
     manifest_data, table_data = split_body(body)
     manifest, bare = read_manifest(manifest_data, "the manifest")
     table = checked_table(tables, field_class, read(table_data), manifest)
@@ -191,7 +287,9 @@ def match_claims_answer(body: bytes) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims")
-def match_claims(body: Annotated[bytes, Depends(posted_body)]) -> Response:
+def match_claims(
+    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
+) -> Response:
     """Answer the columns of the posted MatchClaim table, checked against the
     posted manifest.
 
@@ -200,11 +298,12 @@ def match_claims(body: Annotated[bytes, Depends(posted_body)]) -> Response:
     Parquet file. A body that cannot be split or read, or a table the
     checks refuse, is answered 422 with ``{"detail": {"path", "message"}}``,
     a refused table with ``problems`` besides (each ``{code, row, column,
-    message}``, the checks' own); a server that cannot read or check
-    MatchClaim tables, or read manifest files, 501.
+    message}``, the checks' own); a table beyond the server's bounds 413 in
+    the same form; a server that cannot read or check MatchClaim tables, or
+    read manifest files, 501.
     """
     try:
-        answer = match_claims_answer(body)
+        answer = match_claims_answer(body, bounds)
     except Refusal as refusal:
         return refusal.response()
     return Response(answer, media_type=MEDIA_TYPE)
