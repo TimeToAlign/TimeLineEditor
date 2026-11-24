@@ -155,7 +155,14 @@ test("names without an identifier get candidates, and one believed true replaces
   const rows = page.getByTestId("metadata-candidate-row");
   await expect(rows).toHaveCount(1);
   expect(await journalLength(page)).toBe(before + 1);
-  await expect(page.getByText("Proposed 1 match: they are listed under Candidates.")).toBeVisible();
+  // MusicBrainz's route, which no server answers here, is not pinned: its
+  // failure may stand as information beside the confirmation, so count
+  // only the confirmation's own card.
+  await expect(
+    messageTexts(page, "info").filter({
+      hasText: /^Proposed 1 match: they are listed under Candidates\.$/u,
+    }),
+  ).toHaveCount(1);
   await expect(page.getByText(/^(Wikidata|GND) could not be searched/u)).toHaveCount(0);
   await expect(rows.locator(".what")).toHaveText("performed by Maria João Pires");
   const region = await provenance(page, "performed by Maria João Pires");
