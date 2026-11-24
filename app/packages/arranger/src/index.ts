@@ -6,6 +6,9 @@
 
 export const name = "@timetoalign/tilie-arranger" as const;
 
+export { default as ArrangeMenu } from "./ArrangeMenu.svelte";
+export type { ArrangeChoice, ArrangeMenuProps } from "./arrangeMenu.ts";
+export { arrangeMenuOf } from "./arrangeMenu.ts";
 export type { CardBox, ItemBox } from "./boxes.ts";
 export { blockBox, boxOf, isHeld, isItem, keyedBox, raisedRoot } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";

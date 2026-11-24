@@ -1,15 +1,5 @@
 <script lang="ts">
-import type {
-  Address,
-  CanvasDirection,
-  Command,
-  Granularity,
-  Manifest,
-  Pin,
-  Store,
-} from "@timetoalign/tilie-core";
-import { columnsOf } from "@timetoalign/tilie-core";
-import { isArrangementConflict, rowOf } from "@timetoalign/tilie-core/drawing";
+import type { Address, Command, Granularity, Manifest, Pin, Store } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -18,6 +8,7 @@ import "@xyflow/svelte/dist/style.css";
 import "./canvas.css";
 import { untrack } from "svelte";
 import { createSubscriber, MediaQuery } from "svelte/reactivity";
+import { arrangeMenuOf } from "./arrangeMenu.ts";
 import BlockNode from "./BlockNode.svelte";
 import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
 import { raisedRoot } from "./boxes.ts";
@@ -81,7 +72,6 @@ import { CanvasNodes } from "./nodes.svelte.ts";
 import { Pane } from "./pane.ts";
 import { pickable } from "./picking.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
-import { canvasArrangementCommand, itemArrangementCommand, shownItemOrder } from "./reorder.ts";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import { type Selection, selectionOf } from "./selection.ts";
@@ -254,65 +244,8 @@ const arranged = $derived(arrangedOf(view, editing));
 /** What the canvas allows now: the one answer every key and pointer path asks. */
 const rules = $derived(rulesOf(editing, { locked, readonly, arranged }));
 
-/**
- * The Arrange menu of the level shown: the arranger's blocks, or the items
- * of the block a bundle editor edits, Horizontal refused with the rules'
- * reason where its items cannot stand side by side; none in a group or
- * timeline editor. A choice is one `set` (`canvasArrangementCommand`,
- * `itemArrangementCommand`): a block's items keep the order they are
- * shown in, and a matrix states its columns, `columnsOf` the blocks when
- * first chosen.
- */
-const arrangeMenu = $derived.by(() => {
-  const disabled = locked || readonly;
-  if (editing === null) {
-    const stated = view.arrangement;
-    const count = Object.keys(view.blocks).length;
-    const columns =
-      stated === undefined ? columnsOf({ direction: "matrix" }, count) : columnsOf(stated, count);
-    return {
-      level: "arranger" as const,
-      chosen: stated?.direction ?? ("free" as const),
-      columns,
-      refused: null,
-      disabled,
-      onchoose: (choice: "free" | CanvasDirection) =>
-        arrangeCanvas(
-          choice === "free"
-            ? null
-            : { direction: choice, ...(choice === "matrix" ? { columns } : {}) },
-        ),
-      oncolumns: (next: number) => arrangeCanvas({ direction: "matrix", columns: next }),
-    };
-  }
-  if (editing.kind !== "bundle") return null;
-  const block = view.blocks[addressParts(editing.target).block];
-  if (block === undefined) return null;
-  const order = shownItemOrder(block);
-  const row = rowOf(block.manifest, block.arrangement?.order ?? order);
-  return {
-    level: "bundle" as const,
-    chosen: block.arrangement?.direction ?? ("free" as const),
-    columns: 1,
-    refused: isArrangementConflict(row) ? row.reason : null,
-    disabled,
-    onchoose: (choice: "free" | CanvasDirection) => {
-      const arrangement =
-        choice === "vertical" || choice === "horizontal"
-          ? { direction: choice, order: [...order] }
-          : null;
-      const command = itemArrangementCommand(block, arrangement);
-      if (command !== null) dispatch(command);
-    },
-    oncolumns: () => {},
-  };
-});
-
-/** Arrange the canvas's blocks as `arrangement` states, `null` placing each at its own place. */
-function arrangeCanvas(arrangement: Parameters<typeof canvasArrangementCommand>[1]): void {
-  const command = canvasArrangementCommand(view, arrangement);
-  if (command !== null) dispatch(command);
-}
+/** The Arrange menu of the level shown (`arrangeMenuOf`), disabled on a locked or read-only canvas. */
+const arrangeMenu = $derived(arrangeMenuOf(view, editing, locked || readonly, dispatch));
 
 let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
 let root: HTMLElement | undefined = $state();

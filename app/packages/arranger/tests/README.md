@@ -2064,6 +2064,32 @@ arranged, an order stored that the rules repair into another (the
 preview would then lie), a pinned card that moves, a refused drop that
 stores anything, a reason that names a group on the wrong side.
 
+## The Arrange menu's model (`arrange-menu.test.ts`)
+
+`arrangeMenuOf(view, editing, disabled, dispatch)` is the one reading of
+the stated arrangement and the one place a choice becomes a command, which
+every control on an arrangement draws: the canvas's Arrange menu and the
+editor's level tab. What proves it is that its state equals what the view
+states, read independently from `view.arrangement` and `Block.arrangement`,
+and each choice hands `dispatch` exactly the `set` the rules of
+"Arrangements on the canvas" give, or nothing; applied through core, the
+view then states what was chosen.
+
+1. **The arranger** (`bare` ×5, no arrangement stated): level `arranger`,
+   Free chosen, columns 3 (⌈√5⌉), no reason, `disabled` as given. Vertical
+   hands `{type: set, changes: [{target: {}, values: {arrangement:
+   {direction: vertical}}}]}`, Matrix the same with `{direction: matrix,
+   columns: 3}`; with `{matrix, columns 2}` stated, Matrix chosen, columns
+   2, More (`oncolumns(3)`) hands `{direction: matrix, columns: 3}`, Matrix
+   hands nothing (it is stated), Free hands `arrangement: null`.
+2. **A bundle editor** (`bundle_arranged_conflict`): level `bundle`, Free
+   chosen, columns 1, the reason `"Theme A" and "Theme B" overlap on
+   "Score" (8–16 ♩)`; Vertical hands the block's `set` of `{direction:
+   vertical, order: [group_1, group_2]}` (its items in drawing order);
+   Free with nothing stated hands nothing. On `bundle_arranged_roots`
+   no reason.
+3. **Group and timeline editors** arrange nothing: `null`.
+
 ## Bands (`bands.test.ts`)
 
 Every timeline drawn with a line of its own has five bands, one per
