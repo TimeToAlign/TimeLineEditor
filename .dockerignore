@@ -2,6 +2,10 @@
 .git
 .github
 
+# Local environment files (Vite would bake VITE_* values into the bundle)
+**/.env
+**/.env.*
+
 # Dependencies and virtual environments
 **/node_modules
 **/.venv
