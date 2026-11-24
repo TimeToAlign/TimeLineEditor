@@ -18,10 +18,13 @@ from pathlib import Path
 from queue import Empty, Queue
 
 import uvicorn
+from fastapi import FastAPI
 
 from tilie_server.app import create_app
 from tilie_server.settings import (
     PUBLIC_BODY_LIMIT,
+    PUBLIC_COMPUTATIONS,
+    PUBLIC_CONNECTIONS,
     PUBLIC_TABLE_BYTES,
     PUBLIC_TABLE_ROWS,
     ServerSettings,
@@ -178,8 +181,8 @@ def settings_for(args: argparse.Namespace, port: int) -> ServerSettings:
     """The settings of the run ``args`` asks for, on ``port``.
 
     A public run binds every interface, answers as the given hosts, checks
-    no token, serves no files and bounds request bodies and posted tables; a
-    local run binds
+    no token, serves no files, bounds request bodies and posted tables, and
+    limits its computations and connections; a local run binds
     the loopback interface with a new token and serves the files below its
     root.
     """
@@ -194,6 +197,8 @@ def settings_for(args: argparse.Namespace, port: int) -> ServerSettings:
             body_limit=PUBLIC_BODY_LIMIT,
             table_rows=PUBLIC_TABLE_ROWS,
             table_bytes=PUBLIC_TABLE_BYTES,
+            computations=PUBLIC_COMPUTATIONS,
+            connections=PUBLIC_CONNECTIONS,
         )
     return ServerSettings(
         host=HOST,
@@ -201,6 +206,27 @@ def settings_for(args: argparse.Namespace, port: int) -> ServerSettings:
         token=secrets.token_urlsafe(32),
         static_dir=args.static_dir,
         root=args.root,
+    )
+
+
+def uvicorn_config(
+    app: FastAPI, settings: ServerSettings, *, check: bool
+) -> uvicorn.Config:
+    """The uvicorn configuration of a run of ``app`` with ``settings``.
+
+    Args:
+        app: The application.
+        settings: The run's settings, whose ``connections`` uvicorn keeps.
+        check: Whether the run is a ``--check``, which logs only errors and
+            no access lines.
+    """
+    return uvicorn.Config(
+        app,
+        host=settings.host,
+        port=settings.port,
+        log_level="error" if check else "info",
+        access_log=not check,
+        limit_concurrency=settings.connections,
     )
 
 
@@ -293,14 +319,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(notice, file=sys.stderr, flush=True)
     settings = settings_for(args, port)
     app = create_app(settings)
-    config = uvicorn.Config(
-        app,
-        host=settings.host,
-        port=port,
-        log_level="error" if args.check else "info",
-        access_log=not args.check,
-    )
-    server = uvicorn.Server(config)
+    server = uvicorn.Server(uvicorn_config(app, settings, check=args.check))
     not_started = f"tilie: could not start the server on {settings.host}:{port}"
 
     if settings.token is None:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import struct
+import threading
 from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
@@ -686,3 +687,125 @@ def test_the_table_refusals_name_the_bound(
         [],
         message,
     )
+
+
+# --------------------------------------------------------------- computations
+
+HELD_TIMEOUT = 60.0
+"""A safety net only: how long a step may take before the test gives up
+instead of hanging. No duration is measured."""
+
+
+class ObservedGate:
+    """The app's gate of computations, recording for each computation arriving
+    at it whether the gate was full, and counting the arrivals."""
+
+    def __init__(self, gate: Any) -> None:
+        self.gate = gate
+        self.full: list[bool] = []
+        self.arrivals = threading.Semaphore(0)
+
+    async def __aenter__(self) -> None:
+        self.full.append(self.gate.locked())
+        self.arrivals.release()
+        await self.gate.acquire()
+
+    async def __aexit__(self, *_exception: object) -> None:
+        self.gate.release()
+
+
+class Holder:
+    """A manifest reader that records ``enter``, waits for the release, records
+    ``leave`` and refuses the request as ``held``."""
+
+    def __init__(self) -> None:
+        self.record: list[str] = []
+        self.entries = threading.Semaphore(0)
+        self.release = threading.Event()
+        self._lock = threading.Lock()
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        with self._lock:
+            self.record.append("enter")
+        self.entries.release()
+        self.release.wait(HELD_TIMEOUT)
+        with self._lock:
+            self.record.append("leave")
+        raise Refusal([], "held")
+
+
+HELD = (422, {"detail": {"path": [], "message": "held"}})
+
+
+def started(answers: dict[str, Any], key: str, call: Any) -> threading.Thread:
+    """Run ``call`` in a thread, its answer stored in ``answers[key]``."""
+    thread = threading.Thread(target=lambda: answers.__setitem__(key, call()))
+    thread.start()
+    return thread
+
+
+def test_a_computation_waits_while_the_gate_is_full(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    holder = Holder()
+    monkeypatch.setattr(tilie_server.routers.measure_maps, "read_manifest", holder)
+    editor = build_editor(tmp_path / "editor")
+    app = create_app(replace(public_settings(editor), computations=1))
+    gate = ObservedGate(app.state.computations)
+    app.state.computations = gate
+    answers: dict[str, Any] = {}
+    # Inside the context, every request of the client runs on one event loop.
+    with TestClient(app, base_url=f"http://{PUBLIC_HOSTS[0]}") as shared:
+
+        def computation() -> Any:
+            return shared.post("/api/measure-maps", content=b"")
+
+        computing = [started(answers, "first", computation)]
+        try:
+            assert holder.entries.acquire(timeout=HELD_TIMEOUT), "never entered"
+            computing.append(started(answers, "second", computation))
+            for _ in range(2):
+                assert gate.arrivals.acquire(timeout=HELD_TIMEOUT), "never arrived"
+            assert gate.full == [False, True]
+            assert holder.record == ["enter"]
+            others = [
+                started(answers, path, lambda path=path: shared.get(path))
+                for path in ("/api/health", "/api/nothing", "/")
+            ]
+            for thread in others:
+                thread.join(HELD_TIMEOUT)
+                assert not thread.is_alive(), "a request waited for the gate"
+            assert holder.record == ["enter"]
+        finally:
+            holder.release.set()
+            for thread in computing:
+                thread.join(HELD_TIMEOUT)
+    assert answers["/api/health"].status_code == 200
+    assert answer(answers["/api/nothing"]) == (404, {"detail": "Not Found"})
+    assert (answers["/"].status_code, answers["/"].text) == (200, "<!doctype html>")
+    assert holder.record == ["enter", "leave", "enter", "leave"]
+    assert [answer(answers[key]) for key in ("first", "second")] == [HELD, HELD]
+
+
+def test_a_local_app_runs_computations_together(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    holder = Holder()
+    monkeypatch.setattr(tilie_server.routers.measure_maps, "read_manifest", holder)
+    answers: dict[str, Any] = {}
+    with local_client(tmp_path) as shared:
+
+        def computation() -> Any:
+            auth = {"Authorization": f"Bearer {TOKEN}"}
+            return shared.post("/api/measure-maps", content=b"", headers=auth)
+
+        computing = [started(answers, key, computation) for key in ("first", "second")]
+        try:
+            for _ in range(2):
+                assert holder.entries.acquire(timeout=HELD_TIMEOUT), "never entered"
+            assert holder.record == ["enter", "enter"]
+        finally:
+            holder.release.set()
+            for thread in computing:
+                thread.join(HELD_TIMEOUT)
+    assert [answer(answers[key]) for key in ("first", "second")] == [HELD, HELD]

@@ -88,9 +88,15 @@ reached under several names) starts the server in public mode:
   the size bound: a footer is the sender's statement, and even an honest
   one states a value repeated by dictionary encoding only once. A local run
   has no bounds.
+- **Work at once.** At most two computations on a posted body (measure maps
+  and the MatchClaim routes) run at once; further ones wait their turn on
+  the event loop, holding no worker thread, and are not refused. Health,
+  the answers to unserved paths and the editor's files never wait. Uvicorn
+  serves at most 32 connections at once and answers 503 beyond them. A
+  local run has neither limit.
 - **Settings.** `ServerSettings` carries the mode as data: `token` (`None`
-  for no token check), `public_hosts`, `files`, `body_limit`, `table_rows`
-  and `table_bytes`, from which
+  for no token check), `public_hosts`, `files`, `body_limit`, `table_rows`,
+  `table_bytes`, `computations` and `connections`, from which
   the guard takes its hosts (`allowed_hosts()`) and origins
   (`allowed_origins()`). The guard, `OriginGuard`, checks a token only where
   the settings hold one.
@@ -142,9 +148,12 @@ What stays open:
   it needs a reader of page headers, or a memory limit on the process.
 
 - **No rate limit.** A visitor can send as many requests as the host lets
-  through, each up to 16 MiB, and the computing routes spend the server's
-  processor on them. A hosting service's own limits, or a proxy in front,
-  bound that; the server has none of its own.
+  through, each up to 16 MiB. The server bounds how many it serves and
+  computes at once, so memory and threads stay bounded, but not how many it
+  takes in a minute: one visitor's stream of computations makes every
+  other visitor's wait, and one visitor holding the 32 connections makes
+  others answered 503. A hosting service's own limits, or a proxy in front,
+  bound that.
 - **The shared MusicBrainz queue.** The server keeps MusicBrainz's rule of
   one request a second for the whole run (decision 0028), so one visitor's
   many lookups make every other visitor's lookups wait, and a request may

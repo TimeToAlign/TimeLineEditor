@@ -15,12 +15,12 @@ manifest by TimeToShare's table checks; timetoalign reads it.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse, Response
 
-from tilie_server.manifests import Refusal, posted_body, read_manifest
+from tilie_server.manifests import PostedBody, Refusal, read_manifest
 from tilie_server.routers.claim_provenance import claim_rows, row_of, split_parameters
 from tilie_server.routers.match_claims import (
     PostedTableBounds,
@@ -82,9 +82,7 @@ def events_answer(body: bytes, bounds: TableBounds) -> dict[str, Any]:
 
 
 @router.post(f"{API_PREFIX}match-claims/events")
-def match_claim_events(
-    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
-) -> Response:
+def match_claim_events(body: PostedBody, bounds: PostedTableBounds) -> Response:
     """Answer the events of the MatchClaims named, of the posted table.
 
     The body is the parameters' length in bytes (a little-endian 32-bit

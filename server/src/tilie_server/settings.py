@@ -15,6 +15,10 @@ PUBLIC_TABLE_ROWS = 1_000_000
 """The most rows of a posted table a server in public mode reads."""
 PUBLIC_TABLE_BYTES = 128 * MIB
 """The largest posted table, in bytes uncompressed, a server in public mode reads."""
+PUBLIC_COMPUTATIONS = 2
+"""The most posted-body computations a server in public mode runs at once."""
+PUBLIC_CONNECTIONS = 32
+"""The most connections a server in public mode serves at once."""
 
 
 def size_named(size: int) -> str:
@@ -36,7 +40,7 @@ class ServerSettings:
     run's bearer token on every ``/api/`` path and serves the file routes
     below ``root``. A public run names the hosts it answers as in
     ``public_hosts``, checks no token, serves no files and bounds every
-    request body and every posted table.
+    request body, every posted table and the work done at once.
 
     Attributes:
         host: The address the server binds.
@@ -53,6 +57,10 @@ class ServerSettings:
         table_rows: The most rows of a posted table; ``None`` for no bound.
         table_bytes: The largest posted table in bytes uncompressed;
             ``None`` for no bound.
+        computations: The most posted-body computations run at once, the
+            others waiting their turn; ``None`` for no limit.
+        connections: The most connections served at once, uvicorn
+            answering 503 beyond them; ``None`` for no limit.
     """
 
     host: str
@@ -65,6 +73,8 @@ class ServerSettings:
     body_limit: int | None = None
     table_rows: int | None = None
     table_bytes: int | None = None
+    computations: int | None = None
+    connections: int | None = None
 
     def allowed_hosts(self) -> frozenset[str]:
         """Return the ``Host`` header values this server answers to."""

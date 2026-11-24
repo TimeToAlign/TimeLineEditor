@@ -35,7 +35,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
-from tilie_server.manifests import Refusal, posted_body, read_manifest
+from tilie_server.manifests import PostedBody, Refusal, read_manifest
 from tilie_server.settings import API_PREFIX, size_named
 
 router = APIRouter()
@@ -287,9 +287,7 @@ def match_claims_answer(body: bytes, bounds: TableBounds) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims")
-def match_claims(
-    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
-) -> Response:
+def match_claims(body: PostedBody, bounds: PostedTableBounds) -> Response:
     """Answer the columns of the posted MatchClaim table, checked against the
     posted manifest.
 

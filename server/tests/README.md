@@ -195,6 +195,41 @@ dictionary and `DELTA_BYTE_ARRAY` encoding repeat one such value in every
 row at the cost of a few bytes each. No test can bound that without a
 reader of page headers, which the server does not have.
 
+**Computations and connections.** A public run lets at most two posted-body
+computations run at once (measure maps and the four MatchClaim routes; the
+file write is not served there); further ones wait their turn, they are
+not refused, and they wait on the event loop, holding no worker thread.
+`GET /api/health`, the 404 of an unserved `/api/` path and the editor's
+files never wait: only the routes taking a posted body pass the gate. A
+local app has no gate. Proved without a clock, through one client whose
+requests share one event loop, on a public app whose gate admits one
+computation and a built editor:
+
+- `POST /api/measure-maps`, its manifest reader replaced by one that
+  records `enter`, waits for a release and records `leave`, is sent twice.
+  The app's gate is observed by a wrapper that records, for each
+  computation arriving at it, whether the gate was full, and signals the
+  arrival. Once the first request has entered and the second has arrived,
+  the arrivals are exactly `[not full, full]` and the record is exactly
+  `[enter]`: the second waits at the gate, not on its way to it.
+- While it waits, `GET /api/health` answers 200, `GET /api/nothing` 404
+  `{"detail": "Not Found"}` and `GET /` 200 with the editor's
+  `index.html`.
+- Released, the record is exactly `[enter, leave, enter, leave]`: the
+  second entered only after the first had left. Both answer 422
+  `{"detail": {"path": [], "message": "held"}}`.
+
+As the control, a local app takes the same two requests into the reader at
+once: both have entered before either is released. A gate admitting more
+than one would fail the arrivals (`[not full, not full]`), and none would
+fail at the safety timeout waiting for the second arrival.
+
+The number of connections a public run serves at once is uvicorn's
+`limit_concurrency`, beyond which uvicorn answers 503 itself (uvicorn's
+behaviour, not tested here): the uvicorn configuration the command builds
+from public settings carries `limit_concurrency` exactly 32, from local
+settings none.
+
 **Referrer policy.** The 403 (host and origin), the 404 of a file route and
 the 413 each carry exactly one `Referrer-Policy: no-referrer` header.
 
@@ -210,10 +245,12 @@ header. The settings a command line builds are compared whole: `tilie
 builds `ServerSettings(host="0.0.0.0", port=8001, token=None, static_dir=None,
 root=<home folder>, public_hosts=("tilie.example.org", "localhost:8000"),
 files=False, body_limit=16 * 1024 * 1024, table_rows=1_000_000,
-table_bytes=128 * 1024 * 1024)`, the numbers written out in the test, so
-that the constants they come from are pinned too; without `--public-host`
-the settings are the local ones (`127.0.0.1`, a token of 43 URL-safe
-characters, no public hosts, `files` true, no body limit, no table bounds). The notice line
+table_bytes=128 * 1024 * 1024, computations=2, connections=32)`, the
+numbers written out in the test, so that the constants they come from are
+pinned too; without `--public-host` the settings are the local ones
+(`127.0.0.1`, a token of 43 URL-safe characters, no public hosts, `files`
+true, no body limit, no table bounds, no limit of computations or
+connections). The notice line
 for those two hosts is exactly `tilie: public mode on port 8001, answering
 as tilie.example.org, localhost:8000; no token, no file access`.
 

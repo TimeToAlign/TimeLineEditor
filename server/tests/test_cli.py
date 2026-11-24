@@ -15,6 +15,7 @@ from subprocess import Popen
 
 import pytest
 
+from tilie_server.app import create_app
 from tilie_server.cli import (
     DEFAULT_PORT,
     HOST,
@@ -23,6 +24,7 @@ from tilie_server.cli import (
     parse_args,
     public_notice,
     settings_for,
+    uvicorn_config,
 )
 from tilie_server.settings import ServerSettings
 
@@ -308,6 +310,8 @@ def test_a_public_command_line_builds_the_public_settings() -> None:
         body_limit=16 * 1024 * 1024,
         table_rows=1_000_000,
         table_bytes=128 * 1024 * 1024,
+        computations=2,
+        connections=32,
     )
     assert public_notice(settings) == (
         "tilie: public mode on port 8001, answering as "
@@ -330,6 +334,23 @@ def test_a_local_command_line_builds_the_local_settings() -> None:
         body_limit=None,
         table_rows=None,
         table_bytes=None,
+        computations=None,
+        connections=None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("argv", "limit"), [(["--public-host", "tilie.example.org"], 32), ([], None)]
+)
+def test_uvicorn_keeps_the_runs_limit_of_connections(
+    argv: list[str], limit: int | None
+) -> None:
+    settings = settings_for(parse_args(argv), 8001)
+    config = uvicorn_config(create_app(settings), settings, check=False)
+    assert (config.host, config.port, config.limit_concurrency) == (
+        settings.host,
+        8001,
+        limit,
     )
 
 

@@ -20,12 +20,12 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from importlib.metadata import version
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse, Response
 
-from tilie_server.manifests import Refusal, posted_body, read_manifest
+from tilie_server.manifests import PostedBody, Refusal, read_manifest
 from tilie_server.routers.match_claims import (
     PREFIX,
     PostedTableBounds,
@@ -322,9 +322,7 @@ def belief_answer(body: bytes, bounds: TableBounds) -> bytes:
 
 
 @router.post(f"{API_PREFIX}match-claims/provenance")
-def match_claim_provenance(
-    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
-) -> Response:
+def match_claim_provenance(body: PostedBody, bounds: PostedTableBounds) -> Response:
     """Answer the provenance of the MatchClaims named, of the posted table.
 
     The body is the parameters' length in bytes (a little-endian 32-bit
@@ -341,9 +339,7 @@ def match_claim_provenance(
 
 
 @router.post(f"{API_PREFIX}match-claims/belief")
-def match_claim_belief(
-    body: Annotated[bytes, Depends(posted_body)], bounds: PostedTableBounds
-) -> Response:
+def match_claim_belief(body: PostedBody, bounds: PostedTableBounds) -> Response:
     """Answer the posted table with an actor's belief in one MatchClaim.
 
     The body is the parameters' length in bytes (a little-endian 32-bit

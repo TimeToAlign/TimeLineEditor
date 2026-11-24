@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI, HTTPException
 
 from tilie_server import __version__
@@ -42,14 +44,14 @@ def create_app(
 
     A local run answers to its loopback origin with the run's bearer token
     and serves the file routes. A public run answers as its public hosts,
-    checks no token, serves no file routes and bounds every request body
-    and every posted table;
+    checks no token, serves no file routes, bounds every request body and
+    every posted table, and runs a limited number of computations at once;
     every ``/api/`` path no route serves then answers 404, whatever the
     method, so no request to the API reaches the editor's files.
 
     Args:
         settings: The run's hosts, token, editor files, root folder, file
-            access, body limit and table bounds.
+            access, body limit, table bounds and limit of computations.
         musicbrainz: The one client of MusicBrainz for the run's lookups; a
             new :class:`MusicBrainz` when not given.
     """
@@ -81,6 +83,11 @@ def create_app(
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz
     app.state.files = settings.files
     app.state.table_bounds = TableBounds(settings.table_rows, settings.table_bytes)
+    app.state.computations = (
+        None
+        if settings.computations is None
+        else asyncio.Semaphore(settings.computations)
+    )
     # Resolved once, so a root given through a symbolic link holds its files.
     app.state.root = settings.root.resolve()
     mount_static(app, static_dir)

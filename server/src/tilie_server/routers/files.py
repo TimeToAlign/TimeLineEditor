@@ -17,12 +17,11 @@ import os
 import secrets
 import stat
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
-from tilie_server.manifests import posted_body
+from tilie_server.manifests import PostedBody
 from tilie_server.settings import API_PREFIX
 
 router = APIRouter()
@@ -279,9 +278,7 @@ def get_file(request: Request, path: str = "") -> Response:
 
 
 @router.put(f"{API_PREFIX}files")
-def put_file(
-    request: Request, body: Annotated[bytes, Depends(posted_body)], path: str = ""
-) -> Response:
+def put_file(request: Request, body: PostedBody, path: str = "") -> Response:
     """Write the request's body into the file ``path``."""
     try:
         written = write(root_of(request), path, body)

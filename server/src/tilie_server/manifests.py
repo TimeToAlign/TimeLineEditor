@@ -8,17 +8,20 @@ timetoshare is no direct requirement of the server: timetoalign requires it.
 
 The routes that compute their answer from a posted body are plain functions,
 which the framework runs on its thread pool, so that a long computation
-leaves the event loop free for every other request; they take the body
-through :func:`posted_body`, which reads it on the event loop.
+leaves the event loop free for every other request; they take the body as a
+:data:`PostedBody`, which reads it on the event loop. A server may limit how
+many such computations run at once: a computation beyond the limit waits on
+the event loop, holding no worker thread, until one ends.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import AsyncIterator, Callable
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import Request
+from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 
 
@@ -48,10 +51,25 @@ class Refusal(Exception):
         return JSONResponse({"detail": detail}, status_code=self.status_code)
 
 
-async def posted_body(request: Request) -> bytes:
-    """The request's body, exactly as sent: the dependency through which a
-    plain route function takes it."""
-    return await request.body()
+async def posted_body(request: Request) -> AsyncIterator[bytes]:
+    """The request's body, exactly as sent, while the computation on it may run.
+
+    Where the server limits its computations (``app.state.computations``, a
+    semaphore), the request first waits for its turn, and keeps it until
+    the route function has returned.
+    """
+    computations: asyncio.Semaphore | None = request.app.state.computations
+    if computations is None:
+        yield await request.body()
+        return
+    async with computations:
+        yield await request.body()
+
+
+PostedBody = Annotated[bytes, Depends(posted_body, scope="function")]
+"""A route's parameter taking the posted body, the one way a computing route
+takes it. The turn ends when the route function returns, before the answer
+is sent, so a client that reads slowly holds no computation's place."""
 
 
 def manifest_reader() -> tuple[Callable[[str], Any], Callable[[Any], Any]]:
