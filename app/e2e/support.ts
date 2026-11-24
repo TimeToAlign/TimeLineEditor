@@ -596,6 +596,11 @@ export async function panel(page: Page, name: TabName): Promise<Locator> {
   return page.locator(`[id="${id}"]`);
 }
 
+/** The level tab's title line, in the panel tab `word` controls: the level's word, then the name of what it shows. */
+export async function titleLine(page: Page, word: TabName): Promise<Locator> {
+  return (await panel(page, word)).getByTestId("level-title");
+}
+
 /** The inspector drawer. */
 export function drawer(page: Page): Locator {
   return page.getByTestId("inspector");

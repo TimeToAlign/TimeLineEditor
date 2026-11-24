@@ -28,6 +28,7 @@ import {
   select,
   tab,
   tabs,
+  titleLine,
 } from "./support.ts";
 
 test.use({
@@ -49,11 +50,6 @@ const FACE = "TiLiE Plex Mono";
 async function enter(page: Page, target: Address): Promise<void> {
   expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
   await expect.poll(async () => (await editing(page)).at(-1)?.target).toEqual(target);
-}
-
-/** The level panel's title line. */
-async function titleLine(page: Page, word: TabName) {
-  return (await panel(page, word)).getByTestId("level-title");
 }
 
 /** The drawer from its top down to the bottom of the shown panel, written to `name` for review. */

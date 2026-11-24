@@ -62,6 +62,7 @@ import {
   structure,
   tab,
   tabs,
+  titleLine,
   toScreen,
   viewportOf,
 } from "./support.ts";
@@ -298,7 +299,7 @@ test.describe("on bundles", () => {
         "Elisions",
       ]);
       await expect(tab(page, word)).toHaveAttribute("aria-selected", "true");
-      await expect(await panel(page, word)).toHaveText(text);
+      await expect(await titleLine(page, word)).toHaveText(text);
       await expect(editingPath(page)).toHaveText([name]);
       expect(await journalLength(page)).toBe(START);
     });
