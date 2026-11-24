@@ -3,9 +3,16 @@
  * The message bar over the canvas, the one place the editor shows its
  * messages: one card per message, oldest first, one under another, so no
  * card covers another. Each names its level in words, takes its level's
- * colours (information blue, a warning amber, an error red) and its
- * level's role (information `status`, a warning or an error `alert`), and
- * has a Dismiss button. Nothing here takes the focus.
+ * colours (information blue, a warning amber, an error red) and has a
+ * Dismiss button. Nothing here takes the focus.
+ *
+ * Screen readers hear the messages through two regions present from the
+ * first drawing on, visually hidden: a `status` region for information and
+ * an `alert` region for warnings and errors, each holding a line per
+ * message of its levels. A live region is announced reliably only when it
+ * was in the document before its content changed, so a posted message adds
+ * its line to a region that already exists; the cards carry no live role,
+ * so nothing is announced twice.
  */
 import ProblemList from "./inspector/ProblemList.svelte";
 import type { Message, MessageLevel } from "./messages.svelte.ts";
@@ -23,17 +30,29 @@ const LEVEL_WORDS: Readonly<Record<MessageLevel, string>> = {
   warning: "Warning",
   error: "Error",
 };
+
+/** The information shown, announced politely. */
+const passing = $derived(messages.filter((message) => message.level === "info"));
+/** The warnings and errors shown, announced at once. */
+const staying = $derived(messages.filter((message) => message.level !== "info"));
 </script>
+
+{#snippet announced(shown: readonly Message[])}
+  {#each shown as message (message.id)}
+    <p>{LEVEL_WORDS[message.level]}: {message.text}</p>
+  {/each}
+{/snippet}
 
 <!-- Non-modal: editing goes on while messages are shown. -->
 <section class="messages" aria-label="Messages">
+  <div class="announcer" role="status" aria-atomic="false" data-testid="messages-status">
+    {@render announced(passing)}
+  </div>
+  <div class="announcer" role="alert" aria-atomic="false" data-testid="messages-alert">
+    {@render announced(staying)}
+  </div>
   {#each messages as message (message.id)}
-    <div
-      class="message"
-      data-testid="message"
-      data-level={message.level}
-      role={message.level === "info" ? "status" : "alert"}
-    >
+    <div class="message" data-testid="message" data-level={message.level}>
       <div class="line">
         <span class="level">{LEVEL_WORDS[message.level]}</span>
         <p>{message.text}</p>
@@ -60,6 +79,16 @@ const LEVEL_WORDS: Readonly<Record<MessageLevel, string>> = {
     width: min(36rem, calc(100% - 4rem));
     transform: translateX(-50%);
     pointer-events: none;
+  }
+
+  /* Heard, never seen: kept in the accessibility tree, collapsed to nothing on the screen. */
+  .announcer {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .message {

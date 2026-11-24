@@ -588,8 +588,11 @@ the address it prints.". **Beside a warning** (refused, the same fixture
 open, the hook asked to select `{block: "nothing", facet: "markers"}`,
 which posts the warning "Some addresses could not be selected."; the
 page's clock installed and paused): `m` adds the information "Matches
-need a running tilie-server." with `role="status"` and the level word
-"Info", the warning keeping `role="alert"` and "Warning"; both are
+need a running tilie-server." with the level word "Info", the warning
+keeping "Warning", neither card with a `role`; the bar's status
+announcer (`messages-status`) reads exactly "Info: Matches need a
+running tilie-server." and its alert announcer (`messages-alert`)
+exactly "Warning: Some addresses could not be selected."; both cards are
 visible, the information's card's top at or below the warning card's
 bottom (no overlap), the information's border and background
 `rgb(122, 167, 217)` and `rgb(238, 245, 253)`, the warning's

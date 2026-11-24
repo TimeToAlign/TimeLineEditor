@@ -85,8 +85,15 @@ The editor has one message system:
   Warnings and errors stay until the user dismisses them; every card has
   a Dismiss button. No message is withdrawn by the code, since no cause of
   a warning or an error goes away by itself.
-- **Accessibility.** Information is `role="status"` (polite); warnings and
-  errors are `role="alert"` (assertive). No message moves the focus.
+- **Accessibility.** Screen readers announce a live region reliably only
+  when the region was in the document before its content changed. So the
+  bar holds two regions from its first drawing on, visually hidden: one
+  `role="status"` (polite) for information and one `role="alert"`
+  (assertive) for warnings and errors. Each holds one line per message
+  shown of its levels, the level's word and the text, so a message posted
+  adds its line to a region already there, and one leaving removes only
+  its own line. The cards carry no live role, so nothing is announced
+  twice. No message moves the focus.
 - **From the canvas.** The arranger's `Canvas` takes `onrefuse(text)` and
   calls it with every refusal: a command its store refused, an editor it
   could not open, a key, a drop or a pick refused. It draws no text of its

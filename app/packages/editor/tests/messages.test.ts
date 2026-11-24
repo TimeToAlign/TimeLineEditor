@@ -96,8 +96,61 @@ describe("the messages", () => {
   });
 });
 
+/** The lines of the bar's announcer `testid`, each its level word and text. */
+const announced = (testid: string) =>
+  [...(document.querySelector(`[data-testid="${testid}"]`)?.querySelectorAll("p") ?? [])].map(
+    (line) => line.textContent,
+  );
+
 describe("the bar", () => {
-  it("shows each message in its own card, with its level's word and role, and dismisses one on its button", () => {
+  it("holds both announcers before the first message, and each takes the lines of its levels", () => {
+    const messages = new Messages();
+    const bar = mount(MessageBar, {
+      target: document.body,
+      props: {
+        get messages() {
+          return messages.shown;
+        },
+        ondismiss: (id: number) => messages.dismiss(id),
+      },
+    });
+    flushSync();
+    const roles = () =>
+      [...document.querySelectorAll("[role=status], [role=alert]")].map((region) => [
+        region.getAttribute("role"),
+        region.getAttribute("data-testid"),
+      ]);
+    const both = [
+      ["status", "messages-status"],
+      ["alert", "messages-alert"],
+    ];
+    expect([roles(), announced("messages-status"), announced("messages-alert")]).toEqual([
+      both,
+      [],
+      [],
+    ]);
+    messages.post("warning", "Refused.");
+    messages.post("info", "Copied.");
+    messages.post("error", "Not saved.");
+    flushSync();
+    expect([roles(), announced("messages-status"), announced("messages-alert")]).toEqual([
+      both,
+      ["Info: Copied."],
+      ["Warning: Refused.", "Error: Not saved."],
+    ]);
+    const info = messages.shown.find((message) => message.level === "info");
+    if (info === undefined) throw new Error("no information shown");
+    messages.dismiss(info.id);
+    flushSync();
+    expect([announced("messages-status"), announced("messages-alert")]).toEqual([
+      [],
+      ["Warning: Refused.", "Error: Not saved."],
+    ]);
+    unmount(bar);
+    messages.dispose();
+  });
+
+  it("shows each message in its own card, with its level's word and no live role, and dismisses one on its button", () => {
     const messages = new Messages();
     const focused = document.createElement("button");
     document.body.append(focused);
@@ -123,9 +176,9 @@ describe("the bar", () => {
         card.querySelector("p")?.textContent,
       ]);
     expect(cards()).toEqual([
-      ["warning", "alert", "Warning", "Refused."],
-      ["info", "status", "Info", "Copied."],
-      ["error", "alert", "Error", "Not saved."],
+      ["warning", null, "Warning", "Refused."],
+      ["info", null, "Info", "Copied."],
+      ["error", null, "Error", "Not saved."],
     ]);
     const parents = new Set(
       [...document.querySelectorAll('[data-testid="message"]')].map((card) => card.parentElement),
@@ -135,8 +188,8 @@ describe("the bar", () => {
     document.querySelectorAll<HTMLButtonElement>('[data-testid="message"] button')[1]?.click();
     flushSync();
     expect(cards()).toEqual([
-      ["warning", "alert", "Warning", "Refused."],
-      ["error", "alert", "Error", "Not saved."],
+      ["warning", null, "Warning", "Refused."],
+      ["error", null, "Error", "Not saved."],
     ]);
     unmount(bar);
     messages.dispose();

@@ -79,7 +79,8 @@ async function paste(locator: Locator, text: string): Promise<void> {
 test("the LayerIt recording opens with its tiles collapsed and its candidates", async ({
   page,
 }) => {
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  // No alert says anything (the message bar's alert region is always there, empty).
+  await expect(page.getByRole("alert").filter({ hasText: /./ })).toHaveCount(0);
   await showMetadata(page, "cpt_1");
   await expect(headings(page)).toHaveText([
     CPT_1_SENTENCE,

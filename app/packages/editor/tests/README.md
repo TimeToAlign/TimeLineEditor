@@ -3384,17 +3384,30 @@ bar, three levels. What proves it:
   pending; disposing the store with two pieces of information shown leaves
   none.
 - **The bar.** One card (`data-testid="message"`) per message, in the
-  store's order, its `data-level` the level, its `role` `status` for
-  information and `alert` for a warning or an error, its level word
-  ("Info", "Warning", "Error") in `.level`, its text alone in the `p`, its
-  problems listed, and a Dismiss button that dismisses that card alone.
-  With a warning, information and an error shown, the cards read exactly
-  `[["warning", "alert", "Warning", "Refused."], ["info", "status", "Info",
-  "Copied."], ["error", "alert", "Error", "Not saved."]]`; the cards are
-  siblings in one column, so none is drawn over another (the end-to-end
-  test checks the boxes in the browser). No card takes the focus: the
-  focused element before the messages are posted is the focused element
-  after.
+  store's order, its `data-level` the level, no `role` (no card is a live
+  region), its level word ("Info", "Warning", "Error") in `.level`, its
+  text alone in the `p`, its problems listed, and a Dismiss button that
+  dismisses that card alone. With a warning, information and an error
+  shown, the cards read exactly `[["warning", null, "Warning",
+  "Refused."], ["info", null, "Info", "Copied."], ["error", null, "Error",
+  "Not saved."]]`; the cards are siblings in one column, so none is drawn
+  over another (the end-to-end test checks the boxes in the browser). No
+  card takes the focus: the focused element before the messages are
+  posted is the focused element after.
+- **The announcers.** A screen reader announces a live region reliably
+  only when the region was in the document before its content changed, so
+  the bar holds two regions from its first drawing on, whatever it shows:
+  one `role="status"` (`data-testid="messages-status"`) and one
+  `role="alert"` (`data-testid="messages-alert"`), both visually hidden
+  and in the accessibility tree. Mounted with no message, both exist and
+  are empty. Each holds one line per message shown of its levels, the
+  level word and the text ("Info: Copied."), so a message posted adds
+  exactly its line and a message leaving removes only its own: after a
+  warning, information and an error are posted, the status region reads
+  exactly `["Info: Copied."]` and the alert region `["Warning: Refused.",
+  "Error: Not saved."]`; after the information is dismissed the status
+  region is empty and the alert region unchanged. The two are the only
+  `role=status` and `role=alert` elements of the bar.
 - **One way to post.** The editor gives its components one function,
   `post(level, text, problems?)`, through the component context; a
   component mounted without it throws "no component above this one

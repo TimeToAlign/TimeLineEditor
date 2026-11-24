@@ -209,8 +209,13 @@ test("the information that matches need a server shows beside a warning in its o
   await pressM(page);
   const info = messagesAt(page, "info");
   await expect(info.getByRole("paragraph")).toHaveText([NEED]);
-  await expect(info).toHaveAttribute("role", "status");
-  await expect(warning).toHaveAttribute("role", "alert");
+  // Heard through the bar's two announcers, never through the cards.
+  await expect(page.getByTestId("messages-status").locator("p")).toHaveText([`Info: ${NEED}`]);
+  await expect(page.getByTestId("messages-alert").locator("p")).toHaveText([
+    "Warning: Some addresses could not be selected.",
+  ]);
+  await expect(info).not.toHaveAttribute("role");
+  await expect(warning).not.toHaveAttribute("role");
   await expect(info.locator(".level")).toHaveText("Info");
   await expect(warning.locator(".level")).toHaveText("Warning");
   await expect(info).toBeVisible();
