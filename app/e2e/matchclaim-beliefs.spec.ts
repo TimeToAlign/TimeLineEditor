@@ -16,6 +16,10 @@
  * the workspace is saved through the server's files (an empty root, each
  * write recorded). A changed table is then never dropped unasked: New asks
  * to save it with the workspace, or alone once the workspace is saved.
+ * While the health check is still held, the table is read but no server reads
+ * tables: an expanded MatchClaim, its Provenance open, says why exactly once
+ * in all its text and attributes (the belief buttons, disabled, carry no
+ * title repeating it), and asks the server nothing.
  */
 
 import { readFileSync } from "node:fs";
@@ -203,6 +207,13 @@ async function nameDownbeat(page: Page, block: string): Promise<void> {
   await select(page, [{ block, id: "matchstamp_1" }]);
 }
 
+/** What an expanded MatchClaim says while no server reads tables: that, then how to start the server. */
+const NO_SERVER =
+  "Matches need a running tilie-server. To start it, run " +
+  "uv run tilie --static-dir ../app/packages/editor/dist in the repository's server folder " +
+  "(or tilie, once installed with pip install tilie-server), " +
+  "then open the editor at the address it prints.";
+
 /** The Matchstamp tab's MatchClaims. */
 const claims = (page: Page) => page.getByRole("region", { name: "MatchClaims", exact: true });
 
@@ -296,6 +307,48 @@ test("a MatchClaim's provenance is read for it, and the user's belief makes a ta
     "match_claims.parquet: 15 MatchClaims",
   );
   await expect(page.getByRole("button", { name: "Save MatchClaims…" })).toHaveCount(0);
+});
+
+test("an expanded MatchClaim says once why nothing is read while the health check is pending", async ({
+  page,
+}) => {
+  const seen = await openPage(page);
+  // The table is read while the health check is held: a server is given, but none reads tables yet.
+  const chooser = page.waitForEvent("filechooser");
+  await chooseItem(page, "Import manifest…");
+  await (await chooser).setFiles([
+    { name: "manifest.yaml", mimeType: "application/octet-stream", buffer: MANIFEST },
+    { name: "match_claims.parquet", mimeType: "application/octet-stream", buffer: PARQUET },
+  ]);
+  await expect.poll(() => blockCount(page)).toBe(1);
+  const block = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks)[0] ?? "");
+  await nameDownbeat(page, block);
+  await expect(page.getByTestId("matchclaims-status")).toHaveText(
+    "match_claims.parquet: 15 MatchClaims",
+  );
+
+  const claim = claims(page).locator("li[data-claim='claim_1']");
+  await claim.getByRole("button", { name: "claim_1", exact: true }).click();
+  await claim.getByRole("button", { name: "Provenance of claim_1" }).click();
+  await expect(claim.getByTestId("provenance")).toBeVisible();
+  const yours = claim.getByRole("group", { name: "Your belief in claim_1" });
+  for (const name of ["True", "Unlikely", "False"]) {
+    await expect(yours.getByRole("button", { name })).toBeDisabled();
+  }
+  // Once in all the MatchClaim's text and attributes: under its ID, never in a title or the Provenance region.
+  const said = await claim.evaluate(
+    (item, text) =>
+      [
+        item.textContent ?? "",
+        ...[item, ...item.querySelectorAll("*")].flatMap((element) =>
+          [...element.attributes].map((attribute) => attribute.value),
+        ),
+      ].reduce((sum, value) => sum + value.split(text).length - 1, 0),
+    NO_SERVER,
+  );
+  expect(said).toBe(1);
+  await expect(claim.getByText(NO_SERVER, { exact: true })).toBeVisible();
+  expect([seen.events, seen.provenance]).toEqual([0, []]);
 });
 
 test("New asks to save a changed table with the unsaved workspace, and saves both", async ({

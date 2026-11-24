@@ -23,7 +23,6 @@ let {
   mine,
   label,
   disabled,
-  title,
   onbelieve,
   actions,
   children,
@@ -41,8 +40,6 @@ let {
   label?: string;
   /** Whether the belief buttons wait (no server, a belief being recorded). */
   disabled?: boolean;
-  /** Why the belief buttons are disabled, their title. */
-  title?: string | undefined;
   onbelieve: (belief: Belief) => void;
   /** The host's further actions, after the belief buttons. */
   actions?: Snippet;
@@ -73,7 +70,6 @@ let open = $state(false);
       {mine}
       {label}
       {disabled}
-      {title}
       {onbelieve}
       {actions}
       {beliefs}

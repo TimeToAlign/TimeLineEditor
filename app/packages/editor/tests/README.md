@@ -2509,7 +2509,10 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    without beliefs "No one has stated a belief.". The buttons True,
    Unlikely, False, the user's own belief pressed (`claim_5`: True); while
    no server can read a table (the tables' `unavailable`, 9e) every button
-   is disabled with that text as its title: without a server, and with one
+   is disabled, without a title: the expanded MatchClaim says why beside
+   them, exactly once in all its text and attributes, also with its
+   Provenance open (the hint under its ID; neither the Provenance region
+   nor a button's title repeats it): without a server, and with one
    whose health check is pending, the whole `HOW_TO_START_A_SERVER`, with
    a server whose health check failed (`The server did not answer the
    health check (Failed to fetch).`) that failure followed by it, and the

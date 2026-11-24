@@ -1143,9 +1143,9 @@ describe("MatchClaims and beliefs", () => {
         item.getAttribute("title"),
       ]),
     ).toEqual([
-      ["True", "true", true, NO_SERVER],
-      ["Unlikely", "false", true, NO_SERVER],
-      ["False", "false", true, NO_SERVER],
+      ["True", "true", true, null],
+      ["Unlikely", "false", true, null],
+      ["False", "false", true, null],
     ]);
   });
 
@@ -1209,7 +1209,8 @@ describe("MatchClaims and beliefs", () => {
     const opened = item("claim_1").querySelector("[data-testid=provenance]");
     expect(provenance?.getAttribute("aria-controls")).toBe(opened?.id);
     expect(opened?.querySelectorAll("[data-testid=metadata-beliefs], [role=group]").length).toBe(0);
-    expect(opened?.querySelector("p.hint")?.textContent).toBe(NO_SERVER);
+    // Why nothing is read is said once, under the MatchClaim's ID, never again in the region.
+    expect(opened?.querySelector("p.hint")).toBe(null);
     expect(item("claim_1").querySelectorAll("[data-testid=metadata-beliefs]").length).toBe(1);
 
     toggle("claim_1").click();
@@ -1302,6 +1303,17 @@ describe("the MatchClaim filter", () => {
     );
   });
 
+  /** How often `text` occurs in `element`'s text and in its and its descendants' attributes. */
+  function occurrences(element: Element | null, text: string): number {
+    if (element === null) return 0;
+    const attributes = [element, ...element.querySelectorAll("*")].flatMap((item) =>
+      [...item.attributes].map((attribute) => attribute.value),
+    );
+    return [element.textContent ?? "", ...attributes]
+      .map((value) => value.split(text).length - 1)
+      .reduce((sum, count) => sum + count, 0);
+  }
+
   const FAILURE = "The server did not answer the health check (Failed to fetch).";
   it.each([
     ["is pending", null, NO_SERVER],
@@ -1343,13 +1355,18 @@ describe("the MatchClaim filter", () => {
       const mine = document.querySelector("li[data-claim='claim_5']");
       const beliefs = [...(mine?.querySelectorAll<HTMLButtonElement>("[role=group] button") ?? [])];
       expect(beliefs.map((item) => [item.disabled, item.getAttribute("title")])).toEqual([
-        [true, said],
-        [true, said],
-        [true, said],
+        [true, null],
+        [true, null],
+        [true, null],
       ]);
       mine?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.click();
       flushSync();
       expect(mine?.querySelector(".claim > p.hint")?.textContent).toBe(said);
+      expect(occurrences(mine, said)).toBe(1);
+      mine?.querySelector<HTMLButtonElement>("button[aria-label='Provenance of claim_5']")?.click();
+      flushSync();
+      expect(mine?.querySelector("[data-testid=provenance]")).not.toBe(null);
+      expect(occurrences(mine, said)).toBe(1);
       expect(asked).toEqual([]);
     },
   );

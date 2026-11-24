@@ -24,7 +24,6 @@ let {
   mine,
   label = "Your belief",
   disabled = false,
-  title,
   onbelieve,
   actions,
   paradata = true,
@@ -40,8 +39,6 @@ let {
   label?: string | undefined;
   /** Whether the belief buttons wait (no server, a belief being recorded). */
   disabled?: boolean | undefined;
-  /** Why the belief buttons are disabled, their title. */
-  title?: string | undefined;
   onbelieve: (belief: Belief) => void;
   /** The host's further actions, after the belief buttons. */
   actions?: Snippet | undefined;
@@ -101,7 +98,6 @@ const rows = $derived(line === null ? [] : paradataRows(line));
             type="button"
             aria-pressed={mine === belief}
             {disabled}
-            {title}
             onclick={() => onbelieve(belief)}>{WORDS[belief]}</button
           >
         {/each}

@@ -80,8 +80,8 @@ let believing = $state(false);
 
 /**
  * Why no server can read a table now, `null` while one can: the belief
- * buttons are disabled, saying why, and an expanded MatchClaim says it
- * instead of reading its events.
+ * buttons are disabled, and an expanded MatchClaim says why, once, under
+ * its ID, instead of reading its events.
  */
 const unavailable = $derived(tables.unavailable);
 /** The MatchClaims the table holds, whose events are read. */
@@ -131,13 +131,13 @@ const statusLines = $derived.by(() => {
   }
   return lines;
 });
-/** What a MatchClaim's entry says while it has no provenance to show. */
+/**
+ * What a MatchClaim's entry says while its provenance is being read; empty
+ * otherwise, also while no server can read a table, which the MatchClaim
+ * already says under its ID.
+ */
 const waiting = $derived(
-  provenance === null
-    ? (unavailable ?? "")
-    : provenanceRead === undefined
-      ? READING_PROVENANCE
-      : "",
+  provenance !== null && provenanceRead === undefined ? READING_PROVENANCE : "",
 );
 
 /** The provenance entry the read gives MatchClaim `id`; `undefined` while there is none to give. */
@@ -199,7 +199,6 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
     mine={claim.mine}
     label="Your belief in {claim.id}"
     disabled={unavailable !== null || believing}
-    title={unavailable ?? undefined}
     onbelieve={(belief) => believe(claim.id, belief, claim.mine)}
   />
   <div class="provenance">
