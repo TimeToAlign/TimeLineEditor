@@ -269,7 +269,14 @@ one block; the editor's file dialog never opens and the only request is
 `api/health`. An answer saying `"files": true`, and one that does not name
 `files` (read as `true`), opens the editor's file dialog, titled "Open",
 which asks for the root (`api/folders?path=`, the second and last
-request); no file input waits.
+request); no file input waits. Where the answer says `"files": false`,
+Import manifest… and Save as… use the browser's path as well: Import
+manifest… waits on the fallback input, answered with `bare.yaml` it adds
+one block and opens no dialog; Save as… (after a block was added) calls
+`showSaveFilePicker` once, writes exactly the workspace's text into the
+handle it returns, names the workspace after it and opens no dialog. In
+both cases the only request is `api/health`, never `api/folders` nor
+`api/files`.
 
 **MatchClaim tables through a server that offers no files**
 (`open-save.test.ts`, the App mounted as above over a health answer saying

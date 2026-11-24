@@ -359,6 +359,31 @@ describe("Open… once the server answered", () => {
     expect(document.querySelectorAll("header .offline").length).toBe(0);
   });
 
+  it("imports a manifest through the browser's input where the server offers no files", async () => {
+    const asked = await startAnswering({ ...HEALTH, files: false });
+    choose("Import manifest…");
+    await vi.waitFor(() => pickFile("bare.yaml", fixtureText("bare")));
+    await vi.waitFor(() => expect(blocks()).toBe(1));
+    expect([openTitles(), asked]).toEqual([[], ["api/health"]]);
+  });
+
+  it("saves as through the browser's picker where the server offers no files", async () => {
+    const asked = await startAnswering({ ...HEALTH, files: false });
+    const picked = fileHandle("copy.tle.json", "");
+    const saving = vi.fn(async () => picked.handle);
+    vi.stubGlobal("showSaveFilePicker", saving);
+    addBlock("000000000a");
+    const text = written();
+    choose("Save as…");
+    await vi.waitFor(() => expect(picked.writes).toEqual([text]));
+    expect([saving.mock.calls.length, fileName(), openTitles(), asked]).toEqual([
+      1,
+      "copy.tle.json",
+      [],
+      ["api/health"],
+    ]);
+  });
+
   it.each([
     ["true", { ...HEALTH, files: true }],
     ["not named", HEALTH],
