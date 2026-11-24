@@ -143,16 +143,26 @@ export function chosen(shown: Shown, tab: Tab, openings: number): Shown {
   return { picked: { tab, openings }, pin: tab === "timestamp" ? shown.pin : null };
 }
 
-/** Whether `address` names a stored elision of `view` (`{block, id: E}`), whose form the Elisions tab shows. */
+/**
+ * Whether `address` names an elision of `view` itself, whose form the
+ * Elisions tab shows: a stored one (`{block, id: E}`) or an automatic one,
+ * which the drawing derives and core resolves as the part `elision` of the
+ * timeline it lies on (`{block, id: T, part: ["elision"]}`). Never one of
+ * their parts, which a press on the canvas selects as the elision itself.
+ */
 export function namesElision(view: View, address: Address): boolean {
   if (address.id === undefined) return false;
   const resolved = resolveAddress(view, address);
-  return "kind" in resolved && resolved.kind === "elision";
+  if (!("kind" in resolved)) return false;
+  return (
+    resolved.kind === "elision" ||
+    (resolved.kind === "part" && resolved.word === "elision" && resolved.owner.kind === "timeline")
+  );
 }
 
 /**
  * What is shown once the selection changed to `addresses`: when they are
- * exactly one stored elision, the Elisions tab, as though it were chosen
+ * exactly one elision, stored or automatic (`namesElision`), the Elisions tab, as though it were chosen
  * (`chosen`: the pin cleared), remembering no tab to go back to, so the
  * tab stays once the selection leaves the elision; any other selection,
  * several things with an elision among them included, changes nothing

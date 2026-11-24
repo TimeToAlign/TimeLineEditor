@@ -1334,17 +1334,30 @@ is not prevented.
 **A selected elision selects the Elisions tab** (`inspector-tabs.test.ts`,
 "a selected elision"), on `bundle_elisions_stored`, whose stored
 elisions include `elision_5` (on `score`) and `elision_3` (a group
-elision of `group_1`). As a rule: exactly the two stored elisions'
-addresses name an elision; `score`, `elision_5`'s ellipsis, `score`'s
-default-elision part, the block and an unknown ID do not. A selection
-of exactly one stored elision gives the Elisions tab, recorded with the
-openings given, and no pin, exactly as a choice of that tab; nothing,
-a timeline, the block, two elisions, an elision with its timeline, or
-an elision's ellipsis alone give the state passed in, the same object.
-The rule remembers no tab: a pin held before (Timestamp shown) is
-cleared, so clearing a pin afterwards changes nothing. A pin or a
-MatchStamp arriving afterwards takes the tab as always, remembering
-Elisions, and letting it go shows Elisions again. In the drawer, told
+elision of `group_1`), and whose roots `score` and `session` draw ancestor
+cards (behind the child members `theme` and `take`), so each may carry an
+automatic elision, addressed `{id: T, part: ["elision"]}`; `recording`, a
+root member, and `theme`, a child of the root, carry none (core's
+`defaultElisionTimelines`: an ancestor card's root and the children of
+its ancestors but the member's parent). As a rule: the two stored
+elisions' addresses and the automatic elision's of `score` and of
+`session` name an elision; `score`, `elision_5`'s ellipsis, the
+automatic elision's ellipsis and name label of `score`, `{id: recording,
+part: [elision]}`, `{id: theme, part: [elision]}`, the block and an
+unknown ID do not. A selection of exactly one elision, stored or
+automatic, gives the Elisions tab, recorded with the openings given, and
+no pin, exactly as a choice of that tab; nothing, a timeline, the block,
+two elisions, a stored and an automatic elision together, an elision
+with its timeline, or an elision's ellipsis alone give the state passed
+in, the same object. The rule remembers no tab: a pin held before
+(Timestamp shown) is cleared, so clearing a pin afterwards changes
+nothing. A pin or a MatchStamp arriving afterwards takes the tab as
+always, remembering Elisions, and letting it go shows Elisions again.
+With the drawer hidden, Journal chosen at 1 opening: an editor opened (2
+openings) and then an elision selected at 2 gives Elisions when shown
+again (`toggled` at 2 keeps the tab: the choice came after the editor);
+an elision selected at 1 and then an editor opened gives the level tab
+when shown at 2. In the drawer, told
 of every change of the selection as the editor tells it: open, with
 Properties chosen, `elision_5` selected shows Elisions with the form's
 block expanded (`aria-expanded` "true"); Properties chosen then stays;
@@ -1353,7 +1366,10 @@ Elisions (no form block); both elisions selected leave it; with Journal
 chosen, an elision with `score` and then `score` alone leave Journal.
 Closed, with Journal chosen, `elision_5` selected leaves the drawer
 closed (no tab list rendered); `score` then selected, the drawer opened
-shows Elisions.
+shows Elisions. On `group_grandchild`, whose ancestor card of `score`
+draws `score`'s automatic elision by default (no elision stored), the
+drawer open with Properties chosen: `{id: score, part: [elision]}`
+selected shows Elisions with the form's block expanded.
 
 **The component** reads the editing path from the real store (open, Done,
 sessions) or from a store whose levels the test sets and announces. The

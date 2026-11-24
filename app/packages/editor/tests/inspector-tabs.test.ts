@@ -967,6 +967,8 @@ describe("a selected elision", () => {
     part === undefined ? { block: E, id } : { block: E, id, part };
   const ELISION_5 = at("elision_5");
   const ELISION_3 = at("elision_3");
+  /** The automatic elision of `score`, which its ancestor card may draw behind `theme`'s group. */
+  const AUTOMATIC = at("score", ["elision"]);
   /** A pin as the rule holds it: carried, never read. */
   const HELD = { pin: { pinned: "carried" }, manifest: {} } as unknown as Held;
   const MATCH: HeldMatch = { kind: "named", block: E, id: "matchstamp_1" };
@@ -974,22 +976,27 @@ describe("a selected elision", () => {
   describe("as a rule", () => {
     const journal: Shown = { picked: { tab: "journal", openings: 1 }, pin: null };
 
-    it("names a stored elision only", () => {
+    it("names a stored or an automatic elision itself, never one of its parts", () => {
       const { view } = stored();
       expect(
         [
           ELISION_5,
           ELISION_3,
+          AUTOMATIC,
+          at("session", ["elision"]),
           at("score"),
           at("elision_5", ["ellipsis"]),
-          at("score", ["elision"]),
+          at("score", ["elision", "ellipsis"]),
+          at("score", ["elision", "name"]),
+          at("recording", ["elision"]),
+          at("theme", ["elision"]),
           { block: E },
           at("nothing"),
         ].map((address) => namesElision(view, address)),
-      ).toEqual([true, true, false, false, false, false, false]);
+      ).toEqual([true, true, true, true, false, false, false, false, false, false, false, false]);
     });
 
-    it("selects the Elisions tab for exactly one stored elision, as a choice of it", () => {
+    it("selects the Elisions tab for exactly one elision, stored or automatic, as a choice of it", () => {
       const { view } = stored();
       expect(elisionSelected(journal, view, [ELISION_5], 3)).toEqual({
         picked: { tab: "elisions", openings: 3 },
@@ -999,6 +1006,10 @@ describe("a selected elision", () => {
         picked: { tab: "elisions", openings: 1 },
         pin: null,
       });
+      expect(elisionSelected(journal, view, [AUTOMATIC], 2)).toEqual({
+        picked: { tab: "elisions", openings: 2 },
+        pin: null,
+      });
     });
 
     it.each<[string, Address[]]>([
@@ -1006,8 +1017,10 @@ describe("a selected elision", () => {
       ["a timeline", [at("score")]],
       ["the block", [{ block: E }]],
       ["two elisions", [ELISION_5, ELISION_3]],
+      ["a stored and an automatic elision", [ELISION_5, AUTOMATIC]],
       ["an elision and its timeline", [ELISION_5, at("score")]],
       ["an elision's ellipsis", [at("elision_5", ["ellipsis"])]],
+      ["an automatic elision's ellipsis", [at("score", ["elision", "ellipsis"])]],
     ])("changes nothing for %s", (_, addresses) => {
       expect(elisionSelected(journal, stored().view, addresses, 3)).toBe(journal);
     });
@@ -1021,6 +1034,19 @@ describe("a selected elision", () => {
         { picked: { tab: "elisions", openings: 1 }, pin: null },
       ]);
       expect(pinned(elided, null)).toBe(elided);
+    });
+
+    it("is a choice made when the elision is selected, against an editor opened while hidden", () => {
+      const { view } = stored();
+      const hidden = toggled({ tab: "journal", openings: 1 }, 1, false);
+      const afterEditor = elisionSelected({ picked: hidden, pin: null }, view, [AUTOMATIC], 2);
+      const beforeEditor = elisionSelected({ picked: hidden, pin: null }, view, [ELISION_5], 1);
+      expect([toggled(afterEditor.picked, 2, true), toggled(beforeEditor.picked, 2, true)]).toEqual(
+        [
+          { tab: "elisions", openings: 2 },
+          { tab: "level", openings: 2 },
+        ],
+      );
     });
 
     it("leaves the tab to a pin or a MatchStamp arriving afterwards, which give it back", () => {
@@ -1114,6 +1140,32 @@ describe("a selected elision", () => {
       inspector.select([at("score")]);
       inspector.setOpen(true);
       expect(current()).toBe("Elisions");
+    });
+
+    it("shows the Elisions tab with the form open for an automatic elision the drawing draws", () => {
+      const selected: Address[] = [{ block: blockId(0), id: "score", part: ["elision"] }];
+      const selection = holder<Selection>(selectionOf([]));
+      const shown = mount(providing(InspectorDrawer), {
+        target: document.body,
+        context: posting(),
+        props: {
+          live: liveStore(storeOf("groups/group_grandchild")),
+          get selection() {
+            return selection.value;
+          },
+          placement: null,
+          storageKey: null,
+          ...noMatchClaims(),
+        },
+      });
+      app = shown;
+      shown.setOpen(true);
+      flushSync();
+      click("Properties");
+      selection.value = selectionOf(selected);
+      shown.selected(selected);
+      flushSync();
+      expect([current(), form()]).toEqual(["Elisions", "true"]);
     });
   });
 });

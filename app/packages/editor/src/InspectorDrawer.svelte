@@ -25,9 +25,9 @@
  * drawer; a potential one is shown while its block's anchor index is the
  * one it was read from (no longer once its table, its filter or the user
  * changed), a named one while it exists. A selection changed to exactly
- * one stored elision shows the Elisions tab, as though it were chosen,
- * without opening the drawer and without going back once the selection
- * leaves it. The editor gives the drawer the
+ * one elision, stored or automatic, shows the Elisions tab, as though it
+ * were chosen, without opening the drawer and without going back once the
+ * selection leaves it. The editor gives the drawer the
  * MatchClaim tables and the one function reading their indexes, which the
  * canvas reads too.
  */
@@ -245,8 +245,9 @@ export function shownMatch(): HeldMatch | null {
  * (`boundaryPinOf`); any other selection clears a named timestamp shown, an
  * unnamed pin staying. A selection names addresses only, never the line a
  * drawn wedge was pressed on, so a timestamp selected is read at its first
- * place, but for the one shown, which keeps its line. Exactly one stored
- * elision selects the Elisions tab (`elisionSelected`), as a choice of it
+ * place, but for the one shown, which keeps its line. Exactly one
+ * elision, stored or automatic, selects the Elisions tab
+ * (`elisionSelected`), as a choice of it
  * would: the pin and the MatchStamp shown are let go, so nothing brings
  * back the tab shown before; the drawer stays as it is, open or closed.
  */

@@ -685,6 +685,81 @@ stays, and stays once the selection is emptied. Selected again, the
 elision shows the Elisions tab again, which stays when the selection is
 emptied: nothing goes back to the tab shown before.
 
+**`elision-tab.spec.ts`** (Chromium, Firefox, WebKit) proves that an
+elision selected by a real pointer click on the canvas brings the Elisions
+tab forward, whatever the inspector showed before, for both kinds of
+elision and every part of one a viewer can click. What would prove it, and
+why a weaker test would not: the click is the mouse's, at the centre of
+the drawn part, never the hook's `select`, since the press rule
+(`pressedIn`, which maps a part to its elision's own address) and the
+drawer being told of the selection are the path under test. An elision
+draws its ellipsis once in every card it crosses, and a member card covers
+a group's ellipsis drawn in the ancestor card behind it, so the click aims
+at the first drawing of the part the pointer reaches: each in turn is
+moved, with the mouse resting outside the canvas (no hover mark over it),
+so that its centre (its client rectangle's, rounded as `partCentre` does)
+lies at (400, 400) on the canvas, left of the drawer, and it is clicked
+where the page's `elementFromPoint` there is that drawing itself, so that
+the click cannot land on the drawer, a card or a frame instead. After the click the selection is
+exactly the elision's own address (`{block, id: E}` stored,
+`{block, id: T, part: ["elision"]}` automatic), the Elisions tab is
+selected and its form's block (`elision-form-expand`) is expanded. The
+hook only sets up (a selection emptied between two clicks on parts of one
+elision, since the tab follows a change of the selection only; a style or
+an elision added by a command; an editor opened). The page is 1920 × 1080,
+so the automatic proportions are those of a wide canvas.
+
+1. *Automatic elisions*, the end-to-end workspace `e2e/groups` opened from
+   the header's Fixture menu exactly as a viewer opens it (its blocks hold
+   no stored elision: `elisions: []` in each; the automatic ones are those
+   of the ancestor cards drawn by default): the drawer opened and
+   Properties chosen before each click, a click on the ellipsis and on the
+   name label "Score" of `score`'s automatic elision in `ggrand0000`, on
+   the ellipsis of `movement`'s there and of `session`'s in `gmixed0000`,
+   and, once a rule on `score`'s card (`elision-display: ellipsis name
+   coordinate`, one `style` command) draws it, on the coordinate label
+   "0–16 ♩" of `score`'s.
+2. *Stored elisions*, `bundle_elisions_stored` imported, the same starting
+   state: the ellipsis, the name label "Appendix" and the coordinate label
+   "600–1 754 px" of `elision_2` (on `page`), the ID label "elision_4" of
+   `elision_4` (on `score`) and the ellipsis of `elision_3`, a group
+   elision drawn in `group_1`'s frame.
+3. *A pin held*: a click on a named timestamp's wedge (`timestamp_3` in
+   `ggrand0000`; `timestamp_7` in `bundle_elisions_stored`) shows the
+   Timestamp tab with the timestamp's name header (`timestamp-name`); a
+   click on an elision (`score`'s automatic ellipsis; `elision_2`'s) then
+   shows the Elisions tab, and the pin is let go: the selection emptied
+   leaves Elisions shown (nothing goes back to Timestamp), and Timestamp
+   chosen then shows no name header.
+4. *A MatchStamp shown*: `group_child_member_stamps` imported, whose one
+   MatchStamp "Middle, bar 3" has the alignment anchor `anchor_1`; a click
+   on the anchor's name label "Middle, bar 3" (which covers the middle of
+   its line) shows the Matchstamp tab with the MatchStamp's name
+   header (`matchstamp-name`). Automatic: a rule on `piece`'s card
+   (`elision-mode: proportional`, `elision-proportion: 0.25`) makes the
+   ancestor card draw `piece`'s automatic elision; stored: `add` puts
+   `elision_1` "Gap" on `middle` from 5 to 7 quarters, a group elision of
+   `group_1`. A click on the elision's ellipsis shows Elisions and lets the
+   MatchStamp go: the selection emptied leaves Elisions, and Matchstamp
+   chosen then shows no name header.
+5. *An editor opened while the drawer is closed.* What the tab rule
+   implies: an elision selected acts as a choice of the Elisions tab made
+   at that moment and never opens a closed drawer, and a drawer shown
+   again shows the level tab only when an editor opened since the tab was
+   last chosen; the editor opens the drawer itself when the first editor
+   opens. So, on `bundle_elisions_stored` with the drawer closed (a fresh
+   page remembers it closed): the group editor of `group_1` opened opens
+   the drawer on the level tab "Group", and a click on `elision_3`'s
+   ellipsis then shows Elisions. The drawer then closed and the timeline
+   editor of `recording` opened inside the group editor, the drawer stays
+   closed (only the first editor opens it); a click on `elision_3`'s
+   ellipsis selects it and leaves the drawer closed; opened, the drawer
+   shows Elisions, not the level tab, since the elision was selected after
+   the editor opened. Both editors closed and the drawer closed, a click on
+   `elision_2`'s ellipsis leaves the drawer closed; the group editor then
+   opened opens the drawer on the level tab "Group", since the editor
+   opened after the elision was selected.
+
 **`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
 drawer's Properties tab on `bundles`. With `group_1` selected, its frame
 height stated 10 above the drawn one (one command, the field showing it)
