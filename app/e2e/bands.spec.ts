@@ -36,6 +36,7 @@ import {
   graphicalOrder,
   journalLength,
   keysOf,
+  messageTexts,
   middleOf,
   newestCommand,
   node,
@@ -432,9 +433,9 @@ test.describe("on bundles", () => {
     const view = await storeText(page, "view");
     await arranger(page).focus();
     await page.keyboard.press("Delete");
-    await expect(page.getByTestId("hint")).toHaveText(
+    await expect(messageTexts(page, "info")).toHaveText([
       "A band is not deleted; select its elements to delete them.",
-    );
+    ]);
     expect(await entriesLength(page)).toBe(0);
     expect(await storeText(page, "view")).toBe(view);
     expect(await selection(page)).toEqual(SELECTED_F);

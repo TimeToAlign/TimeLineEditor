@@ -9,13 +9,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
 import { TIE_NOTE } from "../src/inspector/metadata/edits.ts";
 import type { Candidate, Lookup } from "../src/lookup/index.ts";
-import { informContext } from "../src/messages.svelte.ts";
 import UserDialog from "../src/UserDialog.svelte";
 import type { UserContext } from "../src/user.svelte.ts";
 import { UserState } from "../src/user.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
-import { fixture, providing, storeOf, userContext } from "./support.ts";
+import { fixture, posting, providing, storeOf, userContext } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
@@ -107,19 +106,13 @@ function show(
   const selection = holder<Selection>(selectionOf(addresses));
   const informed: string[] = [];
   const warned: string[] = [];
+  const failed: string[] = [];
   const target = document.createElement("div");
   document.body.append(target);
   apps.push(
     mount(providing(Inspector, user, lookup), {
       target,
-      context: informContext(
-        (text) => {
-          informed.push(text);
-        },
-        (text) => {
-          warned.push(text);
-        },
-      ),
+      context: posting(informed, warned, failed),
       props: {
         live: liveStore(store),
         get selection() {
@@ -134,7 +127,7 @@ function show(
   );
   tab?.click();
   flushSync();
-  return { selection, informed, warned };
+  return { selection, informed, warned, failed };
 }
 
 /** Let the lookup's promises and the focus moves after `tick` run, then the DOM follow. */
@@ -787,7 +780,7 @@ describe("the user", () => {
 describe("refusals", () => {
   it("posts the store's refusal as a warning and journals nothing", () => {
     const store = layerit();
-    const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
+    const { informed, warned, failed } = show(store, [{ block: A, id: "cpt_1" }]);
     const region = provenance("is a recording of Clair de lune");
     vi.spyOn(store, "dispatch").mockReturnValueOnce({
       code: "schema_violation",
@@ -796,13 +789,13 @@ describe("refusals", () => {
     });
     button("True", region).click();
     flushSync();
-    expect([warned, informed]).toEqual([["refused for the test"], []]);
+    expect([warned, informed, failed]).toEqual([["refused for the test"], [], []]);
     expect(store.journal).toHaveLength(1);
   });
 
-  it("posts a throw of the statement functions as a warning and journals nothing", () => {
+  it("posts a throw of the statement functions as an error and journals nothing", () => {
     const store = layerit();
-    const { informed, warned } = show(store, [{ block: A, id: "cpt_1" }]);
+    const { informed, warned, failed } = show(store, [{ block: A, id: "cpt_1" }]);
     expand(rectangle("same as"));
     const remove = button("Remove", provenance("schema:sameAs youtube:Ch2mrPm1JnM"));
     const [same] = store.view.blocks[A]?.manifest.timelines[1]?.statements?.["schema:sameAs"] ?? [];
@@ -825,8 +818,9 @@ describe("refusals", () => {
     });
     expect(same).toBeDefined();
     remove.click();
-    expect([warned, informed]).toEqual([
+    expect([failed, warned, informed]).toEqual([
       ["The statement could not be changed: 'schema:sameAs' does not have this value"],
+      [],
       [],
     ]);
     expect(store.journal).toHaveLength(2);

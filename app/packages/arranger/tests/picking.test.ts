@@ -37,6 +37,9 @@ import {
   viewOf,
 } from "./support.ts";
 
+/** What the canvas reports of a press or key that picks nothing. */
+const NOT_PICKABLE = "Pick a timeline or a region; Escape cancels.";
+
 /** The block A of `fixture`: its manifest and drawing. */
 function blockOf(fixture: string) {
   const view = viewOf({ id: A, fixture });
@@ -132,11 +135,14 @@ describe("the canvas while picking", () => {
   let instance: ReturnType<typeof mount> | undefined;
   let store: Store;
   let picks: Address[];
+  /** What the canvas reported through `onrefuse`. */
+  let refused: string[];
 
   beforeEach(() => {
     stubCanvasGlobals();
     store = storeOf(viewOf({ id: A, fixture: "with_region" }));
     picks = [];
+    refused = [];
   });
 
   afterEach(() => {
@@ -156,6 +162,7 @@ describe("the canvas while picking", () => {
         store,
         metrics,
         picking: picking ? (address: Address) => void picks.push(address) : null,
+        onrefuse: (text: string) => refused.push(text),
       },
     });
     // `tsc` reads the harness through Svelte's generic module declaration, which leaves its exports untyped.
@@ -239,9 +246,7 @@ describe("the canvas while picking", () => {
     await show(true);
     await pressOn(background());
     expect(picks).toEqual([]);
-    expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
-      "Pick a timeline or a region; Escape cancels.",
-    );
+    expect(refused).toEqual([NOT_PICKABLE]);
     expect(selected()).toEqual([]);
   });
 
@@ -281,14 +286,12 @@ describe("the canvas while picking", () => {
     await settle();
   }
 
-  const hintText = () => document.querySelector('[data-testid="hint"]')?.textContent;
-
   it("keeps the selection on a press and a click on the pane while picking", async () => {
     await show(true);
     await select([{ block: A }]);
     await pressOn(pane());
     expect(picks).toEqual([]);
-    expect(hintText()).toBe("Pick a timeline or a region; Escape cancels.");
+    expect(refused).toEqual([NOT_PICKABLE]);
     expect(selected()).toEqual([{ block: A }]);
     await clickOn(pane());
     expect(selected()).toEqual([{ block: A }]);
@@ -310,10 +313,10 @@ describe("the canvas while picking", () => {
 
   it("picks nothing with Enter or Space on the focused block, and selects nothing", async () => {
     await show(true);
-    for (const key of ["Enter", " "]) {
+    for (const [index, key] of ["Enter", " "].entries()) {
       await keyOn(blockNode(), key);
       expect(picks).toEqual([]);
-      expect(hintText()).toBe("Pick a timeline or a region; Escape cancels.");
+      expect(refused).toEqual(Array(index + 1).fill(NOT_PICKABLE));
       expect(selected()).toEqual([]);
     }
   });

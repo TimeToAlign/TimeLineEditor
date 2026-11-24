@@ -19,7 +19,7 @@ import { mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import type { MatchOverlayInput, MatchStampPin } from "../src/matches.ts";
-import { matchFlag, NO_MATCHES, pathOf, stampOverlay } from "../src/matches.ts";
+import { matchFlag, pathOf, stampOverlay } from "../src/matches.ts";
 import type { Selection } from "../src/selection.ts";
 import { ownerOf } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
@@ -71,11 +71,14 @@ let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
 let store: Store;
 let pins: (MatchStampPin | null)[];
+/** What the canvas reported through `onrefuse`. */
+let refused: string[];
 let resize: ReturnType<typeof stubCanvasGlobals>["resize"];
 
 beforeEach(() => {
   ({ resize } = stubCanvasGlobals());
   pins = [];
+  refused = [];
 });
 
 afterEach(() => {
@@ -89,7 +92,6 @@ afterEach(() => {
 async function show(
   matches: readonly MatchOverlayInput[],
   twice = false,
-  matchesStatus?: string,
   fixture = MATCHES,
   edit: (view: View) => View = (view) => view,
 ): Promise<void> {
@@ -101,7 +103,7 @@ async function show(
       metrics,
       matches,
       onmatchstamppin: (pin: MatchStampPin | null) => pins.push(pin),
-      matchesStatus,
+      onrefuse: (text: string) => refused.push(text),
     },
   });
   mounted = instance;
@@ -208,24 +210,13 @@ describe("the mode", () => {
     expect(pins).toEqual([null, null]);
   });
 
-  it("says that no MatchClaim table is loaded while it has none", async () => {
+  it("draws nothing and says nothing itself while it has no table", async () => {
     await show([]);
-    expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
+    const text = () => arranger().textContent ?? "";
+    const before = text();
     await key("m");
-    expect(one('[data-testid="matches-state"]').textContent).toBe(NO_MATCHES);
-    expect(NO_MATCHES).toBe("No MatchClaim table loaded.");
-    expect(document.querySelector("[data-matches]")).toBeNull();
-    harness.showMatches(WITH_T);
-    await settle();
-    expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
-  });
-
-  it("says what its host gives instead while it has no table", async () => {
-    const status = "Matches need a server: MatchClaim tables are read through tilie-server.";
-    await show([], false, status);
-    expect(document.querySelector('[data-testid="matches-state"]')).toBeNull();
-    await key("m");
-    expect(one('[data-testid="matches-state"]').textContent).toBe(status);
+    expect([pressed("matches"), text(), refused]).toEqual(["true", before, []]);
+    expect(text()).not.toContain("MatchClaim");
     expect(document.querySelector("[data-matches]")).toBeNull();
   });
 });
@@ -317,7 +308,7 @@ describe("hovering and pinning", () => {
   });
 
   it("draws the pinned and the hovered one's groupstamps as naming would store them", async () => {
-    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE);
+    await show([{ block: A, index: G, named: [] }], false, GROUPSTAMP_FIXTURE);
     await key("m");
     const view = store.view;
     const anchor = drawingOf(blockIn(view, A), view.graphical, metrics).elements.find(
@@ -377,7 +368,7 @@ describe("hovering and pinning", () => {
           element.getAttribute("d"),
         ],
       );
-    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE, (view) =>
+    await show([{ block: A, index: G, named: [] }], false, GROUPSTAMP_FIXTURE, (view) =>
       changed(view, {
         type: "set",
         changes: [{ target: inBlock(A, idAddress("performance")), values: { length: null } }],
@@ -393,7 +384,7 @@ describe("hovering and pinning", () => {
     unmount(mounted as ReturnType<typeof mount>);
     mounted = undefined;
     document.body.innerHTML = "";
-    await show([{ block: A, index: G, named: [] }], false, undefined, GROUPSTAMP_FIXTURE);
+    await show([{ block: A, index: G, named: [] }], false, GROUPSTAMP_FIXTURE);
     await key("m");
     harness.pinMatchStamp({ block: A, matchStamp: 0 });
     await settle();
@@ -719,7 +710,7 @@ describe("an ancestor card raised", () => {
   );
 
   it("draws and hits the matches on the card the editor raises", async () => {
-    await show([{ block: A, index: P, named: [] }], false, undefined, "groups/group_parent_both");
+    await show([{ block: A, index: P, named: [] }], false, "groups/group_parent_both");
     await key("m");
     const flagOf = () => {
       const flag = document.querySelector('[data-testid="match-flag"]');

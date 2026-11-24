@@ -2482,8 +2482,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    missing: null}}`, the tables given the server's files as an answered
    health check gives them), opens no file picker of its own, and posts
    what the load says: a file located on the server (`{path:
-   "m.parquet"}`) is loaded ("Loaded the MatchClaims of m.parquet." through
-   `inform`), a cancelled question says nothing. While no server can read a table "Load MatchClaims…" is
+   "m.parquet"}`) is loaded ("Loaded the MatchClaims of m.parquet." posted as
+   information), a cancelled question says nothing. While no server can read a table "Load MatchClaims…" is
    disabled and described by `unavailable`'s text (9e): without a server,
    and with one whose health check is pending, `HOW_TO_START_A_SERVER`,
    with one whose health check failed the failure first.
@@ -2574,7 +2574,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    `x` 0, with the indexes `a2`, `a0`, `a1`, are asked for as B, C, A:
    neither the order they were added in nor where they lie), and posts
    the information
-   through `inform`, the warnings through `warn` (the session given the
+   through `post` as information, the failures as errors (the session given the
    server's files, a block's manifest file unstated, so it asks where the
    manifest lies; a URL answered, fetched and loaded). Turning Show matches
    on, by its key or its button, is what calls it
@@ -2582,7 +2582,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    MatchClaims…) always asks, for the MatchClaim table (with `url` `null`
    where the manifest names none; `{kind: "table", missing: null}`), and
    loads what is chosen the same way; while no server can read a
-   table it asks nothing and warns (9e). The Fixture menu's
+   table it asks nothing and returns `unavailable` as its failure (9e). The Fixture menu's
    `tables/manifest` entry carries a source reading the files served
    beside the fixture (`servedSource`): `match_claims.parquet` is served,
    `projections.parquet` and `other.parquet` are not (`null`).
@@ -2643,7 +2643,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    counting every question, the manifest the table fixture's, its
    source reaching nothing, so with a reachable server it would be asked
    for). Two sentences, both plain text (no markup, since the message bar,
-   the canvas's status, hints and titles all show text): the short one,
+   hints and titles all show text): the short one,
    `MATCHES_NEED_A_SERVER`, exactly "Matches need a running tilie-server.",
    and `HOW_TO_START_A_SERVER`, exactly "Matches need a running
    tilie-server. To start it, run uv run tilie --static-dir
@@ -2666,7 +2666,7 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      it, …" with the sentence whole); `waiting` is true in the second state
      alone; `loadNamed` asks nothing, reads nothing through the server and
      says nothing; `choose` (Load MatchClaims…) asks nothing, reads nothing
-     and warns exactly `unavailable`. Proof that nothing was asked: the
+     and returns exactly `{informed: [], failed: [unavailable]}`. Proof that nothing was asked: the
      question count stays 0, the table route's request count 0.
    - Everything else read through the server is gated by the same rule,
      in the tables themselves, so no caller can reach a route without a
@@ -2676,40 +2676,45 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      routes throw if called, whose events route records each call) is
      never called.
    - The session's `loadNamedTables` (what turning Show matches on calls)
-     in those states asks nothing, reads nothing and informs nothing. With
-     no server given and with a failed check it warns in place of the
-     questions it would ask: over a workspace without blocks, and with one
-     block whose manifest (`bare`) names no table, it says nothing (the
-     canvas's status says `MATCHES_NEED_A_SERVER`); with two more blocks
-     each naming a table it posts exactly one warning, `unavailable`, and
-     called again exactly one more (once per turning on, never once per
-     block); with one of the two holding a table still one; with both
-     holding theirs, nothing. While the check has not answered yet it says
-     nothing at all, in the same steps: the server may be slow rather than
-     missing, and telling the user to start one would be wrong.
+     in those states asks nothing and reads nothing. With no server given
+     and with a failed check it says, as information, exactly
+     `MATCHES_NEED_A_SERVER` (`["info", "Matches need a running
+     tilie-server."]`, never a warning, never `HOW_TO_START_A_SERVER`:
+     information leaves too soon for a command) once per turning on
+     whenever no block holds a table or a block names a table it does not
+     hold: over a workspace without blocks, then with one block whose
+     manifest (`bare`) names no table, then with two more blocks each
+     naming a table, again, then with one of the two holding a table, the
+     messages posted so far are exactly one, two, three, four and five
+     times that information (once per turning on, never once per block);
+     with both holding theirs, still five. While the check has not
+     answered yet it says nothing at all, in the same steps: the server
+     may be slow rather than missing.
    - The check failing later (Show matches turned on while it was pending,
      over the two blocks naming a table): the call while pending says
      nothing; the same call once the failure is given (what the editor
      makes itself when the check fails while Show matches is on) posts
-     exactly one warning, the failure followed by `HOW_TO_START_A_SERVER`,
-     and asks, reads and informs nothing.
+     exactly that information, once, and asks and reads nothing.
    - The check answering later (the places given from then on): the same
      tables ask once, `unavailable` is `null` and `waiting` false; the
-     session's call then asks once per block naming a table and warns
-     nothing. The editor makes that call itself when the check answers
-     while Show matches is on, and when it fails then
-   (`e2e/matchclaim-loading.spec.ts`).
+     session's call then asks once per block naming a table; both questions
+     cancelled, no block holds a table, so it posts exactly the
+     information `NO_MATCHES`, "No MatchClaim table loaded." (what the
+     canvas's grey status said before ADR 0037). The editor makes that
+     call itself when the check answers while Show matches is on, and
+     when it fails then (`e2e/matchclaim-loading.spec.ts`).
    The end-to-end proof is `e2e/matchclaim-loading.spec.ts`: on the
    built page, whose health check is refused (503 Service Unavailable),
    pressing M with a manifest naming its table opens no dialog, the message
-   bar shows the failed check's failure and `HOW_TO_START_A_SERVER`, the
-   canvas's status `MATCHES_NEED_A_SERVER` alone, and Load MatchClaims… is
-   disabled, described by the message's text; with the check held
+   bar shows the information `MATCHES_NEED_A_SERVER` alone, and Load
+   MatchClaims… is disabled, described by the failed check's failure and
+   `HOW_TO_START_A_SERVER`; beside a warning already shown the information
+   is drawn in its own card and style and leaves after 3 s while the
+   warning stays ("The message bar"); with the check held
    unanswered, M posts nothing, and once it answers the table is loaded
    without M being pressed again; once it is refused instead, the message
-   bar gets exactly one message, the failed check's failure and
-   `HOW_TO_START_A_SERVER`, without M being pressed again, no dialog opens
-   and no table is requested.
+   bar gets exactly one message, that information, without M being
+   pressed again, no dialog opens and no table is requested.
 
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
    jsdom with `showModal` stubbed). It asks only where the server's files
@@ -3295,24 +3300,72 @@ read from a recording, never typed from the implementation; `T` is
 
 ## The message bar (`messages.test.ts`, `shell.test.ts`)
 
-The message bar over the canvas lists messages in the order posted, each
-with its text, its problems and a Dismiss button, marked `data-kind`
-`warning` or `info`. A warning stays until dismissed. Information is
-dismissed by itself after 3000 ms (fake timers: still shown at 2999 ms,
-gone at 3000 ms); dismissed earlier, its timer is cleared (no timer
-pending); disposed with information shown (the editor unmounting), no timer
-is left pending. The editor gives its components one function posting
-information, through the component context; a component mounted without it
-throws "no component above this one provides inform". In the editor, a
-Copy in the Timestamp tab (a named timestamp selected through the hook:
-`bundle_mixed`'s `timestamp_9`, `score`'s origin; the Copy of the value
-of its row "coordinate", picked by its label, since the rows of `score`'s
-maps lie above its line and come first) posts "Copied 0." as information,
-and a refused file a warning. The editor
-gives them a second function posting warnings the same way (a component
-mounted without it throws "no component above this one provides warn");
-a component mounted on its own takes both from one context, the warnings
-going to the information function unless a second one is given.
+The editor has one message system (ADR 0037): one store (`Messages`), one
+bar, three levels. What proves it:
+
+- **Levels and order.** Posting a warning, then information, then an error
+  shows exactly `[["warning", "Refused."], ["info", "Copied 2.0."],
+  ["error", "Not saved."]]` as `[level, text]`, in the order posted.
+- **Information leaves, nothing else does** (fake timers): `INFO_DURATION_MS`
+  is 3000; at 2999 ms all three are shown, at 3000 ms exactly
+  `[["warning", "Refused."], ["error", "Not saved."]]`, and still exactly
+  that 60 000 ms later; dismissing each by its id empties the list.
+- **The same information shows once.** Information posted while
+  information of the same text is shown replaces it: posted at 0 ms and
+  again at 2000 ms (a warning of the same text between them), the list is
+  `[["warning", "Again."], ["info", "Again."]]` at 2000 ms, the information
+  is still shown at 4999 ms and gone at 5000 ms, the warning kept; one
+  timer is pending in between. A warning or an error posted twice is shown
+  twice.
+- **Timers.** Information dismissed before its time leaves no timer
+  pending; disposing the store with two pieces of information shown leaves
+  none.
+- **The bar.** One card (`data-testid="message"`) per message, in the
+  store's order, its `data-level` the level, its `role` `status` for
+  information and `alert` for a warning or an error, its level word
+  ("Info", "Warning", "Error") in `.level`, its text alone in the `p`, its
+  problems listed, and a Dismiss button that dismisses that card alone.
+  With a warning, information and an error shown, the cards read exactly
+  `[["warning", "alert", "Warning", "Refused."], ["info", "status", "Info",
+  "Copied."], ["error", "alert", "Error", "Not saved."]]`; the cards are
+  siblings in one column, so none is drawn over another (the end-to-end
+  test checks the boxes in the browser). No card takes the focus: the
+  focused element before the messages are posted is the focused element
+  after.
+- **One way to post.** The editor gives its components one function,
+  `post(level, text, problems?)`, through the component context; a
+  component mounted without it throws "no component above this one
+  provides post". In the editor, a Copy in the Timestamp tab (a named
+  timestamp selected through the hook: `bundle_mixed`'s `timestamp_9`,
+  `score`'s origin; the Copy of the value of its row "coordinate", picked
+  by its label, since the rows of `score`'s maps lie above its line and
+  come first) posts "Copied 0." as information, and a refused workspace
+  file an error.
+- **The canvas's refusals are information.** The editor passes the
+  arranger's `onrefuse` to the store as information (`shell.test.ts`: in
+  the group editor of `bundle_mixed`'s `group_1`, the group selected,
+  Delete on the arranger posts exactly `[["info", "Close its editor to
+  delete the edited element."]]`); no element of the canvas shows a
+  refusal itself.
+- **Information beside a warning, end to end** (`e2e/matchclaim-loading.spec.ts`): with the
+  health check refused and a warning shown (an address the hook could not
+  select), pressing M shows "Matches need a running tilie-server." as
+  information beside the warning: both visible, their boxes not
+  overlapping, the information's card `data-level="info"` with the
+  information's colours (border `rgb(122, 167, 217)`, background
+  `rgb(238, 245, 253)`), the warning's amber (`rgb(201, 162, 39)`,
+  `rgb(255, 248, 225)`). After 3000 ms (the page's clock run forward) the
+  information is gone and the warning stays.
+
+The level of every message the editor posts is listed in ADR 0037's terms:
+a refusal of a gesture, a key or a pick, a value copied, a size replaced
+by its minimum, a table loaded, a lookup that could not be searched and
+"Matches need a running tilie-server." / "No MatchClaim table loaded." are
+information; a file not opened because of what was picked, an address not
+read, autosave active elsewhere, a filter or a statement the store refused
+are warnings; a workspace, manifest, example or table that could not be
+opened, imported, loaded, restored, exported or saved, a belief not
+recorded and autosave not working are errors.
 
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 

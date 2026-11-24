@@ -6,7 +6,6 @@
  * what an earlier session left in the slot when it starts.
  */
 
-import type { Problem } from "@timetoalign/tilie-core";
 import {
   emptyWorkspace,
   isLoadError,
@@ -16,7 +15,7 @@ import {
 import type { Snapshot } from "./autosave.ts";
 import { AutosaveError, createAutosave, recoverWorkspace } from "./autosave.ts";
 import { lastChanged } from "./files.ts";
-import { messageOf } from "./messages.svelte.ts";
+import { messageOf, type Post } from "./messages.svelte.ts";
 import type { WorkspaceSession } from "./workspaceSession.svelte.ts";
 
 export interface AutosavingOptions {
@@ -24,8 +23,8 @@ export interface AutosavingOptions {
   readonly slot: string;
   /** How long a change waits for a later one before it is written. */
   readonly delayMs: number;
-  /** Show a warning, kept until dismissed. */
-  readonly warn: (text: string, problems?: readonly Problem[]) => void;
+  /** Show a message at its level (`Messages.post`). */
+  readonly post: Post;
   /** Ask `question` with `answers`, the focus on `focused`: the answer chosen, `null` when dismissed. */
   readonly ask: <const A extends string>(
     question: string,
@@ -49,7 +48,7 @@ export function autosaveLock(slot: string): string {
 
 /** Start autosaving `session` into `options.slot`. */
 export function startAutosave(session: WorkspaceSession, options: AutosavingOptions): Autosaving {
-  const { slot, delayMs, warn, ask } = options;
+  const { slot, delayMs, post, ask } = options;
   let failed = false;
 
   /** Show the first autosave failure; later ones would only repeat it. */
@@ -57,7 +56,7 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
     if (failed) return;
     failed = true;
     const reason = error instanceof AutosaveError ? error.message : messageOf(error);
-    warn(`Autosave is not working, so unsaved changes cannot be recovered: ${reason}`);
+    post("error", `Autosave is not working, so unsaved changes cannot be recovered: ${reason}`);
   }
 
   const autosave = createAutosave({ key: slot, delayMs, onError: failure });
@@ -122,7 +121,7 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
     }
     const workspace = readWorkspace(snapshot.text);
     if (isLoadError(workspace)) {
-      warn("The autosaved workspace cannot be restored.", workspace.problems);
+      post("error", "The autosaved workspace cannot be restored.", workspace.problems);
       return;
     }
     const when = lastChanged(workspace.journal);
@@ -143,7 +142,8 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
       false,
       snapshot.path ?? null,
     );
-    if (refusal !== null) warn("The autosaved workspace cannot be restored.", refusal.problems);
+    if (refusal !== null)
+      post("error", "The autosaved workspace cannot be restored.", refusal.problems);
   }
 
   async function start(): Promise<void> {
@@ -154,7 +154,10 @@ export function startAutosave(session: WorkspaceSession, options: AutosavingOpti
       return;
     }
     if (!claimed) {
-      warn("Autosave of this workspace is active elsewhere, so changes here are not autosaved.");
+      post(
+        "warning",
+        "Autosave of this workspace is active elsewhere, so changes here are not autosaved.",
+      );
       return;
     }
     autosaving = true;

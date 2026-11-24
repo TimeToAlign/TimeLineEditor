@@ -24,7 +24,7 @@ import {
 import { addStylesOf, fadingsOf } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
-import { blockId, informing, noMatchClaims, providing, storeOf } from "./support.ts";
+import { blockId, noMatchClaims, posting, providing, storeOf } from "./support.ts";
 
 const { A } = MIXED;
 /** The address of block `A`. */
@@ -86,7 +86,7 @@ function show(store: Store, selection: Address[] = [BLOCK]): void {
   const selected = holder<Selection>(selectionOf(selection));
   app = mount(providing(Inspector), {
     target: document.body,
-    context: informing(),
+    context: posting(),
     props: {
       live: liveStore(store),
       get selection() {
@@ -544,7 +544,7 @@ describe("in the drawer", () => {
   function drawer(store: Store): { setOpen(open: boolean): void } {
     const shown = mount(providing(InspectorDrawer), {
       target: document.body,
-      context: informing(),
+      context: posting(),
       props: {
         live: liveStore(store),
         selection: selectionOf([BLOCK]),
@@ -1048,7 +1048,7 @@ describe("a selected elision", () => {
       const selection = holder<Selection>(selectionOf([at("score")]));
       const shown = mount(providing(InspectorDrawer), {
         target: document.body,
-        context: informing(),
+        context: posting(),
         props: {
           live: liveStore(stored()),
           get selection() {

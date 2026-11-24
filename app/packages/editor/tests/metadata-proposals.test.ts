@@ -28,12 +28,11 @@ import {
 } from "../src/inspector/metadata/proposals.ts";
 import type { Candidate, Lookup } from "../src/lookup/index.ts";
 import { createLookup, NO_LOOKUP } from "../src/lookup/index.ts";
-import { informContext } from "../src/messages.svelte.ts";
 import { Picking, providePicking } from "../src/pick.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import { holder } from "./holder.svelte.ts";
 import { RECORDED_SERVER, replay } from "./lookup-replay.ts";
-import { fixture, providing, storeOf, userContext } from "./support.ts";
+import { fixture, posting, providing, storeOf, userContext } from "./support.ts";
 
 const A = "0000000000";
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
@@ -487,9 +486,7 @@ describe("the tab", () => {
     apps.push(
       mount(component, {
         target,
-        context: informContext((text) => {
-          informed.push(text);
-        }),
+        context: posting(informed),
         props: {
           live: liveStore(store),
           get selection() {

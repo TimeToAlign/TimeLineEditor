@@ -20,7 +20,7 @@ import { namedPinOf } from "../src/inspector/timestamp.ts";
 import type { MatchClaimServer } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
 import { BELIEFS_BY_ROW, indexesOver, ME, matchTable, q, tableManifest } from "./matches.ts";
-import { informing, providing, storeOf } from "./support.ts";
+import { posting, providing, storeOf } from "./support.ts";
 
 /** The command of the store's last journal entry. */
 function lastCommand(store: Store): unknown {
@@ -61,7 +61,7 @@ function show(
   const live = liveStore(store);
   mounted = mount(providing(MatchstampPanel), {
     target: document.body,
-    context: informing(),
+    context: posting(),
     props: {
       live,
       block: store.view.blocks[A] ?? null,
@@ -186,7 +186,7 @@ function timestampTabGroups(store: Store, timeline: string): unknown[] {
   const pin = namedPinOf(store.view, { block: A, id: own.id }, fontMetrics);
   mounted = mount(TimestampPanel, {
     target: document.body,
-    context: informing(),
+    context: posting(),
     props: { live: liveStore(store), pin, onpin: () => undefined },
   });
   flushSync();
@@ -1361,7 +1361,7 @@ describe("the Timestamp tab", () => {
     const pin = namedPinOf(store.view, { block: A, id }, fontMetrics);
     mounted = mount(TimestampPanel, {
       target: document.body,
-      context: informing(),
+      context: posting(),
       props: { live: liveStore(store), pin, onpin: () => undefined },
     });
     flushSync();
@@ -1401,7 +1401,7 @@ describe("the Timestamp tab", () => {
     const pin = namedPinOf(store.view, { block: A, id: "timestamp_1" }, fontMetrics);
     mounted = mount(TimestampPanel, {
       target: document.body,
-      context: informing(),
+      context: posting(),
       props: { live: liveStore(store), pin, onpin: () => undefined },
     });
     flushSync();

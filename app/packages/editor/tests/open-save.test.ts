@@ -382,11 +382,10 @@ describe("through the server", () => {
 
   /** A session over `host`, its tables read by a stubbed table route, its questions and messages recorded. */
   function session(host: FileHost) {
-    const said = { informed: [] as string[], warned: [] as string[] };
+    const said = { info: [] as string[], warning: [] as string[], error: [] as string[] };
     const questions: TableRequest[] = [];
     const opened = new WorkspaceSession({
-      warn: (text) => said.warned.push(text),
-      inform: (text) => said.informed.push(text),
+      post: (level, text) => said[level].push(text),
       author: () => DEFAULT_USER.name,
       matchClaims: {
         matchClaims: async () => matchTable(),
@@ -464,8 +463,9 @@ describe("through the server", () => {
     expect(record.reads).toEqual([TABLE]);
     expect(again.questions).toEqual([]);
     expect(again.said).toEqual({
-      informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
-      warned: [],
+      info: ["Loaded the MatchClaims of step1.match_claims.parquet."],
+      warning: [],
+      error: [],
     });
 
     record.held.delete(TABLE);
@@ -520,7 +520,7 @@ describe("through the server", () => {
     record.refuse = true;
     record.answers.push("layerit.tle.json");
     await opened.save(true);
-    expect(said.warned).toEqual(["The workspace could not be saved: no such folder"]);
+    expect(said.error).toEqual(["The workspace could not be saved: no such folder"]);
     expect([
       opened.store.view.settings.manifests[block]?.location,
       opened.path,

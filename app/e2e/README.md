@@ -90,7 +90,10 @@ own, imported, never copied.
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee" | "coordinates"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
-  `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
+  `[data-testid="snap-guide"]`. A refusal of the canvas is information in
+  the message bar: `support.ts` `messagesAt(page, level)` gives the cards
+  of one level (`[data-testid="message"][data-level=<level>]`) and
+  `messageTexts(page, level)` their texts.
 - **The shell and the inspector** by role, label or `data-testid`, never
   by an element id: the editor's ids are its instance's own. A tab is found
   by its name in the tab list "Inspector sections" and its panel through
@@ -564,7 +567,8 @@ through the file dialog, Show matches (its toolbar button) opens
 with one group, "MatchClaim table match_claims.parquet", Load disabled
 until something is entered, and Locate… then `other/match_claims.parquet`
 in the file dialog loads it with one request; a URL entered is fetched
-once and loaded; Cancel loads nothing and adds no message. "Load
+once and loaded; Cancel loads nothing and adds exactly one message, the
+information "No MatchClaim table loaded.". "Load
 MatchClaims…" in the Matchstamp tab's MatchClaim filter, on the same
 imported manifest with Show matches off, opens "Load the MatchClaim table
 of The manifest" with the same group and loads the located table with one
@@ -572,26 +576,37 @@ request (no file picker of its own). Each loaded table's status line in
 the Matchstamp tab reads "match_claims.parquet: <rows> MatchClaims".
 Refused (the header's offline mark titled "The server did not answer the
 health check (503 Service Unavailable)."), with the Fixture menu's table
-fixture open: `m` turns Show matches on, opens no dialog, requests no
-table, and adds exactly one message, that failure followed by "Matches
-need a running tilie-server. To start it, run uv run tilie --static-dir
+fixture open and no message shown: `m` turns Show matches on, opens no
+dialog, requests no table, and adds exactly one message, the information
+"Matches need a running tilie-server."; the Matchstamp tab's table status
+reads "No MatchClaim table loaded."; "Load MatchClaims…" is disabled, its
+accessible description that failure followed by "Matches need a running
+tilie-server. To start it, run uv run tilie --static-dir
 ../app/packages/editor/dist in the repository's server folder (or tilie,
 once installed with pip install tilie-server), then open the editor at
-the address it prints."; the canvas's status reads "Matches need a
-running tilie-server." alone; "Load MatchClaims…" is disabled, its
-accessible description that same message, and no other message appears.
+the address it prints.". **Beside a warning** (refused, the same fixture
+open, the hook asked to select `{block: "nothing", facet: "markers"}`,
+which posts the warning "Some addresses could not be selected."; the
+page's clock installed and paused): `m` adds the information "Matches
+need a running tilie-server." with `role="status"` and the level word
+"Info", the warning keeping `role="alert"` and "Warning"; both are
+visible, the information's card's top at or below the warning card's
+bottom (no overlap), the information's border and background
+`rgb(122, 167, 217)` and `rgb(238, 245, 253)`, the warning's
+`rgb(201, 162, 39)` and `rgb(255, 248, 225)`. The clock run 2999 ms on,
+the information is still shown; 1 ms more, it is gone and the warning
+stays, still after 60 000 ms more.
 Held, with the same fixture open: `m` turns Show matches on and adds no
 message (no offline mark either: nothing has failed), requesting no
 table; once the check is answered, without another key, the table is
 requested exactly once, the one new message is "Loaded the MatchClaims
-of match_claims.parquet.", no dialog opens and the canvas's status is
-gone, the matches drawn. Held, then refused instead: `m` adds no
-message; once the check is refused, without another key, the offline
-mark appears and exactly one message is added, the failure followed by
-the sentence on starting a server, as in the refused case; no dialog
-opens, no table is requested, the canvas's status reads "Matches need a
-running tilie-server.", and "Load MatchClaims…" is described by that
-message, no further message appearing. `open-save.spec.ts` proves the
+of match_claims.parquet." and no dialog opens. Held, then refused
+instead: `m` adds no message; once the check is refused, without another
+key, the offline mark appears and exactly one message is added, the
+information "Matches need a running tilie-server."; no dialog opens, no
+table is requested, the table status reads "No MatchClaim table loaded.",
+and "Load MatchClaims…" is described by the failure and the sentence on
+starting a server, no further message appearing. `open-save.spec.ts` proves the
 table read beside the manifest.
 
 **`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
@@ -678,7 +693,7 @@ unstating it (a `set` at `{block: "bmixed0000", id: "group_1"}` with
 `place {height: null}`): the field shows the text it showed
 before (the drawn height, the minimum), the block's drawn box has its
 size on screen from before the first command, and the message bar shows
-one information message (`data-kind="info"`, dismissed by itself after
+one information message (`data-level="info"`, dismissed by itself after
 3 s, so the page's clock is paused before the command and resumed once the
 message has been read) reading `To decrease the height below <that text>
 px, decrease the size of the contained elements first.`. The container
@@ -866,11 +881,12 @@ shared by both specs).
    composer is open with Value empty; the same press on `clt_6`'s card then
    selects that card, `{block, id: "clt_6", part: ["card"]}`.
 3. **Picking holds the canvas.** "Pick on the canvas" as in 1; a click on
-   a point of the pane no block, toolbar or message covers: the arranger's
-   status line reads "Pick a timeline or a region; Escape cancels.", the
+   a point of the pane no block, toolbar or message covers: the message
+   bar shows the information "Pick a timeline or a region; Escape
+   cancels." alone, the
    selection is still `cpt_2` alone, the arranger still carries
    `data-picking` and the composer is open. The block's node focused,
-   Enter and Space each: the same status line, the same selection, still
+   Enter and Space each: the same information, shown once, the same selection, still
    picking (the node is the block itself, which picks nothing). Enter sent
    to `clt_6`'s card element: Value reads "Clair de lune, mm. 1–6 (MEI)
    (timeline)", the picking ends, the selection is still `cpt_2` alone and
@@ -1401,9 +1417,11 @@ lies at the block's stated place.
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
 imported and its segment `b` selected, Delete and Backspace each show
-core's refusal "Removing segment 'b' of line 'form' is not supported yet" in
-the status line, open no menu and leave the journal, the selection and the root's length and
-segments unchanged; the status line clears on the next stored command.
+core's refusal "Removing segment 'b' of line 'form' is not supported yet" as
+the message bar's one piece of information, open no menu and leave the
+journal, the selection and the root's length and segments unchanged; the
+first is dismissed by its button before the second key, so each key's
+refusal is seen.
 
 **`editors.spec.ts`** (Chromium, Firefox, WebKit) proves the bundle, group
 and timeline editors on `bundles` (and `groups` for a reorder) at viewport
@@ -1448,7 +1466,7 @@ a change outside the edited element is refused (a `set` of
 `group_2`'s place in `group_1`'s editor: `side_effect` at the path
 `[addressKey({block: "bmixed0000", id: "group_2"})]`), and a refused
 Delete shows its refusal (`excerpt` deleted in `group_2`'s editor changes
-its parent `recording`, which the group does not contain: the status line reads "timeline
+its parent `recording`, which the group does not contain: the message bar's information reads "timeline
 'Recording' in bundle 'Mixed' lies outside group 'Facsimile' in bundle
 'Mixed': an editor changes only what it edits", each address in its words,
 core's `addressWords`); Delete pressed right after the group editor of

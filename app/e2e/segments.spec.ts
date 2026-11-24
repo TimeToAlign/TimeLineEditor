@@ -1,8 +1,9 @@
 /**
  * Deleting a segment is not supported yet: Delete and Backspace on a
- * segment show the store's refusal in the status line, open no menu and
- * change nothing; the status line is cleared between the two keys, so that each
- * shows its own refusal. Derivation in `README.md` ("segments.spec.ts").
+ * segment show the store's refusal as information in the message bar, open
+ * no menu and change nothing; the first message is dismissed between the
+ * two keys, so that each shows its own refusal. Derivation in `README.md`
+ * ("segments.spec.ts").
  */
 
 import type { Page } from "@playwright/test";
@@ -13,6 +14,8 @@ import {
   arranger,
   chooseItem,
   journalLength,
+  messagesAt,
+  messageTexts,
   pick,
   select,
   selection,
@@ -56,7 +59,7 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
   });
   expect(await form(page, block)).toBe(unchanged);
 
-  const hint = page.getByTestId("hint");
+  const refusals = messageTexts(page, "info");
   /** Select `address` and focus the arranger, as a key press needs. */
   const selectOne = async (address: Address): Promise<void> => {
     await select(page, [address]);
@@ -66,7 +69,7 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
   const refused = async (key: string, journal: number): Promise<void> => {
     await page.keyboard.press(key);
     // Core's refusal (`segment_not_removable`), shown as the canvas shows every refusal.
-    await expect(hint).toHaveText("Removing segment 'b' of line 'form' is not supported yet");
+    await expect(refusals).toHaveText(["Removing segment 'b' of line 'form' is not supported yet"]);
     await expect(page.locator('[data-testid="gap-menu"]')).toHaveCount(0);
     expect(await journalLength(page)).toBe(journal);
     expect(await selection(page)).toEqual([segment]);
@@ -75,11 +78,8 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
 
   await selectOne(segment);
   await refused("Delete", 1);
-  // The hint clears on the next command the canvas stores: a nudge of the block.
-  await selectOne({ block });
-  await page.keyboard.press("ArrowRight");
-  await expect.poll(() => journalLength(page)).toBe(2);
-  await expect(hint).toBeEmpty();
+  await messagesAt(page, "info").getByRole("button", { name: "Dismiss" }).click();
+  await expect(refusals).toHaveCount(0);
   await selectOne(segment);
-  await refused("Backspace", 2);
+  await refused("Backspace", 1);
 });

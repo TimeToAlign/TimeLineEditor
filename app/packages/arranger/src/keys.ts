@@ -72,9 +72,9 @@ export interface KeyContext {
   /** How many editors are open: Escape closes the innermost. */
   readonly editors: number;
   select(next: Selection): void;
-  /** Runs a command; whether the store accepted it (a refusal is shown). */
+  /** Runs a command; whether the store accepted it (a refusal is reported to the canvas's host). */
   dispatch(command: Command): boolean;
-  /** Shows a refusal that no command produced. */
+  /** Reports a refusal that no command produced to the canvas's host. */
   refuse(message: string): void;
   setMode(mode: ResizeMode): void;
   toggleLock(): void;

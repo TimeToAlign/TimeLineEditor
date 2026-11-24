@@ -30,7 +30,7 @@ import type { MatchIndexes } from "../src/inspector/matchstamps.ts";
 import type { Lookup } from "../src/lookup/index.ts";
 import { NO_LOOKUP, provideLookup } from "../src/lookup/index.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
-import { informContext } from "../src/messages.svelte.ts";
+import { type MessageLevel, postContext } from "../src/messages.svelte.ts";
 import { ProfilesState, provideProfiles } from "../src/profiles/profiles.svelte.ts";
 import type { TestHook } from "../src/testHook.ts";
 import type { UserContext } from "../src/user.svelte.ts";
@@ -257,11 +257,17 @@ export function editorAt(level: Level, block: string): Editing | null {
 
 /**
  * The component context of an inspector component mounted on its own,
- * `mount`'s `context`: the information it posts is appended to `informed`.
+ * `mount`'s `context`: the text of each message it posts is appended to
+ * the list of its level.
  */
-export function informing(informed: string[] = []): ReturnType<typeof informContext> {
-  return informContext((text) => {
-    informed.push(text);
+export function posting(
+  info: string[] = [],
+  warning: string[] = [],
+  error: string[] = [],
+): ReturnType<typeof postContext> {
+  const lists: Readonly<Record<MessageLevel, string[]>> = { info, warning, error };
+  return postContext((level, text) => {
+    lists[level].push(text);
   });
 }
 

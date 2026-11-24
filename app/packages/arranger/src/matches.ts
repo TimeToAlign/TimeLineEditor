@@ -129,13 +129,6 @@ export const MATCH_STROKE_WIDTH = 1;
 export const MATCH_DASH = "3 3";
 
 /**
- * What "Show matches" says while it has no table to show, where its host
- * says nothing more: the canvas knows only that no table is loaded, never
- * why.
- */
-export const NO_MATCHES = "No MatchClaim table loaded.";
-
-/**
  * A line of a drawing holding a timeline of the index, as floats: where its
  * coordinates lie and how far its cross-section lines reach.
  */

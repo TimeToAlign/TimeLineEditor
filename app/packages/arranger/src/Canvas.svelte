@@ -67,7 +67,6 @@ import {
   matchFlag,
   matchHitAt,
   matchLinesOf,
-  NO_MATCHES,
   NO_PAINT,
   NO_TABLES,
   namedGroupstamps,
@@ -149,8 +148,9 @@ interface Props {
    * (`pickable`), or Enter or Space on such a focused element, calls it
    * with `{block, id}` and does nothing else; a press on anything else in
    * a block or on the pane, and Enter or Space on anything else, selects
-   * nothing and says what can be picked; Escape is left to the caller, and
-   * the pointer is a crosshair; `null` (the default) selects.
+   * nothing and reports what can be picked (`onrefuse`); Escape is left to
+   * the caller, and the pointer is a crosshair; `null` (the default)
+   * selects.
    */
   picking?: ((address: Address) => void) | null;
   /**
@@ -159,8 +159,8 @@ interface Props {
    * the block's named MatchStamps compared with it, whose alignment anchors
    * take the user's belief in the MatchClaims stating them (`beliefs`), one
    * out of date drawn all red; empty (the default) without a server or a
-   * loaded table, when "Show matches" says so and named MatchStamps draw as
-   * styled.
+   * loaded table, when "Show matches" draws nothing and named MatchStamps
+   * draw as styled.
    */
   matches?: readonly MatchOverlayInput[];
   /**
@@ -182,10 +182,12 @@ interface Props {
    */
   onmatches?: (shown: boolean) => void;
   /**
-   * What "Show matches" says while `matches` is empty: why its host has no
-   * table to give (no server, say); `NO_MATCHES` when not given.
+   * Called with the text of every refusal: a command the store refused, an
+   * editor it could not open, a key, a drop or a pick refused. The canvas
+   * shows none of them itself; its host shows each where it shows its
+   * messages.
    */
-  matchesStatus?: string | undefined;
+  onrefuse?: (text: string) => void;
   /**
    * The pane this canvas's drawings are fitted to, which the canvas measures:
    * given by a host that draws the same blocks beside it (the inspector),
@@ -213,7 +215,7 @@ let {
   pinnedMatchStamp = null,
   onmatchstamppin,
   onmatches,
-  matchesStatus = NO_MATCHES,
+  onrefuse,
   pane = new Pane(),
 }: Props = $props();
 
@@ -334,8 +336,6 @@ let canvasHeight = $state(0);
 let hover: Point | null = $state.raw(null);
 /** Bumped when a manifest's expanded MeasureMaps arrive, so the reading is made again with them. */
 let knotsArrived = $state(0);
-/** The last refusal, announced in the status region. */
-let hint = $state("");
 /**
  * Whether boxes are being moved: a block dragged by Svelte Flow, or a
  * gesture inside a drawing that moves an item, a held card or a band. The
@@ -516,13 +516,13 @@ $effect(() => {
 
 function dispatch(command: unknown): boolean {
   const error = store.dispatch(command);
-  hint = error === null ? "" : error.message;
+  if (error !== null) onrefuse?.(error.message);
   return error === null;
 }
 
 function openEditor(target: Address): void {
   const error = store.open(target);
-  hint = error === null ? "" : error.message;
+  if (error !== null) onrefuse?.(error.message);
 }
 
 setNodeActions({
@@ -533,7 +533,7 @@ setNodeActions({
     selection = selectionOf([address]);
   },
   refuse(message) {
-    hint = message;
+    onrefuse?.(message);
   },
   preview(block, shown) {
     if (shown !== null) nodes.preview = { id: block, view: shown.view };
@@ -1005,7 +1005,7 @@ function setMatches(next: boolean): void {
 
 // --- Picking ---------------------------------------------------------------
 
-/** Text the status line shows after a press that picks nothing. */
+/** The refusal of a press that picks nothing. */
 const NOT_PICKABLE = "Pick a timeline or a region; Escape cancels.";
 
 /** Whether the current press was taken by picking, so its release and click do nothing more. */
@@ -1022,8 +1022,8 @@ function pickAt(pressed: Pressed, pick: (address: Address) => void): void {
     hit === null || pressed.node === undefined
       ? null
       : pickable(hit, pressed.node.data.block.manifest);
-  hint = address === null ? NOT_PICKABLE : "";
-  if (address !== null) pick(address);
+  if (address === null) onrefuse?.(NOT_PICKABLE);
+  else pick(address);
 }
 
 /**
@@ -1104,7 +1104,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     editors: live.editing.length,
     select: (next) => (selection = next),
     dispatch,
-    refuse: (message) => (hint = message),
+    refuse: (message) => onrefuse?.(message),
     setMode: (next) => (mode = next),
     toggleLock: () => (locked = !locked),
     toggleCoordinates: () => setCoordinates(!coordinates),
@@ -1296,9 +1296,5 @@ function onkeydowncapture(event: KeyboardEvent) {
       <div class="tilie-coordinates-head" data-testid="elision-text">{gapFlag.text}</div>
     </Flag>
   {/if}
-  {#if showMatches && matches.length === 0}
-    <p class="tilie-matches-state" data-testid="matches-state" role="status">{matchesStatus}</p>
-  {/if}
-  <p class="tilie-hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
   <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>
 </div>

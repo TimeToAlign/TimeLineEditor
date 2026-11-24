@@ -7,8 +7,8 @@
  * and the composer; the candidates offered to the user and those the user
  * believes false. Each action is one `set` of the statements and
  * provenance it changes, built on the manifest's statement skeleton by
- * TimeToShare's functions; their throws and the store's refusals are posted
- * to the message bar as warnings. The user who states and believes (the
+ * TimeToShare's functions; their throws are posted to the message bar as
+ * errors, the store's refusals as warnings. The user who states and believes (the
  * actor, an IRI) comes from the editor's user; the choices from its type
  * profiles' catalogue; lookups from its lookup, which also proposes matches
  * for the names stated without an identifier of the element and every
@@ -22,7 +22,7 @@ import { samePair } from "@timetoalign/timetoshare";
 import { onDestroy, tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { lookupOf } from "../lookup/index.ts";
-import { informOf, warnOf } from "../messages.svelte.ts";
+import { postOf } from "../messages.svelte.ts";
 import { profilesOf } from "../profiles/profiles.svelte.ts";
 import { userOf } from "../user.svelte.ts";
 import Candidates from "./metadata/Candidates.svelte";
@@ -68,8 +68,7 @@ let {
 
 const ADD_BUTTON = '[data-testid="metadata-add-statement"]';
 
-const inform = informOf();
-const warn = warnOf();
+const post = postOf();
 const user = userOf();
 const lookup = lookupOf();
 const profiles = profilesOf();
@@ -143,7 +142,8 @@ function edit(at: Frame, change: () => Skeleton): boolean {
   try {
     after = change();
   } catch (error) {
-    warn(
+    post(
+      "error",
       `The statement could not be changed: ${error instanceof Error ? error.message : String(error)}`,
     );
     return false;
@@ -152,7 +152,7 @@ function edit(at: Frame, change: () => Skeleton): boolean {
   if (command === null) return false;
   const refusal = store.dispatch(command);
   if (refusal === null) return true;
-  warn(refusal.message);
+  post("warning", refusal.message);
   return false;
 }
 
@@ -285,7 +285,7 @@ async function propose(at: Frame): Promise<void> {
   proposingFor = null;
   if (proposals.signal.aborted) return;
   for (const { system, message } of failures) {
-    inform(`${systemChoice(catalogue, system).label} could not be searched: ${message}`);
+    post("info", `${systemChoice(catalogue, system).label} could not be searched: ${message}`);
   }
   const now = frameIn(store.view, at);
   if (now === null) return;
@@ -306,13 +306,15 @@ async function propose(at: Frame): Promise<void> {
   // A refusal or a throw is posted by `edit`.
   if (changed) {
     const block = now.block.id;
-    inform(
+    post(
+      "info",
       proposedText(placed, now.id, (id) =>
         addressWords(store.view, id === null ? { block } : { block, id }),
       ),
     );
   } else if (count === 0) {
-    inform(
+    post(
+      "info",
       `No new match was found for the ${found.length === 1 ? "name" : `${found.length} names`}.`,
     );
   }

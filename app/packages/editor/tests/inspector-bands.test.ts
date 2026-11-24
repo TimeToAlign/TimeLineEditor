@@ -17,7 +17,7 @@ import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
 import { bandRows, geometryOf } from "../src/inspector/properties.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { informing, storeOf as storeOfFixtures } from "./support.ts";
+import { posting, storeOf as storeOfFixtures } from "./support.ts";
 
 /** `map`. */
 const A = "0000000000";
@@ -189,7 +189,7 @@ describe("the Properties panel of a band", () => {
   function show(store: Store, selection: readonly Address[]): void {
     app = mount(Inspector, {
       target: document.body,
-      context: informing(),
+      context: posting(),
       props: { live: liveStore(store), selection: selectionOf(selection) },
     });
     flushSync();

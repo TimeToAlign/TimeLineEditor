@@ -46,14 +46,14 @@ describe("a snapshot's handle", () => {
 
   it("is written by the editor's autosave beside the workspace's text", async () => {
     const session = new WorkspaceSession({
-      warn: () => undefined,
+      post: () => undefined,
       author: () => DEFAULT_USER.name,
     });
     session.handle = STORABLE;
     const autosaving = startAutosave(session, {
       slot: "current",
       delayMs: 100,
-      warn: () => undefined,
+      post: () => undefined,
       ask: async () => null,
     });
     await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
@@ -87,14 +87,14 @@ describe("a snapshot's path on the server", () => {
 
   it("is written by the editor's autosave beside the workspace's text", async () => {
     const session = new WorkspaceSession({
-      warn: () => undefined,
+      post: () => undefined,
       author: () => DEFAULT_USER.name,
     });
     session.path = "work/w.tle.json";
     const autosaving = startAutosave(session, {
       slot: "current",
       delayMs: 100,
-      warn: () => undefined,
+      post: () => undefined,
       ask: async () => null,
     });
     await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));

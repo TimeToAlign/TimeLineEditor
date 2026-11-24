@@ -725,9 +725,9 @@ refusal is shown, nothing is journalled and the selection stays.
 | timeline `{block: A, id: "excerpt"}` | {`{block: A, id: "excerpt", part: ["card"]}`, `{block: A, id: "dlt_1"}`} | `remove` [`{block: A, id: "dlt_1"}`], accepted; `excerpt` holds no child, the selection cleared |
 | none | {`{block: A}`} | `remove` [`{block: A}`], accepted |
 
-On the canvas the refusal appears in the status line (`data-testid="hint"`),
-as every key refusal does: the group editor of `group_1` opened, its
-group selected, Delete pressed.
+On the canvas the refusal is reported to the host through `onrefuse`, as
+every key refusal is, exactly once, with exactly that text: the group
+editor of `group_1` opened, its group selected, Delete pressed.
 
 **A segment** that would leave a gap is dispatched like any target, and
 the tests assert core's exact refusal of the command, whatever ways would
@@ -1450,23 +1450,24 @@ The canvas (`CanvasHarness` on `with_region` at the default viewport,
 `{block: A, id: "clt_1"}`; the press and the click after it leave the
 selection empty and the journal as it was, where without `picking` the
 same press selects `{block: A, id: "clt_1", part: ["card"]}`. A press on the block's
-background calls nothing, the status line reads "Pick a timeline or a
-region; Escape cancels.", and its click selects nothing either. In
+background calls nothing, reports exactly "Pick a timeline or a region;
+Escape cancels." through `onrefuse`, and its click selects nothing
+either. In
 `clt_1`'s timeline editor (nothing selected), Escape on the arranger
 leaves the editor open while `picking` is given (the caller cancels), and
 closes it without `picking`.
 
 Picking holds the whole canvas, so the panel that asked keeps its subject:
 with the block `{block: A}` selected, a press on the pane (its press,
-release and click) calls nothing, shows the same status line and leaves
+release and click) calls nothing, reports the same refusal and leaves
 `[{block: A}]` selected, as does a click on the pane alone; without
 `picking` that click clears the selection, which proves the click reaches
 Svelte Flow's pane handler and is swallowed only while picking. Keys pick
 the way a press does, from the element the key is sent to: Enter on
 `clt_1`'s card element calls `picking` once with `{block: A, id:
 "clt_1"}` and selects nothing; Enter and Space on the focused block node
-(the block itself, which `pickable` maps to nothing) call nothing, show
-the status line and leave the selection empty, where without `picking`
+(the block itself, which `pickable` maps to nothing) call nothing, report
+the same refusal and leave the selection empty, where without `picking`
 Enter on it selects `{block: A}`.
 
 ## Editors: what opens and what each level permits (`editors.test.ts`)
@@ -4667,8 +4668,8 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    defaults, as in the marquee section) the rectangle of the
    marquee section selects `{block: A, id: "cmap_7"}`, `{block: A, id:
    "dlt_1"}` and `{block: A, id: "dlt_1", part: ["name"]}`, in `group_1`'s
-   nothing. A refusal of the store is shown in the status line with the
-   store's own message.
+   nothing. A refusal of the store is reported through `onrefuse` with the
+   store's own message, exactly once.
 4. **The view.** Opening moves the view to the edited element: opening
    `group_1` on a canvas of 10000 × 10000 px shows it at (3685.89599609375,
    4226.3125), zoom 4: block A at (40, 80) is drawn with `recording`'s
@@ -5077,13 +5078,10 @@ the arranger resized to 1000 × 600, one device pixel per CSS pixel.
   (`M` too) toggle it (`aria-pressed`); turning it on turns "Show
   coordinates" off and turning "Show coordinates" on turns it off: one at
   a time. Turning it off calls `onmatchstamppin` with `null`.
-- **Without a table.** With `matches` empty and the mode on, the status
-  `No MatchClaim table loaded.` is shown (the canvas knows only that no
-  table is loaded, never why) and
-  nothing is drawn; with the mode off, no status. With `matchesStatus`
-  given (the test gives "Matches need a server: MatchClaim tables are read
-  through tilie-server."; the editor gives its sentence on starting a
-  server), that text instead.
+- **Without a table.** With `matches` empty and the mode on, nothing is
+  drawn and the canvas says nothing itself: no element of the canvas holds
+  text about the tables, and nothing is reported through `onrefuse`; what
+  is missing is the host's to say (`onmatches` tells it the mode).
 - **The overlay.** With T, one `<svg>` for block A whose `width`,
   `height` and `viewBox` equal the node's own and whose left and top are
   the node's position; its one potential path has `d` exactly as in

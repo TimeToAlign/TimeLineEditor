@@ -19,11 +19,11 @@ export interface NodePreview {
 
 /** The canvas's side of an edit made inside a block node or with a resize handle. */
 export interface NodeActions {
-  /** Runs a command; the canvas shows a refusal in the status line. */
+  /** Runs a command; the canvas reports a refusal to its host (`onrefuse`). */
   dispatch(command: Command): void;
   /**
-   * Shows in the canvas's status region why a gesture stored nothing, where
-   * no command was refused: a drop the arrangement's rules refuse.
+   * Reports to the canvas's host (`onrefuse`) why a gesture stored nothing,
+   * where no command was refused: a drop the arrangement's rules refuse.
    */
   refuse(message: string): void;
   /** Selects one address, replacing the selection: the press that starts a gesture. */

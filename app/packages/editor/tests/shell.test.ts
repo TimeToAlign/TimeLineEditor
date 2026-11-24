@@ -234,8 +234,8 @@ describe("opening and saving", () => {
     await vi.waitFor(() => expect(messages().length).toBe(1));
     const [message] = messages();
     expect(message?.startsWith("bad.tle.json is not a workspace file")).toBe(true);
-    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
-      "warning",
+    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-level")).toBe(
+      "error",
     );
     const problem = document.querySelector('[data-testid="message"] li')?.textContent ?? "";
     expect(problem.startsWith("invalid_json ")).toBe(true);
@@ -490,9 +490,26 @@ describe("the message bar", () => {
       )
       ?.click();
     await vi.waitFor(() => expect(messages()).toEqual(["Copied 0."]));
-    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
+    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-level")).toBe(
       "info",
     );
+  });
+
+  it("shows a refusal of the canvas as information, the canvas showing none itself", () => {
+    start();
+    hook().load(workspaceOf("bundles/bundle_mixed"));
+    expect(hook().open({ block: A, id: "group_1" })).toBeNull();
+    hook().select([{ block: A, id: "group_1" }]);
+    flushSync();
+    const arranger = document.querySelector('[aria-label="Arranger"]');
+    if (arranger === null) throw new Error("no arranger");
+    key(arranger, { key: "Delete" });
+    const cards = Array.from(document.querySelectorAll('[data-testid="message"]'), (card) => [
+      card.getAttribute("data-level"),
+      card.querySelector("p")?.textContent,
+    ]);
+    expect(cards).toEqual([["info", "Close its editor to delete the edited element."]]);
+    expect(arranger.textContent).not.toContain("Close its editor");
   });
 });
 
@@ -674,8 +691,8 @@ describe("manifests", () => {
   });
 
   it("leaves every open editor before it adds a manifest; a refused one leaves them open", async () => {
-    const warn = vi.fn();
-    const session = new WorkspaceSession({ warn, author: () => DEFAULT_USER.name });
+    const post = vi.fn();
+    const session = new WorkspaceSession({ post, author: () => DEFAULT_USER.name });
     const { store } = session;
     const added = store.dispatch({
       type: "add",
@@ -698,7 +715,11 @@ describe("manifests", () => {
     });
 
     await session.importExample(example('{"meta": {}}'), canvas, fontMetrics);
-    expect([store.editing.length, store.journal.length, warn.mock.calls.length]).toEqual([2, 1, 1]);
+    expect([
+      store.editing.length,
+      store.journal.length,
+      post.mock.calls.map(([level]) => level),
+    ]).toEqual([2, 1, ["error"]]);
 
     await session.importExample(example(fixtureText("flow_control")), canvas, fontMetrics);
     const last = (store.journal.at(-1) as CommandEntry | undefined)?.command as {

@@ -142,13 +142,13 @@ export interface TableRequest {
 /** Ask the user for the file of `request`'s table: what they chose, `null` when they cancel. */
 export type AskTables = (request: TableRequest) => Promise<TableChoice | null>;
 
-/** What a load has to say in the message bar: information and warnings. */
+/** What a load has to say in the message bar: information, and the failures, shown as errors. */
 export interface TableMessages {
   readonly informed: readonly string[];
-  readonly warned: readonly string[];
+  readonly failed: readonly string[];
 }
 
-const NO_MESSAGES: TableMessages = { informed: [], warned: [] };
+const NO_MESSAGES: TableMessages = { informed: [], failed: [] };
 
 /**
  * The location of the MatchClaim table `manifest` names in its `resources`
@@ -205,14 +205,17 @@ async function fetched(text: string): Promise<TableFile> {
 }
 
 /**
- * While no server can read a table, what the canvas's status says when
- * Show matches has nothing to draw.
+ * While no server can read a table, the information turning Show matches
+ * on gives (`WorkspaceSession.loadNamedTables`).
  */
 export const MATCHES_NEED_A_SERVER = "Matches need a running tilie-server.";
 
+/** The information turning Show matches on gives where no block holds a MatchClaim table then. */
+export const NO_MATCHES = "No MatchClaim table loaded.";
+
 /**
  * While no server can read a table, what is said wherever matches are
- * asked for (the message bar, the disabled controls' hints): that sentence,
+ * asked for (Load MatchClaims… without a server, the disabled controls' hints): that sentence,
  * then how to start the server (the command the repository's README starts
  * it from the source tree with). Plain text: every place shows it as such.
  */
@@ -469,54 +472,54 @@ export class MatchClaimTables {
     const url = namedTable(manifest);
     const places = this.#reading();
     if (places === null || this.of(block) !== null || url === null) return NO_MESSAGES;
-    const warned: string[] = [];
+    const failed: string[] = [];
     let reached: TableFile | null;
     let question: TableQuestion;
     if (isWebUrl(url)) {
-      reached = await this.#fetchedTable(url, warned);
+      reached = await this.#fetchedTable(url, failed);
       question = this.#tableQuestion(block, places);
     } else {
       const source = this.#sourceOf(block, places);
-      reached = source === null ? null : await this.#read(source, url, warned);
+      reached = source === null ? null : await this.#read(source, url, failed);
       question = this.#question(block, places, source);
     }
-    const taken = reached ?? (await this.#chosen(block, manifest, url, question, places, warned));
-    return this.#take(block, manifest, taken, warned);
+    const taken = reached ?? (await this.#chosen(block, manifest, url, question, places, failed));
+    return this.#take(block, manifest, taken, failed);
   }
 
   /**
    * Let the user choose the MatchClaim table of block `block`'s manifest
    * `manifest` (Load MatchClaims…): its file, located in the file dialog,
    * or a URL; then load it as `loadNamed` loads it. While no server can
-   * read a table nothing is asked and `unavailable` is the warning.
+   * read a table nothing is asked and `unavailable` is the failure.
    */
   async choose(block: string, manifest: Manifest): Promise<TableMessages> {
     const places = this.#reading();
-    if (places === null) return { informed: [], warned: [this.#why()] };
-    const warned: string[] = [];
+    if (places === null) return { informed: [], failed: [this.#why()] };
+    const failed: string[] = [];
     const question = this.#tableQuestion(block, places);
     const url = namedTable(manifest);
-    const chosen = await this.#chosen(block, manifest, url, question, places, warned);
-    return this.#take(block, manifest, chosen, warned);
+    const chosen = await this.#chosen(block, manifest, url, question, places, failed);
+    return this.#take(block, manifest, chosen, failed);
   }
 
-  /** The table at the URL `url`; `null` where (said in `warned`) it cannot be fetched. */
-  async #fetchedTable(url: string, warned: string[]): Promise<TableFile | null> {
+  /** The table at the URL `url`; `null` where (said in `failed`) it cannot be fetched. */
+  async #fetchedTable(url: string, failed: string[]): Promise<TableFile | null> {
     try {
       return await fetched(url);
     } catch (error) {
-      warned.push(messageOf(error));
+      failed.push(messageOf(error));
       return null;
     }
   }
 
-  /** The table at `url` from `source`; `null` where it holds none, or (said in `warned`) cannot be read. */
-  async #read(source: ManifestSource, url: string, warned: string[]): Promise<TableFile | null> {
+  /** The table at `url` from `source`; `null` where it holds none, or (said in `failed`) cannot be read. */
+  async #read(source: ManifestSource, url: string, failed: string[]): Promise<TableFile | null> {
     try {
       const file = await source.read(url);
       return file === null ? null : { name: fileNameOf(url), file };
     } catch (error) {
-      warned.push(
+      failed.push(
         `${url} could not be read from where the manifest came from: ${messageOf(error)}`,
       );
       return null;
@@ -527,10 +530,10 @@ export class MatchClaimTables {
    * The file the user chooses for the table `url` of block `block`'s
    * manifest `manifest`, asked `question`; `null` when they cancel (or
    * nobody can be asked). A URL, or a path on the server (`places`), that
-   * cannot be read adds its warning to `warned` and gives `null`. The
+   * cannot be read adds its failure to `failed` and gives `null`. The
    * manifest's file located on the server becomes the block's
    * (`ManifestPlaces.located`) and the table is read beside it; a folder
-   * not holding it is said in `warned`.
+   * not holding it is said in `failed`.
    */
   async #chosen(
     block: string,
@@ -538,55 +541,55 @@ export class MatchClaimTables {
     url: string | null,
     question: TableQuestion,
     places: ManifestPlaces,
-    warned: string[],
+    failed: string[],
   ): Promise<TableFile | null> {
     const request = { manifest: manifestTitle(manifest), table: { url }, question };
     const choice = this.#ask === null ? null : await this.#ask(request);
     if (choice === null) return null;
     if ("path" in choice) {
-      if (question.kind !== "manifest") return this.#atPath(places, choice.path, warned);
+      if (question.kind !== "manifest") return this.#atPath(places, choice.path, failed);
       places.located(block, choice.path);
       if (url === null) return null;
       const reached = await this.#read(
         serverSource(places.files, folderOf(choice.path)),
         url,
-        warned,
+        failed,
       );
-      if (reached === null && warned.length === 0) {
-        warned.push(`${url} is not beside ${baseName(choice.path)}.`);
+      if (reached === null && failed.length === 0) {
+        failed.push(`${url} is not beside ${baseName(choice.path)}.`);
       }
       return reached;
     }
     try {
       return await fetched(choice.url);
     } catch (error) {
-      warned.push(`The MatchClaim table was not loaded: ${messageOf(error)}`);
+      failed.push(`The MatchClaim table was not loaded: ${messageOf(error)}`);
       return null;
     }
   }
 
-  /** The file `path` on the server; `null`, said in `warned`, where it cannot be read. */
-  async #atPath(places: ManifestPlaces, path: string, warned: string[]): Promise<TableFile | null> {
+  /** The file `path` on the server; `null`, said in `failed`, where it cannot be read. */
+  async #atPath(places: ManifestPlaces, path: string, failed: string[]): Promise<TableFile | null> {
     try {
       return { name: baseName(path), file: await places.files.readFile(path) };
     } catch (error) {
-      warned.push(`${path} could not be read: ${messageOf(error)}`);
+      failed.push(`${path} could not be read: ${messageOf(error)}`);
       return null;
     }
   }
 
-  /** Hold `taken` (none: nothing) as block `block`'s table, read through the server; the messages, after `warned`. */
+  /** Hold `taken` (none: nothing) as block `block`'s table, read through the server; the messages, after `failed`. */
   async #take(
     block: string,
     manifest: Manifest,
     taken: TableFile | null,
-    warned: readonly string[],
+    failed: readonly string[],
   ): Promise<TableMessages> {
-    if (taken === null) return { informed: [], warned };
+    if (taken === null) return { informed: [], failed };
     const failure = await this.load(block, manifest, taken.file, taken.name);
     return failure === null
-      ? { informed: [`Loaded the MatchClaims of ${taken.name}.`], warned }
-      : { informed: [], warned: [...warned, failure] };
+      ? { informed: [`Loaded the MatchClaims of ${taken.name}.`], failed }
+      : { informed: [], failed: [...failed, failure] };
   }
 
   /**

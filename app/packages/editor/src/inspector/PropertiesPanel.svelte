@@ -21,7 +21,7 @@ import { liveStore } from "@timetoalign/tilie-arranger";
 import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timetoalign/tilie-core";
 import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
-import { informOf } from "../messages.svelte.ts";
+import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
@@ -52,13 +52,13 @@ let {
 
 const uid = $props.id();
 /** Posts what a commit wrote other than what was typed (a size below its minimum) to the message bar. */
-const inform = informOf();
+const post = postOf();
 /** The canvas's pane, which every drawing read here is drawn at. */
 const pane = paneOf();
 
 /** Post `notice`, if there is one. */
 function notify(notice: string | null): void {
-  if (notice !== null) inform(notice);
+  if (notice !== null) post("info", notice);
 }
 
 /** The store's editing path, followed as it changes. */

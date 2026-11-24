@@ -47,6 +47,8 @@ let harness: Mounted;
 let store: Store;
 /** How many entries the store's journal held when the case began: the blocks added. */
 let stored = 0;
+/** What the canvas reported through `onrefuse`. */
+let refused: string[] = [];
 
 /** Whether the `matchMedia` stub reports reduced motion, so that every move of the view is at once. */
 let reduced = true;
@@ -83,7 +85,11 @@ async function show(view: View = twoBlocks()): Promise<void> {
   clear();
   store = storeOf(view);
   stored = store.journal.length;
-  const instance = mount(Harness, { target: document.body, props: { store, metrics } });
+  refused = [];
+  const instance = mount(Harness, {
+    target: document.body,
+    props: { store, metrics, onrefuse: (text: string) => refused.push(text) },
+  });
   mounted = instance;
   // `tsc` reads the harness through Svelte's generic module declaration, which leaves its exports untyped.
   harness = instance as Mounted;
@@ -579,7 +585,7 @@ describe("the surroundings of an editor", () => {
     expect(selected()).toEqual([]);
   });
 
-  it("show a refusal of the store in the status line", async () => {
+  it("report a refusal of the store to the host", async () => {
     await show();
     open(id("group_1"));
     await select(id("annotations"));
@@ -590,19 +596,17 @@ describe("the surroundings of an editor", () => {
     const refusal = twin.dispatch(command);
     expect(refusal?.code).toBe("side_effect");
     await press("Delete");
-    expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(refusal?.message);
+    expect(refused).toEqual([refusal?.message]);
     expect(store.view).toBe(before);
   });
 
-  it("show the refusal to delete the edited element in the status line", async () => {
+  it("report the refusal to delete the edited element to the host", async () => {
     await show();
     open(id("group_1"));
     await select(id("group_1"));
     const [before, entries] = [store.view, store.journal.length];
     await press("Delete");
-    expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
-      "Close its editor to delete the edited element.",
-    );
+    expect(refused).toEqual(["Close its editor to delete the edited element."]);
     expect(store.view).toBe(before);
     expect(store.journal).toHaveLength(entries);
     expect(selected()).toEqual([id("group_1")]);

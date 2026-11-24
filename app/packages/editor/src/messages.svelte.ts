@@ -1,55 +1,62 @@
 /**
- * The message bar's messages: warnings, which stay until the viewer
- * dismisses them, and information, which dismisses itself after
- * `INFO_DURATION_MS`; the one way a component below the editor posts
- * information (`inform`) or a warning (`warn`), both from the component
- * context; and the text of a failure in a message.
+ * The editor's one message system: every message the editor shows, at one
+ * of three levels, listed by the message bar; the one way a component
+ * below the editor posts one (`post`, from the component context); and the
+ * text of a failure in a message.
  */
 
 import type { Problem } from "@timetoalign/tilie-core";
 import { getContext, setContext } from "svelte";
 
-/** A warning stays until dismissed; information dismisses itself. */
-export type MessageKind = "info" | "warning";
+/**
+ * How much a message weighs: information passes by itself, a warning says
+ * what the user must know although nothing failed, an error reports an
+ * operation that failed. Warnings and errors stay until dismissed.
+ */
+export type MessageLevel = "info" | "warning" | "error";
 
-/** One message: its kind, its text, and the reader's problems when there are any. */
+/** One message: its level, its text, and the reader's problems when there are any. */
 export interface Message {
   readonly id: number;
-  readonly kind: MessageKind;
+  readonly level: MessageLevel;
   readonly text: string;
   readonly problems: readonly Problem[];
 }
 
-/** How long a message of kind `info` is shown. */
+/** How long a message of level `info` is shown. */
 export const INFO_DURATION_MS = 3000;
+
+/** Post one message at `level`, with the problems that explain it. */
+export type Post = (level: MessageLevel, text: string, problems?: readonly Problem[]) => void;
 
 /** The messages shown, in the order posted. */
 export class Messages {
-  /** The messages shown. */
+  /** The messages shown, oldest first. */
   shown: readonly Message[] = $state.raw([]);
   #count = 0;
   /** The pending self-dismissals of the information shown. */
   readonly #timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  #post(kind: MessageKind, text: string, problems: readonly Problem[]): number {
+  /**
+   * Show a message. Information is dismissed after `INFO_DURATION_MS`, and
+   * replaces information of the same text still shown (posted again, it
+   * shows once, timed from now); a warning or an error stays until
+   * dismissed. Editing goes on either way.
+   */
+  post(level: MessageLevel, text: string, problems: readonly Problem[] = []): void {
+    if (level === "info") {
+      const same = this.shown.find((shown) => shown.level === "info" && shown.text === text);
+      if (same !== undefined) this.dismiss(same.id);
+    }
     this.#count += 1;
     const id = this.#count;
-    this.shown = [...this.shown, { id, kind, text, problems }];
-    return id;
-  }
-
-  /** Show a warning, kept until dismissed; editing goes on. */
-  warn(text: string, problems: readonly Problem[] = []): void {
-    this.#post("warning", text, problems);
-  }
-
-  /** Show information, dismissed after `INFO_DURATION_MS`. */
-  inform(text: string): void {
-    const id = this.#post("info", text, []);
-    this.#timers.set(
-      id,
-      setTimeout(() => this.dismiss(id), INFO_DURATION_MS),
-    );
+    this.shown = [...this.shown, { id, level, text, problems }];
+    if (level === "info") {
+      this.#timers.set(
+        id,
+        setTimeout(() => this.dismiss(id), INFO_DURATION_MS),
+      );
+    }
   }
 
   /** Dismiss the message `id`. */
@@ -66,55 +73,28 @@ export class Messages {
   }
 }
 
-/** Post one message: information, or a warning. */
-export type Inform = (text: string) => void;
+const POST = Symbol("post");
 
-const INFORM = Symbol("inform");
-const WARN = Symbol("warn");
-
-/** Give the components below the calling one `inform`; called while the component is made. */
-export function provideInform(inform: Inform): void {
-  setContext(INFORM, inform);
-}
-
-/** Give the components below the calling one `warn`; called while the component is made. */
-export function provideWarn(warn: Inform): void {
-  setContext(WARN, warn);
+/** Give the components below the calling one `post`; called while the component is made. */
+export function providePost(post: Post): void {
+  setContext(POST, post);
 }
 
 /**
- * The `inform` a component above the calling one provides; called while the
+ * The `post` a component above the calling one provides; called while the
  * component is made.
  *
  * @throws {Error} if none provides one.
  */
-export function informOf(): Inform {
-  const inform = getContext<Inform | undefined>(INFORM);
-  if (inform === undefined) throw new Error("no component above this one provides inform");
-  return inform;
+export function postOf(): Post {
+  const post = getContext<Post | undefined>(POST);
+  if (post === undefined) throw new Error("no component above this one provides post");
+  return post;
 }
 
-/**
- * The `warn` a component above the calling one provides; called while the
- * component is made.
- *
- * @throws {Error} if none provides one.
- */
-export function warnOf(): Inform {
-  const warn = getContext<Inform | undefined>(WARN);
-  if (warn === undefined) throw new Error("no component above this one provides warn");
-  return warn;
-}
-
-/**
- * The component context that provides `inform` and `warn` (by default the
- * same function), for a component mounted on its own (`mount`'s `context`).
- */
-export function informContext(inform: Inform, warn: Inform = inform): Map<symbol, Inform> {
-  return new Map([
-    [INFORM, inform],
-    [WARN, warn],
-  ]);
+/** The component context that provides `post`, for a component mounted on its own (`mount`'s `context`). */
+export function postContext(post: Post): Map<symbol, Post> {
+  return new Map([[POST, post]]);
 }
 
 /** The text of a failure to show the viewer: an error's message, else the value as text. */

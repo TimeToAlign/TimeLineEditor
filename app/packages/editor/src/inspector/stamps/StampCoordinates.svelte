@@ -15,7 +15,7 @@
  * (`claimed`) are set apart: the row bold and its group marked by a bar on
  * the left.
  */
-import { informOf } from "../../messages.svelte.ts";
+import { postOf } from "../../messages.svelte.ts";
 import FormatSwitch from "../FormatSwitch.svelte";
 import type { Format, Text } from "../formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "../formats.svelte.ts";
@@ -49,7 +49,7 @@ interface Props {
 let { kind, groups, hint, textOf, edit }: Props = $props();
 
 const uid = $props.id();
-const inform = informOf();
+const post = postOf();
 
 const READ_ONLY = "This value cannot be solved for a position, so it cannot be edited.";
 
@@ -143,9 +143,9 @@ function onFieldKey(event: KeyboardEvent, row: ValueRow): void {
 async function copy(copied: string, what: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(copied);
-    inform(`Copied ${what}.`);
+    post("info", `Copied ${what}.`);
   } catch {
-    inform(`Copying ${what} failed; select its text to copy it.`);
+    post("info", `Copying ${what} failed; select its text to copy it.`);
   }
 }
 </script>

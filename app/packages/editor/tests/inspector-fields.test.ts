@@ -24,7 +24,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { blockId, editorAt, storeOf as fixtureStore, informing } from "./support.ts";
+import { blockId, editorAt, storeOf as fixtureStore, posting } from "./support.ts";
 
 const M = "bmixed0000";
 
@@ -236,7 +236,7 @@ describe("the Properties panel", () => {
     informed = [];
     app = mount(PropertiesPanel, {
       target: document.body,
-      context: informing(informed),
+      context: posting(informed),
       props: {
         get view() {
           return live.view;

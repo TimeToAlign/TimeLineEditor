@@ -42,7 +42,7 @@ import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { paneContext } from "../src/pane.ts";
 import { holder } from "./holder.svelte.ts";
-import { blockId, informing, providing, storeOf } from "./support.ts";
+import { blockId, posting, providing, storeOf } from "./support.ts";
 
 const B = blockId(0);
 const INSIDE = "groups/group_elided_inside";
@@ -386,7 +386,7 @@ describe("the Elisions tab", () => {
       resolveSelection(live.view, selection, editing, fontMetrics, pane ?? undefined);
     selected = [];
     base = store.journal.length;
-    const context: Map<unknown, unknown> = informing([]);
+    const context: Map<unknown, unknown> = posting([]);
     if (pane !== null) for (const [key, value] of paneContext(pane)) context.set(key, value);
     app = mount(ElisionsPanel, {
       target: document.body,
@@ -472,7 +472,7 @@ describe("the Elisions tab", () => {
       const subjects = resolveSelection(live.view, selection, null, fontMetrics);
       const properties = mount(PropertiesPanel, {
         target: document.body,
-        context: informing([]),
+        context: posting([]),
         props: {
           view: live.view,
           store,
@@ -731,7 +731,7 @@ describe("the Elisions tab", () => {
     const inspect = () => {
       app = mount(providing(Inspector), {
         target: document.body,
-        context: informing([]),
+        context: posting([]),
         props: {
           live,
           get selection() {

@@ -5,13 +5,16 @@
  * table is served beside it, loads it without a question; the same
  * manifest imported from a folder of the server's files that does not
  * hold its table asks for it in the tables dialog, which takes a file
- * located in the editor's file dialog or a URL, or is cancelled. Without a
- * server answering (the health check refused), turning Show matches on asks
- * nothing and the message bar says that matches need a running server and
- * how to start one, which Load MatchClaims…, disabled, says too; while the
- * health check is not answered yet, turning it on says nothing, and the
- * table loads once the check answers, or the message bar says how to start
- * a server, once, when it is refused then. The server's table route is
+ * located in the editor's file dialog or a URL, or is cancelled, which the
+ * message bar then says as information. Without a server answering (the
+ * health check refused), turning Show matches on asks nothing and the
+ * message bar says as information that matches need a running server,
+ * beside a warning already shown and in information's style, gone after
+ * three seconds while the warning stays; Load MatchClaims…, disabled, says
+ * how to start one. While the health check is not answered yet, turning it
+ * on says nothing, and the table loads once the check answers, or the
+ * message bar says once that matches need a server when it is refused
+ * then. The server's table route is
  * replayed from the client's recording; loading is started by turning
  * Show matches on, by its key or its toolbar button, or by the Matchstamp
  * tab's Load MatchClaims…, which asks in the same dialog.
@@ -19,7 +22,7 @@
 
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { arranger, select, tabs } from "./support.ts";
+import { arranger, messagesAt, messageTexts, select, tabs } from "./support.ts";
 import {
   ANSWER,
   blocks,
@@ -36,9 +39,11 @@ const URL_OF_TABLE = "https://tables.example.org/package/match_claims.parquet";
 const DIALOG = "Load the MatchClaim table of The manifest";
 const NOT_BESIDE = "match_claims.parquet is not beside The manifest, at story/manifest.yaml";
 
-/** What the canvas's status says while no server reads tables. */
+/** The information turning Show matches on gives while no server reads tables. */
 const NEED = "Matches need a running tilie-server.";
-/** What the message bar and the disabled controls say: that, then how to start the server. */
+/** The information turning Show matches on gives where no table was loaded. */
+const NO_TABLE = "No MatchClaim table loaded.";
+/** What the disabled controls say: that, then how to start the server. */
 const NO_SERVER =
   "Matches need a running tilie-server. To start it, run " +
   "uv run tilie --static-dir ../app/packages/editor/dist in the repository's server folder " +
@@ -147,7 +152,9 @@ test("a table is read from the URL the user enters", async ({ page }) => {
   );
 });
 
-test("cancelled, the dialog loads nothing and says nothing", async ({ page }) => {
+test("cancelled, the dialog loads nothing, and the message bar says no table is loaded", async ({
+  page,
+}) => {
   const seen = await openPage(page);
   await importManifest(page);
   const before = await page.getByTestId("message").count();
@@ -156,10 +163,11 @@ test("cancelled, the dialog loads nothing and says nothing", async ({ page }) =>
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
   expect(seen.requests).toBe(0);
-  expect(await page.getByTestId("message").count()).toBe(before);
+  await expect(messageTexts(page, "info")).toHaveText([NO_TABLE]);
+  expect(await page.getByTestId("message").count()).toBe(before + 1);
 });
 
-test("without a server answering, M and Load MatchClaims… ask nothing and say how to start one", async ({
+test("without a server answering, M asks nothing and informs that matches need a server", async ({
   page,
 }) => {
   const seen = await openPage(page, "refused");
@@ -167,21 +175,66 @@ test("without a server answering, M and Load MatchClaims… ask nothing and say 
   await page.getByTestId("fixture-open").click();
   await expect.poll(() => blocks(page)).toHaveLength(1);
   const [block] = await blocks(page);
-  const warning = `${HEALTH_FAILURE} ${NO_SERVER}`;
-  const messages = page.getByTestId("message").locator("p");
-  const before = await messages.allTextContents();
+  const how = `${HEALTH_FAILURE} ${NO_SERVER}`;
+  await expect(page.getByTestId("message")).toHaveCount(0);
   await pressM(page);
   await expect(page.getByTestId("matches")).toHaveAttribute("aria-pressed", "true");
-  await expect(messages).toHaveText([...before, warning]);
-  await expect(page.getByTestId("matches-state")).toHaveText(NEED);
+  await expect(messageTexts(page, "info")).toHaveText([NEED]);
+  await expect(page.getByTestId("message")).toHaveCount(1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(await tableStatus(page, block ?? "")).toHaveText("No MatchClaim table loaded.");
+  await expect(await tableStatus(page, block ?? "")).toHaveText(NO_TABLE);
   const load = page.getByRole("button", { name: "Load MatchClaims…" });
   await expect(load).toBeDisabled();
-  await expect(load).toHaveAccessibleDescription(warning);
-  await expect(messages).toHaveText([...before, warning]);
+  await expect(load).toHaveAccessibleDescription(how);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(seen.requests).toBe(0);
+});
+
+test("the information that matches need a server shows beside a warning in its own style, and leaves after 3 s while the warning stays", async ({
+  page,
+}) => {
+  await openPage(page, "refused");
+  await page.getByTestId("fixture-select").selectOption("tables/manifest");
+  await page.getByTestId("fixture-open").click();
+  await expect.poll(() => blocks(page)).toHaveLength(1);
+  // A warning: an address the hook cannot read.
+  await page.evaluate(() => window.__tilie.select([{ block: "nothing", facet: "markers" }]));
+  const warning = messagesAt(page, "warning");
+  await expect(warning.getByRole("paragraph")).toHaveText([
+    "Some addresses could not be selected.",
+  ]);
+  // The information leaves 3 s after it is posted: the clock stands still until it has been read.
+  await page.clock.install();
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+  await pressM(page);
+  const info = messagesAt(page, "info");
+  await expect(info.getByRole("paragraph")).toHaveText([NEED]);
+  await expect(info).toHaveAttribute("role", "status");
+  await expect(warning).toHaveAttribute("role", "alert");
+  await expect(info.locator(".level")).toHaveText("Info");
+  await expect(warning.locator(".level")).toHaveText("Warning");
+  await expect(info).toBeVisible();
+  await expect(warning).toBeVisible();
+  const colours = (card: Locator) =>
+    card.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return [style.borderTopColor, style.backgroundColor];
+    });
+  expect(await colours(info)).toEqual(["rgb(122, 167, 217)", "rgb(238, 245, 253)"]);
+  expect(await colours(warning)).toEqual(["rgb(201, 162, 39)", "rgb(255, 248, 225)"]);
+  const [above, below] = [await warning.boundingBox(), await info.boundingBox()];
+  if (above === null || below === null) throw new Error("a message is not shown");
+  // Posted later, the information lies below the warning, apart from it.
+  expect(below.y >= above.y + above.height).toBe(true);
+  await page.clock.runFor(2999);
+  await expect(info).toHaveCount(1);
+  await page.clock.runFor(1);
+  await expect(info).toHaveCount(0);
+  await expect(warning.getByRole("paragraph")).toHaveText([
+    "Some addresses could not be selected.",
+  ]);
+  await page.clock.runFor(60_000);
+  await expect(warning).toHaveCount(1);
 });
 
 test("M before the health check answers says nothing, and the table loads once it answers", async ({
@@ -202,10 +255,9 @@ test("M before the health check answers says nothing, and the table loads once i
   await expect.poll(() => seen.requests).toBe(1);
   await expect(messages).toHaveText([...before, "Loaded the MatchClaims of match_claims.parquet."]);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByTestId("matches-state")).toHaveCount(0);
 });
 
-test("M before the health check is refused says nothing until it is, then how to start a server, once", async ({
+test("M before the health check is refused says nothing until it is, then that matches need a server, once", async ({
   page,
 }) => {
   const seen = await openPage(page, "held");
@@ -213,7 +265,7 @@ test("M before the health check is refused says nothing until it is, then how to
   await page.getByTestId("fixture-open").click();
   await expect.poll(() => blocks(page)).toHaveLength(1);
   const [block] = await blocks(page);
-  const warning = `${HEALTH_FAILURE} ${NO_SERVER}`;
+  const how = `${HEALTH_FAILURE} ${NO_SERVER}`;
   const messages = page.getByTestId("message").locator("p");
   const before = await messages.allTextContents();
   await pressM(page);
@@ -221,13 +273,12 @@ test("M before the health check is refused says nothing until it is, then how to
   await expect(messages).toHaveText(before);
   seen.refuse();
   await expect(page.locator(".offline")).toHaveAttribute("title", HEALTH_FAILURE);
-  await expect(messages).toHaveText([...before, warning]);
-  await expect(page.getByTestId("matches-state")).toHaveText(NEED);
+  await expect(messages).toHaveText([...before, NEED]);
+  await expect(messageTexts(page, "info")).toHaveText([NEED]);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(await tableStatus(page, block ?? "")).toHaveText("No MatchClaim table loaded.");
+  await expect(await tableStatus(page, block ?? "")).toHaveText(NO_TABLE);
   await expect(page.getByRole("button", { name: "Load MatchClaims…" })).toHaveAccessibleDescription(
-    warning,
+    how,
   );
-  await expect(messages).toHaveText([...before, warning]);
   expect(seen.requests).toBe(0);
 });

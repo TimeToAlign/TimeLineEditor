@@ -48,9 +48,8 @@ import InspectorDrawer from "./InspectorDrawer.svelte";
 import { blockIndexes, matchInputs, pinnedMatchStampOf } from "./inspector/matchstamps.ts";
 import { createLookup, NO_LOOKUP, provideLookup } from "./lookup/index.ts";
 import MessageBar from "./MessageBar.svelte";
-import { MATCHES_NEED_A_SERVER } from "./matchClaims.svelte.ts";
 import { measureMapsOf } from "./measureMaps.ts";
-import { Messages, messageOf, provideInform, provideWarn } from "./messages.svelte.ts";
+import { type MessageLevel, Messages, messageOf, providePost } from "./messages.svelte.ts";
 import type { TimeLineEditorOptions } from "./options.ts";
 import { providePane } from "./pane.ts";
 import { Picking, providePicking } from "./pick.svelte.ts";
@@ -112,14 +111,13 @@ let profilesDialog: ReturnType<typeof ProfilesDialog> | undefined = $state();
 
 const messages = new Messages();
 
-/** Show a warning in the message bar, kept until dismissed; editing goes on. */
-function warn(text: string, problems: readonly Problem[] = []): void {
-  messages.warn(text, problems);
+/** Show a message in the message bar, the editor's one place for them; editing goes on. */
+function post(level: MessageLevel, text: string, problems: readonly Problem[] = []): void {
+  messages.post(level, text, problems);
 }
 
-// Every component below posts its confirmations as information in the message bar, its refusals as warnings.
-provideInform((text) => messages.inform(text));
-provideWarn((text) => messages.warn(text));
+// Every component below posts its messages through this one function.
+providePost(post);
 
 /** What a control below shows on the canvas before committing it (the wedge rotation's drag). */
 let transient: TransientCommand | null = $state.raw(null);
@@ -190,8 +188,7 @@ const fileHost: FileHost | null = $derived(
 
 const session = new WorkspaceSession({
   author: () => user.name,
-  warn,
-  inform: (text) => messages.inform(text),
+  post,
   matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
   // Read when matches are asked for, after the health check below was started;
@@ -257,7 +254,7 @@ session.listen(() =>
 const initial = untrack(() => workspace);
 if (initial !== undefined) {
   const refusal = session.open(initial);
-  if (refusal !== null) warn("The workspace could not be opened.", refusal.problems);
+  if (refusal !== null) post("error", "The workspace could not be opened.", refusal.problems);
 }
 
 // --- Files ------------------------------------------------------------------
@@ -296,9 +293,9 @@ async function openExample(example: Example): Promise<void> {
   try {
     const refusal = session.open(await example.text(), UNTITLED);
     if (refusal !== null)
-      warn(`The example ${example.label} could not be opened.`, refusal.problems);
+      post("error", `The example ${example.label} could not be opened.`, refusal.problems);
   } catch (error) {
-    warn(`The example ${example.label} could not be opened: ${messageOf(error)}`);
+    post("error", `The example ${example.label} could not be opened: ${messageOf(error)}`);
   }
 }
 
@@ -319,9 +316,13 @@ async function openFromFile(): Promise<void> {
     if (picked.length === 0) return;
     if (picked.some(({ name }) => isWorkspaceFile(name))) await openWorkspace(picked);
     else if (picked.some(({ name }) => !isMatchClaimTable(name))) await openManifests(picked);
-    else warn("No workspace or manifest was picked: a MatchClaim table opens with one of them.");
+    else
+      post(
+        "warning",
+        "No workspace or manifest was picked: a MatchClaim table opens with one of them.",
+      );
   } catch (error) {
-    warn(`The file could not be opened: ${messageOf(error)}`);
+    post("error", `The file could not be opened: ${messageOf(error)}`);
   }
 }
 
@@ -338,7 +339,7 @@ async function openOnServer(host: FileHost): Promise<void> {
     if (!(await mayReplace())) return;
     const refusal = await session.openPath(host, path);
     if (refusal !== null)
-      warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+      post("error", `${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
     return;
   }
   if (canvas === undefined || !(await mayAdd([name]))) return;
@@ -351,7 +352,7 @@ async function openWorkspace(picked: readonly Opened[]): Promise<void> {
   const refusal = await session.openPicked(picked);
   if (refusal !== null) {
     const name = picked.find((opened) => isWorkspaceFile(opened.name))?.name ?? "The file";
-    warn(`${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+    post("error", `${name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
   }
 }
 
@@ -529,10 +530,6 @@ const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
  */
 const indexesOf = (block: string) =>
   blockIndexes(session.live.view, block, session.tables.of(block)?.table ?? null, user.statedBy);
-/** What the canvas says while Show matches has nothing to draw: why, while no server reads tables. */
-const matchesStatus = $derived(
-  session.tables.unavailable === null ? undefined : MATCHES_NEED_A_SERVER,
-);
 
 /**
  * What the canvas's match overlay draws: for every block holding a
@@ -559,8 +556,8 @@ let matchesShown = false;
  * Ask the server's health check. With Show matches already on (turned on
  * while it had not answered yet, so nothing was asked or said), its
  * outcome is followed as a press now would be: answered, the named tables
- * are loaded; failed, the message bar says once why none can be (where a
- * block's manifest names a table it does not hold).
+ * are loaded; failed, the message bar says once, as information, that
+ * matches need a running server (`WorkspaceSession.loadNamedTables`).
  */
 async function checkHealth(calls: Server): Promise<void> {
   try {
@@ -579,7 +576,7 @@ onMount(() => {
     autosaving = startAutosave(session, {
       slot: storage.slot,
       delayMs: AUTOSAVE_DELAY_MS,
-      warn,
+      post,
       ask: async (question, answers, focused) =>
         (await confirm?.ask(question, answers, focused)) ?? null,
     });
@@ -622,7 +619,7 @@ export function select(addresses: readonly Address[]): void {
     if (isCommandError(address)) problems.push(address);
     else read.push(address);
   });
-  if (problems.length > 0) warn("Some addresses could not be selected.", problems);
+  if (problems.length > 0) post("warning", "Some addresses could not be selected.", problems);
   session.selection = selectionOf(read);
 }
 
@@ -719,8 +716,8 @@ if (withTestHook) {
         measureMaps={client === null ? undefined : measureMapsOf(client)}
         picking={picking.active ? picking.take : null}
         {matches}
-        {matchesStatus}
         {pinnedMatchStamp}
+        onrefuse={(text) => post("info", text)}
         onmatchstamppin={(pin) => drawer?.pinMatchStamp(pin)}
         onmatches={(shown) => {
           matchesShown = shown;

@@ -43,8 +43,8 @@ import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
 import {
   fileText,
-  informing,
   noMatchClaims,
+  posting,
   providing,
   storeOf as storeOfFixtures,
 } from "./support.ts";
@@ -146,7 +146,7 @@ function show(
   const selected = holder<Selection>(selectionOf(selection));
   app = mount(providing(Inspector), {
     target: document.body,
-    context: informing(),
+    context: posting(),
     props: {
       live: liveStore(store),
       get selection() {
@@ -971,7 +971,7 @@ describe("the inspector in its drawer", () => {
   function drawer(store: Store, selection: Address[]): void {
     app = mount(providing(InspectorDrawer), {
       target: document.body,
-      context: informing(),
+      context: posting(),
       props: {
         live: liveStore(store),
         selection: selectionOf(selection),

@@ -48,7 +48,7 @@ import { heldPinOf, timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
 import { transientContext } from "../src/transient.ts";
 import { addStylesOf, fadingsOf } from "./dom.ts";
-import { informing, noMatchClaims, providing, storeOf, withFullCards } from "./support.ts";
+import { noMatchClaims, posting, providing, storeOf, withFullCards } from "./support.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -240,7 +240,7 @@ function drawer(store: Store, open: boolean, block: string = A, knotsOf?: KnotsO
   const mounted = mount(providing(InspectorDrawer), {
     target: document.body,
     context: new Map<symbol, unknown>([
-      ...informing(informed),
+      ...posting(informed),
       ...transientContext((shown) => handed.push(shown)),
     ]),
     props: {

@@ -19,7 +19,7 @@ import Combobox from "../../combobox/Combobox.svelte";
 import { shownIri } from "../../iris.ts";
 import type { Candidate } from "../../lookup/index.ts";
 import { lookupOf } from "../../lookup/index.ts";
-import { informOf } from "../../messages.svelte.ts";
+import { postOf } from "../../messages.svelte.ts";
 import { hasPicking, pickingOf } from "../../pick.svelte.ts";
 import { profilesOf } from "../../profiles/profiles.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
@@ -68,7 +68,7 @@ let {
 const uid = $props.id();
 const lookup = lookupOf();
 const user = userOf();
-const inform = informOf();
+const post = postOf();
 const profiles = profilesOf();
 /** The catalogue the editor's type profiles offer. */
 const catalogue = $derived(profiles.catalogue);
@@ -231,7 +231,8 @@ async function pickOnCanvas(): Promise<void> {
     (candidate) => candidate.kind === "element" && candidate.id === address.id,
   );
   if (address.block !== frame.block.id || choice === undefined) {
-    inform(
+    post(
+      "info",
       address.id === frame.id && address.block === frame.block.id
         ? "The element shown cannot be its own value; pick another timeline or region."
         : "That element lies in another block; pick a timeline or a region of this one.",
@@ -393,7 +394,8 @@ async function offer(rectangle: RectangleView, system: string): Promise<void> {
     offered = found;
   } catch (error) {
     if (still())
-      inform(
+      post(
+        "info",
         `${systemChoice(catalogue, first.system).label} could not be read: ${error instanceof Error ? error.message : String(error)}`,
       );
   }
@@ -449,7 +451,7 @@ function enterValue(text: string): void {
     pickValue({ kind: "literal", text: given });
     return;
   }
-  inform(`'${given}' is no value of ${system.label}.`);
+  post("info", `'${given}' is no value of ${system.label}.`);
 }
 
 /** Fill a recognised value's label when the lookup answers, if it is still the value. */
@@ -478,7 +480,7 @@ function paste(text: string): boolean {
   const recognition = recognize(catalogue, given);
   if (recognition === null) {
     if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//u.test(given)) {
-      inform(UNKNOWN_ADDRESS);
+      post("info", UNKNOWN_ADDRESS);
       return true;
     }
     return false;

@@ -42,6 +42,7 @@ import {
   graphicalOrder,
   journalLength,
   marginPoint,
+  messageTexts,
   newestCommand,
   node,
   nodeTransform,
@@ -676,7 +677,7 @@ test.describe("on bundles", () => {
     expect(await places(page, MIXED)).toEqual({});
   });
 
-  test("a refused Delete in the group editor shows the refusal in the status line", async ({
+  test("a refused Delete in the group editor shows the refusal as information", async ({
     page,
   }) => {
     await enter(page, mixed("group_2"), VIEW);
@@ -684,9 +685,9 @@ test.describe("on bundles", () => {
     await select(page, [mixed("excerpt")]);
     await arranger(page).focus();
     await page.keyboard.press("Delete");
-    await expect(page.getByTestId("hint")).toHaveText(
+    await expect(messageTexts(page, "info")).toHaveText([
       "timeline 'Recording' in bundle 'Mixed' lies outside group 'Facsimile' in bundle 'Mixed': an editor changes only what it edits",
-    );
+    ]);
     expect(await entriesLength(page)).toBe(0);
     expect(await storeText(page, "view")).toBe(view);
   });
@@ -697,9 +698,9 @@ test.describe("on bundles", () => {
     const journal = await journalLength(page);
     await arranger(page).focus();
     await page.keyboard.press("Delete");
-    await expect(page.getByTestId("hint")).toHaveText(
+    await expect(messageTexts(page, "info")).toHaveText([
       "Close its editor to delete the edited element.",
-    );
+    ]);
     expect(await journalLength(page)).toBe(journal);
     expect(await entriesLength(page)).toBe(0);
   });

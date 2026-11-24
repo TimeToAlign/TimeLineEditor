@@ -7,7 +7,14 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { exported, field, importLayerIt, openList, provenance, showMetadata } from "./metadata.ts";
-import { arranger, dispatch, framePoint, journalLength, selection } from "./support.ts";
+import {
+  arranger,
+  dispatch,
+  framePoint,
+  journalLength,
+  messageTexts,
+  selection,
+} from "./support.ts";
 
 const G = "tag:timetoalign.github.io,2026:tilie:user:Gerhardt";
 const TILIE = "https://github.com/TimeToAlign/TimeLineEditor";
@@ -74,8 +81,8 @@ test("Escape cancels picking", async ({ page }) => {
   await expect.poll(() => selection(page)).toEqual([{ block, id: "clt_6", part: ["card"] }]);
 });
 
-/** The status line of the arranger. */
-const hint = (page: Page) => page.getByTestId("hint");
+/** The information the message bar shows, as the canvas's refusals are shown. */
+const refusals = (page: Page) => messageTexts(page, "info");
 
 /** A screen point of the pane that no block, toolbar or message covers. */
 async function panePoint(page: Page): Promise<{ x: number; y: number }> {
@@ -104,7 +111,7 @@ test("picking holds the canvas: the pane and the keys select nothing, a key pick
 
   const { x, y } = await panePoint(page);
   await page.mouse.click(x, y);
-  await expect(hint(page)).toHaveText("Pick a timeline or a region; Escape cancels.");
+  await expect(refusals(page)).toHaveText(["Pick a timeline or a region; Escape cancels."]);
   expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
   await expect(arranger(page)).toHaveAttribute("data-picking", "");
   await expect(page.getByTestId("metadata-composer")).toBeVisible();
@@ -113,7 +120,7 @@ test("picking holds the canvas: the pane and the keys select nothing, a key pick
   await node.focus();
   for (const key of ["Enter", " "]) {
     await page.keyboard.press(key === " " ? "Space" : key);
-    await expect(hint(page)).toHaveText("Pick a timeline or a region; Escape cancels.");
+    await expect(refusals(page)).toHaveText(["Pick a timeline or a region; Escape cancels."]);
     expect(await selection(page)).toEqual([{ block, id: "cpt_2" }]);
     await expect(arranger(page)).toHaveAttribute("data-picking", "");
   }

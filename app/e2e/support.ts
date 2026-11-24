@@ -510,6 +510,19 @@ export function graphicalOrder(page: Page, id: string): Promise<unknown> {
   }, id);
 }
 
+/**
+ * The message bar's cards at `level` (`info`, `warning` or `error`), oldest
+ * first: each card's level word, text, problems and Dismiss button.
+ */
+export function messagesAt(page: Page, level: "info" | "warning" | "error"): Locator {
+  return page.locator(`[data-testid="message"][data-level="${level}"]`);
+}
+
+/** The texts of the message bar's cards at `level`, oldest first (`messagesAt`). */
+export function messageTexts(page: Page, level: "info" | "warning" | "error"): Locator {
+  return messagesAt(page, level).getByRole("paragraph");
+}
+
 /** The arranger, the canvas's root element: focused, it takes the canvas's keys. */
 export function arranger(page: Page): Locator {
   return page.locator('[role="application"][aria-label="Arranger"]');

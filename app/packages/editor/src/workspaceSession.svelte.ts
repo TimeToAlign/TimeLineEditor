@@ -76,15 +76,17 @@ import { nameCommand } from "./inspector/properties.ts";
 import {
   type AskTables,
   fileNameOf,
+  MATCHES_NEED_A_SERVER,
   type ManifestPlaces,
   type MatchClaimServer,
   MatchClaimTables,
+  NO_MATCHES,
   namedTable,
   saveFailure,
   type TableMessages,
   unsavedQuestion,
 } from "./matchClaims.svelte.ts";
-import { messageOf } from "./messages.svelte.ts";
+import { messageOf, type Post } from "./messages.svelte.ts";
 
 /** A workspace file the reader refused, with its problems. */
 export class WorkspaceRefusedError extends Error {
@@ -130,10 +132,8 @@ const SAVED_AS_DOWNLOAD =
   "Saved as a download: this browser cannot write files; start TiLiE with tilie-server to save in place.";
 
 export interface SessionOptions {
-  /** Show a warning, kept until dismissed; editing goes on. */
-  readonly warn: (text: string, problems?: readonly Problem[]) => void;
-  /** Show information that goes away by itself; without it, none is shown. */
-  readonly inform?: (text: string) => void;
+  /** Show a message at its level (`Messages.post`); editing goes on. */
+  readonly post: Post;
   /** Called after the open workspace was replaced by another. */
   readonly replaced?: () => void;
   /** Called with the selected addresses whenever the selection changes. */
@@ -392,7 +392,7 @@ export class WorkspaceSession {
       if (host === null) await this.#saveInBrowser(as || renamed, offered);
       else await this.#saveOnServer(host, as || renamed, offered);
     } catch (error) {
-      this.#options.warn(`The workspace could not be saved: ${messageOf(error)}`);
+      this.#options.post("error", `The workspace could not be saved: ${messageOf(error)}`);
     } finally {
       this.#saving = false;
     }
@@ -410,7 +410,7 @@ export class WorkspaceSession {
     this.#saved(current);
     if (saved.handle === null && savesByDownload() && !this.#toldDownload) {
       this.#toldDownload = true;
-      this.#options.inform?.(SAVED_AS_DOWNLOAD);
+      this.#options.post("info", SAVED_AS_DOWNLOAD);
     }
   }
 
@@ -509,7 +509,7 @@ export class WorkspaceSession {
       try {
         if ((await this.tables.save(block)) === null) return false;
       } catch (error) {
-        this.#options.warn(saveFailure(error));
+        this.#options.post("error", saveFailure(error));
         return false;
       }
     }
@@ -536,7 +536,7 @@ export class WorkspaceSession {
       const path = await this.#chosen(host, [MANIFEST_FILE], null);
       if (path !== null) await this.importPath(host, path, canvas, metrics);
     } catch (error) {
-      this.#options.warn(`The file could not be imported: ${messageOf(error)}`);
+      this.#options.post("error", `The file could not be imported: ${messageOf(error)}`);
     }
   }
 
@@ -612,11 +612,14 @@ export class WorkspaceSession {
       const [block] = named.length > 0 ? named : blocks.length === 1 ? blocks : [];
       const manifest = block === undefined ? undefined : manifestOf(block);
       if (block === undefined || manifest === undefined) {
-        this.#options.warn(`${opened.name} was not loaded: no manifest picked with it names it.`);
+        this.#options.post(
+          "warning",
+          `${opened.name} was not loaded: no manifest picked with it names it.`,
+        );
         continue;
       }
       const failure = await this.tables.load(block, manifest, opened.file, opened.name);
-      if (failure !== null) this.#options.warn(failure);
+      if (failure !== null) this.#options.post("error", failure);
     }
   }
 
@@ -626,20 +629,21 @@ export class WorkspaceSession {
    * the canvas's one order of blocks (the arranger's `blocksInOrder`): from
    * beside the manifest's file (or where an example came from), silently,
    * else as the user chooses it (`MatchClaimTables.loadNamed`); what each
-   * load says goes to the message bar. While no server can read a table
-   * nothing is asked: where a block's manifest names a table the block does
-   * not hold, the message bar gets one warning, why
-   * (`MatchClaimTables.unavailable`), in place of every question; where
-   * none does, nothing is said (the canvas says why it draws nothing).
-   * While the server given has not answered its health check yet
-   * (`MatchClaimTables.waiting`) nothing is said either: it may be slow
-   * rather than missing, and the editor calls this again once it answers.
-   * A call while one is under way is ignored.
+   * load says is posted (`report`). Where no block holds a table then, the
+   * message bar says so as information (`NO_MATCHES`). While no server can
+   * read a table nothing is asked: where no block holds a table or a
+   * block's manifest names one the block does not hold, the message bar
+   * says as information that matches need a running server
+   * (`MATCHES_NEED_A_SERVER`), in place of every question. While the
+   * server given has not answered its health check yet
+   * (`MatchClaimTables.waiting`) nothing is said: it may be slow rather
+   * than missing, and the editor calls this again once it answers. A call
+   * while one is under way is ignored.
    */
   async loadNamedTables(): Promise<void> {
-    const unavailable = this.tables.unavailable;
-    if (unavailable !== null) {
-      if (!this.tables.waiting && this.#namesUnheldTable()) this.#options.warn(unavailable);
+    if (this.tables.unavailable !== null) {
+      if (!this.tables.waiting && (!this.#holdsTable() || this.#namesUnheldTable()))
+        this.#options.post("info", MATCHES_NEED_A_SERVER);
       return;
     }
     if (this.#loadingTables) return;
@@ -648,11 +652,12 @@ export class WorkspaceSession {
       for (const { id } of blocksInOrder(this.store.view)) {
         const manifest = this.store.view.blocks[id]?.manifest;
         if (manifest === undefined) continue;
-        this.post(await this.tables.loadNamed(id, manifest));
+        this.report(await this.tables.loadNamed(id, manifest));
       }
     } finally {
       this.#loadingTables = false;
     }
+    if (!this.#holdsTable()) this.#options.post("info", NO_MATCHES);
   }
 
   /** Whether a block's manifest names a MatchClaim table the block does not hold. */
@@ -662,10 +667,15 @@ export class WorkspaceSession {
     );
   }
 
-  /** Post what a load of tables says: its information, then its warnings. */
-  post(messages: TableMessages): void {
-    for (const text of messages.informed) this.#options.inform?.(text);
-    for (const text of messages.warned) this.#options.warn(text);
+  /** Whether a block of the open workspace holds a MatchClaim table. */
+  #holdsTable(): boolean {
+    return Object.keys(this.store.view.blocks).some((id) => this.tables.of(id) !== null);
+  }
+
+  /** Post what a load of tables says: its information, then its failures as errors. */
+  report(messages: TableMessages): void {
+    for (const text of messages.informed) this.#options.post("info", text);
+    for (const text of messages.failed) this.#options.post("error", text);
   }
 
   /**
@@ -677,16 +687,20 @@ export class WorkspaceSession {
   async openPicked(picked: readonly Opened[]): Promise<LoadError | null> {
     const [workspace, ...others] = picked.filter((opened) => isWorkspaceFile(opened.name));
     if (workspace === undefined) {
-      this.#options.warn(
+      this.#options.post(
+        "warning",
         "No workspace file was picked: a MatchClaim table opens with its workspace.",
       );
       return null;
     }
     for (const other of others)
-      this.#options.warn(`${other.name} was not opened: one workspace opens at a time.`);
+      this.#options.post("warning", `${other.name} was not opened: one workspace opens at a time.`);
     for (const other of picked) {
       if (isWorkspaceFile(other.name) || isMatchClaimTable(other.name)) continue;
-      this.#options.warn(`${other.name} was not opened: a manifest is opened without a workspace.`);
+      this.#options.post(
+        "warning",
+        `${other.name} was not opened: a manifest is opened without a workspace.`,
+      );
     }
     const refusal = this.open(await workspace.file.text(), workspace.name, workspace.handle);
     if (refusal !== null) return refusal;
@@ -704,7 +718,7 @@ export class WorkspaceSession {
       const block = this.#add(example.label, await example.text(), canvas, metrics);
       if (block !== null && example.source !== undefined) this.tables.locate(block, example.source);
     } catch (error) {
-      this.#options.warn(`The example could not be added: ${messageOf(error)}`);
+      this.#options.post("error", `The example could not be added: ${messageOf(error)}`);
     }
   }
 
@@ -724,7 +738,11 @@ export class WorkspaceSession {
   #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): string | null {
     const read = readManifestFile(text);
     if (isLoadError(read)) {
-      this.#options.warn(`${name} is not a manifest TimeLineEditor can import.`, read.problems);
+      this.#options.post(
+        "error",
+        `${name} is not a manifest TimeLineEditor can import.`,
+        read.problems,
+      );
       return null;
     }
     const visible = canvas.visible();
@@ -735,7 +753,7 @@ export class WorkspaceSession {
       addCommand(this.store.view, id, manifest, visible, metrics, this.#options.pane),
     );
     if (refusal !== null) {
-      this.#options.warn(`${name} could not be added.`, [refusal]);
+      this.#options.post("error", `${name} could not be added.`, [refusal]);
       return null;
     }
     const configured = this.store.configure({ manifests: { [id]: read.file } });
@@ -773,7 +791,7 @@ export class WorkspaceSession {
         manifestFileName(block.manifest, file.serialization),
       );
     } catch (error) {
-      this.#options.warn(`The manifest could not be exported: ${messageOf(error)}`);
+      this.#options.post("error", `The manifest could not be exported: ${messageOf(error)}`);
     }
   }
 

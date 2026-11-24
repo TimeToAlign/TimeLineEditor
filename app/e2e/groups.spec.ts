@@ -40,6 +40,7 @@ import {
   journalLength,
   marked,
   markOf,
+  messageTexts,
   node,
   OPENED_JOURNAL,
   open,
@@ -597,9 +598,9 @@ test.describe("a bundle workspace", () => {
       { block: BUNDLES.mixed, ...TITLE_ADDRESS },
     ]);
     await page.keyboard.press("Delete");
-    const hint = page.locator('[data-testid="hint"]');
-    await expect(hint).toBeVisible();
-    await expect(hint).toContainText("select the block to delete it");
+    const refusal = messageTexts(page, "info");
+    await expect(refusal).toHaveCount(1);
+    await expect(refusal).toContainText("select the block to delete it");
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.bundles);
     expect(await manifests(page)).toBe(before);
     await expect(part(page, BUNDLES.mixed, cardAddress("annotations"))).toBeAttached();

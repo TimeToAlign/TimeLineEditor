@@ -18,7 +18,7 @@ import type { Belief } from "@timetoalign/timetoshare";
 import { SvelteSet } from "svelte/reactivity";
 import type { LoadedTable, MatchClaimTables } from "../../matchClaims.svelte.ts";
 import { eventsFailure, provenanceFailure } from "../../matchClaims.svelte.ts";
-import { informOf, warnOf } from "../../messages.svelte.ts";
+import { postOf } from "../../messages.svelte.ts";
 import { userOf } from "../../user.svelte.ts";
 import { claimEntryLine, entryOf, followedMatch } from "../claimProvenance.ts";
 import DisclosureButton from "../DisclosureButton.svelte";
@@ -67,8 +67,7 @@ let {
 const uid = $props.id();
 /** The editor's one user: the believer, whose beliefs the buttons record. */
 const user = userOf();
-const inform = informOf();
-const warn = warnOf();
+const post = postOf();
 
 const NO_PROVENANCE = "No provenance entry: the table states none for it.";
 const READING_PROVENANCE = "Reading the provenance…";
@@ -171,12 +170,12 @@ async function believe(claim: string, belief: Belief, mine: Belief | null): Prom
       date: dayOf(new Date()),
     });
     if (failure !== null) {
-      warn(failure);
+      post("error", failure);
       return;
     }
     const next = followedMatch(before, shown, indexesOf(shown.block)?.shown ?? null);
     if (next !== before) onmatch(next);
-    inform(`Recorded your belief ${belief} in ${claim}; Save MatchClaims… keeps it.`);
+    post("info", `Recorded your belief ${belief} in ${claim}; Save MatchClaims… keeps it.`);
   } finally {
     believing = false;
   }

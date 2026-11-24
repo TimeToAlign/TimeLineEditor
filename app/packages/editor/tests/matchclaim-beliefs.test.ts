@@ -22,7 +22,7 @@ import { matchIndexes } from "../src/inspector/matchstamps.ts";
 import type { HeldMatch } from "../src/inspector/tabs.ts";
 import type { AskTables, MatchClaimServer, TableRequest } from "../src/matchClaims.svelte.ts";
 import { MatchClaimTables } from "../src/matchClaims.svelte.ts";
-import { informContext } from "../src/messages.svelte.ts";
+import type { MessageLevel } from "../src/messages.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import {
@@ -39,6 +39,7 @@ import {
   answer,
   interceptDownloads,
   openDialog,
+  posting,
   providing,
   storeOf,
   workspaceOf,
@@ -191,13 +192,11 @@ function show(store: Store, match: HeldMatch | null, tables: MatchClaimTables) {
   const reported: (HeldMatch | null)[] = [];
   const informed: string[] = [];
   const warned: string[] = [];
+  const failed: string[] = [];
   const live = liveStore(store);
   mounted = mount(providing(MatchstampPanel), {
     target: document.body,
-    context: informContext(
-      (said) => void informed.push(said),
-      (said) => void warned.push(said),
-    ),
+    context: posting(informed, warned, failed),
     props: {
       live,
       block: store.view.blocks[A] ?? null,
@@ -210,7 +209,7 @@ function show(store: Store, match: HeldMatch | null, tables: MatchClaimTables) {
     },
   });
   flushSync();
-  return { reported, informed, warned };
+  return { reported, informed, warned, failed };
 }
 
 function remount(): void {
@@ -515,10 +514,10 @@ describe("a belief", () => {
     });
     const tables = tablesOf(server);
     const before = tables.of(A);
-    const { warned } = show(store, potential(shownOf(matchTable()), "clt_1", q(0)), tables);
+    const { failed } = show(store, potential(shownOf(matchTable()), "clt_1", q(0)), tables);
     beliefButton("claim_2", "False").click();
-    await vi.waitFor(() => expect(warned.length).toBe(1));
-    expect(warned).toEqual([
+    await vi.waitFor(() => expect(failed.length).toBe(1));
+    expect(failed).toEqual([
       "Your belief in claim_2 was not recorded: row 1: the provenance is refused",
     ]);
     expect(calls.tables).toEqual([]);
@@ -573,9 +572,9 @@ describe("an unsaved table", () => {
   const B = "0000000001";
 
   /** A session on the table fixture's workspace, saved; block A holds a table, changed by a belief when `changed`. */
-  function sessionOf(changed: boolean, warned: string[] = []): WorkspaceSession {
+  function sessionOf(changed: boolean, posted: [MessageLevel, string][] = []): WorkspaceSession {
     const session = new WorkspaceSession({
-      warn: (said) => void warned.push(said),
+      post: (level, said) => void posted.push([level, said]),
       author: () => DEFAULT_USER.name,
       matchClaims: serving().server,
     });
@@ -653,8 +652,8 @@ describe("an unsaved table", () => {
     expect(await session.saveUnsaved()).toBe(false);
     expect(session.tables.of(A)?.changed).toBe(true);
 
-    const warned: string[] = [];
-    const failing = sessionOf(true, warned);
+    const posted: [MessageLevel, string][] = [];
+    const failing = sessionOf(true, posted);
     vi.stubGlobal(
       "showSaveFilePicker",
       vi.fn(async () => {
@@ -662,8 +661,8 @@ describe("an unsaved table", () => {
       }),
     );
     expect(await failing.saveUnsaved()).toBe(false);
-    expect([warned, failing.tables.of(A)?.changed]).toEqual([
-      ["The MatchClaims were not saved: the disk is full"],
+    expect([posted, failing.tables.of(A)?.changed]).toEqual([
+      [["error", "The MatchClaims were not saved: the disk is full"]],
       true,
     ]);
   });
@@ -717,7 +716,7 @@ describe("an unsaved table", () => {
     };
     const { server, calls } = serving();
     const tables = tablesOf(server, matchTable(), ask, { "m.parquet": chosen });
-    const { informed, warned } = show(storeOf(tableManifest()), null, tables);
+    const { informed, warned, failed } = show(storeOf(tableManifest()), null, tables);
     const asked = {
       manifest: "The manifest",
       table: { url: "match_claims.parquet" },
@@ -727,13 +726,20 @@ describe("an unsaved table", () => {
     button("Load MatchClaims…")?.click();
     await vi.waitFor(() => expect(questions).toEqual([asked]));
     await settled();
-    expect([informed, warned, calls.tables.length, tables.of(A)?.name]).toEqual([[], [], 0, NAME]);
+    expect([informed, warned, failed, calls.tables.length, tables.of(A)?.name]).toEqual([
+      [],
+      [],
+      [],
+      0,
+      NAME,
+    ]);
 
     button("Load MatchClaims…")?.click();
     await vi.waitFor(() => expect(tables.of(A)?.name).toBe("m.parquet"));
-    expect([questions, informed, warned]).toEqual([
+    expect([questions, informed, warned, failed]).toEqual([
       [asked, asked],
       ["Loaded the MatchClaims of m.parquet."],
+      [],
       [],
     ]);
     expect(calls.tables.map(([, file]) => file)).toEqual([chosen]);

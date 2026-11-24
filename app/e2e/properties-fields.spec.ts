@@ -73,7 +73,7 @@ test("a frame height at or below its minimum states none, and the message bar sa
   const place = changes.find((change) => sameAddress(change.target, GROUP))?.values.place;
   expect(place).toEqual({ height: null });
   const notice = page.getByTestId("message").filter({ hasText: "To decrease" });
-  await expect(notice).toHaveAttribute("data-kind", "info");
+  await expect(notice).toHaveAttribute("data-level", "info");
   await expect(notice.getByRole("paragraph")).toHaveText(
     `To decrease the height below ${drawn} px, decrease the size of the contained elements first.`,
   );

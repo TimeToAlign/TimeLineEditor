@@ -5,7 +5,7 @@ import { flushSync, mount, tick, unmount } from "svelte";
 import { expect, it, vi } from "vitest";
 import { loadCodec } from "../src/inspector/formats.svelte.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
-import { blockId, informing, storeOf } from "./support.ts";
+import { blockId, posting, storeOf } from "./support.ts";
 
 vi.mock("../src/inspector/toml.ts", () => {
   throw new Error("network down");
@@ -16,7 +16,7 @@ it("shows a failed codec import as an alert and keeps JSON working", async () =>
   const id = blockId(0);
   const app = mount(Inspector, {
     target: document.body,
-    context: informing(),
+    context: posting(),
     props: { live: liveStore(store), selection: selectionOf([{ block: id }]) },
   });
   flushSync();

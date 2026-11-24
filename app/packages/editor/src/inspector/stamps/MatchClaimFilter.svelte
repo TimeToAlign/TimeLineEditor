@@ -16,7 +16,7 @@ import { BELIEF_STATES, matchClaimFilterOf } from "@timetoalign/tilie-core";
 import ConfirmDialog from "../../ConfirmDialog.svelte";
 import type { MatchClaimTables } from "../../matchClaims.svelte.ts";
 import { saveFailure, unsavedQuestion } from "../../matchClaims.svelte.ts";
-import { informOf, messageOf, warnOf } from "../../messages.svelte.ts";
+import { messageOf, postOf } from "../../messages.svelte.ts";
 import DisplayToggles from "./DisplayToggles.svelte";
 
 interface Props {
@@ -33,8 +33,7 @@ interface Props {
 let { live, blockId, manifest, tables }: Props = $props();
 
 const uid = $props.id();
-const inform = informOf();
-const warn = warnOf();
+const post = postOf();
 
 /** The belief filter's toggles, one per state, in the order of `BELIEF_STATES`. */
 const LABELS: Readonly<Record<BeliefState, string>> = {
@@ -67,7 +66,8 @@ function configure(change: {
   if (blockId === null || filter === null) return;
   const next = { ...filter, ...change };
   const refusal = live.store.configure({ matchClaimFilters: { [blockId]: next } });
-  if (refusal !== null) warn(`The MatchClaim filter was not changed: ${refusal.message}`);
+  if (refusal !== null)
+    post("warning", `The MatchClaim filter was not changed: ${refusal.message}`);
 }
 
 /** Whether the filter shows the MatchClaims of `timeline`. */
@@ -102,10 +102,10 @@ async function saveTableOf(id: string): Promise<boolean> {
   try {
     const name = await tables.save(id);
     if (name === null) return false;
-    inform(`Saved the MatchClaims as ${name}.`);
+    post("info", `Saved the MatchClaims as ${name}.`);
     return true;
   } catch (error) {
-    warn(saveFailure(error));
+    post("error", saveFailure(error));
     return false;
   }
 }
@@ -145,11 +145,11 @@ async function loadTable(): Promise<void> {
   if (!(await mayReplaceTable(id))) return;
   loading = true;
   try {
-    const { informed, warned } = await tables.choose(id, held);
-    for (const text of informed) inform(text);
-    for (const text of warned) warn(text);
+    const { informed, failed } = await tables.choose(id, held);
+    for (const text of informed) post("info", text);
+    for (const text of failed) post("error", text);
   } catch (error) {
-    warn(`The MatchClaim table could not be loaded: ${messageOf(error)}`);
+    post("error", `The MatchClaim table could not be loaded: ${messageOf(error)}`);
   } finally {
     loading = false;
   }
