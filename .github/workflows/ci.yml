@@ -103,7 +103,7 @@ jobs:
         with:
           repository: TimeToAlign/timetoalign
           # the timetoalign commit server/uv.lock was locked against; moves with it
-          ref: 6e5698a563a5487712b72a76a3736b09de7accdc
+          ref: 3337db21974e7583506b133e213ca77119cef952
           path: timetoalign
       - uses: actions/checkout@v7
         with:
