@@ -1,0 +1,23 @@
+# Version control and the other checkouts' metadata
+.git
+.github
+
+# Dependencies and virtual environments
+**/node_modules
+**/.venv
+
+# Build outputs
+**/dist
+**/dist-e2e
+**/dist-embed
+**/.vite
+server/src/tilie_server/static
+
+# Test outputs and caches
+app/e2e/test-results
+**/playwright-report
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/.pytest_cache
+**/.ruff_cache
