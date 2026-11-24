@@ -59,14 +59,31 @@ place of the loopback address. The application is proved in process
 (`test_public.py`), with the two public hosts `tilie.example.org` and
 `localhost:8000` and the settings a public run uses (`ServerSettings` with
 those `public_hosts`, no token, `files` false), and a body limit of 8 bytes
-in place of the real one, so that no test allocates 16 MiB. Each case
-holds the same request against a local-mode app as its control where the
-answer differs there, so a case cannot pass because the request never
-reached what it tests.
+in place of the real one, so that no test allocates 16 MiB. Where a local
+app answers a request otherwise, the case sends the same request to a
+local-mode app as its control, so that a case cannot pass because the
+request never reached what it tests: the token cases (a local app answers
+401), the given hosts and their origins (a local app answers 403 to each),
+the loopback host `127.0.0.1:8000` and its origin (a local app on port 8000
+answers 200 to both), the file requests (200), the unserved methods (405),
+the body limit (the 9 bytes reach the route), the table bounds (the tables
+reach the route) and the gate of computations (both enter at once). A
+request both kinds of app refuse alike (`evil.example`, `null`, a host
+with a port appended) has no control: its answer does not depend on the
+mode.
 
-**No token.** `GET /api/health` without any `Authorization` header, and
-with `Authorization: Bearer wrong`, both answer 200 with the installation's
-health and `"files": false` (a local app answers both 401). The other
+**Settings.** `ServerSettings` refuses to be built without a token while it
+serves the file routes (`token=None` with `files` true): `ValueError` with
+exactly `file routes need a token`, since that combination would hand the
+root's files to anyone who reaches the server. A public run's settings
+(no token, `files` false) and a local run's (a token, `files` true) are
+built as before.
+
+**No token.** `GET /api/health` without any `Authorization` header, with
+`Authorization: Bearer ` (the empty token the editor's page sends where no
+token was handed to it) and with `Authorization: Bearer wrong` answers 200
+with the installation's health and `"files": false` (a local app answers
+each 401). The other
 members are the local answer's, so a host reading `files` learns from the
 one answer which file access the editor has.
 
@@ -79,12 +96,19 @@ character for character:
 | `127.0.0.1:8000` (the loopback origin a local run answers to), `tilie.example.org:443` (a given host with a port appended), `localhost`, `evil.example` | 403 `{"detail": "forbidden host"}` |
 | none (raw ASGI, as for the local guard) | 403 `{"detail": "forbidden host"}` |
 
+The controls: a local app (port 8765) answers 403 `forbidden host` to
+`tilie.example.org` and to `localhost:8000`, and a local app on port 8000
+answers 200 to `127.0.0.1:8000`.
+
 **Origins.** An `Origin`, when sent, must be `https://<host>` or
 `http://<host>` for a given host: the four origins `https://tilie.example.org`,
 `http://tilie.example.org`, `https://localhost:8000` and
 `http://localhost:8000` answer 200; `https://evil.example`,
 `http://127.0.0.1:8000`, `https://tilie.example.org:443` and `null` answer
-403 `{"detail": "forbidden origin"}`. The settings state the same sets:
+403 `{"detail": "forbidden origin"}`. The controls: a local app (port
+8765) answers 403 `forbidden origin` to each of the four accepted origins,
+and a local app on port 8000 answers 200 to `http://127.0.0.1:8000`. The
+settings state the same sets:
 `allowed_hosts()` is exactly the two hosts, `allowed_origins()` exactly the
 four origins; in local mode `allowed_origins()` is `http://` before each
 allowed host (`http://127.0.0.1:8765` and `http://localhost:8765` for the
@@ -100,8 +124,31 @@ Found"}`, without a built editor and with one, and `b.tle.json` is never
 written. With a built editor mounted at `/`, a `PUT` to a path the editor's
 files do not hold would be the mount's 405 `Method Not Allowed`; in public
 mode every `/api/` path that no route serves answers 404 `{"detail": "Not
-Found"}` whatever the method, which the `PUT` case with a built editor
-proves, so the API never falls through to the editor's files.
+Found"}` for each of the seven methods GET, HEAD, POST, PUT, PATCH, DELETE
+and OPTIONS, so the API never falls through to the editor's files. A
+method outside the seven (`TRACE`, or one made up) is no method of any
+`/api/` route and answers 405 `{"detail": "Method Not Allowed"}`, as the
+framework answers a path no route serves with that method; it does not
+reach the editor's files either. The answers, with and without a built
+editor:
+
+| Request | Public | Local (with the token) |
+| --- | --- | --- |
+| `PUT /api/files?path=b.tle.json` (above) | 404 `{"detail": "Not Found"}` | (the file route) |
+| `POST /api/health`, `OPTIONS /api/health` | 404 `{"detail": "Not Found"}` | 405 `{"detail": "Method Not Allowed"}` |
+| `DELETE /api/x` | 404 `{"detail": "Not Found"}` | 404 `{"detail": "Not Found"}` without a built editor, the mount's 405 `{"detail": "Method Not Allowed"}` with one |
+| `TRACE /api/x` | 405 `{"detail": "Method Not Allowed"}` | 404 `{"detail": "Not Found"}` without a built editor, 405 as public with one |
+
+**WebSockets.** The server has no WebSocket route, and the guard checks a
+handshake as it checks a request, closing a refused one with code 1008
+before accepting it. Through the test client, with `Host` sent explicitly
+(the client otherwise sends `testserver`), a handshake to `/ws` and to
+`/api/ws` with a foreign `Host` (`evil.example`) or a foreign `Origin`
+(`https://evil.example`) is closed with 1008; with the given host
+`tilie.example.org`, with and without its origin, it passes the guard and
+reaches the routing, which finds no route and closes it with 1000, with and
+without a built editor. A local app closes the handshake with the given
+host with 1008 (`forbidden host`), the control.
 
 **Body limit.** A request body longer than the limit is refused with 413
 before the route runs. The route proving it is `POST /api/measure-maps`,
@@ -121,10 +168,17 @@ pinned for 16 MiB, 1 MiB, 8 bytes and 1 byte.
 | 9 bytes sent chunked by the test client (no `Content-Length`) | 413 as above | not run |
 | three chunks of 4 bytes through raw ASGI, no `Content-Length` | 413 as above, once the third chunk passes 8 | not run |
 | exactly 8 bytes, with `Content-Length` and as two chunks of 4 | 422 `seen` | run once, with exactly those 8 bytes |
+| `Content-Length: 4` and three chunks of 4 bytes through raw ASGI (a length smaller than the body) | 413 as above, once the third chunk passes 8 | not run |
+| `Content-Length: 4` and two chunks of 4 bytes through raw ASGI | 422 `seen` | run once, with the 8 bytes received |
 | an empty `GET /api/health` | 200 | |
 
-A local app takes the 9 bytes to the route (the middleware is not added
-without a limit). The CLI sets the real limit: the settings a public
+The counted bytes decide, never the header: a `Content-Length` over the
+limit only refuses early, and one smaller than the body sent neither
+shortens nor admits it, so no more than the limit reaches the route.
+(Over a real connection uvicorn's HTTP parser reads exactly the declared
+length as the body; the raw ASGI cases prove the server keeps the limit
+even where an ASGI server would pass more.) A local app takes the 9 bytes
+to the route (the middleware is not added without a limit). The CLI sets the real limit: the settings a public
 command line builds carry `body_limit` exactly `16 * 1024 * 1024` (below).
 
 **Table bounds.** The body limit bounds the bytes received, not what a

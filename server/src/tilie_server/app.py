@@ -46,8 +46,9 @@ def create_app(
     and serves the file routes. A public run answers as its public hosts,
     checks no token, serves no file routes, bounds every request body and
     every posted table, and runs a limited number of computations at once;
-    every ``/api/`` path no route serves then answers 404, whatever the
-    method, so no request to the API reaches the editor's files.
+    every ``/api/`` path no route serves then answers 404 for each method of
+    :data:`API_METHODS` (any other method 405), so no request to the API
+    reaches the editor's files.
 
     Args:
         settings: The run's hosts, token, editor files, root folder, file
@@ -77,7 +78,7 @@ def create_app(
         # Without it a PUT to a file route would reach the editor's mount at
         # "/", which answers 405 to every method but GET and HEAD.
         @app.api_route(f"{API_PREFIX}{{path:path}}", methods=API_METHODS)
-        def not_served(path: str) -> None:
+        async def not_served(path: str) -> None:
             raise HTTPException(status_code=404)
 
     app.state.musicbrainz = MusicBrainz() if musicbrainz is None else musicbrainz

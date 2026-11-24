@@ -16,6 +16,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 from timetoshare.tables import fixture_path
 
 import tilie_server.routers.measure_maps
@@ -53,23 +54,30 @@ def public_client(static_dir: Path, root: Path | None = None) -> TestClient:
     return TestClient(app, base_url=f"http://{PUBLIC_HOSTS[0]}")
 
 
-def local_client(static_dir: Path, root: Path | None = None) -> TestClient:
+def local_client(
+    static_dir: Path, root: Path | None = None, port: int = LOCAL_PORT
+) -> TestClient:
     settings = ServerSettings(
         LOCAL_HOST,
-        LOCAL_PORT,
+        port,
         TOKEN,
         static_dir,
         root if root is not None else static_dir,
     )
-    return TestClient(
-        create_app(settings), base_url=f"http://{LOCAL_HOST}:{LOCAL_PORT}"
-    )
+    return TestClient(create_app(settings), base_url=f"http://{LOCAL_HOST}:{port}")
+
+
+AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 
 def build_editor(folder: Path) -> Path:
     folder.mkdir()
     (folder / "index.html").write_text("<!doctype html>")
     return folder
+
+
+def answer(response: Any) -> tuple[int, Any]:
+    return response.status_code, response.json()
 
 
 @pytest.fixture
@@ -81,7 +89,9 @@ def unbuilt(tmp_path: Path) -> TestClient:
 
 
 @pytest.mark.parametrize(
-    "headers", [{}, {"Authorization": "Bearer wrong"}], ids=["none", "wrong"]
+    "headers",
+    [{}, {"Authorization": "Bearer "}, {"Authorization": "Bearer wrong"}],
+    ids=["none", "empty", "wrong"],
 )
 def test_health_answers_without_a_token(
     unbuilt: TestClient,
@@ -90,6 +100,7 @@ def test_health_answers_without_a_token(
     headers: dict[str, str],
 ) -> None:
     response = unbuilt.get("/api/health", headers=headers)
+    assert response.request.headers.get("authorization") == headers.get("Authorization")
     assert response.status_code == 200
     assert response.json() == {**installed_health, "files": False}
     control = local_client(tmp_path).get("/api/health", headers=headers)
@@ -103,9 +114,33 @@ def test_health_answers_without_a_token(
 
 
 @pytest.mark.parametrize("host", PUBLIC_HOSTS)
-def test_a_given_host_is_accepted(unbuilt: TestClient, host: str) -> None:
+def test_a_given_host_is_accepted(
+    unbuilt: TestClient, tmp_path: Path, host: str
+) -> None:
     response = unbuilt.get("/api/health", headers={"Host": host})
     assert response.status_code == 200
+    control = local_client(tmp_path).get("/api/health", headers={**AUTH, "Host": host})
+    assert answer(control) == (403, {"detail": "forbidden host"})
+
+
+def test_a_local_apps_own_host_and_origin_are_forbidden(
+    unbuilt: TestClient, tmp_path: Path
+) -> None:
+    host = {"Host": "127.0.0.1:8000"}
+    origin = {"Origin": "http://127.0.0.1:8000"}
+    assert answer(unbuilt.get("/api/health", headers=host)) == (
+        403,
+        {"detail": "forbidden host"},
+    )
+    assert answer(unbuilt.get("/api/health", headers=origin)) == (
+        403,
+        {"detail": "forbidden origin"},
+    )
+    control = local_client(tmp_path, port=8000)
+    for headers in (host, origin):
+        assert (
+            control.get("/api/health", headers={**AUTH, **headers}).status_code == 200
+        )
 
 
 @pytest.mark.parametrize(
@@ -186,10 +221,14 @@ ORIGINS = [
 
 @pytest.mark.parametrize("origin", ORIGINS)
 def test_the_origins_of_the_given_hosts_are_accepted(
-    unbuilt: TestClient, origin: str
+    unbuilt: TestClient, tmp_path: Path, origin: str
 ) -> None:
     response = unbuilt.get("/api/health", headers={"Origin": origin})
     assert response.status_code == 200
+    control = local_client(tmp_path).get(
+        "/api/health", headers={**AUTH, "Origin": origin}
+    )
+    assert answer(control) == (403, {"detail": "forbidden origin"})
 
 
 @pytest.mark.parametrize(
@@ -205,6 +244,15 @@ def test_any_other_origin_is_forbidden(unbuilt: TestClient, origin: str) -> None
     response = unbuilt.get("/api/health", headers={"Origin": origin})
     assert response.status_code == 403
     assert response.json() == {"detail": "forbidden origin"}
+
+
+def test_settings_serving_files_without_a_token_are_refused(tmp_path: Path) -> None:
+    with pytest.raises(ValueError) as refused:
+        ServerSettings("0.0.0.0", 8000, None, tmp_path, tmp_path)
+    assert str(refused.value) == "file routes need a token"
+    with pytest.raises(ValueError) as refused:
+        replace(public_settings(tmp_path), files=True)
+    assert str(refused.value) == "file routes need a token"
 
 
 def test_the_settings_state_the_hosts_and_origins(tmp_path: Path) -> None:
@@ -254,10 +302,74 @@ def test_the_file_routes_are_not_served(
 def test_a_local_app_serves_the_same_file_requests(
     tmp_path: Path, root: Path, method: str, path: str
 ) -> None:
-    response = local_client(tmp_path, root).request(
-        method, path, headers={"Authorization": f"Bearer {TOKEN}"}
-    )
+    response = local_client(tmp_path, root).request(method, path, headers=AUTH)
     assert response.status_code == 200
+
+
+NOT_FOUND = (404, {"detail": "Not Found"})
+NOT_ALLOWED = (405, {"detail": "Method Not Allowed"})
+UNSERVED = {
+    # request: (public, local without a built editor, local with one)
+    ("POST", "/api/health"): (NOT_FOUND, NOT_ALLOWED, NOT_ALLOWED),
+    ("OPTIONS", "/api/health"): (NOT_FOUND, NOT_ALLOWED, NOT_ALLOWED),
+    ("DELETE", "/api/x"): (NOT_FOUND, NOT_FOUND, NOT_ALLOWED),
+    ("TRACE", "/api/x"): (NOT_ALLOWED, NOT_FOUND, NOT_ALLOWED),
+}
+
+
+@pytest.mark.parametrize("editor", ["unbuilt", "built"])
+@pytest.mark.parametrize(("method", "path"), UNSERVED)
+def test_an_unserved_method_answers_as_the_table_says(
+    tmp_path: Path, editor: str, method: str, path: str
+) -> None:
+    static_dir = tmp_path / "editor"
+    if editor == "built":
+        build_editor(static_dir)
+    else:
+        static_dir.mkdir()
+    public, unbuilt_local, built_local = UNSERVED[(method, path)]
+    response = public_client(static_dir).request(method, path)
+    assert answer(response) == public
+    control = local_client(static_dir).request(method, path, headers=AUTH)
+    assert answer(control) == (built_local if editor == "built" else unbuilt_local)
+
+
+# ----------------------------------------------------------------- websockets
+
+
+@pytest.mark.parametrize("editor", ["unbuilt", "built"])
+@pytest.mark.parametrize("path", ["/ws", "/api/ws"])
+@pytest.mark.parametrize(
+    ("headers", "code"),
+    [
+        ({"Host": "evil.example"}, 1008),
+        ({"Host": PUBLIC_HOSTS[0], "Origin": "https://evil.example"}, 1008),
+        ({"Host": PUBLIC_HOSTS[0]}, 1000),
+        ({"Host": PUBLIC_HOSTS[0], "Origin": f"https://{PUBLIC_HOSTS[0]}"}, 1000),
+    ],
+    ids=["foreign host", "foreign origin", "given host", "given origin"],
+)
+def test_a_websocket_handshake_is_guarded(
+    tmp_path: Path, editor: str, path: str, headers: dict[str, str], code: int
+) -> None:
+    static_dir = tmp_path / "editor"
+    if editor == "built":
+        build_editor(static_dir)
+    else:
+        static_dir.mkdir()
+    with pytest.raises(WebSocketDisconnect) as closed:
+        with public_client(static_dir).websocket_connect(path, headers=headers):
+            pass
+    assert closed.value.code == code
+
+
+def test_a_local_app_refuses_the_handshake_of_the_given_host(tmp_path: Path) -> None:
+    with pytest.raises(WebSocketDisconnect) as closed:
+        with local_client(tmp_path).websocket_connect(
+            "/ws", headers={"Host": PUBLIC_HOSTS[0]}
+        ):
+            pass
+    assert closed.value.code == 1008
 
 
 # ----------------------------------------------------------------- body limit
@@ -361,15 +473,42 @@ def test_chunks_at_the_limit_reach_the_route(tmp_path: Path, seen: list[bytes]) 
     assert seen == [b"12345678"]
 
 
+def test_a_declared_length_smaller_than_the_body_cannot_pass_the_limit(
+    tmp_path: Path, seen: list[bytes]
+) -> None:
+    app = create_app(public_settings(tmp_path))
+    headers = [(b"host", PUBLIC_HOSTS[0].encode()), (b"content-length", b"4")]
+    status, body, received = asgi_call(
+        app, "/api/measure-maps", headers, [b"1234", b"5678", b"9abc"], method="POST"
+    )
+    assert (status, body) == (413, TOO_LONG)
+    assert received == [
+        "http.request b'1234'",
+        "http.request b'5678'",
+        "http.request b'9abc'",
+    ]
+    assert seen == []
+
+
+def test_a_declared_length_smaller_than_the_body_takes_the_bytes_received(
+    tmp_path: Path, seen: list[bytes]
+) -> None:
+    app = create_app(public_settings(tmp_path))
+    headers = [(b"host", PUBLIC_HOSTS[0].encode()), (b"content-length", b"4")]
+    status, body, _ = asgi_call(
+        app, "/api/measure-maps", headers, [b"1234", b"5678"], method="POST"
+    )
+    assert (status, body) == (422, SEEN)
+    assert seen == [b"12345678"]
+
+
 def test_a_request_without_a_body_passes(unbuilt: TestClient) -> None:
     assert unbuilt.get("/api/health").status_code == 200
 
 
 def test_a_local_app_has_no_body_limit(tmp_path: Path, seen: list[bytes]) -> None:
     response = local_client(tmp_path).post(
-        "/api/measure-maps",
-        content=b"123456789",
-        headers={"Authorization": f"Bearer {TOKEN}"},
+        "/api/measure-maps", content=b"123456789", headers=AUTH
     )
     assert (response.status_code, response.json()) == (422, SEEN)
     assert seen == [b"123456789"]
@@ -482,10 +621,6 @@ def too_large(message: str) -> tuple[int, dict[str, Any]]:
     return 413, {"detail": {"path": [], "message": message}}
 
 
-def answer(response: Any) -> tuple[int, Any]:
-    return response.status_code, response.json()
-
-
 def with_note(table: pa.Table) -> pa.Table:
     """The table with a column ``note`` of 100,000 ``a`` in every row."""
     return table.append_column("note", pa.array(["a" * 100_000] * table.num_rows))
@@ -506,7 +641,7 @@ def test_a_table_within_the_bounds_answers_as_locally(
     local = local_client(tmp_path).post(
         route,
         content=table_body(route, data),
-        headers={"Authorization": f"Bearer {TOKEN}"},
+        headers=AUTH,
     )
     assert local.status_code == 200
     assert (public.status_code, public.content) == (200, local.content)
@@ -647,12 +782,11 @@ def test_a_local_app_reads_every_bounded_table(tmp_path: Path, name: str) -> Non
     make, status = LOCAL_TABLES[name]
     route = "/api/match-claims"
     client = local_client(tmp_path)
-    auth = {"Authorization": f"Bearer {TOKEN}"}
-    response = client.post(route, content=table_body(route, make()), headers=auth)
+    response = client.post(route, content=table_body(route, make()), headers=AUTH)
     assert response.status_code == status
     if status == 200:
         fixture = client.post(
-            route, content=table_body(route, written(fixture_table())), headers=auth
+            route, content=table_body(route, written(fixture_table())), headers=AUTH
         )
         assert response.content == fixture.content
     else:
@@ -796,8 +930,7 @@ def test_a_local_app_runs_computations_together(
     with local_client(tmp_path) as shared:
 
         def computation() -> Any:
-            auth = {"Authorization": f"Bearer {TOKEN}"}
-            return shared.post("/api/measure-maps", content=b"", headers=auth)
+            return shared.post("/api/measure-maps", content=b"", headers=AUTH)
 
         computing = [started(answers, key, computation) for key in ("first", "second")]
         try:

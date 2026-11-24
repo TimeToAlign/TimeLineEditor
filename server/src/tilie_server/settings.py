@@ -52,7 +52,7 @@ class ServerSettings:
             folder unless another is given.
         public_hosts: The ``Host`` header values a public run answers to,
             exactly as given; empty for a local run.
-        files: Whether the file routes are served.
+        files: Whether the file routes are served; only with a token.
         body_limit: The largest request body in bytes; ``None`` for no limit.
         table_rows: The most rows of a posted table; ``None`` for no bound.
         table_bytes: The largest posted table in bytes uncompressed;
@@ -75,6 +75,15 @@ class ServerSettings:
     table_bytes: int | None = None
     computations: int | None = None
     connections: int | None = None
+
+    def __post_init__(self) -> None:
+        """Refuse settings that would serve the file routes without a token.
+
+        Raises:
+            ValueError: If ``files`` is true and ``token`` is ``None``.
+        """
+        if self.files and self.token is None:
+            raise ValueError("file routes need a token")
 
     def allowed_hosts(self) -> frozenset[str]:
         """Return the ``Host`` header values this server answers to."""

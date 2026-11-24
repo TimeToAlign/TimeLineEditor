@@ -66,8 +66,9 @@ reached under several names) starts the server in public mode:
   answer, as in a local run.
 - **No files.** The file routes are not routed: `GET /api/folders`, `GET
   /api/files` and `PUT /api/files` answer 404 `{"detail": "Not Found"}`, as
-  does every other `/api/` path no route serves, whatever its method, so
-  that no request to the API falls through to the editor's files.
+  does every other `/api/` path no route serves for the methods GET, HEAD,
+  POST, PUT, PATCH, DELETE and OPTIONS (any other method is answered 405),
+  so that no request to the API falls through to the editor's files.
   `GET /api/health` says which kind of server answers: its member `files`
   is `true` in a local run and `false` in public mode, and the editor offers
   its own file dialog only where the answer does not say `false`, using the
@@ -99,7 +100,10 @@ reached under several names) starts the server in public mode:
   `table_bytes`, `computations` and `connections`, from which
   the guard takes its hosts (`allowed_hosts()`) and origins
   (`allowed_origins()`). The guard, `OriginGuard`, checks a token only where
-  the settings hold one.
+  the settings hold one. Settings without a token that serve the file
+  routes are refused when they are built (`ValueError`, "file routes need
+  a token"), so the unsafe combination the separate options would have
+  allowed is no state of the settings either.
 
 ## The container image
 
