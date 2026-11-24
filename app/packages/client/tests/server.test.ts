@@ -63,6 +63,8 @@ describe("health", () => {
     ["a member no string", JSON.stringify({ ...health, version: 1 })],
     ["a list", JSON.stringify([health])],
     ["a timetoshare no string", JSON.stringify({ ...health, timetoshare: 2 })],
+    ["a files string", JSON.stringify({ ...health, files: "false" })],
+    ["a files null", JSON.stringify({ ...health, files: null })],
     ["null", "null"],
     ["no JSON", "tilie-server 0.1.0"],
   ])("rejects a body with %s as malformed, with its status", async (_case, body) => {
@@ -89,6 +91,23 @@ describe("health", () => {
       ...health,
       timetoshare,
     });
+  });
+
+  it.each([
+    ["false", false],
+    ["true", true],
+  ])("answers a files of %s as it is", async (_case, files) => {
+    stubFetch(async () => Response.json({ ...health, files, extra: true }));
+    const answer = await connect({ url: "api/", token: "" }).health();
+    expect(answer).toStrictEqual({ ...health, files });
+    expect(answer.files).toBe(files);
+  });
+
+  it("answers no files where the answer names none", async () => {
+    stubFetch(async () => Response.json(health));
+    const answer = await connect({ url: "api/", token: "" }).health();
+    expect("files" in answer).toBe(false);
+    expect(answer.files).toBe(undefined);
   });
 
   it("reads the recorded answer: four members, each a string", async () => {

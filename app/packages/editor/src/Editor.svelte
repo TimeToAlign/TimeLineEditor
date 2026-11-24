@@ -167,16 +167,18 @@ providePicking(picking);
 /** The server's calls; `null` without a server. */
 const client = untrack(() => (server === null ? null : connect(server)));
 
-/** The server's health, kept for the About pane; `null` until it answers. */
-let health: Health | null = $state.raw(null);
+/** The server's health, kept for the About pane and `fileHost`; `null` until it answers. */
+let health = $state.raw<Health | null>(null);
 
 /**
- * The user's files through the server, once it answered its health check:
- * from then on Open…, Import manifest… and Save as… use the editor's file
- * dialog; before, and without a server, the browser's pickers.
+ * The user's files through the server, once it answered its health check
+ * without saying `files: false`: from then on Open…, Import manifest… and
+ * Save as… use the editor's file dialog; before, without a server, and with
+ * a server that offers no files, the browser's pickers. An answer that does
+ * not name `files` offers them.
  */
 const fileHost: FileHost | null = $derived(
-  client === null || health === null
+  client === null || health === null || health.files === false
     ? null
     : {
         server: client,

@@ -15,7 +15,12 @@ call or the exact result.
 2. **The answer.** A 2xx answer resolves to its three members, `name`,
    `version` and `timetoalign`, compared whole, and to `timetoshare` where
    the answer has one, a version string or `null` (the server imports no
-   timetoshare), kept as it is; an extra member is dropped. The server's
+   timetoshare), kept as it is, and to `files` where the answer has one,
+   `true` or `false` (whether the server offers its file routes), kept as
+   it is: `"files": false` resolves with `files` `false`, `"files": true`
+   with `true`, and an answer without the member resolves without it
+   (`files` undefined, which the editor reads as `true`, the answer of a
+   server that does not name it); an extra member is dropped. The server's
    recorded answer (item 9) resolves to exactly its four members, each a
    string; its values are the versions of the server that recorded it, so
    the test compares the answer with the recording and the members' types,
@@ -26,7 +31,8 @@ call or the exact result.
    the HTTP status and the message `<status> <status text>` (`502 Bad
    Gateway`, or `401` when the text is empty). A 2xx body that is not those
    three strings (a member missing or no string, a list, `null`, text that
-   is no JSON), or whose `timetoshare` is neither a string nor `null` (2),
+   is no JSON), whose `timetoshare` is neither a string nor `null`, or
+   whose `files` is not a boolean (the string `"false"`, `null`) (2),
    rejects with code `status`, its status and the message "the health
    answer is not a name, a version and a timetoalign version".
 

@@ -55,6 +55,12 @@ export interface Health {
    * imports none; absent from the answer of a server that does not name it.
    */
   readonly timetoshare?: string | null;
+  /**
+   * Whether the server offers the file routes (`folders` and `files`);
+   * absent from the answer of a server that does not name it, which is read
+   * as `true`.
+   */
+  readonly files?: boolean;
 }
 
 /** An exact quarter-note value: `[numerator, denominator]`, both safe integers. */
@@ -191,13 +197,14 @@ export interface Server extends FileServer {
 
 /**
  * The message of a health answer that is not `{name, version, timetoalign}`, each a
- * string, with a `timetoshare` string or `null` if any.
+ * string, with a `timetoshare` string or `null` and a `files` boolean if any.
  */
 const MALFORMED_HEALTH = "the health answer is not a name, a version and a timetoalign version";
 
 /**
  * Whether `value` is a health answer: an object whose three members are
- * strings, and whose `timetoshare`, where it has one, is a string or `null`.
+ * strings, whose `timetoshare`, where it has one, is a string or `null`,
+ * and whose `files`, where it has one, is a boolean.
  */
 function isHealth(value: unknown): value is Health {
   return (
@@ -211,7 +218,8 @@ function isHealth(value: unknown): value is Health {
     typeof value.timetoalign === "string" &&
     (!("timetoshare" in value) ||
       value.timetoshare === null ||
-      typeof value.timetoshare === "string")
+      typeof value.timetoshare === "string") &&
+    (!("files" in value) || typeof value.files === "boolean")
   );
 }
 
@@ -375,9 +383,14 @@ export function connect({ url, token }: ConnectOptions): Server {
         response,
         (body) => {
           if (!isHealth(body)) return undefined;
-          const { name, version, timetoalign } = body;
-          if (body.timetoshare === undefined) return { name, version, timetoalign };
-          return { name, version, timetoalign, timetoshare: body.timetoshare };
+          const { name, version, timetoalign, timetoshare, files } = body;
+          return {
+            name,
+            version,
+            timetoalign,
+            ...(timetoshare === undefined ? {} : { timetoshare }),
+            ...(files === undefined ? {} : { files }),
+          };
         },
         MALFORMED_HEALTH,
       );

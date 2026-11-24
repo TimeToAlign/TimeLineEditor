@@ -256,6 +256,20 @@ workspace then belongs to the picked one. Ctrl+Shift+S always picks. A
 workspace restored from an autosave that kept its file's handle saves
 back into that handle on Ctrl+S.
 
+**Which dialog Open… uses once the server answered** (`open-save.test.ts`,
+the App mounted over a stubbed server whose health answers `{name, version,
+timetoalign}` with or without a `files` member, and whose folder route
+answers an empty root; every requested address recorded). In each case the
+health check answers (the hook's health equals the answer) and the header
+shows no "offline" mark. An answer saying `"files": false` is a server
+that offers no files: Open… uses the browser's picker exactly as without a
+server, the fallback input waits and, answered with `bare.yaml`, imports
+one block; the editor's file dialog never opens and the only request is
+`api/health`. An answer saying `"files": true`, and one that does not name
+`files` (read as `true`), opens the editor's file dialog, titled "Open",
+which asks for the root (`api/folders?path=`, the second and last
+request); no file input waits.
+
 **Through the server** (`open-save.test.ts`, the session alone, its
 `FileHost` stubbed: a server holding files by path from its root, which
 records every `readFile` and `writeFile`, and a file dialog answering the

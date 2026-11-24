@@ -320,6 +320,58 @@ describe("Save into the opened file", () => {
   });
 });
 
+describe("Open… once the server answered", () => {
+  const HEALTH = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
+
+  /**
+   * Mount the page over a server whose health answers `health` and whose
+   * folder route answers an empty root, and await the answer; returns every
+   * requested address, in order.
+   */
+  async function startAnswering(health: object): Promise<string[]> {
+    const asked: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        asked.push(input);
+        return Response.json(input === "api/health" ? health : { path: "", entries: [] });
+      }),
+    );
+    app = mount(App, { target: document.body });
+    flushSync();
+    await vi.waitFor(() => expect(hook().health()).toEqual(health));
+    flushSync();
+    expect(document.querySelectorAll("header .offline").length).toBe(0);
+    return asked;
+  }
+
+  /** The titles of the open dialogs' level-2 headings. */
+  function openTitles(): string[] {
+    return Array.from(document.querySelectorAll("dialog[open] h2"), (title) => title.textContent);
+  }
+
+  it("uses the browser's picker where the server offers no files", async () => {
+    const asked = await startAnswering({ ...HEALTH, files: false });
+    const input = await openBare();
+    expect(input.accept).toBe(".tle.json,.json,.yaml,.yml,.parquet");
+    await vi.waitFor(() => expect(blocks()).toBe(1));
+    expect([openTitles(), asked]).toEqual([[], ["api/health"]]);
+    expect(document.querySelectorAll("header .offline").length).toBe(0);
+  });
+
+  it.each([
+    ["true", { ...HEALTH, files: true }],
+    ["not named", HEALTH],
+  ])("opens the editor's file dialog where files is %s", async (_case, health) => {
+    const asked = await startAnswering(health);
+    choose("Open…");
+    await vi.waitFor(() => expect(openTitles()).toEqual(["Open"]));
+    await vi.waitFor(() => expect(asked).toEqual(["api/health", "api/folders?path="]));
+    expect(document.querySelector("input[type=file]")).toBe(null);
+    expect(document.querySelectorAll("header .offline").length).toBe(0);
+  });
+});
+
 describe("through the server", () => {
   const MANIFEST = "story/step1.yaml";
   const TABLE = "story/step1.match_claims.parquet";
