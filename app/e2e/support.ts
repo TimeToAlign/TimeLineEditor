@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { drawingOf } from "../packages/arranger/src/drawing.ts";
 import type { Viewport } from "../packages/arranger/src/focus.ts";
 import type {
   Address,
@@ -18,7 +19,14 @@ import type {
   ElementAddress,
   OpenEditor,
 } from "../packages/core/src/index.ts";
-import { addressKey, idAddress, partAddress, TITLE_ADDRESS } from "../packages/core/src/index.ts";
+import {
+  addressKey,
+  idAddress,
+  isLoadError,
+  partAddress,
+  readWorkspace,
+  TITLE_ADDRESS,
+} from "../packages/core/src/index.ts";
 import type { HookBand, HookBox, TestHook } from "../packages/editor/src/testHook.ts";
 import { FONT_METRICS, manifestFixture } from "./schema.ts";
 
@@ -542,6 +550,33 @@ export async function paneOf(
     height: element.clientHeight,
   }));
   return { view };
+}
+
+/**
+ * Wait until block `block` is drawn at the canvas's pane as it stands now:
+ * its `<svg>`'s `viewBox` is the size the arranger's drawing code gives the
+ * stored block at the arranger's size (`paneOf`). The drawer opening or
+ * closing changes that size at once, and the pane settles at it
+ * `PANE_SETTLE` later; a block whose ancestor cards are elided at the
+ * automatic proportion is then drawn again at another width. A box measured
+ * after this wait is the settled drawing's, never the one before it.
+ */
+export async function settledDrawing(page: Page, block: string): Promise<void> {
+  const workspace = readWorkspace(await page.evaluate(() => window.__tilie.text()));
+  if (isLoadError(workspace)) throw new Error("the workspace is refused");
+  const found = workspace.view.blocks[block];
+  if (found === undefined) throw new Error(`block ${block} is missing`);
+  const drawing = drawingOf(
+    found,
+    workspace.view.graphical,
+    FONT_METRICS,
+    undefined,
+    await paneOf(page),
+  );
+  await expect(node(page, block).locator(".tilie-block > svg")).toHaveAttribute(
+    "viewBox",
+    `0 0 ${drawing.width} ${drawing.height}`,
+  );
 }
 
 /** Select `addresses` through the hook. */

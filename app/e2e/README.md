@@ -770,7 +770,11 @@ and then `1`, typed and committed with Enter, is one command
 unstating it (a `set` at `{block: "bmixed0000", id: "group_1"}` with
 `place {height: null}`): the field shows the text it showed
 before (the drawn height, the minimum), the block's drawn box has its
-size on screen from before the first command, and the message bar shows
+size on screen from before the first command (measured once the block is
+drawn at the pane the open drawer leaves the canvas, `settledDrawing`: the
+pane settles `PANE_SETTLE` after the drawer opened, and `excerpt`'s
+ancestor card, elided at the automatic proportion, is then drawn narrower),
+and the message bar shows
 one information message (`data-level="info"`, dismissed by itself after
 3 s, so the page's clock is paused before the command and resumed once the
 message has been read) reading `To decrease the height below <that text>

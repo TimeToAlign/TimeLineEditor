@@ -17,6 +17,7 @@ import {
   OPENED_JOURNAL,
   open,
   select,
+  settledDrawing,
   setViewport,
   tab,
 } from "./support.ts";
@@ -56,6 +57,8 @@ test("a frame height at or below its minimum states none, and the message bar sa
   const height = frame.getByLabel("container height", { exact: true });
   const drawn = await height.inputValue();
   expect(drawn).not.toBe("");
+  // The drawer narrowed the canvas: the box is measured once the block is drawn at that pane.
+  await settledDrawing(page, BUNDLES.mixed);
   const before = await node(page, BUNDLES.mixed).boundingBox();
   const stated = String(Number((Number(drawn) + 10).toFixed(2)));
   await height.fill(stated);
