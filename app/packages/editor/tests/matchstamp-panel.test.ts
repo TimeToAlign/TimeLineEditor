@@ -1339,12 +1339,7 @@ describe("the MatchClaim filter", () => {
         },
       };
       const table = matchTable();
-      const tables = new MatchClaimTables(
-        server,
-        null,
-        () => null,
-        () => failure,
-      );
+      const tables = new MatchClaimTables(server, { failure: () => failure });
       tables.hold(A, { name: "match_claims.parquet", table, file: new Blob([]), changed: false });
       const { shown } = indexesUnder(table);
       show(storeOf(tableManifest()), potential(shown, "cpt_1", 8), tables);

@@ -6,9 +6,9 @@
  * state and call its methods, and the autosave and the host follow it
  * through `listen`.
  *
- * Where the editor reaches the user's files through the server
- * (`FileHost`), a file is named by its path from the server's root, opened
- * and saved through the editor's file dialog, and the workspace keeps
+ * Where the server offers the user's files (`FileHost`), a file is named
+ * by its path from the server's root, opened and saved through the
+ * editor's file dialog, and the workspace keeps
  * where each block's manifest file lies (`ManifestFile.location`, relative
  * to the workspace file's folder), so the MatchClaim table a manifest
  * names is read from beside it. Otherwise the browser's pickers and
@@ -145,16 +145,21 @@ export interface SessionOptions {
   /** Ask the user for the files of tables a manifest names that cannot be reached; without it none is asked. */
   readonly askTables?: AskTables | null;
   /**
+   * Whether the `matchClaims` server answered its health check now, so it
+   * computes: it reads MatchClaim tables from then on, whether or not it
+   * offers the user's files; without it, never.
+   */
+  readonly computes?: () => boolean;
+  /**
    * Why the `matchClaims` server's health check failed, as the editor's
    * offline mark says it; `null` while it has not (answered, or not yet);
    * without it, never.
    */
   readonly healthFailure?: () => string | null;
   /**
-   * The user's files through the server as far as the editor reaches them
-   * now (`null`: it does not, and the browser's pickers serve); without it,
-   * never. The editor reaches them once the server answered its health
-   * check, and the `matchClaims` server reads tables only then.
+   * The user's files through the server as far as it offers them now
+   * (`null`: it offers none, or has not answered its health check yet, and
+   * the browser's pickers serve); without it, never.
    */
   readonly files?: () => FileHost | null;
   /** The canvas's pane, which a new block is placed by as the canvas draws it; without it, layout's default view. */
@@ -201,12 +206,12 @@ export class WorkspaceSession {
 
   constructor(options: SessionOptions) {
     this.#options = options;
-    this.tables = new MatchClaimTables(
-      options.matchClaims ?? null,
-      options.askTables ?? null,
-      () => this.#places(),
-      options.healthFailure,
-    );
+    this.tables = new MatchClaimTables(options.matchClaims ?? null, {
+      ask: options.askTables ?? null,
+      computes: options.computes,
+      places: () => this.#places(),
+      failure: options.healthFailure,
+    });
     this.store.setAuthor(options.author());
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
   }
@@ -288,7 +293,7 @@ export class WorkspaceSession {
     return this.replace(workspace, name, handle, true, path);
   }
 
-  /** The user's files through the server, where the editor reaches them now; `null` where it does not. */
+  /** The user's files through the server, where it offers them now; `null` where it does not. */
   get files(): FileHost | null {
     return this.#options.files?.() ?? null;
   }
@@ -333,7 +338,7 @@ export class WorkspaceSession {
     if (configured !== null) throw new Error(`a location is refused: ${configured.message}`);
   }
 
-  /** The server's files as the MatchClaim tables reach them; `null` where the editor does not reach them. */
+  /** The server's files as the MatchClaim tables reach them; `null` where it offers none now. */
   #places(): ManifestPlaces | null {
     const host = this.files;
     if (host === null) return null;
@@ -634,7 +639,10 @@ export class WorkspaceSession {
    * read a table nothing is asked: where no block holds a table or a
    * block's manifest names one the block does not hold, the message bar
    * says as information that matches need a running server and how to
-   * start one (`HOW_TO_START_A_SERVER`), in place of every question. While the
+   * start one (`HOW_TO_START_A_SERVER`), in place of every question. A
+   * server that answered reads tables whether or not it offers the user's
+   * files; where it offers none, a table is looked for beside an example
+   * alone, else asked for (`MatchClaimTables.loadNamed`). While the
    * server given has not answered its health check yet
    * (`MatchClaimTables.waiting`) nothing is said: it may be slow rather
    * than missing, and the editor calls this again once it answers. A call

@@ -168,7 +168,11 @@ function tablesOf(
   ask: AskTables | null = null,
   held: Readonly<Record<string, Blob>> = {},
 ): MatchClaimTables {
-  const tables = new MatchClaimTables(server, ask, () => answeredPlaces(held));
+  const tables = new MatchClaimTables(server, {
+    ask,
+    computes: () => true,
+    places: () => answeredPlaces(held),
+  });
   tables.hold(A, { name: NAME, table, file: PICKED, changed: false });
   return tables;
 }

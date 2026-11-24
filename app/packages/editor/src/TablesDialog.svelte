@@ -2,9 +2,10 @@
 /**
  * A native modal dialog asking, once, for what the MatchClaim table a
  * manifest names is read from, as the question says (`TableQuestion`):
- * where the manifest lies or the table's file, either located in the
- * editor's file dialog of the server's files (Locate…), which answers at
- * once. A URL of the table may be entered instead (a relative URL is read
+ * where the manifest lies or the table's file, located by the question
+ * (Locate…), which answers at once: in the editor's file dialog where the
+ * server offers the user's files, else the table's file in the browser's
+ * picker. A URL of the table may be entered instead (a relative URL is read
  * relative to the page). `ask` resolves what they chose, or `null` when the dialog is
  * dismissed (Cancel, Escape). It is the editor's one dialog shell
  * (`ModalDialog`) holding a form.
@@ -78,12 +79,12 @@ function finish(value: TableChoice): void {
   shell?.accept();
 }
 
-/** Let the user locate the file asked for in the file dialog, which answers the question. */
+/** Let the user locate the file asked for, which answers the question; cancelled, it stays open. */
 async function locate(): Promise<void> {
   if (question === null) return;
   try {
-    const path = await question.locate();
-    if (path !== null) finish({ path });
+    const located = await question.locate();
+    if (located !== null) finish(located);
   } catch (error) {
     problem = `The file could not be located: ${messageOf(error)}`;
   }

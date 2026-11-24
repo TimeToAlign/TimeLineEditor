@@ -19,7 +19,7 @@ import type { TableRequest } from "../src/matchClaims.svelte.ts";
 import type { FileHost } from "../src/workspaceSession.svelte.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
-import { matchTable, TABLE_MANIFEST_TEXT } from "./matches.ts";
+import { matchTable, TABLE_MANIFEST_TEXT, tableManifest } from "./matches.ts";
 import {
   answer,
   fixture,
@@ -372,6 +372,101 @@ describe("Open… once the server answered", () => {
   });
 });
 
+describe("MatchClaim tables through a server that offers no files", () => {
+  const HEALTH = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0", files: false };
+  const PARQUET = "PAR1";
+  const REFUSED = "could not be loaded: this server cannot read MatchClaim tables.";
+
+  /**
+   * Mount the page over a server whose health says it offers no files and
+   * whose table route answers 501, and await the answer; every requested
+   * address, in order, and the bodies of the table route's requests.
+   */
+  async function startWithoutFiles(): Promise<{ asked: string[]; bodies: Blob[] }> {
+    const asked: string[] = [];
+    const bodies: Blob[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string, init?: RequestInit) => {
+        asked.push(input);
+        if (input === "api/health") return Response.json(HEALTH);
+        if (input === "api/match-claims" && init?.body instanceof Blob) bodies.push(init.body);
+        return new Response("", { status: 501, statusText: "Not Implemented" });
+      }),
+    );
+    app = mount(App, { target: document.body });
+    flushSync();
+    await vi.waitFor(() => expect(hook().health()).toEqual(HEALTH));
+    flushSync();
+    return { asked, bodies };
+  }
+
+  /** The messages shown, as [level, text]. */
+  function shownMessages(): [string | null, string | undefined][] {
+    return Array.from(document.querySelectorAll('[data-testid="message"]'), (card) => [
+      card.getAttribute("data-level"),
+      card.querySelector("p")?.textContent,
+    ]);
+  }
+
+  /** The last four bytes of `body`, as text. */
+  async function endOf(body: Blob | undefined): Promise<string> {
+    if (body === undefined) throw new Error("no request body");
+    return body.slice(-4).text();
+  }
+
+  it("asks for the table Show matches needs, picked in the browser, and reads it through the server", async () => {
+    const { asked, bodies } = await startWithoutFiles();
+    hook().load(workspaceOf(tableManifest()));
+    flushSync();
+    document.querySelector<HTMLButtonElement>('button[aria-label="Show matches"]')?.click();
+    flushSync();
+    await vi.waitFor(() =>
+      expect(document.querySelector("dialog[open] h2")?.textContent).toBe(
+        "Load the MatchClaim table of The manifest",
+      ),
+    );
+    const locate = [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
+      (each) => each.textContent?.trim() === "Locate…",
+    );
+    if (locate === undefined) throw new Error("no Locate… button");
+    locate.click();
+    let input: HTMLInputElement | undefined;
+    await vi.waitFor(() => {
+      input = pickFile("mine.parquet", PARQUET);
+    });
+    expect(input?.accept).toBe(".parquet");
+    await vi.waitFor(() => expect(shownMessages().length).toBe(2));
+    expect(shownMessages()).toEqual([
+      ["error", `mine.parquet ${REFUSED}`],
+      ["info", "No MatchClaim table loaded."],
+    ]);
+    expect(asked).toEqual(["api/health", "api/match-claims"]);
+    expect([bodies.length, await endOf(bodies[0])]).toEqual([1, PARQUET]);
+  });
+
+  it("reads a table picked with its workspace in Open… through the server", async () => {
+    const { asked, bodies } = await startWithoutFiles();
+    choose("Open…");
+    await vi.waitFor(() => {
+      const input = document.querySelector<HTMLInputElement>("input[type=file]");
+      if (input === null) throw new Error("no file input is waiting");
+      Object.defineProperty(input, "files", {
+        value: [
+          new File([workspaceOf(tableManifest())], "w.tle.json"),
+          new File([PARQUET], "match_claims.parquet"),
+        ],
+      });
+      input.dispatchEvent(new Event("change"));
+    });
+    await vi.waitFor(() => expect(shownMessages().length).toBe(1));
+    expect(shownMessages()).toEqual([["error", `match_claims.parquet ${REFUSED}`]]);
+    expect(blocks()).toBe(1);
+    expect(asked).toEqual(["api/health", "api/match-claims"]);
+    expect([bodies.length, await endOf(bodies[0])]).toEqual([1, PARQUET]);
+  });
+});
+
 describe("through the server", () => {
   const MANIFEST = "story/step1.yaml";
   const TABLE = "story/step1.match_claims.parquet";
@@ -449,6 +544,7 @@ describe("through the server", () => {
         questions.push(request);
         return null;
       },
+      computes: () => true,
       files: () => host,
     });
     return { opened, said, questions };

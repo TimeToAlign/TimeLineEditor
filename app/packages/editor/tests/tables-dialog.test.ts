@@ -2,7 +2,7 @@
 
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableChoice, TableRequest } from "../src/matchClaims.svelte.ts";
+import type { Located, TableChoice, TableRequest } from "../src/matchClaims.svelte.ts";
 import TablesDialog from "../src/TablesDialog.svelte";
 import { stubEditor } from "./dom.ts";
 
@@ -123,7 +123,7 @@ describe("the tables dialog", () => {
 
   it("locates the file asked for in the file dialog", async () => {
     if (dialog === undefined) throw new Error("not mounted");
-    const answers: (string | null)[] = [null, "story/step1.yaml"];
+    const answers: (Located | null)[] = [null, { path: "story/step1.yaml" }];
     const locate = vi.fn(async () => answers.shift() ?? null);
     const titled = (question: TableRequest["question"]) => {
       void dialog?.ask({ ...REQUEST, question });
@@ -173,5 +173,18 @@ describe("the tables dialog", () => {
     );
     button("Cancel").click();
     expect(await failing).toBe(null);
+  });
+
+  it("answers at once with a file picked in the browser", async () => {
+    if (dialog === undefined) throw new Error("not mounted");
+    const picked = new File(["PAR1"], "mine.parquet");
+    const locate = vi.fn(async (): Promise<Located | null> => ({ file: picked }));
+    const answer = dialog.ask({ ...REQUEST, question: { kind: "table", missing: null, locate } });
+    flushSync();
+    button("Locate…").click();
+    const answered = await answer;
+    expect(answered).toEqual({ file: picked });
+    expect(answered !== null && "file" in answered && answered.file === picked).toBe(true);
+    expect([locate.mock.calls.length, shown().open]).toEqual([1, false]);
   });
 });

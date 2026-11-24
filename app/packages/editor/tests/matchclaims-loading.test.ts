@@ -376,7 +376,7 @@ function answered(
   held: Record<string, Blob> = {},
 ): MatchClaimTables {
   const { place } = places(held, null);
-  return new MatchClaimTables(server, ask, () => place);
+  return new MatchClaimTables(server, { ask, computes: () => true, places: () => place });
 }
 
 /** The server's files as the session reaches them once the health check answered: holding nothing. */
@@ -512,7 +512,7 @@ describe("the table a manifest names", () => {
     const bare = loadManifest(fixtureText("bare"));
     if (isLoadError(bare)) throw new Error("bare is refused");
     expect(await held.loadNamed("c", bare)).toEqual(none);
-    expect(await new MatchClaimTables(null, ask).loadNamed("b", NAMED)).toEqual(none);
+    expect(await new MatchClaimTables(null, { ask }).loadNamed("b", NAMED)).toEqual(none);
     expect(questions).toEqual([]);
   });
 
@@ -529,7 +529,7 @@ describe("the table a manifest names", () => {
       { manifest: "Tables", table: { url: "match_claims.parquet" }, question: TABLE },
       { manifest: "The manifest", table: { url: null }, question: TABLE },
     ]);
-    expect(await new MatchClaimTables(null, ask).choose("b", NAMED)).toEqual({
+    expect(await new MatchClaimTables(null, { ask }).choose("b", NAMED)).toEqual({
       informed: [],
       failed: [NO_SERVER],
     });
@@ -548,6 +548,7 @@ describe("the table a manifest names", () => {
       author: () => DEFAULT_USER.name,
       matchClaims: server,
       askTables: ask,
+      computes: () => true,
       files: () => HOST,
     });
     expect(opened.open(workspaceOf(tableManifest()))).toBe(null);
@@ -565,6 +566,7 @@ describe("the table a manifest names", () => {
       author: () => DEFAULT_USER.name,
       matchClaims: server,
       askTables: ask,
+      computes: () => true,
       files: () => HOST,
     });
     const placed: [string, string, number, number, string][] = [
@@ -612,13 +614,15 @@ describe("no server reading a table", () => {
 
   /**
    * A session without blocks, the server given or not, its health check
-   * failed with what `failure()` gives (`null`: not, or not yet) and its
+   * failed with what `failure()` gives (`null`: not, or not yet), answered
+   * while `computes()` (by default while `host()` gives its files) and its
    * files reached once `host()` gives them; its questions and messages.
    */
   function sessionIn(
     given: boolean,
     failure: () => string | null,
     host: () => FileHost | null = () => null,
+    computes: () => boolean = () => host() !== null,
   ) {
     const { server, requests } = serving();
     const { ask, questions } = answering(null);
@@ -628,6 +632,7 @@ describe("no server reading a table", () => {
       author: () => DEFAULT_USER.name,
       matchClaims: given ? server : null,
       askTables: ask,
+      computes,
       healthFailure: failure,
       files: host,
     });
@@ -695,12 +700,10 @@ describe("no server reading a table", () => {
     async (_, given, failure, text, waiting) => {
       const { server, requests } = serving();
       const { ask, questions } = answering({ url: "https://example.org/m.parquet" });
-      const tables = new MatchClaimTables(
-        given ? server : null,
+      const tables = new MatchClaimTables(given ? server : null, {
         ask,
-        () => null,
-        () => failure,
-      );
+        failure: () => failure,
+      });
       tables.locate("b", source({}));
       expect([tables.unavailable, tables.waiting]).toEqual([text, waiting]);
       expect(await tables.loadNamed("b", NAMED)).toEqual({ informed: [], failed: [] });
@@ -715,12 +718,10 @@ describe("no server reading a table", () => {
     async (_, given, failure, text) => {
       const { server, requests } = serving();
       const { ask, questions } = answering({ url: "https://example.org/m.parquet" });
-      const tables = new MatchClaimTables(
-        given ? server : null,
+      const tables = new MatchClaimTables(given ? server : null, {
         ask,
-        () => null,
-        () => failure,
-      );
+        failure: () => failure,
+      });
       expect(await tables.choose("b", NAMED)).toEqual({ informed: [], failed: [text] });
       expect(questions).toEqual([]);
       expect(requests).toEqual([]);
@@ -803,12 +804,7 @@ describe("no server reading a table", () => {
     "reads no provenance, no events and no belief through the server with %s",
     async (_, given, failure, text) => {
       const { server, requests, asked } = serving();
-      const tables = new MatchClaimTables(
-        given ? server : null,
-        null,
-        () => null,
-        () => failure,
-      );
+      const tables = new MatchClaimTables(given ? server : null, { failure: () => failure });
       tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
       expect(tables.provenance("b", NAMED, ["claim_1"])).toBe(null);
       expect(tables.events("b", NAMED, ["claim_1"])).toBe(null);
@@ -824,6 +820,158 @@ describe("no server reading a table", () => {
       expect(tables.of("b")?.changed).toBe(false);
     },
   );
+});
+
+describe("a server that offers no files", () => {
+  /** Tables read through `server`, which answered and offers no files; the user asked through `ask`. */
+  function filesless(server: MatchClaimServer, ask: AskTables | null) {
+    return new MatchClaimTables(server, { ask, computes: () => true, places: () => null });
+  }
+
+  /** The file input waiting for the browser's picker. */
+  async function waitingInput(): Promise<HTMLInputElement> {
+    let input: HTMLInputElement | null = null;
+    await vi.waitFor(() => {
+      input = document.querySelector<HTMLInputElement>("input[type=file]");
+      expect(input).not.toBe(null);
+    });
+    if (input === null) throw new Error("no file input is waiting");
+    return input;
+  }
+
+  const MINE = new File([PARQUET], "mine.parquet");
+
+  it("reads tables, asking for a table's file picked in the browser", async () => {
+    const { server, requests } = serving();
+    const { ask, questions } = answering({ file: MINE });
+    const tables = filesless(server, ask);
+    expect([tables.unavailable, tables.waiting]).toEqual([null, false]);
+    expect(await tables.loadNamed("b", NAMED)).toEqual({
+      informed: ["Loaded the MatchClaims of mine.parquet."],
+      failed: [],
+    });
+    expect(questions).toEqual([
+      { manifest: "Tables", table: { url: "match_claims.parquet" }, question: TABLE },
+    ]);
+    expect(requests.map(([, file]) => file)).toEqual([MINE]);
+    expect(tables.of("b")?.name).toBe("mine.parquet");
+
+    const [question] = questions.map((request) => request.question);
+    if (question === undefined) throw new Error("nothing asked");
+    const picking = question.locate();
+    const input = await waitingInput();
+    expect([input.accept, input.multiple]).toEqual([".parquet", false]);
+    pickFiles([MINE]);
+    const located = await picking;
+    expect(located).toEqual({ file: MINE });
+    expect(located !== null && "file" in located && located.file === MINE).toBe(true);
+  });
+
+  it("is cancelled with the picker", async () => {
+    const { ask, questions } = answering(null);
+    const tables = filesless(serving().server, ask);
+    await tables.choose("b", NAMED);
+    const [question] = questions.map((request) => request.question);
+    if (question === undefined) throw new Error("nothing asked");
+    const picking = question.locate();
+    (await waitingInput()).dispatchEvent(new Event("cancel"));
+    expect(await picking).toBe(null);
+  });
+
+  it("loads from a source or a URL without a question, and Load MatchClaims… asks the same", async () => {
+    const { server, requests } = serving();
+    const { ask, questions } = answering({ file: MINE });
+    const tables = filesless(server, ask);
+    const read: string[] = [];
+    tables.locate("b", source({ "match_claims.parquet": MATCH_CLAIMS }, read));
+    expect((await tables.loadNamed("b", NAMED)).informed).toEqual([
+      "Loaded the MatchClaims of match_claims.parquet.",
+    ]);
+    expect(read).toEqual(["match_claims.parquet"]);
+
+    const url = "https://example.org/p/m.parquet";
+    const fetched = vi.fn(async (_input: URL) => new Response("served claims"));
+    vi.stubGlobal("fetch", fetched);
+    const named = {
+      ...NAMED,
+      resources: (NAMED.resources ?? []).map((resource) =>
+        resource.type === "MatchClaim" ? { ...resource, url } : resource,
+      ),
+    };
+    expect((await tables.loadNamed("c", named)).informed).toEqual([
+      "Loaded the MatchClaims of m.parquet.",
+    ]);
+    expect(fetched.mock.calls.map(([input]) => String(input))).toEqual([url]);
+    expect(questions).toEqual([]);
+
+    expect(await tables.choose("d", NAMED)).toEqual({
+      informed: ["Loaded the MatchClaims of mine.parquet."],
+      failed: [],
+    });
+    expect(questions).toEqual([
+      { manifest: "Tables", table: { url: "match_claims.parquet" }, question: TABLE },
+    ]);
+    expect(requests.map(([, file]) => file).at(-1)).toBe(MINE);
+  });
+
+  it("reads provenance and events and records beliefs", async () => {
+    const answeredFile = new Blob([PARQUET, "answered"]);
+    const provenance: Blob[] = [];
+    const beliefs: Blob[] = [];
+    const { server, asked } = serving();
+    const tables = filesless(
+      {
+        ...server,
+        matchClaimProvenance: async (_manifest, file) => {
+          provenance.push(file);
+          return [];
+        },
+        believeMatchClaim: async (_manifest, file) => {
+          beliefs.push(file);
+          return answeredFile;
+        },
+      },
+      null,
+    );
+    tables.hold("b", { name: "t", table: matchTable(), file: MATCH_CLAIMS, changed: false });
+    expect(await tables.provenance("b", NAMED, ["claim_1"])).toEqual([]);
+    expect(await tables.events("b", NAMED, ["claim_1"])).toEqual([]);
+    expect(
+      await tables.believe("b", NAMED, {
+        claim: "claim_1",
+        actor: "tag:example.org,2026:me",
+        belief: "true",
+        date: "2026-11-23",
+      }),
+    ).toBe(null);
+    expect([provenance, asked.map(([, file]) => file), beliefs]).toEqual([
+      [MATCH_CLAIMS],
+      [MATCH_CLAIMS],
+      [MATCH_CLAIMS],
+    ]);
+    expect([tables.of("b")?.file, tables.of("b")?.changed]).toEqual([answeredFile, true]);
+  });
+
+  it("is what Show matches asks through the session, keeping nothing of where the file lies", async () => {
+    const { server } = serving();
+    const { ask, questions } = answering({ file: MINE });
+    const posted: Posted = [];
+    const opened = new WorkspaceSession({
+      post: (level, text) => void posted.push([level, text]),
+      author: () => DEFAULT_USER.name,
+      matchClaims: server,
+      askTables: ask,
+      computes: () => true,
+      files: () => null,
+    });
+    expect(opened.open(workspaceOf(tableManifest()))).toBe(null);
+    const before = opened.text();
+    await opened.loadNamedTables();
+    expect(questions.map(({ question }) => question)).toEqual([TABLE]);
+    expect(posted).toEqual([["info", "Loaded the MatchClaims of mine.parquet."]]);
+    expect(opened.tables.of("0000000000")?.name).toBe("mine.parquet");
+    expect(opened.text()).toBe(before);
+  });
 });
 
 describe("events on demand", () => {
@@ -931,7 +1079,7 @@ describe("beside the manifest's file on the server", () => {
     const { server, requests } = serving();
     const { ask, questions } = answering(null);
     const { place, read } = places({ [TABLE_PATH]: MATCH_CLAIMS }, MANIFEST_PATH);
-    const tables = new MatchClaimTables(server, ask, () => place);
+    const tables = new MatchClaimTables(server, { ask, computes: () => true, places: () => place });
     expect(await tables.loadNamed("b", LAYERIT)).toEqual({
       informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
       failed: [],
@@ -944,7 +1092,7 @@ describe("beside the manifest's file on the server", () => {
     const { server, requests } = serving();
     const { ask, questions } = answering({ path: "other/claims.parquet" });
     const { place, read, chosen } = places({ "other/claims.parquet": MATCH_CLAIMS }, MANIFEST_PATH);
-    const tables = new MatchClaimTables(server, ask, () => place);
+    const tables = new MatchClaimTables(server, { ask, computes: () => true, places: () => place });
     expect(await tables.loadNamed("b", LAYERIT)).toEqual({
       informed: ["Loaded the MatchClaims of claims.parquet."],
       failed: [],
@@ -963,7 +1111,7 @@ describe("beside the manifest's file on the server", () => {
     const { server, requests } = serving();
     const { ask, questions } = answering({ path: MANIFEST_PATH });
     const { place, read, located, chosen } = places({ [TABLE_PATH]: MATCH_CLAIMS }, null);
-    const tables = new MatchClaimTables(server, ask, () => place);
+    const tables = new MatchClaimTables(server, { ask, computes: () => true, places: () => place });
     expect(await tables.loadNamed("b", LAYERIT)).toEqual({
       informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
       failed: [],
@@ -977,11 +1125,11 @@ describe("beside the manifest's file on the server", () => {
     expect(requests.map(([, file]) => file)).toEqual([MATCH_CLAIMS]);
 
     const empty = places({}, null);
-    const nothing = new MatchClaimTables(
-      server,
-      answering({ path: MANIFEST_PATH }).ask,
-      () => empty.place,
-    );
+    const nothing = new MatchClaimTables(server, {
+      ask: answering({ path: MANIFEST_PATH }).ask,
+      computes: () => true,
+      places: () => empty.place,
+    });
     expect(await nothing.loadNamed("b", LAYERIT)).toEqual({
       informed: [],
       failed: ["step1.match_claims.parquet is not beside step1.yaml."],
@@ -1008,7 +1156,11 @@ describe("beside the manifest's file on the server", () => {
       const { place, read } = places({ [TABLE_PATH]: MATCH_CLAIMS }, MANIFEST_PATH);
       const fetching = vi.fn(async (_input: URL) => new Response("served claims"));
       vi.stubGlobal("fetch", fetching);
-      const tables = new MatchClaimTables(server, ask, () => place);
+      const tables = new MatchClaimTables(server, {
+        ask,
+        computes: () => true,
+        places: () => place,
+      });
       expect(await tables.loadNamed("b", naming(url))).toEqual({
         informed: ["Loaded the MatchClaims of step1.match_claims.parquet."],
         failed: [],
@@ -1038,7 +1190,7 @@ describe("beside the manifest's file on the server", () => {
       "fetch",
       vi.fn(async () => new Response("", { status: 404, statusText: "Not Found" })),
     );
-    const tables = new MatchClaimTables(server, ask, () => place);
+    const tables = new MatchClaimTables(server, { ask, computes: () => true, places: () => place });
     expect(await tables.loadNamed("b", naming(WEB_TABLE))).toEqual({
       informed: [],
       failed: [`${WEB_TABLE} could not be read: 404 Not Found`],
@@ -1057,11 +1209,11 @@ describe("beside the manifest's file on the server", () => {
   it("says why a located file the server refuses was not read", async () => {
     const { server, requests } = serving();
     const { place } = places({}, MANIFEST_PATH);
-    const tables = new MatchClaimTables(
-      server,
-      answering({ path: "gone.parquet" }).ask,
-      () => place,
-    );
+    const tables = new MatchClaimTables(server, {
+      ask: answering({ path: "gone.parquet" }).ask,
+      computes: () => true,
+      places: () => place,
+    });
     expect(await tables.loadNamed("b", LAYERIT)).toEqual({
       informed: [],
       failed: ["gone.parquet could not be read: no such file"],

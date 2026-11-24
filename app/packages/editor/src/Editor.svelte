@@ -167,7 +167,10 @@ providePicking(picking);
 /** The server's calls; `null` without a server. */
 const client = untrack(() => (server === null ? null : connect(server)));
 
-/** The server's health, kept for the About pane and `fileHost`; `null` until it answers. */
+/**
+ * The server's health, kept for the About pane, the MatchClaim tables (the
+ * server computes once it answered) and `fileHost`; `null` until it answers.
+ */
 let health = $state.raw<Health | null>(null);
 
 /**
@@ -193,8 +196,10 @@ const session = new WorkspaceSession({
   post,
   matchClaims: client,
   askTables: (request) => tablesDialog?.ask(request) ?? Promise.resolve(null),
-  // Read when matches are asked for, after the health check below was started;
-  // the tables read through the server once `fileHost` is given, after it answered.
+  // Read when matches are asked for, after the health check below was started:
+  // the tables read through the server once it answered, and look for a
+  // manifest's table beside its file only where `fileHost` is given.
+  computes: () => health !== null,
   healthFailure: () => (offline === "" ? null : offline),
   files: () => fileHost,
   pane,

@@ -270,6 +270,32 @@ one block; the editor's file dialog never opens and the only request is
 which asks for the root (`api/folders?path=`, the second and last
 request); no file input waits.
 
+**MatchClaim tables through a server that offers no files**
+(`open-save.test.ts`, the App mounted as above over a health answer saying
+`"files": false`, every `api/match-claims` request answered 501 Not
+Implemented, so the route's one reachable outcome is the failure "<file>
+could not be loaded: this server cannot read MatchClaim tables." posted as
+an error; every requested address and the match-claims request's body
+recorded). It proves that the table is read through the server and that
+nothing asks for a file route. Neither case asks anything but `api/health`
+and `api/match-claims`, never `api/folders` nor `api/files`.
+- A workspace holding the table fixture's manifest (no name, no ID: "The
+  manifest"; it names `match_claims.parquet` by a relative location) is
+  loaded through the hook, and Show matches is turned on by its button.
+  The tables dialog opens, titled "Load the MatchClaim table of The
+  manifest" (never "Where is …?": the browser knows no path of the
+  manifest); Locate… opens the browser's picker (the fallback input,
+  `accept` `.parquet`), answered with `mine.parquet` holding `PAR1`. The
+  requests are exactly `api/health` then `api/match-claims`, whose body ends
+  with exactly the picked file's four bytes; the messages are exactly the
+  error for `mine.parquet` then the information "No MatchClaim table
+  loaded." (no block holds one).
+- Open… picking the same workspace's file `w.tle.json` and
+  `match_claims.parquet` together: the workspace opens, the table goes to
+  the table route (the same two requests, the body ending with the
+  table's bytes), and the message is exactly the error for
+  `match_claims.parquet`.
+
 **Through the server** (`open-save.test.ts`, the session alone, its
 `FileHost` stubbed: a server holding files by path from its root, which
 records every `readFile` and `writeFile`, and a file dialog answering the
@@ -2761,11 +2787,12 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    states of the server: none given (no `matchClaims` option); given, its
    health check not answered yet; given, its health check failed (the
    failure the editor's offline mark reads, here "The server did not answer
-   the health check (Failed to fetch)."); given and answered. Answered is
-   the one state with the server's files (`ManifestPlaces`): the editor
-   reaches them only once the check answered, and the tables take that as
-   the answer, so no test (and no editor) can state "answered" without the
-   places every question needs.
+   the health check (Failed to fetch)."); given and answered (`computes`),
+   whether or not it offers the user's files. Answered and offering files
+   are two facts given to the tables apart: the server's files
+   (`ManifestPlaces`) are given only by a server that answered, and one
+   that answered without them reads tables all the same (9f); no files
+   given never stands for "not answered".
    - In the first three, `unavailable` is `HOW_TO_START_A_SERVER`, the
      failed check's failure first ("The server did not answer the health
      check (Failed to fetch). Matches need a running tilie-server. To start
@@ -2802,7 +2829,8 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
      nothing; the same call once the failure is given (what the editor
      makes itself when the check fails while Show matches is on) posts
      exactly that information, once, and asks and reads nothing.
-   - The check answering later (the places given from then on): the same
+   - The check answering later (answered, and the places given, from then
+     on): the same
      tables ask once, `unavailable` is `null` and `waiting` false; the
      session's call then asks once per block naming a table; both questions
      cancelled, no block holds a table, so it posts exactly the
@@ -2823,10 +2851,46 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    bar gets exactly one message, that information, without M being
    pressed again, no dialog opens and no table is requested.
 
+9f. **A server that offers no files** (`matchclaims-loading.test.ts`, the
+   server stubbed as above, answered (`computes` true) and giving no
+   places, as after a health answer saying `"files": false`; the user's
+   answer stubbed as a function recording each question; the browser's
+   picker the fallback file input, answered in jsdom). It reads tables, but
+   the browser knows no path of a manifest, so nothing is looked for beside
+   one.
+   - `unavailable` is `null` and `waiting` false.
+   - `loadNamed` for the table fixture's manifest named "Tables", which
+     names `match_claims.parquet` by a relative location, without a source:
+     exactly one question, `{manifest: "Tables", table: {url:
+     "match_claims.parquet"}, question: {kind: "table", missing: null,
+     locate}}`, never of kind `manifest` (a manifest picked in the browser
+     gives no folder to look beside). Its `locate` opens the browser's
+     picker: the fallback input waits, `accept` `.parquet`, not `multiple`;
+     answered with `mine.parquet` it resolves `{file}`, that very `File`;
+     cancelled (the input's `cancel`) it resolves `null`. The user's answer
+     `{file}` (`mine.parquet`) is loaded: the table route gets exactly that
+     file, the messages are exactly `{informed: ["Loaded the MatchClaims of
+     mine.parquet."], failed: []}`.
+   - A block located with a source reaching the table (an example's) loads
+     it from there with no question, reading exactly `match_claims.parquet`;
+     a manifest naming `https://example.org/p/m.parquet` has it fetched
+     (once, that URL) with no question; each loads as in 9a.
+   - `choose` (Load MatchClaims…) asks exactly the question above, and a
+     file picked loads.
+   - With a table held, `provenance` and `events` each ask the server once
+     with the held file, and `believe` resolves `null`, the table now marked
+     changed: none is gated by the missing files.
+   - The session (`WorkspaceSession` given the server, `computes` true and
+     `files` giving `null`) over a workspace holding the manifest: Show
+     matches (`loadNamedTables`) asks the one question; answered `{file}`
+     (`mine.parquet`), it posts exactly `[["info", "Loaded the MatchClaims
+     of mine.parquet."]]`, and nothing is kept of where the file lies: the
+     workspace's text is the same before and after.
+
 9b. **The dialog** (`tables-dialog.test.ts`, the component mounted in
-   jsdom with `showModal` stubbed). It asks only where the server's files
-   are reached, so every question locates a file in the editor's file
-   dialog. Asked for the MatchClaim table of "Tables" with the question
+   jsdom with `showModal` stubbed). Every question locates its file through
+   its own `locate`: in the editor's file dialog where the server offers the
+   user's files, in the browser's picker where it offers none (9f). Asked for the MatchClaim table of "Tables" with the question
    `{kind: "table", missing: null, locate}`, it is titled "Load the
    MatchClaim table of Tables" and shows "Locate…" and one group,
    "MatchClaim table match_claims.parquet", holding one URL field labelled
@@ -2844,7 +2908,9 @@ The user is the default user (`statedBy(DEFAULT_USER)`), the other actor
    "match_claims.parquet is not beside Tables, at story/step1.yaml".
    Locate… calls `locate` once; a path answered resolves `{path}` at once,
    `null` (the file dialog cancelled) keeps the dialog open, a rejection
-   shows "The file could not be located: <its message>".
+   shows "The file could not be located: <its message>". A file picked in
+   the browser (`locate` answering `{file}`) resolves `{file}` at once,
+   the very `File` answered.
 
 9c. **Events on demand** (`matchclaims-loading.test.ts`). `events(block,
    manifest, claims)` asks the server's events route once per table and
