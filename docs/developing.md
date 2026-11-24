@@ -12,8 +12,10 @@ them.
 ## Two repositories, one wall
 
 TimeLineEditor holds the editor (`app/`, a pnpm workspace of TypeScript
-packages, Svelte 5 and Vite) and the local server (`server/`, FastAPI,
-installed from PyPI as `tilie-server`, whose wheel ships the built editor).
+packages, Svelte 5 and Vite) and the server (`server/`, FastAPI,
+installed from PyPI as `tilie-server`, whose wheel ships the built editor),
+run by its user on their own computer or as a
+[public instance](../README.md#a-public-instance).
 The manifest format the editor reads and writes is specified by the
 TimeToShare repository: the JSON Schema, the generated TypeScript types
 and validator, the Python validator, the fixtures, the drawing
