@@ -110,7 +110,7 @@ describe("health", () => {
     expect(answer.files).toBe(undefined);
   });
 
-  it("reads the recorded answer: four members, each a string", async () => {
+  it("reads the recorded answer: four members that are strings, and files a boolean", async () => {
     stubFetch(async () => recordedAnswer("health"));
     const answer = await connect({ url: "api/", token: "" }).health();
     expect(answer).toStrictEqual(JSON.parse(new TextDecoder().decode(recorded("health"))));
@@ -119,6 +119,7 @@ describe("health", () => {
       ["version", "string"],
       ["timetoalign", "string"],
       ["timetoshare", "string"],
+      ["files", "boolean"],
     ]);
   });
 

@@ -21,10 +21,10 @@ call or the exact result.
    with `true`, and an answer without the member resolves without it
    (`files` undefined, which the editor reads as `true`, the answer of a
    server that does not name it); an extra member is dropped. The server's
-   recorded answer (item 9) resolves to exactly its four members, each a
-   string; its values are the versions of the server that recorded it, so
-   the test compares the answer with the recording and the members' types,
-   never a version written out.
+   recorded answer (item 9) resolves to exactly its five members, four
+   strings and `files` a boolean; its values are the versions of the server
+   that recorded it, so the test compares the answer with the recording and
+   the members' types, never a version written out.
 3. **The two failures.** A `fetch` that rejects rejects with a
    `ServerError` of code `unreachable`, status `null`, the cause's message
    and the cause itself; an answer outside 2xx rejects with code `status`,
