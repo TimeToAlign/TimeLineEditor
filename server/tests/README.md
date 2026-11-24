@@ -386,7 +386,7 @@ Each test's root is a fresh temporary folder `R` holding:
 | `GET folders` `path=""` | 200 `{"path": "", "entries": [{"name": "d", "kind": "folder"}, {"name": "sub", "kind": "folder"}, {"name": "a.yaml", "kind": "file"}]}`: folders first, then files; the hidden names left out, `notes.txt` left out (none of the readable kinds), `out` left out (its target lies outside the root) |
 | `GET folders` `path="sub"` | `{"path": "sub", "entries": [{"name": "b.tle.json", "kind": "file"}]}`: `c.txt` is none of the readable kinds, `.hidden` is hidden, and `key.yaml`, `conf` and `hid.tle.json` lead into a hidden place |
 | `GET folders` `path="d"` | `{"path": "d", "entries": []}` |
-| `GET folders` on a folder holding the folders `y` and `Z`, the files `b.yaml`, `B.json`, `a.PARQUET` and `n.txt`, a link `inner` to `R/sub`, a link `alias.yaml` to `R/a.yaml`, a link `text.yaml` to `R/notes.txt` and a link `gone.yaml` to nothing | folders `Z`, `inner`, `y`, then files `B.json`, `a.PARQUET`, `alias.yaml`, `b.yaml`: each group sorted by code point (upper case before lower), a link inside the root listed as what it leads to, a link leading to a file of another kind or to nothing left out |
+| `GET folders` on a folder holding the folders `y` and `Z`, the files `b.yaml`, `B.json`, `a.PARQUET` and `n.txt`, a link `inner` to `R/sub`, a link `alias.yaml` to `R/a.yaml`, a link `text.yaml` to `R/notes.txt`, a link `gone.yaml` to nothing and a link `loop.yaml` to itself | folders `Z`, `inner`, `y`, then files `B.json`, `a.PARQUET`, `alias.yaml`, `b.yaml`: each group sorted by code point (upper case before lower), a link inside the root listed as what it leads to, a link leading to a file of another kind, to nothing or into a loop left out |
 | `GET folders` `path="a.yaml"` (a file) or `path="nope"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}` |
 
 **Reading.**
@@ -412,7 +412,24 @@ Each test's root is a fresh temporary folder `R` holding:
 | `PUT files` `path="nope/x.tle.json"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}`, nothing created |
 | `PUT files` `path="d.tle.json"` where `R/d.tle.json` is a folder | 409 `{"detail": {"path": ["path"], "message": "a folder lies at the path"}}`, the folder unchanged |
 | `GET files` `path="a.yaml/"` and `PUT files` `path="w.tle.json/"` | 400 `{"detail": {"path": ["path"], "message": "a file's path does not end in /"}}`: the slash is not dropped, so `a.yaml` is not read and no `w.tle.json` written |
-| `PUT files` `path="loop.tle.json"`, a link to itself, and `GET files` on it | 400 `{"detail": {"path": ["path"], "message": "the links at the path form a loop"}}`; the link is left as it was |
+
+**Links in a loop.** The answers below are the same on every Python the
+server supports: `Path.resolve` raises on a loop up to Python 3.12 and
+leaves the looping link in the path it returns from 3.13 on, so the
+routes resolve a path as the latter does on every version. A path whose
+last segment is a link in a loop is refused as one; a path that leads
+through such a link to a further segment names nothing, as a path through
+a missing folder does. Each request is made with two loops below `R`:
+`loop.tle.json`, a link to itself, and `ring.tle.json` and `ring2`, two
+links leading to each other.
+
+| Request | Answer |
+| --- | --- |
+| `PUT files` (body `b"{}"`) and `GET files`, each on `path="loop.tle.json"` and on `path="ring.tle.json"` | 400 `{"detail": {"path": ["path"], "message": "the links at the path form a loop"}}` |
+| `GET folders` `path="loop.tle.json"` and `path="ring2"` | 400 with the same message |
+| `GET files` `path="ring2/x.yaml"` | 404 `{"detail": {"path": ["path"], "message": "no such file"}}` |
+| `PUT files` `path="ring2/x.tle.json"` | 404 `{"detail": {"path": ["path"], "message": "no such folder"}}` |
+| `GET folders` `path="ring2/d"` | 404 with the same message |
 
 Every refusal of this section and the next two leaves the tree below `R`
 exactly as it was.

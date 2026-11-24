@@ -70,6 +70,18 @@ def is_hidden(parts: tuple[str, ...]) -> bool:
     return any(part.startswith(".") and part != ".." for part in parts)
 
 
+def resolve(path: Path) -> Path:
+    """The absolute path ``path`` names, every link followed but one in a loop.
+
+    A link in a loop is left in the path unresolved, with the segments after
+    it, on every Python version: ``Path.resolve`` does so from Python 3.13 on
+    but raises ``RuntimeError`` up to 3.12, so this calls the function it
+    builds on, ``os.path.realpath``, which leaves the loop in place everywhere.
+    ``status_of`` then finds the link, or nothing behind it.
+    """
+    return Path(os.path.realpath(path))
+
+
 def inside(root: Path, path: str) -> Path:
     """The absolute path ``path`` names below ``root``, every link followed.
 
@@ -89,7 +101,7 @@ def inside(root: Path, path: str) -> Path:
         or PureWindowsPath(path).anchor
     ):
         raise Refused(OUTSIDE)
-    resolved = (root / PurePosixPath(path)).resolve()
+    resolved = resolve(root / PurePosixPath(path))
     if not resolved.is_relative_to(root):
         raise Refused(OUTSIDE)
     if is_hidden(PurePosixPath(path).parts) or is_hidden(
@@ -161,7 +173,7 @@ def listing(root: Path, path: str) -> dict[str, object]:
             for entry in entries:
                 if entry.name.startswith("."):
                     continue
-                target = Path(entry.path).resolve()
+                target = resolve(Path(entry.path))
                 if not target.is_relative_to(root) or is_hidden(
                     target.relative_to(root).parts
                 ):

@@ -305,12 +305,39 @@ def test_a_files_path_ending_in_a_slash_is_refused(
     assert put(client, "w.tle.json/", b"{}") == (400, NO_NAME)
 
 
-def test_links_in_a_loop_are_refused(root: Path, client: TestClient) -> None:
+# Links in a loop
+
+
+@pytest.fixture
+def loops(root: Path) -> Path:
+    """The root with a link to itself and two links leading to each other."""
     (root / "loop.tle.json").symlink_to(root / "loop.tle.json")
-    before = tree(root)
-    assert put(client, "loop.tle.json", b"{}") == (400, LOOP)
-    assert get(client, "loop.tle.json") == (400, LOOP)
-    assert tree(root) == before
+    (root / "ring.tle.json").symlink_to(root / "ring2")
+    (root / "ring2").symlink_to(root / "ring.tle.json")
+    return root
+
+
+@pytest.mark.parametrize("path", ["loop.tle.json", "ring.tle.json"])
+def test_a_file_path_ending_in_a_link_in_a_loop_is_refused(
+    loops: Path, client: TestClient, unchanged: None, path: str
+) -> None:
+    assert put(client, path, b"{}") == (400, LOOP)
+    assert get(client, path) == (400, LOOP)
+
+
+@pytest.mark.parametrize("path", ["loop.tle.json", "ring2"])
+def test_a_folder_path_ending_in_a_link_in_a_loop_is_refused(
+    loops: Path, client: TestClient, unchanged: None, path: str
+) -> None:
+    assert folder(client, path) == (400, LOOP)
+
+
+def test_a_path_leading_through_a_loop_names_nothing(
+    loops: Path, client: TestClient, unchanged: None
+) -> None:
+    assert get(client, "ring2/x.yaml") == (404, NO_FILE)
+    assert put(client, "ring2/x.tle.json", b"{}") == (404, NO_FOLDER)
+    assert folder(client, "ring2/d") == (404, NO_FOLDER)
 
 
 # Hidden files
