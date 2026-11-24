@@ -4715,7 +4715,13 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    moves again, to exactly the viewport a double-click on the block
    centres it at once settled (the oracle: the opening's centring run on
    the drawing shown); a view moved by the user before the pane settles
-   stays where it was moved. A double-click on the
+   stays where it was moved, also with full motion while the view is
+   still moving to the edited element: in that editor, opened at 1600 ×
+   1000 and narrowed to 600 px, a wheel of 40 px right after the
+   narrowing pans the view `PAN_SPEED × 40 = 20` px up from where it was
+   (the move to the narrower centring is interrupted where it began), and
+   the view is exactly there after the pane has settled and 1100 ms more
+   (past any move the settling would start). A double-click on the
    edited element (in `group_1`'s editor, on its frame) moves a view
    panned away back to exactly the viewport opening gave, and changes
    neither the editing path nor the journal; under reduced motion at once,

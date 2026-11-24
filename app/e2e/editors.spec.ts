@@ -6,15 +6,17 @@
  * selected ones in the bundle editor, reordering a group's members in the
  * group editor, the refusal of a change outside the
  * edited element, the Journal tab, and a member's card stretching its group
- * in its timeline editor. The expected values are derived in
+ * in its timeline editor, and a pan during the view's move kept when the
+ * canvas's pane settles. The expected values are derived in
  * `README.md` ("editors.spec.ts"); the double tap is in `touch.spec.ts`.
  */
 
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
-import { focusViewport } from "../packages/arranger/src/focus.ts";
+import { FOCUS_DURATION, focusViewport } from "../packages/arranger/src/focus.ts";
 import type { PaneSource } from "../packages/arranger/src/pane.ts";
+import { PANE_SETTLE } from "../packages/arranger/src/pane.ts";
 import type { Address, ElementAddress } from "../packages/core/src/index.ts";
 import { addressKey, cardAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import type { Drawing } from "../packages/layout/src/index.ts";
@@ -1005,6 +1007,58 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     await editingBar(page).getByRole("button", { name: "Done", exact: true }).click();
     await expect.poll(() => editing(page)).toEqual([]);
     await expect.poll(() => viewportOf(page)).toEqual(VIEW);
+  });
+});
+
+test.describe("a pan while the view moves to the edited element", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("is kept when the pane settles at the canvas's new size", async ({ page }) => {
+    // The page's clock runs on its own until it is paused: the view's moves and the pane's
+    // settling then wait for the test to run the clock.
+    await page.clock.install();
+    await open(page, "bundles");
+    await setViewport(page, VIEW);
+    expect(await page.evaluate((target) => window.__tilie.open(target), BUNDLE)).toBeNull();
+    await expect(drawer(page)).toBeVisible();
+    await page.getByRole("button", { name: "Close inspector" }).click();
+    await expect(drawer(page)).toBeHidden();
+    const wide = await arranger(page).evaluate((item) => item.clientWidth);
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + FOCUS_DURATION + 1000);
+    const centred = await viewportOf(page);
+
+    // The drawer opens: the canvas narrows, the view starts its move to the block centred for
+    // the narrower canvas, and the pane waits PANE_SETTLE before it settles at that size.
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await expect(drawer(page)).toBeVisible();
+    await expect.poll(() => arranger(page).evaluate((item) => item.clientWidth)).toBeLessThan(wide);
+    // A resize observer made now reports in the same rendering step as the canvas's own, which
+    // has then measured the narrower canvas.
+    await arranger(page).evaluate(
+      (item) =>
+        new Promise<void>((resolve) => {
+          const observer = new ResizeObserver(() => {
+            observer.disconnect();
+            resolve();
+          });
+          observer.observe(item);
+        }),
+    );
+    const box = await arranger(page).boundingBox();
+    if (box === null) throw new Error("the arranger is not displayed");
+    await page.mouse.move(box.x + 20, box.y + 20);
+    await page.mouse.wheel(0, 40);
+    // The move had not begun: the pan starts from where the view was, and only moves it up.
+    await expect.poll(() => viewportOf(page)).not.toEqual(centred);
+    const panned = await viewportOf(page);
+    expect([panned.x, panned.zoom]).toEqual([centred.x, centred.zoom]);
+    expect(panned.y).toBeLessThan(centred.y);
+
+    // The pane settles, and the drawings are drawn again for it; then as long as a move takes.
+    await page.clock.runFor(PANE_SETTLE);
+    await page.clock.runFor(FOCUS_DURATION);
+    expect(await viewportOf(page)).toEqual(panned);
+    await page.clock.resume();
   });
 });
 

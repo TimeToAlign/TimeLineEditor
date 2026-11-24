@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { boxOf, itemOf } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
+import { PAN_SPEED } from "../src/gestures/wheel.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
 import { PANE_SETTLE } from "../src/pane.ts";
 import { type Selection, selectionOf } from "../src/selection.ts";
@@ -700,6 +701,28 @@ describe("the view when the canvas changes size", () => {
     await wait(PANE_SETTLE);
     expect(viewport()).toEqual({ x: 5, y: 6, zoom: 1 });
     expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
+  });
+
+  it("leaves a view the user pans during the move where it was panned when the pane settles", async () => {
+    reduced = false;
+    await show();
+    await resizeArranger(1600, 1000);
+    open(blockA);
+    await settle();
+    await wait(1100);
+    const opened = viewport();
+    await resizeArranger(600, 1000);
+    // The view starts its move to the block centred for 600 px, and the pane settles
+    // PANE_SETTLE later; a wheel of 40 px pans first, PAN_SPEED × 40 = 20 px up, which
+    // interrupts the move where it began.
+    pane().dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 40 }));
+    await settle();
+    const panned = { ...opened, y: opened.y - PAN_SPEED * 40 };
+    expect(viewport()).toEqual(panned);
+    // Past the settling and past a move the settling would start: the view is still panned.
+    await wait(PANE_SETTLE);
+    await wait(1100);
+    expect(viewport()).toEqual(panned);
   });
 });
 

@@ -66,7 +66,11 @@ export class EditorFocus {
     });
   }
 
-  /** The view was set from outside (a toolbar, a test): no smooth move is under way any more. */
+  /**
+   * The view was moved from outside the focus (the user's pan or zoom, a
+   * toolbar, a test): no smooth move is under way any more, and the view
+   * stays where it was moved when the pane settles (`settled`).
+   */
   moved(): void {
     this.#heading = null;
   }
@@ -147,7 +151,7 @@ export class EditorFocus {
    * canvas changed size measured the drawing of the size before. With an
    * editor open and the view still where it was last centred (or heading
    * there), the edited element is centred again on its new drawing; a view
-   * moved since is left where it is.
+   * moved since, also by the user during that move, is left where it is.
    */
   settled(): void {
     const innermost = this.#host.store().editing.at(-1);

@@ -1141,6 +1141,9 @@ function onkeydowncapture(event: KeyboardEvent) {
       onnodeclick={pointer.nodeclick}
       onpaneclick={pointer.paneclick}
       onselectionend={pointer.selectionend}
+      onmovestart={(event) => {
+        if (event !== null) editorFocus.moved();
+      }}
       onnodedragstart={(event) => {
         startBlockDrag(event);
         drag.start(event);

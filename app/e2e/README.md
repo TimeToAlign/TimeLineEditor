@@ -1568,7 +1568,16 @@ page, at the canvas's pane, the arranger's size measured in the page
 proportion, which reads the pane, so the block's drawing and its bounds
 differ from one pane to another): the view centres the block as drawn
 for the canvas's size, the drawer open and closed; these are the expected
-values of this spec computed by the code under test.
+values of this spec computed by the code under test. A pan during the
+view's move is the user's and stays: with full motion and the page's clock
+paused, the bundle editor of `bmixed0000` open and the drawer closed,
+opening the drawer narrows the canvas (the case waits on the canvas's own
+measurement: a resize observer made then reports in the same rendering
+step) and starts the view's move, which has not advanced; a wheel of 40 px
+then pans the view up from where it was (its x and zoom unchanged), and
+after the clock has run `PANE_SETTLE` (the pane settles, the block is drawn
+again for it) and `FOCUS_DURATION` more (any move the settling started
+would have ended), the viewport is exactly the panned one.
 
 **`selection-motion.spec.ts`** (Chromium, Firefox, WebKit) proves the
 selection through changes and editors on `bundles` (block `bshared000`,
