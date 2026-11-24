@@ -342,9 +342,15 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     color: #595959;
   }
 
+  /*
+   * Two columns that share the panel's width whatever the fields' own width:
+   * `minmax(0, 1fr)`, since a bare `1fr` never shrinks a column below its
+   * number field's intrinsic width, which differs between browsers and
+   * would make the panel scroll sideways at the drawer's least width.
+   */
   .properties {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.25rem 0.5rem;
   }
 
@@ -384,7 +390,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   /* The container's width and height side by side, the Locked checkbox to their right. */
   .properties .size {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     gap: 0.25rem 0.5rem;
     align-items: end;
   }

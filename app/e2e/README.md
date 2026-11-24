@@ -1737,14 +1737,32 @@ Arranger, Properties, Metadata, Manifest, Journal, Timestamp, Matchstamp
 and Elisions on two rows (two distinct tops of the tab buttons); with each
 tab chosen by a click, in that order, every one of the drawer, the
 inspector's body, the tab list and the panels' scroll container has its
-`scrollWidth` equal to its `clientWidth`. The strip stays one strip: the
+`scrollWidth` equal to its `clientWidth`. The widest panel there is the
+Properties tab's form, whose number fields have an intrinsic width that
+differs between the engines (before its columns were allowed to shrink
+below it, the panels' scroll container measured 385 in Firefox and 364 in
+WebKit against 352): the check runs in all three engines for that reason.
+The manifest text area of the Manifest tab is not one of the four: it keeps
+its lines unwrapped and scrolls them inside itself, a text control, not the
+inspector. The strip stays one strip: the
 selected tab alone is underlined (its bottom border `rgb(26, 26, 26)`)
 whichever row it lies in, Elisions in the second row and Arranger in the
 first, and the tab list's border runs under the last row (the last tab's
-bottom 1 px above the list's bottom). From the focused Arranger tab,
+bottom, read in the page as `getBoundingClientRect().bottom`, equals the
+list's bottom less its 1 px bottom border, both read in one evaluation:
+Firefox lays out in sixtieths of a pixel, and the sum of a box's `y` and
+`height` as Playwright reports them differs there from the bottom by a
+rounding of the last float digit). From the focused Arranger tab,
 ArrowRight seven times selects and focuses each next tab in reading order
 across the rows and once more wraps to Arranger; ArrowLeft eight times
-goes back the same way. At a 2400 × 900 page the drawer takes its largest
+goes back the same way. At the same width, with the bundle's editor
+opened through the hook (`open({block: bmixed0000})`, the innermost editor
+then targeting that block), the level tab reads Bundle and holds the
+widest settings (the Arrangement area and the manifest file's switches);
+with each of the eight tabs, Bundle, Properties, Metadata, Manifest,
+Journal, Timestamp, Matchstamp and Elisions, chosen by a click in that
+order, the same four have `scrollWidth` equal to `clientWidth`. At a
+2400 × 900 page the drawer takes its largest
 width, `40rem` (`640px`), and the eight tabs fit one row, nothing
 scrolling sideways (measured in Chromium: the tabs 599.59375 wide in all,
 the row 616).
