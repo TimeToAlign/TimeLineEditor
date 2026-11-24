@@ -66,8 +66,7 @@ function configure(change: {
   if (blockId === null || filter === null) return;
   const next = { ...filter, ...change };
   const refusal = live.store.configure({ matchClaimFilters: { [blockId]: next } });
-  if (refusal !== null)
-    post("warning", `The MatchClaim filter was not changed: ${refusal.message}`);
+  if (refusal !== null) post("info", `The MatchClaim filter was not changed: ${refusal.message}`);
 }
 
 /** Whether the filter shows the MatchClaims of `timeline`. */

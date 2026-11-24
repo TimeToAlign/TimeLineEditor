@@ -778,7 +778,7 @@ describe("the user", () => {
 });
 
 describe("refusals", () => {
-  it("posts the store's refusal as a warning and journals nothing", () => {
+  it("posts the store's refusal as information and journals nothing", () => {
     const store = layerit();
     const { informed, warned, failed } = show(store, [{ block: A, id: "cpt_1" }]);
     const region = provenance("is a recording of Clair de lune");
@@ -789,7 +789,7 @@ describe("refusals", () => {
     });
     button("True", region).click();
     flushSync();
-    expect([warned, informed, failed]).toEqual([["refused for the test"], [], []]);
+    expect([informed, warned, failed]).toEqual([["refused for the test"], [], []]);
     expect(store.journal).toHaveLength(1);
   });
 

@@ -3237,10 +3237,11 @@ every other one's is its verb and its label.
     Clara Wieck (ORCID iD 0000-0002-1825-0097).", and stating the
     candidate then records the belief `"true"` of the actor
     `https://orcid.org/0000-0002-1825-0097`.
-12. **Refusals.** A store refusal is posted as a warning (kept until
-    dismissed) with its message; a throw of the statement functions as the
-    warning "The statement could not be changed: …"; neither is posted as
-    information, neither journals anything.
+12. **Refusals.** A store refusal is posted as information (as every
+    refusal of a change to what is open, ADR 0037) with its message, and
+    as nothing else; a throw of the statement functions is posted as the
+    error "The statement could not be changed: …" and as nothing else;
+    neither journals anything.
 13. **State belongs to the element.** The composer opened on `cpt_2` is
     hidden on selecting `cpt_1` and not shown again there.
 
@@ -3467,15 +3468,18 @@ bar, three levels. What proves it:
   clock run forward) the information is still shown, at that time it is
   gone, and the warning stays.
 
-The level of every message the editor posts is listed in ADR 0037's terms:
-a refusal of a gesture, a key or a pick, a value copied, a size replaced
-by its minimum, a table loaded, a lookup that could not be searched and
-`HOW_TO_START_A_SERVER` / "No MatchClaim table loaded." are
-information; a file not opened because of what was picked, an address not
-read, autosave active elsewhere, a filter or a statement the store refused
-are warnings; a workspace, manifest, example or table that could not be
-opened, imported, loaded, restored, exported or saved, a belief not
-recorded and autosave not working are errors.
+The level of every message the editor posts follows ADR 0037's one rule:
+every refusal of a change to what is open (a gesture, a key or a pick on
+the canvas, a filter, a statement or an arrangement the store refused), a
+value copied, a size replaced by its minimum, a table loaded or saved, a
+copy that failed, a lookup that could not be searched and
+`HOW_TO_START_A_SERVER` / "No MatchClaim table loaded." are information;
+a file not opened because of what was picked with it, a table not loaded
+for lack of a manifest naming it, addresses a host asked for that could
+not be selected and autosave active elsewhere are warnings; a workspace,
+manifest, example or table that could not be opened, imported, loaded,
+restored, exported or saved, a belief not recorded, a statement that could
+not be built and autosave not working are errors.
 
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 

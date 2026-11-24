@@ -152,7 +152,7 @@ function edit(at: Frame, change: () => Skeleton): boolean {
   if (command === null) return false;
   const refusal = store.dispatch(command);
   if (refusal === null) return true;
-  post("warning", refusal.message);
+  post("info", refusal.message);
   return false;
 }
 

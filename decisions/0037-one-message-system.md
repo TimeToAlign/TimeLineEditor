@@ -64,15 +64,28 @@ What a message is, and what is not:
 
 The editor has one message system:
 
-- **Three levels.** *Information* reports what passes: a refusal of a
-  gesture, a key or a pick on the canvas, a value copied, a size replaced
-  by its minimum, a table loaded, matches that cannot be shown.
-  A *warning* reports something the user must know although nothing
-  failed: a file not opened because of what was picked, an address not
-  read, autosave active elsewhere, a filter not changed. An *error*
-  reports an operation that failed: a workspace, manifest, example or
-  table that could not be opened, imported, loaded, restored or saved, a
-  belief the server did not record, an autosave that does not work.
+- **Three levels**, told apart by what the user has lost and must do.
+  *Information* reports what passes, nothing being lost:
+  - a refusal of a change the user made to what is open, wherever it is
+    refused (a gesture, a key or a pick on the canvas, a choice in a
+    panel, a statement, a filter or an arrangement the store refused):
+    everything stays as it was, and the message says why;
+  - a confirmation: a value copied, a table loaded or saved, a size
+    replaced by its minimum;
+  - a failure the user can simply repeat or work around at once: a copy
+    that failed (the text can be selected and copied by hand), a lookup
+    service that could not be searched (the search can be asked again);
+  - matches that cannot be shown, and why.
+
+  A *warning* reports something the user asked for that was left undone,
+  in whole or in part, for a reason other than the change itself: a file
+  not opened because of what was picked with it, a table not loaded for
+  lack of a manifest naming it, addresses a host asked for that could not
+  be selected, autosave active elsewhere. An *error* reports an operation
+  on a file or a server that failed: a workspace, manifest, example or
+  table that could not be opened, imported, loaded, restored, exported or
+  saved, a belief the server did not record, a statement that could not
+  be built, an autosave that does not work.
 - **One place.** The message bar over the canvas lists every message,
   oldest first, each in its own card, one under another; a card never
   overlaps another, and a card leaving moves the later ones up. Every
