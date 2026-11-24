@@ -819,7 +819,10 @@ requires an empty violation list in each, in the order of the cases. On
 selection opens the tab; its "Wedge rotation" slider and an enabled
 Delete shown); the Timestamp tab showing the unnamed pin a selected
 start mark gives (`{block: "map0000000", id: "phrase", part:
-["start"]}`, its "coordinate of Phrase" field shown, Delete disabled).
+["start"]}`, its "coordinate of Phrase" field shown, Delete disabled;
+the greyed keys of its Properties are in view and checked: axe-core
+exempts the disabled controls, not the "Display" key, whose group is no
+disabled element).
 On `bundles`: the Timestamp tab of `bmixed0000`'s `timestamp_7`, on the
 group member `performance`, showing the group "Group" with its
 GroupStamp toggle. On `small` again: the Journal tab after a closed

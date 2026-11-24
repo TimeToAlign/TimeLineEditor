@@ -208,9 +208,12 @@ function remove(): void {
     color: #595959;
   }
 
-  /* While unnamed the keys are greyed with their disabled controls. */
+  /*
+   * While unnamed the keys are greyed with their disabled controls, in the
+   * grey of the editor's disabled text, which keeps a readable contrast.
+   */
   .unnamed .key {
-    opacity: 0.5;
+    color: #6b6b6b;
   }
 
   .field .problem,
