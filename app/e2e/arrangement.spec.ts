@@ -322,7 +322,7 @@ test("the canvas's blocks are packed in a matrix and placed freely again", async
     [560.080078125, 0],
     [0, 127.9765625],
     [560.080078125, 127.9765625],
-    [0, 266.27734375],
+    [0, 270.27734375],
   ]);
   expect(await places(page, BLOCKS)).toEqual(STATED);
 

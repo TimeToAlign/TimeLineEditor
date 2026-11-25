@@ -182,7 +182,7 @@ frame and are much wider than their frames. The positions above are chosen
 from the blocks as layout records them (the arranger's `drawingOf` at
 layout's default view, the nodes by `nodePosition`, width × height, node
 from (left, top) to (right, bottom)) so that no two nodes overlap (the
-narrowest gap is the 14.37109375 between `bmixed0000`, whose `annotations`
+narrowest gap is the 16.87890625 between `bmixed0000`, whose `annotations`
 lies below `recording`'s ancestor card, and `bungroup00`). A wider pane
 widens the elided ancestor cards of `gchild0000` and `bshared000` to the
 left only; at the 1304.609375 px pane of a page 1920 wide with the drawer
@@ -197,10 +197,10 @@ starts beyond it); the positions above keep every node apart:
 | `gchild0000` | 1001.609814453125 × 173.5625 | (447.99018554687495, 0) | (−447.99018554687495, 0) to (553.61962890625, 173.5625) |
 | `ggrand0000` | 1052.96923828125 × 207.5390625 | (245.69419642857133, 0) | (−245.69419642857133, 288) to (807.2750418526787, 495.5390625) |
 | `gmixed0000` | 1262.9775390625 × 324.515625 | (273.0302734375, 0) | (366.9697265625, 544) to (1629.947265625, 868.515625) |
-| `gstyled000` | 546.1240234375 × 260.1875 | (0, 0) | (640, 0) to (1186.1240234375, 260.1875) |
-| `bmixed0000` | 1067.755615234375 × 459.12109375 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 459.12109375) |
-| `bshared000` | 1435.7741210937497 × 515.4765625 | (433.10493164062495, 0) | (206.89506835937505, 952) to (1642.6691894531248, 1467.4765625) |
-| `bungroup00` | 527.3271484375 × 252.1640625 | (0, 0) | (0, 480) to (527.3271484375, 732.1640625) |
+| `gstyled000` | 546.1240234375 × 257.6796875 | (0, 0) | (640, 0) to (1186.1240234375, 257.6796875) |
+| `bmixed0000` | 1067.755615234375 × 463.12109375 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 463.12109375) |
+| `bshared000` | 1435.7741210937497 × 519.4765625 | (433.10493164062495, 0) | (206.89506835937505, 952) to (1642.6691894531248, 1471.4765625) |
+| `bungroup00` | 527.3271484375 × 249.65625 | (0, 0) | (0, 480) to (527.3271484375, 729.65625) |
 | `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
 
 The ancestor cards widen `gchild0000`, `ggrand0000` and `gmixed0000`
@@ -257,12 +257,12 @@ the pointer at `V = dy / 2` (scale 1, zoom 1), so `nested` stretched by
 (200, 51) at its bottom-right corner stores margin 25.5 and by 40 at its
 bottom margin 20, its `spacing` staying 8. Only a shrink from margin 0
 finds no other value and journals nothing. A frame's spacing is the gap between its cards: `bmixed0000`'s
-`group_1` is `154.7265625 + Sf` high (its title's slot 24.8046875, its
-cards 72.4453125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
+`group_1` is `158.7265625 + Sf` high (its title's slot 24.8046875, its
+cards 76.4453125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
 its spacing to `8 + 44 = 52`, and a drag of its bottom-right corner by
-(40, 20) in Scale scales it by the larger ratio, `(162.7265625 + 20) /
-162.7265625` against `(561.052001953125 + 40) / 561.052001953125`, rounded
-to 1/2048: 2300 / 2048 (2299.7105958039274 / 2048).
+(40, 20) in Scale scales it by the larger ratio, `(166.7265625 + 20) /
+166.7265625` against `(561.052001953125 + 40) / 561.052001953125`, rounded
+to 1/2048: 2294 / 2048 (2293.6717117285975 / 2048).
 
 Every block's card rectangle and its shadow carry the address `{id: <root>,
 part: ["card"]}` (roots `bare`, `clt_1`, `melody`, `flow:quarters`,
@@ -291,22 +291,23 @@ before, all at `x = 8`.
 
 - `bmixed0000`: `score` (two maps, `Ea = 11.5`; below the wedges, 4 and a
   flow control band holding its jump's symbol alone, the arcs hidden by
-  default and the jump having no name or label of its own: its symbol row `h(12) =
-  13.96875`, so `Eb = 26.9765625 + 4 + 13.96875 = 44.9453125`)
-  72.4453125; `performance` and `page` (one map each) 49.4765625; `excerpt`
+  default and the jump having no name or label of its own: its symbol row
+  `2 + h(12) + 2 = 17.96875`, the symbol gap on both sides of the glyph
+  box, so `Eb = 26.9765625 + 4 + 17.96875 = 48.9453125`)
+  76.4453125; `performance` and `page` (one map each) 49.4765625; `excerpt`
   (one map, `y_root = 8 + 6.5`, then `recording`'s ancestor row below
   it) `14.5 + 52.9765625 = 67.4765625`; `annotations` (both regions in one
   row, a regions band `6 + 2 + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond
-  the wedges) 71.85546875. So `group_1` is 162.7265625 high at `y`
-  28.8046875 and `group_2` 157.7578125 at 199.53125. `recording`'s
-  ancestor card behind `group_2` lies from 281.8125 and is 87.453125
+  the wedges) 71.85546875. So `group_1` is 166.7265625 high at `y`
+  28.8046875 and `group_2` 157.7578125 at 203.53125. `recording`'s
+  ancestor card behind `group_2` lies from 285.8125 and is 87.453125
   high (the arranger's tests README, "`bundle_mixed`'s `score`", With
   `recording`'s ancestor card: its markers band holds the name labels of
-  its derived gaps), ending at 369.265625, below `group_2`'s frame
-  (357.2890625); an item lies 8 below every item before it and their
+  its derived gaps), ending at 373.265625, below `group_2`'s frame
+  (361.2890625); an item lies 8 below every item before it and their
   ancestor cards (drawing.md sections 8.6 and 8.8, No room), so
-  `annotations`' card lies at 377.265625 and the block is `8 +
-  (377.265625 + 71.85546875 + 2) = 459.12109375` high.
+  `annotations`' card lies at 381.265625 and the block is `8 +
+  (381.265625 + 71.85546875 + 2) = 463.12109375` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
   `exposition_second`: its line reaches `11.5 + 2 + h(9) = 23.9765625`
@@ -326,17 +327,17 @@ before, all at `x = 8`.
   = 113.9296875`; `take_2` (plain) 49.37890625. `exposition`, a child of
   `score`, draws in its member card's flow control band the repeat of
   `score`'s tree lying on its stretch (drawing.md section 6.4, Gathering),
-  its symbol row `h(12) = 13.96875` beyond the band spacing 4, so its card
-  is `84.953125 + 17.96875 = 102.921875` high. So `group_1` is 207.1796875
-  high at `y` 28.8046875 and `group_2` 204.11328125 at `28.8046875 +
-  207.1796875 + 8 = 243.984375`. `score`'s ancestor cards lie from
-  39.6015625 and 265.7890625 and are 177.3515625 high (`score`'s movements
-  in one row of one band order, section 6.4; the schema package's drawing
-  `bundle__bundle_shared_parent` draws them at `y="39.6016"` and
-  `y="265.7891"`), each inside its frame, so the block's origin is the
-  place origin, and `page`'s card lies 8 below `group_2`'s frame, at
-  `243.984375 + 204.11328125 + 8 = 456.09765625`; the block is
-  `456.09765625 + 49.37890625 + 2 + 8 = 515.4765625` high.
+  its symbol row `2 + h(12) + 2 = 17.96875` beyond the band spacing 4, so
+  its card is `84.953125 + 21.96875 = 106.921875` high. So `group_1` is
+  211.1796875 high at `y` 28.8046875 and `group_2` 204.11328125 at
+  `28.8046875 + 211.1796875 + 8 = 247.984375`. `score`'s ancestor cards
+  lie from 43.6015625 and 269.7890625 and are 181.3515625 high (`score`'s
+  movements in one row of one band order, section 6.4; the schema
+  package's drawing `bundle__bundle_shared_parent` draws them at
+  `y="43.6016"` and `y="269.7891"`), each inside its frame, so the block's
+  origin is the place origin, and `page`'s card lies 8 below `group_2`'s
+  frame, at `247.984375 + 204.11328125 + 8 = 460.09765625`; the block is
+  `460.09765625 + 49.37890625 + 2 + 8 = 519.4765625` high.
 
 Their widths are those of the names, the ancestor lines' chevrons and the
 labels at the lines' ends: maps span their lines (a plain segment's map its
@@ -1486,14 +1487,14 @@ drawing's origin is `(0, 0)`, so the node lies at the block's stated place.
    (`⌈√5⌉` columns when first chosen), shows `Columns 3`, and places the
    nodes in three columns 518.256591796875 (`flow_control`),
    528.080078125 (`styled__score`) and 490.53662109375 wide and two rows
-   95.9765625 and 129.25 high: `bare` (0, 0), `nested`
+   95.9765625 and 133.25 high: `bare` (0, 0), `nested`
    (550.256591796875, 0), `map` (1110.336669921875, 0), `flow_control` (0,
    127.9765625), `styled__score` (550.256591796875, 127.9765625). Fewer
    columns sends `{direction: matrix, columns: 2}`, shows `Columns 2`, and
    the columns are 528.080078125 and 518.256591796875 wide, the rows
-   95.9765625, 106.30078125 and 129.25 high: `bare` (0, 0), `nested`
+   95.9765625, 110.30078125 and 133.25 high: `bare` (0, 0), `nested`
    (560.080078125, 0), `map` (0, 127.9765625), `flow_control`
-   (560.080078125, 127.9765625), `styled__score` (0, 266.27734375). Every
+   (560.080078125, 127.9765625), `styled__score` (0, 270.27734375). Every
    block's stated place is unchanged. Free sends `{arrangement: null}` and
    every node returns to its stated place. A node's position is read from
    its computed `transform`, compared with the one the browser computes for

@@ -324,10 +324,10 @@ test.describe("a frame on the arranger", () => {
         block,
       ),
     ).toEqual({
-      group_1: { scale: 2300 / 2048 },
-      group_2: { x: 8, y: 199.53125 },
-      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 369.265625.
-      annotations: { x: 8, y: 377.265625 },
+      group_1: { scale: 2294 / 2048 },
+      group_2: { x: 8, y: 203.53125 },
+      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 373.265625.
+      annotations: { x: 8, y: 381.265625 },
     });
   });
 });
@@ -355,9 +355,9 @@ test.describe("a frame stretched vertically", () => {
       ),
     ).toEqual({
       group_1: { spacing: 52 },
-      group_2: { x: 8, y: 199.53125 },
-      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 369.265625.
-      annotations: { x: 8, y: 377.265625 },
+      group_2: { x: 8, y: 203.53125 },
+      // 8 below `recording`'s ancestor card behind `group_2`, which ends at 373.265625.
+      annotations: { x: 8, y: 381.265625 },
     });
   });
 });
@@ -385,9 +385,9 @@ test.describe("a member's card in a group", () => {
       await page.mouse.up();
       expect(await journalLength(page)).toBe(before + 1);
     };
-    // `group_2` 8 below `group_1`'s frame (28.8046875 + 207.1796875); `page` 8 below `group_2`'s
-    // frame, which ends at 448.09765625, below `score`'s ancestor card behind it (README.md).
-    const others = { group_2: { x: 8, y: 243.984375 }, page: { x: 8, y: 456.09765625 } };
+    // `group_2` 8 below `group_1`'s frame (28.8046875 + 211.1796875); `page` 8 below `group_2`'s
+    // frame, which ends at 452.09765625, below `score`'s ancestor card behind it (README.md).
+    const others = { group_2: { x: 8, y: 247.984375 }, page: { x: 8, y: 460.09765625 } };
 
     await select(page, [{ block, ...cardAddress("exposition") }]);
     await chooseMode(page, "box");
