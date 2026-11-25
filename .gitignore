@@ -11,6 +11,12 @@ server/src/tilie_server/static/
 app/e2e/test-results/
 playwright-report/
 
+# Documentation site: the build and its generated pages
+docs/_build/
+docs/api-py/
+docs/api-ts/
+docs/decisions/
+
 # Python caches
 __pycache__/
 *.pyc

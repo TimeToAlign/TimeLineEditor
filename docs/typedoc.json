@@ -1,0 +1,38 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "TypeScript API",
+  "entryPointStrategy": "packages",
+  "entryPoints": [
+    "../app/packages/core",
+    "../app/packages/layout",
+    "../app/packages/writers",
+    "../app/packages/client",
+    "../app/packages/arranger",
+    "../app/packages/editor"
+  ],
+  "packageOptions": {
+    "entryPointStrategy": "expand",
+    "entryPoints": ["src"],
+    "exclude": ["**/*.d.ts", "**/*.svelte"],
+    "readme": "none",
+    "skipErrorChecking": true,
+    "excludePrivate": true,
+    "excludeInternal": true,
+    "validation": {
+      "notExported": false,
+      "invalidLink": true,
+      "notDocumented": false
+    }
+  },
+  "readme": "none",
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "api-ts",
+  "cleanOutputDir": true,
+  "outputFileStrategy": "modules",
+  "entryFileName": "index.md",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "useCustomAnchors": true,
+  "sort": ["kind", "alphabetical"],
+  "logLevel": "Warn"
+}
