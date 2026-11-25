@@ -88,6 +88,16 @@ const SONATA = {
         ],
       ],
       sections: ["A", "C"],
+      findings: [
+        {
+          kind: "never_played",
+          coordinate: [12, 1],
+          end: [16, 1],
+          cause: "single_playback",
+          message:
+            "The stretch [12, 16) quarters is never played: going through once leaves it out, the default flow plays it.",
+        },
+      ],
     },
     printed: {
       runs: [
@@ -97,6 +107,7 @@ const SONATA = {
         ],
       ],
       sections: ["A", "B", "C"],
+      findings: [],
     },
   },
 };
@@ -118,8 +129,8 @@ const SAMPLES = {
       sections: ["A", "A", "B"],
       findings: [],
     },
-    single: { runs: [[0, 100]], sections: ["A", "B"] },
-    printed: { runs: [[0, 100]], sections: ["A", "B"] },
+    single: { runs: [[0, 100]], sections: ["A", "B"], findings: [] },
+    printed: { runs: [[0, 100]], sections: ["A", "B"], findings: [] },
   },
 };
 
@@ -131,7 +142,7 @@ const SECONDS = {
     { name: "A", start: 0, end: 2.5 },
     { name: "B", start: 2.5, end: 10 },
   ],
-  conventions: { printed: { runs: [[0, 10]], sections: ["A", "B"] } },
+  conventions: { printed: { runs: [[0, 10]], sections: ["A", "B"], findings: [] } },
 };
 
 describe("flows", () => {
@@ -279,17 +290,17 @@ describe("flows", () => {
       withDefault({ ...SONATA.conventions.default, sections: ["A", "D"] }),
     ],
     [
-      "findings under single",
+      "no findings under single",
       "score",
       {
         ...SONATA,
         conventions: {
           ...SONATA.conventions,
-          single: { ...SONATA.conventions.single, findings: [] },
+          single: { runs: SONATA.conventions.single.runs, sections: ["A", "C"] },
         },
       },
     ],
-    ["no findings under default", "score", withDefault(SONATA.conventions.single)],
+    ["a finding of an unknown cause", "score", withFinding({ ...FINDING, cause: "chance" })],
     ["a finding of an unknown kind", "score", withFinding({ ...FINDING, kind: "lost" })],
     ["a finding with an unknown member", "score", withFinding({ ...FINDING, severity: 1 })],
     ["a finding without its message", "score", withFinding(withoutMessage)],

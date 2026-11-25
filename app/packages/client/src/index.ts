@@ -48,6 +48,7 @@ export type {
   Flow,
   FlowConvention,
   FlowFinding,
+  FlowFindingCause,
   FlowFindingKind,
   FlowNumberType,
   FlowOptions,
@@ -186,8 +187,9 @@ export interface Server extends FileServer {
    * timetoalign plays its flow control: one request for the manifest's
    * text, sent unchanged. Resolves to the timeline's atomic sections and,
    * for the convention asked for or for all three, the runs played, the
-   * sections they cover and, under `default`, the findings. A timeline
-   * without flow control is one section and one run. Rejects with a
+   * sections they cover and the findings, each with its cause where
+   * timetoalign names one, the elements read as `options.reading` says. A
+   * timeline without flow control is one section and one run. Rejects with a
    * `ServerError`, whose `refusal` says what the server refused (a
    * timeline the manifest lacks at `["timeline"]`, a manifest timetoalign
    * refuses at the place in it).

@@ -41,26 +41,33 @@ export type FlowFindingKind =
   | "undetermined_target";
 
 /**
+ * Why a convention found what it found: `single_playback`, a stretch going
+ * through once leaves out that the `default` flow plays.
+ */
+export type FlowFindingCause = "single_playback";
+
+/**
  * Something playing flow control found: where (the start of the stretch, for
- * a stretch never played, whose `end` is given too) and timetoalign's
- * sentence about it.
+ * a stretch never played, whose `end` is given too), why, where timetoalign
+ * names a cause, and timetoalign's sentence about it.
  */
 export interface FlowFinding {
   readonly kind: FlowFindingKind;
   readonly coordinate: FlowValue;
   readonly end?: FlowValue;
+  readonly cause?: FlowFindingCause;
   readonly message: string;
 }
 
 /**
- * One flow: the runs in the order played and the names of the atomic
- * sections they cover, in that order. The `default` flow alone has
- * `findings`.
+ * One flow: the runs in the order played, the names of the atomic sections
+ * they cover, in that order, and what playing found (`printed`, the whole
+ * axis, finds nothing).
  */
 export interface Flow {
   readonly runs: readonly FlowRun[];
   readonly sections: readonly string[];
-  readonly findings?: readonly FlowFinding[];
+  readonly findings: readonly FlowFinding[];
 }
 
 /**
@@ -181,10 +188,19 @@ function isFindingKind(value: unknown): value is FlowFindingKind {
   return FINDING_KINDS.some((kind) => kind === value);
 }
 
+const FINDING_CAUSES: readonly FlowFindingCause[] = ["single_playback"];
+
 function findingOf(value: unknown, numberType: FlowNumberType): FlowFinding | undefined {
   if (!isRecord(value)) return undefined;
   const ended = "end" in value;
-  const keys = ended ? ["kind", "coordinate", "end", "message"] : ["kind", "coordinate", "message"];
+  const caused = "cause" in value;
+  const keys = [
+    "kind",
+    "coordinate",
+    ...(ended ? ["end"] : []),
+    ...(caused ? ["cause"] : []),
+    "message",
+  ];
   if (!hasExactly(value, keys)) return undefined;
   const kind = member(value, "kind");
   const coordinate = axisValueOf(member(value, "coordinate"), numberType);
@@ -192,9 +208,19 @@ function findingOf(value: unknown, numberType: FlowNumberType): FlowFinding | un
   if (!isFindingKind(kind) || coordinate === undefined || typeof message !== "string") {
     return undefined;
   }
-  if (!ended) return { kind, coordinate, message };
-  const end = axisValueOf(member(value, "end"), numberType);
-  return end === undefined ? undefined : { kind, coordinate, end, message };
+  const end = ended ? axisValueOf(member(value, "end"), numberType) : undefined;
+  if (ended && end === undefined) return undefined;
+  const cause = caused
+    ? FINDING_CAUSES.find((known) => known === member(value, "cause"))
+    : undefined;
+  if (caused && cause === undefined) return undefined;
+  return {
+    kind,
+    coordinate,
+    ...(end === undefined ? {} : { end }),
+    ...(cause === undefined ? {} : { cause }),
+    message,
+  };
 }
 
 /** Every item of `value` read by `read`, or `undefined` when it is no list or an item is not read. */
@@ -209,22 +235,18 @@ function listOf<T>(value: unknown, read: (item: unknown) => T | undefined): T[] 
   return items;
 }
 
-/** The flow of `convention` that `value` is, its sections among `names`, or `undefined`. */
+/** The flow that `value` is, its sections among `names`, or `undefined`. */
 function flowOf(
   value: unknown,
-  convention: FlowConvention,
   numberType: FlowNumberType,
   names: readonly string[],
 ): Flow | undefined {
-  const found = convention === "default";
-  const keys = found ? ["runs", "sections", "findings"] : ["runs", "sections"];
-  if (!isRecord(value) || !hasExactly(value, keys)) return undefined;
+  if (!isRecord(value) || !hasExactly(value, ["runs", "sections", "findings"])) return undefined;
   const runs = listOf(member(value, "runs"), (run) => runOf(run, numberType));
   const sections = listOf(member(value, "sections"), (name) =>
     typeof name === "string" && names.includes(name) ? name : undefined,
   );
   if (runs === undefined || sections === undefined) return undefined;
-  if (!found) return { runs, sections };
   const findings = listOf(member(value, "findings"), (finding) => findingOf(finding, numberType));
   return findings === undefined ? undefined : { runs, sections, findings };
 }
@@ -258,7 +280,7 @@ export function flowsOf(
   const names = sections.map((section) => section.name);
   const conventions: Partial<Record<FlowConvention, Flow>> = {};
   for (const one of asked) {
-    const flow = flowOf(member(answered, one), one, numberType, names);
+    const flow = flowOf(member(answered, one), numberType, names);
     if (flow === undefined) return undefined;
     conventions[one] = flow;
   }

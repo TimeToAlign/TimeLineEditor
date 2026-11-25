@@ -445,16 +445,18 @@ beside it (`<name>.md`) from the format's rules alone. An expected-flows
 file names its manifest fixture and timeline and holds the atomic sections
 (`name`, `start`, `end`), and per convention the `runs` (`[start, end]`
 pairs, one for each stretch played up to a jump, a break or the end), the
-`sections` (the atomic sections the runs cover, in the order played) and,
-for `default`, the `findings` (`kind`, `coordinate`). The answer takes that
-form:
+`sections` (the atomic sections the runs cover, in the order played) and
+the `findings` (`kind`, `coordinate`, the `end` of a stretch never played
+and, where one is stated, the `cause`: `single_playback` for a stretch the
+`single` flow leaves out that the `default` flow plays). The answer takes
+that form:
 
 ```
 {"timeline": <bare ID>, "number_type": "int" | "float" | "fraction",
  "atomic_sections": [{"name", "start", "end"}],
  "conventions": {"default": {"runs", "sections", "findings"},
-                 "single": {"runs", "sections"},
-                 "printed": {"runs", "sections"}}}
+                 "single": {"runs", "sections", "findings"},
+                 "printed": {"runs", "sections", "findings"}}}
 ```
 
 Every value on the axis (a section's `start` and `end`, a run's two ends, a
@@ -466,10 +468,10 @@ manifest. Its runs are the library's, in which stretches played one after
 the other without a jump between them are one run; a file's runs are
 compared after joining each run to the one before where it begins at that
 one's end, and the `sections` lists, which do not depend on the joining,
-are compared as they are. A finding holds, beside the file's `kind` and
-`coordinate`, its `message` (the library's sentence) and, where it is a
-stretch never played, the stretch's `end`. Only `default` has findings:
-`single` and `printed` hold exactly `runs` and `sections`.
+are compared as they are. A finding holds, beside the file's `kind`,
+`coordinate`, `end` and `cause`, its `message` (the library's sentence).
+Every convention has its findings; `printed` plays the whole axis and
+finds nothing.
 
 **Every expected-flows file.** For each of the nine files (`da_capo_al_fine`,
 `dal_segno_al_coda`, `loop`, `ossia`, `repairs`, `repeat_end_and_dal_segno`,
@@ -481,12 +483,13 @@ Each answers 200 with: `timeline` the file's; `number_type` the type the
 file spells its values in (`float` for `loop`, `fraction` for the others);
 `atomic_sections` the file's, value for value and kind for kind (a float
 is no integer); `conventions` exactly `default`, `single` and `printed`,
-each with the file's `sections` and the file's `runs` joined; the
-`default` findings' `kind` and `coordinate`, in order, the file's. Kinds
+each with the file's `sections`, the file's `runs` joined and the file's
+findings, in order, each but its `message` (`kind`, `coordinate`, `end`
+and `cause` where stated: `sonata_exposition` and `volta_passes` state
+`single_playback` under `single`). Kinds
 are compared too: `[0, 1]` is not `0`, and `0.0` is not `0`.
 
-**Findings whole.** `ossia` is the one file with findings; its answer's
-are written out: `undetermined_target` at `[4, 1]` (the message names
+**Findings whole.** `ossia`'s `default` findings are written out: `undetermined_target` at `[4, 1]` (the message names
 `'jump_1'`), `flow_ends_at_break` at `[16, 1]` (the message names
 `'break_1'`), `never_played` at `[16, 1]` with `end` `[24, 1]`, the
 timeline's length (the message names `[16, 24)`); only the last has an
@@ -502,14 +505,14 @@ unchanged.
 
 | Request | Answer |
 | --- | --- |
-| a timeline `take` of 100 samples whose one jump at 60 goes back to the start once (`repeat_count` 1, no place), derived by hand: the flow plays to 60, goes back, plays to 100; posted as canonical YAML, as pretty JSON and as RFC 8785 JSON | 200: `number_type` `int`; sections A `0` to `60`, B `60` to `100`, every value a JSON integer; `default` runs `[[0, 60], [0, 100]]`, sections A, A, B, no finding; `single` and `printed` one run `[0, 100]`, sections A, B |
-| `flow/flow_map_by_hand`, timeline `set` (20 quarters, two children, no flow control) | 200: one section A `[0, 1]` to `[20, 1]`; each convention one run over it, sections A; `default` findings `[]` |
+| a timeline `take` of 100 samples whose one jump at 60 goes back to the start once (`repeat_count` 1, no place), derived by hand: the flow plays to 60, goes back, plays to 100; posted as canonical YAML, as pretty JSON and as RFC 8785 JSON | 200: `number_type` `int`; sections A `0` to `60`, B `60` to `100`, every value a JSON integer; `default` runs `[[0, 60], [0, 100]]`, sections A, A, B, no finding; `single` and `printed` one run `[0, 100]`, sections A, B, no finding (going through once plays the whole axis) |
+| `flow/flow_map_by_hand`, timeline `set` (20 quarters, two children, no flow control) | 200: one section A `[0, 1]` to `[20, 1]`; each convention one run over it, sections A, findings `[]` |
 | the same manifest, its child timeline `second` (12 quarters) | 200: one section A `[0, 1]` to `[12, 1]` and one run over it, on the child's own axis |
-| `child_jumps`, the child `verse` (8 quarters at offset 4 in `piece`; a jump target at 2, a jump at 4 going back to the start twice, a jump at 8 to the target once, without `reset`), derived by hand: three times to 4, on to 8, back to 2, on to 8 | 200: sections A `[0, 1]`–`[2, 1]`, B –`[4, 1]`, C –`[8, 1]`, on the child's axis (not 4 to 12); `default` runs `[0, 4]`, `[0, 4]`, `[0, 8]`, `[2, 8]`, sections A B, A B, A B C, B C, no finding; `single` and `printed` one run `[0, 8]`, sections A B C |
+| `child_jumps`, the child `verse` (8 quarters at offset 4 in `piece`; a jump target at 2, a jump at 4 going back to the start twice, a jump at 8 to the target once, without `reset`), derived by hand: three times to 4, on to 8, back to 2, on to 8 | 200: sections A `[0, 1]`–`[2, 1]`, B –`[4, 1]`, C –`[8, 1]`, on the child's axis (not 4 to 12); `default` runs `[0, 4]`, `[0, 4]`, `[0, 8]`, `[2, 8]`, sections A B, A B, A B C, B C, no finding; `single` and `printed` one run `[0, 8]`, sections A B C, no finding |
 | `flow/repairs` with `believer` `https://example.org/people/editor`, who rejects the imported jump `jump_1` | 200, the answer without a believer: the file's flows |
 | `flow/repairs` with `believer` `https://example.org/people/other`, who rejects nothing, so two jumps are read at 16 | 422 at `["timeline"]`, timetoalign's words, of which `'jump_1'`, `'jump_2'` and `16` are asserted |
 | `flow/repairs` with `believer` `https://example.org/people/editor` and `beliefs` `true`, `unlikely` (the editor's `true` in `jump_target_1` and `jump_2` read, their `false` in `jump_1` not, the undecided `barline_1` not, which divides no section) | 200, the answer without a believer: the file's flows |
-| `flow/repairs` with `believer` `https://example.org/people/other` and `beliefs` `true`, `unlikely` (the other holds no belief, so no element is read) | 200: one section A `[0, 1]` to `[16, 1]`; each convention one run over it, sections A; `default` findings `[]` |
+| `flow/repairs` with `believer` `https://example.org/people/other` and `beliefs` `true`, `unlikely` (the other holds no belief, so no element is read) | 200: one section A `[0, 1]` to `[16, 1]`; each convention one run over it, sections A, findings `[]` |
 
 **Refusals.** Each answers 422 `{"detail": {"path", "message"}}`; the
 server's own words are exact, a library's are asserted by the substrings

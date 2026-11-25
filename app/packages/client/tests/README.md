@@ -268,8 +268,11 @@ call or the exact result.
       B `[12, 1]`–`[16, 1]`, C `[16, 1]`–`[24, 1]`; `default` with the
       runs `[0, 16]`, `[0, 12]`, `[16, 24]` (each a pair of pairs over 1),
       the sections A, B, A, C and no finding; `single` with the runs
-      `[0, 12]`, `[16, 24]` and the sections A, C; `printed` with the run
-      `[0, 24]` and the sections A, B, C. Compared whole.
+      `[0, 12]`, `[16, 24]`, the sections A, C and one finding,
+      `never_played` at `[12, 1]` with `end` `[16, 1]` and the cause
+      `single_playback` (going through once leaves B out, the `default`
+      flow plays it) and timetoalign's sentence; `printed` with the run
+      `[0, 24]`, the sections A, B, C and no finding. Compared whole.
     - The recorded answer `flows-findings` (`flow/ossia`, `score`, asked
       with the convention `default`) resolves to four atomic sections (A
       to 4, B to 12, C to 16, D to 24) and `default` alone: the run
@@ -281,8 +284,9 @@ call or the exact result.
       it is about (`'jump_1'`, `'break_1'`, `[16, 24)`).
     - A value is read as the answer's `number_type` says. An answer of
       `int` (a timeline of 100 samples: sections A 0–60, B 60–100, the
-      runs `[0, 60]`, `[0, 100]`) resolves with its integers; an answer of
-      `float` (sections A 0–2.5, B 2.5–10) with its numbers.
+      runs `[0, 60]`, `[0, 100]`, no finding in any flow) resolves with its
+      integers; an answer of `float` (sections A 0–2.5, B 2.5–10) with its
+      numbers.
     - A 2xx body not of the route's form rejects with code `status` and
       the message "the flows answer is not the flows of the timeline asked
       for": another `timeline` than the one asked; a `number_type` that is
@@ -291,9 +295,10 @@ call or the exact result.
       a value not of the number type (under `fraction` a bare number, a
       pair with denominator 0, a pair holding 2^53; under `int` 1.5 or a
       pair; under `float` a pair); a run of three values; a section of a
-      flow that names no atomic section; `findings` under `single`, or
-      none under `default`; a finding of an unknown `kind`, with an
-      unknown member or without its `message`; an unknown member of the
+      flow that names no atomic section; a flow without `findings` (every
+      flow has them, `printed`'s empty); a finding of an unknown `kind` or
+      an unknown `cause`, with an unknown member or without its
+      `message`; an unknown member of the
       answer or of a section; text that is no JSON.
     - `withFlowMaps` resolves to the answer's text, unchanged: the
       recorded answer `flows-flow-maps` (`flow/da_capo_al_fine`, `score`)

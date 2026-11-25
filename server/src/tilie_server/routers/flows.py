@@ -4,14 +4,14 @@ A manifest states where the flow of a timeline jumps and breaks (its flow
 control); in which order its stretches are then played is computed, and the
 computation is timetoalign's alone. The editor asks for the flows of one
 timeline (``POST /api/flows``): its atomic sections, and for each convention
-the runs played, the sections they cover and, for the default convention,
-what playing found. When its user wants those flows in the manifest, it asks
-for the manifest with them written (``POST /api/flows/flow-maps``): the
-atomic sections as Regions of the timeline and the computed FlowMaps. A
-manifest that holds flows written before is written again: a Region whose
-stretch is an atomic section no longer stays and is rejected as one, which
-needs the actor who asks. The server stores nothing; what is done with
-either answer is the editor's.
+the runs played, the sections they cover and what playing found, each
+finding with its cause where timetoalign names one. When its user wants
+those flows in the manifest, it asks for the manifest with them written
+(``POST /api/flows/flow-maps``): the atomic sections as Regions of the
+timeline and the computed FlowMaps. A manifest that holds flows written
+before is written again: a Region whose stretch is an atomic section no
+longer stays and is rejected as one, which needs the actor who asks. The
+server stores nothing; what is done with either answer is the editor's.
 
 Both requests are a JSON object of parameters behind its length, as the
 MatchClaim provenance routes take them, followed by the manifest file's
@@ -217,9 +217,12 @@ def flows_answer(body: bytes) -> dict[str, Any]:
         convention answered ``{"runs", "sections"}``, the runs played as
         ``[start, end]`` pairs (stretches played one after the other without
         a jump between them are one run) and the names of the atomic
-        sections they cover, in the order played. ``default`` holds
-        ``findings`` besides, each ``{"kind", "coordinate", "message"}`` with
-        the ``end`` of a stretch never played. Every value on the axis is
+        sections they cover, in the order played, and ``findings``, what
+        playing found, each ``{"kind", "coordinate", "message"}`` with the
+        ``end`` of a stretch never played and, where timetoalign names one,
+        the ``cause`` (``single_playback``: a stretch the ``single`` flow
+        leaves out that the ``default`` flow plays); ``printed`` finds
+        nothing. Every value on the axis is
         written as a manifest writes a value on the timeline's own axis: an
         integer, a number or a ``[numerator, denominator]`` pair, as the
         number type says. A timeline without flow control answers one
@@ -233,7 +236,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
             cannot be played.
     """
     play, atomic_sections = flow_engine()
-    from timetoalign.core import FlowConvention, number_to_json
+    from timetoalign.core import number_to_json
     from timetoalign.timelines import UnknownLengthError
 
     parameters, manifest, bare = read_request(body, FLOWS_PARAMETERS)
@@ -260,7 +263,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
     def answered(convention: Any) -> dict[str, Any]:
         """The answer for one convention: its runs, sections and findings."""
         flow = flows[convention]
-        answer: dict[str, Any] = {
+        return {
             "runs": [[on_axis(run.start), on_axis(run.end)] for run in flow.runs],
             "sections": [
                 section.name
@@ -268,18 +271,17 @@ def flows_answer(body: bytes) -> dict[str, Any]:
                 for section in sections
                 if run.start <= section.start and section.end <= run.end
             ],
-        }
-        if convention is FlowConvention.default:
-            answer["findings"] = [
+            "findings": [
                 {
                     "kind": finding.kind.value,
                     "coordinate": on_axis(finding.coordinate),
                     **({} if finding.end is None else {"end": on_axis(finding.end)}),
+                    **({} if finding.cause is None else {"cause": finding.cause.value}),
                     "message": finding.message,
                 }
                 for finding in flow.findings
-            ]
-        return answer
+            ],
+        }
 
     return {
         "timeline": timeline.id,

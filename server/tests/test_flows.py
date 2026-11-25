@@ -180,13 +180,14 @@ def test_a_fixture_answers_its_expected_flows(
         assert flow["sections"] == stated["sections"], convention
         assert spelled(flow["runs"]) == spelled(joined(stated["runs"])), convention
         assert sorted(flow) == sorted(stated), convention
-    findings = answer["conventions"]["default"]["findings"]
-    assert spelled(
-        [
-            {"coordinate": finding["coordinate"], "kind": finding["kind"]}
-            for finding in findings
-        ]
-    ) == spelled(case["conventions"]["default"]["findings"])
+    for convention in CONVENTIONS:
+        findings = answer["conventions"][convention]["findings"]
+        assert spelled(
+            [
+                {key: value for key, value in finding.items() if key != "message"}
+                for finding in findings
+            ]
+        ) == spelled(case["conventions"][convention]["findings"]), convention
 
 
 def test_findings_are_answered_whole(server: TestClient) -> None:
@@ -241,8 +242,8 @@ def test_an_integer_axis_is_answered_in_integers(
                     "sections": ["A", "A", "B"],
                     "findings": [],
                 },
-                "single": {"runs": [[0, 100]], "sections": ["A", "B"]},
-                "printed": {"runs": [[0, 100]], "sections": ["A", "B"]},
+                "single": {"runs": [[0, 100]], "sections": ["A", "B"], "findings": []},
+                "printed": {"runs": [[0, 100]], "sections": ["A", "B"], "findings": []},
             },
         }
     )
@@ -256,14 +257,14 @@ def test_a_timeline_without_flow_control_is_one_run(
 ) -> None:
     response = ask(server, fixture("flow/flow_map_by_hand"), timeline)
     assert response.status_code == 200
-    once = {"runs": [[[0, 1], length]], "sections": ["A"]}
+    once = {"runs": [[[0, 1], length]], "sections": ["A"], "findings": []}
     assert spelled(response.json()) == spelled(
         {
             "timeline": timeline,
             "number_type": "fraction",
             "atomic_sections": [{"name": "A", "start": [0, 1], "end": length}],
             "conventions": {
-                "default": {**once, "findings": []},
+                "default": once,
                 "single": once,
                 "printed": once,
             },
@@ -274,7 +275,7 @@ def test_a_timeline_without_flow_control_is_one_run(
 def test_a_child_is_played_on_its_own_axis(server: TestClient) -> None:
     response = ask(server, fixture("child_jumps"), "verse")
     assert response.status_code == 200
-    once = {"runs": [[[0, 1], [8, 1]]], "sections": ["A", "B", "C"]}
+    once = {"runs": [[[0, 1], [8, 1]]], "sections": ["A", "B", "C"], "findings": []}
     assert spelled(response.json()) == spelled(
         {
             "timeline": "verse",
@@ -323,13 +324,13 @@ def test_the_states_read_for_a_believer_decide_what_is_played(
     assert believed.content == plain.content
     unread = ask(server, fixture("flow/repairs"), "score", believer=OTHER, beliefs=kept)
     assert unread.status_code == 200
-    whole = {"runs": [[[0, 1], [16, 1]]], "sections": ["A"]}
+    whole = {"runs": [[[0, 1], [16, 1]]], "sections": ["A"], "findings": []}
     assert unread.json() == {
         "timeline": "score",
         "number_type": "fraction",
         "atomic_sections": [{"name": "A", "start": [0, 1], "end": [16, 1]}],
         "conventions": {
-            "default": {**whole, "findings": []},
+            "default": whole,
             "single": whole,
             "printed": whole,
         },
