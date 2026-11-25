@@ -283,11 +283,18 @@
                 "coordinate": [8, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
-                "manifestation": "repeat_end",
                 "meta": {},
                 "name": null,
-                "repeat_count": 1,
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "repeat_end",
+                    "repeat_count": 1,
+                    "reset": true
+                  }
+                ]
               }
             ],
             "id": "score",
@@ -658,11 +665,18 @@
                 "coordinate": [12, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
-                "manifestation": "repeat_end",
                 "meta": {},
                 "name": null,
-                "repeat_count": 1,
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "repeat_end",
+                    "repeat_count": 1,
+                    "reset": true
+                  }
+                ]
               }
             ],
             "id": "score",
@@ -1098,21 +1112,34 @@
             "flow_control": [
               {
                 "coordinate": [8, 1],
+                "ends": {
+                  "after": {
+                    "jump": "jump_from_1"
+                  }
+                },
                 "id": "flow_marker_1",
                 "label": "Fine",
                 "manifestation": "fine",
                 "meta": {},
                 "name": null,
-                "type": "flow_marker"
+                "role": "break"
               },
               {
                 "coordinate": [16, 1],
                 "id": "jump_from_1",
                 "label": "D.C. al Fine",
-                "manifestation": "da_capo_al_fine",
                 "meta": {},
                 "name": null,
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "da_capo_al_fine",
+                    "repeat_count": 1,
+                    "reset": false
+                  }
+                ]
               }
             ],
             "id": "score",
@@ -1425,11 +1452,18 @@
                     "coordinate": [8, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
-                    "manifestation": "repeat_end",
                     "meta": {},
                     "name": null,
-                    "repeat_count": 1,
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "repeat_end",
+                        "repeat_count": 1,
+                        "reset": true
+                      }
+                    ]
                   }
                 ],
                 "id": "score",
@@ -1805,11 +1839,18 @@
                     "coordinate": [12, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
-                    "manifestation": "repeat_end",
                     "meta": {},
                     "name": null,
-                    "repeat_count": 1,
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "repeat_end",
+                        "repeat_count": 1,
+                        "reset": true
+                      }
+                    ]
                   }
                 ],
                 "id": "score",
@@ -2103,21 +2144,34 @@
                 "flow_control": [
                   {
                     "coordinate": [8, 1],
+                    "ends": {
+                      "after": {
+                        "jump": "jump_from_1"
+                      }
+                    },
                     "id": "flow_marker_1",
                     "label": "Fine",
                     "manifestation": "fine",
                     "meta": {},
                     "name": null,
-                    "type": "flow_marker"
+                    "role": "break"
                   },
                   {
                     "coordinate": [16, 1],
                     "id": "jump_from_1",
                     "label": "D.C. al Fine",
-                    "manifestation": "da_capo_al_fine",
                     "meta": {},
                     "name": null,
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "da_capo_al_fine",
+                        "repeat_count": 1,
+                        "reset": false
+                      }
+                    ]
                   }
                 ],
                 "id": "score",

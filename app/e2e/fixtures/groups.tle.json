@@ -691,11 +691,18 @@
                 "coordinate": [8, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
-                "manifestation": "repeat_end",
                 "meta": {},
                 "name": null,
-                "repeat_count": 1,
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "repeat_end",
+                    "repeat_count": 1,
+                    "reset": true
+                  }
+                ]
               }
             ],
             "id": "score",
@@ -1439,11 +1446,18 @@
                     "coordinate": [8, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
-                    "manifestation": "repeat_end",
                     "meta": {},
                     "name": null,
-                    "repeat_count": 1,
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "repeat_end",
+                        "repeat_count": 1,
+                        "reset": true
+                      }
+                    ]
                   }
                 ],
                 "id": "score",

@@ -119,7 +119,7 @@
                 "manifestation": "repeat_start",
                 "meta": {},
                 "name": "repeat-start",
-                "type": "jump_to"
+                "role": "jump_target"
               },
               {
                 "coordinate": [4, 1],
@@ -128,23 +128,35 @@
                 "manifestation": "segno",
                 "meta": {},
                 "name": "segno",
-                "type": "jump_to"
+                "role": "jump_target"
               },
               {
                 "coordinate": [8, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
-                "manifestation": "repeat_end",
                 "meta": {
                   "source": "synthetic"
                 },
                 "name": null,
-                "repeat_count": 2,
-                "target": "jump_to_1",
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "repeat_end",
+                    "repeat_count": 2,
+                    "reset": true,
+                    "to": "jump_to_1"
+                  }
+                ]
               },
               {
                 "coordinate": [12, 1],
+                "ends": {
+                  "after": {
+                    "jump": "jump_from_2"
+                  }
+                },
                 "id": "flow_marker_1",
                 "label": "Fine",
                 "manifestation": "fine",
@@ -152,17 +164,25 @@
                   "source": "synthetic"
                 },
                 "name": "fine",
-                "type": "flow_marker"
+                "role": "break"
               },
               {
                 "coordinate": [16, 1],
                 "id": "jump_from_2",
                 "label": "D.S.",
-                "manifestation": "dal_segno",
                 "meta": {},
                 "name": null,
-                "target": "jump_to_2",
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "dal_segno",
+                    "repeat_count": 1,
+                    "reset": false,
+                    "to": "jump_to_2"
+                  }
+                ]
               }
             ],
             "id": "flow:quarters",
@@ -484,7 +504,7 @@
             {
               "select": {
                 "domain": "logical",
-                "element": "jump_from"
+                "element": "jump"
               },
               "set": {
                 "fill": "#DB2777",
@@ -695,10 +715,18 @@
                 "coordinate": [8, 1],
                 "id": "da-capo",
                 "label": "D.C.",
-                "manifestation": "da_capo",
                 "meta": {},
                 "name": null,
-                "type": "jump_from"
+                "role": "jump",
+                "targets": [
+                  {
+                    "determined": true,
+                    "label": null,
+                    "manifestation": "da_capo",
+                    "repeat_count": 1,
+                    "reset": false
+                  }
+                ]
               }
             ],
             "id": "score",
@@ -1072,7 +1100,7 @@
                     "manifestation": "repeat_start",
                     "meta": {},
                     "name": "repeat-start",
-                    "type": "jump_to"
+                    "role": "jump_target"
                   },
                   {
                     "coordinate": [4, 1],
@@ -1081,23 +1109,35 @@
                     "manifestation": "segno",
                     "meta": {},
                     "name": "segno",
-                    "type": "jump_to"
+                    "role": "jump_target"
                   },
                   {
                     "coordinate": [8, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
-                    "manifestation": "repeat_end",
                     "meta": {
                       "source": "synthetic"
                     },
                     "name": null,
-                    "repeat_count": 2,
-                    "target": "jump_to_1",
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "repeat_end",
+                        "repeat_count": 2,
+                        "reset": true,
+                        "to": "jump_to_1"
+                      }
+                    ]
                   },
                   {
                     "coordinate": [12, 1],
+                    "ends": {
+                      "after": {
+                        "jump": "jump_from_2"
+                      }
+                    },
                     "id": "flow_marker_1",
                     "label": "Fine",
                     "manifestation": "fine",
@@ -1105,17 +1145,25 @@
                       "source": "synthetic"
                     },
                     "name": "fine",
-                    "type": "flow_marker"
+                    "role": "break"
                   },
                   {
                     "coordinate": [16, 1],
                     "id": "jump_from_2",
                     "label": "D.S.",
-                    "manifestation": "dal_segno",
                     "meta": {},
                     "name": null,
-                    "target": "jump_to_2",
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "dal_segno",
+                        "repeat_count": 1,
+                        "reset": false,
+                        "to": "jump_to_2"
+                      }
+                    ]
                   }
                 ],
                 "id": "flow:quarters",
@@ -1240,7 +1288,7 @@
                 {
                   "select": {
                     "domain": "logical",
-                    "element": "jump_from"
+                    "element": "jump"
                   },
                   "set": {
                     "fill": "#DB2777",
@@ -1451,10 +1499,18 @@
                     "coordinate": [8, 1],
                     "id": "da-capo",
                     "label": "D.C.",
-                    "manifestation": "da_capo",
                     "meta": {},
                     "name": null,
-                    "type": "jump_from"
+                    "role": "jump",
+                    "targets": [
+                      {
+                        "determined": true,
+                        "label": null,
+                        "manifestation": "da_capo",
+                        "repeat_count": 1,
+                        "reset": false
+                      }
+                    ]
                   }
                 ],
                 "id": "score",
