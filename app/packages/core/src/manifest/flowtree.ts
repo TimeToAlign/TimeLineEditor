@@ -8,8 +8,8 @@
  * symbols, by manifestation, and the pass numbers of a volta bracket.
  */
 
-import { Rational } from "../number/rational.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
+import { Rational } from "../number/rational.ts";
 import { addReal, compareReal, type Real, realOf } from "../number/real.ts";
 import { orderedChildren, reachOf } from "./elements.ts";
 import type { MemberDrawing } from "./files.ts";
@@ -54,7 +54,8 @@ export function flowSymbols(element: FlowControlElement): readonly string[] {
   }
   const word = element.manifestation;
   const symbol = word === undefined || word === null ? undefined : ELEMENT_SYMBOLS[element.role];
-  const text = symbol === undefined || word === undefined || word === null ? undefined : symbol[word];
+  const text =
+    symbol === undefined || word === undefined || word === null ? undefined : symbol[word];
   return text === undefined ? [] : [text];
 }
 

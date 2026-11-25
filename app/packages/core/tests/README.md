@@ -928,8 +928,8 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    labels (`D.C. al Fine`, `D.C.`), in that order. Each holds its
    **symbol** `{id, part: ["symbol"]}` where its manifestation has one (a
    section break always), a jump target's held by the band; a jump holds
-   its **brackets** `{id, part: ["bracket"]}` where a destination is a
-   `volta` with passes: `flow/sections` the symbols of `break_1` (`fine`),
+   its **brackets** `{id, part: ["bracket"]}` where a destination's
+   manifestation is `volta`: `flow/sections` the symbols of `break_1` (`fine`),
    `section_break_1`, `jump_1` (`da_capo_al_fine`) and `jump_2`
    (`da_capo`); `flow/sonata_exposition` the bracket of `jump_1` (two volta
    destinations), then the symbol of `jump_2` (`repeat_end`), and none of

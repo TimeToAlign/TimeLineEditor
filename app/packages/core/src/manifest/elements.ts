@@ -498,7 +498,7 @@ function memberElements(
   }
   // A flow-control element of `timeline` held by `band` (section 2.1): its own key (none for a
   // jump target, which is no element), then the labels its stack may draw, its symbol where its
-  // manifestation has one and a jump's brackets where a destination is a volta with passes.
+  // manifestation has one and a jump's brackets where a destination's manifestation is `volta`.
   const flowElement = (
     item: FlowControlElement,
     type: FlowLineRole | "jump" | null,
@@ -512,7 +512,11 @@ function memberElements(
       const labelled =
         (item.label !== null && item.label !== undefined) ||
         (item.targets ?? []).some((target) => target.label !== null && target.label !== undefined);
-      const texts = { name: item.name !== null && item.name !== undefined, id: true, label: labelled };
+      const texts = {
+        name: item.name !== null && item.name !== undefined,
+        id: true,
+        label: labelled,
+      };
       for (const word of FLOW_LABELS) {
         if (texts[word]) keys.push(elementKey("label", partAddress(at, word), timeline, holder));
       }
@@ -520,9 +524,7 @@ function memberElements(
     if (flowSymbols(item).length > 0) {
       keys.push(elementKey("symbol", partAddress(at, "symbol"), timeline, holder));
     }
-    const volta = (item.targets ?? []).some(
-      (target) => target.manifestation === "volta" && target.passes !== undefined,
-    );
+    const volta = (item.targets ?? []).some((target) => target.manifestation === "volta");
     if (type === "jump" && volta) {
       keys.push(elementKey("bracket", partAddress(at, "bracket"), timeline, holder));
     }
@@ -604,7 +606,12 @@ function memberElements(
             if (own.has(placed.timeline)) continue;
             const role = roles.find((drawn) => drawn === placed.element.role);
             if (role === undefined) continue;
-            flowElement(placed.element, role === "jump_target" ? null : role, placed.timeline, band);
+            flowElement(
+              placed.element,
+              role === "jump_target" ? null : role,
+              placed.timeline,
+              band,
+            );
           }
         }
       },
