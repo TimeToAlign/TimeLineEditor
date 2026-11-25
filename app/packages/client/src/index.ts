@@ -193,7 +193,8 @@ export interface Server extends FileServer {
    * answers it; nothing is stored on the server. Rejects with a
    * `ServerError`, whose `refusal` says what the server refused (at
    * `["timeline"]` also where timetoalign does not write the flows: of a
-   * child timeline, or over sections a FlowMap of another origin names).
+   * child timeline, or where an atomic section written before is none any
+   * more and `options` names no `actor` to reject it).
    */
   withFlowMaps(manifest: string, timeline: string, options?: WrittenFlowOptions): Promise<string>;
   /**
@@ -464,13 +465,21 @@ export function connect({ url, token }: ConnectOptions): Server {
         MALFORMED_FLOWS,
       );
     },
-    async withFlowMaps(manifest, timeline, { believer } = {}) {
+    async withFlowMaps(manifest, timeline, { believer, actor, date } = {}) {
       const response = await request(
         "flows/flow-maps",
         {
           method: "POST",
           headers: { ...headers, "Content-Type": "application/octet-stream" },
-          body: flowsRequest(timeline, believer === undefined ? {} : { believer }, manifest),
+          body: flowsRequest(
+            timeline,
+            {
+              ...(believer === undefined ? {} : { believer }),
+              ...(actor === undefined ? {} : { actor }),
+              ...(date === undefined ? {} : { date }),
+            },
+            manifest,
+          ),
         },
         true,
       );

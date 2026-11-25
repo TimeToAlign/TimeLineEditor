@@ -359,7 +359,13 @@ describe("withFlowMaps", () => {
     const stub = stubFetch(async () => Response.json({ timelines: [] }));
     await server().withFlowMaps(manifest, "score");
     await server().withFlowMaps(manifest, "score", { believer: EDITOR });
-    expect(stub.mock.calls.length).toBe(2);
+    await server().withFlowMaps(manifest, "score", { date: "2026-11-26", actor: EDITOR });
+    await server().withFlowMaps(manifest, "score", {
+      actor: EDITOR,
+      believer: EDITOR,
+      date: "2026-11-26",
+    });
+    expect(stub.mock.calls.length).toBe(4);
     const [input, init] = stub.mock.calls[0] as [string, RequestInit];
     expect(input).toBe("api/flows/flow-maps");
     expect([init.method, init.headers]).toEqual([
@@ -370,6 +376,16 @@ describe("withFlowMaps", () => {
     const [, believed] = stub.mock.calls[1] as [string, RequestInit];
     expect(await sent(believed)).toEqual(
       expectedBody(`{"timeline":"score","believer":"${EDITOR}"}`),
+    );
+    const [, asked] = stub.mock.calls[2] as [string, RequestInit];
+    expect(await sent(asked)).toEqual(
+      expectedBody(`{"timeline":"score","actor":"${EDITOR}","date":"2026-11-26"}`),
+    );
+    const [, all] = stub.mock.calls[3] as [string, RequestInit];
+    expect(await sent(all)).toEqual(
+      expectedBody(
+        `{"timeline":"score","believer":"${EDITOR}","actor":"${EDITOR}","date":"2026-11-26"}`,
+      ),
     );
   });
 

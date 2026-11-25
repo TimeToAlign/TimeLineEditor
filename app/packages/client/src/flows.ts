@@ -86,7 +86,16 @@ export interface FlowOptions {
 }
 
 /** What `withFlowMaps` may be asked besides the timeline. */
-export type WrittenFlowOptions = Pick<FlowOptions, "believer">;
+export interface WrittenFlowOptions extends Pick<FlowOptions, "believer"> {
+  /**
+   * Who asks: the actor whose belief `false` rejects an atomic section
+   * written before whose stretch is none any more. The server refuses to
+   * write over such a section without it.
+   */
+  readonly actor?: string;
+  /** The day of that belief, `YYYY-MM-DD`; the server's day without it. */
+  readonly date?: string;
+}
 
 /** The message of a flows answer that is not of the route's form. */
 export const MALFORMED_FLOWS = "the flows answer is not the flows of the timeline asked for";
@@ -107,15 +116,21 @@ const FINDING_KINDS: readonly FlowFindingKind[] = [
 
 /**
  * A request of the flow routes: the parameters' UTF-8 length (little-endian),
- * the parameters as JSON (`timeline`, then `convention` and `believer` where
- * given), then the manifest's text.
+ * the parameters as JSON (`timeline`, then `convention`, `believer`, `actor`
+ * and `date` where given), then the manifest's text.
  */
-export function flowsRequest(timeline: string, options: FlowOptions, manifest: string): Blob {
-  const { convention, believer } = options;
+export function flowsRequest(
+  timeline: string,
+  options: FlowOptions & WrittenFlowOptions,
+  manifest: string,
+): Blob {
+  const { convention, believer, actor, date } = options;
   const parameters = {
     timeline,
     ...(convention === undefined ? {} : { convention }),
     ...(believer === undefined ? {} : { believer }),
+    ...(actor === undefined ? {} : { actor }),
+    ...(date === undefined ? {} : { date }),
   };
   const text = new TextEncoder().encode(JSON.stringify(parameters));
   const prefix = new Uint8Array(PREFIX);
