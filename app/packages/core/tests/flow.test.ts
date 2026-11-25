@@ -4,7 +4,7 @@ import { apply } from "../src/commands/apply.ts";
 import { idAddress } from "../src/manifest/address.ts";
 import { manifestElements } from "../src/manifest/elements.ts";
 import { FLOW_LINE_ROLES, isRejected, withElementBelief } from "../src/manifest/flow.ts";
-import { saveManifest } from "../src/manifest/io.ts";
+import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
 import type { FlowControlElement, Manifest } from "../src/manifest/types.ts";
 import { addressWords, manifestIds, resolveElement } from "../src/workspace/address.ts";
@@ -183,6 +183,39 @@ describe("FlowMaps and virtual timelines", () => {
     expect(refusal(view, { type: "remove", targets: [at("region_2")] })).toEqual({
       code: "schema_violation",
       path: [A, "manifest", "flow_maps", 0, "chunks", 1],
+    });
+  });
+});
+
+describe("a virtual timeline", () => {
+  const SONATA = "flow/sonata_exposition.yaml";
+
+  it("is held to the sum of the chunks of the FlowMap it applies, when a command changes one", () => {
+    // region_3, the section C of 8 quarters, shortened to 4: A, B, A, C then sum to 32, not 36.
+    const shortened = {
+      type: "set",
+      changes: [{ target: at("region_3"), values: { start: [20, 1] } }],
+    };
+    expect(apply(viewOf([A, SONATA]), shortened)).toEqual({
+      code: "schema_violation",
+      message:
+        "length [36, 1] of 'virtual_1' is not the sum of the chunks and gaps of 'flow_map_1', [32, 1]",
+      path: [A, "manifest", "virtual_timelines", 0, "length"],
+    });
+  });
+
+  it("is held to it when a manifest is read", () => {
+    const text = FLOW.find((fixture) => fixture.name === SONATA)?.text ?? "";
+    expect(text.split("length: [36, 1]").length).toBe(2);
+    expect(loadManifest(text.replace("length: [36, 1]", "length: [30, 1]"))).toEqual({
+      problems: [
+        {
+          code: "schema_violation",
+          message:
+            "length [30, 1] of 'virtual_1' is not the sum of the chunks and gaps of 'flow_map_1', [36, 1]",
+          path: ["virtual_timelines", 0, "length"],
+        },
+      ],
     });
   });
 });

@@ -903,7 +903,18 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    (`flow/sections`) gains neither. Anything else left dangling is
    refused, never followed: removing `region_2`, which `flow_map_1` lists
    second, is a `schema_violation` at `[A, "manifest", "flow_maps", 0,
-   "chunks", 1]`.
+   "chunks", 1]`. A virtual timeline is held to the FlowMap it applies as
+   the format holds it, and the refusal is shown as every rule of the
+   format is, a `schema_violation` with the format's sentence at the
+   format's path: `virtual_1` states the length 36, the sum of
+   `flow_map_1`'s chunks A, B, A, C (12 + 4 + 12 + 8). Setting `region_3`'s
+   `start` to 20 (C then 4 long, the sum 32) is refused at `[A,
+   "manifest", "virtual_timelines", 0, "length"]`, "length [36, 1] of
+   'virtual_1' is not the sum of the chunks and gaps of 'flow_map_1', [32,
+   1]"; the fixture's text with that length written `[30, 1]` is refused
+   on reading with the one problem at `["virtual_timelines", 0,
+   "length"]`, "length [30, 1] of 'virtual_1' is not the sum of the chunks
+   and gaps of 'flow_map_1', [36, 1]".
 5. **Rejected** is TimeToShare's reading: an entry of the element's
    `provenance` holds a belief `false`, whoever holds it. Of
    `flow/repairs`' `barline_1`, `jump_target_1`, `jump_1` and `jump_2`
