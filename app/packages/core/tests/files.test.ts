@@ -395,7 +395,7 @@ describe("the elements of a named manifest with two groups", () => {
       id("score", "card"),
       ...drawn("score", 9, {
         maps: [id("cmap_1"), id("cmap_2")],
-        flow: [id("jump_1"), id("jump_1", "label")],
+        flow: [id("jump_1"), id("jump_1", "id"), id("jump_1", "label"), id("jump_1", "symbol")],
       }),
       id("performance", "card"),
       ...drawn("performance", 7, { maps: [id("cmap_3")] }),

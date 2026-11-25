@@ -1952,8 +1952,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    line on `excerpt` (in the ancestor card's row and in its member card)
    and they cross `page`'s card in `group_2`'s frame, secondary
    coordinates in its markers band after its own, and its jump with
-   its label (`{id: "jump_1"}`, `{id: "jump_1", part:
-   ["label"]}`); then the ungrouped root `annotations` with its card, name
+   its stack's ID and label and its symbol (`{id: "jump_1"}`, `{id:
+   "jump_1", part: ["id"]}`, `["label"]`, `["symbol"]`); then the ungrouped root `annotations` with its card, name
    and five bands, the regions band holding `region_1`, its label,
    `region_2`, its label; last the lines of `timestamp_3` and
    `timestamp_4` across `group_2`'s frame. Nothing of `recording`'s own is drawn on an
