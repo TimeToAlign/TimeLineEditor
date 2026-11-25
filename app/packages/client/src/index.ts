@@ -17,6 +17,16 @@ import {
 } from "./claimProvenance.ts";
 import { type FileServer, fileCalls } from "./files.ts";
 import {
+  type FlowOptions,
+  type Flows,
+  flowsOf,
+  flowsRequest,
+  isManifestText,
+  MALFORMED_FLOW_MAPS,
+  MALFORMED_FLOWS,
+  type WrittenFlowOptions,
+} from "./flows.ts";
+import {
   decodeMatchClaims,
   MALFORMED_MATCH_CLAIMS,
   type MatchClaimTable,
@@ -33,6 +43,19 @@ export type {
 } from "./claimProvenance.ts";
 export { PARQUET_MEDIA_TYPE } from "./claimProvenance.ts";
 export type { FileServer, FolderEntry, FolderListing, WrittenFile } from "./files.ts";
+export type {
+  AtomicSection,
+  Flow,
+  FlowConvention,
+  FlowFinding,
+  FlowFindingKind,
+  FlowNumberType,
+  FlowOptions,
+  FlowRun,
+  Flows,
+  FlowValue,
+  WrittenFlowOptions,
+} from "./flows.ts";
 export type { MatchClaimTable } from "./matchClaims.ts";
 
 export const name = "@timetoalign/tilie-client" as const;
@@ -151,6 +174,28 @@ export interface Server extends FileServer {
    * with a `ServerError` when the server does not answer them.
    */
   measureMaps(manifest: string): Promise<readonly ExpandedMeasureMap[]>;
+  /**
+   * The flows of the timeline `timeline` (its bare ID) of a manifest, as
+   * timetoalign plays its flow control: one request for the manifest's
+   * text, sent unchanged. Resolves to the timeline's atomic sections and,
+   * for the convention asked for or for all three, the runs played, the
+   * sections they cover and, under `default`, the findings. A timeline
+   * without flow control is one section and one run. Rejects with a
+   * `ServerError`, whose `refusal` says what the server refused (a
+   * timeline the manifest lacks at `["timeline"]`, a manifest timetoalign
+   * refuses at the place in it).
+   */
+  flows(manifest: string, timeline: string, options?: FlowOptions): Promise<Flows>;
+  /**
+   * The manifest with the flows of the timeline `timeline` written: its
+   * atomic sections as Regions and its computed FlowMaps, as timetoalign
+   * writes them. Resolves to a manifest file's text in JSON, as the server
+   * answers it; nothing is stored on the server. Rejects with a
+   * `ServerError`, whose `refusal` says what the server refused (at
+   * `["timeline"]` also where timetoalign does not write the flows: of a
+   * child timeline, or over sections a FlowMap of another origin names).
+   */
+  withFlowMaps(manifest: string, timeline: string, options?: WrittenFlowOptions): Promise<string>;
   /**
    * A package's MatchClaim table, checked by the server against its
    * manifest: one request for the manifest's text and the table's file,
@@ -402,6 +447,43 @@ export function connect({ url, token }: ConnectOptions): Server {
         body: manifest,
       });
       return answer(response, measureMapsOf, MALFORMED_MEASURE_MAPS);
+    },
+    async flows(manifest, timeline, options = {}) {
+      const response = await request(
+        "flows",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: flowsRequest(timeline, options, manifest),
+        },
+        true,
+      );
+      return answer(
+        response,
+        (body) => flowsOf(body, timeline, options.convention),
+        MALFORMED_FLOWS,
+      );
+    },
+    async withFlowMaps(manifest, timeline, { believer } = {}) {
+      const response = await request(
+        "flows/flow-maps",
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/octet-stream" },
+          body: flowsRequest(timeline, believer === undefined ? {} : { believer }, manifest),
+        },
+        true,
+      );
+      let text: string;
+      try {
+        text = await response.text();
+      } catch (cause) {
+        throw new ServerError("status", response.status, MALFORMED_FLOW_MAPS, cause);
+      }
+      if (!isManifestText(text)) {
+        throw new ServerError("status", response.status, MALFORMED_FLOW_MAPS);
+      }
+      return text;
     },
     async matchClaims(manifest, table) {
       const response = await request(

@@ -225,14 +225,80 @@ call or the exact result.
    request, byte for byte, written by the server's
    `scripts/record_answers.py`: `health`, `measure-maps`, `match-claims`,
    `match-claims-provenance`, `match-claims-belief`, `match-claims-events`,
-   `folders`, `files-get` and `files-put`, the requests being the cases of
-   items 2 and 4 to 8. The server's tests prove that each recording is
+   `folders`, `files-get`, `files-put`, `flows`, `flows-findings` and
+   `flows-flow-maps`, the requests being the cases of items 2, 4 to 8 and
+   10. The server's tests prove that each recording is
    still its route's answer and that every route the client calls has one
    (its tests README, "Recorded answers"); these tests prove the client
    reads each into the value its item writes out. A recorded answer the
    client's type disagrees with fails here, never quietly: no recording is
    edited by hand, and none is read through anything but the call it
    answers.
+
+10. **Flows.** `flows(manifest, timeline, options?)` asks for the flows of
+    one timeline of a manifest and `withFlowMaps(manifest, timeline,
+    options?)` for the manifest with those flows written. Each sends one
+    `POST`, to the base URL with `flows` and with `flows/flow-maps`
+    appended, with `Content-Type: application/octet-stream` and the
+    `Authorization` rule above. Each
+    body is compared byte for byte: the parameters' UTF-8 length as a
+    little-endian 32-bit integer, the parameters as JSON, then the
+    manifest's text as UTF-8, unchanged (a manifest with a non-ASCII
+    character is the case). The parameters are `{"timeline"}`, then
+    `"convention"` and `"believer"` in that order where the options give
+    them (`withFlowMaps` takes `believer` alone); an option not given is
+    not sent.
+
+    The answers' oracle is the server's (its tests README, "Flows"), whose
+    own oracle is the flows TimeToShare states for its flow fixtures; the
+    values below are copied from those expected-flows files by hand, their
+    runs joined as the server joins them.
+
+    - The recorded answer `flows` (the fixture `flow/sonata_exposition`,
+      timeline `score`, no convention) resolves to: `timeline` `score`,
+      `number_type` `fraction`; the atomic sections A `[0, 1]`–`[12, 1]`,
+      B `[12, 1]`–`[16, 1]`, C `[16, 1]`–`[24, 1]`; `default` with the
+      runs `[0, 16]`, `[0, 12]`, `[16, 24]` (each a pair of pairs over 1),
+      the sections A, B, A, C and no finding; `single` with the runs
+      `[0, 12]`, `[16, 24]` and the sections A, C; `printed` with the run
+      `[0, 24]` and the sections A, B, C. Compared whole.
+    - The recorded answer `flows-findings` (`flow/ossia`, `score`, asked
+      with the convention `default`) resolves to four atomic sections (A
+      to 4, B to 12, C to 16, D to 24) and `default` alone: the run
+      `[0, 16]`, the sections A, B, C and three findings, compared whole
+      but for their sentences: `undetermined_target` at `[4, 1]`,
+      `flow_ends_at_break` at `[16, 1]`, neither with an `end`, and
+      `never_played` at `[16, 1]` with `end` `[24, 1]`. A finding's
+      `message` is timetoalign's sentence: each is a string naming what
+      it is about (`'jump_1'`, `'break_1'`, `[16, 24)`).
+    - A value is read as the answer's `number_type` says. An answer of
+      `int` (a timeline of 100 samples: sections A 0–60, B 60–100, the
+      runs `[0, 60]`, `[0, 100]`) resolves with its integers; an answer of
+      `float` (sections A 0–2.5, B 2.5–10) with its numbers.
+    - A 2xx body not of the route's form rejects with code `status` and
+      the message "the flows answer is not the flows of the timeline asked
+      for": another `timeline` than the one asked; a `number_type` that is
+      none of the three; conventions other than those asked (all three
+      for no convention, a missing one, another one than the one asked);
+      a value not of the number type (under `fraction` a bare number, a
+      pair with denominator 0, a pair holding 2^53; under `int` 1.5 or a
+      pair; under `float` a pair); a run of three values; a section of a
+      flow that names no atomic section; `findings` under `single`, or
+      none under `default`; a finding of an unknown `kind`, with an
+      unknown member or without its `message`; an unknown member of the
+      answer or of a section; text that is no JSON.
+    - `withFlowMaps` resolves to the answer's text, unchanged: the
+      recorded answer `flows-flow-maps` (`flow/da_capo_al_fine`, `score`)
+      resolves to exactly the recording's text, which, parsed in the test,
+      is the manifest written: the timeline's Regions are named A and B,
+      and the FlowMaps, their chunks read as the names of the Regions they
+      name, are `default` A, B, A, `single` A, B and `printed` A, B. The
+      client reads the text only to check that it is JSON holding an
+      object with a `timelines` list; anything else (a list, an object
+      without `timelines`, text that is no JSON) rejects with code
+      `status` and the message "the flow-maps answer is not a manifest".
+    - A refusal of either route (422 at `["timeline"]`, `the manifest has
+      no timeline 'nothing'`) rejects with the server's message and path.
 
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or
