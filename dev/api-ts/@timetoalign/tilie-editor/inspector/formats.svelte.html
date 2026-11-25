@@ -439,6 +439,7 @@
 <li class="toctree-l2"><a class="reference internal" href="stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tabs.html">inspector/tabs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="textPlace.html">inspector/textPlace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timestamp.html">inspector/timestamp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="toml.html">inspector/toml</a></li>
 <li class="toctree-l2"><a class="reference internal" href="words.html">inspector/words</a></li>
@@ -540,7 +541,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>FORMAT_LABELS</strong>: <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">readonly</span> <span class="pre">[format</span> <span class="pre">in</span> <span class="pre">Format]:</span> <span class="pre">string</span> <span class="pre">}</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/formats.svelte.ts#L27">editor/src/inspector/formats.svelte.ts:27</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L29">editor/src/inspector/formats.svelte.ts:29</a></p>
 <p>The word of each format, on its radio button and in its messages.</p>
 </section>
 </section>
@@ -551,7 +552,7 @@
 <blockquote>
 <div><p><strong>isLoaded</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/formats.svelte.ts#L73">editor/src/inspector/formats.svelte.ts:73</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L79">editor/src/inspector/formats.svelte.ts:79</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">format</span></code> can be written and read now, without waiting.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -571,7 +572,7 @@
 <blockquote>
 <div><p><strong>loadCodec</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>): <code class="docutils literal notranslate"><span class="pre">Promise</span></code>&lt;<a class="reference internal" href="codec.html#codec"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Codec</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/formats.svelte.ts#L81">editor/src/inspector/formats.svelte.ts:81</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L87">editor/src/inspector/formats.svelte.ts:87</a></p>
 <p>Load the codec of <code class="docutils literal notranslate"><span class="pre">format</span></code> (once; JSON is already there). A failed import
 rejects, and the next call tries again.</p>
 <section id="id1">
@@ -587,13 +588,14 @@ rejects, and the next call tries again.</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="readtext">
-<h3>readText()<a class="headerlink" href="#readtext" title="Link to this heading">#</a></h3>
+<section id="locatetext">
+<h3>locateText()<a class="headerlink" href="#locatetext" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>readText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id3"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Read</span></code></span></a>&gt;</p>
+<div><p><strong>locateText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">path</span></code>): <a class="reference internal" href="textPlace.html#lines"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Lines</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/formats.svelte.ts#L120">editor/src/inspector/formats.svelte.ts:120</a></p>
-<p>The manifest value of <code class="docutils literal notranslate"><span class="pre">text</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code>, or why it cannot be read.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L136">editor/src/inspector/formats.svelte.ts:136</a></p>
+<p>The lines of <code class="docutils literal notranslate"><span class="pre">text</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code> holding the value at <code class="docutils literal notranslate"><span class="pre">path</span></code> of the
+manifest file it shows; <code class="docutils literal notranslate"><span class="pre">null</span></code> where the text holds none.</p>
 <section id="id4">
 <h4>Parameters<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
 <section id="id5">
@@ -604,10 +606,14 @@ rejects, and the next call tries again.</p>
 <h5>text<a class="headerlink" href="#text" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </section>
+<section id="path">
+<h5>path<a class="headerlink" href="#path" title="Link to this heading">#</a></h5>
+<p>readonly <a class="reference internal" href="../../tilie-core/json.html#pathsegment"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">PathSegment</span></code></span></a>[]</p>
+</section>
 </section>
 <section id="id6">
 <h4>Returns<a class="headerlink" href="#id6" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id3"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Read</span></code></span></a>&gt;</p>
+<p><a class="reference internal" href="textPlace.html#lines"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Lines</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 <section id="throws">
 <h4>Throws<a class="headerlink" href="#throws" title="Link to this heading">#</a></h4>
@@ -615,17 +621,45 @@ rejects, and the next call tries again.</p>
 </section>
 </section>
 <hr class="docutils" />
-<section id="writetext">
-<h3>writeText()<a class="headerlink" href="#writetext" title="Link to this heading">#</a></h3>
+<section id="readtext">
+<h3>readText()<a class="headerlink" href="#readtext" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>writeText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id11"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
+<div><p><strong>readText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id6"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Read</span></code></span></a>&gt;</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/formats.svelte.ts#L111">editor/src/inspector/formats.svelte.ts:111</a></p>
-<p>The text of <code class="docutils literal notranslate"><span class="pre">value</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code>, freshly written.</p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L126">editor/src/inspector/formats.svelte.ts:126</a></p>
+<p>The manifest value of <code class="docutils literal notranslate"><span class="pre">text</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code>, or why it cannot be read.</p>
 <section id="id7">
 <h4>Parameters<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
 <section id="id8">
 <h5>format<a class="headerlink" href="#id8" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;yaml&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;json&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;toml&quot;</span></code></p>
+</section>
+<section id="id9">
+<h5>text<a class="headerlink" href="#id9" title="Link to this heading">#</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</section>
+</section>
+<section id="id10">
+<h4>Returns<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id6"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Read</span></code></span></a>&gt;</p>
+</section>
+<section id="id11">
+<h4>Throws<a class="headerlink" href="#id11" title="Link to this heading">#</a></h4>
+<p>when the format’s codec has not been loaded (<code class="docutils literal notranslate"><span class="pre">loadCodec</span></code>).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="writetext">
+<h3>writeText()<a class="headerlink" href="#writetext" title="Link to this heading">#</a></h3>
+<blockquote>
+<div><p><strong>writeText</strong>(<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>): <a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id14"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
+</div></blockquote>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/formats.svelte.ts#L117">editor/src/inspector/formats.svelte.ts:117</a></p>
+<p>The text of <code class="docutils literal notranslate"><span class="pre">value</span></code> in <code class="docutils literal notranslate"><span class="pre">format</span></code>, freshly written.</p>
+<section id="id12">
+<h4>Parameters<a class="headerlink" href="#id12" title="Link to this heading">#</a></h4>
+<section id="id13">
+<h5>format<a class="headerlink" href="#id13" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">&quot;yaml&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;json&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;toml&quot;</span></code></p>
 </section>
 <section id="value">
@@ -633,12 +667,12 @@ rejects, and the next call tries again.</p>
 <p><a class="reference internal" href="../../tilie-core/json.html#id1"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Json</span></code></span></a></p>
 </section>
 </section>
-<section id="id9">
-<h4>Returns<a class="headerlink" href="#id9" title="Link to this heading">#</a></h4>
-<p><a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id11"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
+<section id="id14">
+<h4>Returns<a class="headerlink" href="#id14" title="Link to this heading">#</a></h4>
+<p><a class="reference internal" href="problems.html#result"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Result</span></code></span></a>&lt;<a class="reference internal" href="codec.html#id14"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Text</span></code></span></a>&gt;</p>
 </section>
-<section id="id10">
-<h4>Throws<a class="headerlink" href="#id10" title="Link to this heading">#</a></h4>
+<section id="id15">
+<h4>Throws<a class="headerlink" href="#id15" title="Link to this heading">#</a></h4>
 <p>when the format’s codec has not been loaded (<code class="docutils literal notranslate"><span class="pre">loadCodec</span></code>).</p>
 </section>
 </section>
@@ -650,9 +684,9 @@ rejects, and the next call tries again.</p>
 <p>Re-exports <a class="reference internal" href="codec.html#codec"><span class="std std-ref">Codec</span></a></p>
 </section>
 <hr class="docutils" />
-<section id="id11">
-<h3>Format<a class="headerlink" href="#id11" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="codec.html#id15"><span class="std std-ref">Format</span></a></p>
+<section id="id16">
+<h3>Format<a class="headerlink" href="#id16" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="codec.html#id18"><span class="std std-ref">Format</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="formats">
@@ -662,17 +696,17 @@ rejects, and the next call tries again.</p>
 <hr class="docutils" />
 <section id="read">
 <h3>Read<a class="headerlink" href="#read" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="codec.html#id3"><span class="std std-ref">Read</span></a></p>
+<p>Re-exports <a class="reference internal" href="codec.html#id6"><span class="std std-ref">Read</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="source">
 <h3>Source<a class="headerlink" href="#source" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="codec.html#id5"><span class="std std-ref">Source</span></a></p>
+<p>Re-exports <a class="reference internal" href="codec.html#id8"><span class="std std-ref">Source</span></a></p>
 </section>
 <hr class="docutils" />
-<section id="id12">
-<h3>Text<a class="headerlink" href="#id12" title="Link to this heading">#</a></h3>
-<p>Re-exports <a class="reference internal" href="codec.html#id11"><span class="std std-ref">Text</span></a></p>
+<section id="id17">
+<h3>Text<a class="headerlink" href="#id17" title="Link to this heading">#</a></h3>
+<p>Re-exports <a class="reference internal" href="codec.html#id14"><span class="std std-ref">Text</span></a></p>
 </section>
 </section>
 </section>
@@ -745,35 +779,46 @@ rejects, and the next call tries again.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Returns</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readtext">readText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#locatetext">locateText()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">format</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#text">text</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#path">path</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Returns</a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#throws">Throws</a></li>
 </ul>
 </li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#writetext">writeText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#readtext">readText()</a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">Parameters</a><ul class="nav section-nav flex-column">
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">format</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">text</a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Throws</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#writetext">writeText()</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">format</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#value">value</a></li>
 </ul>
 </li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Returns</a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">Throws</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Returns</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Throws</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#codec">Codec</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Format</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">Format</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#formats">FORMATS</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#read">Read</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#source">Source</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Text</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Text</a></li>
 </ul>
 </li>
 </ul>

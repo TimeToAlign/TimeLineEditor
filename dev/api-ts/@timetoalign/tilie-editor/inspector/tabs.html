@@ -44,7 +44,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
-    <link rel="next" title="inspector/timestamp" href="timestamp.html" />
+    <link rel="next" title="inspector/textPlace" href="textPlace.html" />
     <link rel="prev" title="inspector/stamps/settlements.svelte" href="stamps/settlements.svelte.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
@@ -439,6 +439,7 @@
 <li class="toctree-l2"><a class="reference internal" href="stamps/drafts.svelte.html">inspector/stamps/drafts.svelte</a></li>
 <li class="toctree-l2"><a class="reference internal" href="stamps/settlements.svelte.html">inspector/stamps/settlements.svelte</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">inspector/tabs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="textPlace.html">inspector/textPlace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timestamp.html">inspector/timestamp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="toml.html">inspector/toml</a></li>
 <li class="toctree-l2"><a class="reference internal" href="words.html">inspector/words</a></li>
@@ -537,7 +538,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="held">
 <h3>Held<a class="headerlink" href="#held" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L78">editor/src/inspector/tabs.ts:78</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L78">editor/src/inspector/tabs.ts:78</a></p>
 <p>A pin as the inspector holds it: core’s pin (unnamed, or showing a named
 timestamp), with the manifest of its block it was read from.</p>
 <section id="properties">
@@ -547,21 +548,21 @@ timestamp), with the manifest of its block it was read from.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>manifest</strong>: <a class="reference internal" href="../../tilie-core/manifest/types.html#manifest"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L80">editor/src/inspector/tabs.ts:80</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L80">editor/src/inspector/tabs.ts:80</a></p>
 </section>
 <section id="pin">
 <h5>pin<a class="headerlink" href="#pin" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pin</strong>: <a class="reference internal" href="../../tilie-core/maps/timestamp.html#pin"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Pin</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L79">editor/src/inspector/tabs.ts:79</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L79">editor/src/inspector/tabs.ts:79</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="matchshown">
 <h3>MatchShown<a class="headerlink" href="#matchshown" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L202">editor/src/inspector/tabs.ts:202</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L202">editor/src/inspector/tabs.ts:202</a></p>
 <p>What the inspector shows of MatchStamps: the pick, and the MatchStamp (<code class="docutils literal notranslate"><span class="pre">null</span></code> without one).</p>
 <section id="id1">
 <h4>Properties<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
@@ -570,21 +571,21 @@ timestamp), with the manifest of its block it was read from.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>match</strong>: <a class="reference internal" href="#shownmatch"><code class="docutils literal notranslate"><span class="pre">ShownMatch</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L204">editor/src/inspector/tabs.ts:204</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L204">editor/src/inspector/tabs.ts:204</a></p>
 </section>
 <section id="picked">
 <h5>picked<a class="headerlink" href="#picked" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>picked</strong>: <a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Picked</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L203">editor/src/inspector/tabs.ts:203</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L203">editor/src/inspector/tabs.ts:203</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="id2">
 <h3>Picked<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L51">editor/src/inspector/tabs.ts:51</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L51">editor/src/inspector/tabs.ts:51</a></p>
 <p>The tab last chosen, and how many editors the store had opened when it
 was chosen or when the inspector was last shown or hidden.</p>
 <section id="id3">
@@ -594,21 +595,21 @@ was chosen or when the inspector was last shown or hidden.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>openings</strong>: <code class="docutils literal notranslate"><span class="pre">number</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L53">editor/src/inspector/tabs.ts:53</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L53">editor/src/inspector/tabs.ts:53</a></p>
 </section>
 <section id="tab">
 <h5>tab<a class="headerlink" href="#tab" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>tab</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;manifest&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;level&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;properties&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;metadata&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;journal&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;elisions&quot;</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L52">editor/src/inspector/tabs.ts:52</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L52">editor/src/inspector/tabs.ts:52</a></p>
 </section>
 </section>
 </section>
 <hr class="docutils" />
 <section id="shown">
 <h3>Shown<a class="headerlink" href="#shown" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L119">editor/src/inspector/tabs.ts:119</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L119">editor/src/inspector/tabs.ts:119</a></p>
 <p>What the inspector shows: the pick, and the pin (<code class="docutils literal notranslate"><span class="pre">null</span></code> without one).</p>
 <section id="id4">
 <h4>Properties<a class="headerlink" href="#id4" title="Link to this heading">#</a></h4>
@@ -617,14 +618,14 @@ was chosen or when the inspector was last shown or hidden.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>picked</strong>: <a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Picked</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L120">editor/src/inspector/tabs.ts:120</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L120">editor/src/inspector/tabs.ts:120</a></p>
 </section>
 <section id="id6">
 <h5>pin<a class="headerlink" href="#id6" title="Link to this heading">#</a></h5>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>pin</strong>: <a class="reference internal" href="#shownpin"><code class="docutils literal notranslate"><span class="pre">ShownPin</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L121">editor/src/inspector/tabs.ts:121</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L121">editor/src/inspector/tabs.ts:121</a></p>
 </section>
 </section>
 </section>
@@ -636,7 +637,7 @@ was chosen or when the inspector was last shown or hidden.</p>
 <blockquote>
 <div><p><strong>HeldMatch</strong> = { <code class="docutils literal notranslate"><span class="pre">block</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">index</span></code>: <a class="reference internal" href="../../tilie-core/matches/anchors.html#anchorindex"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">AnchorIndex</span></code></span></a>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;potential&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">matchStamp</span></code>: <code class="docutils literal notranslate"><span class="pre">number</span></code>; } | { <code class="docutils literal notranslate"><span class="pre">block</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">id</span></code>: <code class="docutils literal notranslate"><span class="pre">string</span></code>; <code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;named&quot;</span></code>; }</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L189">editor/src/inspector/tabs.ts:189</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L189">editor/src/inspector/tabs.ts:189</a></p>
 <p>A MatchStamp as the Matchstamp tab holds it: a potential one, pinned on
 the canvas, by its number in the anchor index of its block’s table it was
 read from; or a named one, by its ID.</p>
@@ -647,7 +648,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><strong>ShownMatch</strong> = <a class="reference internal" href="#heldmatch"><code class="docutils literal notranslate"><span class="pre">HeldMatch</span></code></a> &amp; <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L199">editor/src/inspector/tabs.ts:199</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L199">editor/src/inspector/tabs.ts:199</a></p>
 <p>A held MatchStamp as shown, and the tab shown before it, shown again when it is let go.</p>
 <section id="type-declaration">
 <h4>Type Declaration<a class="headerlink" href="#type-declaration" title="Link to this heading">#</a></h4>
@@ -665,7 +666,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><strong>ShownPin</strong> = <a class="reference internal" href="#held"><code class="docutils literal notranslate"><span class="pre">Held</span></code></a> &amp; <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L84">editor/src/inspector/tabs.ts:84</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L84">editor/src/inspector/tabs.ts:84</a></p>
 <p>A held pin as shown, and the tab shown before the first pin, shown again when the pin is cleared.</p>
 <section id="id7">
 <h4>Type Declaration<a class="headerlink" href="#id7" title="Link to this heading">#</a></h4>
@@ -683,7 +684,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><strong>Tab</strong> = <em>typeof</em> <a class="reference internal" href="#tabs"><code class="docutils literal notranslate"><span class="pre">TABS</span></code></a>[<code class="docutils literal notranslate"><span class="pre">number</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L29">editor/src/inspector/tabs.ts:29</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L29">editor/src/inspector/tabs.ts:29</a></p>
 <p>One of the inspector’s tabs.</p>
 </section>
 </section>
@@ -694,7 +695,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">const</span></code> <strong>TABS</strong>: readonly [<code class="docutils literal notranslate"><span class="pre">&quot;level&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;properties&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;metadata&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;manifest&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;journal&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;elisions&quot;</span></code>]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L18">editor/src/inspector/tabs.ts:18</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L18">editor/src/inspector/tabs.ts:18</a></p>
 <p>The inspector’s sections, in tab order: the level tab first, then the seven others, Elisions last.</p>
 </section>
 </section>
@@ -705,7 +706,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><strong>chosen</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">tab</span></code>, <code class="docutils literal notranslate"><span class="pre">openings</span></code>): <a class="reference internal" href="#shown"><code class="docutils literal notranslate"><span class="pre">Shown</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L143">editor/src/inspector/tabs.ts:143</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L143">editor/src/inspector/tabs.ts:143</a></p>
 <p>What is shown once <code class="docutils literal notranslate"><span class="pre">tab</span></code> is chosen: that tab; any tab but Timestamp clears the pin.</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
@@ -733,7 +734,7 @@ read from; or a named one, by its ID.</p>
 <blockquote>
 <div><p><strong>elisionSelected</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">addresses</span></code>, <code class="docutils literal notranslate"><span class="pre">openings</span></code>): <a class="reference internal" href="#shown"><code class="docutils literal notranslate"><span class="pre">Shown</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L173">editor/src/inspector/tabs.ts:173</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L173">editor/src/inspector/tabs.ts:173</a></p>
 <p>What is shown once the selection changed to <code class="docutils literal notranslate"><span class="pre">addresses</span></code>: when they are
 exactly one elision, stored or automatic (<code class="docutils literal notranslate"><span class="pre">namesElision</span></code>), the Elisions tab, as though it were chosen
 (<code class="docutils literal notranslate"><span class="pre">chosen</span></code>: the pin cleared), remembering no tab to go back to, so the
@@ -771,7 +772,7 @@ the same elision stays selected, so a tab chosen meanwhile stays.</p>
 <blockquote>
 <div><p><strong>heldOf</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">pin</span></code>): <a class="reference internal" href="#held"><code class="docutils literal notranslate"><span class="pre">Held</span></code></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L87">editor/src/inspector/tabs.ts:87</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L87">editor/src/inspector/tabs.ts:87</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">pin</span></code> held in <code class="docutils literal notranslate"><span class="pre">view</span></code>: with its block’s manifest; <code class="docutils literal notranslate"><span class="pre">null</span></code> when its block is gone.</p>
 <section id="id17">
 <h4>Parameters<a class="headerlink" href="#id17" title="Link to this heading">#</a></h4>
@@ -795,7 +796,7 @@ the same elision stays selected, so a tab chosen meanwhile stays.</p>
 <blockquote>
 <div><p><strong>initialPick</strong>(<code class="docutils literal notranslate"><span class="pre">depth</span></code>, <code class="docutils literal notranslate"><span class="pre">openings</span></code>): <a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Picked</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L57">editor/src/inspector/tabs.ts:57</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L57">editor/src/inspector/tabs.ts:57</a></p>
 <p>What is chosen when the inspector is first made: the level tab while an editor is open, else Properties.</p>
 <section id="id21">
 <h4>Parameters<a class="headerlink" href="#id21" title="Link to this heading">#</a></h4>
@@ -819,7 +820,7 @@ the same elision stays selected, so a tab chosen meanwhile stays.</p>
 <blockquote>
 <div><p><strong>matchOutlived</strong>(<code class="docutils literal notranslate"><span class="pre">held</span></code>, <code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">index</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L241">editor/src/inspector/tabs.ts:241</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L241">editor/src/inspector/tabs.ts:241</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">held</span></code> no longer holds in <code class="docutils literal notranslate"><span class="pre">view</span></code>: a named MatchStamp its address
 no longer names; a potential one, its block’s anchor index now another
 than the one it was read from (<code class="docutils literal notranslate"><span class="pre">index</span></code>, <code class="docutils literal notranslate"><span class="pre">null</span></code> without a table: the
@@ -850,7 +851,7 @@ table, the filter or the user changed).</p>
 <blockquote>
 <div><p><strong>matchPinned</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">held</span></code>): <a class="reference internal" href="#matchshown"><code class="docutils literal notranslate"><span class="pre">MatchShown</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L213">editor/src/inspector/tabs.ts:213</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L213">editor/src/inspector/tabs.ts:213</a></p>
 <p>What is shown once <code class="docutils literal notranslate"><span class="pre">held</span></code> is shown: the Matchstamp tab, remembering the
 tab shown before unless a MatchStamp already did; or, for <code class="docutils literal notranslate"><span class="pre">null</span></code>, once it
 is let go: the tab remembered, no MatchStamp. Letting go without one
@@ -877,7 +878,7 @@ changes nothing.</p>
 <blockquote>
 <div><p><strong>namedMatchStampOf</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L226">editor/src/inspector/tabs.ts:226</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L226">editor/src/inspector/tabs.ts:226</a></p>
 <p>The ID of the named MatchStamp <code class="docutils literal notranslate"><span class="pre">address</span></code> names in <code class="docutils literal notranslate"><span class="pre">view</span></code>, itself or one of its anchors; <code class="docutils literal notranslate"><span class="pre">null</span></code> for anything else.</p>
 <section id="id32">
 <h4>Parameters<a class="headerlink" href="#id32" title="Link to this heading">#</a></h4>
@@ -901,7 +902,7 @@ changes nothing.</p>
 <blockquote>
 <div><p><strong>namesElision</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L154">editor/src/inspector/tabs.ts:154</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L154">editor/src/inspector/tabs.ts:154</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">address</span></code> names an elision of <code class="docutils literal notranslate"><span class="pre">view</span></code> itself, whose form the
 Elisions tab shows: a stored one (<code class="docutils literal notranslate"><span class="pre">{block,</span> <span class="pre">id:</span> <span class="pre">E}</span></code>) or an automatic one,
 which the drawing derives and core resolves as the part <code class="docutils literal notranslate"><span class="pre">elision</span></code> of the
@@ -929,7 +930,7 @@ their parts, which a press on the canvas selects as the elision itself.</p>
 <blockquote>
 <div><p><strong>namesTimestamp</strong>(<code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">address</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L94">editor/src/inspector/tabs.ts:94</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L94">editor/src/inspector/tabs.ts:94</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">address</span></code> names a named timestamp of <code class="docutils literal notranslate"><span class="pre">view</span></code>.</p>
 <section id="id39">
 <h4>Parameters<a class="headerlink" href="#id39" title="Link to this heading">#</a></h4>
@@ -953,7 +954,7 @@ their parts, which a press on the canvas selects as the elision itself.</p>
 <blockquote>
 <div><p><strong>nextTab</strong>(<code class="docutils literal notranslate"><span class="pre">from</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code>): <code class="docutils literal notranslate"><span class="pre">&quot;manifest&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;timestamp&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;matchstamp&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;level&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;properties&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;metadata&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;journal&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;elisions&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">undefined</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L257">editor/src/inspector/tabs.ts:257</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L257">editor/src/inspector/tabs.ts:257</a></p>
 <p>The tab a key on the tab <code class="docutils literal notranslate"><span class="pre">from</span></code> moves to: the arrows the next or
 previous tab (wrapping), Home and End the first and last; <code class="docutils literal notranslate"><span class="pre">undefined</span></code>
 for any other key and for a key held with Alt, Ctrl or Meta, which is
@@ -980,7 +981,7 @@ the browser’s (Alt+ArrowLeft goes back).</p>
 <blockquote>
 <div><p><strong>outlived</strong>(<code class="docutils literal notranslate"><span class="pre">held</span></code>, <code class="docutils literal notranslate"><span class="pre">view</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L107">editor/src/inspector/tabs.ts:107</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L107">editor/src/inspector/tabs.ts:107</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">held</span></code> no longer holds in <code class="docutils literal notranslate"><span class="pre">view</span></code>. An unnamed pin: its block is
 deleted, the block’s manifest is another object (any change to it), or
 the granularity is another object than the one it was read under (a
@@ -1008,7 +1009,7 @@ whenever it is shown: its address names no named timestamp.</p>
 <blockquote>
 <div><p><strong>pinned</strong>(<code class="docutils literal notranslate"><span class="pre">shown</span></code>, <code class="docutils literal notranslate"><span class="pre">held</span></code>): <a class="reference internal" href="#shown"><code class="docutils literal notranslate"><span class="pre">Shown</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L130">editor/src/inspector/tabs.ts:130</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L130">editor/src/inspector/tabs.ts:130</a></p>
 <p>What is shown once <code class="docutils literal notranslate"><span class="pre">held</span></code> is pinned: the Timestamp tab, remembering the
 tab shown before unless a pin already did; or, for <code class="docutils literal notranslate"><span class="pre">null</span></code>, once the pin
 is cleared: the tab remembered, nothing pinned. Clearing without a pin
@@ -1035,7 +1036,7 @@ changes nothing.</p>
 <blockquote>
 <div><p><strong>tabLabel</strong>(<code class="docutils literal notranslate"><span class="pre">tab</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span></code>): <code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L43">editor/src/inspector/tabs.ts:43</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L43">editor/src/inspector/tabs.ts:43</a></p>
 <p>The word on tab <code class="docutils literal notranslate"><span class="pre">tab</span></code> at level <code class="docutils literal notranslate"><span class="pre">level</span></code>: the level’s word on the level tab (<code class="docutils literal notranslate"><span class="pre">Arranger</span></code>, <code class="docutils literal notranslate"><span class="pre">Bundle</span></code>, …).</p>
 <section id="id53">
 <h4>Parameters<a class="headerlink" href="#id53" title="Link to this heading">#</a></h4>
@@ -1059,7 +1060,7 @@ changes nothing.</p>
 <blockquote>
 <div><p><strong>toggled</strong>(<code class="docutils literal notranslate"><span class="pre">picked</span></code>, <code class="docutils literal notranslate"><span class="pre">openings</span></code>, <code class="docutils literal notranslate"><span class="pre">shown</span></code>): <a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Picked</span></code></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/editor/src/inspector/tabs.ts#L69">editor/src/inspector/tabs.ts:69</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/editor/src/inspector/tabs.ts#L69">editor/src/inspector/tabs.ts:69</a></p>
 <p>The pick once the inspector is shown (<code class="docutils literal notranslate"><span class="pre">shown</span></code> true) or hidden. Hiding it
 records the count of openings; showing it again shows the level tab when
 an editor was opened while it was hidden (the count differs, as it does
@@ -1109,11 +1110,11 @@ editor never changes the tab shown.</p>
       </div>
     </a>
     <a class="right-next"
-       href="timestamp.html"
+       href="textPlace.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">inspector/timestamp</p>
+        <p class="prev-next-title">inspector/textPlace</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

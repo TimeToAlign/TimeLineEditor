@@ -513,9 +513,9 @@
 <section id="draw">
 <h3>draw()<a class="headerlink" href="#draw" title="Link to this heading">#</a></h3>
 <blockquote>
-<div><p><strong>draw</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">placement</span></code>, <code class="docutils literal notranslate"><span class="pre">layers</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>): <a class="reference internal" href="elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
+<div><p><strong>draw</strong>(<code class="docutils literal notranslate"><span class="pre">manifest</span></code>, <code class="docutils literal notranslate"><span class="pre">placement</span></code>, <code class="docutils literal notranslate"><span class="pre">layers</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">reading?</span></code>): <a class="reference internal" href="elements.html#drawing"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Drawing</span></code></span></a></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/layout/src/block.ts#L72">layout/src/block.ts:72</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/layout/src/block.ts#L78">layout/src/block.ts:78</a></p>
 <p>Draw one manifest as one block (section 8): its title, its groups as frames
 and its ungrouped roots as cards, each item at its place (section 8.6).
 The items are placed and their member drawings laid out; the block’s one
@@ -538,6 +538,10 @@ drawing states the arrangement.</p>
 is: the drawing follows the order of its arrays and never copies it. Its
 timelines’ ancestry and its containers are read from core’s index of the
 manifest, memoised by identity, so drawing one manifest again reuses them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">reading</span></code> is the reading in force of flow control (section 1); <code class="docutils literal notranslate"><span class="pre">null</span></code>, the
+default, reads what no actor believes <code class="docutils literal notranslate"><span class="pre">false</span></code>. A flow-control element it
+does not read is faded, starts no section and is no place a destination
+lands on (sections 3.1, 6.4).</p>
 <section id="parameters">
 <h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h4>
 <section id="manifest">
@@ -555,6 +559,10 @@ manifest, memoised by identity, so drawing one manifest again reuses them.</p>
 <section id="metrics">
 <h5>metrics<a class="headerlink" href="#metrics" title="Link to this heading">#</a></h5>
 <p><code class="docutils literal notranslate"><span class="pre">FontMetrics</span></code></p>
+</section>
+<section id="reading">
+<h5>reading?<a class="headerlink" href="#reading" title="Link to this heading">#</a></h5>
+<p><a class="reference internal" href="../tilie-core/manifest/flow.html#flowreading"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">FlowReading</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code> = <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </section>
 </section>
 <section id="returns">
@@ -619,6 +627,7 @@ manifest, memoised by identity, so drawing one manifest again reuses them.</p>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#placement">placement</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#layers">layers</a></li>
 <li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#metrics">metrics</a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#reading">reading?</a></li>
 </ul>
 </li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#returns">Returns</a></li>

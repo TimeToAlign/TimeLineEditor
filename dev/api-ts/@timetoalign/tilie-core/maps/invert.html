@@ -535,7 +535,7 @@
 <h2>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">#</a></h2>
 <section id="inversioncontext">
 <h3>InversionContext<a class="headerlink" href="#inversioncontext" title="Link to this heading">#</a></h3>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/maps/invert.ts#L28">maps/invert.ts:28</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/maps/invert.ts#L28">maps/invert.ts:28</a></p>
 <p>What a map is inverted with: the compile context and the span of positions it is read over.</p>
 <section id="extends">
 <h4>Extends<a class="headerlink" href="#extends" title="Link to this heading">#</a></h4>
@@ -550,7 +550,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <code class="docutils literal notranslate"><span class="pre">optional</span></code> <strong>knots?</strong>: readonly <a class="reference internal" href="values.html#measureknots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">MeasureKnots</span></code></span></a>[]</p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/maps/compile.ts#L34">maps/compile.ts:34</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/maps/compile.ts#L34">maps/compile.ts:34</a></p>
 <section id="inherited-from">
 <h6>Inherited from<a class="headerlink" href="#inherited-from" title="Link to this heading">#</a></h6>
 <p><a class="reference internal" href="compile.html#compilecontext"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">CompileContext</span></code></span></a>.<a class="reference internal" href="compile.html#knots"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">knots</span></code></span></a></p>
@@ -561,7 +561,7 @@
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">readonly</span></code> <strong>span</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/maps/invert.ts#L30">maps/invert.ts:30</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/maps/invert.ts#L30">maps/invert.ts:30</a></p>
 <p>The first and last position of the span; <code class="docutils literal notranslate"><span class="pre">end</span></code> is <code class="docutils literal notranslate"><span class="pre">null</span></code> where the line’s length is unknown.</p>
 <section id="end">
 <h6>end<a class="headerlink" href="#end" title="Link to this heading">#</a></h6>
@@ -586,7 +586,7 @@
 <blockquote>
 <div><p><strong>invert</strong>(<code class="docutils literal notranslate"><span class="pre">map</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">context</span></code>): <a class="reference internal" href="../number/real.html#real"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">Real</span></code></span></a> | <code class="docutils literal notranslate"><span class="pre">null</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/maps/invert.ts#L378">maps/invert.ts:378</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/maps/invert.ts#L378">maps/invert.ts:378</a></p>
 <p>The position at which <code class="docutils literal notranslate"><span class="pre">map</span></code> gives <code class="docutils literal notranslate"><span class="pre">value</span></code>, read over the context’s span:
 exact (a <code class="docutils literal notranslate"><span class="pre">Rational</span></code>) when the value and every parameter the inverse reads
 are exact, else a float; <code class="docutils literal notranslate"><span class="pre">null</span></code> when the map is not invertible there or
@@ -619,7 +619,7 @@ allowed is the caller’s to say.</p>
 <blockquote>
 <div><p><strong>invertible</strong>(<code class="docutils literal notranslate"><span class="pre">map</span></code>, <code class="docutils literal notranslate"><span class="pre">context</span></code>): <code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </div></blockquote>
-<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/4e1a57a8d4bbad89dfc3b25ca51bf938a3922e18/app/packages/core/src/maps/invert.ts#L366">maps/invert.ts:366</a></p>
+<p>Defined in: <a class="reference external" href="https://github.com/TimeToAlign/TimeLineEditor/blob/60b8aab55b0607bcd1768cf940c534716457f202/app/packages/core/src/maps/invert.ts#L366">maps/invert.ts:366</a></p>
 <p>Whether <code class="docutils literal notranslate"><span class="pre">map</span></code> is strictly monotone, so invertible, over the context’s span.</p>
 <section id="id1">
 <h4>Parameters<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>

@@ -437,14 +437,14 @@
 <span class="sd">control); in which order its stretches are then played is computed, and the</span>
 <span class="sd">computation is timetoalign's alone. The editor asks for the flows of one</span>
 <span class="sd">timeline (``POST /api/flows``): its atomic sections, and for each convention</span>
-<span class="sd">the runs played, the sections they cover and, for the default convention,</span>
-<span class="sd">what playing found. When its user wants those flows in the manifest, it asks</span>
-<span class="sd">for the manifest with them written (``POST /api/flows/flow-maps``): the</span>
-<span class="sd">atomic sections as Regions of the timeline and the computed FlowMaps. A</span>
-<span class="sd">manifest that holds flows written before is written again: a Region whose</span>
-<span class="sd">stretch is an atomic section no longer stays and is rejected as one, which</span>
-<span class="sd">needs the actor who asks. The server stores nothing; what is done with</span>
-<span class="sd">either answer is the editor's.</span>
+<span class="sd">the runs played, the sections they cover and what playing found, each</span>
+<span class="sd">finding with its cause where timetoalign names one. When its user wants</span>
+<span class="sd">those flows in the manifest, it asks for the manifest with them written</span>
+<span class="sd">(``POST /api/flows/flow-maps``): the atomic sections as Regions of the</span>
+<span class="sd">timeline and the computed FlowMaps. A manifest that holds flows written</span>
+<span class="sd">before is written again: a Region whose stretch is an atomic section no</span>
+<span class="sd">longer stays and is rejected as one, which needs the actor who asks. The</span>
+<span class="sd">server stores nothing; what is done with either answer is the editor's.</span>
 
 <span class="sd">Both requests are a JSON object of parameters behind its length, as the</span>
 <span class="sd">MatchClaim provenance routes take them, followed by the manifest file's</span>
@@ -480,10 +480,10 @@
 <span class="n">REQUIRED_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"timeline"</span><span class="p">,)</span>
 <span class="sd">"""The parameter both routes require."""</span>
 
-<span class="n">FLOWS_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"convention"</span><span class="p">,</span> <span class="s2">"believer"</span><span class="p">)</span>
+<span class="n">FLOWS_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"convention"</span><span class="p">,</span> <span class="s2">"believer"</span><span class="p">,</span> <span class="s2">"beliefs"</span><span class="p">)</span>
 <span class="sd">"""The parameters the computing route takes besides, each optional."""</span>
 
-<span class="n">WRITING_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"believer"</span><span class="p">,</span> <span class="s2">"actor"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">)</span>
+<span class="n">WRITING_PARAMETERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"believer"</span><span class="p">,</span> <span class="s2">"beliefs"</span><span class="p">,</span> <span class="s2">"actor"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">)</span>
 <span class="sd">"""The parameters the writing route takes besides, each optional."""</span>
 
 <span class="n">MANIFEST_MEDIA_TYPE</span> <span class="o">=</span> <span class="s2">"application/json"</span>
@@ -510,23 +510,49 @@
 
 
 
-<div class="viewcode-block" id="asked_believer">
-<a class="viewcode-back" href="../../../api-py/tilie_server.routers.flows.html#tilie_server.routers.flows.asked_believer">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">asked_believer</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The actor whose beliefs decide which elements are read, if one is named.</span>
+<div class="viewcode-block" id="asked_reading">
+<a class="viewcode-back" href="../../../api-py/tilie_server.routers.flows.html#tilie_server.routers.flows.asked_reading">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">asked_reading</span><span class="p">(</span><span class="n">parameters</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Whose beliefs decide which elements are read, where a request says so.</span>
 
-<span class="sd">    The actor is compared as timetoalign's engine compares it, with the</span>
-<span class="sd">    actors of the elements' beliefs as the manifest writes them.</span>
+<span class="sd">    ``believer`` is an actor, compared as timetoalign's engine compares it</span>
+<span class="sd">    with the actors of the elements' beliefs as the manifest writes them;</span>
+<span class="sd">    ``beliefs`` the belief states read for it (``true``, ``undecided``,</span>
+<span class="sd">    ``unlikely``, ``false``), every state but ``false`` without it. An</span>
+<span class="sd">    element is read when the believer's state in it, ``undecided`` where</span>
+<span class="sd">    they hold no belief, is one of them; without a believer, when no actor</span>
+<span class="sd">    rejects it.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The keyword arguments of timetoalign's ``play``,</span>
+<span class="sd">        ``atomic_sections`` and ``create_flow_maps_from_flow_control`` that</span>
+<span class="sd">        say so: none without a believer.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        Refusal: 422 at ``["believer"]`` if the parameter is no string.</span>
+<span class="sd">        Refusal: 422 at ``["believer"]`` if the believer is no string; at</span>
+<span class="sd">            ``["beliefs"]`` if the states are no list of belief states, or</span>
+<span class="sd">            are given without a believer.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="s2">"believer"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">believer</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"believer"</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">believer</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"believer"</span><span class="p">],</span> <span class="s2">"the parameter 'believer' is no actor"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">believer</span></div>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare</span><span class="w"> </span><span class="kn">import</span> <span class="n">BELIEF_STATES</span>
+
+    <span class="n">reading</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="s2">"believer"</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+        <span class="n">believer</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"believer"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">believer</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"believer"</span><span class="p">],</span> <span class="s2">"the parameter 'believer' is no actor"</span><span class="p">)</span>
+        <span class="n">reading</span><span class="p">[</span><span class="s2">"believer"</span><span class="p">]</span> <span class="o">=</span> <span class="n">believer</span>
+    <span class="k">if</span> <span class="s2">"beliefs"</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"believer"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reading</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"beliefs"</span><span class="p">],</span> <span class="s2">"the parameter 'beliefs' needs a 'believer'"</span><span class="p">)</span>
+        <span class="n">beliefs</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">"beliefs"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">beliefs</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">BELIEF_STATES</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">beliefs</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">Refusal</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">"beliefs"</span><span class="p">],</span> <span class="s2">"the parameter 'beliefs' is no list of belief states"</span>
+            <span class="p">)</span>
+        <span class="n">reading</span><span class="p">[</span><span class="s2">"beliefs"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">beliefs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reading</span></div>
 
 
 
@@ -644,9 +670,12 @@
 <span class="sd">        convention answered ``{"runs", "sections"}``, the runs played as</span>
 <span class="sd">        ``[start, end]`` pairs (stretches played one after the other without</span>
 <span class="sd">        a jump between them are one run) and the names of the atomic</span>
-<span class="sd">        sections they cover, in the order played. ``default`` holds</span>
-<span class="sd">        ``findings`` besides, each ``{"kind", "coordinate", "message"}`` with</span>
-<span class="sd">        the ``end`` of a stretch never played. Every value on the axis is</span>
+<span class="sd">        sections they cover, in the order played, and ``findings``, what</span>
+<span class="sd">        playing found, each ``{"kind", "coordinate", "message"}`` with the</span>
+<span class="sd">        ``end`` of a stretch never played and, where timetoalign names one,</span>
+<span class="sd">        the ``cause`` (``single_playback``: a stretch the ``single`` flow</span>
+<span class="sd">        leaves out that the ``default`` flow plays); ``printed`` finds</span>
+<span class="sd">        nothing. Every value on the axis is</span>
 <span class="sd">        written as a manifest writes a value on the timeline's own axis: an</span>
 <span class="sd">        integer, a number or a ``[numerator, denominator]`` pair, as the</span>
 <span class="sd">        number type says. A timeline without flow control answers one</span>
@@ -654,18 +683,18 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,</span>
-<span class="sd">            :func:`asked_conventions`, :func:`asked_believer` and</span>
+<span class="sd">            :func:`asked_conventions`, :func:`asked_reading` and</span>
 <span class="sd">            :func:`asked_timeline`; 422 at ``["timeline"]`` with timetoalign's</span>
 <span class="sd">            message if the timeline's length is unknown or its flow control</span>
 <span class="sd">            cannot be played.</span>
 <span class="sd">    """</span>
     <span class="n">play</span><span class="p">,</span> <span class="n">atomic_sections</span> <span class="o">=</span> <span class="n">flow_engine</span><span class="p">()</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlowConvention</span><span class="p">,</span> <span class="n">number_to_json</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">number_to_json</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">timetoalign.timelines</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnknownLengthError</span>
 
     <span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">FLOWS_PARAMETERS</span><span class="p">)</span>
     <span class="n">conventions</span> <span class="o">=</span> <span class="n">asked_conventions</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
-    <span class="n">believer</span> <span class="o">=</span> <span class="n">asked_believer</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">reading</span> <span class="o">=</span> <span class="n">asked_reading</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">timeline</span> <span class="o">=</span> <span class="n">asked_timeline</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">on_axis</span><span class="p">(</span><span class="n">coordinate</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -676,9 +705,9 @@
         <span class="k">if</span> <span class="n">timeline</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">UnknownLengthError</span><span class="p">(</span><span class="n">timeline</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s2">"play its flow control"</span><span class="p">)</span>
         <span class="n">registry</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">timeline</span><span class="o">.</span><span class="n">flow_control</span><span class="p">,</span> <span class="n">timeline</span><span class="o">.</span><span class="n">length</span>
-        <span class="n">sections</span> <span class="o">=</span> <span class="n">atomic_sections</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">believer</span><span class="o">=</span><span class="n">believer</span><span class="p">)</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="n">atomic_sections</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="o">**</span><span class="n">reading</span><span class="p">)</span>
         <span class="n">flows</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">convention</span><span class="p">:</span> <span class="n">play</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="n">convention</span><span class="p">,</span> <span class="n">believer</span><span class="o">=</span><span class="n">believer</span><span class="p">)</span>
+            <span class="n">convention</span><span class="p">:</span> <span class="n">play</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="n">convention</span><span class="p">,</span> <span class="o">**</span><span class="n">reading</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">convention</span> <span class="ow">in</span> <span class="n">conventions</span>
         <span class="p">}</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
@@ -687,7 +716,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">answered</span><span class="p">(</span><span class="n">convention</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""The answer for one convention: its runs, sections and findings."""</span>
         <span class="n">flow</span> <span class="o">=</span> <span class="n">flows</span><span class="p">[</span><span class="n">convention</span><span class="p">]</span>
-        <span class="n">answer</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"runs"</span><span class="p">:</span> <span class="p">[[</span><span class="n">on_axis</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">start</span><span class="p">),</span> <span class="n">on_axis</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">end</span><span class="p">)]</span> <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">runs</span><span class="p">],</span>
             <span class="s2">"sections"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">section</span><span class="o">.</span><span class="n">name</span>
@@ -695,18 +724,17 @@
                 <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">sections</span>
                 <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;=</span> <span class="n">section</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">section</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;=</span> <span class="n">run</span><span class="o">.</span><span class="n">end</span>
             <span class="p">],</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="n">convention</span> <span class="ow">is</span> <span class="n">FlowConvention</span><span class="o">.</span><span class="n">default</span><span class="p">:</span>
-            <span class="n">answer</span><span class="p">[</span><span class="s2">"findings"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"findings"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
                     <span class="s2">"kind"</span><span class="p">:</span> <span class="n">finding</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
                     <span class="s2">"coordinate"</span><span class="p">:</span> <span class="n">on_axis</span><span class="p">(</span><span class="n">finding</span><span class="o">.</span><span class="n">coordinate</span><span class="p">),</span>
                     <span class="o">**</span><span class="p">({}</span> <span class="k">if</span> <span class="n">finding</span><span class="o">.</span><span class="n">end</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"end"</span><span class="p">:</span> <span class="n">on_axis</span><span class="p">(</span><span class="n">finding</span><span class="o">.</span><span class="n">end</span><span class="p">)}),</span>
+                    <span class="o">**</span><span class="p">({}</span> <span class="k">if</span> <span class="n">finding</span><span class="o">.</span><span class="n">cause</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"cause"</span><span class="p">:</span> <span class="n">finding</span><span class="o">.</span><span class="n">cause</span><span class="o">.</span><span class="n">value</span><span class="p">}),</span>
                     <span class="s2">"message"</span><span class="p">:</span> <span class="n">finding</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
                 <span class="p">}</span>
                 <span class="k">for</span> <span class="n">finding</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">findings</span>
-            <span class="p">]</span>
-        <span class="k">return</span> <span class="n">answer</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"timeline"</span><span class="p">:</span> <span class="n">timeline</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
@@ -747,7 +775,7 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Refusal: 501 as :func:`flow_engine`; 422 as :func:`read_request`,</span>
-<span class="sd">            :func:`asked_believer`, :func:`asked_rejection` and</span>
+<span class="sd">            :func:`asked_reading`, :func:`asked_rejection` and</span>
 <span class="sd">            :func:`asked_timeline`; 422 at ``["timeline"]`` with</span>
 <span class="sd">            timetoalign's message if it does not write the flows: the</span>
 <span class="sd">            timeline's length is unknown, its flow control</span>
@@ -758,13 +786,11 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">timetoshare</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
 
     <span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">WRITING_PARAMETERS</span><span class="p">)</span>
-    <span class="n">believer</span> <span class="o">=</span> <span class="n">asked_believer</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">reading</span> <span class="o">=</span> <span class="n">asked_reading</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">actor</span><span class="p">,</span> <span class="n">date</span> <span class="o">=</span> <span class="n">asked_rejection</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">bundle</span><span class="p">,</span> <span class="n">timeline</span> <span class="o">=</span> <span class="n">asked_timeline</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">bare</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">timeline</span><span class="o">.</span><span class="n">create_flow_maps_from_flow_control</span><span class="p">(</span>
-            <span class="n">believer</span><span class="o">=</span><span class="n">believer</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="n">actor</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span>
-        <span class="p">)</span>
+        <span class="n">timeline</span><span class="o">.</span><span class="n">create_flow_maps_from_flow_control</span><span class="p">(</span><span class="n">actor</span><span class="o">=</span><span class="n">actor</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span> <span class="o">**</span><span class="n">reading</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">Refusal</span><span class="p">([</span><span class="s2">"timeline"</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
     <span class="k">return</span> <span class="n">dumps</span><span class="p">(</span><span class="n">bundle</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"json"</span><span class="p">)</span></div>
@@ -779,8 +805,11 @@
 
 <span class="sd">    The body is the parameters' length in bytes (a little-endian 32-bit</span>
 <span class="sd">    integer), the parameters ``{"timeline": &lt;bare ID&gt;, "convention"?:</span>
-<span class="sd">    "default" | "single" | "printed", "believer"?: &lt;actor&gt;}`` as JSON, then</span>
-<span class="sd">    the manifest file's text. The answer is JSON (:func:`flows_answer`),</span>
+<span class="sd">    "default" | "single" | "printed", "believer"?: &lt;actor&gt;, "beliefs"?:</span>
+<span class="sd">    [&lt;belief state&gt;, …]}`` as JSON, then the manifest file's text: the</span>
+<span class="sd">    elements read are those whose state for ``believer`` is one of</span>
+<span class="sd">    ``beliefs`` (every state but ``false`` without it), or, without a</span>
+<span class="sd">    believer, those no actor rejects. The answer is JSON (:func:`flows_answer`),</span>
 <span class="sd">    with all three conventions where none is named. A request that cannot</span>
 <span class="sd">    be answered is answered 422 with ``{"detail": {"path", "message"}}``, a</span>
 <span class="sd">    parameter's at its name; a timetoalign that cannot play flow control,</span>
@@ -802,12 +831,13 @@
 
 <span class="sd">    The body is the parameters' length in bytes (a little-endian 32-bit</span>
 <span class="sd">    integer), the parameters ``{"timeline": &lt;bare ID&gt;, "believer"?:</span>
-<span class="sd">    &lt;actor&gt;, "actor"?: &lt;actor&gt;, "date"?: "YYYY-MM-DD"}`` as JSON, then the</span>
-<span class="sd">    manifest file's text. ``actor`` is who asks: the one whose belief</span>
-<span class="sd">    rejects an atomic section written before that is none any more, on</span>
-<span class="sd">    ``date``. The answer is a manifest file in JSON</span>
-<span class="sd">    (:func:`written_manifest`); nothing is stored. Refusals answer as the</span>
-<span class="sd">    computing route's.</span>
+<span class="sd">    &lt;actor&gt;, "beliefs"?: [&lt;belief state&gt;, …], "actor"?: &lt;actor&gt;, "date"?:</span>
+<span class="sd">    "YYYY-MM-DD"}`` as JSON, then the manifest file's text; ``believer``</span>
+<span class="sd">    and ``beliefs`` read the elements as the computing route does.</span>
+<span class="sd">    ``actor`` is who asks: the one whose belief rejects an atomic section</span>
+<span class="sd">    written before that is none any more, on ``date``. The answer is a</span>
+<span class="sd">    manifest file in JSON (:func:`written_manifest`); nothing is stored.</span>
+<span class="sd">    Refusals answer as the computing route's.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">written_manifest</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
