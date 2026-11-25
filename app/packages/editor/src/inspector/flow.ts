@@ -156,7 +156,7 @@ export interface DestinationRow {
    * The addresses choosing it selects: the jump, whose arcs it marks, then
    * the element it leads to, where one stands there (`destinationPlace`):
    * the jump target, the region, the timeline or child, the section break
-   * starting its section.
+   * starting its section, of whichever timeline of the tree lists it.
    */
   readonly marks: readonly Address[];
 }
@@ -203,7 +203,7 @@ export function destinationRows(flow: FlowSubject): DestinationRow[] {
       notation,
       marks: named === null ? [target] : [target, inBlock(block.id, idAddress(named.id))],
     });
-    const place = destinationPlace(timeline, element, destination);
+    const place = destinationPlace(block.manifest, timeline, element, destination);
     switch (place.kind) {
       case "by":
         return row(`by ${axisText(destination.by, timeline)}`, null, place.at);

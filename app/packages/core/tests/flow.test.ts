@@ -15,6 +15,7 @@ import {
 } from "../src/manifest/flow.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
+import { findTimeline } from "../src/manifest/tree.ts";
 import type { FlowControlElement, Manifest, TimelineManifest } from "../src/manifest/types.ts";
 import { axisCoordinate } from "../src/number/coordinate.ts";
 import { addressWords, manifestIds, resolveElement } from "../src/workspace/address.ts";
@@ -599,13 +600,17 @@ describe("where a destination leads", () => {
     return timeline;
   };
 
-  /** What each destination of the jump `id` of `view`'s `score` names: its kind, its ID and where it lands. */
-  const placesOf = (view: View, id: string) => {
-    const timeline = scoreOf(view);
+  /**
+   * What each destination of the jump `id` of `view`'s timeline `listing` names: its kind, its
+   * ID, where it lands and, for a section's start, the timeline listing that section break.
+   */
+  const placesIn = (view: View, listing: string, id: string) => {
+    const timeline = findTimeline(manifestOf(view), listing);
+    if (timeline === undefined) throw new Error(`no timeline ${listing}`);
     const jump = timeline.flow_control.find((item) => item.id === id);
     if (jump === undefined) throw new Error(`no jump ${id}`);
     return (jump.targets ?? []).map((destination) => {
-      const place = destinationPlace(timeline, jump, destination);
+      const place = destinationPlace(manifestOf(view), timeline, jump, destination);
       switch (place.kind) {
         case "by":
           return [place.kind, null, place.at];
@@ -618,7 +623,7 @@ describe("where a destination leads", () => {
         case "child":
           return [place.kind, place.child.id, place.at];
         case "section":
-          return [place.kind, place.start?.id ?? null, place.at];
+          return [place.kind, place.start?.id ?? null, place.at, place.holder?.id ?? null];
         case "nowhere":
           return [place.kind, place.to, null];
         default:
@@ -626,6 +631,7 @@ describe("where a destination leads", () => {
       }
     });
   };
+  const placesOf = (view: View, id: string) => placesIn(view, "score", id);
 
   it("names the jump target, the child, or the place a distance reaches", () => {
     expect(placesOf(viewOf([A, "flow/sonata_exposition.yaml"]), "jump_1")).toEqual([
@@ -643,11 +649,51 @@ describe("where a destination leads", () => {
 
   it("starts a section at the nearest section break before the jump, else at 0", () => {
     expect(placesOf(viewOf([A, "flow/sonata_exposition.yaml"]), "jump_2")).toEqual([
-      ["section", null, quarters(0)],
+      ["section", null, quarters(0), null],
     ]);
     const sections = viewOf([A, "flow/sections.yaml"]);
-    expect(placesOf(sections, "jump_2")).toEqual([["section", "section_break_1", quarters(16)]]);
-    expect(placesOf(sections, "jump_1")).toEqual([["section", null, quarters(0)]]);
+    expect(placesOf(sections, "jump_2")).toEqual([
+      ["section", "section_break_1", quarters(16), "score"],
+    ]);
+    expect(placesOf(sections, "jump_1")).toEqual([["section", null, quarters(0), null]]);
+  });
+
+  it("finds the section break among the whole tree's, never before the start of the timeline listing the jump", () => {
+    const sectionBreak = (into: string, id: string, coordinate: [number, number]) => ({
+      type: "add",
+      into: at(into),
+      flow_control: { id, role: "section_break", coordinate },
+    });
+    // `piece` 16 long, `verse` at 4 and 8 long; a jump of `verse` at 6, at 10 on `piece`'s axis.
+    let view = changed(viewOf([A, "child_flow_control.yaml"]), {
+      type: "add",
+      into: at("verse"),
+      flow_control: { id: "jump_x", role: "jump", coordinate: [6, 1], targets: [{}] },
+    });
+    view = changed(view, sectionBreak("piece", "section_break_a", [2, 1]));
+    view = changed(view, {
+      type: "add",
+      into: at("piece"),
+      flow_control: { id: "jump_y", role: "jump", coordinate: [14, 1], targets: [{}] },
+    });
+    // At 2, before `verse` starts: `jump_x` lands at `verse`'s start; `jump_y` at that break.
+    expect(placesIn(view, "verse", "jump_x")).toEqual([["section", null, quarters(0), null]]);
+    expect(placesIn(view, "piece", "jump_y")).toEqual([
+      ["section", "section_break_a", quarters(2), "piece"],
+    ]);
+    // A section break of `piece` at 7, between `verse`'s start 4 and the jump at 10.
+    view = changed(view, sectionBreak("piece", "section_break_b", [7, 1]));
+    expect(placesIn(view, "verse", "jump_x")).toEqual([
+      ["section", "section_break_b", quarters(3), "piece"],
+    ]);
+    // One of `verse` at 5, at 9 on `piece`'s axis: nearer; `jump_y` at 14 lands there too.
+    view = changed(view, sectionBreak("verse", "section_break_c", [5, 1]));
+    expect(placesIn(view, "verse", "jump_x")).toEqual([
+      ["section", "section_break_c", quarters(5), "verse"],
+    ]);
+    expect(placesIn(view, "piece", "jump_y")).toEqual([
+      ["section", "section_break_c", quarters(9), "verse"],
+    ]);
   });
 
   it("names a region, the timeline itself, and nothing for an unknown ID", () => {
@@ -671,7 +717,7 @@ describe("where a destination leads", () => {
     const jump = timeline.flow_control.find((item) => item.id === "jump_3");
     if (jump === undefined) throw new Error("jump_3 was added");
     const nowhere = { to: "nothing", determined: true, reset: true, label: null };
-    expect(destinationPlace(timeline, jump, nowhere)).toEqual({
+    expect(destinationPlace(manifestOf(view), timeline, jump, nowhere)).toEqual({
       kind: "nowhere",
       to: "nothing",
     });

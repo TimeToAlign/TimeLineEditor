@@ -9,10 +9,13 @@
  */
 
 import type { Belief } from "@timetoalign/timetoshare";
+import { expressAs } from "../maps/express.ts";
 import { actorIri } from "../matches/beliefs.ts";
 import type { Coordinate } from "../number/coordinate.ts";
-import { addCoordinates, axisCoordinate, compareCoordinates } from "../number/coordinate.ts";
+import { addCoordinates, axisCoordinate } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
+import { toRational } from "../number/real.ts";
+import { locateTimeline, type Roots } from "./tree.ts";
 import type {
   ChildTimeline,
   FlowControlElement,
@@ -164,10 +167,12 @@ export function passesText(passes: NonNullable<JumpDestination["passes"]>): stri
  * `by`, that distance from the jump's coordinate; `to`, the jump target
  * (rejected or not: a rejected target is still what the destination names),
  * the region (its start), the timeline itself (0) or the child timeline (its
- * offset) with that ID; neither, the start of the jump's section, the nearest
- * section break before the jump that is not rejected (`start`), else 0 with
- * `start` null. `nowhere` for a `to` naming none of these, which a valid
- * manifest never holds.
+ * offset) with that ID; neither, the start of the jump's section
+ * (`sectionStart`): the nearest section break before the jump, not rejected,
+ * among those of the root's whole tree, never before the start of the
+ * timeline listing the jump (`start`, held by `holder`), else that start, 0,
+ * with `start` and `holder` null. `nowhere` for a `to` naming none of these,
+ * which a valid manifest never holds.
  */
 export type DestinationPlace =
   | { readonly kind: "by"; readonly at: Coordinate }
@@ -178,6 +183,7 @@ export type DestinationPlace =
   | {
       readonly kind: "section";
       readonly start: FlowControlElement | null;
+      readonly holder: TimelineManifest | null;
       readonly at: Coordinate;
     }
   | { readonly kind: "nowhere"; readonly to: string };
@@ -189,8 +195,70 @@ function originOf(timeline: TimelineManifest): Coordinate {
   return { unit, numberType, value };
 }
 
-/** The place the destination `destination` of the jump `jump`, listed by `timeline`, names (`DestinationPlace`). */
+/**
+ * The start of the section of the jump `jump`, listed by `timeline` of
+ * `manifest` (TimeToShare's README, "Destinations"): the timeline played is
+ * the root of `timelines` whose tree holds `timeline`, and on its axis, with
+ * `S` the start of `timeline` and `J` the jump's position, each its
+ * coordinate plus the offsets of its ancestors summed exactly (a float as
+ * its exact binary value), the nearest section break `p` with `S ≤ p < J`
+ * that is not rejected, of that root or of any of its descendants, the
+ * first in the tree's order (each timeline's elements in the order of its
+ * `flow_control` before its children's, in `children` order) where two lie
+ * at one position; else `S`, which counts as a section boundary for it. The
+ * coordinate it reaches is `p − S` on the own axis of `timeline`, written in
+ * its number type, 0 for `S`.
+ */
+function sectionStart(
+  manifest: Roots,
+  timeline: TimelineManifest,
+  jump: FlowControlElement,
+): DestinationPlace {
+  const exact = (raw: unknown, on: TimelineManifest) => toRational(axisCoordinate(raw, on).value);
+  // The root above `timeline` and the start of `timeline` on the root's axis.
+  let located = locateTimeline(manifest, timeline.id);
+  let start = Rational.of(0n);
+  let root = timeline;
+  while (located?.parent !== undefined) {
+    const child = located.parent.timeline.children.find((item) => item.id === located?.timeline.id);
+    if (child === undefined) break;
+    start = start.add(exact(child.offset, located.parent.timeline));
+    root = located.parent.timeline;
+    located = located.parent;
+  }
+  const end = start.add(exact(jump.coordinate, timeline));
+  let found: { start: FlowControlElement; holder: TimelineManifest; at: Rational } | null = null;
+  // The tree in pre-order, each timeline with its start on the root's axis.
+  const pending: [TimelineManifest, Rational][] = [[root, Rational.of(0n)]];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    const [each, from] = next;
+    for (const item of each.flow_control) {
+      if (item.role !== "section_break" || isRejected(item)) continue;
+      const at = from.add(exact(item.coordinate, each));
+      if (at.compare(start) < 0 || at.compare(end) >= 0) continue;
+      if (found === null || at.compare(found.at) > 0) found = { start: item, holder: each, at };
+    }
+    for (const child of each.children.toReversed()) {
+      pending.push([child, from.add(exact(child.offset, each))]);
+    }
+  }
+  if (found === null) return { kind: "section", start: null, holder: null, at: originOf(timeline) };
+  const value = expressAs(found.at.subtract(start), timeline.number_type);
+  if (value === undefined) throw new Error("an exact value is never an infinite float");
+  return {
+    kind: "section",
+    start: found.start,
+    holder: found.holder,
+    at: { unit: timeline.unit, numberType: timeline.number_type, value },
+  };
+}
+
+/**
+ * The place the destination `destination` of the jump `jump`, listed by
+ * `timeline` of `manifest`, names (`DestinationPlace`).
+ */
 export function destinationPlace(
+  manifest: Roots,
   timeline: TimelineManifest,
   jump: FlowControlElement,
   destination: JumpDestination,
@@ -200,18 +268,7 @@ export function destinationPlace(
     return { kind: "by", at: addCoordinates(from, axisCoordinate(destination.by, timeline)) };
   }
   const { to } = destination;
-  if (to === undefined) {
-    let nearest: { readonly start: FlowControlElement; readonly at: Coordinate } | null = null;
-    for (const item of timeline.flow_control) {
-      if (item.role !== "section_break" || isRejected(item)) continue;
-      const at = axisCoordinate(item.coordinate, timeline);
-      if (compareCoordinates(at, from) >= 0) continue;
-      if (nearest === null || compareCoordinates(at, nearest.at) > 0) nearest = { start: item, at };
-    }
-    return nearest === null
-      ? { kind: "section", start: null, at: originOf(timeline) }
-      : { kind: "section", ...nearest };
-  }
+  if (to === undefined) return sectionStart(manifest, timeline, jump);
   if (to === timeline.id) return { kind: "timeline", timeline, at: originOf(timeline) };
   const element = timeline.flow_control.find(
     (item) => item.role === "jump_target" && item.id === to,

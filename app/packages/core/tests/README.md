@@ -1026,8 +1026,21 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    target `jump_target_1` at 16; `jump_2` at 16, which states no place,
    the start of its section, no section break before it, so 0 with no
    start element. `flow/sections`: `jump_2` at 32 starts its section at
-   the section break `section_break_1` at 16; `jump_1` at 16 stands at
-   that section break, which is not before it, so 0 with none.
+   the section break `section_break_1` of `score` at 16; `jump_1` at 16
+   stands at that section break, which is not before it, so 0 with none.
+   A destination without a place lands at the nearest section break before
+   its jump among those of the whole tree of its root, on the root's axis,
+   never before the start of the timeline listing the jump (TimeToShare's
+   README, "Destinations"). In `child_flow_control` (`piece` 16, `verse` at
+   4) with a jump `jump_x` of `verse` at 6 (10 on `piece`'s axis) and a jump
+   `jump_y` of `piece` at 14, each with one destination without a place,
+   added by commands: a section break `section_break_a` of `piece` at 2
+   lies before `verse`'s start 4, so `jump_x` lands at `verse`'s start, 0
+   with no start element, and `jump_y` at `section_break_a`, 2; adding
+   `section_break_b` of `piece` at 7 (4 ≤ 7 < 10) moves `jump_x` there, 7 −
+   4 = 3 on `verse`'s axis, held by `piece`; adding `section_break_c` of
+   `verse` at 5, 9 on `piece`'s axis, moves `jump_x` to it, 5, and `jump_y`
+   too, 9 on `piece`'s axis, held by `verse`.
    `flow/ossia`: `jump_1`'s `to` `ossia` is the child timeline `ossia`
    at its offset 16. `flow/repairs`: `jump_2`'s `to` `jump_target_1` is
    that jump target at 8. A jump added to
