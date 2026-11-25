@@ -524,11 +524,11 @@ describe("maps by target unit", () => {
 
   it("draws a map in the domain and modality it converts to", () => {
     const drawing = drawFixture(name);
-    expect(element(drawing, at("lmap_5")).style).toMatchObject({
+    expect(element(drawing, at("cmap_15")).style).toMatchObject({
       stroke: "#0050EF",
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, at("tmap_1")).style).toMatchObject({
+    expect(element(drawing, at("cmap_3")).style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "none",
     });
@@ -545,8 +545,8 @@ describe("maps by target unit", () => {
         rules: [{ select: { addresses: [at("maps:quarters")] }, set: { stroke: "#ABCDEF" } }],
       },
     ]);
-    expect(element(drawing, at("cmap_8")).style.stroke).toBe("#ABCDEF");
-    expect(element(drawing, at("lmap_5")).style.stroke).toBe("#0050EF");
+    expect(element(drawing, at("cmap_11")).style.stroke).toBe("#ABCDEF");
+    expect(element(drawing, at("cmap_15")).style.stroke).toBe("#0050EF");
   });
 
   it("gives a map its type as class", () => {
@@ -556,7 +556,7 @@ describe("maps by target unit", () => {
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")
       .map((item) => item.address);
-    expect(reached).toEqual([at("cmap_8")]);
+    expect(reached).toEqual([at("cmap_11")]);
   });
 });
 

@@ -224,11 +224,11 @@ setting 0 gives `timestamp_1`'s wedge 0, one setting 30 gives every wedge
 30; a rule setting 30 on `score`'s markers band (`{id: score, facet:
 markers}`) turns none of the wedges it holds. A map is drawn in the domain and modality it
 converts to (`conversion_maps__maps_quarters`: the top-level LinearMap
-`lmap_5` to seconds physical and continuous, the FloatingMeasureMap
-`tmap_1` logical and continuous; `conversion_maps__maps_seconds`: the
+`cmap_15` to seconds physical and continuous, the FloatingMeasureMap
+`cmap_3` logical and continuous; `conversion_maps__maps_seconds`: the
 LinearMap `cmap_1` to samples physical and discrete), a map converting to
-no time axis (the ConstantMap `cmap_8`) taking its timeline's stroke, with
-its type as class (`ConstantMap` matches `cmap_8` alone). For every manifest fixture, every
+no time axis (the ConstantMap `cmap_11`) taking its timeline's stroke, with
+its type as class (`ConstantMap` matches `cmap_11` alone). For every manifest fixture, every
 drawn element's address and type, the block's `{}` included, are among the
 element keys core enumerates, and no address is drawn more often than core
 enumerates it. A drawing is one element, but for the arcs of a jump and
@@ -505,16 +505,16 @@ from sections 4 and 6.4:
   Conversion maps; code-point order `ChainMap`, `CombinationMap`,
   `ConstantMap`, `FloatingMeasureMap`, `LinearMap`, `MeasureBeatMap`,
   `MeasureNumberMap`, `MeasureRecordMap`, `PiecewiseMap`, `TableMap`), so
-  `cmap_4` takes slot 1, `cmap_1` (the MeasureRecordMap) slot 8, and the
-  three TableMaps `tmap_2` to `tmap_4`, which span one timeline and so
+  `cmap_5` takes slot 1, `cmap_1` (the MeasureRecordMap) slot 8, and the
+  three TableMaps `cmap_16` to `cmap_18`, which span one timeline and so
   conflict, the sub-slots 10 to 12 in canonical order; they lie against the
   line above: the stack reaches `1.5 + 12 × 5 = 61.5`, `y_root = 69.5`, the
-  root at 77.5, `cmap_4` (`j = 1`, 5.5 out) at 72, `cmap_1` (`j = 8`, 40.5
-  out) at 37, `tmap_4` (`j = 12`, 60.5 out) at 17, `Hc = 69.5 + 26.9765625
+  root at 77.5, `cmap_5` (`j = 1`, 5.5 out) at 72, `cmap_1` (`j = 8`, 40.5
+  out) at 37, `cmap_18` (`j = 12`, 60.5 out) at 17, `Hc = 69.5 + 26.9765625
   + 8 = 104.4765625`, `H = 122.4765625`. The maps are still drawn in the
   order they are taken, canonical order, `cmap_1` first. With the markers
   band on that side, after the maps, the two lie `B` apart: nothing above,
-  so the root at 22.40234375, `cmap_1` at 62.90234375 and `tmap_4` at
+  so the root at 22.40234375, `cmap_1` at 62.90234375 and `cmap_18` at
   82.90234375; the markers band from `61.5 + 4
   = 65.5`, the wedges from `65.5 + 1.5 = 67` to 80 out (89.40234375 to
   102.40234375), `Eb = 65.5 + 26.9765625 = 92.4765625`, `Hc = 114.87890625`,
@@ -3296,8 +3296,8 @@ it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The block padding `P`
 changes with no spacing: `bare` at the block's `spacing` 24 and its card's 0
 keeps its card at `y = 8`, `Hm = 49.37890625`, `H = 67.37890625`.
 
-**Addresses (section 2.2).** `corpus_mpm`'s map `tmap_1`, of the root
-`score:clt_1`, is `{id: tmap_1}`; a region `region_1` added into the member
+**Addresses (section 2.2).** `corpus_mpm`'s map `cmap_1`, of the root
+`score:clt_1`, is `{id: cmap_1}`; a region `region_1` added into the member
 `second-half` of `group_child_member` is `{id: region_1}`, its label `{id:
 region_1, part: [label]}`, and these two are the only elements whose
 address carries that ID. Every card of `M` is `{id: M, part: [card]}`,

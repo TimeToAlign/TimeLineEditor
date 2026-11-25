@@ -825,6 +825,15 @@ describe("IDs of new elements", () => {
     const view = viewOf([A, "conversion_maps__maps_quarters.yaml"]);
     expect([...manifestIds(file(view))].sort()).toEqual([
       "cmap_1",
+      "cmap_10",
+      "cmap_11",
+      "cmap_12",
+      "cmap_13",
+      "cmap_14",
+      "cmap_15",
+      "cmap_16",
+      "cmap_17",
+      "cmap_18",
       "cmap_2",
       "cmap_3",
       "cmap_4",
@@ -832,26 +841,17 @@ describe("IDs of new elements", () => {
       "cmap_6",
       "cmap_7",
       "cmap_8",
-      "lmap_1",
-      "lmap_2",
-      "lmap_3",
-      "lmap_4",
-      "lmap_5",
+      "cmap_9",
       "maps:quarters",
       "measuremap_1",
-      "pmap_1",
       "timestamp_1",
       "timestamp_2",
-      "tmap_1",
-      "tmap_2",
-      "tmap_3",
-      "tmap_4",
     ]);
-    const held = region("lmap_3", quarters(0), quarters(1));
+    const held = region("cmap_13", quarters(0), quarters(1));
     expect(rejected(view, addRegion("maps:quarters", held))).toEqual({
       code: "duplicate_id",
       path: [key(at("maps:quarters")), "region", "id"],
     });
-    expect(resolveElement(file(view), { id: "lmap_3" })).toBeUndefined();
+    expect(resolveElement(file(view), { id: "cmap_13" })).toBeUndefined();
   });
 });

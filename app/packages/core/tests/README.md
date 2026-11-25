@@ -2154,12 +2154,12 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    of another root) added into `score` are each `duplicate_id` at
    `[{block: A, id: "score"}, "region", "id"]` and `[…, "child", "id"]`.
    On `conversion_maps__maps_quarters.yaml`, whose maps hold maps two
-   deep, `manifestIds` is exactly `cmap_1` to `cmap_8`, `lmap_1` to
-   `lmap_5`, `maps:quarters`, `measuremap_1`, `pmap_1`, `timestamp_1`,
-   `timestamp_2` and `tmap_1` to `tmap_4`: the maps a `ChainMap`, `CombinationMap` or `PiecewiseMap`
-   holds count. A region `lmap_3` (a held map's ID) into `maps:quarters`
+   deep, `manifestIds` is exactly `cmap_1` to `cmap_18`, `maps:quarters`,
+   `measuremap_1`, `timestamp_1` and `timestamp_2`: the maps a `ChainMap`,
+   `CombinationMap` or `PiecewiseMap` holds count. A region `cmap_13` (a
+   map the PiecewiseMap `cmap_12` holds) into `maps:quarters`
    is `duplicate_id` at `[{block: A, id: "maps:quarters"}, "region",
-   "id"]`, and `{id: "lmap_3"}` resolves to nothing: a held map is neither
+   "id"]`, and `{id: "cmap_13"}` resolves to nothing: a held map is neither
    drawn nor addressed.
 
 ## Places, display orders and band orders (`places.test.ts`)
@@ -5331,14 +5331,15 @@ the parity table's manifest with its MeasureMap's expanded rows
    cmap_6}`; all editable, no missing text. On `maps:quarters` at 2 a
    coordinate is editable and a map is editable exactly when it is
    invertible over its timeline's span [0, 16] ("Inverting a map"): the
-   ChainMap `cmap_4`, the LinearMap `lmap_5`, the PiecewiseMap `pmap_1`
+   ChainMap `cmap_5`, the LinearMap `cmap_15`, the PiecewiseMap `cmap_12`
    (`x + 1` before 8, `x + 2` after, stepping up at 8) and the TableMap
-   `tmap_4` (rising, extrapolated linearly) are; the measure views `cmap_1`,
-   `cmap_2`, `cmap_3`, `tmap_1`, the CombinationMap `cmap_5`, the
-   ConstantMap `cmap_8`, `tmap_2` (flat by its `constant` extrapolation
-   beyond 4) and the `previous` TableMap `tmap_3` are not. A map without a
-   value has the missing text: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_5` (its
-   `measure` output reads the MeasureMap) and `tmap_1` `needs a server to
+   `cmap_18` (rising, extrapolated linearly) are; the measure views `cmap_1`,
+   `cmap_2`, `cmap_4`, `cmap_3`, the CombinationMap `cmap_8`, the
+   ConstantMap `cmap_11`, `cmap_16` (flat by its `constant` extrapolation
+   beyond 4) and the `previous` TableMap `cmap_17` are not; the rows follow
+   the maps' order in the manifest. A map without a
+   value has the missing text: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_4` and
+   `cmap_8` (its `measure` output reads the MeasureMap) `needs a server to
    expand its measure map`; given `pending`, `waiting for the server`;
    given rows lacking the MeasureMap, `the server did not expand its
    measure map`. The texts: `missingValueText` for a map with no value at
@@ -5380,7 +5381,7 @@ the parity table's manifest with its MeasureMap's expanded rows
      95900 on `excerpt`, plus 44100 = 140000, held to [44100, 132300]:
      **132300**.
    - A map without an inverse falls back to its timeline's coordinate:
-     `maps:quarters`'s ConstantMap `cmap_8` at `p = 3.13`, `h = 0.004`
+     `maps:quarters`'s ConstantMap `cmap_11` at `p = 3.13`, `h = 0.004`
      gives **47/15**, as its coordinate row does.
    - Refused with a `RangeError`: `p` NaN or infinite, `h` 0, −1, NaN or
      infinite, a row of a timeline the spec lacks or a map its timeline
@@ -5396,14 +5397,14 @@ the parity table's manifest with its MeasureMap's expanded rows
      `cmap_6` 317/250 (the text `1.268`) → 100019 (1.268·44100 = 55918.8, settled
      on `excerpt`'s int axis to 55919, plus 44100);
      `cmap_5` 2 → 88200.
-   - A float inverse on a fraction axis: `maps:quarters`'s `tmap_4` (float
+   - A float inverse on a fraction axis: `maps:quarters`'s `cmap_18` (float
      anchors) 1 → 8/4.25 = the float 1.8823529411764706, settled to the
      nearest multiple of 1/2520 (4743.53 rounds to 4744): **593/315**.
    - **Refused**, each `invalid_value` at `[]` with the message given:
      `score`'s 13 → `13 lies outside 'score' (0 to 12)`; −1 → `-1 lies
      outside 'score' (0 to 12)`; `cmap_1` 6240 → 13, `13 lies outside
      'score' (0 to 12)`; `excerpt`'s 90000 → `90000 lies outside 'excerpt'
-     (0 to 88200)`; `maps:quarters`'s `cmap_8` 3 → `no position on
+     (0 to 88200)`; `maps:quarters`'s `cmap_11` 3 → `no position on
      'maps:quarters' gives 3`; `score`'s map `nope` → `'score' shows no map
      'nope'`; `excerpt`'s coordinate on `recording`'s pin at 200000 → `the
      timestamp shows no 'excerpt'`. An ancestor's value is held to the
@@ -5427,12 +5428,12 @@ the parity table's manifest with its MeasureMap's expanded rows
      number_type: "int", value: 55900}`.
    - `performance` at 2: coordinate the integral float 2.0, `cmap_3`
      `{unit: "samples", number_type: "int", value: 88200}`.
-   - `maps:quarters` at 2: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_5`, `tmap_1`
-     `null`; `cmap_4` 2·1/2·1/60 = 1/60 onto minutes, the float
-     0.016666666666666666; `cmap_8` `"section-a"`; `lmap_5` 3/2·2 + 1/3 =
-     10/3, the float 3.3333333333333335 on seconds; `pmap_1` 2 + 1 = 3, the
-     float 3.0; `tmap_2` 2.5·2/4 = 1.25; `tmap_3` (`previous`, no target
-     unit) `{number_type: "int", value: 60}`; `tmap_4` 4.25·2/8 = 1.0625.
+   - `maps:quarters` at 2: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_4`, `cmap_8`
+     `null`; `cmap_5` 2·1/2·1/60 = 1/60 onto minutes, the float
+     0.016666666666666666; `cmap_11` `"section-a"`; `cmap_15` 3/2·2 + 1/3 =
+     10/3, the float 3.3333333333333335 on seconds; `cmap_12` 2 + 1 = 3, the
+     float 3.0; `cmap_16` 2.5·2/4 = 1.25; `cmap_17` (`previous`, no target
+     unit) `{number_type: "int", value: 60}`; `cmap_18` 4.25·2/8 = 1.0625.
    - The parity manifest's `quarters_root` at 2 with its rows: `q_record`
      the record of measure `2` (qstamp 1/2, the last at or before 2), as
      the rows give it; `q_combination` `{seconds: {number_type: "float",

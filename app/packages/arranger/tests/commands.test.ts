@@ -267,9 +267,9 @@ describe("removeCommand", () => {
       expect(
         removeCommand(numbers, selectionOf([at("region_1"), at("region_1", "label")]), null),
       ).toEqual(removing(at("region_1")));
-      const map = removeCommand(mpm, selectionOf([at("tmap_1")]), null);
-      expect(map).toEqual(removing(at("tmap_1")));
-      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("tmap_1")).toBe(false);
+      const map = removeCommand(mpm, selectionOf([at("cmap_1")]), null);
+      expect(map).toEqual(removing(at("cmap_1")));
+      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("cmap_1")).toBe(false);
     });
 
     it("removes timelines and groups, a part standing for its element", () => {

@@ -89,7 +89,7 @@ timelines:
           -
             conversion_maps:
               -
-                id: "#lmap_2"
+                id: "#cmap_4"
                 scalar: 0.04675470144567245
                 source_unit: css_pixels
                 target_unit: seconds
@@ -102,7 +102,7 @@ timelines:
             unit: css_pixels
         conversion_maps:
           -
-            id: "#lmap_1"
+            id: "#cmap_3"
             scalar: 0.04675470144567245
             source_unit: css_pixels
             target_unit: seconds

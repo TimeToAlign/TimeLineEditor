@@ -497,17 +497,17 @@ describe("the rows of a timestamp", () => {
     expect(rows.map((item) => [item.row.map, item.editable])).toEqual([
       [null, true],
       ["cmap_1", false],
+      ["cmap_11", false],
+      ["cmap_12", true],
+      ["cmap_15", true],
+      ["cmap_16", false],
+      ["cmap_17", false],
+      ["cmap_18", true],
       ["cmap_2", false],
       ["cmap_3", false],
-      ["cmap_4", true],
-      ["cmap_5", false],
+      ["cmap_4", false],
+      ["cmap_5", true],
       ["cmap_8", false],
-      ["lmap_5", true],
-      ["pmap_1", true],
-      ["tmap_1", false],
-      ["tmap_2", false],
-      ["tmap_3", false],
-      ["tmap_4", true],
     ]);
   });
 
@@ -518,7 +518,7 @@ describe("the rows of a timestamp", () => {
       );
     const server = "needs a server to expand its measure map";
     expect(missing("no_server")).toEqual(
-      ["cmap_1", "cmap_2", "cmap_3", "cmap_5", "tmap_1"].map((id) => [id, server]),
+      ["cmap_1", "cmap_2", "cmap_3", "cmap_4", "cmap_8"].map((id) => [id, server]),
     );
     expect(missing("pending")[0]).toEqual(["cmap_1", "waiting for the server"]);
     expect(missing([])[0]).toEqual(["cmap_1", "the server did not expand its measure map"]);
@@ -576,7 +576,7 @@ describe("snapping on a row", () => {
   });
 
   it("falls back to the coordinate for a map without an inverse", () => {
-    expect(snapOnRow(QUARTERS, row("maps:quarters", "cmap_8"), 3.13, 0.004)).toEqual(q(47, 15));
+    expect(snapOnRow(QUARTERS, row("maps:quarters", "cmap_11"), 3.13, 0.004)).toEqual(q(47, 15));
   });
 
   it("refuses a pointer that is not finite, a reach that is not positive and an unknown row", () => {
@@ -613,7 +613,7 @@ describe("a pin", () => {
     expect(positionFor(recording, row("excerpt", "cmap_6"), q(317, 250))).toEqual(q(100019));
     expect(positionFor(recording, row("recording", "cmap_5"), q(2))).toEqual(q(88200));
     const quarters = pinOf(QUARTERS, q(2));
-    expect(positionFor(quarters, row("maps:quarters", "tmap_4"), q(1))).toEqual(q(593, 315));
+    expect(positionFor(quarters, row("maps:quarters", "cmap_18"), q(1))).toEqual(q(593, 315));
   });
 
   it("refuses an edited value no position of the timeline gives", () => {
@@ -636,7 +636,7 @@ describe("a pin", () => {
     expect(refusal(pinOf(RECORDING, q(100000)), row("excerpt"), q(90000))).toEqual(
       outside("90000 lies outside 'excerpt' (0 to 88200)"),
     );
-    expect(refusal(pinOf(QUARTERS, q(2)), row("maps:quarters", "cmap_8"), q(3))).toEqual(
+    expect(refusal(pinOf(QUARTERS, q(2)), row("maps:quarters", "cmap_11"), q(3))).toEqual(
       outside("no position on 'maps:quarters' gives 3"),
     );
     expect(refusal(score, row("score", "nope"), q(1))).toEqual(
@@ -692,15 +692,15 @@ describe("the JSON value of a timestamp", () => {
       cmap_1: null,
       cmap_2: null,
       cmap_3: null,
-      cmap_4: { unit: "minutes", number_type: "float", value: 0.016666666666666666 },
-      cmap_5: null,
-      cmap_8: "section-a",
-      lmap_5: { unit: "seconds", number_type: "float", value: 3.3333333333333335 },
-      pmap_1: { unit: "seconds", number_type: "float", value: new JsonFloat(3) },
-      tmap_1: null,
-      tmap_2: { unit: "seconds", number_type: "float", value: 1.25 },
-      tmap_3: { number_type: "int", value: 60 },
-      tmap_4: { unit: "seconds", number_type: "float", value: 1.0625 },
+      cmap_4: null,
+      cmap_5: { unit: "minutes", number_type: "float", value: 0.016666666666666666 },
+      cmap_8: null,
+      cmap_11: "section-a",
+      cmap_12: { unit: "seconds", number_type: "float", value: new JsonFloat(3) },
+      cmap_15: { unit: "seconds", number_type: "float", value: 3.3333333333333335 },
+      cmap_16: { unit: "seconds", number_type: "float", value: 1.25 },
+      cmap_17: { number_type: "int", value: 60 },
+      cmap_18: { unit: "seconds", number_type: "float", value: 1.0625 },
     });
     const spec = specOf(parity.manifest, "quarters_root");
     const values = mappingOf(timestampJson(pinOf(spec, q(2), parity.knots)));

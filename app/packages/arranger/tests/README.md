@@ -156,7 +156,7 @@ own tests.
   **`with_region`**: the root `clt_1` with `region_1`.
 - **IDs** are unique across a whole manifest, so every element is
   addressed by its own ID wherever it lies (`{id: "tempo"}`,
-  `{id: "region_1"}`, `{id: "tmap_1"}`), a part by its owner's ID and its
+  `{id: "region_1"}`, `{id: "cmap_1"}`), a part by its owner's ID and its
   words (`{id: "region_1", part: ["label"]}`), the title by `{part:
   ["name"]}`. A part, a card or a label stands for the element whose ID it
   carries; core removes any element, timelines and groups included, naming
@@ -172,7 +172,7 @@ own tests.
     `recording`, so `piece` is drawn as `second-half`'s ancestor line.
   - **`corpus_mpm`**: groups `group_1` (`score:clt_1`, `score:dlt_1`) and
     `group_2` (`perf:cpt_1`, `perf:dgt_1`, `perf:dpt_1`); the root
-    `score:clt_1` carries the map `tmap_1`; a timeline without a name is
+    `score:clt_1` carries the map `cmap_1`; a timeline without a name is
     named by its whole ID (`score:clt_1`).
   - **`bundle_shared_parent`**: `score` (0 to 32 quarters) ⊃ `exposition`
     (offset 0, 12 quarters, in `group_1` "Exposition" with `take_1`) and
@@ -733,7 +733,7 @@ for `{block: A, id: "clt_3", part: ["name"]}`, `A: [name]` for the title
 | group_child_member | {A: second-half [start]} | [A: second-half] |
 | numbers | {A: group_1 [name]} | [A: group_1] |
 | corpus_mpm | {A: [name]}, or {B, A: [name]} | refused: `The title of bundle 'Beethoven_op35_1971Curzon_Var14only' is removed only with its block; select the block to delete it.` (the title's words, `addressWords`) |
-| corpus_mpm | {A: tmap_1} | [A: tmap_1] |
+| corpus_mpm | {A: cmap_1} | [A: cmap_1] |
 | bundle_shared_member | {A: t [card]} | [A: t]: the one address of both cards of `t` |
 
 **The edited element is never deleted from inside its editor**
