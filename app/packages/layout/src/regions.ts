@@ -64,7 +64,7 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
     const xe = relativeX(region.end);
     const extent: Extent = [Math.min(xs, xe), Math.max(xs, xe)];
     const labelled = label === undefined ? undefined : labelExtent(relativeX(middle), label.width);
-    return { region, middle, label, extent, labelled, leader: scope.leaderOf(region.label) };
+    return { region, middle, label, extent, labelled };
   });
   const fit = tieredFit(placed.map((item) => ({ extent: item.extent, label: item.labelled })));
   const size = maxSize(
@@ -130,8 +130,11 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
         ),
         // A label beyond its first tier is joined to its brace's tip by its leader, displayed
         // only with the label (sections 2.4 and 6.6, Leaders).
-        regionLeaders: drawn.flatMap(({ middle, label, out, tier, leader }) =>
-          label === undefined || tier === undefined || tier === 1 || !shown(leader.style)
+        regionLeaders: drawn.flatMap(({ region, middle, label, out, tier }) => {
+          if (label === undefined || tier === undefined || tier === 1) return [];
+          // Only a label beyond its first tier has a leader to cascade.
+          const leader = scope.leaderOf(region.label);
+          return !shown(leader.style)
             ? []
             : [
                 {
@@ -142,8 +145,8 @@ export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBa
                   x2: at.x(middle),
                   y2: at.yAt(side, tierAt(out, tier)),
                 },
-              ],
-        ),
+              ];
+        }),
       };
     },
   };

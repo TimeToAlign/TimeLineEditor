@@ -81,12 +81,10 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
     const text = segment.manifest.name;
     const label = part(segment, "label");
     if (text === null || !shown(label.style)) return [];
-    const leader = scope.leaderOf(label);
     return [
       {
         segment,
         label,
-        leader,
         ...measured(label, text),
         at: midpoint(segment.start, segment.end),
       },
@@ -138,18 +136,18 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
         }),
       // A label beyond its first tier is joined to the line by its leader (section 6.6, Leaders).
       segmentLeaders: labels
-        .filter(
-          (item) =>
-            known(tier, item) > 1 && shown(item.leader.style) && at.gap(item.at) === undefined,
-        )
-        .map((item) => {
+        .filter((item) => known(tier, item) > 1 && at.gap(item.at) === undefined)
+        // Only a label beyond its first tier has a leader to cascade.
+        .map((item) => ({ item, leader: scope.leaderOf(item.label) }))
+        .filter(({ leader }) => shown(leader.style))
+        .map(({ item, leader }) => {
           const x = at.x(item.at);
           const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
           return {
             segment: item.segment,
             element: {
               type: "leader",
-              ...item.leader,
+              ...leader,
               x1: x,
               y1: at.y - m(against),
               x2: x,
