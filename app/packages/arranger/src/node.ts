@@ -35,6 +35,7 @@ export type BlockNodeData = {
   readonly inside: ReadonlySet<string>;
 };
 
+/** A block as a Svelte Flow node, of type `block`. */
 export type BlockNode = Node<BlockNodeData, "block">;
 
 /**

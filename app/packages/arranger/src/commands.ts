@@ -211,6 +211,7 @@ export function addCommand(
   }
 }
 
+/** A change of stacking order: to the front or back, or one step forward or backward. */
 export type ZOrderAction = "front" | "back" | "forward" | "backward";
 
 /** The ids of one sibling list after `action` on its members in `chosen`. */

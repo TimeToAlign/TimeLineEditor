@@ -1398,8 +1398,9 @@ export function flagParts(pin: Pin): FlagPart[] {
   return parts;
 }
 
-/** The width of the flag's pole in pixels, and how far the pole rises above what it marks. */
+/** The width of the flag's pole in pixels. */
 export const POLE_WIDTH = 1;
+/** How far, in pixels, the flag's pole rises above what it marks. */
 export const POLE_RISE = 22;
 
 /** Where the flag and its pole lie, in pixels from the canvas's top-left corner. */

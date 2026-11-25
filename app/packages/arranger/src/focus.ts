@@ -14,8 +14,9 @@ import type { BlockNode } from "./node.ts";
 export const FOCUS_DURATION = 1000;
 /** The share of the canvas area left free on each side of the focused element. */
 export const FOCUS_MARGIN = 0.1;
-/** The zooms the focus stays within. */
+/** The smallest zoom the focus moves to. */
 export const FOCUS_MIN_ZOOM = 0.05;
+/** The largest zoom the focus moves to. */
 export const FOCUS_MAX_ZOOM = 4;
 
 /** Svelte Flow's viewport: a canvas point `p` lies at `p × zoom + (x, y)` on the screen. */

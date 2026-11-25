@@ -72,4 +72,8 @@ export interface NodeActions {
   readonly gestures: GestureSlot;
 }
 
+/**
+ * The context holding the canvas's `NodeActions`: the canvas sets it, each block node and its
+ * controls get it.
+ */
 export const [getNodeActions, setNodeActions] = createContext<NodeActions>();

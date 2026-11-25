@@ -12,8 +12,10 @@ import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 import type { PaneSource } from "./pane.ts";
 
+/** How a resize handle resizes a block: scale the drawing, size the box, or stretch the content. */
 export type ResizeMode = "scale" | "box" | "stretch";
 
+/** A resize handle: one of a box's four corners or four sides. */
 export type Handle =
   | "top-left"
   | "top"
@@ -36,6 +38,7 @@ export const SIDES: { readonly [handle in Handle]: readonly [-1 | 0 | 1, -1 | 0 
   left: [-1, 0],
 };
 
+/** All eight handles, clockwise from the top-left corner. */
 export const ALL_HANDLES: readonly Handle[] = [
   "top-left",
   "top",

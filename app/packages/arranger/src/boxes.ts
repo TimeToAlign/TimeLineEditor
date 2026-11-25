@@ -295,6 +295,7 @@ export interface Hover {
   readonly band: string | null;
 }
 
+/** Nothing highlighted. */
 export const NO_HOVER: Hover = { box: null, boundary: null, band: null };
 
 /** The boxes holding part of a selection: the block itself, and its frames and cards by `boxKey`. */

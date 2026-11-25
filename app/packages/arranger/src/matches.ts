@@ -95,6 +95,7 @@ export const NO_TABLES: readonly MatchOverlayInput[] = [];
 
 /** The potential MatchStamps' lines and connectors: light grey, 70 % opaque, width 1, dash 3 3. */
 export const POTENTIAL_STROKE = "#C8C8C8";
+/** The opacity of the potential MatchStamps' lines and connectors. */
 export const POTENTIAL_OPACITY = 0.7;
 /** The hovered MatchStamp's. */
 export const HOVERED_STROKE = "#6E6E6E";
@@ -109,9 +110,13 @@ export const PINNED_STROKE = "#1BA1E2";
  * against the white of a card and the canvas's dark `#1A1D23`.
  */
 export const UNDECIDED_STROKE = PINNED_STROKE;
+/** The stroke of an anchor the user believes true: green. */
 export const TRUE_STROKE = "#339933";
+/** The stroke of an anchor the user believes unlikely: dark orange. */
 export const UNLIKELY_STROKE = "#E07000";
+/** The stroke of an anchor the user believes false: red. */
 export const FALSE_STROKE = "#E51400";
+/** The stroke of an alignment anchor for each belief. */
 export const BELIEF_STROKES: Readonly<Record<AnchorBelief, string>> = {
   false: FALSE_STROKE,
   unlikely: UNLIKELY_STROKE,
@@ -124,8 +129,11 @@ export const BELIEF_STROKES: Readonly<Record<AnchorBelief, string>> = {
  * style; the label begins with `OUT_OF_DATE_MARK`.
  */
 export const OUT_OF_DATE_STROKE = FALSE_STROKE;
+/** The text an out-of-date named MatchStamp's name label begins with. */
 export const OUT_OF_DATE_MARK = "! ";
+/** The stroke width of the MatchStamp lines the overlay draws: potential, hovered and pinned. */
 export const MATCH_STROKE_WIDTH = 1;
+/** The dash pattern of the MatchStamp lines the overlay draws. */
 export const MATCH_DASH = "3 3";
 
 /**

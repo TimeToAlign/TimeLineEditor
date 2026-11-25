@@ -29,6 +29,10 @@ const VERTICAL: { readonly [key: string]: Step } = {
   End: last,
 };
 
+/**
+ * Attaches the keyboard behaviour above to a toolbar of buttons, keeping one enabled button as
+ * its tab stop as buttons are enabled, disabled, added and removed.
+ */
 export const roving: Attachment<HTMLElement> = (toolbar) => {
   let current: HTMLButtonElement | null = null;
 

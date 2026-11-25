@@ -15,6 +15,10 @@ import type {
 } from "@timetoalign/tilie-core";
 import { createSubscriber } from "svelte/reactivity";
 
+/**
+ * The store's state, read live: each member but `store` is the store's member of the same name,
+ * read on every access and tracked by the effect or template reading it.
+ */
 export interface LiveStore {
   readonly store: Store;
   readonly view: View;
@@ -28,6 +32,7 @@ export interface LiveStore {
   readonly openings: number;
 }
 
+/** `store` as a `LiveStore`, subscribed to the store while something reads it. */
 export function liveStore(store: Store): LiveStore {
   const subscribe = createSubscriber((update) => store.subscribe(update));
   /** `read` of the store, tracked when read inside an effect or a template. */
