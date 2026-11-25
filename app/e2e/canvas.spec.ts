@@ -58,8 +58,8 @@ const BOXES: Record<string, readonly [number, number, number, number]> = {
   [SMALL.bare]: [0, 0, 476.5771484375, 67.37890625],
   [SMALL.nested]: [0, 160, 477.194580078125, 95.9765625],
   [SMALL.map]: [0, 320, 490.53662109375, 85.4765625],
-  [SMALL.flow]: [640, 0, 518.256591796875, 122.80859375],
-  [SMALL.styled]: [640, 160, 528.080078125, 136.921875],
+  [SMALL.flow]: [640, 0, 518.256591796875, 106.30078125],
+  [SMALL.styled]: [640, 160, 528.080078125, 129.25],
 };
 
 /** The `x`, `y` of a block as stored. */
@@ -84,7 +84,7 @@ test("opening shows one node per block", async ({ page }) => {
   await expect(page.getByTestId("block")).toHaveCount(5);
   for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
   await expect(part(page, SMALL.styled, { id: "intro" })).toBeAttached();
-  await expect(part(page, SMALL.styled, { id: "da-capo" })).toBeAttached();
+  await expect(part(page, SMALL.styled, { id: "da-capo", part: ["symbol"] })).toBeAttached();
   await expect(part(page, SMALL.styled, { id: "ticks" })).toBeAttached();
 });
 

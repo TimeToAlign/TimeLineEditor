@@ -273,15 +273,24 @@ test.describe("on bundles", () => {
 
   test("a root's order change moves a child without an entry of its own", async ({ page }) => {
     const before = {
-      exposition: [band("exposition", M, 1, 2), band("exposition", K, -1, 4)],
+      exposition: [
+        band("exposition", M, 1, 2),
+        band("exposition", K, -1, 4),
+        band("exposition", F, -2, 1),
+      ],
       recapitulation: [band("recapitulation", C, 1, 2), band("recapitulation", K, -1, 4)],
-      recapitulation_first: [],
+      recapitulation_first: [band("recapitulation_first", M, 1, 0)],
       recapitulation_second: [band("recapitulation_second", M, 1, 1)],
       take_1: [band("take_1", M, 1, 1), band("take_1", K, -1, 4)],
     };
     const after = {
       ...before,
-      exposition: [band("exposition", M, -1, 2), band("exposition", K, -2, 4)],
+      exposition: [
+        band("exposition", M, -1, 2),
+        band("exposition", K, -2, 4),
+        band("exposition", F, -3, 1),
+      ],
+      recapitulation_first: [band("recapitulation_first", M, -1, 0)],
       recapitulation_second: [band("recapitulation_second", M, -1, 1)],
     };
     const shown = async () =>

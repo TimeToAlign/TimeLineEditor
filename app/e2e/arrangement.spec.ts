@@ -132,12 +132,12 @@ async function cardsBehind(page: Page, block: string): Promise<string[]> {
 }
 
 /** The frames' tops one under another in the drawing order (README). */
-const TOPS = [68.55078125, 307.8359375, 507.375, 814.61328125];
+const TOPS = [28.8046875, 228.34375, 427.8828125, 627.421875];
 
 /** The frames side by side, in row order (README): `x`, `y` as the writer prints them. */
-const SIDE_BY_SIDE = [179.890625, 850.6943359375, 1521.498046875, 2192.3017578125].map((x) => [
+const SIDE_BY_SIDE = [183.8974609375, 854.701171875, 1525.5048828125, 2196.30859375].map((x) => [
   attributeText(x),
-  attributeText(48.57421875),
+  attributeText(28.8046875),
 ]);
 
 /** Expect block `block`'s frames to lie one under another, `groups` at `tops`. */
@@ -239,12 +239,7 @@ test("arranged items are reordered by a drag and by a key, and side by side stor
   expect(await newestCommand(page)).toEqual(
     arrangementSet(block, { direction: "vertical", order: stepped }),
   );
-  await expectUnderOneAnother(
-    page,
-    block,
-    stepped,
-    [68.55078125, 268.08984375, 575.328125, 814.61328125],
-  );
+  await expectUnderOneAnother(page, block, stepped, TOPS);
 
   expect(await choose(page, "horizontal")).toEqual(
     arrangementSet(block, { direction: "horizontal", order: stepped }),
@@ -327,7 +322,7 @@ test("the canvas's blocks are packed in a matrix and placed freely again", async
     [560.080078125, 0],
     [0, 127.9765625],
     [560.080078125, 127.9765625],
-    [0, 282.78515625],
+    [0, 266.27734375],
   ]);
   expect(await places(page, BLOCKS)).toEqual(STATED);
 

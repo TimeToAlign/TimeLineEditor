@@ -1147,15 +1147,31 @@ const ENGINE_WIDTH: Record<string, (width: number) => number> = {
 };
 
 /**
+ * Whether `text` holds a code point of the Musical Symbols block (U+1D100 to
+ * U+1D1FF), which DejaVu Sans does not map and Noto Music draws. The advance
+ * table holds Noto Music's advances scaled from its 1000 units per em to 2048
+ * and rounded, while an engine lays the glyph out with the font's own
+ * advance, so no engine's rule reproduces its width from the table.
+ */
+function holdsMusicSymbol(text: string): boolean {
+  for (const character of text) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code >= 0x1d100 && code <= 0x1d1ff) return true;
+  }
+  return false;
+}
+
+/**
  * The drawn texts whose laid-out width is not their width in the bundled
  * faces. In Chromium and WebKit the expected width is derived by hand from
  * the advance table (`advanceWidth`, then the engine's rule above). Firefox's
  * stored width differs from the exact one by up to 6e-4 px by a rule no
  * rounding grid reproduces, so there the expected width is the same string
  * laid out afresh, after the faces have loaded, in the same `<svg>` with
- * the same font size. Either way an empty list proves every text was laid
- * out with the bundled faces, not with a fallback that stood in while they
- * loaded.
+ * the same font size, and so it is in every engine for a text holding a
+ * music symbol (`holdsMusicSymbol`). Either way an empty list proves every
+ * text was laid out with the bundled faces, not with a fallback that stood
+ * in while they loaded.
  */
 export async function textsNotInFace(page: Page, browserName: string): Promise<string[]> {
   const rows = await page.evaluate(async (families) => {
@@ -1187,7 +1203,10 @@ export async function textsNotInFace(page: Page, browserName: string): Promise<s
   const rule = ENGINE_WIDTH[browserName];
   return rows
     .filter((row) => {
-      const expected = rule === undefined ? row.relaid : rule(advanceWidth(row.text, row.size));
+      const expected =
+        rule === undefined || holdsMusicSymbol(row.text)
+          ? row.relaid
+          : rule(advanceWidth(row.text, row.size));
       return row.width !== expected;
     })
     .map(({ block, address, text, width }) => {

@@ -166,7 +166,7 @@ present. The files are never edited by hand.
 
 | File | Blocks |
 |---|---|
-| `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo`, C-Map `ticks`) at (640, 160) |
+| `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo` drawn as its symbol, C-Map `ticks`) at (640, 160) |
 | `groups.tle.json` | four manifests of one group each: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 288), `gmixed0000` (`groups/group_parents_mixed`) at (640, 544), `gstyled000` (`groups/group_styled`) at (640, 0) |
 | `bundles.tle.json` | the four named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 952), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480), `btwogroups` (`bundles/bundle_shared_member`: `t` a member of `g1` and of `g2`) at (640, 560) |
 | `grid-300.tle.json` | 300 `bare` blocks `g000000000` … `g000000299`, block `n` at (512 × (n mod 20), 80 × ⌊n / 20⌋) |
@@ -187,9 +187,8 @@ lies below `recording`'s ancestor card, and `bungroup00`). A wider pane
 widens the elided ancestor cards of `gchild0000` and `bshared000` to the
 left only; at the 1304.609375 px pane of a page 1920 wide with the drawer
 open, and at 1920, every gap is the same. The ancestor lines of a
-child member lie below it by default, so the ancestor cards no longer
-reach above their frames but for `bshared000`'s first card (its origin's
-ordinate 3.671875, layout's README, "Ancestor cards", point 11), and the
+child member lie below it by default, so no ancestor card reaches above
+its frame and every origin's ordinate is 0, and the
 member cards grow by 3.40234375 (an ancestor band below a markers band
 starts beyond it); the positions above keep every node apart:
 
@@ -199,8 +198,8 @@ starts beyond it); the positions above keep every node apart:
 | `ggrand0000` | 1052.96923828125 × 207.5390625 | (245.69419642857133, 0) | (−245.69419642857133, 288) to (807.2750418526787, 495.5390625) |
 | `gmixed0000` | 1262.9775390625 × 324.515625 | (273.0302734375, 0) | (366.9697265625, 544) to (1629.947265625, 868.515625) |
 | `gstyled000` | 546.1240234375 × 260.1875 | (0, 0) | (640, 0) to (1186.1240234375, 260.1875) |
-| `bmixed0000` | 1067.755615234375 × 465.62890625 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 465.62890625) |
-| `bshared000` | 1435.7741210937497 × 502.73046875 | (433.10493164062495, 3.671875) | (206.89506835937505, 948.328125) to (1642.6691894531248, 1451.05859375) |
+| `bmixed0000` | 1067.755615234375 × 459.12109375 | (121.70361328125, 0) | (−121.70361328125, 0) to (946.052001953125, 459.12109375) |
+| `bshared000` | 1435.7741210937497 × 515.4765625 | (433.10493164062495, 0) | (206.89506835937505, 952) to (1642.6691894531248, 1467.4765625) |
 | `bungroup00` | 527.3271484375 × 252.1640625 | (0, 0) | (0, 480) to (527.3271484375, 732.1640625) |
 | `btwogroups` | 541.83056640625 × 323.9296875 | (0, 0) | (640, 560) to (1181.83056640625, 883.9296875) |
 
@@ -241,8 +240,8 @@ fixtures of the installed schema version):
 | `bare` | 476.5771484375 | 67.37890625 | 49.5771484375 | 8, 8, 458.5771484375, 49.37890625 |
 | `nested` | 477.194580078125 | 95.9765625 | 49.91552734375 | 8, 8, 459.194580078125, 77.9765625 |
 | `map` | 490.53662109375 | 85.4765625 | 63.53662109375 | 8, 8, 472.53662109375, 67.4765625 |
-| `flow_control` | 518.256591796875 | 122.80859375 | 90.9775390625 | 8, 8, 500.256591796875, 104.80859375 |
-| `styled__score` | 528.080078125 | 136.921875 | 98.080078125 | 8, 8, 510.080078125, 118.921875 |
+| `flow_control` | 518.256591796875 | 106.30078125 | 90.9775390625 | 8, 8, 500.256591796875, 88.30078125 |
+| `styled__score` | 528.080078125 | 129.25 | 98.080078125 | 8, 8, 510.080078125, 111.25 |
 
 `width − origin − length` is 27 for `bare` and `map` (the line's 17 to the
 card's right edge, `K` 8 and the shadow 2), 27.279052734375 for `nested` and
@@ -258,9 +257,12 @@ the pointer at `V = dy / 2` (scale 1, zoom 1), so `nested` stretched by
 (200, 51) at its bottom-right corner stores margin 25.5 and by 40 at its
 bottom margin 20, its `spacing` staying 8. Only a shrink from margin 0
 finds no other value and journals nothing. A frame's spacing is the gap between its cards: `bmixed0000`'s
-`group_1` is `161.234375 + Sf` high (its title's slot 24.8046875, its
-cards 78.953125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
-its spacing to `8 + 44 = 52`.
+`group_1` is `154.7265625 + Sf` high (its title's slot 24.8046875, its
+cards 72.4453125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
+its spacing to `8 + 44 = 52`, and a drag of its bottom-right corner by
+(40, 20) in Scale scales it by the larger ratio, `(162.7265625 + 20) /
+162.7265625` against `(561.052001953125 + 40) / 561.052001953125`, rounded
+to 1/2048: 2300 / 2048 (2299.7105958039274 / 2048).
 
 Every block's card rectangle and its shadow carry the address `{id: <root>,
 part: ["card"]}` (roots `bare`, `clt_1`, `melody`, `flow:quarters`,
@@ -288,21 +290,23 @@ h(11) + 8 = 28.8046875` below the title, each further one 8 below the one
 before, all at `x = 8`.
 
 - `bmixed0000`: `score` (two maps, `Ea = 11.5`; below the wedges, 4 and a
-  flow control band of one jump row, `8 + 2 + h(9)`, so `Eb = 51.453125`)
-  78.953125; `performance` and `page` (one map each) 49.4765625; `excerpt`
+  flow control band holding its jump's symbol alone, the arcs hidden by
+  default and the jump having no name or label of its own: its symbol row `h(12) =
+  13.96875`, so `Eb = 26.9765625 + 4 + 13.96875 = 44.9453125`)
+  72.4453125; `performance` and `page` (one map each) 49.4765625; `excerpt`
   (one map, `y_root = 8 + 6.5`, then `recording`'s ancestor row below
   it) `14.5 + 52.9765625 = 67.4765625`; `annotations` (both regions in one
   row, a regions band `6 + 2 + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond
-  the wedges) 71.85546875. So `group_1` is 169.234375 high at `y`
-  28.8046875 and `group_2` 157.7578125 at 206.0390625. `recording`'s
-  ancestor card behind `group_2` lies from 288.3203125 and is 87.453125
+  the wedges) 71.85546875. So `group_1` is 162.7265625 high at `y`
+  28.8046875 and `group_2` 157.7578125 at 199.53125. `recording`'s
+  ancestor card behind `group_2` lies from 281.8125 and is 87.453125
   high (the arranger's tests README, "`bundle_mixed`'s `score`", With
   `recording`'s ancestor card: its markers band holds the name labels of
-  its derived gaps), ending at 375.7734375, below `group_2`'s frame; an
-  item lies 8 below every item before it and their ancestor cards
-  (drawing.md sections 8.6 and 8.8, No room), so `annotations`' card lies
-  at 383.7734375 and the block is `8 + (383.7734375 + 71.85546875 + 2) =
-  465.62890625` high.
+  its derived gaps), ending at 369.265625, below `group_2`'s frame
+  (357.2890625); an item lies 8 below every item before it and their
+  ancestor cards (drawing.md sections 8.6 and 8.8, No room), so
+  `annotations`' card lies at 377.265625 and the block is `8 +
+  (377.265625 + 71.85546875 + 2) = 459.12109375` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
   `exposition_second`: its line reaches `11.5 + 2 + h(9) = 23.9765625`
@@ -319,16 +323,20 @@ before, all at `x = 8`.
   half 8 (their boundaries) and its outer half 20.4765625 (a boundary,
   `recapitulation_second`'s map and one tier of phrase labels), so it ends
   at 52.953125; `score`'s row below the line) `8 + 52.953125 + 52.9765625
-  = 113.9296875`; `take_2` (plain) 49.37890625. So `group_1` is 189.2109375
+  = 113.9296875`; `take_2` (plain) 49.37890625. `exposition`, a child of
+  `score`, draws in its member card's flow control band the repeat of
+  `score`'s tree lying on its stretch (drawing.md section 6.4, Gathering),
+  its symbol row `h(12) = 13.96875` beyond the band spacing 4, so its card
+  is `84.953125 + 17.96875 = 102.921875` high. So `group_1` is 207.1796875
   high at `y` 28.8046875 and `group_2` 204.11328125 at `28.8046875 +
-  189.2109375 + 8 = 226.015625`. `score`'s ancestor card behind `group_2`
-  lies from 251.3203125 and is 180.359375 high (layout's record; the
-  schema package's drawing `bundle__bundle_shared_parent` draws it at
-  `y="254.9922"`, its origin's ordinate 3.671875 above the place origin),
-  ending at 431.6796875, below `group_2`'s frame (430.12890625), so
-  `page`'s card lies 8 below it, at 439.6796875 (No room, as above); the
-  block is `3.671875 + 439.6796875 + 49.37890625 + 2 + 8 = 502.73046875`
-  high.
+  207.1796875 + 8 = 243.984375`. `score`'s ancestor cards lie from
+  39.6015625 and 265.7890625 and are 177.3515625 high (`score`'s movements
+  in one row of one band order, section 6.4; the schema package's drawing
+  `bundle__bundle_shared_parent` draws them at `y="39.6016"` and
+  `y="265.7891"`), each inside its frame, so the block's origin is the
+  place origin, and `page`'s card lies 8 below `group_2`'s frame, at
+  `243.984375 + 204.11328125 + 8 = 456.09765625`; the block is
+  `456.09765625 + 49.37890625 + 2 + 8 = 515.4765625` high.
 
 Their widths are those of the names, the ancestor lines' chevrons and the
 labels at the lines' ends: maps span their lines (a plain segment's map its
@@ -373,8 +381,13 @@ Each engine stores it in its own precision: WebKit exactly, Chromium
 rounded up to its 1/64 px layout unit (37.375). Firefox stores values up to
 6e-4 px off by a rule no rounding grid reproduces, so there the expected
 width is the same string laid out afresh, after the faces have loaded, in the
-same `<svg>` at the same size. A text laid out with a stand-in font fails
-either way (the fallback gives "Phrase" 34.79). `canvas.spec.ts` and
+same `<svg>` at the same size. The same holds in every engine for a text
+holding a music symbol (the Musical Symbols block, U+1D100 to U+1D1FF, drawn
+in Noto Music): the table holds Noto Music's advances scaled from its 1000
+units per em to 2048 and rounded, while the engine lays the glyph out with
+the font's own advance (WebKit reports 𝄆 at 12 px as 555 × 12 / 1000 =
+6.66, the table's 1137 × 12 / 2048 = 6.662109375). A text laid out with a
+stand-in font fails either way (the fallback gives "Phrase" 34.79). `canvas.spec.ts` and
 `visual.spec.ts` require every text to pass.
 
 ## The specs
@@ -455,8 +468,10 @@ grid and pans the empty canvas, a pinch zooms, the mode buttons and the
 marquee toggle answer taps, a double tap on a card opens its timeline
 editor and a double tap on the faded surroundings closes the innermost one,
 and a band dragged with one finger moves across its line without panning
-the view (`bmixed0000`'s `score`, its `flow_control` band released above
-the conversion maps band: one `set` at `{block: "bmixed0000", id:
+the view (`bmixed0000`'s `score`, its `flow_control` band, which holds
+its jump's symbol row alone and is `h(12) = 13.96875` high, focused at
+zoom 3 so that a point lies the finger's clearance of 14 px inside its
+edges, and released above the conversion maps band: one `set` at `{block: "bmixed0000", id:
 "score"}` of the order `children, flow_control, conversion_maps, line,
 markers, regions`, after which `score` draws flow control at level 2 with
 one element, conversion maps at level 1 with two and markers at level −1
@@ -1384,61 +1399,46 @@ summed: `group_1` 0–16, `group_2` 476–488 (356 + 120), `group_3` 668–695,
 overlapping, so core's row is `[group_1, group_2, group_3, group_4]`
 whatever order is asked, and `clt_1` is the one root any group hangs on.
 Each group's frame holds its excerpt's card (a grandchild: 81.37890625
-high, `group_3`'s Clair de Lune 129.35546875) and its recording's
-(49.37890625). One under another, each group draws its own ancestor card
-of `clt_1`, whose derived elisions are named (`elision-display`
-`ellipsis name`), and the member card's rows align with the rows of that
-card, whose distances count every label stack it draws (section 8.3): a
-member row beyond a derived elision's stack lies one name line,
-19.9765625, lower (the schema package's drawings README derives it for
-`group_elided_inside`, whose member hangs on its root as each excerpt
-here does), and its card grows by as much. The upstream drawing
-`bundle__bundle_elided_layerit` draws one such stack between the
-excerpt's line and its ancestor rows in the cards behind `group_1`,
-`group_2` and `group_4`, two behind `group_3`: the excerpt cards are
-101.35546875 and, for `group_3`, 169.30859375 high, so a frame, `8 + h(11)
-+ 4 + Hm1 + 8 + Hm2 + 8` (the drawing facts above), is 191.5390625 high,
-`group_3`'s 259.4921875, every frame 622.8037109375 wide. Without an
-arrangement and one under another (section 8.6, the block's spacing 8
-between items), each item lies 8 below the largest bottom edge of the
-items before it **and of their displayed ancestor cards**, and so much
-lower that its own ancestor card's top lies 8 below too (sections 8.6 and
-8.8, No room; the first item keeps its default `y`, the block growing
-upwards for its card). Each ancestor card of `clt_1` is 165.30859375 high
-at this pane. Behind `group_1`, `group_2` and `group_4`, whose excerpts
-hang on `clt_1` alike, the card rises `ρ = 59.72265625 − 19.9765625 =
-39.74609375` above its frame (the card's top follows the member's
-ancestor row down by the one stack) and ends `165.30859375 − 39.74609375
-= 125.5625` below the frame's top, inside the frame; behind `group_3`,
-whose excerpt card holds Clair de Lune's rows above its line, the card
-lies 28.20703125 below the frame's top and ends at `28.20703125 +
-165.30859375 = 193.515625`, inside its 259.4921875. So no card reaches
-below its frame, and a frame whose card rises lies `ρ` lower than 8 below
-the item before it. The first frame lies at `y` 68.55078125 in the
-drawing (its title gap 28.8046875 below the place origin, which the first
-ancestor card lifts by `ρ`); `group_2`'s card lies 8 below `group_1`'s
-frame, at `68.55078125 + 191.5390625 + 8 = 268.08984375`, its frame at
-`+ ρ = 307.8359375`; `group_3`'s frame, its card not rising, at
-`307.8359375 + 191.5390625 + 8 = 507.375`; `group_4`'s card at `507.375 +
-259.4921875 + 8 = 774.8671875`, its frame at `+ ρ = 814.61328125`. The
-upstream drawing has the first three tops (68.5508, 307.8359, 507.375) at
-its default view, but `group_4`'s at 825.0898: in a pane narrower than
-about 1299.75 px the automatic proportion of the card behind `group_4`
-draws its derived gaps narrower, the name "Clair de Lune" meets its
-neighbours' and takes a second line (section 6.6, drawn tiers), so the
-member's ancestor row in that card, below the stack, lies one line `h(9) =
-10.4765625` lower and the frame aligned to it with it; the page's pane, 1304.609375
-wide, draws one line. Each group
-draws its own ancestor card of `clt_1` behind it, recorded in item order,
-so `{id: clt_1, part: ["card"]}` is drawn four times (eight parts, each a
+high laid out alone) and its recording's (49.37890625). One under another,
+each group draws its own ancestor card of `clt_1`, whose derived elisions
+are named (`elision-display` `ellipsis name`), and the member card's rows
+align with the rows of that card, whose distances count every label stack
+it draws (section 8.3): a member row beyond a derived elision's stack lies
+one name line, 19.9765625, lower (the schema package's drawings README
+derives it for `group_elided_inside`, whose member hangs on its root as
+each excerpt here does), and its card grows by as much. In the card of
+`clt_1` the four movements lie in one row of one band order (section 6.4,
+Rows of one band order), so it is 97.35546875 high and draws one such
+stack between the excerpt's line and its ancestor rows behind every
+frame: the excerpt cards are 101.35546875 high, so a frame, `8 + h(11) +
+4 + Hm1 + 8 + Hm2 + 8` (the drawing facts above), is 191.5390625 high,
+every frame 622.8037109375 wide (section 8.9, the worked example of
+`bundle_elided_layerit`). Without an arrangement and one under another
+(section 8.6, the block's spacing 8 between items), each item lies 8
+below the largest bottom edge of the items before it **and of their
+displayed ancestor cards**, and so much lower that its own ancestor
+card's top lies 8 below too (sections 8.6 and 8.8, No room). Behind every
+frame the card lies 28.20703125 below the frame's top and ends at
+`28.20703125 + 97.35546875 = 125.5625`, inside its frame: no card rises
+above its frame or reaches below it, so each frame lies 8 below the one
+before it: 28.8046875 (its title gap below the place origin), 228.34375,
+427.8828125 and 627.421875 (`+ 191.5390625 + 8` each). At the
+specification's default view `group_4`'s card draws the name "Clair de
+Lune" in a second tier and its frame is 202.015625 high (section 8.9);
+that moves no top, since `group_4` is the last item. Each group draws its
+own ancestor card of `clt_1` behind it, recorded in item order, so `{id:
+clt_1, part: ["card"]}` is drawn four times (eight parts, each a
 rectangle after its shadow). Side by side (section 8.8, Drawn once) the
-row is packed from the once card's room: the frames' tops are all 48.57421875,
-their left edges 179.890625, then each `622.8037109375 + 48` further
-(the standard gap 32 plus 8 each side, the block's spacing being less):
-850.6943359375, 1521.498046875, 2192.3017578125; `clt_1` is drawn once,
-the card recorded behind the first group of the row, key `{item: group_1,
-member: clt_1}`, two parts; the drawing's origin is `(0, 0)`, so the node
-lies at the block's stated place.
+row is packed from the once card's room, the upstream drawing
+`bundle__bundle_elided_layerit__horizontal`: the frames' tops are all
+28.8046875, the once card not rising above them, their left edges
+183.8974609375 (the once card's row name `Prelude, Menuet, Clair de L…`,
+159.8974609375 wide, standing left of the first frame), then each
+`622.8037109375 + 48` further (the standard gap 32 plus 8 each side, the
+block's spacing being less): 854.701171875, 1525.5048828125,
+2196.30859375; `clt_1` is drawn once, the card recorded behind the first
+group of the row, key `{item: group_1, member: clt_1}`, two parts; the
+drawing's origin is `(0, 0)`, so the node lies at the block's stated place.
 
 1. **Side by side and back.** In the block's bundle editor the menu offers
    Free (pressed), Vertical and Horizontal, no Matrix; Horizontal is
@@ -1454,21 +1454,17 @@ lies at the block's stated place.
    The viewport puts the node's top left corner at (40, 40) of the pane,
    zoom 1, so a drawing ordinate is a screen pixel. `group_1`'s frame is
    pressed (`framePoint`) and dragged straight down to the drawing ordinate
-   440, below `group_2`'s middle (`307.8359375 + 191.5390625 / 2 =
-   403.60546875`) and above `group_3`'s (`507.375 + 259.4921875 / 2 =
-   637.12109375`), and released: one
+   440, below `group_2`'s middle (`228.34375 + 191.5390625 / 2 =
+   324.11328125`) and above `group_3`'s (`427.8828125 + 191.5390625 / 2 =
+   523.65234375`), and released: one
    `set` of `{direction: vertical, order: [group_2, group_1, group_3,
    group_4]}` (`orderAt`, the middles along the direction), the dragged
-   frame selected; `group_2` and `group_1` have the same frame and the
-   same rise, so the tops are those of the drawing order, 68.55078125,
-   307.8359375, 507.375 and 814.61328125, and the ancestor cards are
-   recorded in that order. With the arranger focused, ArrowDown moves the selected
-   frame one place on (`arrangedStep`): one `set` of `[group_2, group_3,
-   group_1, group_4]`, tops 68.55078125, `group_3` (its card not rising)
-   `68.55078125 + 191.5390625 + 8 = 268.08984375`, `group_1` below its
-   card at `268.08984375 + 259.4921875 + 8 = 535.58203125`, `+ ρ =
-   575.328125`, and `group_4` below its card at `575.328125 + 191.5390625 +
-   8 = 774.8671875`, `+ ρ = 814.61328125`. Horizontal then
+   frame selected; every frame being as high and no card rising, the tops
+   are those of the drawing order, 28.8046875, 228.34375, 427.8828125 and
+   627.421875, and the ancestor cards are recorded in that order. With the
+   arranger focused, ArrowDown moves the selected frame one place on
+   (`arrangedStep`): one `set` of `[group_2, group_3, group_1, group_4]`,
+   at the same four tops. Horizontal then
    sends that order as shown, and core stores its row: the store holds
    `[group_1, group_2, group_3, group_4]` and the frames lie as in case 1.
 3. **Side by side refused.** `bundles/bundle_arranged_conflict`: Theme A
@@ -1490,14 +1486,14 @@ lies at the block's stated place.
    (`⌈√5⌉` columns when first chosen), shows `Columns 3`, and places the
    nodes in three columns 518.256591796875 (`flow_control`),
    528.080078125 (`styled__score`) and 490.53662109375 wide and two rows
-   95.9765625 and 136.921875 high: `bare` (0, 0), `nested`
+   95.9765625 and 129.25 high: `bare` (0, 0), `nested`
    (550.256591796875, 0), `map` (1110.336669921875, 0), `flow_control` (0,
    127.9765625), `styled__score` (550.256591796875, 127.9765625). Fewer
    columns sends `{direction: matrix, columns: 2}`, shows `Columns 2`, and
    the columns are 528.080078125 and 518.256591796875 wide, the rows
-   95.9765625, 122.80859375 and 136.921875 high: `bare` (0, 0), `nested`
+   95.9765625, 106.30078125 and 129.25 high: `bare` (0, 0), `nested`
    (560.080078125, 0), `map` (0, 127.9765625), `flow_control`
-   (560.080078125, 127.9765625), `styled__score` (0, 282.78515625). Every
+   (560.080078125, 127.9765625), `styled__score` (0, 266.27734375). Every
    block's stated place is unchanged. Free sends `{arrangement: null}` and
    every node returns to its stated place. A node's position is read from
    its computed `transform`, compared with the one the browser computes for
@@ -1593,8 +1589,7 @@ would have ended), the viewport is exactly the panned one.
 **`selection-motion.spec.ts`** (Chromium, Firefox, WebKit) proves the
 selection through changes and editors on `bundles` (block `bshared000`,
 `bundle_shared_parent`, its place origin at (640, 952), below the other
-blocks) at viewport (40, 80 − 952), so that the block, `score`'s ancestor
-cards reaching 3.671875 above its place origin, lies 40 lower on the
+blocks) at viewport (40, 80 − 952), so that the block lies 40 lower on the
 page than a block placed at (640, 0) at viewport (40, 40), its resize
 toolbar clear of the page's header, with reduced motion emulated,
 and the release of a card reorder on `groups` without it. Every gesture
@@ -1795,7 +1790,14 @@ flow_control, line, markers, regions`, dragged between the line and the
 markers band `children, conversion_maps, line, flow_control, markers,
 regions`; a root's order change (`score` of `bshared000` to `children,
 line, conversion_maps, markers, regions, flow_control`) moves a child
-without an entry of its own below its line; Escape during a drag
+without an entry of its own below its line: `exposition`'s member card,
+whose flow control band draws the one repeat of `score`'s tree on its
+stretch (section 6.4, Gathering), has its conversion maps, markers and
+flow control bands at levels 1, −1 and −2 before and −1, −2 and −3
+after, and `recapitulation_first`, in one row of one band order with
+`recapitulation_second` (section 6.4, Rows of one band order), has an
+empty conversion maps band, present since its neighbour's is, at level 1
+before and −1 after, as `recapitulation_second`'s; Escape during a drag
 dispatches nothing, the wedge of `score`'s `origin` timestamp
 (`timestamp_9`, in the markers band against the line: the schema fixture
 numbers the `origin` and then the `length` timestamp of each timeline

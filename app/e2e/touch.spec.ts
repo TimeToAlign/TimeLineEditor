@@ -225,7 +225,9 @@ test.describe("in an editor", () => {
     // The drawer leaves the phone's arranger too narrow; closed, the edited card is centred again.
     await tap(page, await centre(page.getByRole("button", { name: "Close inspector" })));
     await expect.poll(() => viewportOf(page)).not.toEqual(opened);
-    const focused = await focusBand(page, block, flowControl, 2);
+    // The band holds the jump's symbol row alone, h(12) = 13.96875 high: at zoom 3 it is
+    // 41.90625 px, enough for a point FINGER px inside its edges.
+    const focused = await focusBand(page, block, flowControl, 3);
 
     const from = await bandPoint(page, block, flowControl, FINGER);
     // No visible entry lies above the release: the band goes before the first,
