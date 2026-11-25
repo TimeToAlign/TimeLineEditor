@@ -5,7 +5,7 @@
  */
 
 import type { ElementType, Selector, TimeUnit } from "@timetoalign/timetoshare";
-import { canonicalOrder } from "@timetoalign/timetoshare";
+import { canonicalOrder, expandIri, FORMAT_CONTEXT, NAMESPACE } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
 import { expressAs } from "../maps/express.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
@@ -35,6 +35,7 @@ import type {
   FlowControlElement,
   Manifest,
   NamedTimestamp,
+  Region,
   TimelineManifest,
 } from "./types.ts";
 
@@ -74,6 +75,11 @@ export interface ElementKey {
    * absent on every other element, a cross-section line included.
    */
   readonly coordinates?: StampCoordinate;
+  /**
+   * For a region stating a `type`, the classes it names (`regionClasses`), each in every spelling
+   * the selector member `class` matches (section 2.3); absent on every other element.
+   */
+  readonly types?: readonly string[];
 }
 
 /** Which of a named timestamp's coordinates a wedge or a label marks (sections 2 and 2.3). */
@@ -192,11 +198,63 @@ export function elementKey(
   };
 }
 
+/** The prefix that stands for the format's namespace in a selector's `class`, in every layer. */
+const FORMAT_PREFIX = "tts";
+
+/**
+ * The classes the region `region` names by its `type` statement (section
+ * 2.3), each in every spelling of a selector's `class` that stands for the
+ * same IRI, in the order of the statement. A stated class stands for the
+ * IRI it expands to under the manifest's `@context` (`expandIri`), else for
+ * itself; a selector's `class` holding `:` stands for the format's
+ * namespace followed by `rest` when it is `tts:rest`, whatever the context
+ * declares, else for the IRI it expands to under the context, else for
+ * itself. So a region's spellings are those of its IRI, `tts:rest`
+ * and `p:rest` for every prefix `p` the context declares, that stand for it.
+ * `undefined` for a region stating no type.
+ */
+export function regionClasses(manifest: Manifest, region: Region): readonly string[] | undefined {
+  const types = region.statements?.type;
+  if (types === undefined) return undefined;
+  const context: unknown = manifest["@context"];
+  const prefixes = new Set([FORMAT_PREFIX]);
+  if (typeof context === "object" && context !== null) {
+    for (const [prefix, namespace] of Object.entries(context)) {
+      if (typeof namespace === "string" && !Object.hasOwn(FORMAT_CONTEXT, prefix)) {
+        prefixes.add(prefix);
+      }
+    }
+  }
+  const spellings = new Set<string>();
+  for (const stated of types) {
+    const iri = expandIri(context, stated) ?? stated;
+    const candidates = [iri];
+    for (const prefix of prefixes) {
+      const namespace = selectorClassIri(context, `${prefix}:`);
+      if (iri.startsWith(namespace)) candidates.push(`${prefix}:${iri.slice(namespace.length)}`);
+    }
+    for (const text of candidates) if (selectorClassIri(context, text) === iri) spellings.add(text);
+  }
+  return [...spellings];
+}
+
+/**
+ * The IRI a selector's `class` holding `:` stands for (section 2.3): the
+ * format's namespace followed by `rest` for `tts:rest`, else its expansion
+ * under `context`, else itself; a class without `:` stands for itself.
+ */
+function selectorClassIri(context: unknown, text: string): string {
+  const colon = text.indexOf(":");
+  if (colon < 0) return text;
+  if (text.slice(0, colon) === FORMAT_PREFIX) return NAMESPACE + text.slice(colon + 1);
+  return expandIri(context, text) ?? text;
+}
+
 /** The key of an element's own text, `name` or `label`, which the element holds. */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
   const { facet, ...address } = owner.address;
   if (facet !== undefined) throw new Error("a band has no text");
-  const { coordinates: _marks, ...held } = owner;
+  const { coordinates: _marks, types: _types, ...held } = owner;
   return { ...held, type, address: partAddress(address, type), inside: holdersOf(owner) };
 }
 
@@ -270,7 +328,13 @@ export function selectorMatches(
   }
   if (select.domain !== undefined && select.domain !== element.domain) return false;
   if (select.modality !== undefined && select.modality !== element.modality) return false;
-  if (select.class !== undefined && select.class !== element.class) return false;
+  if (
+    select.class !== undefined &&
+    select.class !== element.class &&
+    !(element.types?.includes(select.class) ?? false)
+  ) {
+    return false;
+  }
   if (select.facet !== undefined && select.facet !== element.facet) return false;
   if (select.inside !== undefined && !element.inside.includes(select.inside)) return false;
   if (select.coordinates !== undefined && select.coordinates !== element.coordinates) return false;
@@ -447,9 +511,14 @@ function memberElements(
     }
   };
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
-    const labelled = (type: ElementType, at: ElementAddress, band: ElementKey) => {
+    const labelled = (
+      type: ElementType,
+      at: ElementAddress,
+      band: ElementKey,
+      types?: readonly string[],
+    ) => {
       const owned = elementKey(type, at, timeline, band);
-      keys.push(owned, textKey(owned, "label"));
+      keys.push(types === undefined ? owned : { ...owned, types }, textKey(owned, "label"));
     };
     const held: { readonly [facet in Facet]: (band: ElementKey) => void } = {
       children: (band) => {
@@ -491,7 +560,9 @@ function memberElements(
         secondary(timeline, band);
       },
       regions: (band) => {
-        for (const region of timeline.regions) labelled("region", idAddress(region.id), band);
+        for (const region of timeline.regions) {
+          labelled("region", idAddress(region.id), band, regionClasses(manifest, region));
+        }
       },
       flow_control: (band) => {
         for (const roles of DRAWN_FLOW) {

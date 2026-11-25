@@ -859,6 +859,33 @@ check of who holds what.
     exactly `timestamp_2`'s name label on `clt_2` and `timestamp_3`'s three
     labels on `clt_1`.
 
+13. **The selector member `class` on regions** (drawing.md §2.3): a
+    region also has the classes its `type` statement names. A stated
+    class stands for the IRI it expands to under the manifest's
+    `@context`, else for itself; a selector's `class` holding `:` stands
+    for the format's namespace `https://timetoalign.github.io/timetoshare/ns#`
+    followed by its rest when its prefix is `tts`, whatever the context
+    declares (the default layer has no context), else for its expansion
+    under the context, else for itself; they match when the IRIs are
+    equal. The oracle is that reading applied by hand to
+    `flow/sonata_exposition.yaml`, whose regions `region_1`, `region_2`,
+    `region_3` (A, B, C) each state `type: ["tts:AtomicSection"]` under a
+    context declaring `tts`: the keys of the three regions carry the
+    spellings `["https://timetoalign.github.io/timetoshare/ns#AtomicSection",
+    "tts:AtomicSection"]`, their labels none, and every other key of the
+    fixture none (the member is absent where no type is stated);
+    `{element: "region", class: "tts:AtomicSection"}` and the same with the
+    absolute IRI each match the three regions in that order and nothing
+    else, `{class: "tts:AtomicSection"}` alone the same three (a label is
+    not its region), `{class: "tts:Other"}` and `{class: "AtomicSection"}`
+    nothing, and the region's timeline class still matches it
+    (`{element: "region", class: "ContinuousLogicalTimeline"}`, all
+    three). The same fixture with `region_2` stating the absolute IRI
+    instead, `tts` removed from its context and `ex` declared for the
+    format's namespace: `region_2`'s spellings are the IRI, `tts:AtomicSection`
+    and `ex:AtomicSection`, and the three selectors `tts:AtomicSection`,
+    `ex:AtomicSection` and the IRI each match it.
+
 The elements of manifests with several roots and groups are in "Several
 roots and groups".
 

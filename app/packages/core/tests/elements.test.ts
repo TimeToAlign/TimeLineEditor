@@ -981,3 +981,54 @@ describe("the selector member coordinates", () => {
     ]);
   });
 });
+
+describe("the selector member class on regions", () => {
+  const SONATA = "flow/sonata_exposition.yaml";
+  const ATOMIC = "https://timetoalign.github.io/timetoshare/ns#AtomicSection";
+  const REGIONS = [id("region_1"), id("region_2"), id("region_3")];
+
+  it("gives each typed region the spellings of its class and no other key any", () => {
+    const keys = manifestElements(load(SONATA));
+    expect(
+      keys.filter((key) => key.types !== undefined).map((key) => [key.address, key.types]),
+    ).toEqual(REGIONS.map((address) => [address, [ATOMIC, "tts:AtomicSection"]]));
+  });
+
+  it("matches a region by its type statement, compact or absolute", () => {
+    const manifest = load(SONATA);
+    const matched = matcher(manifestElements(manifest), timelineAncestry(manifest));
+    expect(matched({ element: "region", class: "tts:AtomicSection" })).toEqual(REGIONS);
+    expect(matched({ element: "region", class: ATOMIC })).toEqual(REGIONS);
+    expect(matched({ class: "tts:AtomicSection" })).toEqual(REGIONS);
+    expect(matched({ class: "tts:Other" })).toEqual([]);
+    expect(matched({ class: "AtomicSection" })).toEqual([]);
+    expect(matched({ element: "region", class: CLT })).toEqual(REGIONS);
+  });
+
+  it("reads an absolute IRI and a prefix of the manifest's own", () => {
+    const sonata = load(SONATA);
+    const { tts: _tts, ...context } = sonata["@context"] as Record<string, unknown>;
+    const [root] = sonata.timelines;
+    if (root === undefined) throw new Error("no root");
+    const manifest: Manifest = {
+      ...sonata,
+      "@context": { ...context, ex: "https://timetoalign.github.io/timetoshare/ns#" },
+      timelines: [
+        {
+          ...root,
+          regions: root.regions.map((region) =>
+            region.id === "region_2" ? { ...region, statements: { type: [ATOMIC] } } : region,
+          ),
+        },
+      ],
+    } as Manifest;
+    const keys = manifestElements(manifest);
+    expect(
+      keys.find((key) => key.type === "region" && key.address.id === "region_2")?.types,
+    ).toEqual([ATOMIC, "tts:AtomicSection", "ex:AtomicSection"]);
+    const matched = matcher(keys, timelineAncestry(manifest));
+    for (const name of ["tts:AtomicSection", "ex:AtomicSection", ATOMIC]) {
+      expect(matched({ element: "region", class: name })).toContainEqual(id("region_2"));
+    }
+  });
+});

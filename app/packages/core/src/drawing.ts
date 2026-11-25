@@ -37,6 +37,7 @@ export {
   namedTimestamps,
   orderedChildren,
   reachOf,
+  regionClasses,
   selectorMatches,
   TIMESTAMP_LABELS,
   textKey,
