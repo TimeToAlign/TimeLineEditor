@@ -1,7 +1,7 @@
 /**
  * Flow control as a manifest holds it, beyond its lists: which roles the
  * drawing draws as lines, the symbol each manifestation draws and the
- * passes a volta bracket prints, whether an element is rejected, the belief
+ * passes a volta fork prints, whether an element is rejected, the belief
  * an actor records in one, and what the place of a jump's destination names.
  * A flow-control element is never removed or changed
  * in place: a repair rejects it (a belief `false` in its `provenance`) and
@@ -148,7 +148,7 @@ function destinationSymbol(destination: JumpDestination): string | undefined {
 }
 
 /**
- * The text of a volta bracket (section 6.6, Volta brackets): its passes as
+ * The text of a branch of a volta fork (section 6.4, Forks): its passes as
  * printed, each number followed by a full stop and the numbers joined by a
  * comma and a space (`1.`, `1., 3.`); `{from: n}` as `n.–`.
  */

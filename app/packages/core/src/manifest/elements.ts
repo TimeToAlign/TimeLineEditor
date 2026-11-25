@@ -497,7 +497,7 @@ function memberElements(
   }
   // A flow-control element of `timeline` held by `band` (section 2.1): its own key (none for a
   // jump target, which is no element), then the labels its stack may draw, its symbol where its
-  // manifestation has one and a jump's brackets where a destination's manifestation is `volta`.
+  // manifestation has one and a jump's fork where a destination's manifestation is `volta`.
   const flowElement = (
     item: FlowControlElement,
     type: FlowLineRole | "jump" | null,
@@ -525,7 +525,7 @@ function memberElements(
     }
     const volta = (item.targets ?? []).some((target) => target.manifestation === "volta");
     if (type === "jump" && volta) {
-      keys.push(elementKey("bracket", partAddress(at, "bracket"), timeline, holder));
+      keys.push(elementKey("fork", partAddress(at, "fork"), timeline, holder));
     }
   };
   const visit = (key: ElementKey, timeline: TimelineManifest) => {

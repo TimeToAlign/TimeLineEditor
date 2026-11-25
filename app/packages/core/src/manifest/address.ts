@@ -37,7 +37,7 @@ export const PART_WORDS = [
   "elision",
   "ellipsis",
   "symbol",
-  "bracket",
+  "fork",
   "leader",
 ] as const satisfies readonly Part[];
 

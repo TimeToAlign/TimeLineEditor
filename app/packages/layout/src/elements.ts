@@ -235,21 +235,30 @@ export interface SymbolElement extends Addressed {
 }
 
 /**
- * A volta bracket (section 6.4, Brackets): its line at the ordinate `y` from
- * `x1` to `x2`, a hook at `x1` and, where `closed`, one at `x2`, each from
- * `y` to `yh`; its text, the passes as printed, written from `tx` on
- * `baseline`, null for a destination without passes.
+ * One branch of a volta fork (section 6.4, Forks): its arrow from the fork's
+ * branch point, its shaft to `base`, the centre of its arrowhead's base, the
+ * arrowhead the triangle `tip`, `corners`; its text, the passes as printed,
+ * written from `tx` on `baseline`, null for a destination without passes.
  */
-export interface BracketElement extends Addressed {
-  readonly type: "bracket";
-  readonly x1: number;
-  readonly x2: number;
-  readonly y: number;
-  readonly yh: number;
-  readonly closed: boolean;
+export interface ForkBranch {
+  readonly base: Point;
+  readonly tip: Point;
+  readonly corners: readonly [Point, Point];
   readonly tx: number;
   readonly baseline: number;
   readonly text: string | null;
+}
+
+/**
+ * A volta fork (section 6.4, Forks): its stem from `stem` to its branch
+ * point `point`, then its branches in the order of their places, the first
+ * straight on and each further one bending away from the root's line.
+ */
+export interface ForkElement extends Addressed {
+  readonly type: "fork";
+  readonly stem: Point;
+  readonly point: Point;
+  readonly branches: readonly ForkBranch[];
 }
 
 /**
@@ -371,7 +380,7 @@ export type DrawnElement =
   | JumpElement
   | VerticalLineElement
   | SymbolElement
-  | BracketElement
+  | ForkElement
   | AnchorElement
   | LeaderElement
   | MarkerElement

@@ -152,8 +152,8 @@ describe("a root of unknown length", () => {
     );
     expect(flow(unknown)).toEqual(flow(known));
     expect(flow(unknown).map((item) => item.address)).toEqual(
-      ["break_1", "break_2", "break_4", "break_3", "jump_2", "jump_7", "jump_2", "jump_3"]
-        .concat(["jump_5", "jump_1", "jump_11", "jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
+      ["break_1", "break_2", "break_4", "break_3", "jump_3", "jump_5", "jump_1", "jump_11"]
+        .concat(["jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
         .map((id) => at(id)),
     );
     const x0 = line(known, "clt_1").xs;

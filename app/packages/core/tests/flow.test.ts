@@ -135,12 +135,12 @@ describe("the drawn elements of flow control", () => {
     ]);
   });
 
-  it("lists the symbols and the brackets, a jump target's held by the band", () => {
+  it("lists the symbols and the forks, a jump target's held by the band", () => {
     const parts = (name: string) =>
       manifestElements(load(name))
-        .filter((item) => item.type === "symbol" || item.type === "bracket")
+        .filter((item) => item.type === "symbol" || item.type === "fork")
         .map((item) => [item.type, item.address, item.inside.at(-1)]);
-    const part = (id: string, word: "symbol" | "bracket") => ({ id, part: [word] });
+    const part = (id: string, word: "symbol" | "fork") => ({ id, part: [word] });
     expect(parts("flow/sections.yaml")).toEqual([
       ["symbol", part("break_1", "symbol"), "break"],
       ["symbol", part("section_break_1", "symbol"), "section_break"],
@@ -148,7 +148,7 @@ describe("the drawn elements of flow control", () => {
       ["symbol", part("jump_2", "symbol"), "jump"],
     ]);
     expect(parts("flow/sonata_exposition.yaml")).toEqual([
-      ["bracket", part("jump_1", "bracket"), "jump"],
+      ["fork", part("jump_1", "fork"), "jump"],
       ["symbol", part("jump_2", "symbol"), "jump"],
     ]);
     expect(parts("flow/repairs.yaml")).toEqual([
@@ -518,7 +518,7 @@ describe("what a flow-control element draws besides its line", () => {
     ]);
   });
 
-  it("prints a volta bracket's passes", () => {
+  it("prints the passes of a branch of a volta fork", () => {
     expect(passesText([1])).toBe("1.");
     expect(passesText([1, 3])).toBe("1., 3.");
     expect(passesText({ from: 4 })).toBe("4.–");

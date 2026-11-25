@@ -470,7 +470,7 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     maps: parts.flatMap((part) => part.maps ?? []),
     regions: parts.flatMap((part) => part.regions ?? []),
     jumps: parts.flatMap((part) => part.jumps ?? []),
-    brackets: parts.flatMap((part) => part.brackets ?? []),
+    forks: parts.flatMap((part) => part.forks ?? []),
     symbols: parts.flatMap((part) => part.symbols ?? []),
     line: parts.flatMap((part) => part.line ?? []),
     boundaries: parts.flatMap((part) => part.boundaries ?? []),

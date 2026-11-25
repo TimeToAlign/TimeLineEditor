@@ -98,8 +98,8 @@ const within = (value: number, from: number, to: number): boolean =>
 
 /**
  * Which of the band's elements lie on the child's stretch `[from, to]` (its
- * line's abscissas): a flow line and a symbol by their abscissa, a bracket
- * by its start, an arc by both its ends, a stack's label by its element's
+ * line's abscissas): a flow line and a symbol by their abscissa, a fork
+ * by its branch point, an arc by both its ends, a stack's label by its element's
  * abscissa, an arc's label with its arc, a leader by its abscissa.
  */
 function onStretch(
@@ -129,8 +129,8 @@ function onStretch(
       case "symbol":
         if (within(element.x, from, to)) taken.add(index);
         break;
-      case "bracket":
-        if (within(element.x1, from, to)) taken.add(index);
+      case "fork":
+        if (within(element.point[0], from, to)) taken.add(index);
         break;
       case "leader":
         if (within(element.x1, from, to)) taken.add(index);
@@ -203,7 +203,7 @@ function flowIds(block: Block): Set<string> {
 /**
  * The indices of the elements the card `card` draws for flow control: in its
  * range, each addressed to a flow-control element (its line, symbol,
- * brackets, arcs, labels and leaders), which only the card's flow control
+ * forks, arcs, labels and leaders), which only the card's flow control
  * band draws.
  */
 function flowElementsOf(drawing: Drawing, card: PlaceKey, ids: ReadonlySet<string>): number[] {

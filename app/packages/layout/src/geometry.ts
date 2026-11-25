@@ -343,21 +343,27 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       return textBounds(measure, element, element.anchor);
     case "symbol":
       return textBounds(measure, element, "middle");
-    case "bracket": {
-      const line = boundsOfPoints([
-        [element.x1, element.yh],
-        [element.x1, element.y],
-        [element.x2, element.y],
-      ]);
-      if (element.text === null) return line;
-      const { tx: x, baseline, text, style } = element;
-      const own = textBounds(measure, { x, baseline, text, style }, "start");
-      return {
-        left: Math.min(line.left, own.left),
-        top: Math.min(line.top, own.top),
-        right: Math.max(line.right, own.right),
-        bottom: Math.max(line.bottom, own.bottom),
-      };
+    case "fork": {
+      // Its stem, its arrows' shafts and heads, then its texts.
+      const { style } = element;
+      return element.branches.reduce(
+        (bounds, branch) => {
+          if (branch.text === null) return bounds;
+          const { tx: x, baseline, text } = branch;
+          const own = textBounds(measure, { x, baseline, text, style }, "start");
+          return {
+            left: Math.min(bounds.left, own.left),
+            top: Math.min(bounds.top, own.top),
+            right: Math.max(bounds.right, own.right),
+            bottom: Math.max(bounds.bottom, own.bottom),
+          };
+        },
+        boundsOfPoints([
+          element.stem,
+          element.point,
+          ...element.branches.flatMap((branch) => [branch.base, branch.tip, ...branch.corners]),
+        ]),
+      );
     }
   }
 }

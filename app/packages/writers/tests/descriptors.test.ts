@@ -413,35 +413,54 @@ describe("descriptors", () => {
     ]);
   });
 
-  it("writes a bracket's hooks and line, closed or open, then its text", () => {
-    const bracket = (closed: boolean, text: string | null) =>
-      synthetic({
-        type: "bracket",
-        address: at("jump_1", "bracket"),
-        style: style({ stroke: "#000000", fill: "#000000", "font-size": 9 }),
-        x1: 10,
-        x2: 50,
-        y: 10,
-        yh: 22,
-        closed,
-        tx: 12,
-        baseline: 20,
-        text,
-      });
-    const label =
-      '<text data-id="jump_1" data-part="bracket" x="12" y="20" text-anchor="start" font-size="9" fill="#000000">1.</text>';
-    expect(svgBody(bracket(true, "1."))).toEqual([
-      '<polyline data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10 50,22" fill="none" stroke="#000000" stroke-width="1"/>',
-      label,
+  it("writes a fork's stem, each branch's shaft and arrowhead, then its texts", () => {
+    const drawing = synthetic({
+      type: "fork",
+      address: at("jump_1", "fork"),
+      style: style({ stroke: "#000000", fill: "#000000", "font-size": 9 }),
+      stem: [4, 10],
+      point: [10, 10],
+      branches: [
+        {
+          base: [16, 10],
+          tip: [20, 10],
+          corners: [
+            [16, 8],
+            [16, 12],
+          ],
+          tx: 22,
+          baseline: 14,
+          text: "1.",
+        },
+        {
+          base: [15, 13],
+          tip: [18, 15],
+          corners: [
+            [14, 14],
+            [16, 12],
+          ],
+          tx: 22,
+          baseline: 24,
+          text: null,
+        },
+      ],
+    });
+    const stroke = 'stroke="#000000" stroke-width="1"/>';
+    expect(svgBody(drawing)).toEqual([
+      `<line data-id="jump_1" data-part="fork" x1="4" y1="10" x2="10" y2="10" ${stroke}`,
+      `<line data-id="jump_1" data-part="fork" x1="10" y1="10" x2="16" y2="10" ${stroke}`,
+      '<polygon data-id="jump_1" data-part="fork" points="20,10 16,8 16,12" fill="#000000"/>',
+      `<line data-id="jump_1" data-part="fork" x1="10" y1="10" x2="15" y2="13" ${stroke}`,
+      '<polygon data-id="jump_1" data-part="fork" points="18,15 14,14 16,12" fill="#000000"/>',
+      '<text data-id="jump_1" data-part="fork" x="22" y="14" text-anchor="start" font-size="9" fill="#000000">1.</text>',
     ]);
-    expect(svgBody(bracket(false, "1."))).toEqual([
-      '<polyline data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10" fill="none" stroke="#000000" stroke-width="1"/>',
-      label,
-    ]);
-    expect(svgBody(bracket(false, null))).toHaveLength(1);
-    expect(tikzBody(bracket(true, "1."))).toEqual([
-      "\\path[draw=ts000000,line width=1pt] (10,8) -- (10,20) -- (50,20) -- (50,8);",
-      "\\node[anchor=base west,inner sep=0,font=\\sffamily\\fontsize{9}{10.4766}\\selectfont,text=ts000000] at (12,10) {1.};",
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[draw=ts000000,line width=1pt] (4,20) -- (10,20);",
+      "\\path[draw=ts000000,line width=1pt] (10,20) -- (16,20);",
+      "\\path[fill=ts000000] (20,20) -- (16,22) -- (16,18) -- cycle;",
+      "\\path[draw=ts000000,line width=1pt] (10,20) -- (15,17);",
+      "\\path[fill=ts000000] (18,15) -- (14,16) -- (16,18) -- cycle;",
+      "\\node[anchor=base west,inner sep=0,font=\\sffamily\\fontsize{9}{10.4766}\\selectfont,text=ts000000] at (22,16) {1.};",
     ]);
   });
 
@@ -491,10 +510,12 @@ describe("descriptors", () => {
     it(`continues each shaft of ${name} along its head's axis`, () => {
       const manifest = loadFixture(name);
       // One arc per destination of a jump, but for a destination going on (`by` 0, both fixtures
-      // on rational quarters), which draws none; every other destination of these two has a place.
+      // on rational quarters) and a volta, a branch of its jump's fork, which draw none; every
+      // other destination of these two has a place.
       const count = manifest.timelines
         .flatMap((timeline) => timeline.flow_control)
         .flatMap((item) => (item.role === "jump" ? (item.targets ?? []) : []))
+        .filter(({ manifestation }) => manifestation !== "volta")
         .filter(({ by }) => by === undefined || (Array.isArray(by) && by[0] !== 0)).length;
       // The arcs, which the defaults hide, shown by a rule.
       const arcs: Graphical = {
@@ -507,6 +528,7 @@ describe("descriptors", () => {
         (each) => each.tag === "path" && each.source.type === "jump",
       );
       expect(paths.length).toBe(count);
+      if (name === "corpus_score_ms3") expect(count).toBe(9);
       for (const path of paths) {
         const index = descriptors.indexOf(path);
         const head = descriptors[index + 1];

@@ -295,18 +295,27 @@ data-id="jump_2" data-part="symbol" x="30" y="20" text-anchor="middle"
 font-size="12" fill="#000000">𝄇</text>`, in TikZ `\node[anchor=base,inner
 sep=0,font=\sffamily\fontsize{12}{13.9688}\selectfont,text=ts000000] at
 (30,10) {𝄇};` (`h(12) = 13.96875` written to four places). A **volta
-bracket** (section 6.4, Brackets) is the polyline of its hook at `x1`, its
-line and, closed, its hook at `x2`, stroked and not filled, then its text
-from `tx`: `{id: jump_1, part: [bracket]}` from `x1 10` to `x2 50`, its
-line at `y 10`, its hooks' ends at `yh 22`, text `1.` from `tx 12` on
-baseline 20, stroke and fill `#000000`, width 1, size 9, is `<polyline
-data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10 50,22"
-fill="none" stroke="#000000" stroke-width="1"/>` and `<text
-data-id="jump_1" data-part="bracket" x="12" y="20" text-anchor="start"
-font-size="9" fill="#000000">1.</text>`; open, the point `50,22` is left
-out; without a text (a destination without passes) the text is not
-written; in TikZ `\path[draw=ts000000,line width=1pt] (10,8) -- (10,20) --
-(50,20) -- (50,8);` and `\node[anchor=base west,…] at (12,10) {1.};`. A wedge's points are the layout's (tip, then the base's two
+fork** (section 6.4, Forks; section 7.2) is its stem, a line from its
+stem's start to its branch point, then branch by branch its shaft, a line
+from the branch point to the centre of its arrowhead's base, and its
+arrowhead, a polygon of its tip and its two corners, filled and not
+stroked; then its texts, start-anchored, in the order of the branches, a
+branch without a text writing none: `{id: jump_1, part: [fork]}` with the
+stem from `(4, 10)` to the branch point `(10, 10)`, branch 1's base `(16,
+10)`, tip `(20, 10)`, corners `(16, 8)` and `(16, 12)`, text `1.` from `tx
+22` on baseline 14, branch 2's base `(15, 13)`, tip `(18, 15)`, corners
+`(14, 14)` and `(16, 12)`, no text, stroke and fill `#000000`, width 1,
+size 9, is `<line data-id="jump_1" data-part="fork" x1="4" y1="10"
+x2="10" y2="10" stroke="#000000" stroke-width="1"/>`, `<line
+data-id="jump_1" data-part="fork" x1="10" y1="10" x2="16" y2="10" …/>`,
+`<polygon data-id="jump_1" data-part="fork" points="20,10 16,8 16,12"
+fill="#000000"/>`, `<line … x1="10" y1="10" x2="15" y2="13" …/>`,
+`<polygon … points="18,15 14,14 16,12" fill="#000000"/>` and `<text
+data-id="jump_1" data-part="fork" x="22" y="14" text-anchor="start"
+font-size="9" fill="#000000">1.</text>`, six descriptors; in TikZ
+`\path[draw=ts000000,line width=1pt] (4,20) -- (10,20);`, the shafts alike,
+the arrowheads `\path[fill=ts000000] (20,20) -- (16,22) -- (16,18) --
+cycle;` and the text `\node[anchor=base west,…] at (22,16) {1.};`. A wedge's points are the layout's (tip, then the base's two
 corners in the order section 6.6 gives them), the same an editor's unnamed
 wedge is drawn with.
 
@@ -383,8 +392,10 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   `{element: jump}` `display: inline` (the defaults hide the arcs) and
   their own,
   one shaft per destination of a jump (`jump`) their roots hold, but for a
-  destination going on (`by` 0), which draws no arc (12 in
-  `corpus_score_ms3`, whose two voltas each go on once): the shaft's end
+  destination going on (`by` 0) and a destination whose `manifestation`
+  is `volta`, a branch of its jump's fork, neither of which draws an arc
+  (9 in `corpus_score_ms3`, whose two volta jumps hold five volta
+  destinations): the shaft's end
   tangent continues
   the head's axis and the base is perpendicular to it, at the written
   precision. The unit vector from `C2` to the path's last point and the one
@@ -456,7 +467,7 @@ every tag occurs, one of them a shadow. For it and for every review case
   inside the scope, in the same order, of the kind its tag selects (two
   points joined by `rectangle` for a rect, by `--` for a line,
   `circle[radius=` for a circle, `-- cycle;` for a polygon, three points
-  (four for a closed volta bracket) joined by `--` and no `cycle` for a polyline, `.. controls` for a path,
+  joined by `--` and no `cycle` for a polyline, `.. controls` for a path,
   `\node` for a text).
 
 ## Drawing fixtures (`fixtures.test.ts`)

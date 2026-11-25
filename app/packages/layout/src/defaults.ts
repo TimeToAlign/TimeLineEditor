@@ -73,7 +73,7 @@ export const DEFAULT_LAYER: Graphical = {
     },
     { select: { element: "symbol" }, set: { fill: "#000000", "font-size": 12 } },
     {
-      select: { element: "bracket" },
+      select: { element: "fork" },
       set: {
         stroke: "#000000",
         "stroke-width": 1,

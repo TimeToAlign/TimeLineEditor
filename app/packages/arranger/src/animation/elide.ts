@@ -101,7 +101,7 @@ const STILL: Motion = { across: null, dy: 0, enters: false };
  * The horizontal extent an element moves by: a line's, a map's, a
  * region's or a gap's two ends, a rectangle's two sides, a jump's start
  * and tip; one abscissa for an element moving without stretching, its
- * mark's, an ellipsis' or its text's middle.
+ * mark's, an ellipsis', a fork's branch point or its text's middle.
  */
 function extentOf(element: DrawnElement, measure: TextMeasure): readonly [number, number] {
   switch (element.type) {
@@ -131,8 +131,8 @@ function extentOf(element: DrawnElement, measure: TextMeasure): readonly [number
     case "cross_section":
     case "ellipsis":
       return [element.x, element.x];
-    case "bracket":
-      return [element.x1, element.x2];
+    case "fork":
+      return [element.point[0], element.point[0]];
     case "name":
     case "label":
     case "symbol":

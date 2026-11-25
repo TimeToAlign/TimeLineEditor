@@ -105,15 +105,15 @@ export const FULL_CARDS: Graphical = {
 
 /**
  * An application layer showing the arcs of every jump, which the defaults
- * hide (section 4), and hiding every symbol and bracket (section 6.4): the
+ * hide (section 4), and hiding every symbol and fork (section 6.4): the
  * drawings of a test whose subject is an arc, or not flow control at all,
- * keep the derivations made with the arcs and without symbols and brackets.
+ * keep the derivations made with the arcs and without symbols and forks.
  */
 export const ARCS_ALONE: Graphical = {
   rules: [
     { select: { element: "jump" }, set: { display: "inline" } },
     { select: { element: "symbol" }, set: { display: "none" } },
-    { select: { element: "bracket" }, set: { display: "none" } },
+    { select: { element: "fork" }, set: { display: "none" } },
   ],
 };
 

@@ -11,6 +11,7 @@ import {
   type Drawing,
   type DrawnElement,
   draw,
+  type ForkElement,
   type JumpElement,
   manifestLayer,
 } from "../src/index.ts";
@@ -52,7 +53,7 @@ const styles = (drawing: Drawing, id: string): DrawnElement[] =>
   drawing.elements.filter((item) => item.address.id === id);
 
 describe("flow/sonata_exposition", () => {
-  it("draws the break, the second bracket's arc and the repeat's arc to the timeline's start", () => {
+  it("draws the break and the repeat's arc to the timeline's start, and no arc for a volta", () => {
     // Its atomic sections shown, as the band they fill is part of the derivation.
     const sections: Graphical = {
       rules: [
@@ -71,28 +72,15 @@ describe("flow/sonata_exposition", () => {
       { type: "break", address: at("break_1"), x: x16, y1: yf, y2: END },
       {
         type: "jump",
-        address: at("jump_1"),
-        start: [255.05029296875, yf],
-        c1: [271.71695963541663, 81.85026041666666],
-        c2: [305.05029296875, 81.85026041666666],
-        tip: [x16, yf],
-        base: [318.34787403277056, 73.33980853569346],
-        corners: [
-          [317.26976663992383, 71.65526573437046],
-          [319.4259814256173, 75.0243513370165],
-        ],
-      },
-      {
-        type: "jump",
         address: at("jump_2"),
         start: [x16, yf],
-        c1: [255.05029296874997, 109.15234375],
-        c2: [121.71695963541666, 109.15234375],
+        c1: [255.05029296874997, 81.85026041666666],
+        c2: [121.71695963541666, 81.85026041666666],
         tip: [X0, yf],
-        base: [58.52610278516582, 73.16317605950557],
+        base: [59.00005549641682, 71.8155557544267],
         corners: [
-          [57.53631163041303, 74.90108096771348],
-          [59.515893939918605, 71.42527115129766],
+          [58.68407449420347, 73.79043701826009],
+          [59.31603649863017, 69.84067449059327],
         ],
       },
     ]);
@@ -369,9 +357,9 @@ describe("the texts of one jump's arcs", () => {
       },
     });
     const drawing = drawn(manifest);
+    // The volta destination is a branch of the jump's fork and draws no arc.
     expect(arcsOf(drawing, "jump_3")).toEqual([
       [355.05029296875, 305.05029296875],
-      [355.05029296875, 405.05029296875],
       [355.05029296875, 255.05029296875],
     ]);
     const labels = drawing.elements.flatMap((item) => (item.type === "label" ? [item] : []));
@@ -466,14 +454,14 @@ describe("a to that names no place", () => {
 
 describe("a jump that draws no arc", () => {
   it("is not counted among its band's elements, and a band holding nothing else is absent", () => {
-    // flow/volta_passes: the volta jump holds `by` 0 and a `to`; flow/loop draws its one arc.
+    // flow/volta_passes: every destination that is not `volta` draws an arc, a volta none.
     const volta = drawFixture("flow/volta_passes", [ARCS_ALONE]);
     const jumps = volta.elements.filter((item) => item.type === "jump");
-    const going = loadFile("flow/volta_passes").timelines[0]?.flow_control.flatMap((item) =>
-      (item.targets ?? []).map((destination) => [item.id, Object.hasOwn(destination, "by")]),
+    const arcs = loadFile("flow/volta_passes").timelines[0]?.flow_control.flatMap((item) =>
+      (item.targets ?? []).filter((destination) => destination.manifestation !== "volta"),
     );
-    expect(going?.filter(([, by]) => by === true).length).toBe(1);
-    expect(jumps.length).toBe((going?.length ?? 0) - 1);
+    expect(arcs?.length).toBe(2);
+    expect(jumps.map((item) => item.address)).toEqual([at("jump_2"), at("jump_3")]);
   });
 });
 
@@ -533,8 +521,8 @@ describe("Op. 106 drawn with the defaults", () => {
     expect(bands.map((box) => box.address)).toEqual([{ id: "clt_1", facet: "flow_control" }]);
   });
 
-  it("draws the symbols on the symbol row, and no arc", () => {
-    const baseline = yf + 11.138671875;
+  it("draws the symbols on the symbol row, 2 beyond the flow row, and no arc", () => {
+    const baseline = yl + (5.5 + 2) + 11.138671875;
     const symbol = (id: string, offset: number, text: string) => ({
       type: "symbol",
       address: at(id, "symbol"),
@@ -557,25 +545,45 @@ describe("Op. 106 drawn with the defaults", () => {
     expect(ofTypes(drawing, "jump")).toEqual([]);
   });
 
-  it("draws the two volta brackets of the first movement's run", () => {
-    const y = yl + 33.9453125;
-    const yh = yl + 21.46875;
-    const bracket = (from: number, to: number, closed: boolean, text: string) => ({
-      type: "bracket",
-      address: at("jump_1", "bracket"),
-      x1: x(from),
-      x2: x(to),
-      y,
-      yh,
-      closed,
-      tx: x(from) + 2,
-      baseline: yh + 8.35400390625,
+  it("draws one volta fork for the first movement's two branches, and no bracket", () => {
+    const X = x(48.15259268616182);
+    const e = 5.5 + 17.96875 + 10.4765625 / 2;
+    const branch = (ck: number, sk: number, t: number, text: string) => ({
+      tip: [X + 10 * ck, yl + (e + 10 * sk)],
+      base: [X + 6 * ck, yl + (e + 6 * sk)],
+      corners: [
+        [X + 6 * ck + 2 * 1 * sk, yl + (e + 6 * sk - 2 * 1 * ck)],
+        [X + 6 * ck - 2 * 1 * sk, yl + (e + 6 * sk + 2 * 1 * ck)],
+      ],
+      tx: X + 12,
+      baseline: yl + t + 8.35400390625,
       text,
     });
-    expect(ofTypes(drawing, "bracket")).toEqual([
-      bracket(48.15259268616182, at500, true, "1."),
-      bracket(at500, 52.902166361397086, false, "2."),
+    expect(e).toBe(28.70703125);
+    expect(ofTypes(drawing, "fork")).toEqual([
+      {
+        type: "fork",
+        address: at("jump_1", "fork"),
+        stem: [X - 6, yl + e],
+        point: [X, yl + e],
+        branches: [
+          branch(1, 0, 23.46875, "1."),
+          branch(0.906307787, 0.4226182617, 33.9453125, "2."),
+        ],
+      },
     ]);
+    const style = styles(drawing, "jump_1").find((item) => item.type === "fork")?.style;
+    expect([style?.stroke, style?.["stroke-width"], style?.fill, style?.["font-size"]]).toEqual([
+      "#000000",
+      1,
+      "#000000",
+      9,
+    ]);
+    // The band: the symbol row and the fork row, 17.96875 + 20.953125.
+    const band = drawing.boxes.find(
+      (box) => box.kind === "band" && box.address.facet === "flow_control",
+    );
+    expect([band?.y, (band?.y ?? 0) + (band?.height ?? 0)]).toEqual([yl + 5.5, yl + 44.421875]);
   });
 
   it("draws the arcs where a rule shows them", () => {
@@ -590,10 +598,7 @@ describe("Op. 106 drawn with the defaults", () => {
         const { address, start, tip } = arc as JumpElement;
         return [address, start[0], tip[0]];
       }),
-    ).toEqual([
-      [at("jump_1"), x(48.15259268616182), x(at500)],
-      [at("jump_2"), x(at500), x0],
-    ]);
+    ).toEqual([[at("jump_2"), x(at500), x0]]);
   });
 });
 
@@ -666,7 +671,7 @@ describe("the flow control of a tree", () => {
   });
 });
 
-describe("symbols, brackets and stacks", () => {
+describe("symbols, forks and stacks", () => {
   it("draws a jump's symbols as one text, and its jump targets' each at its own position", () => {
     const drawing = drawFixture("flow/repeat_end_and_dal_segno");
     expect(
@@ -681,67 +686,132 @@ describe("symbols, brackets and stacks", () => {
     ]);
   });
 
-  it("closes every bracket of a run but its last", () => {
+  it("draws a jump's branches as one fork, by their places, each with its passes", () => {
     const drawing = drawFixture("flow/volta_passes");
-    expect(
-      ofTypes(drawing, "bracket").map((item) => {
-        const { x1, x2, closed, text } = item as {
-          x1: number;
-          x2: number;
-          closed: boolean;
-          text: string;
-        };
-        return [x1, x2, closed, text];
-      }),
-    ).toEqual([
-      [X0 + 200, X0 + 300, true, "1., 3."],
-      [X0 + 300, X0 + 400, false, "2."],
+    const X = X0 + 200;
+    expect(forkTexts(drawing)).toEqual([[at("jump_1", "fork"), X, X - 6, ["1., 3.", "2."]]]);
+    const fork = forksOf(drawing)[0];
+    expect(fork?.point[1]).toBe(LINE + 28.70703125);
+    expect(fork?.branches.map(({ tip, tx }) => [tip[0], tx])).toEqual([
+      [X + 10 * 1, X + 12],
+      [X + 10 * 0.906307787, X + 12],
     ]);
-  });
-
-  it("draws a lone bracket as long as the distance from its jump to its place, never past its cut", () => {
-    const volta = (id: string, coordinate: number, destination: object) => ({
-      type: "add",
-      into: target("score"),
-      flow_control: {
-        id,
-        role: "jump",
-        coordinate: quarters(coordinate),
-        targets: [{ manifestation: "volta", passes: [1], ...destination }],
-      },
-    });
-    const drawing = draw(
+    // Canonical order lists `by` 0 first; the branches follow their places.
+    const reversed = draw(
       edit(
         "flow/volta_passes",
-        volta("jump_4", 1, { by: quarters(0) }),
         {
           type: "add",
           into: target("score"),
-          flow_control: { id: "jump_target_2", role: "jump_target", coordinate: quarters(4) },
+          flow_control: { id: "jump_target_2", role: "jump_target", coordinate: quarters(2) },
         },
-        volta("jump_5", 2, { to: "jump_target_2" }),
+        {
+          type: "add",
+          into: target("score"),
+          flow_control: {
+            id: "jump_4",
+            role: "jump",
+            coordinate: quarters(6),
+            targets: [
+              { by: quarters(0), manifestation: "volta", passes: [2] },
+              { to: "jump_target_2", manifestation: "volta", passes: [1] },
+            ],
+          },
+        },
       ),
       DEFAULT_PLACEMENT,
       [DEFAULT_LAYER],
       metrics,
     );
-    expect(
-      ofTypes(drawing, "bracket").map((item) => {
-        const { address, x1, x2, closed } = item as {
-          address: { id: string };
-          x1: number;
-          x2: number;
-          closed: boolean;
-        };
-        return [address.id, x1, x2, closed];
-      }),
-    ).toEqual([
-      // In the band's order, the canonical order of `flow_control`: by coordinate.
-      ["jump_4", X0 + 25, X0 + 25, false],
-      ["jump_5", X0 + 100, X0 + 150, false],
-      ["jump_1", X0 + 200, X0 + 300, true],
-      ["jump_1", X0 + 300, X0 + 400, false],
+    expect(forkTexts(reversed)).toEqual([
+      [at("jump_4", "fork"), X0 + 150, X0 + 144, ["1.", "2."]],
+      [at("jump_1", "fork"), X, X - 6, ["1., 3.", "2."]],
     ]);
+  });
+
+  it("has one size on the canvas, whatever the axis's scale", () => {
+    const geometry = (length: number) => {
+      const drawing = draw(
+        loadFile("flow/volta_passes"),
+        { ...DEFAULT_PLACEMENT, length },
+        [DEFAULT_LAYER],
+        metrics,
+      );
+      const [fork] = forksOf(drawing);
+      if (fork === undefined) throw new Error("no fork");
+      return fork;
+    };
+    for (const [length, X] of [
+      [400, X0 + 200],
+      [800, X0 + 400],
+    ] as const) {
+      const fork = geometry(length);
+      expect([fork.stem[0], fork.point[0]]).toEqual([X - 6, X]);
+      expect(fork.branches.map(({ tip, tx }) => [tip[0], tx])).toEqual([
+        [X + 10, X + 12],
+        [X + 10 * 0.906307787, X + 12],
+      ]);
+      expect(fork.point[1]).toBe(geometry(400).point[1]);
+      expect(fork.branches.map(({ tip, baseline }) => [tip[1], baseline])).toEqual(
+        geometry(400).branches.map(({ tip, baseline }) => [tip[1], baseline]),
+      );
+    }
+  });
+
+  it("bends every further branch by 25° more, up to 75°, and makes room for all its texts", () => {
+    const drawing = draw(
+      edit("flow/volta_passes", {
+        type: "add",
+        into: target("score"),
+        flow_control: {
+          id: "jump_6",
+          role: "jump",
+          coordinate: quarters(1),
+          targets: [0, 1, 2, 3, 4].map((by) => ({
+            by: quarters(by),
+            manifestation: "volta",
+            passes: [by + 1],
+          })),
+        },
+      }),
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER],
+      metrics,
+    );
+    const fork = forksOf(drawing).find((item) => item.address.id === "jump_6");
+    const X = X0 + 25;
+    const e = 28.70703125;
+    expect(fork?.branches.map(({ tip }) => tip)).toEqual(
+      [
+        [1, 0],
+        [0.906307787, 0.4226182617],
+        [0.6427876097, 0.7660444431],
+        [0.2588190451, 0.9659258263],
+        [0.2588190451, 0.9659258263],
+      ].map(([ck = 0, sk = 0]) => [X + 10 * ck, LINE + (e + 10 * sk)]),
+    );
+    expect(fork?.branches.at(-1)?.baseline).toBe(LINE + 65.375 + 8.35400390625);
+    expect(flowBandWidth(drawing)).toBe(17.96875 + 52.3828125);
+  });
+
+  it("gives a fork of one branch the room of its arrow", () => {
+    const drawing = draw(
+      edit("flow/sections", {
+        type: "add",
+        into: target("score"),
+        flow_control: {
+          id: "jump_7",
+          role: "jump",
+          coordinate: quarters(1),
+          targets: [{ by: quarters(0), manifestation: "volta", passes: [1] }],
+        },
+      }),
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER],
+      metrics,
+    );
+    expect(forksOf(drawing).map((item) => item.branches.length)).toEqual([1]);
+    expect(flowBandWidth(drawing)).toBe(10.4765625 + 17.96875 + 15.23828125);
   });
 
   it("stacks an element's labels as its label-display lists them", () => {
@@ -767,3 +837,26 @@ describe("symbols, brackets and stacks", () => {
     ]);
   });
 });
+
+/** The forks of a drawing, in drawing order. */
+function forksOf(drawing: Drawing): ForkElement[] {
+  return drawing.elements.filter((item): item is ForkElement => item.type === "fork");
+}
+
+/** Each fork's address, branch point, stem start and texts. */
+function forkTexts(drawing: Drawing): object[] {
+  return forksOf(drawing).map((fork) => [
+    fork.address,
+    fork.point[0],
+    fork.stem[0],
+    fork.branches.map(({ text }) => text),
+  ]);
+}
+
+/** The width of the drawing's one flow control band: its box's height, the band lying below. */
+function flowBandWidth(drawing: Drawing): number | undefined {
+  const band = drawing.boxes.find(
+    (box) => box.kind === "band" && box.address.facet === "flow_control",
+  );
+  return band?.height;
+}

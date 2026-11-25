@@ -52,6 +52,8 @@ export type {
   DrawnElement,
   ElisionElement,
   EllipsisElement,
+  ForkBranch,
+  ForkElement,
   GapOrigin,
   JumpElement,
   LeaderElement,

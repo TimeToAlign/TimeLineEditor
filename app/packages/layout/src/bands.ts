@@ -11,8 +11,8 @@ import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { AxisMarker, AxisTimestamp } from "./boxes.ts";
 import type {
-  BracketElement,
   Cut,
+  ForkElement,
   JumpElement,
   LeaderElement,
   LineElement,
@@ -130,8 +130,8 @@ export interface LineElements {
   readonly regions: readonly RegionElement[];
   /** The arcs of its flow control band's jumps, in the order its first fit places them: sorted stably by span. */
   readonly jumps: readonly JumpElement[];
-  /** Its flow control band's volta brackets, jump by jump, each jump's by their starts. */
-  readonly brackets: readonly BracketElement[];
+  /** Its flow control band's volta forks, in the order of the band's elements. */
+  readonly forks: readonly ForkElement[];
   /** Its flow control band's symbols, element by element in the order of its flow lines' elements. */
   readonly symbols: readonly SymbolElement[];
   /** Its line when displayed: a `timeline` element for the root of the member drawing, else a `child`. */

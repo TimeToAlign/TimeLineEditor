@@ -158,16 +158,20 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
     case "label":
     case "symbol":
       return { ...element, style, x: x(element.x), baseline: y(element.baseline) };
-    case "bracket":
+    case "fork":
       return {
         ...element,
         style,
-        x1: x(element.x1),
-        x2: x(element.x2),
-        y: y(element.y),
-        yh: y(element.yh),
-        tx: x(element.tx),
-        baseline: y(element.baseline),
+        stem: point(element.stem),
+        point: point(element.point),
+        branches: element.branches.map((branch) => ({
+          ...branch,
+          base: point(branch.base),
+          tip: point(branch.tip),
+          corners: [point(branch.corners[0]), point(branch.corners[1])] as const,
+          tx: x(branch.tx),
+          baseline: y(branch.baseline),
+        })),
       };
   }
 }

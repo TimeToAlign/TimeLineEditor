@@ -362,18 +362,19 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     }
     case "symbol":
       return [writer.text(element.x, element.baseline, "middle", element.text)];
-    case "bracket": {
-      // Its line with a hook at its start and, closed, one at its end, then its text.
-      const { x1, x2, y, yh } = element;
-      const points: Point[] = [
-        [x1, yh],
-        [x1, y],
-        [x2, y],
+    case "fork": {
+      // Its stem; branch by branch its shaft and its arrowhead; then its texts.
+      const [X, yb] = element.point;
+      return [
+        writer.line(element.stem[0], element.stem[1], X, yb),
+        ...element.branches.flatMap(({ base, tip, corners }) => [
+          writer.line(X, yb, base[0], base[1]),
+          writer.points("polygon", [tip, ...corners], filled),
+        ]),
+        ...element.branches.flatMap(({ tx, baseline, text }) =>
+          text === null ? [] : [writer.text(tx, baseline, "start", text)],
+        ),
       ];
-      if (element.closed) points.push([x2, yh]);
-      const line = writer.points("polyline", points, open);
-      if (element.text === null) return [line];
-      return [line, writer.text(element.tx, element.baseline, "start", element.text)];
     }
     case "break":
     case "section_break":

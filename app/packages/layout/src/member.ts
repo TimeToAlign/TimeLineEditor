@@ -200,7 +200,7 @@ export function layoutScope(
       ...each("maps"),
       ...each("regions"),
       ...each("jumps"),
-      ...each("brackets"),
+      ...each("forks"),
       ...ancestorLinesDrawn,
       ...each("line"),
       ...bySegment(each("boundaries")),

@@ -928,10 +928,10 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    labels (`D.C. al Fine`, `D.C.`), in that order. Each holds its
    **symbol** `{id, part: ["symbol"]}` where its manifestation has one (a
    section break always), a jump target's held by the band; a jump holds
-   its **brackets** `{id, part: ["bracket"]}` where a destination's
+   its **fork** `{id, part: ["fork"]}` where a destination's
    manifestation is `volta`: `flow/sections` the symbols of `break_1` (`fine`),
    `section_break_1`, `jump_1` (`da_capo_al_fine`) and `jump_2`
-   (`da_capo`); `flow/sonata_exposition` the bracket of `jump_1` (two volta
+   (`da_capo`); `flow/sonata_exposition` the fork of `jump_1` (two volta
    destinations), then the symbol of `jump_2` (`repeat_end`), and none of
    `break_1` or `jump_target_1` (both `volta`); `flow/repairs` the symbols
    of `barline_1`, `jump_1`, `jump_2`, then of `jump_target_1`
@@ -1052,7 +1052,7 @@ ten are `da_capo_al_fine`, `dal_segno_al_coda`, `flow_map_by_hand`, `loop`,
    with that `to`.
 
 9. **What an element draws besides its line** (drawing.md §6.4,
-   Symbols and Brackets). `flowSymbols`: a jump target's `repeat_start`
+   Symbols and Forks). `flowSymbols`: a jump target's `repeat_start`
    𝄆 U+1D106, `segno` 𝄋 U+1D10B, `coda` 𝄌 U+1D10C, `volta` none; a break's
    `fine` the text `Fine`, `volta` none; a barline's `double_barline` 𝄁
    U+1D101, `final_barline` 𝄂 U+1D102, none without a manifestation; a
@@ -1270,7 +1270,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
    ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
    `block`, and refuses a band's address as its owner at the type level (a
-   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, `ellipsis`, `symbol`, `bracket`, `leader`, the schema's order.
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, `elision`, `ellipsis`, `symbol`, `fork`, `leader`, the schema's order.
    `inBlock(A, element)` puts an element address into block `A`,
    `elementAddressOf` takes the block off again (`{}` for a block), and
    `isElementAddress` holds for an address stating `id`, `facet` or `part`

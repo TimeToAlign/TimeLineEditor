@@ -42,12 +42,16 @@ export const ROW_PITCH = 10;
 export const JUMP_DEPTH = 4;
 /** The fixed part of the jump row pitch `pjk = 6 + S + Tk × h(9)`. */
 export const JUMP_PITCH = 6;
-/** What a bracket row adds to its text's line height: `hb = h(zb) + 4`. */
-export const BRACKET_ROOM = 4;
-/** The bracket text offset, from a bracket's start to its text. */
-export const BRACKET_TEXT_OFFSET = 2;
-/** The bracket hook gap, from a bracket row's inner edge to its hooks' ends. */
-export const BRACKET_HOOK_GAP = 2;
+/** The symbol gap, between a symbol's glyph box and the lines it meets: `Hs = 2 + h(zs) + 2`. */
+export const SYMBOL_GAP = 2;
+/** The length of a volta fork's stem, left of its branch point. */
+export const FORK_STEM = 6;
+/** The length of each arrow of a volta fork, from its branch point to its tip. */
+export const FORK_BRANCH = 10;
+/** The angle step of a volta fork's branches, in degrees. */
+export const FORK_ANGLE = 25;
+/** The fork text offset, from a fork's branch point to the start of its texts. */
+export const FORK_TEXT_OFFSET = 12;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;
 /** The standard gap of an elision: the drawn width of a gap without a `width` (section 2). */
@@ -58,3 +62,13 @@ export const ELLIPSIS_RADIUS = 2;
 export const ELLIPSIS_SPACING = 6;
 /** The narrowest gap that draws an ellipsis. */
 export const ELLIPSIS_GAP = 20;
+/**
+ * The directions `(ck, sk)` of a volta fork's branches by `min(k − 1, 3)`, along the axis and away
+ * from the root's line: 0°, 25°, 50° and 75°, the specification's decimals read as doubles.
+ */
+export const FORK_DIRECTIONS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [0.906307787, 0.4226182617],
+  [0.6427876097, 0.7660444431],
+  [0.2588190451, 0.9659258263],
+];

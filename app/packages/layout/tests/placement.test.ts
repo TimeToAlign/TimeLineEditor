@@ -102,16 +102,24 @@ describe("jumps of corpus_score_ms3", () => {
       y: 59.5,
     });
     expect(jumps.map((item) => item.address)).toEqual(
-      ["jump_2", "jump_7", "jump_2", "jump_3", "jump_5", "jump_1"]
-        .concat(["jump_11", "jump_6", "jump_9", "jump_4", "jump_8", "jump_10"])
-        .map((id) => at(id)),
+      [
+        "jump_3",
+        "jump_5",
+        "jump_1",
+        "jump_11",
+        "jump_6",
+        "jump_9",
+        "jump_4",
+        "jump_8",
+        "jump_10",
+      ].map((id) => at(id)),
     );
     expect(jumps.map((item) => item.start[1])).toEqual(jumps.map(() => 75.4765625));
     const yc = [
       86.14322916666667, 113.4453125, 140.74739583333331, 168.04947916666669, 195.3515625,
       222.65364583333334,
     ];
-    const rows = [1, 1, 2, 3, 1, 1, 2, 3, 4, 4, 5, 6];
+    const rows = [1, 1, 1, 2, 3, 4, 2, 5, 6];
     expect(jumps.map((item) => item.c1[1])).toEqual(rows.map((row) => yc[row - 1]));
     expect(
       drawing.elements
@@ -130,15 +138,15 @@ describe("jumps of corpus_score_ms3", () => {
   });
 
   it("arrives steeply on a short jump", () => {
-    expect(jump(at("jump_2"))).toMatchObject({
-      start: [143.77772645692568, 75.4765625],
-      c1: [149.1831318623311, 86.14322916666667],
-      c2: [159.99394267314187, 86.14322916666667],
-      tip: [165.3993480785473, 75.4765625],
-      base: [163.59123312957058, 79.044575999314],
+    expect(jump(at("jump_3"))).toMatchObject({
+      start: [165.3993480785473, 75.4765625],
+      c1: [157.2912399704392, 86.14322916666667],
+      c2: [141.07502375422297, 86.14322916666667],
+      tip: [132.96691564611487, 75.4765625],
+      base: [135.38752148242557, 78.66100395576875],
       corners: [
-        [161.80722637991357, 78.14051852482565],
-        [165.3752398792276, 79.94863347380236],
+        [133.7953007545412, 79.8713068739241],
+        [136.97974221030995, 77.4507010376134],
       ],
     });
   });
