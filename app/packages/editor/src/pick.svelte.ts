@@ -9,6 +9,7 @@ import type { Address } from "@timetoalign/tilie-core";
 import { createContext } from "svelte";
 import { on } from "svelte/events";
 
+/** One picking of an element on the canvas, awaited by a panel and answered by the canvas. */
 export class Picking {
   /** Whether a pick is awaited: the canvas then picks instead of selecting. */
   active = $state(false);

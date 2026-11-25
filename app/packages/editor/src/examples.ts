@@ -12,6 +12,7 @@ import type { ManifestSource } from "./matchClaims.svelte.ts";
 /** How an example is read: a manifest imported as a block, or a workspace opened. */
 export type ExampleKind = "manifest" | "workspace";
 
+/** An entry of the Examples menu (or of the fixture menu). */
 export interface Example {
   /** The menu's label. */
   readonly label: string;
@@ -64,6 +65,7 @@ export function examples(fixtures: Files, workspaces: Files): Example[] {
   ];
 }
 
+/** The Examples menu's entries, in menu order. */
 export const EXAMPLES: readonly Example[] = examples(
   import.meta.glob<string>(
     [

@@ -184,6 +184,7 @@ export interface AnchorLine {
   readonly names: readonly [string, string];
 }
 
+/** A line of a MatchStamp: a timestamp's line or an alignment anchor's connector. */
 export type StampLine = TimestampLine | AnchorLine;
 
 /** A timestamp of the MatchStamp: its coordinate and, once named, its match timestamp. */

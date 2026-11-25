@@ -84,6 +84,7 @@ export function valueText(value: ValueChoice): string {
   }
 }
 
+/** The composer's choices and the frame it was opened on, as Svelte state. */
 export class ComposerState {
   /** The key of the frame the composer was opened on; `null` while closed. */
   owner: string | null = $state(null);

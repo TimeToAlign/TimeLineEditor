@@ -64,6 +64,7 @@ export interface HookBox {
   readonly displayed: boolean;
 }
 
+/** What `window.__tilie` offers the end-to-end tests. */
 export interface TestHook {
   /** Open the workspace file `text` in place of the current workspace; throws when it is refused. */
   load(text: string): void;

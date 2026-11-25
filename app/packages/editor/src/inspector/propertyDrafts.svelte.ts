@@ -116,6 +116,7 @@ function withText(texts: Texts, property: PlaceProperty, text: string | undefine
   return text === undefined ? rest : { ...rest, [property]: text };
 }
 
+/** The Properties form's drafts and refusals, and the open blocks of the Elisions tab. */
 export class PropertyDrafts {
   #entry: Entry = $state.raw(EMPTY);
   #name: NameDraft | null = $state.raw(null);

@@ -11,7 +11,9 @@ import path from "node:path";
 import type { Plugin } from "vite";
 import { NOTICES_FILE } from "./src/attributions.ts";
 
+/** The line of 72 `=` above each notice. */
 export const RULE = "=".repeat(72);
+/** The line of 72 `-` between a notice's heading and its licence text. */
 export const SUBRULE = "-".repeat(72);
 
 /** A notice for something that is not an npm package's bundled code. */

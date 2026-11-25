@@ -13,6 +13,7 @@ import { SvelteMap } from "svelte/reactivity";
 import type { Lookup } from "../../lookup/index.ts";
 import type { Thing } from "./frame.ts";
 
+/** The images of the things rectangles name, resolved through the lookup once per IRI. */
 export class Thumbnails {
   readonly #lookup: Lookup;
   readonly #images = new SvelteMap<string, string | null>();

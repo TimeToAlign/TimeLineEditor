@@ -21,6 +21,7 @@ export interface FileKind {
 
 const WORKSPACE_EXTENSION = ".tle.json";
 
+/** A workspace file: JSON, extension `.tle.json`. */
 export const WORKSPACE_FILE: FileKind = {
   description: "TimeLineEditor workspace",
   accept: { "application/json": [WORKSPACE_EXTENSION] },

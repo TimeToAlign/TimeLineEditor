@@ -35,17 +35,21 @@ export interface ServiceManifest {
   readonly extend?: { readonly propose_properties?: ServicePath };
 }
 
+/** One reconciliation query: the text, optionally a type to restrict to and a candidate limit. */
 export interface ReconciliationQuery {
   readonly query: string;
   readonly type?: string;
   readonly limit?: number;
 }
 
+/** A candidate a reconciliation query answers: an entity, its score and whether it is a match. */
 export interface ReconciliationCandidate {
   readonly id: string;
   readonly name: string;
   readonly description?: string;
+  /** The service's score; higher is better. */
   readonly score: number;
+  /** Whether the service judges the candidate a match. */
   readonly match: boolean;
   readonly type?: readonly ReconciliationType[];
 }
@@ -60,6 +64,7 @@ export interface Suggestion {
 /** A value of data extension: a string, or an entity. */
 export type ExtendValue = { readonly str: string } | { readonly id: string; readonly name: string };
 
+/** How a `ReconciliationClient` sends its requests and names its system. */
 export interface ReconciliationOptions {
   /** The fetch to send requests with; the global one by default. */
   readonly fetch?: typeof fetch;
@@ -195,6 +200,7 @@ function documentBase(): string | undefined {
   return typeof document === "undefined" ? undefined : document.baseURI;
 }
 
+/** A client of one reconciliation endpoint; its service manifest is fetched on first need and kept unless that fails. */
 export class ReconciliationClient {
   /** The absolute endpoint. */
   readonly endpoint: string;

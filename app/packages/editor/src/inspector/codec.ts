@@ -5,6 +5,7 @@ import type { Result } from "./problems.ts";
 
 /** The formats in the order the format switches list them: YAML, the main serialization, first. */
 export const FORMATS = ["yaml", "json", "toml"] as const;
+/** One of the formats: `yaml`, `json` or `toml`. */
 export type Format = (typeof FORMATS)[number];
 
 /**

@@ -171,4 +171,5 @@ function readYaml(text: string): Result<Read> {
   return { ok: true, value: { value, source: yamlSource(document, text, value) } };
 }
 
+/** The YAML codec: `writeYaml` and `readYaml`. */
 export const codec: Codec = { write: writeYaml, read: readYaml };

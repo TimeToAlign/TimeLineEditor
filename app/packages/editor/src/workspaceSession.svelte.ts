@@ -131,6 +131,10 @@ const OPENED_KINDS: readonly FileKind[] = [WORKSPACE_FILE, MANIFEST_FILE];
 const SAVED_AS_DOWNLOAD =
   "Saved as a download: this browser cannot write files where they lie; TiLiE started on your own computer (tilie) saves in place.";
 
+/**
+ * What a `WorkspaceSession` is made with: where it posts messages, whom it tells of a replaced
+ * workspace and a changed selection, the author, and what it reads through a server.
+ */
 export interface SessionOptions {
   /** Show a message at its level (`Messages.post`); editing goes on. */
   readonly post: Post;
@@ -171,6 +175,10 @@ function sameSelection(left: Selection, right: Selection): boolean {
   return left.size === right.size && [...left.keys()].every((key) => right.has(key));
 }
 
+/**
+ * The open workspace of one editor: its store, its file, its unsaved changes, the selection and
+ * the MatchClaim tables held for its blocks.
+ */
 export class WorkspaceSession {
   /** The open workspace. */
   store: Store = $state.raw(createStore(emptyWorkspace()));

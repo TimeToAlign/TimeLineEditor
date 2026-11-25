@@ -34,6 +34,7 @@ interface Shown extends Choice {
   readonly manifest: Json;
 }
 
+/** The Manifest tab's state for the inspector's lifetime. */
 export class ManifestText {
   /** The format chosen; YAML, the main serialization, until another is chosen. */
   format: Format = $state("yaml");

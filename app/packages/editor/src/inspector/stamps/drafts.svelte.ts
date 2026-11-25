@@ -18,6 +18,7 @@ function without(texts: Texts, key: string): Texts {
   return rest;
 }
 
+/** One stamp tab's typed texts and refusals, held for the stamp `Owner` they were typed for. */
 export class StampDrafts<Owner> {
   readonly #owner: () => Owner;
   #typed: { readonly owner: Owner | undefined; readonly drafts: Texts; readonly problems: Texts } =

@@ -25,6 +25,7 @@ export const TABS = [
   "matchstamp",
   "elisions",
 ] as const;
+/** One of the inspector's tabs. */
 export type Tab = (typeof TABS)[number];
 
 /** The word on each tab but the level tab, which is named by its level. */

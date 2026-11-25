@@ -26,8 +26,9 @@ export interface Service {
 /** What a service's system ID begins with. */
 export const SERVICE_PREFIX = "service:";
 
-/** The candidates a search asks a service for, and the most a reconciliation query asks for. */
+/** The candidates a search asks a service for. */
 export const SERVICE_SEARCH_LIMIT = 10;
+/** The most candidates a reconciliation query asks a service for. */
 export const SERVICE_RECONCILE_LIMIT = 3;
 
 /** The system of the service `id`. */

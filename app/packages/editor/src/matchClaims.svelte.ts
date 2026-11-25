@@ -344,6 +344,7 @@ export interface TablesOptions {
   readonly failure?: (() => string | null) | undefined;
 }
 
+/** The MatchClaim tables held for the open workspace's blocks, one per block, read through a server. */
 export class MatchClaimTables {
   readonly #tables = new SvelteMap<string, LoadedTable>();
   readonly #server: MatchClaimServer | null;

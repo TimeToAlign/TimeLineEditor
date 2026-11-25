@@ -58,4 +58,5 @@ function readToml(text: string): Result<Read> {
   return read.ok ? { ok: true, value: { value: read.value, source: tomlSource(document) } } : read;
 }
 
+/** The TOML codec: `writeToml` and `readToml`. */
 export const codec: Codec = { write: writeToml, read: readToml };

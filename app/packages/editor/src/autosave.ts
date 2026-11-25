@@ -26,6 +26,7 @@ const WORKSPACES: Kept = {
   subject: "autosave of workspace",
 };
 
+/** Why the autosave failed: IndexedDB is missing, or one of its requests failed. */
 export type AutosaveErrorCode = "indexeddb_unavailable" | "indexeddb_failed";
 
 /** IndexedDB is missing, or one of its requests failed; `cause` holds its error. */
@@ -41,6 +42,7 @@ export class AutosaveError extends Error {
   }
 }
 
+/** What `createAutosave` is given: the slot, the delay and where unattended failures go. */
 export interface AutosaveOptions {
   /** The workspace's slot. */
   readonly key: string;
@@ -67,6 +69,7 @@ export interface Snapshot {
 /** A snapshot, or a function giving it when the write is due. */
 export type Pending = Snapshot | (() => Snapshot);
 
+/** The autosave of one slot: snapshots scheduled, written one after another. */
 export interface Autosave {
   /** Write `snapshot` once no further snapshot was scheduled for `delayMs`. */
   schedule(snapshot: Pending): void;
@@ -79,6 +82,7 @@ export interface Autosave {
   flush(): Promise<void>;
 }
 
+/** An autosave of the slot `key`, writing a scheduled snapshot after `delayMs` without a later one. */
 export function createAutosave({ key, delayMs, onError }: AutosaveOptions): Autosave {
   let pending: { readonly snapshot: Pending } | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;

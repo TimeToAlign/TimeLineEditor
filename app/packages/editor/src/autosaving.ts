@@ -18,6 +18,7 @@ import { lastChanged } from "./files.ts";
 import { messageOf, type Post } from "./messages.svelte.ts";
 import type { WorkspaceSession } from "./workspaceSession.svelte.ts";
 
+/** What `startAutosave` is given: the slot, the delay, and how to post messages and ask questions. */
 export interface AutosavingOptions {
   /** The slot's name; the Web Lock is `tilie-autosave/<slot>`. */
   readonly slot: string;

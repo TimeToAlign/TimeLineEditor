@@ -23,6 +23,7 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** The Value field's search as Svelte state. */
 export class Search {
   /** The field's text. */
   text = $state("");

@@ -10,6 +10,7 @@
 /** The file beside the built editor holding the full licence texts (`notices.ts` writes it). */
 export const NOTICES_FILE = "THIRD_PARTY_NOTICES.txt";
 
+/** One package or asset the built editor ships, with its licence and copyright lines. */
 export interface Attribution {
   /** The npm package name, or the name of a bundled asset. */
   readonly name: string;
@@ -35,6 +36,7 @@ const MIKE_BOSTOCK = "Copyright 2010-2021 Mike Bostock";
 const WEBKID = "Copyright (c) 2019-2025 webkid GmbH";
 const POBEREZKIN = "Copyright (c) 2017 Evgeny Poberezkin";
 
+/** Every package and asset the built editor ships, as the About pane lists them. */
 export const ATTRIBUTIONS: readonly Attribution[] = [
   {
     name: "@decimalturn/toml-patch",

@@ -97,6 +97,7 @@ export type RootMode = "hidden" | "full" | "proportional" | "custom";
 /** How a frame draws the elisions of its group: none, or the stored ones. */
 export type FrameMode = "full" | "custom";
 
+/** The label of each mode. */
 export const MODE_WORDS: { readonly [mode in RootMode]: string } = {
   hidden: "Hidden",
   full: "Full",
@@ -132,6 +133,7 @@ export const FORM_WORDS: { readonly [form in WidthForm]: string } = {
   canvas: "Fixed",
 };
 
+/** The width forms in the order the form lists them. */
 export const WIDTH_FORMS: readonly WidthForm[] = ["standard", "ratio", "span", "canvas"];
 
 /** The hint of a default elision's form. */

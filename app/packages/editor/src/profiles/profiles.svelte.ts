@@ -26,6 +26,7 @@ function stored(key: string): Profiles | null {
   }
 }
 
+/** The viewer's type profiles and the catalogue they extend, as Svelte state. */
 export class ProfilesState {
   /** The profiles and services in force; replaced whole, never mutated. */
   profiles: Profiles = $state.raw(NO_PROFILES);

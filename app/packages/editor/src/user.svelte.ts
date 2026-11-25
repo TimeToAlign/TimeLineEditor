@@ -31,6 +31,7 @@ function stored(key: string | null): User | null {
   }
 }
 
+/** The editor's user as Svelte state, read from and remembered in storage under one key. */
 export class UserState {
   /** The user's name: the journal's author, and the words of what they state. */
   name: string = $state(DEFAULT_USER.name);
@@ -46,6 +47,7 @@ export class UserState {
     this.orcid = user.orcid;
   }
 
+  /** The user: its name and ORCID iD. */
   get user(): User {
     return { name: this.name, orcid: this.orcid };
   }
@@ -75,4 +77,5 @@ export interface UserContext {
   ask(): Promise<void>;
 }
 
+/** The context holding the `UserContext`: the editor provides it, its parts read it. */
 export const [userOf, provideUser] = createContext<UserContext>();

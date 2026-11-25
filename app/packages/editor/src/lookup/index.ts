@@ -95,6 +95,7 @@ export interface Lookup {
   ): Promise<readonly (Candidate | null)[]>;
 }
 
+/** What `createLookup` is given: how it fetches, the server, and what it searches and labels with. */
 export interface LookupOptions {
   /** The fetch to send requests with; the global one by default. */
   readonly fetch?: typeof fetch;

@@ -73,6 +73,7 @@ export const MUSICBRAINZ_TYPES: Readonly<Partial<Record<ValueKind, string>>> = {
   release: "release-group",
 };
 
+/** Why a request failed (see `LookupError`). */
 export type LookupErrorCode = "unreachable" | "status" | "malformed";
 
 /**
