@@ -117,7 +117,7 @@ describe("the toggles offered", () => {
         [
           ["jump", "Arcs", true],
           ["symbol", "Symbols", true],
-          ["bracket", "Brackets", true],
+          ["fork", "Forks", true],
         ],
       ],
       LABELS("name", "label"),
@@ -170,7 +170,7 @@ describe("the toggles offered", () => {
         "Display",
         [
           ["jump", "Arcs", true],
-          ["bracket", "Brackets", true],
+          ["fork", "Fork", true],
         ],
       ],
       LABELS("name", "label"),

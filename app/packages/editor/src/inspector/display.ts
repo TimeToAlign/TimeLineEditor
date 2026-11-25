@@ -72,14 +72,14 @@ interface Drawn {
   readonly type: ElementType;
   readonly label: string;
   /** The part word of its address beside the element's ID; none for the element itself. */
-  readonly part?: "symbol" | "bracket";
+  readonly part?: "symbol" | "fork";
 }
 
 /** What a flow control band's Display toggles show, each for every element of the band's tree. */
 const BAND_DRAWN: readonly Drawn[] = [
   { type: "jump", label: "Arcs" },
   { type: "symbol", label: "Symbols" },
-  { type: "bracket", label: "Brackets" },
+  { type: "fork", label: "Forks" },
 ];
 
 /** What a flow-control element's own Display toggles show, by its role. */
@@ -87,7 +87,7 @@ const ELEMENT_DRAWN: { readonly [role in FlowSubject["element"]["role"]]: readon
   jump: [
     { type: "jump", label: "Arcs" },
     { type: "symbol", label: "Symbol", part: "symbol" },
-    { type: "bracket", label: "Brackets", part: "bracket" },
+    { type: "fork", label: "Fork", part: "fork" },
   ],
   break: [
     { type: "break", label: "Line" },
@@ -247,7 +247,7 @@ function groups(entries: readonly (readonly [string, readonly Toggle[]])[]): Tog
 
 /**
  * The toggles of the one band the subjects name, in `view`. A flow control
- * band of the timeline `T`: Display, the arcs, symbols and brackets of
+ * band of the timeline `T`: Display, the arcs, symbols and forks of
  * every element of `T`'s tree (`{element: type, within: T}`); Labels, the
  * words of their `label-display` (`{within: T}`); Regions, "Atomic
  * sections". A regions band: Regions. `[]` for any other band; `null`
@@ -273,7 +273,7 @@ export function bandToggles(view: View, subjects: readonly Subject[]): ToggleGro
 
 /**
  * The toggles of a flow-control element `X`: Display, its own drawing (a
- * jump's arcs, symbol and brackets, a flow line's line and symbol, a jump
+ * jump's arcs, symbol and fork, a flow line's line and symbol, a jump
  * target's symbol), each the rule `{element: type, addresses: [the part's
  * address]}`; Labels, the words of its `label-display` in the rule of its
  * arcs or line, `{element: role, addresses: [{id: X}]}`.
@@ -281,7 +281,7 @@ export function bandToggles(view: View, subjects: readonly Subject[]): ToggleGro
 export function elementToggles(view: View, flow: FlowSubject): ToggleGroup[] {
   const { manifest } = flow.block;
   const { id, role } = flow.element;
-  const addressOf = (part?: "symbol" | "bracket"): [Address] => [
+  const addressOf = (part?: "symbol" | "fork"): [Address] => [
     part === undefined ? { id } : { id, part: [part] },
   ];
   const labelled = LABELLED.find((type) => type === role);

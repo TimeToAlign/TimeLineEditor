@@ -1198,7 +1198,7 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    `sonata_exposition`, `jump_2`'s one destination selects `[{block, id:
    "jump_2"}]`.
 9. **An element's display toggles** ("Display toggles" below): a jump
-   shows Display (Arcs, and Symbol and Brackets where it draws them) and
+   shows Display (Arcs, and Symbol and Fork where it draws them) and
    Labels (Name, ID, Label), a flow line Display (Line, Symbol where it
    draws one) and Labels, a jump target Display Symbol where it draws one.
 
@@ -1221,7 +1221,7 @@ break `break_1`, section break `section_break_1`, all on `score`) and
 1. **What is offered.** A toggle is offered only where an element of its
    type stands in core's keys of the manifest (the specification's
    section 2.1). The flow control band of `score` shows Display with Arcs
-   (`word` `jump`), Symbols (`symbol`) and Brackets (`bracket`), each for
+   (`word` `jump`), Symbols (`symbol`) and Forks (`fork`), each for
    every element of the band's timeline's tree (`{element: type, within:
    "score"}`); Labels with Name, ID and Label (`name`, `id`, `label`, the
    words of `label-display`, `{within: "score"}`); and, where the manifest
@@ -1231,13 +1231,13 @@ break `break_1`, section break `section_break_1`, all on `score`) and
    atomic sections (`sections`), a markers band, nothing. An element's
    toggles, each its own rule `{element: type, addresses: [its part's
    address]}`: a jump Display Arcs, Symbol (`{id, part: ["symbol"]}`) and
-   Brackets (`{id, part: ["bracket"]}`), a flow line Line and Symbol, a
+   Fork (`{id, part: ["fork"]}`), a flow line Line and Symbol, a
    jump target Symbol, each where it is drawn; a jump or a flow line also
    Labels with Name, ID and Label, in the rule of its arcs or line. On
-   `sections` (no volta, so no bracket): the band Display Arcs, Symbols;
+   `sections` (no volta, so no fork): the band Display Arcs, Symbols;
    `jump_2` (da capo) Display Arcs, Symbol; `break_1` (a Fine, its text a
    symbol) Line, Symbol. On `sonata_exposition`, `jump_1` (two volta
-   destinations, no symbol) Display Arcs, Brackets; `jump_target_1`
+   destinations, no symbol) Display Arcs, Fork; `jump_target_1`
    (volta, no symbol) nothing.
 2. **A band's toggle shows its elements without the rules naming an
    address; an element's with them.** With the rule shown, Arcs of the
