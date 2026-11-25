@@ -1259,7 +1259,7 @@ describe("a root drawn once behind a row side by side", () => {
     expect(free).toEqual([
       ["group_1", 0.5],
       ["group_2", 0.29],
-      ["group_3", 0.34211419677734367],
+      ["group_3", 0.3262963256835937],
     ]);
     const root = arrangedRoot(store, { id: "recapitulation" });
     expect(root?.proportional?.automatic).toBe(true);

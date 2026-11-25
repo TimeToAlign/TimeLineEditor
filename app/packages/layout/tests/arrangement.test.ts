@@ -126,30 +126,30 @@ describe("horizontal, the worked example of section 8.8", () => {
     const items = itemBoxes(drawing);
     expect(items.map((box) => [box.key?.item, box.x, box.y, box.height])).toEqual([
       ["page", 8, 28.8046875, 49.37890625],
-      ["group_1", 623.39013671875, 34.57421875, 232.94140625],
-      ["group_2", 1238.7802734375, 34.57421875, 157.5625],
-      ["group_3", 1854.17041015625, 34.57421875, 232.94140625],
+      ["group_1", 623.39013671875, 28.8046875, 232.94140625],
+      ["group_2", 1238.7802734375, 28.8046875, 157.5625],
+      ["group_3", 1854.17041015625, 28.8046875, 232.94140625],
     ]);
     const card = (item: string, member: string) =>
       drawing.boxes.find((box) => box.key?.item === item && box.key.member === member)?.y;
-    expect(card("group_1", "take_a")).toBe(192.13671875);
-    expect(card("group_3", "take_b")).toBe(192.13671875);
-    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 289.4921875]);
+    expect(card("group_1", "take_a")).toBe(186.3671875);
+    expect(card("group_3", "take_b")).toBe(186.3671875);
+    expect([drawing.width, drawing.height]).toEqual([2429.560546875, 283.72265625]);
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
   });
   it("draws each root once, behind the first group hanging on it", () => {
     const cards = drawing.boxes.filter((box) => box.ancestor !== undefined);
     expect(cards.map((box) => [box.x, box.y, box.width, box.height, box.ancestor])).toEqual([
       [
-        463.9765625,
-        28.8046875,
-        1934.863037109375,
-        97.35546875,
+        451.322265625,
+        46.53515625,
+        1947.517333984375,
+        73.85546875,
         { group: "group_1", member: "exposition", groups: ["group_1", "group_2", "group_3"] },
       ],
       [
         525.13720703125,
-        195.5390625,
+        189.76953125,
         1873.42333984375,
         83.953125,
         { group: "group_1", member: "take_a", groups: ["group_1", "group_3"] },
@@ -163,15 +163,15 @@ describe("horizontal, the worked example of section 8.8", () => {
         .filter((axis) => axis.ancestor !== undefined && axis.address.id === id)
         .map((axis) => [axis.line, axis.xStart, axis.xEnd, String(axis.start), String(axis.end)]);
     expect(runs("score")).toEqual([
-      [111.7578125, 750.7802734375, 1150.7802734375, "0", "16"],
-      [111.7578125, 1366.17041015625, 1766.17041015625, "16", "32"],
-      [111.7578125, 1981.560546875, 2381.560546875, "32", "48"],
+      [105.98828125, 750.7802734375, 1150.7802734375, "0", "16"],
+      [105.98828125, 1366.17041015625, 1766.17041015625, "16", "32"],
+      [105.98828125, 1981.560546875, 2381.560546875, "32", "48"],
     ]);
     expect(runs("exposition").map((run) => run[2])).toEqual([1150.7802734375]);
     expect(runs("development").map((run) => run[1])).toEqual([1366.17041015625]);
     expect(runs("session")).toEqual([
-      [244.515625, 750.7802734375, 1190.7802734375, "0", "33"],
-      [244.515625, 1234.8938802083335, 2381.560546875, "44", "130"],
+      [238.74609375, 750.7802734375, 1190.7802734375, "0", "33"],
+      [238.74609375, 1234.8938802083335, 2381.560546875, "44", "130"],
     ]);
     const gaps = drawing.elisions
       .filter((exposure) => exposure.kind === "ancestor_card")
@@ -193,7 +193,7 @@ describe("horizontal, the worked example of section 8.8", () => {
     expect(lines).toEqual([[750.7802734375, 2381.560546875, []]]);
     const ellipses = drawing.elements.filter((element) => element.type === "ellipsis");
     expect(ellipses.map((each) => (each.type === "ellipsis" ? [each.x, each.y] : []))).toEqual([
-      [1212.8370768229167, 237.515625],
+      [1212.8370768229167, 231.74609375],
     ]);
     // Its name label, centred just below it (section 6.6).
     const label = drawing.elements.find(
@@ -201,7 +201,7 @@ describe("horizontal, the worked example of section 8.8", () => {
     );
     expect(label?.type === "label" && [label.x, label.baseline, label.text]).toEqual([
       1212.8370768229167,
-      249.86962890625,
+      244.10009765625,
       "Session",
     ]);
   });

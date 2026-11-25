@@ -176,7 +176,7 @@ describe("a group's frame with elided ancestor cards", () => {
   it.each([
     ["group_1", 726.0790527343779, 0.7051573765581493],
     ["group_2", 609.9776663078683, 0.8393749940044248],
-    ["group_3", 651.4485534706382, 0.7859408041852021],
+    ["group_3", 655.4553894081382, 0.7811363035130807],
     ["group_4", 716.8000000000029, 0.7142857142857114],
   ])("zooms LayerIt's %s to its elided card", (id, reach, zoom) => {
     const node = opened("bundles/bundle_elided_layerit", group(id), "group");

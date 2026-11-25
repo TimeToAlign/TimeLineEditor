@@ -1752,18 +1752,20 @@ the chevrons of the ancestor line running on to the right, but in
      every other record of an item or a member's card lies where it lies
      there (its range aside, since the card's gaps draw elements of their
      own), both moved by the difference of the two place origins.
-   - **Above** (`bundle_elided_layerit`, the defaults, four frames each
-     191.5390625 high but `group_3`, 259.4921875; the title's `Pt =
-     28.8046875`). The Suite's card behind `group_1` rises `ρ1` above its
-     frame and the block grows upwards by it (`origin.y = ρ1`, the first
-     item keeping its default `y`); `group_2`'s card rises `ρ2`, so its top
-     lies 8 below `group_1`'s frame, the lower of the first frame and its
-     card: `ρ1 + 28.8046875 + 191.5390625 + 8 = ρ1 + 228.34375` in the
-     block, and `group_2`'s frame `ρ2` lower. `group_3`'s card lies below
-     its frame's top, so the frame lies 8 below `group_2`'s; `group_4`'s
-     card rises again and its frame lies `ρ4` lower than 8 below
-     `group_3`'s. `ρ` is each card's record top less its frame's (the
-     cards' rows are the subject of "Elisions", not of this point).
+   - **Above** (`bundle_arranged_conflict`, the defaults, not arranged;
+     the title's `Pt = 28.8046875`). `score`'s two children `theme_a`
+     (0–16) and `theme_b` (8–24) overlap, so its card behind each frame
+     draws them in two children rows (section 6.4, Children), while each
+     frame holds one member of 16 quarters with its one ancestor row of
+     `score`: both cards draw the same rows and both frames are equally
+     high, so each card rises above its frame by the same `ρ > 0`. The
+     card behind `group_1` rises `ρ` above its frame and the block grows
+     upwards by it (`origin.y = ρ`, the first frame keeping its default
+     `y`, `ρ + 28.8046875`); the card ends inside its frame's bottom, so
+     the card behind `group_2` lies 8 below `group_1`'s frame, and
+     `group_2`'s frame exactly `ρ` lower than its card. `ρ` is each card's
+     record top less its frame's (the cards' rows are the subject of
+     "Elisions", not of this point).
    - **Every fixture** drawn with the defaults: taking each item with the
      ancestor cards behind it as one extent from its least top to its
      largest bottom (records, shadows not counted), each item after the
@@ -2140,34 +2142,39 @@ specification orders the operations.
    `{direction: horizontal, order: [page, group_3, group_1, group_2]}`): the
    drawing states the row `[page, group_1, group_2, group_3]` and the roots
    `[score, session]`; the items lie at `x` 8, 623.39013671875,
-   1238.7802734375 and 1854.17041015625, `page` at `y` 28.8046875 and the
-   frames at 34.57421875; Exposition (`group_1`) and Recapitulation are
+   1238.7802734375 and 1854.17041015625, `page` and the frames at `y`
+   28.8046875 (the tops are −77.18359375 for the three frames, −59.453125
+   and 83.78125 for the once cards, so `T0` = −77.18359375 and everything
+   moves by 105.98828125); Exposition (`group_1`) and Recapitulation are
    232.94140625 high, Development 157.5625, the card of `take_a` padded to
-   `y` 192.13671875 (34.57421875 + 157.5625), as `take_b`'s; the block is
-   2429.560546875 × 289.4921875, its origin `(0, 0)` (its bottom the once
-   card of `session`'s, 279.4921875, plus the shadow 2 and `P`). Two ancestor cards are
-   recorded, the once cards, each the card behind `group_1`: `score`'s at
-   `(463.9765625, 28.8046875)`, 1934.863037109375 × 97.35546875, its
-   `ancestor` `{group: group_1, member: exposition, groups: [group_1,
-   group_2, group_3]}`, then `session`'s at `(525.13720703125, 195.5390625)`,
-   1873.42333984375 × 83.953125, `groups: [group_1, group_3]`: its gap's
-   name label `Session` (section 6.6, the default `elision-display`
-   `ellipsis name`) takes its room in `session`'s markers band, below the
-   line by the default band order and empty without it, which is so
-   present and `w/2 + 13 + 2 + h(9) = 1.5 + 13 + 2 + 10.4765625 =
-   26.9765625` wide, more than the name's half height `h(11)/2 =
-   6.40234375` it replaces below the line: `63.37890625 − 6.40234375 +
-   26.9765625`, the line still `48.9765625` below the card's top; no other
-   ancestor card is recorded or written. Both lie `s1 × OL` further left
-   than their first stretch puts them, and are as much wider: the room
-   `OL = x0 = 127.39013671875` `group_1`'s frame leaves left of its member
-   drawings (section 8.8, step 2, taken by a once card left of its first
-   stretch, `sN × OR` right of its last), so that their names stand left of
-   the frame (`591.36669921875 − 127.39013671875`,
-   `652.52734375 − 127.39013671875`). Neither root reaches right of its
-   last stretch (`score`'s ends at 48 with `recapitulation`, `session`'s at
-   130 with `take_b`), so `OR` moves nothing.
-4. **Runs, seams and the gap.** `score`'s line lies at 111.7578125 in three
+   `y` 186.3671875 (28.8046875 + 157.5625), as `take_b`'s; the block is
+   2429.560546875 × 283.72265625, its origin `(0, 0)` (its bottom the once
+   card of `session`'s, 273.72265625, plus the shadow 2 and `P`). Two
+   ancestor cards are recorded, the once cards, each the card behind
+   `group_1`: `score`'s at `(451.322265625, 46.53515625)`,
+   1947.517333984375 × 73.85546875, its line at 59.453125 of it (the three
+   movements lie in one row of one band order, section 6.4, Children,
+   their stacks in two tiers), its `ancestor` `{group: group_1, member:
+   exposition, groups: [group_1, group_2, group_3]}`, then `session`'s at
+   `(525.13720703125, 189.76953125)`, 1873.42333984375 × 83.953125,
+   `groups: [group_1, group_3]`: its gap's name label `Session` (section
+   6.6, the default `elision-display` `ellipsis name`) takes its room in
+   `session`'s markers band, below the line by the default band order and
+   empty without it, which is so present and `w/2 + 13 + 2 + h(9) = 1.5 +
+   13 + 2 + 10.4765625 = 26.9765625` wide, more than the name's half
+   height `h(11)/2 = 6.40234375` it replaces below the line: `63.37890625
+   − 6.40234375 + 26.9765625`, the line still `48.9765625` below the
+   card's top; no other ancestor card is recorded or written. Both lie
+   `s1 × (OL + s0')` left of their first stretch's start 750.7802734375,
+   `OL = x0 = 127.39013671875` being the room `group_1`'s frame leaves
+   left of its member drawings (section 8.8, step 2, taken by a once card
+   left of its first stretch, `sN × OR` right of its last), so that their
+   names stand left of the frame: `score`'s with `s0'` = 172.06787109375
+   (its movements' row name cut to `Exposition, Development, …`),
+   `session`'s with `s0'` = 98.2529296875. Neither root reaches right of
+   its last stretch (`score`'s ends at 48 with `recapitulation`,
+   `session`'s at 130 with `take_b`), so `OR` moves nothing.
+4. **Runs, seams and the gap.** `score`'s line lies at 105.98828125 in three
    runs, 0–16 from 750.7802734375 to 1150.7802734375, 16–32 from
    1366.17041015625 to 1766.17041015625 and 32–48 from 1981.560546875 to
    2381.560546875; `exposition` ends on the left run (at 1150.7802734375),
@@ -2178,13 +2185,13 @@ specification orders the operations.
    `score`'s, no elision element is written at `score`, and `score`'s line
    is one piece from 750.7802734375 to 2381.560546875 without cuts, drawn
    whole across both seams under the frames.
-   `session`'s line, at 244.515625, has two runs, 0.0–33.0 to
+   `session`'s line, at 238.74609375, has two runs, 0.0–33.0 to
    1190.7802734375 and 44.0–130.0 from 1234.8938802083335, its gap of
    origin `arrangement` eliding 33.0 to 44.0 (floats, the session's axis
    being float) with its one ellipsis at `(1212.8370768229167,
-   237.515625)`, the middle of the card's height `(195.5390625 +
-   279.4921875) / 2`, and its label `Session` centred on the same `x`
-   with its baseline at `237.515625 + 2 + 2 + a(9) = 249.86962890625`,
+   231.74609375)`, the middle of the card's height `(189.76953125 +
+   273.72265625) / 2`, and its label `Session` centred on the same `x`
+   with its baseline at `231.74609375 + 2 + 2 + a(9) = 244.10009765625`,
    `a(9) = 1901 × 9 / 2048 = 8.35400390625`.
 5. **The fallback**: `bundle_arranged_conflict` asked `horizontal` is
    refused: the drawing states `{direction: horizontal, row: [group_1,

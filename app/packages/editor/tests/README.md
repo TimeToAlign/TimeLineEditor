@@ -1522,13 +1522,14 @@ proves the reading:
   and the row carries the note.
 - **The least proportion.** With a group elision on `development`
   4–12 the free drawing exposes the proportions 0.5 (behind `group_1`),
-  0.29 (`group_2`) and 0.34211419677734367 (`group_3`) for `score`. Behind
+  0.29 (`group_2`) and 0.3262963256835937 (`group_3`) for `score`. Behind
   `group_3` (`recapitulation` 32–48, so `EL` 32, `ER` 0, `λ` 16, `uL`
   2) section 8.9's (b) binds: the frame is `Fw = 567.39013671875` wide,
   `c = Fw / 2`, and `score` laid out alone has `σ = K + N' + G' = 8 +
-  143.41357421875 + 8 = 159.41357421875` (its widest row name
-  `Exposition, Recapitulation`), so
-  `dl = c + σ = 443.108642578125` and `r = (716.8 − dl) / (400 × 2)`,
+  156.06787109375 + 8 = 172.06787109375` (its three movements in one row
+  of one band order, section 6.4, its row name cut to
+  `Exposition, Development, …`), so
+  `dl = c + σ = 455.762939453125` and `r = (716.8 − dl) / (400 × 2)`,
   below (a)'s `λ / E = 0.5` (the card reaches `σ` left of the frame's
   edge, its seam putting what lies left of `recapitulation` outside the
   frame); side by side the once

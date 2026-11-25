@@ -937,24 +937,30 @@ describe("no card overlaps another item's", () => {
   });
 
   it("moves a frame whose card rises above it down by the rise", () => {
-    const drawing = drawFixture("bundles/bundle_elided_layerit");
-    const frames = ["group_1", "group_2", "group_3", "group_4"].map((id) => itemOf(drawing, id));
-    const cards = ["group_1", "group_2", "group_3", "group_4"].map((id) => behindOf(drawing, id));
-    const [f1, f2, f3, f4] = frames as [DrawnBox, DrawnBox, DrawnBox, DrawnBox];
-    const [c1, c2, c3, c4] = cards as [DrawnBox, DrawnBox, DrawnBox, DrawnBox];
-    expect(frames.map((frame) => frame.height)).toEqual([
-      191.5390625, 191.5390625, 259.4921875, 191.5390625,
-    ]);
+    const drawing = drawFixture("bundles/bundle_arranged_conflict");
+    const [f1, f2] = ["group_1", "group_2"].map((id) => itemOf(drawing, id)) as [
+      DrawnBox,
+      DrawnBox,
+    ];
+    const [c1, c2] = ["group_1", "group_2"].map((id) => behindOf(drawing, id)) as [
+      DrawnBox,
+      DrawnBox,
+    ];
     const rise1 = f1.y - c1.y;
+    const rise2 = f2.y - c2.y;
+    // Both cards draw `score` with its two overlapping children in two rows, both frames one
+    // member of 16 quarters with its ancestor row: each card rises above its frame, by as much.
+    expect(rise1 > 0).toBe(true);
+    expect(rise2).toBe(rise1);
+    expect(f2.height).toBe(f1.height);
+    // The first item keeps its default `y`; the block grows upwards by the rise.
     expect(drawing.origin.y).toBe(rise1);
     expect(f1.y).toBe(rise1 + 28.8046875);
-    expect(c2.y).toBe(rise1 + 228.34375);
-    expect(c2.y).toBe(f1.y + 191.5390625 + 8);
-    expect(f2.y - c2.y > 0).toBe(true);
-    expect(c3.y >= f3.y).toBe(true);
-    expect(f3.y).toBe(f2.y + 191.5390625 + 8);
-    expect(f4.y - c4.y > 0).toBe(true);
-    expect(c4.y).toBe(f3.y + 259.4921875 + 8);
+    // The second card lies 8 below the first frame, the lower of the first frame and its card,
+    // and the second frame exactly the rise lower.
+    expect(c1.y + c1.height <= f1.y + f1.height).toBe(true);
+    expect(c2.y).toBe(f1.y + f1.height + 8);
+    expect(f2.y).toBe(c2.y + rise2);
   });
 
   it.each(manifestNames())(
