@@ -288,7 +288,25 @@ region_2, part: [leader]}` at `x 40` from `y1 10` to `y2 22`, stroked
 `#9CA3AF` with width 0.5 and no dash (the defaults), is `<line
 data-id="region_2" data-part="leader" x1="40" y1="10" x2="40" y2="22"
 stroke="#9CA3AF" stroke-width="0.5"/>`, in TikZ `\path[draw=ts9CA3AF,line
-width=0.5pt] (40,20) -- (40,8);` (`30 − 10` and `30 − 22`). A wedge's points are the layout's (tip, then the base's two
+width=0.5pt] (40,20) -- (40,8);` (`30 − 10` and `30 − 22`). A **symbol** (section 6.4, Symbols) is a
+text centred on its element's x: `{id: jump_2, part: [symbol]}`, 𝄇
+(U+1D107) at `x 30`, baseline 20, font size 12, fill `#000000`, is `<text
+data-id="jump_2" data-part="symbol" x="30" y="20" text-anchor="middle"
+font-size="12" fill="#000000">𝄇</text>`, in TikZ `\node[anchor=base,inner
+sep=0,font=\sffamily\fontsize{12}{13.9688}\selectfont,text=ts000000] at
+(30,10) {𝄇};` (`h(12) = 13.96875` written to four places). A **volta
+bracket** (section 6.4, Brackets) is the polyline of its hook at `x1`, its
+line and, closed, its hook at `x2`, stroked and not filled, then its text
+from `tx`: `{id: jump_1, part: [bracket]}` from `x1 10` to `x2 50`, its
+line at `y 10`, its hooks' ends at `yh 22`, text `1.` from `tx 12` on
+baseline 20, stroke and fill `#000000`, width 1, size 9, is `<polyline
+data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10 50,22"
+fill="none" stroke="#000000" stroke-width="1"/>` and `<text
+data-id="jump_1" data-part="bracket" x="12" y="20" text-anchor="start"
+font-size="9" fill="#000000">1.</text>`; open, the point `50,22` is left
+out; without a text (a destination without passes) the text is not
+written; in TikZ `\path[draw=ts000000,line width=1pt] (10,8) -- (10,20) --
+(50,20) -- (50,8);` and `\node[anchor=base west,…] at (12,10) {1.};`. A wedge's points are the layout's (tip, then the base's two
 corners in the order section 6.6 gives them), the same an editor's unnamed
 wedge is drawn with.
 
@@ -361,7 +379,9 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   corners in order); in TikZ the shaft is `(10,10) .. controls (20,-10) and
   (40,-10) .. (48,6)`.
 - For every jump of `flow_control` and `corpus_score_ms3`, drawn by the
-  layout at the default placement with the default layer and their own,
+  layout at the default placement with the default layer, the rule
+  `{element: jump}` `display: inline` (the defaults hide the arcs) and
+  their own,
   one shaft per destination of a jump (`jump`) their roots hold, but for a
   destination going on (`by` 0), which draws no arc (12 in
   `corpus_score_ms3`, whose two voltas each go on once): the shaft's end
@@ -436,7 +456,7 @@ every tag occurs, one of them a shadow. For it and for every review case
   inside the scope, in the same order, of the kind its tag selects (two
   points joined by `rectangle` for a rect, by `--` for a line,
   `circle[radius=` for a circle, `-- cycle;` for a polygon, three points
-  joined by `--` and no `cycle` for a polyline, `.. controls` for a path,
+  (four for a closed volta bracket) joined by `--` and no `cycle` for a polyline, `.. controls` for a path,
   `\node` for a text).
 
 ## Drawing fixtures (`fixtures.test.ts`)
@@ -601,7 +621,7 @@ fill="#000000">Bar 2, downbeat (take 1)</text>` (the middle 82.18359375
 plus `(a(9) − d(9)) / 2`), in TikZ `\path[draw=ts1BA1E2,line width=1pt,dash
 pattern=on 3pt off 3pt] (261.0928,124.7578) -- (161.0928,116.7578);` (`H =
 202.94140625`).
-There are 111 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
+There are 109 cases (among them the drawings of a groupstamp's line across its group: `group__group_groupstamp` on a member, `group__group_groupstamp_child_member` on a member's child, `bundle__bundle_groupstamp_shared_member` on a member of two groups, one line in each frame; and `timestamp_wedge_rotation`, wedges turned on both sides of a line). Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

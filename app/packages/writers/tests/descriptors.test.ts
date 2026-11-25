@@ -15,7 +15,7 @@ import {
   type Style,
   wedgeAt,
 } from "@timetoalign/tilie-layout";
-import { fontMetrics } from "@timetoalign/timetoshare";
+import { fontMetrics, type Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   type Descriptor,
@@ -396,6 +396,55 @@ describe("descriptors", () => {
     ]);
   });
 
+  it("writes a symbol as a text centred on its element's x", () => {
+    const drawing = synthetic({
+      type: "symbol",
+      address: at("jump_2", "symbol"),
+      style: style({ fill: "#000000", "font-size": 12 }),
+      x: 30,
+      baseline: 20,
+      text: "\u{1D107}",
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<text data-id="jump_2" data-part="symbol" x="30" y="20" text-anchor="middle" font-size="12" fill="#000000">\u{1D107}</text>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\node[anchor=base,inner sep=0,font=\\sffamily\\fontsize{12}{13.9688}\\selectfont,text=ts000000] at (30,10) {\u{1D107}};",
+    ]);
+  });
+
+  it("writes a bracket's hooks and line, closed or open, then its text", () => {
+    const bracket = (closed: boolean, text: string | null) =>
+      synthetic({
+        type: "bracket",
+        address: at("jump_1", "bracket"),
+        style: style({ stroke: "#000000", fill: "#000000", "font-size": 9 }),
+        x1: 10,
+        x2: 50,
+        y: 10,
+        yh: 22,
+        closed,
+        tx: 12,
+        baseline: 20,
+        text,
+      });
+    const label =
+      '<text data-id="jump_1" data-part="bracket" x="12" y="20" text-anchor="start" font-size="9" fill="#000000">1.</text>';
+    expect(svgBody(bracket(true, "1."))).toEqual([
+      '<polyline data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10 50,22" fill="none" stroke="#000000" stroke-width="1"/>',
+      label,
+    ]);
+    expect(svgBody(bracket(false, "1."))).toEqual([
+      '<polyline data-id="jump_1" data-part="bracket" points="10,22 10,10 50,10" fill="none" stroke="#000000" stroke-width="1"/>',
+      label,
+    ]);
+    expect(svgBody(bracket(false, null))).toHaveLength(1);
+    expect(tikzBody(bracket(true, "1."))).toEqual([
+      "\\path[draw=ts000000,line width=1pt] (10,8) -- (10,20) -- (50,20) -- (50,8);",
+      "\\node[anchor=base west,inner sep=0,font=\\sffamily\\fontsize{9}{10.4766}\\selectfont,text=ts000000] at (12,10) {1.};",
+    ]);
+  });
+
   it("writes the bundle_matchstamps fixture's anchors and their label last, as stored", () => {
     const manifest = loadFixture("bundles/bundle_matchstamps");
     const drawing = draw(
@@ -447,7 +496,11 @@ describe("descriptors", () => {
         .flatMap((timeline) => timeline.flow_control)
         .flatMap((item) => (item.role === "jump" ? (item.targets ?? []) : []))
         .filter(({ by }) => by === undefined || (Array.isArray(by) && by[0] !== 0)).length;
-      const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
+      // The arcs, which the defaults hide, shown by a rule.
+      const arcs: Graphical = {
+        rules: [{ select: { element: "jump" }, set: { display: "inline" } }],
+      };
+      const layers = [DEFAULT_LAYER, arcs, manifestLayer(manifest)];
       const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
       const descriptors = toDescriptors(drawing);
       const paths = descriptors.filter(
@@ -907,7 +960,7 @@ const KIND: { readonly [tag in Tag]: RegExp } = {
   line: /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\);$/,
   circle: /^\\path\[[^\]]*\] \([^)]*\) circle\[radius=[^\]]*\];$/,
   polygon: /^\\path\[[^\]]*\] (\([^)]*\) -- )+cycle;$/,
-  polyline: /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\) -- \([^)]*\);$/,
+  polyline: /^\\path\[[^\]]*\] \([^)]*\)( -- \([^)]*\)){2,3};$/,
   path: /^\\path\[[^\]]*\] \([^)]*\) \.\. controls /,
   text: /^\\node\[anchor=base( west)?,inner sep=0,/,
 };

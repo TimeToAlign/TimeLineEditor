@@ -6,9 +6,7 @@
  * card, one with a scaled frame whose member's card requests a size, one
  * with a block spacing and a card spacing of their own, a frame with a
  * spacing of its own, a member's card with a spacing of its own,
- * three manifests with bands the defaults hide shown by an application
- * layer: a child's regions band, every regions band, and a child's flow
- * control band, and three manifests whose ancestor cards, which the
+ * three manifests whose ancestor cards, which the
  * defaults show, an application layer hides: a root reaching past its
  * member on both sides, one reaching past it to the right, and three roots
  * of three axes behind one frame; four manifests whose elided ancestor cards
@@ -193,33 +191,9 @@ export function reviewCases(): ReviewCase[] {
     "bundles/bundle_mixed",
     at({ places: { group_1: { cards: { score: { spacing: 8 } } } } }),
   );
-  const shown = (select: Selector): Graphical[] => [
-    { rules: [{ select, set: { display: "inline" } }] },
-  ];
   const hidden = (select: Selector): Graphical[] => [
     { rules: [{ select, set: { display: "none" } }] },
   ];
-  add(
-    "unknown_length_child__regions-shown",
-    "unknown_length_child",
-    DEFAULT_PLACEMENT,
-    1,
-    shown({ addresses: [{ id: "movement", facet: "regions" }] }),
-  );
-  add(
-    "unknown_length_segments__regions-shown",
-    "unknown_length_segments",
-    DEFAULT_PLACEMENT,
-    1,
-    shown({ element: "band", facet: "regions" }),
-  );
-  add(
-    "child_flow_control__flow-shown",
-    "child_flow_control",
-    DEFAULT_PLACEMENT,
-    1,
-    shown({ addresses: [{ id: "verse", facet: "flow_control" }] }),
-  );
   for (const stem of ["group_parent_both", "group_parent_right", "group_parents_mixed"]) {
     add(
       `group__${stem}__ancestor-cards-hidden`,
