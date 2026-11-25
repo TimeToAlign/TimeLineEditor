@@ -94,6 +94,7 @@ export function figures(drawing: Drawing, scale: number): { svg: string; tex: st
   return { svg: writeSvg(placed), tex: writeTikz(placed) };
 }
 
+/** One drawing of the review sheet: the manifest, placement, layers and scale it is drawn from. */
 export interface ReviewCase {
   /** The file name, without extension. */
   readonly name: string;

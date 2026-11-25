@@ -23,6 +23,7 @@ export type { PathCommand, Point } from "@timetoalign/tilie-layout";
 /** The SVG attributes that carry an element's address (section 7.2), in the order written. */
 export const ADDRESS_ATTRIBUTES = ["data-id", "data-facet", "data-part"] as const;
 
+/** The SVG element a descriptor writes. */
 export type Tag = "rect" | "line" | "circle" | "polygon" | "polyline" | "path" | "text";
 
 /** One SVG attribute, its name and its value, as the descriptor writes it. */
@@ -63,6 +64,7 @@ interface Written {
   readonly source: DescriptorSource;
 }
 
+/** A `rect`: its top-left corner `(x, y)`, its width and its height. */
 export interface RectDescriptor extends Written {
   readonly tag: "rect";
   readonly x: number;
@@ -72,6 +74,7 @@ export interface RectDescriptor extends Written {
   readonly text: null;
 }
 
+/** A `line` from `(x1, y1)` to `(x2, y2)`. */
 export interface LineDescriptor extends Written {
   readonly tag: "line";
   readonly x1: number;
@@ -81,6 +84,7 @@ export interface LineDescriptor extends Written {
   readonly text: null;
 }
 
+/** A `circle` of radius `r` around `(cx, cy)`. */
 export interface CircleDescriptor extends Written {
   readonly tag: "circle";
   readonly cx: number;
@@ -89,18 +93,21 @@ export interface CircleDescriptor extends Written {
   readonly text: null;
 }
 
+/** A `polygon` (closed) or `polyline` (open) through `points`. */
 export interface PointsDescriptor extends Written {
   readonly tag: "polygon" | "polyline";
   readonly points: readonly Point[];
   readonly text: null;
 }
 
+/** A `path` drawn by the commands `d`. */
 export interface PathDescriptor extends Written {
   readonly tag: "path";
   readonly d: readonly PathCommand[];
   readonly text: null;
 }
 
+/** A `text` element holding `text`, anchored at `(x, y)` by its start or middle. */
 export interface TextDescriptor extends Written {
   readonly tag: "text";
   readonly x: number;

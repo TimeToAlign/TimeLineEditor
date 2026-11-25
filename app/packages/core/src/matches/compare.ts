@@ -55,6 +55,7 @@ export interface MatchStampUpdate {
   readonly nameAnchor: number | null;
 }
 
+/** How a named MatchStamp compares with an anchor index (`checkMatchStamp`). */
 export interface MatchStampCheck {
   /** Per named anchor the index's anchor stating it, `null` when it is not stated. */
   readonly stated: readonly (number | null)[];

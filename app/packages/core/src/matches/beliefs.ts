@@ -84,6 +84,7 @@ export function beliefMask(
  * states none.
  */
 export const ANCHOR_BELIEFS = ["false", "unlikely", "undecided", "true"] as const;
+/** A belief an alignment anchor is drawn by. */
 export type AnchorBelief = (typeof ANCHOR_BELIEFS)[number];
 
 const UNDECIDED = ANCHOR_BELIEFS.indexOf("undecided");

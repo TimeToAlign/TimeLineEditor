@@ -211,8 +211,9 @@ export function claimRowOf(columns: MatchClaimColumns): ReadonlyMap<string, numb
 }
 
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
-/** The index of an int64's low and high 32-bit word in an `Int32Array` view of it. */
+/** The index of an int64's low 32-bit word in an `Int32Array` view of it. */
 export const LOW_WORD = LITTLE_ENDIAN ? 0 : 1;
+/** The index of an int64's high 32-bit word in an `Int32Array` view of it. */
 export const HIGH_WORD = LITTLE_ENDIAN ? 1 : 0;
 
 /** The 32-bit words of an int64 column, viewed without copying. */

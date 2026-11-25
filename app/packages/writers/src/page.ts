@@ -20,6 +20,7 @@ export interface OnPage extends Placed {
   readonly pageY: number;
 }
 
+/** A page: its width and height and the drawings placed on it. */
 export interface Page {
   readonly width: number;
   readonly height: number;

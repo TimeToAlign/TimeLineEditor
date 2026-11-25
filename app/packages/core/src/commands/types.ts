@@ -21,6 +21,7 @@ export const ADD_KINDS = [
   "elision",
   "matchstamp",
 ] as const;
+/** A kind of thing `add` can put into a target. */
 export type AddKind = (typeof ADD_KINDS)[number];
 
 /**
@@ -79,9 +80,12 @@ export type StyleCommand = {
   readonly blocks?: readonly BlockId[];
 };
 
+/** A command over a workspace: `add`, `set`, `remove` or `style`. */
 export type Command = AddCommand | SetCommand | RemoveCommand | StyleCommand;
+/** The `type` naming a command. */
 export type CommandType = Command["type"];
 
+/** The type of each command. */
 export const COMMAND_TYPES = [
   "add",
   "set",

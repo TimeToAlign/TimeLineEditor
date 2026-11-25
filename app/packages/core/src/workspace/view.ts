@@ -28,6 +28,7 @@ import {
 import type { Block, BlockId, BlockPlacement, ItemArrangement } from "./blocks.ts";
 import { BLOCK_ID, ITEM_DIRECTIONS } from "./blocks.ts";
 
+/** The format and version a workspace file states: the only ones this editor reads. */
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
   readonly version: 7;
@@ -127,6 +128,10 @@ export function columnsOf(arrangement: CanvasArrangement, count: number): number
   return arrangement.columns ?? Math.max(1, Math.ceil(Math.sqrt(count)));
 }
 
+/**
+ * A workspace: its name, settings, default rules, block arrangement and
+ * blocks by ID, an immutable plain-JavaScript value.
+ */
 export interface View {
   readonly meta: WorkspaceMeta;
   /** The workspace's name, the default name of its file (`<name>.tle.json`); never empty. */
@@ -142,6 +147,7 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
+/** The format and version of the workspaces this editor reads and writes. */
 export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 7 };
 
 /** The name of a new workspace, and of one read from a file that states none. */
@@ -153,6 +159,11 @@ export const DEFAULT_GRANULARITY: Granularity = { denominator: 2520, decimals: 3
 /** The most decimal places `decimals` may state. */
 export const MAX_DECIMALS = 15;
 
+/**
+ * The settings of a new workspace: an 8-unit grid that snaps, new blocks at
+ * scale 1 and length 400 with spacing 8, no margin and no width or height,
+ * `DEFAULT_GRANULARITY`, and no manifest file or MatchClaim filter entries.
+ */
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
   blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },

@@ -98,6 +98,7 @@ export interface AnchorTarget extends AnchorFound {
   readonly block: Block;
 }
 
+/** What an address resolves to, discriminated by its `kind`. */
 export type Target =
   | WorkspaceTarget
   | BlockTarget
@@ -109,6 +110,7 @@ export type Target =
   | ElisionTarget
   | MatchStampTarget
   | AnchorTarget;
+/** The kind of a target. */
 export type TargetKind = Target["kind"];
 
 /** The target of each kind, the type each kind's table of setters reads. */

@@ -683,6 +683,11 @@ function isEntryKind(kind: AddKind): kind is EntryKind {
   return ENTRY_KINDS.some((item) => item === kind);
 }
 
+/**
+ * Apply an `add`: put its value into the target its `into` resolves to,
+ * recording the change in `changes`; a kind the target does not take is
+ * `wrong_target_kind`.
+ */
 export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): View | CommandError {
   const kind = ADD_KINDS.find((item) => Object.hasOwn(command, item));
   if (kind === undefined) throw new Error("a parsed add names its kind");

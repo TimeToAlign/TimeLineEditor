@@ -81,6 +81,11 @@ export interface MatchedSpans {
   readonly end: Uint32Array;
 }
 
+/**
+ * The anchor index of a MatchClaim table under a belief mask
+ * (`anchorIndexOf`): its coordinates, alignment anchors, neighbours,
+ * potential MatchStamps and matched spans.
+ */
 export interface AnchorIndex {
   readonly columns: MatchClaimColumns;
   readonly mask: Uint8Array | null;

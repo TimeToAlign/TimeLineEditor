@@ -80,6 +80,7 @@ export interface SettingsChange {
   readonly matchClaimFilters?: WorkspaceSettings["matchClaimFilters"];
 }
 
+/** The options of `createStore`. */
 export interface StoreOptions {
   /** Who dispatches, until `setAuthor` changes it; `"Gerhardt"` by default. */
   readonly author?: string;
@@ -87,6 +88,10 @@ export interface StoreOptions {
   readonly clock?: () => Date;
 }
 
+/**
+ * The workspace store: the current view, the journal and the open editors'
+ * sessions, changed only through its methods.
+ */
 export interface Store {
   readonly view: View;
   /** The main level's entries holding an applied change: commands and closed sessions. */
@@ -133,6 +138,7 @@ export interface Store {
   subscribe(listener: (view: View) => void): () => void;
 }
 
+/** Who dispatches when `StoreOptions.author` states nobody. */
 export const DEFAULT_AUTHOR = "Gerhardt";
 
 /** One change replayed: the index of the journal entry holding it and the view it leaves. */

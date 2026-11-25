@@ -5,6 +5,7 @@ import type { Manifest } from "../manifest/types.ts";
 
 /** A block id: ten characters of base 36, unique within the workspace. */
 export type BlockId = string;
+/** The form of a block ID: ten lowercase base-36 characters. */
 export const BLOCK_ID = /^[0-9a-z]{10}$/;
 
 /** The inputs of a block's drawing besides its manifest and the style layers. */

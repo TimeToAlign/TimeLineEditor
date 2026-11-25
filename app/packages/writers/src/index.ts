@@ -7,6 +7,7 @@
  * another implementation of it writes the same bytes.
  */
 
+/** The package's name. */
 export const name = "@timetoalign/tilie-writers" as const;
 
 export type {

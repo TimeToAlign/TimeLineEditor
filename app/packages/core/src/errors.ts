@@ -62,6 +62,7 @@ export const ErrorCode = {
   arrangementConflict: "arrangement_conflict",
 } as const;
 
+/** One problem code: a value of the `ErrorCode` constants. */
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 /**

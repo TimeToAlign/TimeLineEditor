@@ -21,8 +21,9 @@ import { withoutElements } from "./remove.ts";
 import { isSegment } from "./tree.ts";
 import type { AxisValue, ChildTimeline, Manifest, TimelineManifest } from "./types.ts";
 
-/** The side whose neighbour closes the gap, and how: by growing or by moving. */
+/** The side whose neighbour closes the gap. */
 export type GapSide = "left" | "right";
+/** How the gap is closed: by growing a neighbour or by moving one side's segments. */
 export type GapVerb = "extend" | "shift";
 
 /**

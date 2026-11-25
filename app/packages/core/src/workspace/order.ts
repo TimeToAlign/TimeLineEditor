@@ -94,6 +94,7 @@ function decrement(value: string): string | null {
   return nextHead + (delta > 0 ? trailing + last : delta < 0 ? trailing.slice(1) : trailing);
 }
 
+/** Whether `text` is a valid fractional index. */
 export function isIndex(text: string): boolean {
   try {
     validateIndex(text);
@@ -103,6 +104,12 @@ export function isIndex(text: string): boolean {
   }
 }
 
+/**
+ * An index sorting strictly between `a` and `b`; null leaves that side
+ * open, and two nulls give the first index, `a0`.
+ *
+ * @throws RangeError when either bound is not an index or `a` is not below `b`.
+ */
 export function indexBetween(a: string | null, b: string | null): string {
   if (a !== null) validateIndex(a);
   if (b !== null) validateIndex(b);
@@ -133,6 +140,13 @@ export function indexBetween(a: string | null, b: string | null): string {
   return leftInteger + midpoint(leftFraction, null);
 }
 
+/**
+ * `n` ascending indices sorting strictly between `a` and `b`, null bounds
+ * open as in `indexBetween`.
+ *
+ * @throws RangeError when `n` is not a non-negative safe integer, or as
+ *   `indexBetween` throws.
+ */
 export function indicesBetween(a: string | null, b: string | null, n: number): string[] {
   if (!Number.isSafeInteger(n) || n < 0)
     throw new RangeError("index count must be a non-negative safe integer");

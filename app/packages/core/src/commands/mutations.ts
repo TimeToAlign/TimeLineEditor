@@ -125,6 +125,7 @@ export function recordValue(
   changes.written.set(key, { block, stored: first === undefined ? stored : first.stored, value });
 }
 
+/** `view` with `block` stored under its ID, added or replacing the block there. */
 export function withBlock(view: View, block: Block): View {
   return { ...view, blocks: { ...view.blocks, [block.id]: block } };
 }

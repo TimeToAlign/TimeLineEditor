@@ -80,6 +80,12 @@ function holdsMatch(block: Block, select: Selector): boolean {
   return elements.some((key) => selectorMatches(select, key, ancestry));
 }
 
+/**
+ * Apply a `style`: embed its rule in each block it names, or, naming none,
+ * in every block whose manifest holds an element its selector matches,
+ * recording each changed manifest in `changes`. A named block that does not
+ * exist is `unknown_target`.
+ */
 export function applyStyle(
   view: View,
   command: StyleCommand,

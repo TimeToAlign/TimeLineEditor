@@ -12,6 +12,7 @@
  * arithmetic is `@timetoalign/tilie-core/numbers`.
  */
 
+/** The package's name. */
 export const name = "@timetoalign/tilie-core" as const;
 
 export type { ManifestWarning, UnknownKey } from "@timetoalign/timetoshare";

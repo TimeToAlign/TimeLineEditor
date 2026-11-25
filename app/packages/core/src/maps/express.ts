@@ -30,6 +30,7 @@ export interface ExpressedOutputs {
   readonly outputs: { readonly [name: string]: Expressed };
 }
 
+/** A map's result written on its target axis: a number, a string (a label), a measure, or named outputs. */
 export type Expressed = ExpressedNumber | string | MeasureRecord | ExpressedOutputs;
 
 /**

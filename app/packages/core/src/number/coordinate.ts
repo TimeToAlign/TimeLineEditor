@@ -18,6 +18,10 @@ import { Rational } from "./rational.ts";
 /** A coordinate's value: `bigint` for `int`, `number` for `float`, `Rational` for `fraction`. */
 export type CoordinateValue = bigint | number | Rational;
 
+/**
+ * A value on one axis: its unit, its number type and the value in the
+ * representation that number type selects.
+ */
 export interface Coordinate {
   readonly unit: TimeUnit;
   readonly numberType: NumberType;
@@ -204,6 +208,7 @@ export function compareCoordinates(left: Coordinate, right: Coordinate): -1 | 0 
   return a < other ? -1 : a > other ? 1 : 0;
 }
 
+/** Whether two coordinates on one axis have equal values. */
 export function coordinatesEqual(left: Coordinate, right: Coordinate): boolean {
   return compareCoordinates(left, right) === 0;
 }
@@ -219,10 +224,20 @@ function combine(left: Coordinate, right: Coordinate, sign: 1 | -1): Coordinate 
   return { unit: left.unit, numberType: left.numberType, value };
 }
 
+/**
+ * The sum of two coordinates on one axis, exact in their number type.
+ *
+ * @throws AxisMismatchError when their axes differ.
+ */
 export function addCoordinates(left: Coordinate, right: Coordinate): Coordinate {
   return combine(left, right, 1);
 }
 
+/**
+ * `left` minus `right`, two coordinates on one axis, exact in their number type.
+ *
+ * @throws AxisMismatchError when their axes differ.
+ */
 export function subtractCoordinates(left: Coordinate, right: Coordinate): Coordinate {
   return combine(left, right, -1);
 }

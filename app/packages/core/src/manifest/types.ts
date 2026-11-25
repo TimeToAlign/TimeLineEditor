@@ -46,6 +46,7 @@ type ReadonlyView<T> = unknown extends T
  */
 export type AxisValue = ReadonlyView<Lossless<SchemaNumber>>;
 
+/** A region of a timeline: a stretch from `start` to `end` on its own axis, with its ID. */
 export type Region = ReadonlyView<CompleteRegion>;
 
 /**

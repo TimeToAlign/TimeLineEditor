@@ -90,6 +90,10 @@ function removalOf(target: Target): Removal | null {
   }
 }
 
+/**
+ * Apply a `remove` of `targets`, recording the changes in `changes`; the
+ * refusals are those this module describes.
+ */
 export function applyRemove(
   view: View,
   targets: readonly Address[],

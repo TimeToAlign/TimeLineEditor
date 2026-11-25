@@ -58,6 +58,7 @@ export type {
 } from "./flows.ts";
 export type { MatchClaimTable } from "./matchClaims.ts";
 
+/** The package's name. */
 export const name = "@timetoalign/tilie-client" as const;
 
 /** Where a server is and how to authenticate to it. */
@@ -122,6 +123,7 @@ export interface ExpandedMeasureMap {
   readonly rows: readonly MeasureRow[];
 }
 
+/** Why a call failed: the server was `unreachable`, or its answer's `status` or body was not the route's. */
 export type ServerErrorCode = "unreachable" | "status";
 
 /** One problem a table check found: its code, its row (`null` for the table), its column's path. */
@@ -384,6 +386,11 @@ function measureMapsOf(body: unknown): readonly ExpandedMeasureMap[] | undefined
   return maps;
 }
 
+/**
+ * The server at `url`: one typed call per route, each sending the token.
+ * Nothing is requested before a call is made; a call the server does not
+ * answer as its route does rejects with a `ServerError`.
+ */
 export function connect({ url, token }: ConnectOptions): Server {
   const headers: Record<string, string> =
     token === null ? {} : { Authorization: `Bearer ${token}` };

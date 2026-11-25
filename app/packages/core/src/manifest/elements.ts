@@ -36,7 +36,9 @@ import type {
   TimelineManifest,
 } from "./types.ts";
 
+/** The domain of a timeline: graphical, logical or physical time. */
 export type Domain = "graphical" | "logical" | "physical";
+/** The modality of a timeline's axis: continuous or discrete. */
 export type Modality = "continuous" | "discrete";
 
 /** What a selector can test on an element. */

@@ -14,8 +14,10 @@ import { compactSortedJson, isJsonObject as isObject } from "@timetoalign/timeto
 /** One step of a path into a JSON value: an object key or an array index. */
 export type PathSegment = string | number;
 
+/** A JSON value as `parse` returns it. */
 export type Json = null | boolean | string | JsonNumber | JsonArray | JsonObject;
 type JsonArray = readonly Json[];
+/** A JSON object: string keys to JSON values. */
 export type JsonObject = { readonly [key: string]: Json };
 
 /** Whether `value` is a JSON object: not an array, not a `JsonFloat`. */

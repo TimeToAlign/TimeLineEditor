@@ -84,6 +84,7 @@ export function unknownMember(
     : problem(code, `unknown member ${extra}`, [...path, extra]);
 }
 
+/** A string. */
 export function readString(value: unknown, path: readonly PathSegment[]): string | Problem {
   return typeof value === "string" ? value : invalid("expected a string", path);
 }
@@ -95,6 +96,7 @@ export function readName(value: unknown, path: readonly PathSegment[]): string |
     : invalid("a name is a non-empty string", path);
 }
 
+/** A string or null. */
 export function readNullableString(
   value: unknown,
   path: readonly PathSegment[],
@@ -102,6 +104,7 @@ export function readNullableString(
   return value === null ? null : readString(value, path);
 }
 
+/** A boolean. */
 export function readBoolean(value: unknown, path: readonly PathSegment[]): boolean | Problem {
   return typeof value === "boolean" ? value : invalid("expected a boolean", path);
 }
@@ -119,6 +122,10 @@ export function readFinite(value: unknown, path: readonly PathSegment[]): number
   return Object.is(number, -0) ? 0 : number;
 }
 
+/**
+ * A canvas number greater than 0, read as `readFinite` reads it; 0 or less
+ * is `non_positive_number`.
+ */
 export function readPositive(value: unknown, path: readonly PathSegment[]): number | Problem {
   const read = readFinite(value, path);
   if (isCommandError(read)) return read;
@@ -134,6 +141,7 @@ export function readNonNegative(value: unknown, path: readonly PathSegment[]): n
   return read >= 0 ? read : invalid("the number must not be negative", path);
 }
 
+/** A positive canvas number, as `readPositive` reads it, or null. */
 export function readNullablePositive(
   value: unknown,
   path: readonly PathSegment[],
@@ -223,6 +231,7 @@ export function readPlaces(value: unknown, path: readonly PathSegment[]): Places
   return result;
 }
 
+/** A fractional index (`isIndex`); anything else is `invalid_index`. */
 export function readIndex(value: unknown, path: readonly PathSegment[]): string | Problem {
   return typeof value === "string" && isIndex(value)
     ? value

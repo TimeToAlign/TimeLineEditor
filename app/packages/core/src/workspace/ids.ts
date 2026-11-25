@@ -24,6 +24,7 @@ export function mintBlockId(
   return id;
 }
 
+/** The prefix of a minted timeline ID (`clt_N`, `dpt_N`, …) by its timeline class. */
 export const TIMELINE_PREFIX = {
   ContinuousLogicalTimeline: "clt",
   DiscreteLogicalTimeline: "dlt",

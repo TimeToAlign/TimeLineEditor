@@ -58,6 +58,7 @@ export type MapResult = MapValue | string | MeasureRecord | MapOutputs;
 
 const SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 
+/** Whether a map's result is a number rather than a label, a measure or named outputs. */
 export function isMapValue(result: MapResult): result is MapValue {
   return typeof result === "bigint" || typeof result === "number" || result instanceof Rational;
 }

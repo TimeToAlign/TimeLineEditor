@@ -33,10 +33,12 @@ export function readOnAxis(
   }
 }
 
+/** Whether `value` is a problem: an object with a `code` and a `path`. */
 export function isProblem(value: unknown): value is Problem {
   return typeof value === "object" && value !== null && "code" in value && "path" in value;
 }
 
+/** The end of a child at `offset` with `length` on its parent's axis: their sum. */
 export function childEnd(offset: Coordinate, length: Coordinate): Real {
   return addReal(realOf(offset), realOf(length));
 }
