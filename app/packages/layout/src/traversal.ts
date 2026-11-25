@@ -96,7 +96,7 @@ export interface Owned extends Styled {
 
 /** A text ready to draw. */
 export interface Measured {
-  /** The text with every control character replaced by a space. */
+  /** The text with every character U+0000–U+001F replaced by a space (`cleanText`). */
   readonly clean: string;
   /** The width of `clean` at its owner's font size. */
   readonly width: number;

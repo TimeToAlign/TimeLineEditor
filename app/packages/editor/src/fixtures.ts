@@ -112,7 +112,10 @@ export function fixtures(workspaces: Files, manifests: Files, tables: Files): Ex
 // The build flag is spelled out here rather than imported (`TEST_HOOK`), so
 // the bundler sees a constant condition and leaves the files out of a
 // production build.
-/** The fixture menu's entries, sorted by label; empty in a production build. */
+/**
+ * The fixture menu's entries, sorted by label; empty in a production build without the test
+ * hook (`VITE_TILIE_TEST_HOOK`).
+ */
 export const FIXTURES: readonly Example[] =
   import.meta.env.DEV || import.meta.env.VITE_TILIE_TEST_HOOK === "1"
     ? fixtures(

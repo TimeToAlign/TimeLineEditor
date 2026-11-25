@@ -311,8 +311,8 @@ export interface TextElement extends Addressed {
   readonly anchor: "start" | "middle";
   readonly text: string;
   /**
-   * The timestamp's coordinate on a wedge's coordinate label and on every label of a stack on an
-   * ancestor line; absent on every other text.
+   * The timestamp's coordinate on a wedge's coordinate label and on a stack's label on an
+   * ancestor line that shows a value; absent on every other text.
    */
   readonly coordinate?: ShownCoordinate;
 }

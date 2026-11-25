@@ -30,8 +30,9 @@ const VERTICAL: { readonly [key: string]: Step } = {
 };
 
 /**
- * Attaches the keyboard behaviour above to a toolbar of buttons, keeping one enabled button as
- * its tab stop as buttons are enabled, disabled, added and removed.
+ * Attach the toolbar keyboard behaviour (WAI-ARIA "Toolbar", as the module comment describes) to
+ * `toolbar`, keeping one enabled button its tab stop as buttons are enabled, disabled, added and
+ * removed.
  */
 export const roving: Attachment<HTMLElement> = (toolbar) => {
   let current: HTMLButtonElement | null = null;
