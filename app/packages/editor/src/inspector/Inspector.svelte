@@ -239,7 +239,7 @@ const hinted = $derived(block === null && !manifest.dirty);
         {:else if hinted}
           <p class="hint">Select a block to inspect its manifest.</p>
         {:else}
-          <ManifestTextPanel {manifest} {block} {view} store={live.store} />
+          <ManifestTextPanel {manifest} {block} {subjects} {view} store={live.store} />
         {/if}
       </div>
     {/each}

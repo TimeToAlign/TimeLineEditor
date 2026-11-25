@@ -13,12 +13,14 @@
  * again once a codec arrives.
  */
 
-import type { Json } from "@timetoalign/tilie-core";
+import type { Json, PathSegment } from "@timetoalign/tilie-core";
 import { dumps, JsonSyntaxError, parseJson } from "@timetoalign/timetoshare";
 import { SvelteMap } from "svelte/reactivity";
 import type { Codec, Format, Read, Source, Text } from "./codec.ts";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
+import type { Lines } from "./textPlace.ts";
+import { jsonSpan, linesOf } from "./textPlace.ts";
 
 export type { Codec, Format, Read, Source, Text } from "./codec.ts";
 export { FORMATS } from "./codec.ts";
@@ -63,6 +65,10 @@ function lineColumn(text: string, offset: number): { line: number; column: numbe
 const JSON_CODEC: Codec = {
   write: (value) => ({ ok: true, value: { text: prettyJson(value), source: JSON_SOURCE } }),
   read: readJson,
+  locate: (text, path) => {
+    const span = jsonSpan(text, path);
+    return span === null ? null : linesOf(text, span);
+  },
 };
 
 /** The codecs loaded so far; JSON from the start. */
@@ -119,4 +125,18 @@ export function writeText(format: Format, value: Json): Result<Text> {
  */
 export function readText(format: Format, text: string): Result<Read> {
   return codecOf(format).read(text);
+}
+
+/**
+ * The lines of `text` in `format` holding the value at `path` of the
+ * manifest file it shows; `null` where the text holds none.
+ *
+ * @throws {Error} when the format's codec has not been loaded (`loadCodec`).
+ */
+export function locateText(
+  format: Format,
+  text: string,
+  path: readonly PathSegment[],
+): Lines | null {
+  return codecOf(format).locate(text, path);
 }

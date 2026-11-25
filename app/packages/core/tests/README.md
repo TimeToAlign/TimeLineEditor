@@ -1531,6 +1531,15 @@ string form is `addressKey`, and nothing splits or composes an ID.
     `bundle_mixed.yaml` stays `not_an_item` "'recording' is not drawn in a
     card of its own" at `[{block, id: "recording"}, "place"]`, as before the
     root had an ancestor card (`places.test.ts`).
+17. **Where an address lies in its manifest** (`resolvedPath`), the
+    oracle being the manifest itself: the value at the path is what the
+    address names. On a block of `bundle_mixed.yaml`, for every ID of
+    `manifestIds` that resolves (`resolveAddress`), the value at its path
+    is the object whose `id` is that ID; a part (`region_1`'s label) and a
+    card (`score`'s) lie where their owner does; the title lies at
+    `["name"]`; the band `{id: "score", facet: "regions"}` is `score`'s
+    `regions` list itself, the markers band `score` itself; the workspace
+    and the block lie nowhere (`null`).
 
 ## Commands (`commands.test.ts`)
 

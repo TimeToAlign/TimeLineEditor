@@ -12,7 +12,7 @@
  * convenience of the text.
  */
 
-import type { Json } from "@timetoalign/tilie-core";
+import type { Json, PathSegment } from "@timetoalign/tilie-core";
 import { dumps, isJsonFloat, parseYaml, YamlSyntaxError } from "@timetoalign/timetoshare";
 import type { Document, Node } from "yaml";
 import { isMap, isScalar, isSeq, Pair, parseDocument, Scalar, visit, YAMLMap, YAMLSeq } from "yaml";
@@ -20,6 +20,8 @@ import type { Codec, Read, Source, Text } from "./codec.ts";
 import { fromLibrary, toLibrary } from "./lossless.ts";
 import type { Result } from "./problems.ts";
 import { catching, InspectorCode, refused } from "./problems.ts";
+import type { Lines } from "./textPlace.ts";
+import { linesOf } from "./textPlace.ts";
 
 const YAML_OPTIONS = { intAsBigInt: true, schema: "core", uniqueKeys: true } as const;
 
@@ -171,5 +173,41 @@ function readYaml(text: string): Result<Read> {
   return { ok: true, value: { value, source: yamlSource(document, text, value) } };
 }
 
-/** The YAML codec: `writeYaml` and `readYaml`. */
-export const codec: Codec = { write: writeYaml, read: readYaml };
+/**
+ * The lines of the YAML text `text` holding the value at `path`: a key from
+ * its line to its value's end, an item from its dash; `null` where the text
+ * holds no such place or cannot be parsed.
+ */
+function locateYaml(text: string, path: readonly PathSegment[]): Lines | null {
+  if (path.length === 0) return null;
+  const document = parseDocument(text, YAML_OPTIONS);
+  if (document.errors.length > 0) return null;
+  let node: unknown = document.contents;
+  let span: readonly [number, number] | null = null;
+  for (const key of path) {
+    if (isMap(node)) {
+      const pair = node.items.find((item) => isScalar(item.key) && item.key.value === key);
+      const named = isScalar(pair?.key) ? pair.key.range : undefined;
+      if (pair === undefined || named === undefined || named === null) return null;
+      const value = pair.value as Node | null;
+      span = [named[0], value?.range?.[1] ?? named[1]];
+      node = value;
+    } else if (isSeq(node) && typeof key === "number") {
+      const item = node.items[key] as Node | undefined;
+      const range = item?.range;
+      if (range === undefined || range === null) return null;
+      let start = range[0];
+      let before = start - 1;
+      while (before >= 0 && /\s/u.test(text.charAt(before))) before -= 1;
+      if (text.charAt(before) === "-") start = before;
+      span = [start, range[1]];
+      node = item;
+    } else {
+      return null;
+    }
+  }
+  return span === null ? null : linesOf(text, span);
+}
+
+/** The YAML codec: `writeYaml`, `readYaml` and `locateYaml`. */
+export const codec: Codec = { write: writeYaml, read: readYaml, locate: locateYaml };

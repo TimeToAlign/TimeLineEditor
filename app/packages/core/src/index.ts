@@ -284,6 +284,7 @@ export {
   manifestIds,
   readAddress,
   resolveAddress,
+  resolvedPath,
   resolveElement,
   WORKSPACE,
 } from "./workspace/address.ts";

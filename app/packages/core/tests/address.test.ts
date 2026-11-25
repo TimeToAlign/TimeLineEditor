@@ -27,6 +27,7 @@ import {
   manifestIds,
   readAddress,
   resolveAddress,
+  resolvedPath,
   resolveElement,
   WORKSPACE,
 } from "../src/workspace/address.ts";
@@ -653,5 +654,45 @@ describe("the index of a manifest", () => {
 
   it("lists the drawing's elements", () => {
     expect(indexOf(manifest).elements).toEqual(manifestElements(manifest));
+  });
+});
+
+describe("where an address lies in its manifest", () => {
+  const manifest = block(view, A).manifest;
+  /** The value at `path` in the manifest. */
+  const at = (path: readonly (string | number)[]): unknown =>
+    path.reduce<unknown>(
+      (value, key) => (value as Record<string | number, unknown>)[key],
+      manifest,
+    );
+  const pathOf = (address: Address) => {
+    const resolved = resolveAddress(view, address);
+    if ("code" in resolved) throw new Error(`${addressKey(address)} names nothing`);
+    return resolvedPath(resolved);
+  };
+
+  it("leads every ID that resolves to the object with that ID", () => {
+    const ids = [...manifestIds(manifest)].filter(
+      (id) => !("code" in resolveAddress(view, inA({ id }))),
+    );
+    expect(ids).toEqual(
+      expect.arrayContaining(["group_1", "score", "excerpt", "region_2", "cmap_6", "jump_1"]),
+    );
+    for (const id of ids) {
+      expect((at(pathOf(inA({ id })) ?? []) as { id?: string }).id).toBe(id);
+    }
+  });
+
+  it("leads a part and a card to their owner, a band to its list, the title to the name", () => {
+    expect(pathOf(inA({ id: "region_1", part: ["label"] }))).toEqual(
+      pathOf(inA({ id: "region_1" })),
+    );
+    expect(pathOf(inA({ id: "score", part: ["card"] }))).toEqual(pathOf(inA({ id: "score" })));
+    expect(at(pathOf(inA({ part: ["name"] })) ?? [])).toBe(manifest.name);
+    const score = at(pathOf(inA({ id: "score" })) ?? []) as { regions: unknown };
+    expect(at(pathOf(inA({ id: "score", facet: "regions" })) ?? [])).toBe(score.regions);
+    expect(at(pathOf(inA({ id: "score", facet: "markers" })) ?? [])).toBe(score);
+    expect(pathOf(WORKSPACE)).toBeNull();
+    expect(pathOf({ block: A })).toBeNull();
   });
 });

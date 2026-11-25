@@ -7,7 +7,12 @@
  * styling and Minimal, are how the block's manifest is written to a file
  * (`ManifestFileSwitches`, which the Bundle tab shows too); the format is
  * this tab's own choice, kept in its `ManifestText` and stored nowhere.
+ * While the text shows the manifest as written (no unapplied edit), the
+ * lines holding the selected elements are marked (`selectionPaths`,
+ * `locateText`), and selecting scrolls the text to the first of them, one
+ * line above it left in view (`scrollTopFor`).
  */
+import type { Subject } from "@timetoalign/tilie-arranger";
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import {
   manifestFileOf,
@@ -16,17 +21,22 @@ import {
   unknownKeys,
 } from "@timetoalign/tilie-core";
 import type { FileForm } from "@timetoalign/timetoshare";
+import { untrack } from "svelte";
+import type { Attachment } from "svelte/attachments";
 import FormatSwitch from "./FormatSwitch.svelte";
-import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
+import { FORMAT_LABELS, FORMATS, locateText } from "./formats.svelte.ts";
 import ManifestFileSwitches from "./ManifestFileSwitches.svelte";
 import type { ManifestText } from "./manifestText.svelte.ts";
 import ProblemList from "./ProblemList.svelte";
 import type { InspectorProblem } from "./problems.ts";
 import { problemPlace, problemPointer } from "./problems.ts";
+import type { Lines } from "./textPlace.ts";
+import { scrollTopFor, selectionPaths } from "./textPlace.ts";
 
 let {
   manifest,
   block,
+  subjects,
   view,
   store,
 }: {
@@ -34,6 +44,8 @@ let {
   manifest: ManifestText;
   /** The block the whole selection lies in; `null` for none. */
   block: Block | null;
+  /** The selection, resolved, whose lines the text marks. */
+  subjects: readonly Subject[];
   /** The workspace as shown, whose settings hold the block's manifest file. */
   view: View;
   store: Store;
@@ -58,6 +70,33 @@ $effect.pre(() => manifest.follow(block, options));
  */
 const warnings = $derived(block === null ? [] : unknownKeys(block.manifest));
 const notes = $derived(block === null ? [] : manifestWarnings(block.manifest));
+
+/** The places of the selection in the manifest file, in selection order. */
+const paths = $derived(selectionPaths(subjects));
+
+/** The lines of the selection in the text, while it shows the manifest as written. */
+const marks: readonly Lines[] = $derived(
+  !manifest.ready || manifest.dirty || block === null
+    ? []
+    : paths.flatMap((path) => locateText(manifest.format, manifest.text, path) ?? []),
+);
+
+/** The first line marked, which the text scrolls to; `null` without a mark. */
+const firstMarked = $derived(marks[0]?.first ?? null);
+
+/** How far the text is scrolled, which the marks follow: its scroll events tell. */
+let scrolled = $state(0);
+
+/**
+ * Scroll the text to the first line marked whenever that line changes (a
+ * new selection, another format): one line above it left in view, the
+ * text's rows equally tall.
+ */
+const scrolledToSelection: Attachment<HTMLTextAreaElement> = (area) => {
+  if (firstMarked === null) return;
+  const rows = untrack(() => manifest.text).split("\n").length;
+  area.scrollTop = scrollTopFor(firstMarked, area.scrollHeight / rows);
+};
 
 function onTextKey(event: KeyboardEvent): void {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -99,16 +138,32 @@ function onTextKey(event: KeyboardEvent): void {
   {/if}
 {:else}
   <label class="manifest-label" for="{uid}-text">Manifest ({FORMAT_LABELS[manifest.format]})</label>
-  <textarea
-    id="{uid}-text"
-    spellcheck="false"
-    autocomplete="off"
-    rows="20"
-    bind:value={manifest.text}
-    onkeydown={onTextKey}
-    aria-invalid={manifest.problems.length > 0}
-    aria-describedby={manifest.problems.length > 0 ? `${uid}-problems` : undefined}
-  ></textarea>
+  <div class="text">
+    <textarea
+      id="{uid}-text"
+      spellcheck="false"
+      autocomplete="off"
+      rows="20"
+      bind:value={manifest.text}
+      {@attach scrolledToSelection}
+      onkeydown={onTextKey}
+      onscroll={(event) => (scrolled = event.currentTarget.scrollTop)}
+      aria-invalid={manifest.problems.length > 0}
+      aria-describedby={manifest.problems.length > 0 ? `${uid}-problems` : undefined}
+    ></textarea>
+    {#each marks as mark (`${mark.first}-${mark.last}`)}
+      <div
+        class="mark"
+        aria-hidden="true"
+        data-testid="text-mark"
+        data-first={mark.first}
+        data-last={mark.last}
+        style:--first={mark.first - 1}
+        style:--count={mark.last - mark.first + 1}
+        style:--scrolled="{scrolled}px"
+      ></div>
+    {/each}
+  </div>
 
   <div class="actions">
     <button type="button" onclick={() => manifest.apply(store)} disabled={!manifest.dirty}>Apply</button>
@@ -187,15 +242,38 @@ function onTextKey(event: KeyboardEvent): void {
     color: #595959;
   }
 
+  /* The text and its marks share one font size, so a row is 1.35em in both. */
+  .text {
+    position: relative;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+
   textarea {
+    display: block;
     box-sizing: border-box;
     width: 100%;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid #767676;
     resize: vertical;
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
-    font-size: 0.8rem;
-    line-height: 1.35;
+    font-size: 1em;
+    line-height: 1.35em;
     tab-size: 2;
     white-space: pre;
+  }
+
+  /* A band over the marked lines, below the border and padding (3px), moved as the text scrolls. */
+  .mark {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    top: calc(3px + var(--first) * 1.35em - var(--scrolled));
+    height: calc(var(--count) * 1.35em);
+    background: rgb(255 193 7 / 0.25);
+    border-left: 3px solid #8a6d00;
+    pointer-events: none;
   }
 
   .actions {

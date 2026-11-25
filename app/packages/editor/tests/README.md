@@ -783,6 +783,72 @@ the workspace unsaved; selecting B shows both boxes checked again, and A
 again Minimal unchecked. The entry survives a save and an open of the
 workspace file.
 
+## The selection in the manifest's text (`inspector-text-place.test.ts`)
+
+While the Manifest tab is shown, the lines of its text holding the
+selected elements are marked, and a new selection scrolls the text to the
+first of them. Two facts prove it: the place found is where the element
+stands in the manifest file, and the text marks and scrolls to exactly
+those lines. The first oracle is the manifest value itself (core's
+`resolvedPath`, its own test proving that the value at the path is the
+element addressed): the lines found, cut out of the text, read back as
+that value; the text is the one the tab shows, the fixture's manifest
+written in the minimal form with the styling (block `0000000000`).
+
+1. **Where the selection lies** (`selectionPaths`), in the file form. On
+   `flow/repairs`: `{id: "jump_1"}` lies at `["timelines", 0,
+   "flow_control", 2]`, and so does its label `{id: "jump_1", part:
+   ["label"]}` (a part lies where its element does, once); the flow
+   control band of `score` at `["timelines", 0, "flow_control"]`;
+   `jump_2` selected with `jump_target_1`, as choosing its one
+   destination selects them, at that destination, `["timelines", 0,
+   "flow_control", 3, "targets", 0]`, then at `jump_target_1`'s place
+   `["timelines", 0, "flow_control", 1]`; `jump_1` with `barline_1`, which
+   no destination leads to, at both elements' places in selection order;
+   nothing selected, nowhere.
+2. **JSON and YAML** (`locateText`). For each of the places `["name"]`,
+   `["timelines", 0]`, every element of `score`'s `flow_control` (indexes
+   0 to 3), `["timelines", 0, "flow_control"]` and `jump_2`'s destination
+   `[…, 3, "targets", 0]`: the lines found, cut out of the text, read back
+   as the value at that place. In JSON a member's lines (a key) hold
+   `"key": value`, an item's lines the value, each followed by a comma
+   unless last; wrapped in braces where a member, its comma dropped, they
+   parse to `{key: value}` or to the value. In YAML a member's lines hold
+   `key: value`, an item's begin with its dash; out-dented, they parse to
+   `{key: value}` or to `[value]`. Exact on the fixture's texts as written
+   (each checked by reading the text): YAML `jump_1` lines 85 to 101 and
+   the destination 117 to 120; JSON `jump_1` 106 to 129 and the
+   destination 149 to 153.
+3. **TOML.** The writer puts every table in a section of its own, but a
+   list of tables holding lists (a timeline's `flow_control`) is written
+   inline on its key's line, so a place inside a value is that key's
+   line: on `flow/repairs` every element of `score`'s `flow_control` lies
+   on line 8, `flow_control = [ { …`, and `["timelines", 0]` from its
+   header `[[timelines]]` (line 7) to its last key (line 12). On
+   `flow/sonata_exposition`, `["flow_maps", 1]` lies from the second
+   `[[flow_maps]]` header to the line before the blank line ahead of the
+   next header, holding `id = "#flow_map_2"`. A text typed with sections
+   (`[[timelines]]`, `[[timelines.flow_control]]`,
+   `[[timelines.flow_control.targets]]`, a second `[[timelines]]` with its
+   own `[[timelines.flow_control]]`, a key whose array spans three lines):
+   the second element of the first timeline lies from its header through
+   its destination's section; the first element of the second timeline
+   under the second timeline's header (a header names the last element of
+   every list of tables it passes through); the multi-line key its three
+   lines.
+4. **No place.** `[]` (the whole manifest), a key the text lacks
+   (`["graphical"]`, with the styling left out) and a text that is not of
+   its format have no lines in any format.
+5. **The tab marks and scrolls** (`Inspector`, `scrollTopFor`). With
+   `jump_1` selected, the Manifest tab in YAML shows one mark, its
+   `data-first` and `data-last` the lines `locateText` gives (85, 101);
+   the text, whose rows are 20 px (its scroll height stubbed to 20 px a
+   row), is scrolled to `(85 − 2) × 20` = 1660, one line above the first
+   left in view. Selecting `barline_1` (lines 62 to 69) moves the mark and
+   scrolls to 1200; choosing JSON marks 75 to 85 and scrolls to 1460. An
+   unapplied edit shows no mark. `scrollTopFor` never scrolls above the
+   top: line 1 and line 2 give 0.
+
 ## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`, `inspector-fields.test.ts`)
 
 The form edits the geometry of what is selected, never the block's when

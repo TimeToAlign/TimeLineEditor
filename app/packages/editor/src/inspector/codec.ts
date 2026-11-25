@@ -1,7 +1,8 @@
 /** The formats the inspector shows and the shape of one format's codec. */
 
-import type { Json } from "@timetoalign/tilie-core";
+import type { Json, PathSegment } from "@timetoalign/tilie-core";
 import type { Result } from "./problems.ts";
+import type { Lines } from "./textPlace.ts";
 
 /** The formats in the order the format switches list them: YAML, the main serialization, first. */
 export const FORMATS = ["yaml", "json", "toml"] as const;
@@ -30,8 +31,10 @@ export interface Read {
   readonly source: Source;
 }
 
-/** Writing and reading one format. */
+/** Writing and reading one format, and finding a place in its text. */
 export interface Codec {
   write(value: Json): Result<Text>;
   read(text: string): Result<Read>;
+  /** The lines of `text` holding the value at `path`; `null` where it holds none. */
+  locate(text: string, path: readonly PathSegment[]): Lines | null;
 }

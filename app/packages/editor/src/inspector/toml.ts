@@ -12,6 +12,7 @@ import { fromLibrary, toLibrary } from "./lossless.ts";
 import { omitNulls, restoreNulls } from "./nulls.ts";
 import type { Result } from "./problems.ts";
 import { catching, InspectorCode, refused } from "./problems.ts";
+import { tomlLines } from "./textPlace.ts";
 
 /**
  * Plain JavaScript integers (only integral floats reach the library as
@@ -58,5 +59,5 @@ function readToml(text: string): Result<Read> {
   return read.ok ? { ok: true, value: { value: read.value, source: tomlSource(document) } } : read;
 }
 
-/** The TOML codec: `writeToml` and `readToml`. */
-export const codec: Codec = { write: writeToml, read: readToml };
+/** The TOML codec: `writeToml`, `readToml` and `tomlLines`. */
+export const codec: Codec = { write: writeToml, read: readToml, locate: tomlLines };

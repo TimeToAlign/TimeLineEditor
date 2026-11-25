@@ -402,6 +402,54 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
 }
 
 /**
+ * Where a resolved address lies in its block's manifest, as a path from the
+ * manifest's top (bare IDs; `idFormPath` leads it into the file form): the
+ * manifest's title its `name`; a frame its group in `groups`; a timeline
+ * and its cards the timeline; a band the list of its facet in the timeline
+ * (`children`, `conversion_maps`, `regions`, `flow_control`), the markers
+ * band, which no list of the timeline holds, the timeline; an entry its
+ * place in its timeline's list; a measure map, a named timestamp, a stored
+ * elision and a named MatchStamp their places in `measure_maps` and in
+ * `graphical`; an alignment anchor its place in its MatchStamp; a part the
+ * place of what it belongs to (a derived elision's, its timeline's).
+ * `null` for the workspace and a block, which lie in no manifest's place.
+ */
+export function resolvedPath(resolved: ResolvedAddress): readonly PathSegment[] | null {
+  switch (resolved.kind) {
+    case "workspace":
+    case "block":
+      return null;
+    case "title":
+      return ["name"];
+    case "frame":
+      return ["groups", resolved.block.manifest.groups.indexOf(resolved.group)];
+    case "timeline":
+    case "card":
+      return resolved.at.path;
+    case "band":
+      return resolved.facet === "markers"
+        ? resolved.at.path
+        : [...resolved.at.path, resolved.facet];
+    case "entry":
+      return [...resolved.at.path, ...ENTRY_LISTS[resolved.entry].path, resolved.index];
+    case "measure_map":
+      return ["measure_maps", resolved.index];
+    case "timestamp":
+      return ["graphical", "timestamps", resolved.index];
+    case "elision":
+      return ["graphical", "elisions", resolved.index];
+    case "matchstamp":
+      return ["graphical", "matchstamps", resolved.index];
+    case "anchor":
+      return ["graphical", "matchstamps", resolved.index, "alignment_anchors", resolved.position];
+    case "part":
+      return resolvedPath(resolved.owner);
+    default:
+      return assertNever(resolved);
+  }
+}
+
+/**
  * The element an ID names with what its address adds: a group's frame, a
  * measure map, a timeline, its cards (`part` beginning with `card`) or one
  * of its bands (`facet`), an entry, a named timestamp, a stored elision, a
