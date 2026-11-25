@@ -20,6 +20,7 @@ import {
   draw,
   manifestLayer,
   type Placement,
+  type TextElement,
   TextMeasure,
   timestampSegments,
 } from "../src/index.ts";
@@ -799,5 +800,31 @@ describe("named timestamps of an ancestor, on its line in the member's card", ()
     expect(timestampSegments(shown.axes, "timestamp_7")).toEqual([
       { x: xOf(shown, "second-half") + 200, y1, y2 },
     ]);
+  });
+});
+
+describe("the labels of a stack on an ancestor line", () => {
+  const manifest = edit("groups/group_child_member", {
+    type: "add",
+    into: target("piece"),
+    timestamp: {
+      name: "Start",
+      coordinate: [8, 1],
+      display: ["wedge", "name", "id", "coordinate"],
+    },
+  });
+  const labels = (layers: Parameters<typeof draw>[2]) =>
+    draw(manifest, DEFAULT_PLACEMENT, layers, metrics)
+      .elements.filter((item) => item.type === "label" && item.address.id === "timestamp_5")
+      .map((item) => [(item as TextElement).text, (item as TextElement).coordinate]);
+  const shown = [
+    ["Start", undefined],
+    ["timestamp_5", undefined],
+    ["8 ♩", { unit: "quarters", value: Rational.of(8n) }],
+  ];
+
+  it("carry a coordinate on the coordinate label only, as a markers band's do", () => {
+    expect(labels([DEFAULT_LAYER, HIDDEN_ANCESTOR_CARDS, manifestLayer(manifest)])).toEqual(shown);
+    expect(labels([DEFAULT_LAYER, manifestLayer(manifest)])).toEqual([...shown, ...shown]);
   });
 });

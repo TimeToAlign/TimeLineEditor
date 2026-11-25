@@ -127,9 +127,45 @@ export function crossSectionElement(
   return { type: "cross_section", address, style, x, y1, y2 };
 }
 
-/** A drawn label of a named timestamp: its element, its text measured, and what a coordinate label shows. */
-interface StampLabel extends Styled, Measured {
+/**
+ * A drawn label of a named timestamp's stack: its element, its text measured, and the coordinate
+ * it shows, which only its coordinate label carries.
+ */
+export interface StampLabel extends Styled, Measured {
   readonly coordinate: ShownCoordinate | undefined;
+}
+
+/**
+ * The drawn labels of a stack of `timestamp` on `timeline`, in the order of `TIMESTAMP_LABELS`:
+ * each label its `display` lists that has a text and whose style, from `styledLabel`, shows it.
+ * `own` is the value the stack marks on `timeline`'s axis, null for a secondary coordinate
+ * without a value, which draws no coordinate label (section 6.6); a timestamp without a name
+ * draws no name label (section 2). The coordinate label alone carries `own`; a markers band and
+ * an ancestor line build their stacks alike through this function.
+ */
+export function stampLabels(
+  timestamp: NamedTimestamp,
+  timeline: TimelineManifest,
+  own: Real | null,
+  styledLabel: (word: TimestampLabel) => Styled,
+  measured: (owner: Styled, text: string) => Measured,
+): StampLabel[] {
+  const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
+    name: timestamp.name,
+    id: timestamp.id,
+    coordinate: own === null ? undefined : coordinateText(own, timeline.number_type, timeline.unit),
+  };
+  return TIMESTAMP_LABELS.filter((word) => timestamp.display.includes(word)).flatMap(
+    (word): StampLabel[] => {
+      const text = texts[word];
+      if (text === undefined) return [];
+      const label = styledLabel(word);
+      if (!shown(label.style)) return [];
+      const coordinate =
+        word === "coordinate" && own !== null ? { unit: timeline.unit, value: own } : undefined;
+      return [{ ...label, ...measured(label, text), coordinate }];
+    },
+  );
 }
 
 /**
@@ -257,25 +293,15 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
     // The value the wedge marks, on the timeline it marks (section 5.2): a secondary coordinate's
     // as core's `cardStamps` writes it in the timeline's number type, none where it has no value.
     const own = secondary === undefined ? add(at, negate(source.start)) : secondary.value;
-    // A match timestamp may have no name, and draws no name label then (section 2); a coordinate
-    // without a value draws no coordinate label (section 6.6).
-    const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
-      name: timestamp.name,
-      id: timestamp.id,
-      coordinate:
-        own === null ? undefined : coordinateText(own, timeline.number_type, timeline.unit),
-    };
     const labels = !banded
       ? []
-      : TIMESTAMP_LABELS.filter(lists).flatMap((word): StampLabel[] => {
-          const text = texts[word];
-          if (text === undefined) return [];
-          const label = styled(keyed("label", partAddress(address, word)), band.style);
-          if (!shown(label.style)) return [];
-          const coordinate =
-            word === "coordinate" && own !== null ? { unit: timeline.unit, value: own } : undefined;
-          return [{ ...label, ...measured(label, text), coordinate }];
-        });
+      : stampLabels(
+          timestamp,
+          timeline,
+          own,
+          (word) => styled(keyed("label", partAddress(address, word)), band.style),
+          measured,
+        );
     const turned = rotated(styled(keyed("wedge", address), band.style));
     const wedge = own === null ? { ...turned, style: fadedStyle(turned.style) } : turned;
     return {

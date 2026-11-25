@@ -11,13 +11,7 @@ import {
   partAddress,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
-import {
-  cardStamps,
-  type ElementKey,
-  elementKey,
-  TIMESTAMP_LABELS,
-  type TimestampLabel,
-} from "@timetoalign/tilie-core/drawing";
+import { cardStamps, type ElementKey, elementKey } from "@timetoalign/tilie-core/drawing";
 import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
 import { bandSides, type Centred, opposite, type Side } from "./bands.ts";
 import type { AxisTimestamp, AxisWedge } from "./boxes.ts";
@@ -26,19 +20,24 @@ import type {
   LineElement,
   LineEnd,
   MarkerElement,
-  ShownCoordinate,
   TextElement,
   VerticalLineElement,
 } from "./elements.ts";
-import { crossSectionElement, fadedStyle, markReach, rotatedStyle } from "./markers.ts";
+import {
+  crossSectionElement,
+  fadedStyle,
+  markReach,
+  rotatedStyle,
+  type StampLabel,
+  stampLabels,
+} from "./markers.ts";
 import { centredLabel, type NameItem, nameOf } from "./names.ts";
-import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
+import { add, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
 import { wedgeCorners } from "./rotation.ts";
 import { type Carried, carried, cut, gapOf, type Span, tiersOf } from "./stacks.ts";
 import {
   endOf,
   known,
-  type Measured,
   maxSize,
   nth,
   rowPitch,
@@ -46,14 +45,6 @@ import {
   type Styled,
   shown,
 } from "./traversal.ts";
-
-/**
- * A label of a stack on an ancestor line: its element, its text measured, a coordinate it shows
- * (none for a secondary coordinate without a value, section 6.6).
- */
-interface StackLabel extends Styled, Measured {
-  readonly coordinate: ShownCoordinate | undefined;
-}
 
 /**
  * A stack on an ancestor line (section 8.3): a named timestamp's coordinate
@@ -72,7 +63,7 @@ interface AncestorStack {
   readonly x: number;
   readonly wedge: Styled | undefined;
   readonly rotation: number;
-  readonly labels: readonly StackLabel[];
+  readonly labels: readonly StampLabel[];
   readonly line: Styled | undefined;
 }
 
@@ -180,25 +171,13 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
           coordinates,
         });
         const own = secondary === undefined ? add(at, negate(start)) : secondary.value;
-        const texts: Readonly<Record<TimestampLabel, string | undefined>> = {
-          name: timestamp.name,
-          id: timestamp.id,
-          coordinate:
-            own === null ? undefined : coordinateText(own, timeline.number_type, timeline.unit),
-        };
-        const labels = TIMESTAMP_LABELS.filter(lists).flatMap((word): StackLabel[] => {
-          const text = texts[word];
-          if (text === undefined) return [];
-          const label = scope.styled(keyed("label", partAddress(address, word)), style);
-          if (!shown(label.style)) return [];
-          return [
-            {
-              ...label,
-              ...measured(label, text),
-              coordinate: own === null ? undefined : { unit: timeline.unit, value: own },
-            },
-          ];
-        });
+        const labels = stampLabels(
+          timestamp,
+          timeline,
+          own,
+          (word) => scope.styled(keyed("label", partAddress(address, word)), style),
+          measured,
+        );
         const wedge = scope.styled(keyed("wedge", address), style);
         const rotated = rotatedStyle(wedge.style);
         const turned = { ...wedge, style: own === null ? fadedStyle(rotated) : rotated };

@@ -1234,6 +1234,19 @@ four pieces, two in the ancestor card and two in the member's, and
 `timestampSegments` gives the member card's span alone, at the member's
 `x0 + 200`.
 
+**Only the coordinate label carries a coordinate.** A label of a stack
+carries the value it shows on its timeline's axis (`coordinate`), and only
+the coordinate label shows one: a name or ID label carries none, on an
+ancestor line as in a markers band, both built by one function. What
+proves it: `group_child_member` with `timestamp_5` "Start" added on `piece`
+at 8 through a command, its `display` listing the wedge, name, ID and
+coordinate. Drawn with the default layer and the ancestor card hidden, its
+labels on `piece`'s ancestor line in the member's card are, in order,
+"Start", "timestamp_5" and "8 ♩", carrying no coordinate, no coordinate
+and 8 quarters; drawn with the default layer alone, the same three labels
+come first in `piece`'s markers band of its own card with the same
+coordinates, then once more on the ancestor line.
+
 ## Ancestor cards (`ancestor-cards.test.ts`)
 
 Section 8.8 is the oracle. Every number below is derived from its rules,
