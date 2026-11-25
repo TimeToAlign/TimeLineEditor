@@ -93,8 +93,8 @@ let {
   /** The placement a canvas gesture shows before release; the blocks read its drawing for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
-  /** Select the elision a row names on the canvas. */
-  onselect: (address: Address) => void;
+  /** Select the elision a row names on the canvas, as the one address selected. */
+  onselect: (addresses: readonly Address[]) => void;
 } = $props();
 
 const uid = $props.id();
@@ -285,7 +285,7 @@ function toggled(
             aria-pressed={isSelected(row.address)}
             onclick={() => {
               keepOpen(key);
-              onselect(row.address);
+              onselect([row.address]);
             }}
           >
             <span>{row.name}</span>

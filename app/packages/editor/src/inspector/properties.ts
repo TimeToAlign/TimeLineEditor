@@ -8,7 +8,8 @@
  * drawing the canvas shows, so a field shows what is drawn where nothing
  * is stated. The command is the arranger's `placeEdit`, the edit a gesture
  * at the same level makes; a field is offered only where the level edits
- * it. A band selected alone shows read-only rows instead (`bandRows`).
+ * it. A band selected alone shows read-only rows instead (`bandRows`), and
+ * so does a region (`regionRows`).
  * Above them, the name of the inspected thing (`nameOf`), and beside the
  * container size the stored lock of the inspected timelines (`lockOf`).
  */
@@ -58,10 +59,13 @@ import {
   isCommandError,
   placeAt,
   placeKeyText,
+  prettyText,
   resolveAddress,
   WORKSPACE,
   withPlaceAt,
 } from "@timetoalign/tilie-core";
+import type { Coordinate } from "@timetoalign/tilie-core/numbers";
+import { axisCoordinate, subtractCoordinates } from "@timetoalign/tilie-core/numbers";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
@@ -250,6 +254,41 @@ export function bandRows(
     { label: "Level", value: level < 0 ? `−${-level}` : String(level) },
     { label: "Elements", value: String(elements) },
   ];
+}
+
+/** The region `resolved` names: itself, or the region a part (its label) belongs to. */
+function regionIn(
+  resolved: ResolvedAddress,
+): { readonly id: string; readonly rows: readonly PropertyRow[] } | null {
+  if (resolved.kind === "part") return regionIn(resolved.owner);
+  if (resolved.kind !== "entry" || resolved.entry !== "region") return null;
+  const { at, element } = resolved;
+  const { timeline } = at;
+  if (!("start" in element)) return null;
+  const start = axisCoordinate(element.start, timeline);
+  const end = axisCoordinate(element.end, timeline);
+  const text = (coordinate: Coordinate) =>
+    prettyText(coordinate.value, timeline.number_type, timeline.unit);
+  return {
+    id: element.id,
+    rows: [
+      { label: "Start", value: text(start) },
+      { label: "End", value: text(end) },
+      { label: "Length", value: text(subtractCoordinates(end, start)) },
+    ],
+  };
+}
+
+/**
+ * The read-only rows of the one region the subjects name, itself or by its
+ * label, on its timeline's axis in pretty text: "Start", "End" and
+ * "Length", the end less the start, exact in the axis's number type.
+ * `null` for any other selection, two regions included.
+ */
+export function regionRows(subjects: readonly Subject[]): readonly PropertyRow[] | null {
+  const [first, ...others] = subjects.map((subject) => regionIn(subject.resolved));
+  if (first === undefined || first === null) return null;
+  return others.every((other) => other?.id === first.id) ? first.rows : null;
 }
 
 /**

@@ -93,8 +93,8 @@ interface Props {
    * one named MatchStamps are compared with; `null` while no table is loaded.
    */
   indexesOf: (block: string) => MatchIndexes | null;
-  /** Select `address` alone on the canvas: a row of the Elisions tab. */
-  onselect?: (address: Address) => void;
+  /** Select `addresses` on the canvas: a row of the Elisions tab, a jump's destination. */
+  onselect?: (addresses: readonly Address[]) => void;
   /** Whether the canvas is locked: the level tab's arrangement is then disabled, as the canvas's is. */
   locked?: boolean;
 }

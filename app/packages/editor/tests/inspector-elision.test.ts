@@ -405,7 +405,7 @@ describe("the Elisions tab", () => {
         editing,
         placement: null,
         drafts,
-        onselect: (address: Address) => selected.push(address),
+        onselect: (addresses: readonly Address[]) => selected.push(...addresses),
       },
     });
     flushSync();

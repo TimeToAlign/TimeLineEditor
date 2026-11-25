@@ -6,16 +6,23 @@
 
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
-import type { ElementAddress, FlowControlElement, Store } from "@timetoalign/tilie-core";
+import type { Address, ElementAddress, FlowControlElement, Store } from "@timetoalign/tilie-core";
 import { DEFAULT_USER, isRejected, statedBy } from "@timetoalign/tilie-core";
 import { defaultCatalogue, fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { beliefCommand, flowOf, flowProvenance, flowRows } from "../src/inspector/flow.ts";
+import {
+  beliefCommand,
+  destinationRows,
+  flowOf,
+  flowProvenance,
+  flowRows,
+} from "../src/inspector/flow.ts";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { iriNames } from "../src/iris.ts";
+import { holder } from "./holder.svelte.ts";
 import { blockId, posting, providing, storeOf } from "./support.ts";
 
 const A = blockId(0);
@@ -66,49 +73,30 @@ describe("the flow-control element a selection names", () => {
     expect(flowIn(store, { id: "score", facet: "flow_control" })).toBeNull();
     expect(flowIn(store, { id: "jump_1" }, { id: "jump_2" })).toBeNull();
     expect(flowIn(store, { id: "jump_1" }, { id: "score" })).toBeNull();
+    expect(flowIn(store, { id: "jump_1" }, { id: "region_1" })).toBeNull();
+  });
+
+  it("is the jump selected with what its destinations mark, in either order", () => {
+    const sonata = storeOf("flow/sonata_exposition");
+    const jump = { block: A, id: "jump_1" };
+    expect(flowIn(sonata, { id: "jump_1" }, { id: "jump_target_1" })?.target).toEqual(jump);
+    expect(flowIn(sonata, { id: "jump_target_1" }, { id: "jump_1" })?.target).toEqual(jump);
+    expect(
+      flowIn(storeOf("flow/sections"), { id: "jump_2" }, { id: "section_break_1" })?.target,
+    ).toEqual({ block: A, id: "jump_2" });
+    expect(flowIn(storeOf("flow/ossia"), { id: "jump_1" }, { id: "ossia" })?.target).toEqual(jump);
   });
 });
 
 describe("the rows of a flow-control element", () => {
-  it("word a jump's destinations, each with its place and its conditions", () => {
+  it("give a jump's role and coordinate, its destinations being rows of their own", () => {
     expect(rows("flow/sonata_exposition", "jump_1")).toEqual([
       ["Role", "jump"],
       ["Coordinate", "12 ♩"],
-      ["Destination 1", "by 0 ♩; on pass 1; notated as volta"],
-      ["Destination 2", "to 'jump_target_1'; on pass 2; notated as volta"],
     ]);
-    expect(rows("flow/sonata_exposition", "jump_2")).toEqual([
+    expect(rows("flow/loop", "jump_1")).toEqual([
       ["Role", "jump"],
-      ["Coordinate", "16 ♩"],
-      ["Destination 1", "to the start of its section; at most once; notated as repeat_end"],
-    ]);
-    expect(rows("flow/repeat_end_and_dal_segno", "jump_1")).toEqual([
-      ["Role", "jump"],
-      ["Coordinate", "16 ♩"],
-      ["Destination 1", "to 'jump_target_1'; at most once; notated as repeat_end"],
-      [
-        "Destination 2",
-        "to 'jump_target_2'; at most once; without restoring what it goes back over; notated as dal_segno; labelled 'D.S.'",
-      ],
-    ]);
-  });
-
-  it("word every condition a destination may state", () => {
-    expect(rows("flow/dal_segno_al_coda", "jump_1").at(-1)).toEqual([
-      "Destination 1",
-      "to 'jump_target_2'; after jump 'jump_2' took its destination; notated as to_coda",
-    ]);
-    expect(rows("flow/ossia", "jump_1").slice(2)).toEqual([
-      ["Destination 1", "by 0 ♩"],
-      ["Destination 2", "to 'ossia'; not determined by the source; notated as ossia"],
-    ]);
-    expect(rows("flow/volta_passes", "jump_1").slice(2)).toEqual([
-      ["Destination 1", "by 0 ♩; on passes 1 and 3; notated as volta"],
-      ["Destination 2", "to 'jump_target_1'; on pass 2; notated as volta"],
-    ]);
-    expect(rows("flow/loop", "jump_1").slice(1)).toEqual([
       ["Coordinate", "6″"],
-      ["Destination 1", "to 'jump_target_1'; at most 127 times"],
     ]);
   });
 
@@ -144,13 +132,145 @@ describe("the rows of a flow-control element", () => {
     expect(rows("flow/repairs", "jump_1")).toEqual([
       ["Role", "jump"],
       ["Coordinate", "16 ♩"],
-      ["Destination 1", "to the start of its section; at most once; notated as repeat_end"],
       ["Status", "rejected: no flow reads it"],
     ]);
-    expect(rows("flow/repairs", "jump_2").map(([label]) => label)).toEqual([
-      "Role",
-      "Coordinate",
-      "Destination 1",
+    expect(rows("flow/repairs", "jump_2").map(([label]) => label)).toEqual(["Role", "Coordinate"]);
+  });
+});
+
+describe("the destinations of a jump", () => {
+  /** The destinations of the jump `id` in `store`: place, name, ID, at, conditions, notation, marked IDs. */
+  function destinations(store: Store, id: string) {
+    const flow = flowIn(store, { id });
+    if (flow === null) throw new Error(`no flow-control element ${id}`);
+    return destinationRows(flow).map((row) => [
+      row.place,
+      row.name,
+      row.id,
+      row.at,
+      row.conditions,
+      row.notation,
+      row.marks.map((address) => {
+        expect(address.block).toBe(A);
+        return address.id;
+      }),
+    ]);
+  }
+
+  it("lead to the jump target, by a distance, or to the start of the section", () => {
+    const sonata = storeOf("flow/sonata_exposition");
+    expect(destinations(sonata, "jump_1")).toEqual([
+      ["by 0 ♩", null, null, "12 ♩", "on pass 1", "notated as volta", ["jump_1"]],
+      [
+        "jump target",
+        null,
+        "jump_target_1",
+        "16 ♩",
+        "on pass 2",
+        "notated as volta",
+        ["jump_1", "jump_target_1"],
+      ],
+    ]);
+    expect(destinations(sonata, "jump_2")).toEqual([
+      [
+        "start of its section",
+        null,
+        null,
+        "0 ♩",
+        "at most once",
+        "notated as repeat_end",
+        ["jump_2"],
+      ],
+    ]);
+    expect(destinations(storeOf("flow/sections"), "jump_2")).toEqual([
+      [
+        "start of its section",
+        null,
+        "section_break_1",
+        "16 ♩",
+        "at most once; without restoring what it goes back over",
+        "notated as da_capo",
+        ["jump_2", "section_break_1"],
+      ],
+    ]);
+    expect(destinations(storeOf("flow/sonata_exposition"), "break_1")).toEqual([]);
+  });
+
+  it("word every condition and how each is notated", () => {
+    expect(destinations(storeOf("flow/repeat_end_and_dal_segno"), "jump_1")).toEqual([
+      [
+        "jump target",
+        null,
+        "jump_target_1",
+        "4 ♩",
+        "at most once",
+        "notated as repeat_end",
+        ["jump_1", "jump_target_1"],
+      ],
+      [
+        "jump target",
+        null,
+        "jump_target_2",
+        "8 ♩",
+        "at most once; without restoring what it goes back over",
+        "notated as dal_segno; labelled 'D.S.'",
+        ["jump_1", "jump_target_2"],
+      ],
+    ]);
+    const coda = storeOf("flow/dal_segno_al_coda");
+    const toCoda = [
+      "jump target",
+      null,
+      "jump_target_2",
+      "24 ♩",
+      "after jump 'jump_2' took its destination",
+      "notated as to_coda",
+      ["jump_1", "jump_target_2"],
+    ];
+    expect(destinations(coda, "jump_1")).toEqual([toCoda]);
+    const naming = { target: { block: A, id: "jump_target_2" }, values: { name: "Coda" } };
+    expect(coda.dispatch({ type: "set", changes: [naming] })).toBeNull();
+    expect(destinations(coda, "jump_1")).toEqual([toCoda.with(1, "Coda")]);
+    expect(destinations(storeOf("flow/ossia"), "jump_1")).toEqual([
+      ["by 0 ♩", null, null, "4 ♩", "", "", ["jump_1"]],
+      [
+        "child timeline",
+        "Ossia",
+        "ossia",
+        "16 ♩",
+        "not determined by the source",
+        "notated as ossia",
+        ["jump_1", "ossia"],
+      ],
+    ]);
+    expect(destinations(storeOf("flow/volta_passes"), "jump_1")[0]?.[4]).toBe("on passes 1 and 3");
+    expect(destinations(storeOf("flow/loop"), "jump_1")).toEqual([
+      [
+        "jump target",
+        null,
+        "jump_target_1",
+        "2″",
+        "at most 127 times",
+        "",
+        ["jump_1", "jump_target_1"],
+      ],
+    ]);
+  });
+
+  it("name a region and the timeline itself", () => {
+    const store = storeOf("flow/sonata_exposition");
+    const jump = {
+      id: "jump_3",
+      role: "jump",
+      coordinate: [20, 1],
+      targets: [{ to: "region_2" }, { to: "score" }],
+    };
+    expect(
+      store.dispatch({ type: "add", into: { block: A, id: "score" }, flow_control: jump }),
+    ).toBeNull();
+    expect(destinations(store, "jump_3").map((row) => row.slice(0, 4))).toEqual([
+      ["region", "B", "region_2", "12 ♩"],
+      ["timeline", "Score", "score", "0 ♩"],
     ]);
   });
 });
@@ -236,11 +356,17 @@ describe("the Properties tab on a flow-control element", () => {
     vi.useRealTimers();
   });
 
+  /** The selection the panel shows, which choosing a destination replaces. */
+  let selection = holder<Selection>(selected());
+  /** What the panel asked the canvas to select, each call's addresses. */
+  let chosen: (readonly Address[])[] = [];
+
   /** Mount the panel on `store` with `elements` of its block selected. */
   function show(store: Store, ...elements: ElementAddress[]): void {
     const live = liveStore(store);
-    const selection = selected(...elements);
-    const subjects = () => resolveSelection(live.view, selection, null, fontMetrics);
+    selection = holder(selected(...elements));
+    chosen = [];
+    const subjects = () => resolveSelection(live.view, selection.value, null, fontMetrics);
     informed = [];
     app = mount(providing(PropertiesPanel), {
       target: document.body,
@@ -259,6 +385,10 @@ describe("the Properties tab on a flow-control element", () => {
         editing: null,
         placement: null,
         drafts: new PropertyDrafts(),
+        onselect: (addresses: readonly Address[]) => {
+          chosen.push(addresses);
+          selection.value = selectionOf(addresses);
+        },
       },
     });
     flushSync();
@@ -266,6 +396,10 @@ describe("the Properties tab on a flow-control element", () => {
 
   const texts = (selector: string): string[] =>
     [...document.querySelectorAll(selector)].map((item) => item.textContent?.trim() ?? "");
+
+  /** The texts of `selector`, each with its runs of white space read as one space. */
+  const spoken = (selector: string): string[] =>
+    texts(selector).map((text) => text.replace(/\s+/g, " "));
 
   /** The belief button `word`. */
   function button(word: "True" | "Unlikely" | "False"): HTMLButtonElement {
@@ -282,17 +416,14 @@ describe("the Properties tab on a flow-control element", () => {
     const store = storeOf("flow/repairs");
     show(store, { id: "jump_1" });
     expect(document.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("");
-    expect(texts('[data-testid="flow-rows"] dt')).toEqual([
-      "Role",
-      "Coordinate",
-      "Destination 1",
-      "Status",
-    ]);
+    expect(texts('[data-testid="flow-rows"] dt')).toEqual(["Role", "Coordinate", "Status"]);
     expect(texts('[data-testid="flow-rows"] dd')).toEqual([
       "jump",
       "16 ♩",
-      "to the start of its section; at most once; notated as repeat_end",
       "rejected: no flow reads it",
+    ]);
+    expect(spoken('[data-testid="flow-destinations"] li button .place')).toEqual([
+      "start of its section at 0 ♩",
     ]);
     expect([...document.querySelectorAll("input")].map((input) => input.name)).toEqual(["name"]);
     expect(texts('[data-testid="metadata-paradata"] dt')).toEqual(["method"]);
@@ -384,5 +515,54 @@ describe("the Properties tab on a flow-control element", () => {
     expect(informed).toEqual(["'jump_1' names no jump of this timeline"]);
     expect(isRejected(elementIn(store, "jump_1"))).toBe(false);
     expect(pressed()).toEqual([]);
+  });
+
+  it("selects the jump with what a chosen destination leads to, and keeps showing the jump", () => {
+    show(storeOf("flow/repeat_end_and_dal_segno"), { id: "jump_1" });
+    const destination = (index: number) => {
+      const found = document.querySelectorAll<HTMLButtonElement>(
+        '[data-testid="flow-destinations"] li button',
+      )[index];
+      if (found === undefined) throw new Error(`no destination ${index}`);
+      return found;
+    };
+    const chosenRows = () =>
+      [...document.querySelectorAll('[data-testid="flow-destinations"] li button')].map((item) =>
+        item.getAttribute("aria-pressed"),
+      );
+    expect(spoken('[data-testid="flow-destinations"] li button .place')).toEqual([
+      "jump target jump_target_1 at 4 ♩",
+      "jump target jump_target_2 at 8 ♩",
+    ]);
+    expect(texts('[data-testid="flow-destinations"] li:first-child .conditions')).toEqual([
+      "at most once",
+    ]);
+    expect(texts('[data-testid="flow-destinations"] li:first-child .notation')).toEqual([
+      "notated as repeat_end",
+    ]);
+    expect(chosenRows()).toEqual(["false", "false"]);
+    destination(1).click();
+    flushSync();
+    expect(chosen).toEqual([
+      [
+        { block: A, id: "jump_1" },
+        { block: A, id: "jump_target_2" },
+      ],
+    ]);
+    // The jump is still inspected: its name field and rows stay, the second destination is chosen.
+    expect(document.querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("");
+    expect(texts('[data-testid="flow-rows"] dd')).toEqual(["jump", "16 ♩"]);
+    expect(chosenRows()).toEqual(["false", "true"]);
+    // Another selection chooses none.
+    selection.value = selected({ id: "jump_1" });
+    flushSync();
+    expect(chosenRows()).toEqual(["false", "false"]);
+  });
+
+  it("selects the jump alone for a destination where nothing stands", () => {
+    show(storeOf("flow/sonata_exposition"), { id: "jump_2" });
+    document.querySelector<HTMLButtonElement>('[data-testid="flow-destinations"] button')?.click();
+    flushSync();
+    expect(chosen).toEqual([[{ block: A, id: "jump_2" }]]);
   });
 });

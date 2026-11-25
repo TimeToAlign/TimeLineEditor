@@ -1,7 +1,8 @@
 /**
  * A selected band shows three read-only rows, and the form leaves bands
- * out; the expected values are derived in `README.md` ("The Properties
- * form", "A selected band").
+ * out; a selected region shows its start, end and length; the expected
+ * values are derived in `README.md` ("The Properties form", "A selected
+ * band", "A selected region").
  */
 
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
@@ -15,7 +16,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
-import { bandRows, geometryOf } from "../src/inspector/properties.ts";
+import { bandRows, geometryOf, regionRows } from "../src/inspector/properties.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { posting, storeOf as storeOfFixtures } from "./support.ts";
 
@@ -149,6 +150,35 @@ describe("bandRows", () => {
     expect(rows(view, [bandOf(A, "melody", "flow_control")], shown)).toEqual(
       band("Flow control", "−12", "1"),
     );
+  });
+});
+
+describe("regionRows", () => {
+  const sonata = () => storeOfFixtures("flow/sonata_exposition");
+  const regionRowsOf = (store: Store, selection: readonly Address[]) =>
+    regionRows(subjectsOf(store.view, selection))?.map(({ label, value }) => [label, value]) ??
+    null;
+
+  it("gives a region's start, end and length on its timeline's axis, itself or by its label", () => {
+    const store = sonata();
+    const expected = [
+      ["Start", "12 ♩"],
+      ["End", "16 ♩"],
+      ["Length", "4 ♩"],
+    ];
+    expect(regionRowsOf(store, [at(A, { id: "region_2" })])).toEqual(expected);
+    expect(regionRowsOf(store, [at(A, { id: "region_2", part: ["label"] })])).toEqual(expected);
+    expect(
+      regionRowsOf(store, [at(A, { id: "region_2" }), at(A, { id: "region_2", part: ["label"] })]),
+    ).toEqual(expected);
+  });
+
+  it("gives none for two regions, a region with its timeline, or a flow-control element", () => {
+    const store = sonata();
+    expect(regionRowsOf(store, [at(A, { id: "region_1" }), at(A, { id: "region_2" })])).toBeNull();
+    expect(regionRowsOf(store, [at(A, { id: "region_1" }), at(A, { id: "score" })])).toBeNull();
+    expect(regionRowsOf(store, [at(A, { id: "jump_1" })])).toBeNull();
+    expect(regionRowsOf(store, [])).toBeNull();
   });
 });
 
@@ -302,5 +332,14 @@ describe("the Properties panel of a band", () => {
     );
     expect(textarea.value).toBe(edited);
     expect(store.journal).toHaveLength(2);
+  });
+
+  it("shows a region's name, then its start, end and length, and no geometry hint", () => {
+    show(storeOfFixtures("flow/sonata_exposition"), [at(A, { id: "region_2" })]);
+    expect(panel().querySelector<HTMLInputElement>('input[name="name"]')?.value).toBe("B");
+    expect(texts('[data-testid="region-rows"] dt')).toEqual(["Start", "End", "Length"]);
+    expect(texts('[data-testid="region-rows"] dd')).toEqual(["12 ♩", "16 ♩", "4 ♩"]);
+    expect(panel().querySelector(".hint")).toBe(null);
+    expect([...panel().querySelectorAll("input")].map((input) => input.name)).toEqual(["name"]);
   });
 });

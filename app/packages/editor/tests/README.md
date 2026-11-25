@@ -975,7 +975,21 @@ hint. A band is addressed `{block, id: T, facet}`, so a facet word is no
 reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 `phrase` in the text is refused, listed as `schema_violation` `'phrase' is
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
-at `/timelines/0/children/0/id`, the text and the journal kept.
+at `/timelines/0/children/0/id`, the text and the journal kept. Below
+the rows a band shows its display toggles ("Display toggles" below): the
+flow control band of `score` in `flow/sections`, with the manifest's rule
+showing every arc, the key Display beside the one pressed toggle Arcs,
+whose press journals one `style`; a markers band none.
+
+**A selected region** (`regionRows`, `inspector-bands.test.ts`). A region
+alone, itself or by its label, shows three read-only rows instead of the
+geometry hint, on its timeline's axis in pretty text: "Start", "End" and
+"Length", the end less the start, exact in the axis's number type. In
+`flow/sonata_exposition`, `region_2` (12 to 16 quarters) gives `12 ♩`,
+`16 ♩`, `4 ♩`, its label `{id: "region_2", part: ["label"]}` the same;
+no rows for two regions, a region with its timeline, or a flow-control
+element. Mounted, the region's name field (`B`) stands above the rows
+`[data-testid="region-rows"]`, no geometry hint and no other input.
 
 ## A flow-control element (`inspector-flow.test.ts`)
 
@@ -993,41 +1007,31 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
 1. **The element a selection names** (`flowOf`). In
    `flow/sonata_exposition`, `{id: "jump_1"}`, its label `{id: "jump_1",
    part: ["label"]}` and both together name the element at `{block, id:
-   "jump_1"}`, listed by the timeline `score`; a jump target, which draws
-   nothing, is named by its own address. Nothing selected, the timeline, a
-   region, the flow control band, two elements, or an element beside a
-   timeline name none.
+   "jump_1"}`, listed by the timeline `score`; a jump target is named by
+   its own address. A jump stays named with what its destinations mark
+   (item 7), in either order: `jump_1` with `jump_target_1`, its second
+   destination's target, names `jump_1`, and so does `jump_target_1` then
+   `jump_1`; in `flow/sections` `jump_2` with `section_break_1`, in
+   `flow/ossia` `jump_1` with the child `ossia`. Nothing selected, the
+   timeline, a region, the flow control band, two elements that are not
+   so related (`jump_1` and `jump_2`), `jump_1` with `region_1`, or an
+   element beside a timeline name none.
 2. **The rows** (`flowRows`), label and value, in order: Role (core's
    word of the role), Coordinate (the pretty text on the timeline's axis),
    Manifestation where the element states one, "Ends the flow" where a
-   break states `ends`, one "Destination n" per destination of a jump in
-   the order of its `targets`, and Status where the element is rejected.
-   A destination is worded from its members, joined by `; `: its place
-   (`to 'X'`, `by` the pretty distance, or "to the start of its section"
-   without either), then `passes` ("on pass 2", "on passes 1 and 3",
-   "from pass n on"), `repeat_count` ("at most once", "at most n times"),
-   `after` ("after jump 'J' took its destination", followed by that
-   destination's place where the reference states one), `determined`
-   false ("not determined by the source"), `reset` false ("without
-   restoring what it goes back over"), its manifestation ("notated as
-   volta") and its label ("labelled 'D.S.'"). Pinned whole:
-   `sonata_exposition`'s `jump_1` (jump, `12 ♩`, "by 0 ♩; on pass 1;
-   notated as volta", "to 'jump_target_1'; on pass 2; notated as volta"),
-   its `jump_2` ("to the start of its section; at most once; notated as
-   repeat_end") and its `break_1` (break, `16 ♩`, Manifestation volta);
-   `repeat_end_and_dal_segno`'s `jump_1` with both destinations, the
-   second "to 'jump_target_2'; at most once; without restoring what it
-   goes back over; notated as dal_segno; labelled 'D.S.'";
-   `dal_segno_al_coda`'s To Coda ("to 'jump_target_2'; after jump 'jump_2'
-   took its destination; notated as to_coda"); `ossia`'s choice ("by 0 ♩"
-   and "to 'ossia'; not determined by the source; notated as ossia");
-   `volta_passes`' "by 0 ♩; on passes 1 and 3; notated as volta"; `loop`'s
-   jump at 6 seconds (`6″`, "to 'jump_target_1'; at most 127 times");
-   `sections`' Fine (break, `8 ♩`, fine, Ends the flow "after jump
-   'jump_1' took its destination") and its section break (two rows);
-   `repairs`' barline and jump target (three rows each, `double_barline`
-   and `repeat_start`), its rejected `jump_1` with the last row Status
-   "rejected: no flow reads it", and its `jump_2` without that row.
+   break states `ends` (its `passes`, "on pass 2", "on passes 1 and 3",
+   "from pass n on", and its `after`, "after jump 'J' took its
+   destination", followed by that destination's place, `to 'X'` or `by`
+   the pretty distance, where the reference states one), and Status where
+   the element is rejected. A jump's destinations are no rows of these
+   (item 7). Pinned whole: `sonata_exposition`'s `jump_1` (jump, `12 ♩`)
+   and its `break_1` (break, `16 ♩`, Manifestation volta); `loop`'s jump
+   at 6 seconds (`6″`); `sections`' Fine (break, `8 ♩`, fine, Ends the
+   flow "after jump 'jump_1' took its destination") and its section break
+   (two rows); `repairs`' barline and jump target (three rows each,
+   `double_barline` and `repeat_start`), its rejected `jump_1` with the
+   last row Status "rejected: no flow reads it", and its `jump_2` without
+   that row.
 3. **The provenance** (`flowProvenance`): one line per entry of the
    element (`lineOf`, the reader of both other tabs), and one line holding
    the beliefs of all entries, each actor once. `repairs`' `jump_1`: one
@@ -1040,8 +1044,8 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    belief appended to the one entry's, after the editor's), it is
    `unlikely`.
 4. **The panel.** On `repairs` with `jump_1` selected: the name field
-   (empty: the jump has no name) is the only input; the rows are the four
-   of item 2; the provenance shows `method` `imported`, the one belief
+   (empty: the jump has no name) is the only input; the rows are the three
+   of item 2; its one destination is a button (item 7); the provenance shows `method` `imported`, the one belief
    "https://example.org/people/editor believes it false (2026-11-25): The
    repeat begins at the double barline.", and the three belief buttons
    True, Unlikely, False, none pressed, their group named "Your belief in
@@ -1064,6 +1068,114 @@ default user, who states as `statedBy(DEFAULT_USER)`; the day is
    refuses, nothing is journalled, the message bar receives the store's
    message "'jump_1' names no jump of this timeline" as information, and
    no button is pressed.
+7. **The destinations** (`destinationRows`), one row per destination of
+   a jump in the order of its `targets`, none for another role. A row
+   holds its place, what stands there and the coordinate it reaches, read
+   through core's `destinationPlace`: "jump target", "region", "timeline"
+   or "child timeline" with that element's name (`null` without one) and
+   ID; "start of its section" with the section break starting it, or
+   neither at the timeline's start; `by` and the pretty distance with no
+   element; then its conditions and effects joined by `; ` (`passes`,
+   `repeat_count` "at most once" / "at most n times", `after`,
+   `determined` false "not determined by the source", `reset` false
+   "without restoring what it goes back over"; empty for none), its
+   notation ("notated as volta", "labelled 'D.S.'"; empty for neither),
+   and its marks, the jump's address and that element's. Pinned whole,
+   as [place, name, ID, at, conditions, notation, marked IDs]:
+   - `sonata_exposition`'s `jump_1`: ["by 0 ♩", –, –, `12 ♩`, "on pass
+     1", "notated as volta", `jump_1`] and ["jump target", –,
+     `jump_target_1`, `16 ♩`, "on pass 2", "notated as volta", `jump_1`
+     `jump_target_1`]; its `jump_2`: ["start of its section", –, –,
+     `0 ♩`, "at most once", "notated as repeat_end", `jump_2`];
+   - `sections`' `jump_2` at 32: ["start of its section", –,
+     `section_break_1`, `16 ♩`, "at most once; without restoring what it
+     goes back over", "notated as da_capo", `jump_2` `section_break_1`];
+   - `repeat_end_and_dal_segno`'s `jump_1`: `jump_target_1` at `4 ♩`
+     ("at most once", "notated as repeat_end") and `jump_target_2` at
+     `8 ♩` ("at most once; without restoring what it goes back over",
+     "notated as dal_segno; labelled 'D.S.'");
+   - `dal_segno_al_coda`'s `jump_1`: `jump_target_2` at `24 ♩`, "after
+     jump 'jump_2' took its destination", "notated as to_coda", and after
+     a `set` naming `jump_target_2` "Coda" the name 'Coda';
+   - `ossia`'s `jump_1`: ["by 0 ♩", `4 ♩`, no conditions, no notation]
+     and ["child timeline", "Ossia", `ossia`, `16 ♩`, "not determined by
+     the source", "notated as ossia"]; `volta_passes`' first "on passes 1
+     and 3"; `loop`'s `jump_1`: `jump_target_1` at `2″`, "at most 127
+     times";
+   - a jump `jump_3` added to `sonata_exposition` at 20 with the
+     destinations `to` `region_2` and `to` `score`: ["region", "B",
+     `region_2`, `12 ♩`] and ["timeline", "Score", `score`, `0 ♩`].
+8. **Choosing a destination.** Mounted on `repeat_end_and_dal_segno` with
+   `jump_1` selected, the section Destinations lists two buttons, none
+   pressed, the first reading "jump target jump_target_1 at 4 ♩", "at most
+   once", "notated as repeat_end". A press of the second calls the
+   inspector's `onselect` with `[{block, id: "jump_1"}, {block, id:
+   "jump_target_2"}]`, and with that selection the tab still shows the
+   jump (its name field, its rows) and only the second button pressed;
+   another selection (the jump alone) presses none. On
+   `sonata_exposition`, `jump_2`'s one destination selects `[{block, id:
+   "jump_2"}]`.
+9. **An element's display toggles** ("Display toggles" below): a jump
+   shows Display with Arcs, a flow line with Line, a jump target none.
+
+## Display toggles (`inspector-display.test.ts`)
+
+What a selected band or flow-control element shows of the drawing is
+read from the cascade the canvas draws with (layout's `Cascade` over the
+arranger's `styleLayers`: the defaults, the workspace's rules, the
+manifest's own) on core's keys of the manifest's elements; a press
+journals one `style` in the block's manifest, its effect read back
+through the same cascade. The defaults may hide or show arcs (TimeToShare's
+drawing specification decides), so every case on arcs first gives the
+manifest the rule `{element: "jump"}` `{display: "inline"}` (one
+`style`), which outranks every default by its layer: the values below hold
+whatever the defaults say. `flow/sections` (jumps `jump_1`, `jump_2`,
+break `break_1`, section break `section_break_1`, all on `score`) and
+`flow/sonata_exposition` (three atomic sections) are held in block
+`0000000000`.
+
+1. **What is offered.** The flow control band of `score` shows Display
+   with Arcs (`word` `jump`), and, where the manifest holds a region whose
+   `type` statement names the class of an atomic section
+   (`sonata_exposition`), Regions with Atomic sections; its regions band
+   Regions alone; a regions band of a manifest without atomic sections
+   (`sections`), a markers band, nothing; a toggle is offered only where
+   an element of its type stands, so a jump target has none. An element's
+   toggles: a jump Display Arcs, `break_1`
+   and `section_break_1` Display Line.
+2. **A band's toggle shows its elements without the rules naming an
+   address; an element's with them.** With the rule shown, Arcs of the
+   band and of `jump_1` and `jump_2` are pressed.
+3. **A press writes the band's rule or the element's, or removes it where
+   the rest gives the asked state.** In order on `sections`:
+   - band Arcs pressed → `{type: "style", select: {element: "jump",
+     within: "score"}, set: {display: "none"}, blocks: [A]}`; then the
+     band and both jumps are not pressed;
+   - `jump_1` Arcs → `{element: "jump", addresses: [{id: "jump_1"}]}`
+     `{display: "inline"}`; then `jump_1` pressed, `jump_2` and the band
+     not (the band reads no addressed rule);
+   - band Arcs → the band's rule without `display` (`{display: null}`),
+     since the manifest's rule then shows every arc; the rule is gone
+     from the manifest's `graphical.rules`, the band pressed;
+   - `jump_1` Arcs → `{display: "none"}`, since without its own rule it
+     would still be shown; then `jump_1` not pressed, the band still
+     pressed (its elements without the addressed rule are all shown);
+   - `break_1` Line pressed (no rule hides a break) → `{element:
+     "break", addresses: [{id: "break_1"}]}` `{display: "none"}`, then
+     not pressed, then → `{display: null}` and pressed again.
+4. **Atomic sections** is the rule `{element: "region", class:
+   "tts:AtomicSection"}` of the specification's section 2.3: not pressed
+   while the manifest states no `display` `inline` for it; a press on
+   `sonata_exposition`'s regions band journals `{display: "inline"}`
+   with that selector, the toggle then pressed on the regions band and
+   on the flow control band alike; a second press `{display: null}`, the
+   rule gone from the manifest's rules.
+5. **The panel.** With the flow control band of `sections` selected (the
+   setting rule given), the band's rows stand above
+   `[data-testid="display-toggles"]`: the key Display, the group it
+   labels holding the one button Arcs, pressed. A click journals the one
+   `style` of item 3 and leaves Arcs not pressed; nothing is posted. With
+   `jump_1` selected, its Display group holds Arcs.
 
 ## The Elisions tab (`inspector-elision.test.ts`)
 

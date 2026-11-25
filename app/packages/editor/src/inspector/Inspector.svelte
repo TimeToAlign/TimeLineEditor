@@ -93,8 +93,8 @@ let {
    * measure view gives a value.
    */
   knotsOf?: KnotsOf | undefined;
-  /** Select `address` alone on the canvas: a row of the Elisions tab. */
-  onselect?: ((address: Address) => void) | undefined;
+  /** Select `addresses` on the canvas: a row of the Elisions tab, a jump's destination. */
+  onselect?: ((addresses: readonly Address[]) => void) | undefined;
   /** Whether the canvas is locked: the level tab's arrangement is then disabled, as the canvas's is. */
   locked?: boolean;
 } = $props();
@@ -223,6 +223,7 @@ const hinted = $derived(block === null && !manifest.dirty);
             editing={innermost ?? null}
             {placement}
             {drafts}
+            {onselect}
           />
         {:else if item === "elisions"}
           <ElisionsPanel

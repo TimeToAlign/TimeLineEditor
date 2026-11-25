@@ -9,8 +9,11 @@
  * inspector's `PropertyDrafts`; a commit or a step is one `set`. Below, the
  * group memberships of the selected timelines or group, and the New group
  * button (`groups.ts`), each click one command. One selected flow-control
- * element shows, below its name, its read-only rows and its provenance with
- * the user's belief (`FlowControlDetails`).
+ * element shows, below its name, its read-only rows, its display toggles,
+ * a jump's destinations and its provenance with the user's belief
+ * (`FlowControlDetails`); the jump stays inspected while a destination's
+ * marks are selected with it. A selected band shows its display toggles
+ * below its rows, and a region its start, end and length.
  */
 import type {
   Editing,
@@ -25,11 +28,22 @@ import { sameAddress } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { postOf } from "../messages.svelte.ts";
 import { paneOf } from "../pane.ts";
+import DisplayGroups from "./DisplayGroups.svelte";
+import { bandToggles } from "./display.ts";
 import FlowControlDetails from "./FlowControlDetails.svelte";
 import { flowOf } from "./flow.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
-import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf, shownOf } from "./properties.ts";
+import {
+  bandRows,
+  fieldLabel,
+  geometryOf,
+  isSize,
+  lockOf,
+  nameOf,
+  regionRows,
+  shownOf,
+} from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
 let {
@@ -40,6 +54,7 @@ let {
   editing,
   placement,
   drafts,
+  onselect = () => {},
 }: {
   view: View;
   store: Store;
@@ -52,6 +67,8 @@ let {
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
+  /** Select `addresses` on the canvas: the marks of a jump's destination. */
+  onselect?: (addresses: readonly Address[]) => void;
 } = $props();
 
 const uid = $props.id();
@@ -68,8 +85,14 @@ function notify(notice: string | null): void {
 /** The store's editing path, followed as it changes. */
 const live = $derived(liveStore(store));
 
+/** The one flow-control element selected, itself or by its label, with its destinations' marks; else `null`. */
+const flow = $derived(flowOf(subjects));
+
+/** What the tab inspects: the flow-control element alone where one is selected with its marks, else the selection. */
+const inspected = $derived(flow === null ? subjects : [flow.subject]);
+
 /** The name field: the workspace's, the edited element's or the inspected thing's where it has a name; else `null`. */
-const name = $derived(nameOf(view, subjects, live.editing.at(-1) ?? null));
+const name = $derived(nameOf(view, inspected, live.editing.at(-1) ?? null));
 
 /**
  * What the canvas shows of the block: the gesture's placement and drawing
@@ -79,25 +102,30 @@ const shown: Shown | null = $derived(block === null ? null : shownOf(view, block
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
 const geometry = $derived(
-  block === null || shown === null ? null : geometryOf(block, subjects, shown, editing, pane),
+  block === null || shown === null ? null : geometryOf(block, inspected, shown, editing, pane),
 );
 
 /** The read-only rows of the one band selected; else `null`. */
-const band = $derived(shown === null ? null : bandRows(subjects, shown));
+const band = $derived(shown === null ? null : bandRows(inspected, shown));
 
-/** The one flow-control element selected, itself or by its label; else `null`. */
-const flow = $derived(flowOf(subjects));
+/** The display toggles of the one band selected; else `null`. */
+const toggles = $derived(band === null ? null : bandToggles(view, inspected));
+
+/** The start, end and length of the one region selected; else `null`. */
+const region = $derived(regionRows(inspected));
 
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
-const lock = $derived(block === null ? null : lockOf(subjects));
+const lock = $derived(block === null ? null : lockOf(inspected));
 
 /** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
 const memberships = $derived(
-  block === null ? null : (groupsOf(view, subjects, editing) ?? membersOf(view, subjects, editing)),
+  block === null
+    ? null
+    : (groupsOf(view, inspected, editing) ?? membersOf(view, inspected, editing)),
 );
 
 /** The New group button's command, for selected timelines or the selected block; else `null`. */
-const newGroup = $derived(block === null ? null : newGroupOf(view, subjects, editing));
+const newGroup = $derived(block === null ? null : newGroupOf(view, inspected, editing));
 
 /** A refusal of the store, and the selection it was refused for. */
 interface MembershipRefusal {
@@ -245,6 +273,17 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   {/if}
 {/snippet}
 
+{#snippet rows(values: readonly { readonly label: string; readonly value: string }[], testid: string)}
+  <dl class="properties" data-testid={testid}>
+    {#each values as row (row.label)}
+      <div>
+        <dt>{row.label}</dt>
+        <dd>{row.value}</dd>
+      </div>
+    {/each}
+  </dl>
+{/snippet}
+
 {#snippet placeField(field: PlaceField, edited: Geometry)}
   {@const property = field.property}
   {@const problem = drafts.problem(edited, property)}
@@ -276,16 +315,18 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     <p class="hint">{GEOMETRY_HINT}</p>
   {/if}
 {:else if band !== null}
-  <dl class="properties">
-    {#each band as row (row.label)}
-      <div>
-        <dt>{row.label}</dt>
-        <dd>{row.value}</dd>
-      </div>
-    {/each}
-  </dl>
+  {@render rows(band, "band-rows")}
+  <DisplayGroups {view} {store} {block} groups={toggles ?? []} />
+{:else if region !== null}
+  {@render rows(region, "region-rows")}
 {:else if flow !== null}
-  <FlowControlDetails {view} {store} {flow} />
+  <FlowControlDetails
+    {view}
+    {store}
+    {flow}
+    selected={subjects.map((subject) => subject.address)}
+    {onselect}
+  />
 {:else if geometry === null}
   <p class="hint">{GEOMETRY_HINT}</p>
   {@render locked()}
