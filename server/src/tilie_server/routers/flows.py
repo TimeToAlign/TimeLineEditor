@@ -185,7 +185,7 @@ def flows_answer(body: bytes) -> dict[str, Any]:
     """The flows of the timeline a request names.
 
     Returns:
-        ``{"timeline", "number_type", "atomic_sections", "conventions"}``:
+        ``{"timeline", "number_type", "atomic_sections", "conventions"}``,
         the timeline's bare ID and number type; its atomic sections in the
         order of the axis, each ``{"name", "start", "end"}``; and under each
         convention answered ``{"runs", "sections"}``, the runs played as
@@ -276,7 +276,7 @@ def written_manifest(body: bytes) -> str:
     """The manifest of a request with the flows of the timeline it names written.
 
     Returns:
-        A manifest file's text in timetoshare's JSON serialization: the
+        A manifest file's text in timetoshare's JSON serialization, the
         manifest as timetoalign writes it, in the minimal form, after
         writing the timeline's atomic sections as Regions and its computed
         FlowMaps. A child timeline's Regions are written on the child and

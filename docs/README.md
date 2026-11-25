@@ -12,11 +12,11 @@ doc comments of the app's packages by TypeDoc with typedoc-plugin-markdown
 ## Prerequisites
 
 The installed app workspace and the server's `docs` dependency group, as in
-the contributing guide's setup:
+the contributing guide's setup, both from the repository root:
 
 ```sh
 pnpm -C app install
-cd server && uv sync --group docs
+uv sync --project server --group docs
 ```
 
 ## Build
@@ -29,6 +29,10 @@ uv run --project server --group docs sphinx-build -W --keep-going -n -d docs/_bu
 
 The site is written to `docs/_build/html`; open `index.html` there. Every link
 inside the site is relative, so the folder can be served from any path.
+
+The build needs a network connection: it reads the object inventories of the
+Python, NumPy and PyArrow documentation to link their names, and without them
+the strict build fails. A TypeDoc warning fails it as well.
 
 The build first writes three folders of generated pages, all ignored by git:
 `docs/api-ts/` (TypeDoc, run through `pnpm exec` in `app/`), `docs/api-py/`

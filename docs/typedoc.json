@@ -34,5 +34,6 @@
   "hideBreadcrumbs": true,
   "useCustomAnchors": true,
   "sort": ["kind", "alphabetical"],
-  "logLevel": "Warn"
+  "logLevel": "Warn",
+  "treatWarningsAsErrors": true
 }

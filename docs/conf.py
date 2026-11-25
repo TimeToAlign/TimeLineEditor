@@ -29,7 +29,9 @@ from docutils.nodes import Element
 from sphinx.addnodes import pending_xref
 from sphinx.application import Sphinx
 from sphinx.environment import BuildEnvironment
-from sphinx.ext import intersphinx, napoleon
+from sphinx.ext import intersphinx
+from sphinx.ext.napoleon import Config as NapoleonConfig
+from sphinx.ext.napoleon.docstring import GoogleDocstring
 
 DOCS = Path(__file__).resolve().parent
 REPO = DOCS.parent
@@ -42,8 +44,7 @@ REPOSITORY = _urls["Repository"]
 # -- Project -------------------------------------------------------------------
 
 project = "TimeLineEditor"
-author = _metadata["Author"]
-copyright = author
+copyright = "2026 Time to Align!"
 release = _metadata["Version"]
 version = release
 
@@ -54,7 +55,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
 ]
 
@@ -79,9 +79,6 @@ autodoc_default_options = {
 }
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
-napoleon_google_docstring = True
-napoleon_numpy_docstring = False
-napoleon_use_ivar = True
 # A constant holding an instance of a built-in class (a ``struct.Struct``, a
 # ``list[...]`` alias) is shown in its module's source, not in the class's.
 viewcode_follow_imported_members = False
@@ -110,16 +107,24 @@ html_theme_options = {
     "icon_links": [
         {"name": "GitHub", "url": REPOSITORY, "icon": "fa-brands fa-github"},
     ],
+    # Every entry of the root page's table of contents in the navigation bar.
+    "header_links_before_dropdown": 8,
     "navigation_with_keys": False,
     "show_toc_level": 2,
+    # The sidebar shows the branch of the current page only, to the depth of a
+    # package's modules; every page repeats it.
+    "collapse_navigation": True,
+    "navigation_depth": 2,
 }
 html_show_sourcelink = False
+# The search reads its previews from the pages themselves.
+html_copy_source = False
 
 # -- Generated pages -----------------------------------------------------------
 
 #: Repository files that are pages of this site, by their page name.
 SITE_PAGES = {
-    "README.md": "index",
+    "README.md": "overview",
     "CONTRIBUTING.md": "contributing",
     "CHANGELOG.md": "changelog",
     "decisions": "decisions",
@@ -159,6 +164,10 @@ def _rewrite_links(text: str, source: Path, page_folder: PurePosixPath) -> str:
         if not path or _SCHEME.match(path):
             return match[0]
         absolute = Path(os.path.normpath(source.parent / path))
+        if not absolute.is_relative_to(REPO):
+            # A link out of the repository is left as written, for the strict
+            # build to report.
+            return match[0]
         relative = PurePosixPath(absolute.relative_to(REPO).as_posix())
         page = _page_of(relative)
         if page is not None:
@@ -338,43 +347,9 @@ def _qualify_raised(obj: object, lines: list[str]) -> None:
             lines[index] = f"{entry[1]}{path}{line[entry.end(2) :]}"
 
 
-_RESULT_FIELDS = {"Returns:": ":returns:", "Yields:": ":Yields:"}
-
-
-def _untyped_results(lines: list[str]) -> None:
-    """Write each ``Returns:`` and ``Yields:`` section as a field without type.
-
-    The type of a result is its annotation, which autodoc shows; napoleon
-    would read the words before the section's first colon as a type.
-    """
-    index = 0
-    while index < len(lines):
-        field = _RESULT_FIELDS.get(lines[index].strip())
-        if field is None:
-            index += 1
-            continue
-        indent = len(lines[index]) - len(lines[index].lstrip())
-        end = index + 1
-        while end < len(lines) and (
-            not lines[end].strip()
-            or len(lines[end]) - len(lines[end].lstrip()) > indent
-        ):
-            end += 1
-        raw = lines[index + 1 : end]
-        common = min(
-            (len(line) - len(line.lstrip()) for line in raw if line.strip()), default=0
-        )
-        body = [line[common:].rstrip() for line in raw]
-        while body and not body[-1]:
-            body.pop()
-        if not body:
-            index = end
-            continue
-        margin = " " * indent
-        section = [f"{margin}{field} {body[0]}"]
-        section += [f"{margin}    {line}" if line else "" for line in body[1:]]
-        lines[index:end] = [*section, ""]
-        index += len(section) + 1
+# Napoleon's Google-style reader, called directly: its extension would read
+# every docstring, a constant's and an attribute's included.
+_NAPOLEON = NapoleonConfig(napoleon_numpy_docstring=False, napoleon_use_ivar=True)
 
 
 def _read_docstring(
@@ -388,8 +363,7 @@ def _read_docstring(
     if what in ("data", "attribute"):
         return
     _qualify_raised(obj, lines)
-    _untyped_results(lines)
-    napoleon._process_docstring(app, what, name, obj, options, lines)
+    lines[:] = GoogleDocstring(lines, _NAPOLEON, app, what, name, obj, options).lines()
 
 
 def _resolve_in_module(
@@ -433,9 +407,6 @@ def _resolve_in_module(
 
 def setup(app: Sphinx) -> None:
     app.connect("missing-reference", _resolve_in_module)
-    for listener in list(app.events.listeners["autodoc-process-docstring"]):
-        if listener.handler is napoleon._process_docstring:
-            app.disconnect(listener.id)
     app.connect("autodoc-process-docstring", _read_docstring)
     app.connect("builder-inited", _generate, priority=100)
     app.connect("source-read", _read_page)

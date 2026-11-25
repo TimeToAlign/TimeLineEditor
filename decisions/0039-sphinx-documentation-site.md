@@ -76,17 +76,22 @@ The first option. The site's source is `docs/`, its configuration
 command):
 
 - **Python** (`server/pyproject.toml`, dependency group `docs`, pinned):
-  `sphinx` 9.0.4, `pydata-sphinx-theme` 0.21.0, `myst-parser` 5.1.0. Sphinx's
-  own `autodoc`, `autosummary` (one page per module, written at build time),
-  `napoleon` (Google style), `intersphinx` (Python, NumPy, PyArrow) and
-  `viewcode`. Sphinx 9.0.4 is the last release that runs on Python 3.11, the
-  server's lowest version; 9.1 needs 3.12.
+  `sphinx` 9.0.4, `pydata-sphinx-theme` 0.24.0, `myst-parser` 5.1.0, the
+  versions the TimeToShare site pins, so that the sites of the sibling
+  repositories look and behave alike. Sphinx 9.0.4 is the last release that
+  runs on Python 3.11, the server's lowest version; 9.1 needs 3.12. The theme
+  0.24.0 is younger than the lockfile's global release-age date and has an
+  entry of its own in `[tool.uv] exclude-newer-package`. Sphinx's own
+  `autodoc`, `autosummary` (one page per module, written at build time),
+  `intersphinx` (Python, NumPy, PyArrow) and `viewcode`, and napoleon's
+  Google-style reader.
 - **npm** (`app/package.json`, devDependencies of the workspace root, pinned):
   `typedoc` 0.28.20 and `typedoc-plugin-markdown` 4.14.1. `docs/typedoc.json`
   converts each package with the `packages` strategy, every module under its
   `src/` (`.ts` and `.svelte.ts`; declaration files, tests and Svelte
   components left out), and writes one Markdown page per module into
-  `docs/api-ts/`. TypeDoc runs with `skipErrorChecking`: each package's
+  `docs/api-ts/`. TypeDoc treats its warnings as errors, a broken `{@link}`
+  among them, so they fail the build. It runs with `skipErrorChecking`: each package's
   `tsconfig.json` also covers its tests, which import named types from Svelte
   components that only `svelte-check` resolves; type checking is the
   `typecheck` script's task.
@@ -96,18 +101,23 @@ command):
   the included files that lead to other repository files are pointed, while
   the files are read, at the page that shows the linked file, or at the file
   on GitHub; no text is changed on disk.
-- Napoleon reads every docstring but a constant's or an attribute's, which in
-  this code base is a sentence, its type being its annotation.
+- Napoleon's reader is called directly, not through its extension, and reads
+  every docstring but a constant's or an attribute's, which in this code base
+  is a sentence, its type being its annotation.
+- The navigation sidebar shows only the branch of the current page, two levels
+  deep: it is repeated on every page, and with all modules of the six
+  packages in it, it made up more than half of each TypeScript page.
 
 ## Maintenance and dependencies
 
 - **Sphinx** is maintained by the Sphinx organisation on GitHub (a team of
-  maintainers, releases since 2008); 9.2.0 was released on 2026-10-21. BSD-2-Clause.
+  maintainers, releases since 2008); its newest release, 9.2.0, came out on
+  2026-10-21. BSD-2-Clause.
 - **pydata-sphinx-theme** is maintained by the PyData community (the theme of
-  NumPy, pandas and SciPy, among others); 0.24.0 was released on 2026-11-02.
-  BSD-3-Clause.
-- **MyST-Parser** is maintained by the Executable Books project; 5.2.0 was
-  released on 2026-11-10. MIT.
+  NumPy, pandas and SciPy, among others); 0.24.0, the newest release, came
+  out on 2026-11-02. BSD-3-Clause.
+- **MyST-Parser** is maintained by the Executable Books project; its newest
+  release, 5.2.0, came out on 2026-11-10. MIT.
 - **TypeDoc** has five maintainers on npm and a release history since 2014;
   0.28.20 (2026-07-05) is the last 0.28 release, a 1.0 line is in
   prerelease. It supports TypeScript up to 6.0, the version of this workspace.
@@ -123,7 +133,7 @@ bytes):
 | Package | Release | Licence | Size (bytes) | New transitive packages |
 | --- | --- | --- | ---: | --- |
 | `sphinx` 9.0.4 | 2025-12-04 | BSD-2-Clause | 3,917,713 | 24 Python packages in all three, among them `docutils`, `jinja2`, `babel`, `requests` |
-| `pydata-sphinx-theme` 0.21.0 | 2026-08-25 | BSD-3-Clause | 6,208,465 | `beautifulsoup4`, `accessible-pygments` |
+| `pydata-sphinx-theme` 0.24.0 | 2026-11-02 | BSD-3-Clause | 3,217,864 | `beautifulsoup4`, `accessible-pygments` |
 | `myst-parser` 5.1.0 | 2026-05-13 | MIT | 85,817 | `markdown-it-py`, `mdit-py-plugins` |
 | `typedoc` 0.28.20 | 2026-07-05 | Apache-2.0 | 2,180,489 | 18 npm packages in both, among them `markdown-it`, `lunr`, `minimatch`, `@gerrit0/mini-shiki` |
 | `typedoc-plugin-markdown` 4.14.1 | 2026-10-19 | MIT | 396,953 | none |
