@@ -25,8 +25,7 @@ import {
 import { ELISION_LABELS, elisionsOn, elisionsUnder, groupElisions } from "./elisions.ts";
 import type { GroupFrame, MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
-import { FLOW_LINE_ROLES, type FlowLineRole } from "./flow.ts";
-import { flowSymbols, memberFlow } from "./flowtree.ts";
+import { FLOW_LINE_ROLES, type FlowLineRole, flowSymbols } from "./flow.ts";
 import { findTimeline, groupsHolding, timelineAncestry } from "./tree.ts";
 import type {
   ChildTimeline,
@@ -1071,4 +1070,54 @@ function cardOf(manifest: Manifest, member: MemberDrawing, frame: GroupFrame | n
     length: lambda,
     known: memberLength !== null,
   };
+}
+
+/** A flow-control element of a tree with the timeline stating it and its position on an axis. */
+export interface PlacedFlow {
+  readonly element: FlowControlElement;
+  readonly timeline: TimelineManifest;
+  /** Where the timeline starts on the axis. */
+  readonly start: Real;
+  /** Where the element lies on the axis: the timeline's start plus its coordinate. */
+  readonly at: Real;
+}
+
+/**
+ * The flow-control elements the card of a member that is a child timeline
+ * draws (section 6.4, Flow control): those of every timeline of its root's
+ * tree, the member's own and its descendants' included, each at its
+ * position on the member's axis (offset arithmetic from the root down),
+ * kept where that position lies on `[0, λ]`, `λ` the member's length or,
+ * where that is not known, its reach (section 3.4); in the root's traversal
+ * order (section 6.1, children by offset, then ID), each timeline's in the
+ * order of its `flow_control`. None for a root, whose card draws its own
+ * tree's.
+ */
+export function memberFlow(manifest: Manifest, member: MemberDrawing): readonly PlacedFlow[] {
+  const [top] = member.ancestors;
+  if (top === undefined) return [];
+  const own = member.timeline;
+  // The member's start on the root's axis, summed from the root down.
+  let memberStart: Real = zeroOf(top.timeline);
+  for (const { timeline, offset } of member.ancestors) {
+    memberStart = addReal(memberStart, value(offset, timeline));
+  }
+  const lambda = own.length === null ? reachOf(own, manifest) : value(own.length, own);
+  const back =
+    typeof memberStart === "number" ? -memberStart : Rational.of(0n).subtract(memberStart);
+  const placed: PlacedFlow[] = [];
+  const visit = (timeline: TimelineManifest, start: Real) => {
+    const relative = addReal(start, back);
+    for (const element of timeline.flow_control) {
+      const at = addReal(relative, value(element.coordinate, timeline));
+      if (compareReal(at, zeroOf(own)) >= 0 && compareReal(at, lambda) <= 0) {
+        placed.push({ element, timeline, start: relative, at });
+      }
+    }
+    for (const child of orderedChildren(timeline)) {
+      visit(child, addReal(start, value(child.offset, timeline)));
+    }
+  };
+  visit(top.timeline, zeroOf(top.timeline));
+  return placed;
 }

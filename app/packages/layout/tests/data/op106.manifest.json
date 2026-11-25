@@ -194,7 +194,11 @@
     {
       "assertion": {
         "asserted_on": "2026-11-17",
-        "based_on": ["README.md", "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284", "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"],
+        "based_on": [
+          "README.md",
+          "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+          "https://musicbrainz.org/series/004f17aa-0f46-4fec-b939-c5dfc849e5c6"
+        ],
         "method": "manual",
         "status": "unconfirmed"
       },
@@ -234,7 +238,11 @@
       ],
       "parts_relation": "has_part",
       "relation": "pertains_to",
-      "uri": ["http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284", "http://www.wikidata.org/entity/Q146730", "http://viaf.org/viaf/186299955"]
+      "uri": [
+        "http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+        "http://www.wikidata.org/entity/Q146730",
+        "http://viaf.org/viaf/186299955"
+      ]
     }
   ],
   "measure_maps": [

@@ -2,10 +2,15 @@ import { dumps, loads } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { idAddress } from "../src/manifest/address.ts";
-import { manifestElements } from "../src/manifest/elements.ts";
+import { manifestElements, memberFlow } from "../src/manifest/elements.ts";
 import { memberDrawings } from "../src/manifest/files.ts";
-import { FLOW_LINE_ROLES, isRejected, withElementBelief } from "../src/manifest/flow.ts";
-import { flowSymbols, memberFlow, passesText } from "../src/manifest/flowtree.ts";
+import {
+  FLOW_LINE_ROLES,
+  flowSymbols,
+  isRejected,
+  passesText,
+  withElementBelief,
+} from "../src/manifest/flow.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
 import { removedBy } from "../src/manifest/remove.ts";
 import type { FlowControlElement, Manifest } from "../src/manifest/types.ts";
